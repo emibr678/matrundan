@@ -223,24 +223,26 @@ function PlacesIndex() {
             <div className="space-y-5 py-4">
               <FilterGroup label="Kategori">
                 <ChipRow
-                  options={[{ key: "alla", label: "Alla" } as const].concat(
-                    Object.entries(CATEGORY_LABEL).map(([k, v]) => ({
+                  options={[
+                    { key: "alla", label: "Alla" },
+                    ...Object.entries(CATEGORY_LABEL).map(([k, v]) => ({
                       key: k,
                       label: v,
                     })),
-                  )}
+                  ]}
                   value={category}
                   onChange={(v) => setCategory(v as PlaceCategory | "alla")}
                 />
               </FilterGroup>
               <FilterGroup label="Tillfälle">
                 <ChipRow
-                  options={[{ key: "alla", label: "Alla" } as const].concat(
-                    Object.entries(OCCASION_LABEL).map(([k, v]) => ({
+                  options={[
+                    { key: "alla", label: "Alla" },
+                    ...Object.entries(OCCASION_LABEL).map(([k, v]) => ({
                       key: k,
                       label: v,
                     })),
-                  )}
+                  ]}
                   value={occasion}
                   onChange={(v) => setOccasion(v as Occasion | "alla")}
                 />
