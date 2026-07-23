@@ -124,7 +124,7 @@ export function VisitDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Måltid</Label>
+              <Label>Tillfälle</Label>
               <Select value={meal} onValueChange={(v) => setMeal(v as typeof meal)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -132,7 +132,7 @@ export function VisitDialog({
                 <SelectContent>
                   {MEALS.map((m) => (
                     <SelectItem key={m} value={m}>
-                      {m[0].toUpperCase() + m.slice(1)}
+                      {MEAL_LABEL[m]}
                     </SelectItem>
                   ))}
                 </SelectContent>
