@@ -1,10 +1,10 @@
 /**
  * Lokalt applikationstillstånd för Matrundan.
  *
- * Detta lager är avsiktligt separerat från komponenter så att det senare
- * går att byta ut mot ett Supabase-repository utan att ändra vyer.
- * Data speglar den planerade Supabase-modellen (profiles, groups,
- * memberships, places, visits, reviews, favorites, activity).
+ * Detta lager är avsiktligt separerat från vyerna så att det senare kan
+ * bytas ut mot ett Supabase-repository utan att ändra komponenterna.
+ * Modellen speglar den planerade Supabase-schemat: profiles, groups,
+ * memberships, places, visits, reviews, favorites, activity.
  */
 
 import * as React from "react";
@@ -21,111 +21,20 @@ import type {
 
 const STORAGE_KEY = "matrundan.state.v1";
 
-type Action =
-  | { type: "reset" }
-  | { type: "setNext"; placeId: string | null }
-  | { type: "addPlace"; place: Omit<Place, "id" | "addedAt"> }
-  | { type: "toggleFavorite"; placeId: string }
-  | { type: "addVisit"; visit: Omit<Visit, "id"> };
-
-function reducer(state: AppState, action: Action): AppState {
-  switch (action.type) {
-    case "reset":
-      return DEMO_STATE;
-
-    case "setNext":
-      return {
-        ...state,
-        nextPlaceId: action.placeId,
-        activity: action.placeId
-          ? [
-              {
-                id: `a-${Date.now()}`,
-                kind: "next-picked",
-                memberId: state.currentUserId,
-                placeId: action.placeId,
-                at: new Date().toISOString(),
-                text: `${nameOf(state, state.currentUserId)} valde ${
-                  state.places.find((p) => p.id === action.placeId)?.name ?? "ett ställe"
-                } som nästa stopp`,
-              },
-              ...state.activity,
-            ]
-          : state.activity,
-      };
-
-    case "addPlace": {
-      const id = `p-${Date.now()}`;
-      const place: Place = {
-        ...action.place,
-        id,
-        addedAt: new Date().toISOString(),
-      };
-      return {
-        ...state,
-        places: [place, ...state.places],
-        activity: [
-          {
-            id: `a-${Date.now()}`,
-            kind: "added",
-            memberId: state.currentUserId,
-            placeId: id,
-            at: place.addedAt,
-            text: `${nameOf(state, state.currentUserId)} la till ${place.name}`,
-          },
-          ...state.activity,
-        ],
-      };
-    }
-
-    case "toggleFavorite": {
-      const exists = state.favorites.find(
-        (f) => f.memberId === state.currentUserId && f.placeId === action.placeId,
-      );
-      const favorites: Favorite[] = exists
-        ? state.favorites.filter(
-            (f) => !(f.memberId === state.currentUserId && f.placeId === action.placeId),
-          )
-        : [...state.favorites, { memberId: state.currentUserId, placeId: action.placeId }];
-      return { ...state, favorites };
-    }
-
-    case "addVisit": {
-      const id = `v-${Date.now()}`;
-      const visit: Visit = { ...action.visit, id };
-      const place = state.places.find((p) => p.id === visit.placeId);
-      return {
-        ...state,
-        visits: [visit, ...state.visits],
-        nextPlaceId: state.nextPlaceId === visit.placeId ? null : state.nextPlaceId,
-        activity: [
-          {
-            id: `a-${Date.now()}`,
-            kind: "visited",
-            memberId: state.currentUserId,
-            placeId: visit.placeId,
-            visitId: id,
-            at: visit.date,
-            text: `${nameOf(state, state.currentUserId)} registrerade ett besök på ${
-              place?.name ?? "ett ställe"
-            }`,
-          },
-          ...state.activity,
-        ],
-      };
-    }
-  }
-}
-
 function nameOf(state: AppState, memberId: string) {
   return state.members.find((m) => m.id === memberId)?.name ?? "Någon";
 }
 
 interface StoreContextValue {
   state: AppState;
-  dispatch: React.Dispatch<Action>;
+  addPlace: (input: Omit<Place, "id" | "addedAt">) => Place;
+  toggleFavorite: (placeId: string) => void;
+  addVisit: (visit: Omit<Visit, "id">) => Visit;
+  setNext: (placeId: string | null) => void;
+  resetDemo: () => void;
   // selectors
   getPlace: (id: string) => Place | undefined;
+  memberById: (id: string) => AppState["members"][number] | undefined;
   visitsFor: (placeId: string) => Visit[];
   avgRating: (placeId: string) => { overall: number; count: number };
   isFavorite: (placeId: string) => boolean;
@@ -137,35 +46,16 @@ interface StoreContextValue {
 
 const StoreContext = React.createContext<StoreContextValue | null>(null);
 
-function loadInitial(): AppState {
-  if (typeof window === "undefined") return DEMO_STATE;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEMO_STATE;
-    return JSON.parse(raw) as AppState;
-  } catch {
-    return DEMO_STATE;
-  }
-}
-
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = React.useReducer(reducer, DEMO_STATE);
+  const [state, setState] = React.useState<AppState>(DEMO_STATE);
   const [hydrated, setHydrated] = React.useState(false);
 
-  // Hydrera från localStorage efter mount (SSR-säkert)
   React.useEffect(() => {
-    const loaded = loadInitial();
-    if (loaded !== DEMO_STATE) {
-      // ersätt hela state via reset + replay – enklare: bara skriv över
-      // genom att köra en microreset. Vi använder en snabb "reset" trick:
-      // ersätt via ett custom action: hantera i-line här:
-      // Enklaste: hoppa över – vi bevarar DEMO_STATE på första besöket och
-      // sparar därefter förändringar.
-      // Faktisk hydratisering:
-      (dispatch as unknown as (a: { type: "__hydrate"; state: AppState }) => void)({
-        type: "__hydrate",
-        state: loaded,
-      });
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) setState(JSON.parse(raw) as AppState);
+    } catch {
+      /* ignore */
     }
     setHydrated(true);
   }, []);
@@ -175,46 +65,150 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      // ignore quota
+      /* ignore */
     }
   }, [state, hydrated]);
 
   const value = React.useMemo<StoreContextValue>(() => {
+    const pushActivity = (s: AppState, a: Activity): AppState => ({
+      ...s,
+      activity: [a, ...s.activity].slice(0, 50),
+    });
+
     return {
       state,
-      dispatch,
+
+      addPlace: (input) => {
+        const place: Place = {
+          ...input,
+          id: `p-${Date.now()}`,
+          addedAt: new Date().toISOString(),
+        };
+        setState((s) =>
+          pushActivity(
+            { ...s, places: [place, ...s.places] },
+            {
+              id: `a-${Date.now()}`,
+              kind: "added",
+              memberId: s.currentUserId,
+              placeId: place.id,
+              at: place.addedAt,
+              text: `${nameOf(s, s.currentUserId)} la till ${place.name}`,
+            },
+          ),
+        );
+        return place;
+      },
+
+      toggleFavorite: (placeId) =>
+        setState((s) => {
+          const exists = s.favorites.find(
+            (f) => f.memberId === s.currentUserId && f.placeId === placeId,
+          );
+          return {
+            ...s,
+            favorites: exists
+              ? s.favorites.filter(
+                  (f) => !(f.memberId === s.currentUserId && f.placeId === placeId),
+                )
+              : [...s.favorites, { memberId: s.currentUserId, placeId }],
+          };
+        }),
+
+      addVisit: (visitInput) => {
+        const visit: Visit = { ...visitInput, id: `v-${Date.now()}` };
+        setState((s) => {
+          const place = s.places.find((p) => p.id === visit.placeId);
+          return pushActivity(
+            {
+              ...s,
+              visits: [visit, ...s.visits],
+              nextPlaceId: s.nextPlaceId === visit.placeId ? null : s.nextPlaceId,
+            },
+            {
+              id: `a-${Date.now()}`,
+              kind: "visited",
+              memberId: s.currentUserId,
+              placeId: visit.placeId,
+              visitId: visit.id,
+              at: visit.date,
+              text: `${nameOf(s, s.currentUserId)} registrerade ett besök på ${
+                place?.name ?? "ett ställe"
+              }`,
+            },
+          );
+        });
+        return visit;
+      },
+
+      setNext: (placeId) =>
+        setState((s) => {
+          if (!placeId) return { ...s, nextPlaceId: null };
+          const place = s.places.find((p) => p.id === placeId);
+          return pushActivity(
+            { ...s, nextPlaceId: placeId },
+            {
+              id: `a-${Date.now()}`,
+              kind: "next-picked",
+              memberId: s.currentUserId,
+              placeId,
+              at: new Date().toISOString(),
+              text: `${nameOf(s, s.currentUserId)} valde ${
+                place?.name ?? "ett ställe"
+              } som nästa stopp`,
+            },
+          );
+        }),
+
+      resetDemo: () => {
+        try {
+          window.localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+        setState(DEMO_STATE);
+      },
+
       getPlace: (id) => state.places.find((p) => p.id === id),
+      memberById: (id) => state.members.find((m) => m.id === id),
+
       visitsFor: (placeId) =>
         state.visits
           .filter((v) => v.placeId === placeId)
           .sort((a, b) => (a.date < b.date ? 1 : -1)),
+
       avgRating: (placeId) => {
         const vs = state.visits.filter((v) => v.placeId === placeId);
         if (!vs.length) return { overall: 0, count: 0 };
         const sum = vs.reduce((s, v) => s + v.overall, 0);
         return { overall: sum / vs.length, count: vs.length };
       },
+
       isFavorite: (placeId) =>
         state.favorites.some(
           (f) => f.memberId === state.currentUserId && f.placeId === placeId,
         ),
+
       hasVisited: (placeId, memberId) => {
         const uid = memberId ?? state.currentUserId;
         return state.visits.some(
           (v) => v.placeId === placeId && v.participantIds.includes(uid),
         );
       },
+
       statusOf: (placeId) => {
         const memberIds = state.members.map((m) => m.id);
         const visited = memberIds.filter((mid) =>
-          state.visits.some((v) => v.placeId === placeId && v.participantIds.includes(mid)),
+          state.visits.some(
+            (v) => v.placeId === placeId && v.participantIds.includes(mid),
+          ),
         );
-        const myVisited = visited.includes(state.currentUserId);
         if (visited.length === 0) return "nytt-for-gruppen";
         if (visited.length === memberIds.length) return "alla-provat";
-        if (!myVisited) return "nytt-for-mig";
+        if (!visited.includes(state.currentUserId)) return "nytt-for-mig";
         return "delvis";
       },
+
       categoryCounts: () => {
         const acc: Record<PlaceCategory, number> = {
           restaurang: 0,
@@ -227,6 +221,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         state.places.forEach((p) => (acc[p.category] += 1));
         return acc;
       },
+
       occasionCounts: () => {
         const acc: Record<Occasion, number> = { snabbt: 0, avslappnat: 0, middag: 0 };
         state.places.forEach((p) => p.occasions.forEach((o) => (acc[o] += 1)));
@@ -238,17 +233,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 
-// Extend reducer to handle hydrate outside the discriminated union above.
-// We do this by monkeypatching via a wrapper — but simpler: re-declare reducer.
-// (kept above cleanly)
-
 export function useStore() {
   const ctx = React.useContext(StoreContext);
   if (!ctx) throw new Error("useStore måste användas inuti <StoreProvider>");
   return ctx;
 }
-
-// -- helpers exponerade för vyer --
 
 export function formatDate(iso: string) {
   const d = new Date(iso);
@@ -258,7 +247,11 @@ export function formatDate(iso: string) {
   if (days === 1) return "igår";
   if (days < 7) return `${days} dgr sedan`;
   if (days < 30) return `${Math.floor(days / 7)} v sedan`;
-  return d.toLocaleDateString("sv-SE", { year: "numeric", month: "short", day: "numeric" });
+  return d.toLocaleDateString("sv-SE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function googleMapsUrl(p: Place) {
