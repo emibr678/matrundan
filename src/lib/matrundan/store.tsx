@@ -211,6 +211,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return "delvis";
       },
 
+      visitedCounts: (placeId) => {
+        const memberIds = state.members.map((m) => m.id);
+        const visited = memberIds.filter((mid) =>
+          state.visits.some(
+            (v) => v.placeId === placeId && v.participantIds.includes(mid),
+          ),
+        );
+        return { visited: visited.length, total: memberIds.length };
+      },
+
+      proposerOfNext: () => {
+        if (!state.nextPlaceId) return undefined;
+        const a = state.activity.find(
+          (x) => x.kind === "next-picked" && x.placeId === state.nextPlaceId,
+        );
+        return a?.memberId;
+      },
+
       categoryCounts: () => {
         const acc: Record<PlaceCategory, number> = {
           restaurang: 0,
