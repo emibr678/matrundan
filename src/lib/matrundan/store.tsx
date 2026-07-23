@@ -40,6 +40,8 @@ interface StoreContextValue {
   isFavorite: (placeId: string) => boolean;
   hasVisited: (placeId: string, memberId?: string) => boolean;
   statusOf: (placeId: string) => "nytt-for-mig" | "nytt-for-gruppen" | "alla-provat" | "delvis";
+  visitedCounts: (placeId: string) => { visited: number; total: number };
+  proposerOfNext: () => string | undefined;
   categoryCounts: () => Record<PlaceCategory, number>;
   occasionCounts: () => Record<Occasion, number>;
 }
