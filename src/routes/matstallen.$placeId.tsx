@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams, useRouter } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Heart,
@@ -15,8 +15,17 @@ import { Badge } from "@/components/ui/badge";
 import { useStore, formatDate, googleMapsUrl } from "@/lib/matrundan/store";
 import { RatingStars } from "@/components/matrundan/Rating";
 import { StatusBadge } from "@/components/matrundan/StatusBadge";
+import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { CATEGORY_LABEL, OCCASION_LABEL } from "@/lib/matrundan/types";
+
+const MEAL_LABEL: Record<string, string> = {
+  frukost: "Frukost",
+  lunch: "Lunch",
+  fika: "Fika",
+  middag: "Middag",
+  kväll: "Kväll",
+};
 
 export const Route = createFileRoute("/matstallen/$placeId")({
   head: () => ({
@@ -28,18 +37,23 @@ export const Route = createFileRoute("/matstallen/$placeId")({
     ],
   }),
   component: PlaceDetail,
-  notFoundComponent: () => (
+  notFoundComponent: NotFound,
+});
+
+function NotFound() {
+  return (
     <div className="p-8 text-center">
       <p className="text-sm text-muted-foreground">Stället hittades inte.</p>
       <Link to="/matstallen" className="mt-4 inline-block text-primary underline">
         Till matställen
       </Link>
     </div>
-  ),
-});
+  );
+}
 
 function PlaceDetail() {
   const { placeId } = useParams({ from: "/matstallen/$placeId" });
+  const router = useRouter();
   const {
     getPlace,
     visitsFor,
@@ -53,16 +67,7 @@ function PlaceDetail() {
   const place = getPlace(placeId);
   const [visitOpen, setVisitOpen] = React.useState(false);
 
-  if (!place) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-sm text-muted-foreground">Stället hittades inte.</p>
-        <Link to="/matstallen" className="mt-4 inline-block text-primary underline">
-          Till matställen
-        </Link>
-      </div>
-    );
-  }
+  if (!place) return <NotFound />;
 
   const rating = avgRating(place.id);
   const visits = visitsFor(place.id);
@@ -83,25 +88,30 @@ function PlaceDetail() {
     return { taste: avg(t), value: avg(v), service: avg(s) };
   }, [visits]);
 
+  const goBack = () => {
+    if (window.history.length > 1) router.history.back();
+    else router.navigate({ to: "/matstallen" });
+  };
+
   return (
-    <div className="space-y-5 pt-2">
-      <Link
-        to="/matstallen"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+    <div className="mx-auto max-w-2xl space-y-5 pt-2 md:max-w-3xl">
+      <Button
+        variant="ghost"
+        onClick={goBack}
+        className="-ml-2 h-11 min-w-11 gap-1 rounded-full px-3 text-sm text-muted-foreground hover:text-foreground"
+        aria-label="Gå tillbaka till matställen"
       >
         <ArrowLeft className="h-4 w-4" /> Tillbaka
-      </Link>
+      </Button>
 
       <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
         <div className="flex items-start gap-4 bg-gradient-to-br from-secondary to-secondary/40 p-5">
-          <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-background text-5xl shadow-sm">
-            {place.photo ?? "🍽️"}
-          </div>
+          <PlaceThumb place={place} size="lg" />
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
               {CATEGORY_LABEL[place.category]}
             </div>
-            <h1 className="font-display text-2xl font-semibold leading-tight">
+            <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
               {place.name}
             </h1>
             <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
@@ -123,31 +133,44 @@ function PlaceDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4">
+        <div className="space-y-2 p-4">
           <Button
+            size="lg"
             onClick={() => setVisitOpen(true)}
-            className="col-span-2 sm:col-span-1"
+            className="h-12 w-full text-base"
           >
-            <Plus className="h-4 w-4" /> Besök
+            <Plus className="h-4 w-4" /> Registrera besök
           </Button>
-          <Button
-            variant={isNext ? "secondary" : "outline"}
-            onClick={() => setNext(isNext ? null : place.id)}
-          >
-            <Sparkles className="h-4 w-4" />
-            {isNext ? "Är nästa" : "Nästa stopp"}
-          </Button>
-          <Button variant="outline" onClick={() => toggleFavorite(place.id)}>
-            <Heart
-              className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"}
-            />
-            {fav ? "Favorit" : "Spara"}
-          </Button>
-          <Button asChild variant="outline">
-            <a href={googleMapsUrl(place)} target="_blank" rel="noreferrer">
-              <ExternalLink className="h-4 w-4" /> Google Maps
-            </a>
-          </Button>
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant={isNext ? "secondary" : "outline"}
+              onClick={() => setNext(isNext ? null : place.id)}
+              aria-pressed={isNext}
+              className="min-h-11"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {isNext ? "Är nästa" : "Nästa stopp"}
+              </span>
+              <span className="sm:hidden">{isNext ? "Nästa" : "Nästa"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => toggleFavorite(place.id)}
+              aria-pressed={fav}
+              className="min-h-11"
+            >
+              <Heart
+                className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"}
+              />
+              {fav ? "Sparad" : "Spara"}
+            </Button>
+            <Button asChild variant="outline" className="min-h-11">
+              <a href={googleMapsUrl(place)} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" /> Maps
+              </a>
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -219,7 +242,7 @@ function PlaceDetail() {
                           <span className="font-medium">{author?.name}</span>
                           <span className="text-muted-foreground">
                             {" "}
-                            · {v.meal} · {formatDate(v.date)}
+                            · {MEAL_LABEL[v.meal] ?? v.meal} · {formatDate(v.date)}
                           </span>
                         </div>
                         <RatingStars value={v.overall} size={12} />
@@ -260,9 +283,7 @@ function PlaceDetail() {
 function RatingCell({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-center">
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
+      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
       <div className="mt-1 font-display text-xl font-semibold">
         {value > 0 ? value.toFixed(1) : "–"}
       </div>

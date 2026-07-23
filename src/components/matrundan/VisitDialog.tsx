@@ -25,6 +25,13 @@ import { RatingInput } from "./Rating";
 import { useStore } from "@/lib/matrundan/store";
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
+const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
+  frukost: "Frukost",
+  lunch: "Lunch",
+  fika: "Fika",
+  middag: "Middag",
+  kväll: "Kväll",
+};
 
 export function VisitDialog({
   open,
@@ -117,7 +124,7 @@ export function VisitDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Måltid</Label>
+              <Label>Tillfälle</Label>
               <Select value={meal} onValueChange={(v) => setMeal(v as typeof meal)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -125,7 +132,7 @@ export function VisitDialog({
                 <SelectContent>
                   {MEALS.map((m) => (
                     <SelectItem key={m} value={m}>
-                      {m[0].toUpperCase() + m.slice(1)}
+                      {MEAL_LABEL[m]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -139,7 +146,7 @@ export function VisitDialog({
               {state.members.map((m) => {
                 const active = participants.includes(m.id);
                 return (
-                  <button key={m.id} type="button" onClick={() => toggleParticipant(m.id)}>
+                  <button key={m.id} type="button" onClick={() => toggleParticipant(m.id)} aria-pressed={active} aria-label={`${active ? "Ta bort" : "Lägg till"} ${m.name} som deltagare`}>
                     <Badge
                       variant={active ? "default" : "outline"}
                       className="cursor-pointer gap-1 rounded-full px-3 py-1"

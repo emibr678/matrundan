@@ -40,6 +40,8 @@ interface StoreContextValue {
   isFavorite: (placeId: string) => boolean;
   hasVisited: (placeId: string, memberId?: string) => boolean;
   statusOf: (placeId: string) => "nytt-for-mig" | "nytt-for-gruppen" | "alla-provat" | "delvis";
+  visitedCounts: (placeId: string) => { visited: number; total: number };
+  proposerOfNext: () => string | undefined;
   categoryCounts: () => Record<PlaceCategory, number>;
   occasionCounts: () => Record<Occasion, number>;
 }
@@ -207,6 +209,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (visited.length === memberIds.length) return "alla-provat";
         if (!visited.includes(state.currentUserId)) return "nytt-for-mig";
         return "delvis";
+      },
+
+      visitedCounts: (placeId) => {
+        const memberIds = state.members.map((m) => m.id);
+        const visited = memberIds.filter((mid) =>
+          state.visits.some(
+            (v) => v.placeId === placeId && v.participantIds.includes(mid),
+          ),
+        );
+        return { visited: visited.length, total: memberIds.length };
+      },
+
+      proposerOfNext: () => {
+        if (!state.nextPlaceId) return undefined;
+        const a = state.activity.find(
+          (x) => x.kind === "next-picked" && x.placeId === state.nextPlaceId,
+        );
+        return a?.memberId;
       },
 
       categoryCounts: () => {
