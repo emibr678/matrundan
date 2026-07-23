@@ -25,6 +25,13 @@ import { RatingInput } from "./Rating";
 import { useStore } from "@/lib/matrundan/store";
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
+const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
+  frukost: "Frukost",
+  lunch: "Lunch",
+  fika: "Fika",
+  middag: "Middag",
+  kväll: "Kväll",
+};
 
 export function VisitDialog({
   open,

@@ -1,12 +1,10 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Shuffle, Plus, MapPin, Star, ChevronRight, Sparkles } from "lucide-react";
+import { Shuffle, Plus, MapPin, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useStore, formatDate } from "@/lib/matrundan/store";
-import { RatingStars } from "@/components/matrundan/Rating";
-import { StatusBadge } from "@/components/matrundan/StatusBadge";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
@@ -28,11 +26,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { state, getPlace, setNext, avgRating } = useStore();
+  const { state, getPlace, setNext, memberById, proposerOfNext } = useStore();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitPlace, setVisitPlace] = React.useState<string | null>(null);
 
   const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
+  const proposerId = proposerOfNext();
+  const proposer = proposerId ? memberById(proposerId) : undefined;
 
   const untried = React.useMemo(
     () =>
@@ -52,20 +52,20 @@ function Home() {
     setNext(pick.id);
   };
 
-  const latest = state.activity.slice(0, 6);
+  const latest = state.activity.slice(0, 5);
 
   return (
-    <div className="space-y-6 pt-2">
+    <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
       {/* Hero: Nästa stopp */}
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" />
             Nästa stopp
           </div>
           <button
             onClick={shuffle}
-            className="inline-flex items-center gap-1.5 rounded-full bg-mustard/50 px-3 py-1 text-xs font-medium text-mustard-foreground"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-mustard/50 px-3 py-1.5 text-xs font-medium text-mustard-foreground"
           >
             <Shuffle className="h-3.5 w-3.5" />
             Slumpa
@@ -77,7 +77,7 @@ function Home() {
             <div className="relative bg-gradient-to-br from-primary/85 to-primary p-6 text-primary-foreground">
               <div className="text-6xl">{next.photo ?? "🍽️"}</div>
               <div className="mt-3">
-                <div className="text-xs uppercase tracking-wider opacity-80">
+                <div className="text-xs tracking-wide opacity-80">
                   {CATEGORY_LABEL[next.category]}
                 </div>
                 <h1 className="font-display text-3xl font-semibold leading-tight">
@@ -87,6 +87,11 @@ function Home() {
                   <MapPin className="h-3.5 w-3.5" />
                   {next.address}, {next.city}
                 </div>
+                {proposer ? (
+                  <div className="mt-2 text-xs opacity-85">
+                    Föreslaget av {proposer.avatar} {proposer.name}
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="flex flex-col gap-2 p-4 sm:flex-row">
@@ -123,21 +128,22 @@ function Home() {
         )}
       </section>
 
-      {/* Snabbstatistik */}
-      <section className="grid grid-cols-3 gap-2">
-        <StatTile label="Ställen" value={totalPlaces} />
-        <StatTile label="Besök" value={state.visits.length} />
-        <StatTile label="Kvar att prova" value={untried.length} tone="mustard" />
-      </section>
-
+      {/* Framsteg + snabbstats */}
       <section>
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="font-medium">Gruppens framsteg</span>
-          <span className="text-muted-foreground">
-            {tried} av {totalPlaces} provade
-          </span>
-        </div>
-        <Progress value={progressPct} className="h-2" />
+        <Card className="rounded-2xl border-border/70 p-4">
+          <div className="mb-2 flex items-baseline justify-between text-sm">
+            <span className="font-medium">
+              Du och gruppen har provat {tried} av {totalPlaces} tillagda ställen
+            </span>
+            <span className="text-muted-foreground">{progressPct}%</span>
+          </div>
+          <Progress value={progressPct} className="h-2" />
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <StatTile label="Ställen" value={totalPlaces} />
+            <StatTile label="Besök" value={state.visits.length} />
+            <StatTile label="Kvar att prova" value={untried.length} tone="mustard" />
+          </div>
+        </Card>
       </section>
 
       {/* Snabbknappar */}
@@ -155,49 +161,6 @@ function Home() {
             <Star className="h-4 w-4" /> Bläddra listan
           </Link>
         </Button>
-      </section>
-
-      {/* Senast tillagda / topp */}
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-display text-lg">Topp betygsatta</h2>
-          <Link
-            to="/matstallen"
-            className="flex items-center text-xs font-medium text-muted-foreground"
-          >
-            Alla <ChevronRight className="h-3 w-3" />
-          </Link>
-        </div>
-        <div className="space-y-2">
-          {[...state.places]
-            .map((p) => ({ p, r: avgRating(p.id) }))
-            .filter((x) => x.r.count > 0)
-            .sort((a, b) => b.r.overall - a.r.overall)
-            .slice(0, 3)
-            .map(({ p, r }) => (
-              <Link
-                key={p.id}
-                to="/matstallen/$placeId"
-                params={{ placeId: p.id }}
-                className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
-              >
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-secondary text-2xl">
-                  {p.photo ?? "🍽️"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{p.name}</div>
-                  <div className="mt-0.5 flex items-center gap-2">
-                    <RatingStars value={r.overall} size={12} />
-                    <span className="text-xs text-muted-foreground">
-                      {r.overall.toFixed(1)}
-                    </span>
-                    <StatusBadge placeId={p.id} />
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            ))}
-        </div>
       </section>
 
       {/* Aktivitet */}
@@ -245,14 +208,12 @@ function StatTile({
   return (
     <div
       className={[
-        "rounded-2xl border border-border/70 p-3 text-center",
+        "rounded-xl border border-border/70 p-3 text-center",
         tone === "mustard" ? "bg-mustard/25" : "bg-card",
       ].join(" ")}
     >
       <div className="font-display text-2xl font-semibold leading-none">{value}</div>
-      <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
+      <div className="mt-1 text-[11px] font-medium text-muted-foreground">{label}</div>
     </div>
   );
 }
