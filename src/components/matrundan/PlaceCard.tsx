@@ -2,10 +2,42 @@ import { Link } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
+import { CATEGORY_LABEL, type Place, type PlaceCategory } from "@/lib/matrundan/types";
 import { useStore } from "@/lib/matrundan/store";
 import { RatingStars } from "./Rating";
 import { StatusBadge } from "./StatusBadge";
+
+const CATEGORY_GRADIENT: Record<PlaceCategory, string> = {
+  restaurang: "from-primary/25 to-mustard/30",
+  café: "from-mustard/35 to-secondary",
+  bageri: "from-mustard/45 to-primary/15",
+  snabbmat: "from-primary/20 to-sage/30",
+  pub: "from-sage/40 to-secondary",
+  matvagn: "from-sage/30 to-mustard/30",
+};
+
+export function PlaceThumb({
+  place,
+  size = "md",
+}: {
+  place: Place;
+  size?: "sm" | "md" | "lg";
+}) {
+  const dims =
+    size === "lg"
+      ? "h-20 w-20 text-4xl"
+      : size === "sm"
+        ? "h-11 w-11 text-2xl"
+        : "h-14 w-14 text-3xl";
+  return (
+    <div
+      className={`relative grid ${dims} shrink-0 place-items-center overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br ${CATEGORY_GRADIENT[place.category]}`}
+      aria-hidden="true"
+    >
+      <span className="drop-shadow-sm">{place.photo || "🍽️"}</span>
+    </div>
+  );
+}
 
 export function PlaceCard({ place }: { place: Place }) {
   const { avgRating, isFavorite, toggleFavorite } = useStore();
@@ -15,9 +47,7 @@ export function PlaceCard({ place }: { place: Place }) {
   return (
     <Card className="group relative overflow-hidden rounded-2xl border-border/70 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex gap-3">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-secondary text-3xl">
-          {place.photo ?? "🍽️"}
-        </div>
+        <PlaceThumb place={place} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <Link
@@ -42,7 +72,8 @@ export function PlaceCard({ place }: { place: Place }) {
                 e.preventDefault();
                 toggleFavorite(place.id);
               }}
-              className="h-8 w-8 shrink-0 rounded-full"
+              className="h-11 w-11 shrink-0 rounded-full"
+              aria-pressed={fav}
               aria-label={fav ? "Ta bort favorit" : "Spara som favorit"}
             >
               <Heart
@@ -61,8 +92,7 @@ export function PlaceCard({ place }: { place: Place }) {
                 <>
                   <RatingStars value={rating.overall} size={14} />
                   <span className="text-xs text-muted-foreground">
-                    {rating.overall.toFixed(1)} · {rating.count}
-                    {rating.count === 1 ? " besök" : " besök"}
+                    {rating.overall.toFixed(1)} · {rating.count} besök
                   </span>
                 </>
               ) : (
