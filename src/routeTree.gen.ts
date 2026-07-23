@@ -9,38 +9,81 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MatstallenRouteImport } from './routes/matstallen'
+import { Route as GruppenRouteImport } from './routes/gruppen'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
 
+const MatstallenRoute = MatstallenRouteImport.update({
+  id: '/matstallen',
+  path: '/matstallen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GruppenRoute = GruppenRouteImport.update({
+  id: '/gruppen',
+  path: '/gruppen',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MatstallenPlaceIdRoute = MatstallenPlaceIdRouteImport.update({
+  id: '/$placeId',
+  path: '/$placeId',
+  getParentRoute: () => MatstallenRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/gruppen': typeof GruppenRoute
+  '/matstallen': typeof MatstallenRouteWithChildren
+  '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/gruppen': typeof GruppenRoute
+  '/matstallen': typeof MatstallenRouteWithChildren
+  '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/gruppen': typeof GruppenRoute
+  '/matstallen': typeof MatstallenRouteWithChildren
+  '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/gruppen' | '/matstallen' | '/matstallen/$placeId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/gruppen' | '/matstallen' | '/matstallen/$placeId'
+  id: '__root__' | '/' | '/gruppen' | '/matstallen' | '/matstallen/$placeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  GruppenRoute: typeof GruppenRoute
+  MatstallenRoute: typeof MatstallenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/matstallen': {
+      id: '/matstallen'
+      path: '/matstallen'
+      fullPath: '/matstallen'
+      preLoaderRoute: typeof MatstallenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gruppen': {
+      id: '/gruppen'
+      path: '/gruppen'
+      fullPath: '/gruppen'
+      preLoaderRoute: typeof GruppenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +91,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/matstallen/$placeId': {
+      id: '/matstallen/$placeId'
+      path: '/$placeId'
+      fullPath: '/matstallen/$placeId'
+      preLoaderRoute: typeof MatstallenPlaceIdRouteImport
+      parentRoute: typeof MatstallenRoute
+    }
   }
 }
 
+interface MatstallenRouteChildren {
+  MatstallenPlaceIdRoute: typeof MatstallenPlaceIdRoute
+}
+
+const MatstallenRouteChildren: MatstallenRouteChildren = {
+  MatstallenPlaceIdRoute: MatstallenPlaceIdRoute,
+}
+
+const MatstallenRouteWithChildren = MatstallenRoute._addFileChildren(
+  MatstallenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  GruppenRoute: GruppenRoute,
+  MatstallenRoute: MatstallenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

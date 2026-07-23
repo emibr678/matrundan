@@ -1,24 +1,258 @@
-import { createFileRoute } from "@tanstack/react-router";
+import * as React from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Shuffle, Plus, MapPin, Star, ChevronRight, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { useStore, formatDate } from "@/lib/matrundan/store";
+import { RatingStars } from "@/components/matrundan/Rating";
+import { StatusBadge } from "@/components/matrundan/StatusBadge";
+import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
+import { VisitDialog } from "@/components/matrundan/VisitDialog";
+import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Hem · Matrundan" },
+      {
+        name: "description",
+        content:
+          "Se gruppens nästa stopp, snabba framsteg och senaste aktivitet på ett ställe.",
+      },
+      { property: "og:title", content: "Hem · Matrundan" },
+      { property: "og:description", content: "Nästa stopp och senaste aktivitet." },
+    ],
+  }),
+  component: Home,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Home() {
+  const { state, getPlace, setNext, avgRating } = useStore();
+  const [addOpen, setAddOpen] = React.useState(false);
+  const [visitPlace, setVisitPlace] = React.useState<string | null>(null);
+
+  const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
+
+  const untried = React.useMemo(
+    () =>
+      state.places.filter(
+        (p) => !state.visits.some((v) => v.placeId === p.id),
+      ),
+    [state.places, state.visits],
+  );
+
+  const totalPlaces = state.places.length;
+  const tried = totalPlaces - untried.length;
+  const progressPct = totalPlaces === 0 ? 0 : Math.round((tried / totalPlaces) * 100);
+
+  const shuffle = () => {
+    const pool = untried.length ? untried : state.places;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    setNext(pick.id);
+  };
+
+  const latest = state.activity.slice(0, 6);
+
+  return (
+    <div className="space-y-6 pt-2">
+      {/* Hero: Nästa stopp */}
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5" />
+            Nästa stopp
+          </div>
+          <button
+            onClick={shuffle}
+            className="inline-flex items-center gap-1.5 rounded-full bg-mustard/50 px-3 py-1 text-xs font-medium text-mustard-foreground"
+          >
+            <Shuffle className="h-3.5 w-3.5" />
+            Slumpa
+          </button>
+        </div>
+
+        {next ? (
+          <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
+            <div className="relative bg-gradient-to-br from-primary/85 to-primary p-6 text-primary-foreground">
+              <div className="text-6xl">{next.photo ?? "🍽️"}</div>
+              <div className="mt-3">
+                <div className="text-xs uppercase tracking-wider opacity-80">
+                  {CATEGORY_LABEL[next.category]}
+                </div>
+                <h1 className="font-display text-3xl font-semibold leading-tight">
+                  {next.name}
+                </h1>
+                <div className="mt-1 flex items-center gap-1 text-sm opacity-90">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {next.address}, {next.city}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 p-4 sm:flex-row">
+              <Button
+                onClick={() => setVisitPlace(next.id)}
+                className="flex-1"
+                size="lg"
+              >
+                Registrera besök
+              </Button>
+              <Button asChild variant="outline" size="lg" className="flex-1">
+                <Link to="/matstallen/$placeId" params={{ placeId: next.id }}>
+                  Visa detaljer
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Card className="rounded-3xl border-dashed border-border bg-card p-6 text-center shadow-sm">
+            <div className="text-5xl">🎯</div>
+            <h2 className="mt-3 font-display text-xl">Inget nästa stopp valt</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Slumpa fram ett ställe eller välj ett från listan.
+            </p>
+            <div className="mt-4 flex justify-center gap-2">
+              <Button onClick={shuffle}>
+                <Shuffle className="h-4 w-4" /> Slumpa
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/matstallen">Bläddra</Link>
+              </Button>
+            </div>
+          </Card>
+        )}
+      </section>
+
+      {/* Snabbstatistik */}
+      <section className="grid grid-cols-3 gap-2">
+        <StatTile label="Ställen" value={totalPlaces} />
+        <StatTile label="Besök" value={state.visits.length} />
+        <StatTile label="Kvar att prova" value={untried.length} tone="mustard" />
+      </section>
+
+      <section>
+        <div className="mb-2 flex items-center justify-between text-sm">
+          <span className="font-medium">Gruppens framsteg</span>
+          <span className="text-muted-foreground">
+            {tried} av {totalPlaces} provade
+          </span>
+        </div>
+        <Progress value={progressPct} className="h-2" />
+      </section>
+
+      {/* Snabbknappar */}
+      <section className="grid grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          size="lg"
+          className="h-14 rounded-2xl"
+          onClick={() => setAddOpen(true)}
+        >
+          <Plus className="h-4 w-4" /> Lägg till ställe
+        </Button>
+        <Button asChild variant="outline" size="lg" className="h-14 rounded-2xl">
+          <Link to="/matstallen">
+            <Star className="h-4 w-4" /> Bläddra listan
+          </Link>
+        </Button>
+      </section>
+
+      {/* Senast tillagda / topp */}
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="font-display text-lg">Topp betygsatta</h2>
+          <Link
+            to="/matstallen"
+            className="flex items-center text-xs font-medium text-muted-foreground"
+          >
+            Alla <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="space-y-2">
+          {[...state.places]
+            .map((p) => ({ p, r: avgRating(p.id) }))
+            .filter((x) => x.r.count > 0)
+            .sort((a, b) => b.r.overall - a.r.overall)
+            .slice(0, 3)
+            .map(({ p, r }) => (
+              <Link
+                key={p.id}
+                to="/matstallen/$placeId"
+                params={{ placeId: p.id }}
+                className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
+              >
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-secondary text-2xl">
+                  {p.photo ?? "🍽️"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{p.name}</div>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <RatingStars value={r.overall} size={12} />
+                    <span className="text-xs text-muted-foreground">
+                      {r.overall.toFixed(1)}
+                    </span>
+                    <StatusBadge placeId={p.id} />
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            ))}
+        </div>
+      </section>
+
+      {/* Aktivitet */}
+      <section className="pb-4">
+        <h2 className="mb-2 font-display text-lg">Senaste aktivitet</h2>
+        <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
+          {latest.map((a) => {
+            const member = state.members.find((m) => m.id === a.memberId);
+            return (
+              <div key={a.id} className="flex items-start gap-3 p-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
+                  {member?.avatar ?? "🙂"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm leading-snug">{a.text}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {formatDate(a.at)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      </section>
+
+      <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
+      <VisitDialog
+        open={visitPlace !== null}
+        onOpenChange={(v) => !v && setVisitPlace(null)}
+        placeId={visitPlace}
+      />
+    </div>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  tone?: "default" | "mustard";
+}) {
   return (
     <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
+      className={[
+        "rounded-2xl border border-border/70 p-3 text-center",
+        tone === "mustard" ? "bg-mustard/25" : "bg-card",
+      ].join(" ")}
     >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+      <div className="font-display text-2xl font-semibold leading-none">{value}</div>
+      <div className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
     </div>
   );
 }
