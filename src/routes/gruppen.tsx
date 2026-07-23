@@ -223,8 +223,8 @@ function GroupPage() {
             );
           })}
         </Card>
-        {isFavorite ? null : null /* keep import used */}
       </section>
+
     </div>
   );
 }
