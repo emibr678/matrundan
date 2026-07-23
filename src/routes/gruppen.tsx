@@ -52,7 +52,7 @@ export const Route = createFileRoute("/gruppen")({
 });
 
 function GroupPage() {
-  const { state, getPlace, memberById, avgRating, isFavorite } = useStore();
+  const { state, getPlace, memberById, avgRating } = useStore();
   const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
 
   const activity = state.activity.slice(0, 10);
