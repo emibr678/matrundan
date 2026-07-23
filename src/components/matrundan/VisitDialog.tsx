@@ -146,7 +146,7 @@ export function VisitDialog({
               {state.members.map((m) => {
                 const active = participants.includes(m.id);
                 return (
-                  <button key={m.id} type="button" onClick={() => toggleParticipant(m.id)}>
+                  <button key={m.id} type="button" onClick={() => toggleParticipant(m.id)} aria-pressed={active} aria-label={`${active ? "Ta bort" : "Lägg till"} ${m.name} som deltagare`}>
                     <Badge
                       variant={active ? "default" : "outline"}
                       className="cursor-pointer gap-1 rounded-full px-3 py-1"
