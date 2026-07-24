@@ -250,7 +250,15 @@ function PlaceDetail() {
             {visits.map((v) => {
               const author = memberById(v.createdBy);
               return (
-                <Card key={v.id} className="rounded-2xl border-border/70 p-3">
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() =>
+                    navigate({ params: { placeId }, search: { visit: v.id } })
+                  }
+                  className="w-full rounded-2xl border border-border/70 bg-card p-3 text-left transition-colors hover:bg-accent focus:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label={`Öppna besök av ${author?.name ?? "medlem"} ${formatDate(v.date)}`}
+                >
                   <div className="flex items-start gap-3">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
                       {author?.avatar ?? "🙂"}
@@ -287,7 +295,7 @@ function PlaceDetail() {
                       ) : null}
                     </div>
                   </div>
-                </Card>
+                </button>
               );
             })}
           </div>
@@ -295,6 +303,11 @@ function PlaceDetail() {
       </section>
 
       <VisitDialog open={visitOpen} onOpenChange={setVisitOpen} placeId={place.id} />
+      <VisitDetailSheet
+        visitId={openVisitId}
+        open={!!openVisitId}
+        onOpenChange={(o) => !o && closeVisitSheet()}
+      />
     </div>
   );
 }
