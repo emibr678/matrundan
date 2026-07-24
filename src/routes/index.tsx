@@ -4,9 +4,10 @@ import { Shuffle, Plus, MapPin, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useStore, formatDate } from "@/lib/matrundan/store";
+import { useStore } from "@/lib/matrundan/store";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
+import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
 export const Route = createFileRoute("/")({
