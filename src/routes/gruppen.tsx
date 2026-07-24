@@ -62,13 +62,21 @@ export const Route = createFileRoute("/gruppen")({
 });
 
 function GroupPage() {
-  const { state, getPlace, memberById, avgRating } = useStore();
-  const [activeMember, setActiveMember] = React.useState<Member | null>(null);
+  const { state, getPlace, avgRating } = useStore();
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/gruppen" });
   const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
+
+  const activeMember = React.useMemo(
+    () =>
+      search.member ? state.members.find((m) => m.id === search.member) ?? null : null,
+    [search.member, state.members],
+  );
+
+  const closeMember = () => navigate({ search: { member: "" } });
 
   const activity = state.activity.slice(0, 10);
 
-  // Per medlem: senaste besökta ställe
   const memberActivity = state.members.map((m) => {
     const lastVisit = state.visits
       .filter((v) => v.participantIds.includes(m.id))
@@ -80,7 +88,6 @@ function GroupPage() {
     return { m, lastVisit, visitCount, favCount };
   });
 
-  // Vem favoriserar mest samma ställe (top 3 delade favoriter)
   const favByPlace = new Map<string, number>();
   state.favorites.forEach((f) => {
     favByPlace.set(f.placeId, (favByPlace.get(f.placeId) ?? 0) + 1);
@@ -93,7 +100,6 @@ function GroupPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 pt-2 pb-4 md:max-w-4xl">
-      {/* Hero */}
       <section>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
           <div className="flex items-center gap-4 bg-gradient-to-br from-sage/50 to-secondary p-5">
@@ -113,7 +119,6 @@ function GroupPage() {
         </Card>
       </section>
 
-      {/* Nästa stopp */}
       {next ? (
         <section>
           <Link
@@ -136,7 +141,6 @@ function GroupPage() {
         </section>
       ) : null}
 
-      {/* Gänget */}
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
@@ -149,7 +153,7 @@ function GroupPage() {
               >
                 <button
                   type="button"
-                  onClick={() => setActiveMember(m)}
+                  onClick={() => navigate({ search: { member: m.id } })}
                   className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none"
                   aria-label={`Öppna profil för ${m.name}`}
                 >
@@ -160,10 +164,7 @@ function GroupPage() {
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium">{m.name}</span>
                       {m.id === state.currentUserId ? (
-                        <Badge
-                          variant="secondary"
-                          className="rounded-full text-[10px]"
-                        >
+                        <Badge variant="secondary" className="rounded-full text-[10px]">
                           Du
                         </Badge>
                       ) : null}
@@ -191,11 +192,9 @@ function GroupPage() {
       <MemberProfileSheet
         member={activeMember}
         open={!!activeMember}
-        onOpenChange={(o) => !o && setActiveMember(null)}
+        onOpenChange={(o) => !o && closeMember()}
       />
 
-
-      {/* Delade favoriter */}
       {sharedFavs.length > 0 ? (
         <section>
           <h2 className="mb-2 font-display text-lg">Gänget gillar</h2>
@@ -228,29 +227,14 @@ function GroupPage() {
         </section>
       ) : null}
 
-      {/* Aktivitet */}
       <section>
         <h2 className="mb-2 font-display text-lg">Aktivitet</h2>
         <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-          {activity.map((a) => {
-            const member = memberById(a.memberId);
-            return (
-              <div key={a.id} className="flex items-start gap-3 p-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
-                  {member?.avatar ?? "🙂"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm leading-snug">{a.text}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    {formatDate(a.at)}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {activity.map((a) => (
+            <ActivityRow key={a.id} activity={a} />
+          ))}
         </Card>
       </section>
-
     </div>
   );
 }
