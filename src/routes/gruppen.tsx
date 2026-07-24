@@ -11,7 +11,10 @@ import {
   Heart,
   Sparkles,
   MapPin,
+  ChevronRight,
 } from "lucide-react";
+import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
+import type { Member } from "@/lib/matrundan/types";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
