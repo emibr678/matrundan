@@ -194,6 +194,7 @@ export const DEMO_STATE: AppState = {
       placeId: "p8",
       at: daysAgo(3),
       text: "Viktor la till Max Nordstan",
+      target: { kind: "place", placeId: "p8" },
     },
     {
       id: "a2",
@@ -203,6 +204,7 @@ export const DEMO_STATE: AppState = {
       visitId: "v1",
       at: daysAgo(5),
       text: "Emilia registrerade ett besök på Da Matteo Vallgatan",
+      target: { kind: "visit", placeId: "p2", visitId: "v1" },
     },
     {
       id: "a3",
@@ -211,6 +213,7 @@ export const DEMO_STATE: AppState = {
       placeId: "p5",
       at: daysAgo(2),
       text: "Johan valde Koka som nästa stopp",
+      target: { kind: "place", placeId: "p5" },
     },
     {
       id: "a4",
@@ -219,6 +222,15 @@ export const DEMO_STATE: AppState = {
       placeId: "p6",
       at: daysAgo(8),
       text: "Nora la till Strömmingsluckan",
+      target: { kind: "place", placeId: "p6" },
+    },
+    {
+      id: "a5",
+      kind: "member-joined",
+      memberId: "m5",
+      at: daysAgo(20),
+      text: "Nora gick med i gänget",
+      target: { kind: "member", memberId: "m5" },
     },
   ],
   nextPlaceId: "p5",

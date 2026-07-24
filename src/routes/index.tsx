@@ -4,9 +4,10 @@ import { Shuffle, Plus, MapPin, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useStore, formatDate } from "@/lib/matrundan/store";
+import { useStore } from "@/lib/matrundan/store";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
+import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
 export const Route = createFileRoute("/")({
@@ -167,22 +168,9 @@ function Home() {
       <section className="pb-4">
         <h2 className="mb-2 font-display text-lg">Senaste aktivitet</h2>
         <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-          {latest.map((a) => {
-            const member = state.members.find((m) => m.id === a.memberId);
-            return (
-              <div key={a.id} className="flex items-start gap-3 p-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
-                  {member?.avatar ?? "🙂"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm leading-snug">{a.text}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    {formatDate(a.at)}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {latest.map((a) => (
+            <ActivityRow key={a.id} activity={a} />
+          ))}
         </Card>
       </section>
 

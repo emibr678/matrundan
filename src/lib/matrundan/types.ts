@@ -21,25 +21,26 @@ export interface Place {
   id: string;
   name: string;
   category: PlaceCategory;
-  cuisines: string[]; // t.ex. italienskt, sushi
+  cuisines: string[];
   occasions: Occasion[];
   address: string;
   city: string;
+  area?: string;
   lat?: number;
   lng?: number;
-  addedBy: string; // member id
+  addedBy: string;
   addedAt: string;
   notes?: string;
-  photo?: string; // emoji or url
+  photo?: string;
 }
 
 export interface Visit {
   id: string;
   placeId: string;
-  date: string; // ISO
+  date: string;
   meal: "frukost" | "lunch" | "fika" | "middag" | "kväll";
   participantIds: string[];
-  overall: number; // 1–5
+  overall: number;
   taste?: number;
   value?: number;
   service?: number;
@@ -61,14 +62,28 @@ export interface Group {
   ownerId: string;
 }
 
+export type ActivityKind =
+  | "added"
+  | "visited"
+  | "favorited"
+  | "next-picked"
+  | "member-joined";
+
+export type ActivityTarget =
+  | { kind: "place"; placeId: string }
+  | { kind: "visit"; placeId: string; visitId: string }
+  | { kind: "member"; memberId: string };
+
 export interface Activity {
   id: string;
-  kind: "added" | "visited" | "favorited" | "next-picked";
+  kind: ActivityKind;
   memberId: string;
   placeId?: string;
   visitId?: string;
   at: string;
   text: string;
+  /** Ny, typad navigering. Äldre data faller tillbaka på kind + fält ovan. */
+  target?: ActivityTarget;
 }
 
 export interface AppState {
@@ -97,3 +112,24 @@ export const OCCASION_LABEL: Record<Occasion, string> = {
   avslappnat: "Avslappnat",
   middag: "Trevlig middag",
 };
+
+/**
+ * Härled ett navigeringsmål ur en aktivitet. Bakåtkompatibelt med
+ * gammal localStorage-data som saknar `target`.
+ */
+export function resolveActivityTarget(a: Activity): ActivityTarget | null {
+  if (a.target) return a.target;
+  if (a.kind === "visited" && a.placeId && a.visitId) {
+    return { kind: "visit", placeId: a.placeId, visitId: a.visitId };
+  }
+  if (
+    (a.kind === "added" || a.kind === "favorited" || a.kind === "next-picked") &&
+    a.placeId
+  ) {
+    return { kind: "place", placeId: a.placeId };
+  }
+  if (a.kind === "member-joined" && a.memberId) {
+    return { kind: "member", memberId: a.memberId };
+  }
+  return null;
+}

@@ -1,5 +1,13 @@
 import * as React from "react";
-import { createFileRoute, Link, useParams, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useParams,
+  useRouter,
+  useNavigate,
+} from "@tanstack/react-router";
+import { z } from "zod";
+import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
   ArrowLeft,
   Heart,
@@ -17,6 +25,7 @@ import { RatingStars } from "@/components/matrundan/Rating";
 import { StatusBadge } from "@/components/matrundan/StatusBadge";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
+import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
 import { CATEGORY_LABEL, OCCASION_LABEL } from "@/lib/matrundan/types";
 
 const MEAL_LABEL: Record<string, string> = {
@@ -27,7 +36,12 @@ const MEAL_LABEL: Record<string, string> = {
   kväll: "Kväll",
 };
 
+const placeSearchSchema = z.object({
+  visit: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/matstallen/$placeId")({
+  validateSearch: zodValidator(placeSearchSchema),
   head: () => ({
     meta: [
       { title: "Matställe · Matrundan" },
@@ -53,6 +67,8 @@ function NotFound() {
 
 function PlaceDetail() {
   const { placeId } = useParams({ from: "/matstallen/$placeId" });
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/matstallen/$placeId" });
   const router = useRouter();
   const {
     getPlace,
@@ -66,6 +82,9 @@ function PlaceDetail() {
   } = useStore();
   const place = getPlace(placeId);
   const [visitOpen, setVisitOpen] = React.useState(false);
+  const openVisitId = search.visit || null;
+  const closeVisitSheet = () =>
+    navigate({ params: { placeId }, search: { visit: "" } });
 
   if (!place) return <NotFound />;
 
@@ -231,7 +250,15 @@ function PlaceDetail() {
             {visits.map((v) => {
               const author = memberById(v.createdBy);
               return (
-                <Card key={v.id} className="rounded-2xl border-border/70 p-3">
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() =>
+                    navigate({ params: { placeId }, search: { visit: v.id } })
+                  }
+                  className="w-full rounded-2xl border border-border/70 bg-card p-3 text-left transition-colors hover:bg-accent focus:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label={`Öppna besök av ${author?.name ?? "medlem"} ${formatDate(v.date)}`}
+                >
                   <div className="flex items-start gap-3">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
                       {author?.avatar ?? "🙂"}
@@ -268,7 +295,7 @@ function PlaceDetail() {
                       ) : null}
                     </div>
                   </div>
-                </Card>
+                </button>
               );
             })}
           </div>
@@ -276,6 +303,11 @@ function PlaceDetail() {
       </section>
 
       <VisitDialog open={visitOpen} onOpenChange={setVisitOpen} placeId={place.id} />
+      <VisitDetailSheet
+        visitId={openVisitId}
+        open={!!openVisitId}
+        onOpenChange={(o) => !o && closeVisitSheet()}
+      />
     </div>
   );
 }
