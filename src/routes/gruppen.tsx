@@ -137,40 +137,55 @@ function GroupPage() {
             return (
               <Card
                 key={m.id}
-                className="flex items-center gap-3 rounded-2xl border-border/70 p-3"
+                className="rounded-2xl border-border/70 p-0 transition-colors focus-within:ring-2 focus-within:ring-ring hover:bg-accent/40"
               >
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary text-2xl">
-                  {m.avatar}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-medium">{m.name}</span>
-                    {m.id === state.currentUserId ? (
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full text-[10px]"
-                      >
-                        Du
-                      </Badge>
-                    ) : null}
+                <button
+                  type="button"
+                  onClick={() => setActiveMember(m)}
+                  className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none"
+                  aria-label={`Öppna profil för ${m.name}`}
+                >
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary text-2xl">
+                    {m.avatar}
                   </div>
-                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {place
-                      ? `Senast på ${place.name} · ${formatDate(lastVisit!.date)}`
-                      : "Inga besök än"}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium">{m.name}</span>
+                      {m.id === state.currentUserId ? (
+                        <Badge
+                          variant="secondary"
+                          className="rounded-full text-[10px]"
+                        >
+                          Du
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {place
+                        ? `Senast på ${place.name} · ${formatDate(lastVisit!.date)}`
+                        : "Inga besök än"}
+                    </div>
                   </div>
-                </div>
-                <div className="shrink-0 text-right text-[11px] text-muted-foreground">
-                  <div>{visitCount} besök</div>
-                  <div className="flex items-center justify-end gap-1">
-                    <Heart className="h-3 w-3" /> {favCount}
+                  <div className="shrink-0 text-right text-[11px] text-muted-foreground">
+                    <div>{visitCount} besök</div>
+                    <div className="flex items-center justify-end gap-1">
+                      <Heart className="h-3 w-3" /> {favCount}
+                    </div>
                   </div>
-                </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
               </Card>
             );
           })}
         </div>
       </section>
+
+      <MemberProfileSheet
+        member={activeMember}
+        open={!!activeMember}
+        onOpenChange={(o) => !o && setActiveMember(null)}
+      />
+
 
       {/* Delade favoriter */}
       {sharedFavs.length > 0 ? (
