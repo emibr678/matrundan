@@ -96,6 +96,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               placeId: place.id,
               at: place.addedAt,
               text: `${nameOf(s, s.currentUserId)} la till ${place.name}`,
+              target: { kind: "place", placeId: place.id },
             },
           ),
         );
@@ -137,6 +138,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               text: `${nameOf(s, s.currentUserId)} registrerade ett besök på ${
                 place?.name ?? "ett ställe"
               }`,
+              target: {
+                kind: "visit",
+                placeId: visit.placeId,
+                visitId: visit.id,
+              },
             },
           );
         });
@@ -158,6 +164,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               text: `${nameOf(s, s.currentUserId)} valde ${
                 place?.name ?? "ett ställe"
               } som nästa stopp`,
+              target: { kind: "place", placeId },
             },
           );
         }),
