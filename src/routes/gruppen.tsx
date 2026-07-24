@@ -1,5 +1,7 @@
 import * as React from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
+import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
   Copy,
   Mail,
@@ -14,7 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
-import type { Member } from "@/lib/matrundan/types";
+import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,7 +40,12 @@ import {
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import { CHANGELOG } from "@/lib/matrundan/demo-data";
 
+const groupSearchSchema = z.object({
+  member: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/gruppen")({
+  validateSearch: zodValidator(groupSearchSchema),
   head: () => ({
     meta: [
       { title: "Gruppen · Matrundan" },
