@@ -67,6 +67,8 @@ function NotFound() {
 
 function PlaceDetail() {
   const { placeId } = useParams({ from: "/matstallen/$placeId" });
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/matstallen/$placeId" });
   const router = useRouter();
   const {
     getPlace,
@@ -80,6 +82,9 @@ function PlaceDetail() {
   } = useStore();
   const place = getPlace(placeId);
   const [visitOpen, setVisitOpen] = React.useState(false);
+  const openVisitId = search.visit || null;
+  const closeVisitSheet = () =>
+    navigate({ params: { placeId }, search: { visit: "" } });
 
   if (!place) return <NotFound />;
 
