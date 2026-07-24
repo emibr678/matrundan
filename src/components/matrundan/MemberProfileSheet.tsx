@@ -13,6 +13,7 @@ import {
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
 import { RatingStars } from "./Rating";
+import { ActivityRow } from "./ActivityRow";
 
 interface MemberProfileData {
   visitCount: number;
@@ -266,31 +267,9 @@ export function MemberProfileSheet({
                 </h3>
                 {profile.recentActivity.length > 0 ? (
                   <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-                    {profile.recentActivity.map((a) => {
-                      const inner = (
-                        <div className="flex items-start gap-2 p-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm leading-snug">{a.text}</div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">
-                              {formatDate(a.at)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                      return a.placeId ? (
-                        <Link
-                          key={a.id}
-                          to="/matstallen/$placeId"
-                          params={{ placeId: a.placeId }}
-                          onClick={close}
-                          className="block transition-colors hover:bg-accent"
-                        >
-                          {inner}
-                        </Link>
-                      ) : (
-                        <div key={a.id}>{inner}</div>
-                      );
-                    })}
+                    {profile.recentActivity.map((a) => (
+                      <ActivityRow key={a.id} activity={a} />
+                    ))}
                   </Card>
                 ) : (
                   <EmptyLine text="Ingen aktivitet än." />
