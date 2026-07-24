@@ -56,6 +56,7 @@ export const Route = createFileRoute("/gruppen")({
 
 function GroupPage() {
   const { state, getPlace, memberById, avgRating } = useStore();
+  const [activeMember, setActiveMember] = React.useState<Member | null>(null);
   const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
 
   const activity = state.activity.slice(0, 10);
