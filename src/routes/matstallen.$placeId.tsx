@@ -1,5 +1,13 @@
 import * as React from "react";
-import { createFileRoute, Link, useParams, useRouter } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useParams,
+  useRouter,
+  useNavigate,
+} from "@tanstack/react-router";
+import { z } from "zod";
+import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
   ArrowLeft,
   Heart,
@@ -17,6 +25,7 @@ import { RatingStars } from "@/components/matrundan/Rating";
 import { StatusBadge } from "@/components/matrundan/StatusBadge";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
+import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
 import { CATEGORY_LABEL, OCCASION_LABEL } from "@/lib/matrundan/types";
 
 const MEAL_LABEL: Record<string, string> = {
@@ -27,7 +36,12 @@ const MEAL_LABEL: Record<string, string> = {
   kväll: "Kväll",
 };
 
+const placeSearchSchema = z.object({
+  visit: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/matstallen/$placeId")({
+  validateSearch: zodValidator(placeSearchSchema),
   head: () => ({
     meta: [
       { title: "Matställe · Matrundan" },
