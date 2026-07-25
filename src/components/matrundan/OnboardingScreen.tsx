@@ -27,9 +27,7 @@ export function OnboardingScreen() {
       const { data, error } = await supabase.rpc("create_group_with_owner", {
         _name: name.trim(),
         _emoji: emoji,
-        _home_label: location.trim() || null,
-        _home_lat: null,
-        _home_lng: null,
+        _home_label: location.trim() || undefined,
       });
       if (error) throw error;
       const groupId = data as unknown as string;
