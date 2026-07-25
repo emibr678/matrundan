@@ -30,9 +30,7 @@ import {
 import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
-import {
-  geoapifySearchPlaces,
-} from "@/lib/matrundan/geoapify.functions";
+import { geoapifySearchPlaces } from "@/lib/matrundan/geoapify.functions";
 import { parseLocation, formatLocation } from "@/lib/matrundan/location";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
@@ -58,7 +56,6 @@ function toServerRadius(km: number): 1 | 3 | 5 | 10 | 25 | null {
   if (km === 1 || km === 3 || km === 5 || km === 10 || km === 25) return km;
   return null;
 }
-
 
 type ProviderError = {
   message: string;
@@ -148,12 +145,10 @@ export function AddPlaceDialog({
 
   // Live-läge: cachea koordinaterna för Plats-texten så vi inte
   // geokodar på varje tangenttryck och för att kunna filtrera på radie.
-  const [center, setCenter] = React.useState<{ lat: number; lng: number } | null>(
-    () => (verifiedHome ? { lat: verifiedHome.lat, lng: verifiedHome.lng } : null),
+  const [center, setCenter] = React.useState<{ lat: number; lng: number } | null>(() =>
+    verifiedHome ? { lat: verifiedHome.lat, lng: verifiedHome.lng } : null,
   );
-  const [centerLabel, setCenterLabel] = React.useState<string>(
-    () => verifiedHome?.label ?? "",
-  );
+  const [centerLabel, setCenterLabel] = React.useState<string>(() => verifiedHome?.label ?? "");
 
   // Race-protection för sökningen.
   const searchReqRef = React.useRef(0);
@@ -378,7 +373,6 @@ export function AddPlaceDialog({
     ? `${centerLabel || "Välj område"} · ${radiusSummary(radiusKm)}`
     : `${formatLocation(parsed)} · ${radiusSummary(radiusKm)}`;
 
-
   const submitManual = async () => {
     if (isBusy) return;
     if (!name.trim()) {
@@ -583,7 +577,8 @@ export function AddPlaceDialog({
                   {!center ? (
                     state.group.homeLocation && !state.group.homeLocation.verified ? (
                       <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                        Gruppen har ett äldre område ({state.group.homeLocation.label}). Välj det från listan för att söka omkring.
+                        Gruppen har ett äldre område ({state.group.homeLocation.label}). Välj det
+                        från listan för att söka omkring.
                       </p>
                     ) : (
                       <p className="text-[11px] text-muted-foreground">
@@ -591,9 +586,7 @@ export function AddPlaceDialog({
                       </p>
                     )
                   ) : (
-                    <p className="text-[11px] text-muted-foreground">
-                      Söker runt {centerLabel}.
-                    </p>
+                    <p className="text-[11px] text-muted-foreground">Söker runt {centerLabel}.</p>
                   )}
                 </>
               ) : (
@@ -665,7 +658,13 @@ export function AddPlaceDialog({
             ) : null}
 
             {!cityValid ? (
-              <EmptyBlock text={isLive ? "Välj ett område i listan för att börja utforska." : "Ange en stad för att börja utforska."} />
+              <EmptyBlock
+                text={
+                  isLive
+                    ? "Välj ett område i listan för att börja utforska."
+                    : "Ange en stad för att börja utforska."
+                }
+              />
             ) : loading ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…

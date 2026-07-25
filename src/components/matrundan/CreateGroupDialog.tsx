@@ -12,10 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/matrundan/session";
-import {
-  createGroupWithOwner,
-  type VerifiedHomeLocation,
-} from "@/lib/matrundan/live-admin";
+import { createGroupWithOwner, type VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
 const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
@@ -113,8 +110,8 @@ export function CreateGroupDialog({
               placeholder="t.ex. Gamla Enskede, Stockholm"
             />
             <p className="text-xs text-muted-foreground">
-              Fylls i automatiskt när gruppen söker efter nya matställen. Kan
-              alltid ändras för en enskild sökning.
+              Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
+              enskild sökning.
             </p>
           </div>
           <DialogFooter>

@@ -120,8 +120,7 @@ export function GeoapifyLocationInput({
     }
   }
 
-  const showList =
-    open && value.trim().length >= 2 && (loading || suggestions.length > 0 || done);
+  const showList = open && value.trim().length >= 2 && (loading || suggestions.length > 0 || done);
 
   return (
     <div className="relative">
@@ -145,9 +144,7 @@ export function GeoapifyLocationInput({
         aria-autocomplete="list"
         aria-expanded={showList}
         aria-controls={id ? `${id}-listbox` : undefined}
-        aria-activedescendant={
-          activeIx >= 0 && id ? `${id}-opt-${activeIx}` : undefined
-        }
+        aria-activedescendant={activeIx >= 0 && id ? `${id}-opt-${activeIx}` : undefined}
       />
       {showList ? (
         <ul

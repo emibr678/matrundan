@@ -191,17 +191,10 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     // Aggregat räknas bara från synliga betyg.
     const rated = visibleReviews.filter((r) => r.ratingVisible);
     const overall = rated.map((r) => r.overall);
-    const taste = rated
-      .map((r) => r.taste)
-      .filter((x): x is number => x != null);
-    const value = rated
-      .map((r) => r.value)
-      .filter((x): x is number => x != null);
-    const service = rated
-      .map((r) => r.service)
-      .filter((x): x is number => x != null);
-    const comment =
-      rated.find((r) => r.commentVisible && r.comment)?.comment ?? undefined;
+    const taste = rated.map((r) => r.taste).filter((x): x is number => x != null);
+    const value = rated.map((r) => r.value).filter((x): x is number => x != null);
+    const service = rated.map((r) => r.service).filter((x): x is number => x != null);
+    const comment = rated.find((r) => r.commentVisible && r.comment)?.comment ?? undefined;
     return {
       id: v.id,
       placeId: v.placeId,

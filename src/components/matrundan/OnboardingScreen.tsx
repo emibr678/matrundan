@@ -5,10 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/matrundan/session";
 import { toast } from "sonner";
-import {
-  createGroupWithOwner,
-  type VerifiedHomeLocation,
-} from "@/lib/matrundan/live-admin";
+import { createGroupWithOwner, type VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
 const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
@@ -45,13 +42,10 @@ export function OnboardingScreen() {
     <div className="mx-auto flex min-h-[70dvh] max-w-lg items-center px-4 py-10">
       <Card className="w-full rounded-3xl p-6 shadow-sm">
         <div className="text-4xl">{emoji}</div>
-        <h1 className="mt-3 font-display text-2xl font-semibold">
-          Välkommen till Matrundan
-        </h1>
+        <h1 className="mt-3 font-display text-2xl font-semibold">Välkommen till Matrundan</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Skapa er första grupp för att börja samla, välja och betygsätta
-          matställen tillsammans. Du blir automatiskt ägare och kan bjuda in
-          fler senare.
+          Skapa er första grupp för att börja samla, välja och betygsätta matställen tillsammans. Du
+          blir automatiskt ägare och kan bjuda in fler senare.
         </p>
 
         <form onSubmit={handleCreate} className="mt-5 space-y-4">
@@ -106,8 +100,8 @@ export function OnboardingScreen() {
               placeholder="t.ex. Gamla Enskede, Stockholm"
             />
             <p className="text-xs text-muted-foreground">
-              Fylls i automatiskt när gruppen söker efter nya matställen. Kan
-              alltid ändras för en enskild sökning.
+              Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
+              enskild sökning.
             </p>
           </div>
 

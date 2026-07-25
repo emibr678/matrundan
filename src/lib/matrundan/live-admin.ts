@@ -8,8 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 function toErr(e: unknown): Error {
   const msg =
-    (e as { message?: string } | null)?.message ??
-    "Något gick fel mot servern. Försök igen.";
+    (e as { message?: string } | null)?.message ?? "Något gick fel mot servern. Försök igen.";
   return new Error(msg);
 }
 
@@ -45,9 +44,7 @@ export interface InvitationPreview {
   email_bound?: boolean;
 }
 
-export async function getInvitationPreview(
-  token: string,
-): Promise<InvitationPreview> {
+export async function getInvitationPreview(token: string): Promise<InvitationPreview> {
   const { data, error } = await supabase.rpc("get_invitation_preview", {
     _token: token,
   });
@@ -85,9 +82,7 @@ export interface InvitationListItem {
   state: "active" | "accepted" | "revoked" | "expired";
 }
 
-export async function listGroupInvitations(
-  groupId: string,
-): Promise<InvitationListItem[]> {
+export async function listGroupInvitations(groupId: string): Promise<InvitationListItem[]> {
   const { data, error } = await supabase.rpc("list_group_invitations", {
     _group_id: groupId,
   });
@@ -145,8 +140,7 @@ export async function updateGroupSettings(
     _group_id: groupId,
     _name: input.name,
     _emoji: input.emoji ?? undefined,
-    _shared_visits_count_for_progression:
-      input.sharedVisitsCountForProgression ?? undefined,
+    _shared_visits_count_for_progression: input.sharedVisitsCountForProgression ?? undefined,
   };
   if (home === "clear") {
     rpcArgs._clear_home = true;
@@ -174,10 +168,7 @@ export async function setMemberRole(
   if (error) throw toErr(error);
 }
 
-export async function removeGroupMember(
-  groupId: string,
-  userId: string,
-): Promise<void> {
+export async function removeGroupMember(groupId: string, userId: string): Promise<void> {
   const { error } = await supabase.rpc("remove_group_member", {
     _group_id: groupId,
     _user_id: userId,
@@ -190,10 +181,7 @@ export async function leaveGroup(groupId: string): Promise<void> {
   if (error) throw toErr(error);
 }
 
-export async function transferGroupOwnership(
-  groupId: string,
-  newOwnerId: string,
-): Promise<void> {
+export async function transferGroupOwnership(groupId: string, newOwnerId: string): Promise<void> {
   const { error } = await supabase.rpc("transfer_group_ownership", {
     _group_id: groupId,
     _new_owner_id: newOwnerId,
