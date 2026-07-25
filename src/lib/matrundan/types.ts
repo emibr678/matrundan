@@ -156,7 +156,15 @@ export interface Group {
   homeLocation?: HomeLocation | null;
 }
 
-export type ActivityKind = "added" | "visited" | "favorited" | "next-picked" | "member-joined";
+export type ActivityKind =
+  | "added"
+  | "visited"
+  | "favorited"
+  | "next-picked"
+  | "member-joined"
+  | "level-up"
+  | "badge-earned"
+  | "group-milestone";
 
 export type ActivityTarget =
   | { kind: "place"; placeId: string }
