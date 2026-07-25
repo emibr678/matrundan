@@ -175,8 +175,8 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     notes: pl.notes ?? undefined,
     photo: pl.photo ?? undefined,
     origin:
-      pl.origin === "shared" || pl.origin === "provider" || pl.origin === "manual"
-        ? (pl.origin as Place["origin"])
+      pl.origin === "manual" || pl.origin === "provider" || pl.origin === "shared"
+        ? pl.origin
         : "manual",
   }));
 

@@ -12,9 +12,13 @@ import {
 } from "@/components/ui/sheet";
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
-import { BADGES, computeMemberProgression, LEVELS } from "@/lib/matrundan/gamification";
 import { RatingStars } from "./Rating";
 import { ActivityRow } from "./ActivityRow";
+import {
+  BADGES,
+  computeMemberProgression,
+  type MemberProgression,
+} from "@/lib/matrundan/gamification";
 
 interface MemberProfileData {
   visitCount: number;
@@ -25,6 +29,7 @@ interface MemberProfileData {
   otherFavorites: Place[];
   topCuisines: string[];
   recentActivity: ReturnType<typeof useStore>["state"]["activity"];
+  progression: MemberProgression;
 }
 
 function useMemberProfile(memberId: string | null): MemberProfileData | null {
@@ -94,6 +99,7 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       otherFavorites,
       topCuisines,
       recentActivity,
+      progression: computeMemberProgression(state, memberId),
     };
   }, [memberId, state, getPlace]);
 }
@@ -109,13 +115,8 @@ export function MemberProfileSheet({
 }) {
   const { state } = useStore();
   const profile = useMemberProfile(member?.id ?? null);
-  const progression = React.useMemo(
-    () => (member ? computeMemberProgression(state, member.id) : null),
-    [state, member],
-  );
 
   const close = () => onOpenChange(false);
-  const isSelf = member?.id === state.currentUserId;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -133,7 +134,7 @@ export function MemberProfileSheet({
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="font-display text-2xl leading-tight">
                     {member.name}
-                    {isSelf ? (
+                    {member.id === state.currentUserId ? (
                       <Badge
                         variant="secondary"
                         className="ml-2 rounded-full align-middle text-[10px]"
@@ -142,9 +143,10 @@ export function MemberProfileSheet({
                       </Badge>
                     ) : null}
                   </SheetTitle>
-                  <SheetDescription className="mt-0.5 capitalize">
-                    {member.role}
-                    {progression ? ` · ${progression.levelName}` : ""}
+                  <SheetDescription className="mt-0.5">
+                    <span className="capitalize">{member.role}</span>
+                    <span className="mx-1.5 text-muted-foreground/60">·</span>
+                    <span>{profile.progression.level.name}</span>
                   </SheetDescription>
                 </div>
               </div>
@@ -153,55 +155,51 @@ export function MemberProfileSheet({
             <div className="space-y-5 p-5">
               {/* Nyckeltal */}
               <div className="grid grid-cols-3 gap-2">
-                <Stat label="Besök" value={profile.visitCount} />
-                <Stat label="Provade" value={profile.triedPlaces.length} />
-                <Stat label="Föreslagna" value={profile.proposedCount} />
+                <Stat label="Deltagna besök" value={profile.progression.visits} />
+                <Stat label="Unika ställen" value={profile.progression.uniquePlaces} />
+                <Stat label="Kökstyper" value={profile.progression.uniqueCuisines} />
               </div>
 
-              {/* Progression + badges */}
-              {progression ? (
-                <section className="rounded-2xl border border-border/70 bg-card p-3">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="text-sm font-medium">{progression.levelName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {progression.visits} räknade besök
-                    </div>
-                  </div>
-                  {isSelf && progression.nextThreshold !== null ? (
-                    <ProgressBar
-                      current={progression.visits}
-                      base={LEVELS[progression.levelIndex].threshold}
-                      next={progression.nextThreshold}
-                      nextName={LEVELS[progression.levelIndex + 1]?.name ?? ""}
-                    />
-                  ) : null}
-                  {progression.badges.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {progression.badges.map((b) => {
-                        const meta = BADGES[b.id];
-                        return (
-                          <Badge
-                            key={b.id}
-                            variant="outline"
-                            className="rounded-full border-border/70 bg-secondary/60 text-xs font-normal"
-                            title={`${meta.description} (${formatDate(b.earnedAt)})`}
-                          >
-                            <span className="mr-1" aria-hidden>
-                              {meta.emoji}
-                            </span>
-                            {meta.name}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="mt-3 text-xs italic text-muted-foreground">
-                      Inga märken än – kom med på fler besök så dyker de upp.
-                    </div>
-                  )}
-                </section>
+              {/* Nivå-progression (egen profil) */}
+              {member.id === state.currentUserId ? (
+                <LevelProgress progression={profile.progression} />
               ) : null}
 
+              {/* Badges */}
+              {profile.progression.badges.length > 0 ? (
+                <section>
+                  <h3 className="mb-2 text-sm font-medium">Utmärkelser</h3>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {profile.progression.badges.map((b) => {
+                      const def = BADGES[b.id];
+                      return (
+                        <div
+                          key={b.id}
+                          className="flex items-center gap-2.5 rounded-2xl border border-border/70 bg-card p-2.5"
+                        >
+                          <div
+                            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary/60 text-lg"
+                            aria-hidden="true"
+                          >
+                            {def.emoji}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium">
+                              {def.name}
+                            </div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {def.description}
+                            </div>
+                            <div className="mt-0.5 text-[10px] text-muted-foreground/80">
+                              Erövrad {formatDate(b.earnedAt)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
 
               {/* Senaste besök */}
               <section>
@@ -352,35 +350,53 @@ function EmptyLine({ text }: { text: string }) {
   );
 }
 
-function ProgressBar({
-  current,
-  base,
-  next,
-  nextName,
-}: {
-  current: number;
-  base: number;
-  next: number;
-  nextName: string;
-}) {
-  const span = Math.max(1, next - base);
-  const done = Math.min(span, Math.max(0, current - base));
+function LevelProgress({ progression }: { progression: MemberProgression }) {
+  const { level, visits } = progression;
+  if (level.nextThreshold == null) {
+    return (
+      <section>
+        <h3 className="mb-2 text-sm font-medium">Nivå</h3>
+        <Card className="rounded-2xl border-border/70 p-3 text-sm">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">{level.name}</span>
+            <span className="text-xs text-muted-foreground">
+              Högsta nivån är nådd
+            </span>
+          </div>
+        </Card>
+      </section>
+    );
+  }
+  const span = Math.max(1, level.nextThreshold - level.threshold);
+  const done = Math.min(span, Math.max(0, visits - level.threshold));
   const pct = Math.round((done / span) * 100);
-  const remaining = Math.max(0, next - current);
+  const remaining = Math.max(0, level.nextThreshold - visits);
   return (
-    <div className="mt-2">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+    <section>
+      <h3 className="mb-2 text-sm font-medium">Nivå</h3>
+      <Card className="space-y-2 rounded-2xl border-border/70 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-sm">
+          <span className="font-medium">{level.name}</span>
+          <span className="text-xs text-muted-foreground">
+            {remaining === 0
+              ? `Nästa nivå: ${level.nextName}`
+              : `${remaining} besök till ${level.nextName}`}
+          </span>
+        </div>
         <div
-          className="h-full rounded-full bg-primary transition-all"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="mt-1 text-[11px] text-muted-foreground">
-        {remaining === 0
-          ? `Klar för ${nextName}`
-          : `${remaining} besök till ${nextName}`}
-      </div>
-    </div>
+          className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Progression mot ${level.nextName}`}
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </Card>
+    </section>
   );
 }
-

@@ -1,24 +1,30 @@
 /**
- * Härledd gamification för Matrundan.
+ * Privat gruppcentrerad gamification för Matrundan.
  *
- * Inga poäng lagras. Alla värden beräknas ur AppState (samma modell både för
- * demo och live). En medlem får kredit för besök där hen är listad som
- * deltagare och besöket räknas mot progression i gruppen (original eller
- * shared med countsForProgression=true). Registreraren utan deltagande får
- * ingen kredit.
+ * Alla värden är deterministiskt härledda ur AppState. Inga poäng, nivåer
+ * eller badges lagras – varje läsning räknar om utifrån de synliga besöken
+ * i den aktuella gruppen. En medlem får kredit endast för besök där hen är
+ * listad som deltagare och besöket räknas mot progression (originalbesök
+ * alltid; delade besök endast när både gruppens
+ * `sharedVisitsCountForProgression` och besökets `countsForProgression`
+ * tillåter det).
  */
 import type {
+  Activity,
   AppState,
-  BadgeId,
-  EarnedBadge,
-  GroupMilestone,
-  LeaderboardRow,
-  LevelDef,
-  MemberProgression,
+  Place,
   Visit,
 } from "./types";
 
-export const LEVELS: LevelDef[] = [
+/* ---------- Nivåer ---------- */
+
+export interface LevelDef {
+  /** Antal progression-räknade deltaganden som krävs. */
+  threshold: number;
+  name: string;
+}
+
+export const LEVELS: readonly LevelDef[] = [
   { threshold: 0, name: "Nyfiken" },
   { threshold: 1, name: "Provsmakaren" },
   { threshold: 4, name: "Krogspanaren" },
@@ -26,282 +32,394 @@ export const LEVELS: LevelDef[] = [
   { threshold: 20, name: "Smakjägaren" },
   { threshold: 40, name: "Matkonnässören" },
   { threshold: 75, name: "Matrundemästaren" },
-];
+] as const;
 
-export const BADGES: Record<
-  BadgeId,
-  { name: string; emoji: string; description: string }
-> = {
+export interface LevelInfo {
+  index: number;
+  name: string;
+  /** Tröskel för nuvarande nivå. */
+  threshold: number;
+  /** Nästa tröskel eller null om maxnivån är nådd. */
+  nextThreshold: number | null;
+  /** Namn på nästa nivå eller null. */
+  nextName: string | null;
+}
+
+export function levelForCount(count: number): LevelInfo {
+  let idx = 0;
+  for (let i = 0; i < LEVELS.length; i++) {
+    if (count >= LEVELS[i].threshold) idx = i;
+  }
+  const next = LEVELS[idx + 1] ?? null;
+  return {
+    index: idx,
+    name: LEVELS[idx].name,
+    threshold: LEVELS[idx].threshold,
+    nextThreshold: next?.threshold ?? null,
+    nextName: next?.name ?? null,
+  };
+}
+
+/* ---------- Badges ---------- */
+
+export type BadgeId =
+  | "first-round"
+  | "world-taster"
+  | "broad-register"
+  | "regular"
+  | "bullseye";
+
+export interface BadgeDef {
+  id: BadgeId;
+  name: string;
+  emoji: string;
+  description: string;
+}
+
+export const BADGES: Record<BadgeId, BadgeDef> = {
   "first-round": {
+    id: "first-round",
     name: "Första rundan",
     emoji: "🍽️",
     description: "Ditt första besök med gruppen.",
   },
   "world-taster": {
+    id: "world-taster",
     name: "Världsvan",
     emoji: "🌍",
-    description: "Provat minst 5 olika kökstyper.",
+    description: "Provat minst 5 olika kökstyper med gruppen.",
   },
-  "flavor-spectrum": {
-    name: "Smakspektrat",
+  "broad-register": {
+    id: "broad-register",
+    name: "Brett register",
     emoji: "🎨",
-    description: "Besökt ställen som täcker 4 olika kategorier/tillfällen.",
+    description: "Besökt matställen från minst 4 olika kategorier.",
   },
   regular: {
+    id: "regular",
     name: "Stammis",
     emoji: "🔁",
     description: "Deltagit tre gånger på samma ställe.",
   },
   bullseye: {
+    id: "bullseye",
     name: "Fullträff",
     emoji: "🎯",
-    description: "Ett ställe du föreslog blev besökt av gänget.",
+    description:
+      "Ett matställe du föreslog i gruppen har besökts av gänget.",
   },
 };
 
-function levelFor(count: number): { index: number; name: string; next: number | null } {
-  let idx = 0;
-  for (let i = 0; i < LEVELS.length; i++) {
-    if (count >= LEVELS[i].threshold) idx = i;
-  }
-  const next = LEVELS[idx + 1]?.threshold ?? null;
-  return { index: idx, name: LEVELS[idx].name, next };
+export interface EarnedBadge {
+  id: BadgeId;
+  /** ISO-datum för det besök som utlöste badgen. */
+  earnedAt: string;
 }
 
-function countsForProgression(state: AppState, v: Visit): boolean {
-  if (v.linkType === "shared") {
-    // Delade besök räknas endast om gruppen och länken tillåter det.
-    if (v.countsForProgression === false) return false;
-    if (state.group.sharedVisitsCountForProgression === false) return false;
-  }
-  return true;
+/* ---------- Progression per medlem ---------- */
+
+export interface MemberProgression {
+  memberId: string;
+  visits: number;
+  uniquePlaces: number;
+  uniqueCuisines: number;
+  breadthCategories: number;
+  level: LevelInfo;
+  badges: EarnedBadge[];
 }
+
+/* ---------- Topplistor ---------- */
+
+export type LeaderboardCategory = "visits" | "newPlaces" | "breadth";
+export type LeaderboardPeriod = "year" | "all";
+
+export interface LeaderboardRow {
+  memberId: string;
+  value: number;
+  /** Competition-ranking: två ettor följs av trea (1,1,3). */
+  rank: number;
+}
+
+/* ---------- Milstolpar ---------- */
+
+export interface GroupMilestone {
+  id: string;
+  kind: "places-count" | "anniversary" | "full-group-visit";
+  at: string;
+  label: string;
+}
+
+/* ================================================================== */
 
 function normalizeCuisine(c: string): string {
   return c.trim().toLowerCase();
 }
 
-export function computeMemberProgression(
-  state: AppState,
-  memberId: string,
-): MemberProgression {
-  const placeById = new Map(state.places.map((p) => [p.id, p]));
-
-  const participated = state.visits
-    .filter((v) => v.participantIds.includes(memberId))
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
-
-  const scoring = participated.filter((v) => countsForProgression(state, v));
-
-  const uniquePlaceIds = new Set(scoring.map((v) => v.placeId));
-  const cuisineSet = new Set<string>();
-  const categorySet = new Set<string>();
-
-  scoring.forEach((v) => {
-    const p = placeById.get(v.placeId);
-    if (!p) return;
-    p.cuisines.forEach((c) => cuisineSet.add(normalizeCuisine(c)));
-    if (p.category) categorySet.add(`c:${p.category}`);
-    p.occasions.forEach((o) => categorySet.add(`o:${o}`));
-  });
-
-  const lvl = levelFor(scoring.length);
-
-  // Badges
-  const badges: EarnedBadge[] = [];
-
-  // Första rundan – första scoring-visit
-  if (scoring.length > 0) {
-    badges.push({ id: "first-round", earnedAt: scoring[0].date });
-  }
-
-  // Världsvan – 5 unika kökstyper (kronologiskt tröskelvärde)
-  {
-    const seen = new Set<string>();
-    let earnedAt: string | null = null;
-    for (const v of scoring) {
-      const p = placeById.get(v.placeId);
-      p?.cuisines.forEach((c) => seen.add(normalizeCuisine(c)));
-      if (seen.size >= 5) {
-        earnedAt = v.date;
-        break;
-      }
-    }
-    if (earnedAt) badges.push({ id: "world-taster", earnedAt });
-  }
-
-  // Smakspektrat – union(kategori, tillfällen) >= 4
-  {
-    const seen = new Set<string>();
-    let earnedAt: string | null = null;
-    for (const v of scoring) {
-      const p = placeById.get(v.placeId);
-      if (!p) continue;
-      seen.add(`c:${p.category}`);
-      p.occasions.forEach((o) => seen.add(`o:${o}`));
-      if (seen.size >= 4) {
-        earnedAt = v.date;
-        break;
-      }
-    }
-    if (earnedAt) badges.push({ id: "flavor-spectrum", earnedAt });
-  }
-
-  // Stammis – 3:e deltagande på samma canonical place (räknar alla synliga
-  // besök i gruppen, ej beroende av shared-toggle).
-  {
-    const counts = new Map<string, number>();
-    let earnedAt: string | null = null;
-    for (const v of participated) {
-      const n = (counts.get(v.placeId) ?? 0) + 1;
-      counts.set(v.placeId, n);
-      if (n >= 3) {
-        earnedAt = v.date;
-        break;
-      }
-    }
-    if (earnedAt) badges.push({ id: "regular", earnedAt });
-  }
-
-  // Fullträff – ett ställe medlemmen föreslog i gruppen (origin != 'shared')
-  // som blivit besökt (original-visit) med minst en annan deltagare.
-  {
-    let earnedAt: string | null = null;
-    const proposedPlaces = state.places.filter(
-      (p) => p.addedBy === memberId && p.origin !== "shared",
-    );
-    for (const p of proposedPlaces) {
-      const qualifying = state.visits
-        .filter(
-          (v) =>
-            v.placeId === p.id &&
-            (v.linkType ?? "original") === "original" &&
-            v.participantIds.some((id) => id !== memberId),
-        )
-        .sort((a, b) => (a.date < b.date ? -1 : 1))[0];
-      if (qualifying) {
-        if (!earnedAt || qualifying.date < earnedAt) earnedAt = qualifying.date;
-      }
-    }
-    if (earnedAt) badges.push({ id: "bullseye", earnedAt });
-  }
-
-  return {
-    memberId,
-    visits: scoring.length,
-    uniquePlaces: uniquePlaceIds.size,
-    uniqueCuisines: cuisineSet.size,
-    breadthCategories: categorySet.size,
-    levelIndex: lvl.index,
-    levelName: lvl.name,
-    nextThreshold: lvl.next,
-    badges,
-  };
+/** Räknas besöket mot progression i denna grupp? Originalbesök alltid; delade endast om båda flaggorna tillåter. */
+export function countsForProgression(state: AppState, v: Visit): boolean {
+  const linkType = v.linkType ?? "original";
+  if (linkType === "original") return true;
+  if (v.countsForProgression === false) return false;
+  if (state.group.sharedVisitsCountForProgression === false) return false;
+  return true;
 }
 
-function denseRank(rows: { memberId: string; value: number }[]): LeaderboardRow[] {
-  const sorted = [...rows].sort((a, b) => b.value - a.value || a.memberId.localeCompare(b.memberId));
-  const out: LeaderboardRow[] = [];
-  let rank = 0;
-  let prev: number | null = null;
-  for (const r of sorted) {
-    if (prev === null || r.value !== prev) rank += 1;
-    out.push({ memberId: r.memberId, value: r.value, rank });
-    prev = r.value;
-  }
-  return out;
+/** Stabil kronologisk sortering med visit-id som tiebreaker. */
+function chronologically(a: Visit, b: Visit): number {
+  if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  return a.id < b.id ? -1 : 1;
 }
 
 function inYear(iso: string, year: number): boolean {
   return iso.startsWith(`${year}-`);
 }
 
-export type LeaderboardCategory = "visits" | "newPlaces" | "breadth";
-export type LeaderboardPeriod = "year" | "all";
+/** Nuvarande kalenderår enligt Europe/Stockholm (fallback, ingen full tz-inställning i v0.9.0). */
+export function currentStockholmYear(now: Date = new Date()): number {
+  // sv-SE returnerar "YYYY" korrekt för Europe/Stockholm.
+  const y = new Intl.DateTimeFormat("sv-SE", {
+    year: "numeric",
+    timeZone: "Europe/Stockholm",
+  }).format(now);
+  const n = Number(y);
+  return Number.isFinite(n) ? n : now.getFullYear();
+}
 
+/**
+ * Beräkna progression för en medlem i den aktuella gruppens read-model.
+ * Läser bara AppState – ingen extern data. Duplicerade besök kan aldrig
+ * uppstå här eftersom Visit.id är unikt per canonical visit i gruppen.
+ */
+export function computeMemberProgression(
+  state: AppState,
+  memberId: string,
+): MemberProgression {
+  const placeById = new Map<string, Place>(state.places.map((p) => [p.id, p]));
+
+  const participated = state.visits
+    .filter((v) => v.participantIds.includes(memberId))
+    .slice()
+    .sort(chronologically);
+
+  const scoring = participated.filter((v) => countsForProgression(state, v));
+
+  const uniquePlaces = new Set(scoring.map((v) => v.placeId));
+  const cuisineSet = new Set<string>();
+  const categorySet = new Set<string>();
+
+  for (const v of scoring) {
+    const p = placeById.get(v.placeId);
+    if (!p) continue;
+    for (const c of p.cuisines ?? []) {
+      const n = normalizeCuisine(c);
+      if (n) cuisineSet.add(n);
+    }
+    if (p.category) categorySet.add(p.category);
+  }
+
+  const level = levelForCount(scoring.length);
+
+  const badges: EarnedBadge[] = [];
+
+  // Första rundan
+  if (scoring.length > 0) {
+    badges.push({ id: "first-round", earnedAt: scoring[0].date });
+  }
+
+  // Världsvan – 5 unika normaliserade kökstyper
+  {
+    const seen = new Set<string>();
+    for (const v of scoring) {
+      const p = placeById.get(v.placeId);
+      if (!p) continue;
+      for (const c of p.cuisines ?? []) {
+        const n = normalizeCuisine(c);
+        if (n) seen.add(n);
+      }
+      if (seen.size >= 5) {
+        badges.push({ id: "world-taster", earnedAt: v.date });
+        break;
+      }
+    }
+  }
+
+  // Brett register – 4 unika kategorier (endast places.category)
+  {
+    const seen = new Set<string>();
+    for (const v of scoring) {
+      const p = placeById.get(v.placeId);
+      if (!p || !p.category) continue;
+      seen.add(p.category);
+      if (seen.size >= 4) {
+        badges.push({ id: "broad-register", earnedAt: v.date });
+        break;
+      }
+    }
+  }
+
+  // Stammis – tredje progression-räknade deltagandet på samma canonical place
+  {
+    const counts = new Map<string, number>();
+    for (const v of scoring) {
+      const n = (counts.get(v.placeId) ?? 0) + 1;
+      counts.set(v.placeId, n);
+      if (n === 3) {
+        badges.push({ id: "regular", earnedAt: v.date });
+        break;
+      }
+    }
+  }
+
+  // Fullträff – medlemmen är added_by för stället (icke-shared) och besöket
+  // är ett originalbesök där minst en annan medlem deltar. Endast första
+  // kvalificerande besöket räknas.
+  {
+    const proposedIds = new Set(
+      state.places
+        .filter((p) => p.addedBy === memberId && (p.origin ?? "manual") !== "shared")
+        .map((p) => p.id),
+    );
+    let earliest: Visit | null = null;
+    for (const v of state.visits) {
+      if (!proposedIds.has(v.placeId)) continue;
+      if ((v.linkType ?? "original") !== "original") continue;
+      if (!v.participantIds.some((id) => id !== memberId)) continue;
+      if (!earliest || chronologically(v, earliest) < 0) earliest = v;
+    }
+    if (earliest) badges.push({ id: "bullseye", earnedAt: earliest.date });
+  }
+
+  return {
+    memberId,
+    visits: scoring.length,
+    uniquePlaces: uniquePlaces.size,
+    uniqueCuisines: cuisineSet.size,
+    breadthCategories: categorySet.size,
+    level,
+    badges,
+  };
+}
+
+/**
+ * Competition-ranking med sekundär alfabetisk sortering vid lika värden.
+ * Två ettor följs alltid av en trea. Alfabetisk ordning används endast för
+ * visningsordningen; den påverkar inte placeringen.
+ */
+function competitionRank(
+  rows: { memberId: string; name: string; value: number }[],
+): LeaderboardRow[] {
+  const sorted = rows.slice().sort((a, b) => {
+    if (b.value !== a.value) return b.value - a.value;
+    return a.name.localeCompare(b.name, "sv");
+  });
+  const out: LeaderboardRow[] = [];
+  let prevValue: number | null = null;
+  let prevRank = 0;
+  sorted.forEach((r, i) => {
+    const rank = prevValue !== null && r.value === prevValue ? prevRank : i + 1;
+    out.push({ memberId: r.memberId, value: r.value, rank });
+    prevValue = r.value;
+    prevRank = rank;
+  });
+  return out;
+}
+
+/**
+ * Topplista för en kategori/period. Endast aktiva medlemmar (state.members
+ * i live-läge är redan filtrerade till status='active').
+ */
 export function computeLeaderboard(
   state: AppState,
   category: LeaderboardCategory,
   period: LeaderboardPeriod,
+  now: Date = new Date(),
 ): LeaderboardRow[] {
-  const year = new Date().getFullYear();
-  const placeById = new Map(state.places.map((p) => [p.id, p]));
+  const year = currentStockholmYear(now);
+  const placeById = new Map<string, Place>(state.places.map((p) => [p.id, p]));
 
   const rows = state.members.map((m) => {
-    const memberScoringVisits = state.visits
-      .filter(
-        (v) =>
-          v.participantIds.includes(m.id) &&
-          countsForProgression(state, v) &&
-          (period === "all" || inYear(v.date, year)),
-      )
-      .sort((a, b) => (a.date < b.date ? -1 : 1));
+    const memberParticipated = state.visits
+      .filter((v) => v.participantIds.includes(m.id))
+      .slice()
+      .sort(chronologically);
+    const memberScoring = memberParticipated.filter((v) =>
+      countsForProgression(state, v),
+    );
+    const inPeriod = (v: Visit) => period === "all" || inYear(v.date, year);
 
     let value = 0;
     if (category === "visits") {
-      value = memberScoringVisits.length;
+      value = memberScoring.filter(inPeriod).length;
     } else if (category === "newPlaces") {
-      // Nya matställen inom perioden = distinkta placeIds där medlemmens
-      // första någonsin-deltagande på det stället inföll inom perioden.
-      const firstByPlace = new Map<string, string>();
-      for (const v of state.visits.filter((x) => x.participantIds.includes(m.id))) {
-        const prev = firstByPlace.get(v.placeId);
-        if (!prev || v.date < prev) firstByPlace.set(v.placeId, v.date);
+      // Distinkta canonical places där medlemmens första
+      // progression-räknade deltagande på platsen inträffar inom perioden.
+      const firstByPlace = new Map<string, Visit>();
+      for (const v of memberScoring) {
+        const cur = firstByPlace.get(v.placeId);
+        if (!cur || chronologically(v, cur) < 0) firstByPlace.set(v.placeId, v);
       }
       let n = 0;
-      for (const [, firstDate] of firstByPlace) {
-        if (period === "all" || inYear(firstDate, year)) n += 1;
-      }
+      for (const v of firstByPlace.values()) if (inPeriod(v)) n += 1;
       value = n;
     } else {
-      const set = new Set<string>();
-      for (const v of memberScoringVisits) {
+      const seen = new Set<string>();
+      for (const v of memberScoring) {
+        if (!inPeriod(v)) continue;
         const p = placeById.get(v.placeId);
-        p?.cuisines.forEach((c) => set.add(normalizeCuisine(c)));
+        for (const c of p?.cuisines ?? []) {
+          const nn = normalizeCuisine(c);
+          if (nn) seen.add(nn);
+        }
       }
-      value = set.size;
+      value = seen.size;
     }
-    return { memberId: m.id, value };
+    return { memberId: m.id, name: m.name, value };
   });
 
-  return denseRank(rows);
+  return competitionRank(rows);
 }
 
-export function computeGroupMilestones(state: AppState): GroupMilestone[] {
+/**
+ * Milstolpar för gruppen. Anniversaries mäts från `group.createdAt`.
+ * "Hela gänget" använder nu aktiva medlemmar som fallback eftersom
+ * historiska medlemsperioder inte lagras i nuvarande schema; se README.
+ */
+export function computeGroupMilestones(
+  state: AppState,
+  now: Date = new Date(),
+): GroupMilestone[] {
   const out: GroupMilestone[] = [];
-  const thresholds = [10, 25, 50, 100];
+  const thresholds = [10, 25, 50, 100] as const;
 
-  // Unika ställen (bland ställen som gruppen besökt minst en gång).
-  const visitedPlaceIds = new Set(state.visits.map((v) => v.placeId));
-  const uniqueVisited = [...visitedPlaceIds]
-    .map((id) => {
-      const first = state.visits
-        .filter((v) => v.placeId === id)
-        .sort((a, b) => (a.date < b.date ? -1 : 1))[0];
-      return { id, at: first?.date ?? "" };
-    })
-    .sort((a, b) => (a.at < b.at ? -1 : 1));
+  const visitedIds = new Set(state.visits.map((v) => v.placeId));
+  const firstVisitByPlace: { id: string; at: string }[] = [];
+  for (const pid of visitedIds) {
+    const first = state.visits
+      .filter((v) => v.placeId === pid)
+      .slice()
+      .sort(chronologically)[0];
+    if (first) firstVisitByPlace.push({ id: pid, at: first.date });
+  }
+  firstVisitByPlace.sort((a, b) => (a.at < b.at ? -1 : 1));
 
-  thresholds.forEach((t) => {
-    if (uniqueVisited.length >= t && uniqueVisited[t - 1]) {
+  for (const t of thresholds) {
+    if (firstVisitByPlace.length >= t) {
       out.push({
         id: `places-${t}`,
         kind: "places-count",
-        at: uniqueVisited[t - 1].at,
+        at: firstVisitByPlace[t - 1].at,
         label: `${t} besökta ställen`,
       });
     }
-  });
+  }
 
-  // Årsdagar
   if (state.group.createdAt) {
     const start = new Date(state.group.createdAt);
-    const now = new Date();
     let years = now.getFullYear() - start.getFullYear();
-    const beforeAnniv =
+    const before =
       now.getMonth() < start.getMonth() ||
       (now.getMonth() === start.getMonth() && now.getDate() < start.getDate());
-    if (beforeAnniv) years -= 1;
+    if (before) years -= 1;
     for (let y = 1; y <= years; y++) {
       const at = new Date(start);
       at.setFullYear(start.getFullYear() + y);
@@ -314,12 +432,12 @@ export function computeGroupMilestones(state: AppState): GroupMilestone[] {
     }
   }
 
-  // Första besök med hela aktiva gruppen
   const activeIds = state.members.map((m) => m.id);
   if (activeIds.length >= 2) {
     const full = state.visits
       .filter((v) => activeIds.every((id) => v.participantIds.includes(id)))
-      .sort((a, b) => (a.date < b.date ? -1 : 1))[0];
+      .slice()
+      .sort(chronologically)[0];
     if (full) {
       out.push({
         id: `full-group-${full.id}`,
@@ -331,4 +449,9 @@ export function computeGroupMilestones(state: AppState): GroupMilestone[] {
   }
 
   return out.sort((a, b) => (a.at < b.at ? 1 : -1));
+}
+
+/* Hjälp för aktivitetsfilter – 3D lägger inte till nya activity-typer. */
+export function isGamificationActivity(_a: Activity): boolean {
+  return false;
 }
