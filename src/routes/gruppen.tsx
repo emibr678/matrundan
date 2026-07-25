@@ -28,6 +28,7 @@ import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
 import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
+import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
