@@ -151,18 +151,13 @@ export function PlaceMap({
     [fitPoints, size.width, size.height, zoomOffset],
   );
 
-  const selected =
-    mappedItems.find((item) => item.id === selectedId) ?? mappedItems[0] ?? null;
-  const geoapifyKey = (
-    import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } }
-  ).env?.VITE_GEOAPIFY_MAPS_KEY;
+  const selected = mappedItems.find((item) => item.id === selectedId) ?? mappedItems[0] ?? null;
+  const geoapifyKey = (import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } })
+    .env?.VITE_GEOAPIFY_MAPS_KEY;
   const tileCount = 2 ** frame.zoom;
   const minTileX = Math.floor((frame.center.x - size.width / 2) / TILE_SIZE) - 1;
   const maxTileX = Math.floor((frame.center.x + size.width / 2) / TILE_SIZE) + 1;
-  const minTileY = Math.max(
-    0,
-    Math.floor((frame.center.y - size.height / 2) / TILE_SIZE) - 1,
-  );
+  const minTileY = Math.max(0, Math.floor((frame.center.y - size.height / 2) / TILE_SIZE) - 1);
   const maxTileY = Math.min(
     tileCount - 1,
     Math.floor((frame.center.y + size.height / 2) / TILE_SIZE) + 1,
@@ -178,10 +173,7 @@ export function PlaceMap({
   const radiusPixels =
     center && radiusKm
       ? Math.min(
-          Math.max(
-            (radiusKm * 1000) / metersPerPixel(center.lat, frame.zoom),
-            8,
-          ),
+          Math.max((radiusKm * 1000) / metersPerPixel(center.lat, frame.zoom), 8),
           Math.max(size.width, size.height) * 1.5,
         )
       : 0;
@@ -248,14 +240,8 @@ export function PlaceMap({
         <div
           className="pointer-events-none absolute grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow"
           style={{
-            left:
-              project(center.lat, center.lng, frame.zoom).x -
-              frame.center.x +
-              size.width / 2,
-            top:
-              project(center.lat, center.lng, frame.zoom).y -
-              frame.center.y +
-              size.height / 2,
+            left: project(center.lat, center.lng, frame.zoom).x - frame.center.x + size.width / 2,
+            top: project(center.lat, center.lng, frame.zoom).y - frame.center.y + size.height / 2,
           }}
           title="Sökcentrum"
         >
@@ -323,9 +309,7 @@ export function PlaceMap({
               ) : null}
               <div className="truncate font-medium">{selected.name}</div>
               {selected.description ? (
-                <div className="truncate text-xs text-muted-foreground">
-                  {selected.description}
-                </div>
+                <div className="truncate text-xs text-muted-foreground">{selected.description}</div>
               ) : null}
             </div>
             {onAction ? (

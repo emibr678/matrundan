@@ -1,21 +1,7 @@
 import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
-import {
-  createFileRoute,
-  Link,
-  Outlet,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
-import {
-  ChevronRight,
-  List,
-  Map,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,8 +31,7 @@ export const Route = createFileRoute("/matstallen")({
       { title: "Matställen · Matrundan" },
       {
         name: "description",
-        content:
-          "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
+        content: "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
       },
       { property: "og:title", content: "Matställen · Matrundan" },
       { property: "og:description", content: "Gruppens gemensamma matställeslista." },
@@ -86,9 +71,7 @@ function PlacesIndex() {
   const [filterOpen, setFilterOpen] = React.useState(false);
 
   const activeAdvancedCount =
-    (category !== "alla" ? 1 : 0) +
-    (occasion !== "alla" ? 1 : 0) +
-    (sort !== "senaste" ? 1 : 0);
+    (category !== "alla" ? 1 : 0) + (occasion !== "alla" ? 1 : 0) + (sort !== "senaste" ? 1 : 0);
 
   const filtered = React.useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -125,7 +108,9 @@ function PlacesIndex() {
 
   React.useEffect(() => {
     if (selectedPlaceId && filtered.some((place) => place.id === selectedPlaceId)) return;
-    setSelectedPlaceId(filtered.find((place) => place.lat != null && place.lng != null)?.id ?? null);
+    setSelectedPlaceId(
+      filtered.find((place) => place.lat != null && place.lng != null)?.id ?? null,
+    );
   }, [filtered, selectedPlaceId]);
 
   const topRated = React.useMemo(
@@ -250,9 +235,7 @@ function PlacesIndex() {
           <SheetContent side="bottom" className="max-h-[85vh] rounded-t-3xl">
             <SheetHeader>
               <SheetTitle>Filter & sortering</SheetTitle>
-              <SheetDescription>
-                Samma urval används i både listan och kartan.
-              </SheetDescription>
+              <SheetDescription>Samma urval används i både listan och kartan.</SheetDescription>
             </SheetHeader>
             <div className="space-y-5 py-4">
               <FilterGroup label="Kategori">
@@ -357,7 +340,8 @@ function PlacesIndex() {
           />
           {unmappedCount > 0 ? (
             <p className="text-xs text-muted-foreground">
-              {unmappedCount} {unmappedCount === 1 ? "ställe saknar" : "ställen saknar"} kartposition och visas bara i listan.
+              {unmappedCount} {unmappedCount === 1 ? "ställe saknar" : "ställen saknar"}{" "}
+              kartposition och visas bara i listan.
             </p>
           ) : null}
         </section>

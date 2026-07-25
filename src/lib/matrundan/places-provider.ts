@@ -240,9 +240,7 @@ const demoProvider: PlacesProvider = {
       ...suggestion,
       distanceKm:
         suggestion.lat != null && suggestion.lng != null
-          ? Math.round(
-              haversineKm(center, { lat: suggestion.lat, lng: suggestion.lng }) * 10,
-            ) / 10
+          ? Math.round(haversineKm(center, { lat: suggestion.lat, lng: suggestion.lng }) * 10) / 10
           : undefined,
     }));
 
@@ -250,8 +248,7 @@ const demoProvider: PlacesProvider = {
       radiusKm == null || !Number.isFinite(radiusKm)
         ? withDistance
         : withDistance.filter(
-            (suggestion) =>
-              suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
+            (suggestion) => suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
           );
 
     filtered.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
