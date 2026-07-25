@@ -188,20 +188,20 @@ function GroupPage() {
                 <button
                   type="button"
                   onClick={() => navigate({ search: { member: m.id } })}
-                  className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none"
+                  className="flex w-full items-center gap-2.5 rounded-2xl p-3 text-left outline-none sm:gap-3"
                   aria-label={`Öppna profil för ${m.name}`}
                 >
-                  <MemberAvatar member={m} size={44} />
+                  <MemberAvatar member={m} size={40} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{m.name}</span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="min-w-0 max-w-full truncate font-medium">{m.name}</span>
                       {m.id === state.currentUserId ? (
-                        <Badge variant="secondary" className="rounded-full text-[10px]">
+                        <Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">
                           Du
                         </Badge>
                       ) : null}
                       {m.role !== "medlem" ? (
-                        <Badge variant="outline" className="rounded-full text-[10px]">
+                        <Badge variant="outline" className="shrink-0 rounded-full text-[10px]">
                           {m.role}
                         </Badge>
                       ) : null}
@@ -212,15 +212,16 @@ function GroupPage() {
                         : "Inga besök än"}
                     </div>
                   </div>
-                  <div className="shrink-0 text-right text-[11px] text-muted-foreground">
+                  <div className="shrink-0 text-right text-[11px] leading-tight text-muted-foreground">
                     <div>{visitCount} besök</div>
                     <div className="flex items-center justify-end gap-1">
                       <Heart className="h-3 w-3" /> {favCount}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
                 </button>
               </Card>
+
             );
           })}
         </div>
