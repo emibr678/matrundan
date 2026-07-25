@@ -170,7 +170,7 @@ function GroupPage() {
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
-          {memberActivity.map(({ m, lastVisit, visitCount, favCount }) => {
+          {memberActivity.map(({ m, lastVisit, visitCount, favCount, progression }) => {
             const place = lastVisit ? getPlace(lastVisit.placeId) : undefined;
             return (
               <Card
@@ -199,6 +199,9 @@ function GroupPage() {
                       ) : null}
                     </div>
                     <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {progression.levelName} · {progression.visits} besök
+                    </div>
+                    <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
                       {place
                         ? `Senast på ${place.name} · ${formatDate(lastVisit!.date)}`
                         : "Inga besök än"}
@@ -217,6 +220,9 @@ function GroupPage() {
           })}
         </div>
       </section>
+
+      <GroupHighlights />
+
 
       <MemberProfileSheet
         member={activeMember}
