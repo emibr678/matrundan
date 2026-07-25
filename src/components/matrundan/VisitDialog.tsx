@@ -90,7 +90,7 @@ export function VisitDialog({
       cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
     );
 
-  const submit = async () => {
+  const submit = async (thenShare = false) => {
     if (isBusy) return;
     if (participants.length === 0) {
       toast.error("Välj minst en deltagare");
@@ -102,7 +102,7 @@ export function VisitDialog({
     }
     setBusy(true);
     try {
-      await addVisit({
+      const created = await addVisit({
         placeId: place.id,
         date: new Date(date).toISOString(),
         meal,
@@ -116,12 +116,16 @@ export function VisitDialog({
       });
       toast.success("Besök registrerat", { description: place.name });
       onOpenChange(false);
+      if (thenShare && activeGroupId && created?.id) {
+        setSharePayload({ visitId: created.id, groupId: activeGroupId });
+      }
     } catch (e) {
       toast.error((e as Error).message || "Kunde inte spara besöket.");
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
