@@ -8,8 +8,8 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.3.0";
-export const APP_VERSION_DATE = "2026-07-24";
+export const APP_VERSION = "0.4.0";
+export const APP_VERSION_DATE = "2026-07-25";
 
 export interface ChangelogEntry {
   version: string;
@@ -26,6 +26,31 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Supabase-grund: Google-inloggning, riktiga grupper och live-läge sida vid sida med demot.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Google-inloggning via Lovable Cloud (Supabase Auth).",
+          "Riktig datamodell i Supabase med grupper, medlemskap, platser, besök och betyg.",
+          "Onboarding för första gruppen med namn, emoji och valfritt hemområde.",
+          "Gruppväljare i header när man är med i flera grupper.",
+          "Live-läge läser gruppens data från Supabase; demo-läget finns kvar oförändrat.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Repository-lager separerar demo och live så att vykomponenterna är oförändrade.",
+          "Radbrytande RLS: endast gruppmedlemmar ser gruppens data; anonyma har ingen åtkomst.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.3.0",
+    date: "2026-07-24",
     summary:
       "Medlemsprofiler, geografisk utforskning, tydligare betyg och navigerbar aktivitet.",
     sections: [

@@ -28,6 +28,7 @@ function nameOf(state: AppState, memberId: string) {
 
 interface StoreContextValue {
   state: AppState;
+  mode: "demo" | "live";
   addPlace: (input: Omit<Place, "id" | "addedAt">) => Place;
   toggleFavorite: (placeId: string) => void;
   addVisit: (visit: Omit<Visit, "id">) => Visit;
@@ -49,11 +50,27 @@ interface StoreContextValue {
 
 const StoreContext = React.createContext<StoreContextValue | null>(null);
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = React.useState<AppState>(DEMO_STATE);
-  const [hydrated, setHydrated] = React.useState(false);
+export function StoreProvider({
+  children,
+  mode = "demo",
+  initialState,
+}: {
+  children: React.ReactNode;
+  mode?: "demo" | "live";
+  initialState?: AppState;
+}) {
+  const [state, setState] = React.useState<AppState>(initialState ?? DEMO_STATE);
+  const [hydrated, setHydrated] = React.useState(mode === "live");
+
+  // Håll state synkat med prop:en (byte av grupp / omladdning i live-läge).
+  React.useEffect(() => {
+    if (mode === "live" && initialState) {
+      setState(initialState);
+    }
+  }, [mode, initialState]);
 
   React.useEffect(() => {
+    if (mode !== "demo") return;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -65,18 +82,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       /* ignore */
     }
     setHydrated(true);
-  }, []);
+  }, [mode]);
 
   React.useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || mode !== "demo") return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       /* ignore */
     }
-  }, [state, hydrated]);
+  }, [state, hydrated, mode]);
 
   const value = React.useMemo<StoreContextValue>(() => {
+    const liveBlock = () => {
+      const message = "Skrivningar kommer i nästa paket. Kör ?demo=1 för att prova.";
+      // Lazy toast för att undvika krasch om sonner inte laddats.
+      import("sonner").then(({ toast }) => toast.info(message)).catch(() => {});
+    };
     const pushActivity = (s: AppState, a: Activity): AppState => ({
       ...s,
       activity: [a, ...s.activity].slice(0, 50),
@@ -84,8 +106,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     return {
       state,
+      mode,
 
       addPlace: (input) => {
+        if (mode === "live") {
+          liveBlock();
+          return { ...input, id: "noop", addedAt: new Date().toISOString() } as Place;
+        }
         const place: Place = {
           ...input,
           id: `p-${Date.now()}`,
@@ -108,7 +135,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return place;
       },
 
-      toggleFavorite: (placeId) =>
+      toggleFavorite: (placeId) => {
+        if (mode === "live") return liveBlock();
         setState((s) => {
           const exists = s.favorites.find(
             (f) => f.memberId === s.currentUserId && f.placeId === placeId,
@@ -121,9 +149,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 )
               : [...s.favorites, { memberId: s.currentUserId, placeId }],
           };
-        }),
+        });
+      },
 
       addVisit: (visitInput) => {
+        if (mode === "live") {
+          liveBlock();
+          return { ...visitInput, id: "noop" } as Visit;
+        }
         const visit: Visit = { ...visitInput, id: `v-${Date.now()}` };
         setState((s) => {
           const place = s.places.find((p) => p.id === visit.placeId);
@@ -154,7 +187,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return visit;
       },
 
-      setNext: (placeId) =>
+      setNext: (placeId) => {
+        if (mode === "live") return liveBlock();
         setState((s) => {
           if (!placeId) return { ...s, nextPlaceId: null };
           const place = s.places.find((p) => p.id === placeId);
@@ -172,7 +206,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               target: { kind: "place", placeId },
             },
           );
-        }),
+        });
+      },
 
       resetDemo: () => {
         try {
@@ -260,7 +295,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return acc;
       },
     };
-  }, [state]);
+  }, [state, mode]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
