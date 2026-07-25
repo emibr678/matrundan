@@ -129,12 +129,28 @@
     border-color: var(--color-border);
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: clip;
+  }
+
   html,
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
   }
 
   h1,
@@ -143,8 +159,10 @@
   .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
   }
 }
+
 
 @utility paper-grain {
   background-image:
