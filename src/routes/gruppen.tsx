@@ -143,7 +143,6 @@ function GroupPage() {
               </h1>
               <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
                 {state.members.length} medlemmar
-                {state.group.city ? ` · ${state.group.city}` : ""}
               </div>
             </div>
             <div className="shrink-0">
