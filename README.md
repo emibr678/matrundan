@@ -2,16 +2,14 @@
 
 Matrundan är en privat webbapp för vänner och familj som vill hålla ordning
 på ställen de vill prova, välja nästa stopp tillsammans, registrera besök och
-spara gruppens egna betyg. Den ersätter tråden i chatten där restaurangtips
-försvinner och alla glömmer vem som tyckte vad.
+spara gruppens egna betyg.
 
-Just nu är appen tänkt för en enskild privat grupp. Ingen offentlig
-restaurangdatabas, ingen social feed och inga rekommendationer från externa
-tjänster. Fokus är på gänget och det ni provar tillsammans.
+Fokus är gänget och det ni provar tillsammans – ingen offentlig
+restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 
 ## Huvudflöde
 
-1. **Utforska eller lägg till** ett matställe – via platssökning eller manuellt.
+1. **Utforska eller lägg till** ett matställe – manuellt eller via platssökning.
 2. **Välj nästa stopp** manuellt eller genom att slumpa.
 3. **Registrera ett besök** med datum, tillfälle och deltagare.
 4. **Betygsätt** helheten och, om ni vill, smak, prisvärdhet och service.
@@ -19,10 +17,9 @@ tjänster. Fokus är på gänget och det ni provar tillsammans.
 ## Funktioner
 
 - Tre huvudvyer: Hem, Matställen och Gruppen.
-- Sökning och filtrering av matställeslistan med tydlig topplista baserad på
-  gruppens medelbetyg.
+- Sökning, filtrering och topplista i matställeslistan.
 - Registrering av besök med valfria detaljbetyg och kommentarer.
-- Personliga favoriter, delade favoriter i gänget och status per matställe
+- Personliga och delade favoriter, samt status per matställe
   (”Nytt för mig”, ”Nytt för gruppen”, ”Alla har provat”).
 - Klickbara medlemsprofiler med besök, favoriter och smakprofil.
 - Navigerbart aktivitetsflöde med djuplänkar till besök, matställen och
@@ -30,25 +27,52 @@ tjänster. Fokus är på gänget och det ni provar tillsammans.
 - Google Maps som enda externa länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status
+## Status – v0.4.0
 
-Appen är i tidig produktfas och drivs helt lokalt i webbläsaren.
+Matrundan har fått en riktig backend på Lovable Cloud (Supabase) samtidigt
+som demo-läget finns kvar oförändrat. Ingen data från tidigare versioner
+eller det gamla Matbingo-repot har migrerats – live-läget startar tomt och
+varje grupp bygger sin egen historik.
 
-- All data sparas i `localStorage`. Ingen backend, ingen inloggning och inga
-  externa restaurang-, karta-, bild- eller betygstjänster är anslutna.
-- Platssökningen använder en lokal demo-provider bakom ett provider-
-  gränssnitt som är förberett för framtida integrationer (t.ex. Geoapify).
-- En framtida version är tänkt att kopplas till Lovable Cloud för
-  autentisering, gruppdata och roller.
+### Två lägen sida vid sida
 
-Se [CHANGELOG.md](./CHANGELOG.md) för versionshistorik.
+- **Demo-läge (standard när man är utloggad):** all data ligger i webbläsarens
+  `localStorage` med svensk demodata. Ingen inloggning behövs. En explicit
+  sandlådevariant nås via `?demo=1` i URL:en – bra för att visa upp appen
+  utan att röra riktiga grupper.
+- **Live-läge (när man är inloggad):** gruppens data läses från Supabase
+  enligt RLS – bara medlemmar ser gruppens matställen, besök, betyg och
+  aktivitet. Har man inga grupper visas onboardingen för att skapa sin
+  första grupp.
+
+### Vad som fungerar i live-läget i Paket 1
+
+- Google-inloggning via Lovable Cloud (Supabase Auth).
+- Skapa sin första grupp (namn, emoji, valfritt hemområde) via
+  `create_group_with_owner`-RPC.
+- Läsning av gruppens matställen, besök, deltagare, omdömen, favoriter,
+  aktivitet och ”nästa stopp” från Supabase.
+- Byta mellan grupper i headern om man är med i flera.
+- Logga ut och tillbaka till demo-läget.
+
+### Vad som ännu bara fungerar i demo-läget
+
+Alla skrivflöden – lägga till matställen, registrera besök, betygsätta,
+markera favoriter, sätta gruppens nästa stopp, bjuda in medlemmar och
+uppdatera profiler – landar i Supabase först i Paket 2. I live-läget visas
+en diskret notis om att åtgärden är read-only i denna version.
+
+Andra funktioner som **inte** är med ännu: Geoapify/OSM-platssökning
+(providern är fortfarande demo-only) och gamification/nivåer/badges.
+
+Se [CHANGELOG.md](./CHANGELOG.md) för fullständig versionshistorik.
 
 ## Teknik
 
 - [TanStack Start](https://tanstack.com/start) v1 (React 19 + Vite 7)
-- TypeScript
-- Tailwind CSS v4 + shadcn/ui
+- TypeScript, Tailwind CSS v4, shadcn/ui
 - Bun som pakethanterare och runtime
+- Lovable Cloud (Supabase) för auth och datalager
 
 ### Kom igång
 
@@ -69,28 +93,49 @@ bunx tsgo --noEmit   # typkontroll
 
 ```
 src/
-  routes/                  Filbaserade rutter (TanStack Router)
-    __root.tsx             App-shell och global head
-    index.tsx              Hem
-    matstallen.tsx         Lista, sök och filter
-    matstallen.$placeId.tsx  Matställets detaljvy
-    gruppen.tsx            Gänget, aktivitet, inställningar
-  components/matrundan/    Feature-komponenter (dialogs, sheets, kort)
+  routes/                     Filbaserade rutter (TanStack Router)
+    __root.tsx                App-shell och global head
+    index.tsx                 Hem
+    matstallen.tsx            Lista, sök och filter
+    matstallen.$placeId.tsx   Matställets detaljvy
+    gruppen.tsx               Gänget, aktivitet, inställningar
+  components/matrundan/       Feature-komponenter (dialogs, sheets, kort)
+    AuthMenu.tsx              Google-inloggning och gruppväxlare
+    OnboardingScreen.tsx      Skapa första gruppen i live-läge
+    AppShell.tsx              Navigation + val mellan demo/live/onboarding
   lib/matrundan/
-    types.ts               Domänmodell
-    store.tsx              Lokalt tillståndslager (localStorage)
-    demo-data.ts           Svensk demodata för preview
-    places-provider.ts     Provider-gränssnitt för platssökning
-    location.ts            Enkel plats-tolkning för utforskning
-    version.ts             Version och strukturerad changelog
+    types.ts                  Domänmodell
+    store.tsx                 Vy-tillstånd, väljer demo- eller live-källa
+    session.tsx               Auth-, mode- och gruppvalskontext
+    live-repository.ts        Läser gruppens data från Supabase → AppState
+    demo-data.ts              Svensk demodata för preview
+    places-provider.ts        Provider-gränssnitt för platssökning
+    location.ts               Enkel plats-tolkning för utforskning
+    version.ts                Version och strukturerad changelog
+  integrations/supabase/      Auto-genererad Supabase-klient och typer
+    (ej att redigera manuellt)
 ```
 
-Domänmodell, datalager och vyer är avsiktligt separerade så att en framtida
-Supabase-integration kan byta ut store och places-provider utan att röra
-komponenterna.
+Domänmodell, datalager och vyer hålls separerade så att Paket 2 kan lägga
+till skrivflöden i `live-repository.ts` utan att röra vykomponenterna.
+
+## Konfiguration
+
+I Paket 1 behöver du **inte** göra något manuellt för att Google-login ska
+fungera: den använder Lovable Clouds hanterade OAuth-broker och de
+publicerbara Supabase-nycklarna som redan finns i `.env` (`VITE_SUPABASE_URL`,
+`VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`). Ingen egen
+Google Cloud-klient behövs.
+
+Ingen service-role-nyckel finns i klientkoden eller i några `VITE_`-variabler.
+Klienten använder enbart publishable key + användarens JWT; all känslig
+åtkomst ligger bakom RLS.
+
+Geoapify konfigureras **inte** i Paket 1 – lägg inga API-nycklar i miljön
+ännu.
 
 ## Lovable
 
 Projektet skapas och underhålls via [Lovable](https://lovable.dev). Prompta i
-Lovable-editorn för att göra förändringar; ändringar synkas mot repot när det
-är kopplat till GitHub.
+Lovable-editorn för att göra förändringar; ändringar synkas mot GitHub-repot
+när det är kopplat.
