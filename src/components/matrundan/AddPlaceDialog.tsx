@@ -57,10 +57,13 @@ export function AddPlaceDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { addPlace, state, submitting } = useStore();
+  const { addPlace, addProviderPlace, state, submitting } = useStore();
+  const { mode } = useSession();
+  const isLive = mode === "live";
   const [busy, setBusy] = React.useState(false);
   const isBusy = busy || submitting;
   const [tab, setTab] = React.useState<"sok" | "manuell">("sok");
+  const [providerError, setProviderError] = React.useState<string | null>(null);
 
   // sök & utforska
   const [query, setQuery] = React.useState("");
@@ -70,6 +73,15 @@ export function AddPlaceDialog({
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
+
+  // Live-läge: cachea koordinaterna för Plats-texten så vi inte
+  // geokodar på varje tangenttryck och för att kunna filtrera på radie.
+  const [center, setCenter] = React.useState<{ lat: number; lng: number } | null>(null);
+  const [centerLabel, setCenterLabel] = React.useState<string>("");
+  const [locationSuggestions, setLocationSuggestions] = React.useState<
+    { label: string; city: string; area?: string; lat?: number; lng?: number }[]
+  >([]);
+  const [showLocationSuggest, setShowLocationSuggest] = React.useState(false);
 
   const parsed = React.useMemo(
     () => parseLocation(location, state.group.city),
@@ -95,6 +107,11 @@ export function AddPlaceDialog({
       setView("list");
       setSelectedId(null);
       setResults([]);
+      setCenter(null);
+      setCenterLabel("");
+      setLocationSuggestions([]);
+      setShowLocationSuggest(false);
+      setProviderError(null);
       setName("");
       setAddress("");
       setManualArea("");
@@ -109,38 +126,144 @@ export function AddPlaceDialog({
 
   const cityValid = parsed.city.trim().length > 0;
 
+  // Live-läge: autocomplete-förslag för Plats-fältet.
+  React.useEffect(() => {
+    if (!isLive || !open || tab !== "sok") return;
+    const text = location.trim();
+    if (text.length < 2) {
+      setLocationSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      geoapifyAutocompleteLocation({ data: { text, limit: 6 } })
+        .then((rows) => {
+          if (cancelled) return;
+          setLocationSuggestions(rows);
+        })
+        .catch((e: Error) => {
+          if (cancelled) return;
+          setLocationSuggestions([]);
+          if ((e as { code?: string })?.code === "geoapify_not_configured") {
+            setProviderError(e.message);
+          }
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [isLive, open, tab, location]);
+
+  // Sök-effekten: demo eller live beroende på läge.
   React.useEffect(() => {
     if (tab !== "sok" || !open || !cityValid) {
       if (!cityValid) setResults([]);
       return;
     }
-    const t = setTimeout(() => {
+    let cancelled = false;
+    const t = setTimeout(async () => {
       setLoading(true);
-      getPlacesProvider()
-        .search({
-          query: query.trim() || undefined,
-          city: parsed.city,
-          area: parsed.area,
-          radiusKm: radiusKm >= 9999 ? null : radiusKm,
-        })
-        .then((r) => {
+      try {
+        if (isLive) {
+          // Se till att vi har koordinater för Plats-texten.
+          let c = center;
+          const targetLabel = formatLocation(parsed);
+          if (!c || centerLabel !== targetLabel) {
+            const rows = await geoapifyAutocompleteLocation({
+              data: { text: targetLabel, limit: 1 },
+            });
+            const first = rows[0];
+            if (!first || first.lat == null || first.lng == null) {
+              if (!cancelled) {
+                setResults([]);
+                setLoading(false);
+              }
+              return;
+            }
+            c = { lat: first.lat, lng: first.lng };
+            if (!cancelled) {
+              setCenter(c);
+              setCenterLabel(targetLabel);
+            }
+          }
+          const rows = await geoapifySearchPlaces({
+            data: {
+              text: query.trim() || undefined,
+              lat: c.lat,
+              lng: c.lng,
+              radiusKm: radiusKm >= 9999 ? null : radiusKm,
+              limit: 25,
+            },
+          });
+          if (cancelled) return;
+          const mapped: PlaceSuggestion[] = rows.map((r) => ({
+            externalId: r.externalId,
+            provider: r.provider,
+            name: r.name,
+            category: r.category,
+            cuisines: r.cuisines,
+            address: r.address,
+            city: r.city,
+            area: r.area,
+            lat: r.lat,
+            lng: r.lng,
+            raw: r.raw,
+          }));
+          setResults(mapped);
+          setSelectedId(mapped[0]?.externalId ?? null);
+          setProviderError(null);
+        } else {
+          const r = await getPlacesProvider().search({
+            query: query.trim() || undefined,
+            city: parsed.city,
+            area: parsed.area,
+            radiusKm: radiusKm >= 9999 ? null : radiusKm,
+          });
+          if (cancelled) return;
           setResults(r);
           setSelectedId(r[0]?.externalId ?? null);
-        })
-        .finally(() => setLoading(false));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [query, parsed.city, parsed.area, radiusKm, tab, open, cityValid]);
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setResults([]);
+        const err = e as Error & { code?: string };
+        if (err?.code === "geoapify_not_configured") {
+          setProviderError(err.message);
+        } else {
+          setProviderError(err.message ?? "Kunde inte hämta förslag.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [
+    query,
+    parsed.city,
+    parsed.area,
+    radiusKm,
+    tab,
+    open,
+    cityValid,
+    isLive,
+    center,
+    centerLabel,
+    parsed,
+  ]);
 
   const pickSuggestion = async (s: PlaceSuggestion) => {
     if (isBusy) return;
     setBusy(true);
     try {
-      const p = await addPlace({
+      const base = {
         name: s.name,
         category: s.category,
         cuisines: s.cuisines ?? [],
-        occasions: ["avslappnat"],
+        occasions: ["avslappnat"] as Occasion[],
         address: s.address,
         area: s.area,
         city: s.city,
@@ -148,7 +271,16 @@ export function AddPlaceDialog({
         lng: s.lng,
         addedBy: state.currentUserId,
         photo: emojiForCategory(s.category),
-      });
+      };
+      const p =
+        isLive && s.provider && s.provider !== "demo"
+          ? await addProviderPlace({
+              provider: s.provider,
+              providerPlaceId: s.externalId,
+              place: base,
+              raw: s.raw ? safeParse(s.raw) : {},
+            })
+          : await addPlace(base);
       toast.success(`${p.name} tillagd`, {
         description: "Området är bara ett förslag – ställen får ligga var som helst.",
       });
@@ -159,6 +291,7 @@ export function AddPlaceDialog({
       setBusy(false);
     }
   };
+
 
   const submitManual = async () => {
     if (isBusy) return;
