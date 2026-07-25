@@ -1,14 +1,8 @@
 /**
  * Provider-gränssnitt för platssökning.
  *
- * Demo-providern returnerar lokala förslag utan externa anrop.
- * Byt till Geoapify/OSM/MapLibre senare genom att implementera samma
- * kontrakt (search({ query, city, area, radiusKm }) → PlaceSuggestion[])
- * och registrera i `getPlacesProvider()`. Lägg INTE hemligheter här –
- * de ska läsas via server-funktion när backend kopplas på.
- *
- * `radiusKm` kan vara `null` (eller `Infinity`) för att söka utan
- * geografisk begränsning ("hela landet").
+ * Demo-providern returnerar fiktiva lokala förslag utan externa anrop.
+ * Live-läget använder Geoapify via serverfunktioner och delar samma kontrakt.
  */
 
 import type { PlaceCategory } from "./types";
@@ -24,9 +18,7 @@ export interface PlaceSuggestion {
   lat?: number;
   lng?: number;
   distanceKm?: number;
-  /** Provider-id ("demo" | "geoapify"). Sätts på live-förslag. */
   provider?: string;
-  /** Rå leverantörsdata (JSON-serialiserad) för `place_sources.raw`. */
   raw?: string;
 }
 
@@ -34,7 +26,6 @@ export interface PlacesSearchOpts {
   query?: string;
   city: string;
   area?: string;
-  /** null = ingen radiebegränsning (hela landet). */
   radiusKm: number | null;
 }
 
@@ -45,14 +36,12 @@ export interface PlacesProvider {
 
 const AREA_CENTERS: Record<string, { lat: number; lng: number }> = {
   centrum: { lat: 57.7072, lng: 11.9668 },
-  nordstan: { lat: 57.7089, lng: 11.9686 },
+  "inom vallgraven": { lat: 57.7067, lng: 11.9686 },
   haga: { lat: 57.6994, lng: 11.9556 },
   vasastan: { lat: 57.6975, lng: 11.9598 },
   majorna: { lat: 57.6969, lng: 11.9138 },
   linné: { lat: 57.6963, lng: 11.9464 },
-  avenyn: { lat: 57.6994, lng: 11.9797 },
-  södermalm: { lat: 59.3149, lng: 18.0721 },
-  östermalm: { lat: 59.3374, lng: 18.0839 },
+  rosenlund: { lat: 57.7005, lng: 11.9514 },
 };
 
 const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
@@ -64,77 +53,196 @@ const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
 
 function centerFor(city: string, area?: string) {
   if (area) {
-    const c = AREA_CENTERS[area.trim().toLowerCase()];
-    if (c) return c;
+    const areaCenter = AREA_CENTERS[area.trim().toLowerCase()];
+    if (areaCenter) return areaCenter;
   }
   return CITY_CENTERS[city.trim().toLowerCase()] ?? CITY_CENTERS.göteborg;
 }
 
-function haversineKm(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-) {
-  const R = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const radius = 6371;
+  const toRad = (degrees: number) => (degrees * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
-  const s =
+  const value =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
+  return 2 * radius * Math.asin(Math.sqrt(value));
 }
 
 const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
-  { externalId: "demo-1", name: "Trattoria La Strada", category: "restaurang", address: "Södra Vägen 20", area: "Vasastan", city: "Göteborg", cuisines: ["italienskt"], lat: 57.6982, lng: 11.9782 },
-  { externalId: "demo-2", name: "Café Husaren", category: "café", address: "Haga Nygata 24", area: "Haga", city: "Göteborg", cuisines: ["fika", "kanelbulle"], lat: 57.6994, lng: 11.9536 },
-  { externalId: "demo-3", name: "Sushi Sho", category: "restaurang", address: "Vasagatan 33", area: "Vasastan", city: "Göteborg", cuisines: ["japanskt", "sushi"], lat: 57.6989, lng: 11.9612 },
-  { externalId: "demo-4", name: "Kebab Express", category: "snabbmat", address: "Järntorget 5", area: "Linné", city: "Göteborg", cuisines: ["kebab"], lat: 57.6979, lng: 11.9497 },
-  { externalId: "demo-5", name: "Steampunk Bar", category: "pub", address: "Kyrkogatan 11", area: "Centrum", city: "Göteborg", cuisines: ["öl", "cocktails"], lat: 57.7069, lng: 11.9682 },
-  { externalId: "demo-6", name: "Alvar & Ivar", category: "café", address: "Vasagatan 41", area: "Vasastan", city: "Göteborg", cuisines: ["kaffe", "bakverk"], lat: 57.6987, lng: 11.9625 },
-  { externalId: "demo-7", name: "Kajutan", category: "restaurang", address: "Klippan 1", area: "Majorna", city: "Göteborg", cuisines: ["fisk", "husmanskost"], lat: 57.6941, lng: 11.9089 },
-  { externalId: "demo-8", name: "Bakverket", category: "bageri", address: "Andra Långgatan 8", area: "Linné", city: "Göteborg", cuisines: ["surdeg", "wienerbröd"], lat: 57.6975, lng: 11.9503 },
-  { externalId: "demo-9", name: "Falafelvagnen", category: "matvagn", address: "Järntorget", area: "Linné", city: "Göteborg", cuisines: ["falafel", "vegetariskt"], lat: 57.698, lng: 11.949 },
-  { externalId: "demo-10", name: "Pizzeria Napoli", category: "restaurang", address: "Götgatan 22", area: "Södermalm", city: "Stockholm", cuisines: ["italienskt", "pizza"], lat: 59.3155, lng: 18.0715 },
-  { externalId: "demo-11", name: "Malmö Saluhall", category: "restaurang", address: "Gibraltargatan 6", city: "Malmö", cuisines: ["street food"], lat: 55.6117, lng: 12.9989 },
+  {
+    externalId: "demo-1",
+    provider: "demo",
+    name: "Päronträdets Trattoria",
+    category: "restaurang",
+    address: "Pärongränden 6",
+    area: "Vasastan",
+    city: "Göteborg",
+    cuisines: ["italienskt", "pasta"],
+    lat: 57.6982,
+    lng: 11.9614,
+  },
+  {
+    externalId: "demo-2",
+    provider: "demo",
+    name: "Hagabackens Kafferum",
+    category: "café",
+    address: "Backstigen 11",
+    area: "Haga",
+    city: "Göteborg",
+    cuisines: ["fika", "kaffe"],
+    lat: 57.6998,
+    lng: 11.9548,
+  },
+  {
+    externalId: "demo-3",
+    provider: "demo",
+    name: "Rislyktans Izakaya",
+    category: "restaurang",
+    address: "Lyktgatan 9",
+    area: "Vasastan",
+    city: "Göteborg",
+    cuisines: ["japanskt", "smårätter"],
+    lat: 57.6978,
+    lng: 11.9641,
+  },
+  {
+    externalId: "demo-4",
+    provider: "demo",
+    name: "Falafelkompassen",
+    category: "snabbmat",
+    address: "Kompassgränden 2",
+    area: "Linné",
+    city: "Göteborg",
+    cuisines: ["falafel", "vegetariskt"],
+    lat: 57.6974,
+    lng: 11.9485,
+  },
+  {
+    externalId: "demo-5",
+    provider: "demo",
+    name: "Kopparkällaren",
+    category: "pub",
+    address: "Koppargränden 4",
+    area: "Inom Vallgraven",
+    city: "Göteborg",
+    cuisines: ["pubmat", "svenskt"],
+    lat: 57.7068,
+    lng: 11.9694,
+  },
+  {
+    externalId: "demo-6",
+    provider: "demo",
+    name: "Morgonrosten",
+    category: "café",
+    address: "Morgongatan 14",
+    area: "Vasastan",
+    city: "Göteborg",
+    cuisines: ["kaffe", "bakverk"],
+    lat: 57.6989,
+    lng: 11.9597,
+  },
+  {
+    externalId: "demo-7",
+    provider: "demo",
+    name: "Bryggans Gryta",
+    category: "restaurang",
+    address: "Bryggstråket 3",
+    area: "Majorna",
+    city: "Göteborg",
+    cuisines: ["fisk", "husmanskost"],
+    lat: 57.6954,
+    lng: 11.9178,
+  },
+  {
+    externalId: "demo-8",
+    provider: "demo",
+    name: "Deg & Dagg",
+    category: "bageri",
+    address: "Daggstigen 5",
+    area: "Linné",
+    city: "Göteborg",
+    cuisines: ["surdeg", "wienerbröd"],
+    lat: 57.6969,
+    lng: 11.9467,
+  },
+  {
+    externalId: "demo-9",
+    provider: "demo",
+    name: "Saffransvagnen",
+    category: "matvagn",
+    address: "Rosenlunds kaj",
+    area: "Rosenlund",
+    city: "Göteborg",
+    cuisines: ["persiskt", "vegetariskt"],
+    lat: 57.7001,
+    lng: 11.9521,
+  },
+  {
+    externalId: "demo-10",
+    provider: "demo",
+    name: "Söderglöden",
+    category: "restaurang",
+    address: "Glödgränden 18",
+    area: "Södermalm",
+    city: "Stockholm",
+    cuisines: ["grillat", "vegetariskt"],
+    lat: 59.3155,
+    lng: 18.0715,
+  },
+  {
+    externalId: "demo-11",
+    provider: "demo",
+    name: "Saltstänkets Mathall",
+    category: "restaurang",
+    address: "Havsgatan 6",
+    city: "Malmö",
+    cuisines: ["street food"],
+    lat: 55.6117,
+    lng: 12.9989,
+  },
 ];
 
 const demoProvider: PlacesProvider = {
   id: "demo",
   async search({ query, city, area, radiusKm }) {
-    await new Promise((r) => setTimeout(r, 220));
+    await new Promise((resolve) => setTimeout(resolve, 220));
     if (!city.trim()) return [];
-    const q = (query ?? "").trim().toLowerCase();
-    const a = (area ?? "").trim().toLowerCase();
-    const center = centerFor(city, area);
 
+    const normalizedQuery = (query ?? "").trim().toLowerCase();
+    const normalizedArea = (area ?? "").trim().toLowerCase();
+    const center = centerFor(city, area);
     let items = DEMO_SUGGESTIONS.filter(
-      (s) => s.city.toLowerCase() === city.trim().toLowerCase(),
+      (suggestion) => suggestion.city.toLowerCase() === city.trim().toLowerCase(),
     );
 
-    if (a) {
+    if (normalizedArea) {
       items = items.filter(
-        (s) =>
-          s.area?.toLowerCase().includes(a) ||
-          s.address.toLowerCase().includes(a),
+        (suggestion) =>
+          suggestion.area?.toLowerCase().includes(normalizedArea) ||
+          suggestion.address.toLowerCase().includes(normalizedArea),
       );
     }
 
-    if (q) {
+    if (normalizedQuery) {
       items = items.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.category.toLowerCase().includes(q) ||
-          s.cuisines?.some((c) => c.toLowerCase().includes(q)) ||
-          s.address.toLowerCase().includes(q) ||
-          s.area?.toLowerCase().includes(q),
+        (suggestion) =>
+          suggestion.name.toLowerCase().includes(normalizedQuery) ||
+          suggestion.category.toLowerCase().includes(normalizedQuery) ||
+          suggestion.cuisines?.some((cuisine) => cuisine.toLowerCase().includes(normalizedQuery)) ||
+          suggestion.address.toLowerCase().includes(normalizedQuery) ||
+          suggestion.area?.toLowerCase().includes(normalizedQuery),
       );
     }
 
-    const withDistance = items.map((s) => ({
-      ...s,
+    const withDistance = items.map((suggestion) => ({
+      ...suggestion,
       distanceKm:
-        s.lat != null && s.lng != null
-          ? Math.round(haversineKm(center, { lat: s.lat, lng: s.lng }) * 10) / 10
+        suggestion.lat != null && suggestion.lng != null
+          ? Math.round(
+              haversineKm(center, { lat: suggestion.lat, lng: suggestion.lng }) * 10,
+            ) / 10
           : undefined,
     }));
 
@@ -142,7 +250,8 @@ const demoProvider: PlacesProvider = {
       radiusKm == null || !Number.isFinite(radiusKm)
         ? withDistance
         : withDistance.filter(
-            (s) => s.distanceKm == null || s.distanceKm <= radiusKm,
+            (suggestion) =>
+              suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
           );
 
     filtered.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
