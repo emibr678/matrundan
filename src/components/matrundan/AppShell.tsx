@@ -33,6 +33,8 @@ function ShellBody() {
   const { loading, mode, needsOnboarding, activeGroupId, user, signInWithGoogle } =
     useSession();
   const router = useRouter();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isInvitationRoute = pathname.startsWith("/inbjudan/");
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
 
