@@ -236,21 +236,3 @@ export const DEMO_STATE: AppState = {
   ],
   nextPlaceId: "p5",
 };
-
-export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
-  {
-    version: "0.2.0",
-    date: "2026-07-20",
-    items: [
-      "Ny mobilanpassad Matrundan-upplevelse med tre huvudvyer.",
-      "Slumpa nästa stopp direkt från hemvyn.",
-      "Snabbt helhetsbetyg med valfria detaljbetyg.",
-      "Status per matställe: nytt för mig, nytt för gruppen, alla har provat.",
-    ],
-  },
-  {
-    version: "0.1.0",
-    date: "2026-06-01",
-    items: ["Första interna versionen med grundflödet lägg till → besök → betyg."],
-  },
-];
