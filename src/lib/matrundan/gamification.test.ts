@@ -6,7 +6,6 @@
  */
 import { describe, expect, test } from "bun:test";
 import {
-  BADGES,
   LEVELS,
   computeGroupMilestones,
   computeLeaderboard,
