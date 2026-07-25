@@ -132,9 +132,21 @@ export function AddPlaceDialog({
   const [tab, setTab] = React.useState<"sok" | "manuell">("sok");
   const [providerError, setProviderError] = React.useState<ProviderError | null>(null);
 
+  // Verifierat sökcentrum från gruppens förvalda område, om det finns.
+  const verifiedHome = React.useMemo(() => {
+    if (!isLive) return null;
+    const h = state.group.homeLocation;
+    if (h && h.verified && h.lat != null && h.lng != null) {
+      return { label: h.label, lat: h.lat, lng: h.lng };
+    }
+    return null;
+  }, [isLive, state.group.homeLocation]);
+
   // sök & utforska
   const [query, setQuery] = React.useState("");
-  const [location, setLocation] = React.useState(state.group.city);
+  const [location, setLocation] = React.useState<string>(() =>
+    isLive ? (verifiedHome?.label ?? "") : state.group.city,
+  );
   const [radiusKm, setRadiusKm] = React.useState<number>(DEFAULT_RADIUS);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
@@ -143,17 +155,14 @@ export function AddPlaceDialog({
 
   // Live-läge: cachea koordinaterna för Plats-texten så vi inte
   // geokodar på varje tangenttryck och för att kunna filtrera på radie.
-  const [center, setCenter] = React.useState<{ lat: number; lng: number } | null>(null);
-  const [centerLabel, setCenterLabel] = React.useState<string>("");
-  const [locationSuggestions, setLocationSuggestions] = React.useState<LocationSuggestion[]>([]);
-  const [showLocationSuggest, setShowLocationSuggest] = React.useState(false);
-  const [locationActiveIx, setLocationActiveIx] = React.useState(-1);
-  const [locationLoading, setLocationLoading] = React.useState(false);
-  /** Sant när senaste autocomplete-anropet är klart (oavsett antal träffar). */
-  const [locationRequestDone, setLocationRequestDone] = React.useState(false);
+  const [center, setCenter] = React.useState<{ lat: number; lng: number } | null>(
+    () => (verifiedHome ? { lat: verifiedHome.lat, lng: verifiedHome.lng } : null),
+  );
+  const [centerLabel, setCenterLabel] = React.useState<string>(
+    () => verifiedHome?.label ?? "",
+  );
 
-  // Race-protection: räknare per svar-typ; vi accepterar bara det senaste.
-  const locationReqRef = React.useRef(0);
+  // Race-protection för sökningen.
   const searchReqRef = React.useRef(0);
   /** ExternalId för sökresultatets knapp som öppnade bekräftelsesteget – används för att återställa fokus vid Tillbaka. */
   const [focusReturnId, setFocusReturnId] = React.useState<string | null>(null);
@@ -165,8 +174,8 @@ export function AddPlaceDialog({
   const [pendingNotes, setPendingNotes] = React.useState("");
 
   const parsed = React.useMemo(
-    () => parseLocation(location, state.group.city),
-    [location, state.group.city],
+    () => parseLocation(location, isLive ? "" : state.group.city),
+    [location, isLive, state.group.city],
   );
 
   // manuellt
@@ -182,15 +191,17 @@ export function AddPlaceDialog({
 
   const resetAll = React.useCallback(() => {
     setQuery("");
-    setLocation(state.group.city);
+    if (isLive) {
+      setLocation(verifiedHome?.label ?? "");
+      setCenter(verifiedHome ? { lat: verifiedHome.lat, lng: verifiedHome.lng } : null);
+      setCenterLabel(verifiedHome?.label ?? "");
+    } else {
+      setLocation(state.group.city);
+      setCenter(null);
+      setCenterLabel("");
+    }
     setRadiusKm(DEFAULT_RADIUS);
     setResults([]);
-    setCenter(null);
-    setCenterLabel("");
-    setLocationSuggestions([]);
-    setShowLocationSuggest(false);
-    setLocationActiveIx(-1);
-    setLocationRequestDone(false);
     setProviderError(null);
     setPending(null);
     setPendingOccasions(["avslappnat"]);
@@ -206,20 +217,25 @@ export function AddPlaceDialog({
     setCategory("restaurang");
     setPhoto("🍽️");
     setTab("sok");
-  }, [state.group.city]);
+  }, [isLive, state.group.city, verifiedHome]);
 
   React.useEffect(() => {
     if (!open) resetAll();
   }, [open, resetAll]);
 
-  const cityValid = parsed.city.trim().length > 0;
+  // I live-läge är sökningen giltig när centrum är satt och matchar det som
+  // står i Plats-fältet just nu. I demo-läget räcker det med en stad.
+  const cityValid = isLive
+    ? !!center && centerLabel.trim() === location.trim() && location.trim().length > 0
+    : parsed.city.trim().length > 0;
 
   // När användaren skriver om platsen manuellt: invalidera centrum om
   // texten inte längre motsvarar det senast valda förslaget.
   React.useEffect(() => {
-    if (centerLabel && location.trim() !== centerLabel) {
+    if (centerLabel && location.trim() !== centerLabel.trim()) {
       setCenter(null);
       setCenterLabel("");
+      setResults([]);
     }
   }, [location, centerLabel]);
 
