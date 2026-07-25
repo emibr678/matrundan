@@ -381,18 +381,65 @@ export function AddPlaceDialog({
 
             <div className="space-y-1.5">
               <Label htmlFor="s-location">Plats</Label>
-              <Input
-                id="s-location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
-                aria-invalid={!cityValid}
-              />
+              <div className="relative">
+                <Input
+                  id="s-location"
+                  value={location}
+                  onChange={(e) => {
+                    setLocation(e.target.value);
+                    setShowLocationSuggest(true);
+                  }}
+                  onFocus={() => setShowLocationSuggest(true)}
+                  onBlur={() =>
+                    // Låt klick på förslag hinna innan vi stänger.
+                    setTimeout(() => setShowLocationSuggest(false), 150)
+                  }
+                  placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
+                  aria-invalid={!cityValid}
+                  autoComplete="off"
+                />
+                {isLive &&
+                showLocationSuggest &&
+                locationSuggestions.length > 0 ? (
+                  <ul
+                    role="listbox"
+                    className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
+                  >
+                    {locationSuggestions.map((s, i) => (
+                      <li key={`${s.label}-${i}`}>
+                        <button
+                          type="button"
+                          className="w-full rounded px-2 py-1.5 text-left hover:bg-accent"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setLocation(
+                              s.area ? `${s.area}, ${s.city}` : s.city,
+                            );
+                            if (s.lat != null && s.lng != null) {
+                              setCenter({ lat: s.lat, lng: s.lng });
+                              setCenterLabel(
+                                s.area ? `${s.area}, ${s.city}` : s.city,
+                              );
+                            }
+                            setShowLocationSuggest(false);
+                          }}
+                        >
+                          {s.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <p className="text-[11px] text-muted-foreground">
                 Söker i {formatLocation(parsed)}. Skriv med komma för att peka
                 ut ett område.
               </p>
+              {providerError ? (
+                <p className="text-[11px] text-destructive">{providerError}</p>
+              ) : null}
             </div>
+
 
             <div className="space-y-1.5">
               <Label>Sökradie</Label>
