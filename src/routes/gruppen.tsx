@@ -404,18 +404,32 @@ function GroupSettingsSection({
   groupId,
   initialName,
   initialEmoji,
-  initialLocation,
+  initialHome,
   initialShareCounts,
 }: {
   groupId: string;
   initialName: string;
   initialEmoji: string;
-  initialLocation: string;
+  initialHome: import("@/lib/matrundan/types").HomeLocation | null;
   initialShareCounts: boolean;
 }) {
   const [name, setName] = React.useState(initialName);
   const [emoji, setEmoji] = React.useState(initialEmoji);
-  const [loc, setLoc] = React.useState(initialLocation);
+  const [locText, setLocText] = React.useState(initialHome?.label ?? "");
+  const [verified, setVerified] = React.useState<
+    import("@/lib/matrundan/live-admin").VerifiedHomeLocation | null
+  >(
+    initialHome && initialHome.verified && initialHome.lat != null && initialHome.lng != null && initialHome.placeId
+      ? {
+          label: initialHome.label,
+          lat: initialHome.lat,
+          lng: initialHome.lng,
+          provider: "geoapify",
+          placeId: initialHome.placeId,
+        }
+      : null,
+  );
+  const legacyOnly = !!initialHome && !initialHome.verified;
   const [shareCounts, setShareCounts] = React.useState(initialShareCounts);
   const [busy, setBusy] = React.useState(false);
   const { refreshGroups } = useSession();
@@ -423,13 +437,25 @@ function GroupSettingsSection({
   async function save() {
     setBusy(true);
     try {
-      await updateGroupSettings(
-        groupId,
-        name.trim(),
+      // Bestäm home-payload:
+      // - Tomt fält och gruppen har något sparat sedan tidigare → rensa allt.
+      // - Verifierat val (från listan) → spara komplett.
+      // - Fritext utan val → rör inte hemområdet (undviker att skapa falsk precision).
+      let homePayload:
+        | import("@/lib/matrundan/live-admin").VerifiedHomeLocation
+        | null
+        | "clear" = null;
+      if (locText.trim() === "" && initialHome) {
+        homePayload = "clear";
+      } else if (verified && locText.trim() === verified.label.trim()) {
+        homePayload = verified;
+      }
+      await updateGroupSettings(groupId, {
+        name: name.trim(),
         emoji,
-        loc.trim() || null,
-        shareCounts,
-      );
+        homeLocation: homePayload,
+        sharedVisitsCountForProgression: shareCounts,
+      });
       await refreshGroups();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("matrundan:reload"));
@@ -460,8 +486,31 @@ function GroupSettingsSection({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="gs-loc">Hemområde</Label>
-          <Input id="gs-loc" value={loc} onChange={(e) => setLoc(e.target.value)} />
+          <Label htmlFor="gs-loc">Förvalt sökområde (valfritt)</Label>
+          <GeoapifyLocationInput
+            id="gs-loc"
+            value={locText}
+            onChange={(t) => {
+              setLocText(t);
+              if (verified && t !== verified.label) setVerified(null);
+            }}
+            onSelect={(v) => {
+              setVerified(v);
+              setLocText(v.label);
+            }}
+            onClearVerified={() => setVerified(null)}
+            placeholder="t.ex. Gamla Enskede, Stockholm"
+          />
+          <p className="text-xs text-muted-foreground">
+            Fylls i automatiskt när gruppen söker efter nya matställen. Kan
+            alltid ändras för en enskild sökning.
+          </p>
+          {legacyOnly && !verified ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Gruppen har ett äldre område ({initialHome?.label}). Välj området
+              från listan för att aktivera det som förvalt sökområde.
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-2 rounded-xl border border-border/60 bg-muted/30 p-3">
