@@ -29,6 +29,7 @@ interface MemberProfileData {
   otherFavorites: Place[];
   topCuisines: string[];
   recentActivity: ReturnType<typeof useStore>["state"]["activity"];
+  progression: MemberProgression;
 }
 
 function useMemberProfile(memberId: string | null): MemberProfileData | null {
