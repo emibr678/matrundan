@@ -43,9 +43,8 @@ const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
 
 /**
  * Sökradieval. Server-funktionen tillåter 1/3/5/10/25 km eller `null` (som
- * i sin tur mappas till en avgränsad ~50 km-cirkel runt centrum – inte
- * verklig rikstäckning). Vi speglar det i UI:t med "Större område · inom
- * 50 km" istället för den missvisande "Hela landet".
+ * i sin tur mappas till en avgränsad ~50 km-cirkel runt centrum). Alternativet
+ * "Större område · inom 50 km" skickas som `null` till servern.
  */
 const RADIUS_OPTIONS: { value: number; label: string; short: string }[] = [
   { value: 1, label: "Inom 1 km", short: "inom 1 km" },
