@@ -411,11 +411,12 @@ export function computeGroupMilestones(
 ): GroupMilestone[] {
   const out: GroupMilestone[] = [];
   const thresholds = [10, 25, 50, 100] as const;
+  const allVisits = dedupeVisits(state.visits);
 
-  const visitedIds = new Set(state.visits.map((v) => v.placeId));
+  const visitedIds = new Set(allVisits.map((v) => v.placeId));
   const firstVisitByPlace: { id: string; at: string }[] = [];
   for (const pid of visitedIds) {
-    const first = state.visits
+    const first = allVisits
       .filter((v) => v.placeId === pid)
       .slice()
       .sort(chronologically)[0];
