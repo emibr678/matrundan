@@ -1,11 +1,12 @@
 import type { AppState } from "./types";
+import { APP_VERSION } from "./version";
 
 const today = new Date();
 const daysAgo = (n: number) =>
   new Date(today.getTime() - n * 24 * 60 * 60 * 1000).toISOString();
 
 export const DEMO_STATE: AppState = {
-  version: "0.2.0",
+  version: APP_VERSION,
   currentUserId: "m1",
   group: {
     id: "g1",
