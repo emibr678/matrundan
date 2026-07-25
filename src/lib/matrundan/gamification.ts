@@ -356,9 +356,10 @@ export function computeLeaderboard(
 ): LeaderboardRow[] {
   const year = currentStockholmYear(now);
   const placeById = new Map<string, Place>(state.places.map((p) => [p.id, p]));
+  const allVisits = dedupeVisits(state.visits);
 
   const rows = state.members.map((m) => {
-    const memberParticipated = state.visits
+    const memberParticipated = allVisits
       .filter((v) => v.participantIds.includes(m.id))
       .slice()
       .sort(chronologically);
