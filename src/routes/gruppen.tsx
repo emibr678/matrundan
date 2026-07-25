@@ -315,7 +315,7 @@ function SettingsSheet() {
                 groupId={activeGroupId}
                 initialName={state.group.name}
                 initialEmoji={state.group.emoji}
-                initialLocation={state.group.city}
+                initialHome={state.group.homeLocation ?? null}
                 initialShareCounts={
                   state.group.sharedVisitsCountForProgression ?? true
                 }
