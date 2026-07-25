@@ -165,7 +165,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       window.localStorage.removeItem(ACTIVE_GROUP_KEY);
     }
     setActiveGroupId(null);
+    setUserGroups([]);
   }, []);
+
 
   const refreshGroups = React.useCallback(async () => {
     await loadGroups(session?.user?.id);
