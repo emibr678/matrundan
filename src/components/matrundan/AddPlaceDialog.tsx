@@ -51,7 +51,7 @@ const RADIUS_OPTIONS: { value: number; label: string; short: string }[] = [
   { value: 25, label: "Inom 25 km", short: "inom 25 km" },
   { value: 50, label: "Större område · inom 50 km", short: "inom 50 km" },
 ];
-const DEFAULT_RADIUS = 5;
+const DEFAULT_RADIUS = 1;
 
 /** Server accepterar 1/3/5/10/25 eller null. 50 skickas som null. */
 function toServerRadius(km: number): 1 | 3 | 5 | 10 | 25 | null {
