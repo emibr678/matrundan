@@ -20,7 +20,9 @@ import {
   ShieldOff,
 } from "lucide-react";
 import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
+import { GroupHighlights } from "@/components/matrundan/GroupHighlights";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
+import { computeMemberProgression } from "@/lib/matrundan/gamification";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
 import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
