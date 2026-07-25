@@ -99,6 +99,7 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       otherFavorites,
       topCuisines,
       recentActivity,
+      progression: computeMemberProgression(state, memberId),
     };
   }, [memberId, state, getPlace]);
 }
