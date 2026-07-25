@@ -665,7 +665,7 @@ export function AddPlaceDialog({
             ) : null}
 
             {!cityValid ? (
-              <EmptyBlock text="Ange en stad för att börja utforska." />
+              <EmptyBlock text={isLive ? "Välj ett område i listan för att börja utforska." : "Ange en stad för att börja utforska."} />
             ) : loading ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
