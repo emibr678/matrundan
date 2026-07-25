@@ -158,10 +158,36 @@ function GroupPage() {
         </section>
       ) : null}
 
+      {championMember && champion ? (
+        <section
+          aria-label="Denna månad"
+          className="flex items-center gap-3 rounded-2xl border border-mustard/40 bg-mustard/15 p-3"
+        >
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-background text-2xl shadow-sm">
+            {championMember.avatar}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-mustard-foreground">
+              Denna månad · 🏅 Månadens matvän
+            </div>
+            <div className="truncate font-medium">
+              {championMember.name} har varit med på {champion.count} besök
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate({ search: { member: championMember.id } })}
+            className="shrink-0 rounded-full border border-mustard/50 bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
+          >
+            Öppna profil
+          </button>
+        </section>
+      ) : null}
+
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
-          {memberActivity.map(({ m, lastVisit, visitCount, favCount }) => {
+          {memberActivity.map(({ m, lastVisit, visitCount, favCount, level }) => {
             const place = lastVisit ? getPlace(lastVisit.placeId) : undefined;
             return (
               <Card
@@ -178,13 +204,20 @@ function GroupPage() {
                     {m.avatar}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-medium">{m.name}</span>
                       {m.id === state.currentUserId ? (
                         <Badge variant="secondary" className="rounded-full text-[10px]">
                           Du
                         </Badge>
                       ) : null}
+                      <span
+                        title={`Nivå: ${level.name}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                      >
+                        <span aria-hidden>{level.emoji}</span>
+                        <span>{level.name}</span>
+                      </span>
                     </div>
                     <div className="mt-0.5 truncate text-xs text-muted-foreground">
                       {place
@@ -205,6 +238,7 @@ function GroupPage() {
           })}
         </div>
       </section>
+
 
       <MemberProfileSheet
         member={activeMember}
