@@ -1,100 +1,126 @@
 
-# UX-granskning av Matrundan (ingen kod ändrad)
+# Rekommendation: Sökning & Gamification i Matrundan
 
-## Helhetsbedömning
-Appen har en varm, sammanhållen nordisk identitet, tydlig bottennav och ett tight kärnflöde: Hem → Nästa stopp → Registrera besök fungerar i praktiken på 2–3 klick. Största friktionen ligger i **desktop-layouten**, i **Gruppen-fliken som är övervägande administration**, samt i några **mikrotexter och terminologival** som skaver. Detaljvyn är behagligt avskalad — bra att extern restauranginfo inte trängs in.
+Ingen kod ändras här — detta är ett beslutsunderlag. Efter godkännande delar jag upp det i konkreta implementationssteg.
 
-Testat i preview på mobil (390×844) och desktop (1280×1800) via alla huvudflöden. Inga typecheck-fel att åtgärda; det handlar om produkt- och interaktionsjusteringar.
+---
 
-## Vad som redan fungerar och bör behållas
-- **Hero "Nästa stopp"** kommunicerar syftet direkt när man landar — den ska förbli sidans centrum.
-- **Slumpa-knappen** sitter där ögat söker den, och tomlägestexten när inget nästa stopp finns är tydlig.
-- **Statuschippen** ("Nytt för mig", "Nytt för gruppen", "Alla har provat", "Några har provat") är korta och färgkodade — bra semantik.
-- **VisitDialog** — 4-stjärnigt default på helhetsbetyg, deltagare förvalda till "Du", detaljbetyg dolt bakom Collapsible. Läroboksexempel på "frivilliga detaljer visas när användaren ber om dem".
-- **AddPlaceDialog** — tydlig Sök/Manuellt-toggle och den lilla textraden "Ställen får ligga var som helst – gruppens stad är bara ett förslag" motverkar exakt den geografiska missuppfattningen som beskrevs.
-- **Detaljvyn** har en enda Google Maps-knapp — inga externa recensioner, inget brus. Behåll.
-- **Progressbaren "X av Y provade"** ger tydligt gruppmål utan att bli tävling.
-- **Kategori + flera kök** (Restaurang · italienskt · pizza) läser sig naturligt i PlaceCard.
+## 1. Geoapify och områdessökning
 
-## Problem, prioriterade
+### Nuläge
+`AddPlaceDialog` har idag två separata inmatningar: fritt sökord + ett "Plats"-fält som `parseLocation` splittar på komma till `{area, city}`. Provider-kontraktet (`PlacesSearchOpts`) kräver `city` som obligatorisk sträng och tolkar `area` som filter. Det tvingar användaren att veta och skriva båda — en krycka för att demo-providern inte kan geokoda.
 
-### P0 — måste åtgärdas
+### Princip
+Rätt mönster med en riktig geokodare (Geoapify) är **ett fält, autocomplete-driven**. Användaren skriver "Gamla Enskede", får ett rankat förslag, väljer det, och appen får tillbaka strukturerad data (område, stad, lat/lng, land). Tvetydiga namn ("Centrum") disambigueras genom att flera förslag visas — inte genom att användaren fyller i mer.
 
-**1. Desktop-layouten är för smal och känns ofärdig**
-Var: alla sidor. Root-shellet klampar innehållet till `max-w-2xl` (≈672 px) mitt på en 1280+ skärm; på desktop syns ~40 % innehåll och ~60 % tomma gradientytor. Bottennav ligger dessutom fixed på desktop, vilket ser som en mobilemulator.
-Varför: appen påstår "bra desktop-layout" men levererar en mobilramme i mitten. För en konsumentapp för vänner är det ok att vara mobile-first, men desktop måste kännas medvetet.
-Lösning: På ≥`md` bredda huvudkolumnen (t.ex. `max-w-5xl`) och lägg Hem som 2-kolumn (Nästa stopp + statistik/aktivitet vid sidan), samt byt bottennav mot en topp- eller sidonav. Behåll bottennav endast på `<md`.
+### Rekommenderat upplägg
 
-**2. "Gruppen" är en huvudflik med nästan bara administration**
-Var: bottennav → Gruppen. Innehållet är medlemslista, inbjudan, Google-login-platshållare, återställ demo-data och admin-changelog. Inget av det används dagligen; det tar samma vikt i navigationen som Hem och Matställen.
-Varför: bryter proportionerna i informationsarkitekturen och skjuter kärnflödet (lägg till → välj → besök → betygsätt) åt sidan. Användaren nämnde själv detta.
-Lösning: Ersätt fliken "Gruppen" med **"Aktivitet"** eller **"Gänget"** som visar det som är socialt värdefullt dagligen (aktivitetsflöde, vem har provat vad, vem har favoriserat, vems tur att välja) och flytta inbjudan/roller/inställningar/admin till en **kugghjulsikon i headern** eller ett menyval "Inställningar" längst ner i den fliken. Bevaka: medlemslistan i sig hör hemma på fliken (den är social), det är inbjudan/roller/version som ska bli sekundärt.
+**Två inmatningsfält, men båda med autocomplete och båda valfria:**
 
-**3. Rubriken/rooten "Utforskningen" saknas — men rubrikerna "Topp betygsatta" och "Senaste aktivitet" på Hem konkurrerar om samma yta som "Nästa stopp"**
-Var: Hem, under fold.
-Varför: När man scrollar möts man av tre likvärdiga sektioner utan hierarki. "Topp betygsatta" är dessutom otydligt — bygger den på gruppens medelbetyg? På vilket urval?
-Lösning: Rama in Hem som "Gruppens gemensamma val + snabb överblick"; flytta hela "Topp betygsatta" till Matställen-fliken där den hör hemma (som ett sorteringsläge eller egen sektion högst upp). Bevara "Senaste aktivitet" på Hem — den är kort och socialt drivande. Under topplistan sätt hjälptext "Baserat på gruppens medelbetyg (minst 1 besök)" så kriteriet är klart.
+1. **Vad** (frivilligt) — namn eller typ, t.ex. "pizza", "Trattoria La Strada".
+2. **Var** (frivilligt) — område, stad, adress eller landmärke. Autocomplete via Geoapify Autocomplete API. När användaren väljer ett förslag lagras `{lat, lng, city, area, country, boundingBox}` som en `LocationBias`.
 
-### P1 — bör åtgärdas snart
+**Sökbeteende:**
+- Har användaren valt en Var-plats → använd `bias`-parameter (mjuk viktning), inte `filter` (hård begränsning). Geoapify stödjer detta via `bias=proximity:lng,lat` och `bias=countrycode:se`.
+- Ingen Var vald → använd gruppens valfria hemort som mjuk bias, annars hela Sverige.
+- **Radiereglaget slopas** i sitt nuvarande skarpa läge. Ersätts av en enkel toggle: **"Nära vald plats"** (bias) ↔ **"Hela landet"** (ingen bias). Att välja km i förväg är fel abstraktion — användaren tänker inte i kilometer, hen tänker "här" eller "överallt".
+- Gruppens hemort är alltid mjuk bias, aldrig hård begränsning. Uppfyller kravet "grupper som vill utforska pizzerior i hela Sverige".
 
-**4. Meny/måltid-terminologi blandar frukost/lunch/**fika**/middag/kväll**
-Var: VisitDialog "Måltid"-select.
-Varför: "fika" och "kväll" är inte samma taxonomi som "frukost/lunch/middag" — fika är socialt, kväll är tidpunkt. Nybörjare fastnar en sekund.
-Lösning: Byt fältet från "Måltid" till "**Tillfälle**" och lista: Frukost, Lunch, Fika, Middag, Kvällsöl/sent. Alternativt: låt kategorin på stället styra defaultvärdet (café → Fika).
+### Datamodells- och UI-konsekvenser
 
-**5. Emoji används som "photo" — bräckligt och inkonsekvent**
-Var: PlaceCard, Hem-hero, detaljvy. På preview-servern renderas flera emoji som tomma rutor (t.ex. Koka visas som ☆). På mobiler med gamla emojiuppsättningar blir det ännu värre.
-Varför: appen ger sken av visuell rikedom men riskerar att se trasig ut.
-Lösning: Låt emoji vara *default-avatar* men gör tydligt utrymme för framtida riktig bild (Storage-URL i `Place.photo`). På hero: om ingen bild, använd en varm färgad gradient med kategori-emoji **plus** kategoritext, inte bara en emoji ovanpå en färgruta.
+- **Provider-kontrakt:** ersätt `{ city, area, radiusKm }` med `{ query?, near?: { lat, lng, radiusKm? } | null, countryCode? }`. `near` är den valda Var-platsen, `null` = ingen bias.
+- **Ny typ `LocationBias`** i `location.ts`: `{ label, lat, lng, city?, area?, country }`. Ersätter `parseLocation`/`formatLocation`.
+- **UI i `AddPlaceDialog`:** två `Command`-baserade combobox-fält (shadcn), en toggle "Nära/Överallt", ingen km-select. Kartvyn behålls men centreras på Var-platsen om vald, annars på första träffen.
+- **Ingen ny state i store** — Var-valet är dialoglokalt.
+- **Demo-läget:** demo-providern får en enkel autocomplete-lista över svenska stadsdelar (Gamla Enskede, Södermalm, Haga, Majorna, Centrum-Göteborg vs Centrum-Malmö osv.) så mönstret är korrekt redan innan Geoapify kopplas in. Ingen fuzzy stad+område-splittring behövs längre.
+- **Geoapify-nyckeln** läses via server-funktion när backend kopplas på; inget i klientkoden.
 
-**6. Toppen av Matställen är filter-tung**
-Var: Matställen-listan. Fyra filterchip + tre selects + sökfält = sju kontroller innan första kortet på mobil.
-Varför: nedlastar mobilanvändaren och skymmer att listan är kort.
-Lösning: Kollapsa Kategori/Situation/Sortering bakom en "Filter"-knapp med räknarplopp när aktiva; behåll bara sök + snabbchipsen (Alla/Favoriter/Nytt för mig).
+### Vad byggs nu / senare
+- **Nu:** enfältsmönstret (Vad + Var som autocomplete) mot demo-providern, ny provider-signatur, borttagen radie-select, toggle Nära/Överallt.
+- **Senare:** Geoapify-provider som drop-in mot samma kontrakt.
 
-**7. Statusbadge-varianten "Delvis / Några har provat" är otydlig i sin nytta**
-Varför: användaren behöver sällan skilja på "1 av 5 har provat" vs "4 av 5 har provat" — de gör inte olika saker med informationen.
-Lösning: Slå ihop till en enda "Några har provat"-status och visa antal besök på hover/i detaljvy istället. Alternativt visa "3/5 i gänget provat" numeriskt när den är delvis.
+---
 
-**8. Detaljvyn saknar tydlig hierarki mellan action-knapparna**
-Var: `matstallen.$placeId.tsx` — fyra likstora outline-knappar i rad ("Besök", "Nästa stopp", "Spara", "Google Maps").
-Varför: primär åtgärd (Besök) drunknar; "Google Maps" (extern) väger lika mycket som "Registrera besök" (kärnflödet).
-Lösning: Gör "Registrera besök" till full-bredd primary; lägg de andra tre som mindre outline/ghost i en rad under. Behåll Google Maps som enda externa länk.
+## 2. Gamification
 
-**9. "Bjud in" — inbjudningslänken är för teknisk**
-Var: Gruppen-fliken. `http://localhost:8080/inbjudan/g1?kod=matr-1234` monospace, långt, syns till hälften.
-Varför: känns som en admin-panel, inte som att bjuda in en vän.
-Lösning: Presentera som "Kopiera länk" + "Dela via…" (system share sheet på mobil). Dölj själva URL-strängen bakom ett litet "visa länk"-toggle.
+### Grundhållning
+Matrundan är en varm, privat app för familj/vänner — inte Foursquare. Gamification får förstärka det sociala utforskandet men aldrig göra registrering av besök till en självbelöning. Detta styr alla val nedan.
 
-### P2 — polish
+### Rekommendation: gruppintern nivå + mjuka utmärkelser. Ingen global leaderboard.
 
-**10. Bakåt-länken i detaljvyn är en textlänk högst upp.** Byt till en riktig ikonknapp (`< Tillbaka`) med större träffyta (44×44) — särskilt eftersom det är den enda vägen tillbaka.
+**Nivå = per grupp.** Global nivå bryter isoleringsprincipen (skulle kräva att medlem A ser data från medlem B:s andra grupper, vilket är fel för en privat app). Per-grupp håller känslan intim och gör att en ny grupp känns som en ny resa, inte en fortsättning av ett existerande poängkonto.
 
-**11. Star-fältet i StatTile på Hem har rubriker i versaler ("STÄLLEN", "BESÖK", "KVAR ATT PROVA") — läsligt men skriker.** Överväg små caps-utseende via typografi istället, eller normal case.
+**Statistik på medlemsprofilen delas i två block:**
+- *I den här gruppen* (primärt, större): besök, provade ställen, favoriter, aktuell nivå.
+- *Totalt* (sekundärt, mindre, längst ner): summerat över alla grupper användaren är med i, utan att avslöja gruppnamn. Skapar en känsla av personlig resa utan att exponera andra grupper. Endast användaren själv ser sitt "Totalt"-block på egen profil — andras profiler visar bara gruppdata.
 
-**12. "Fredagsgänget · Göteborg" i headern är statisk även på Gruppen där gruppens namn står stort i hero.** Redundans. Dölj headern-text på just den vyn eller ersätt med aktuell platsindikator.
+### Nivåmodell
 
-**13. Progressbar "4 av 8 provade" — 8 låter litet.** Gör hjälptext "Du och gänget har provat 4 av 8 tillagda ställen" så tal känns mänskligt.
+Mät på **unika matställen provade i gruppen**, inte antal besök. Det korrigerar direkt för missbruk (registrera 10 besök samma vecka på samma ställe ger inte nivå). Besöksantal kan visas som separat statistik men styr inte progression.
 
-**14. Ingen indikation på vems tur det är att välja nästa stopp.** Om "gruppens gemensamma nästa" är centralt kan man addera "Föreslaget av Johan · Ändra"-rad under hero-kortet. Frivilligt, men förstärker det sociala.
+Fem nivåer med lätt-svensk ton:
 
-**15. Accessibility:** `<button>`-baserade chip på filter/deltagare bör ha `aria-pressed`; ikonknappar (favorit-hjärtat) har label — bra; kontrollera att `<main>` bara renderas en gång — det gör den; datepickerns nativa input i VisitDialog har låg kontrast på placeholdertext ("07/23/2026") — låt Label bära all information och behåll input.
+| # | Namn | Unika ställen |
+|---|---|---|
+| 1 | Nybörjare | 0 |
+| 2 | Matupptäckare | 3 |
+| 3 | Smakletare | 8 |
+| 4 | Mataventyrare | 20 |
+| 5 | Matkonnässör | 40 |
 
-## Rekommenderad implementeringsordning
-1. **P0-2 Omforma "Gruppen"-fliken.** Byt till "Aktivitet/Gänget" som primärflik; flytta administration till kugghjul/inställningssida. Detta återställer proportioner i IA innan andra ändringar görs.
-2. **P0-1 Desktop-layout.** Bredda kolumnen, gör Hem 2-spalt på ≥md, ersätt bottennav med topnav på desktop.
-3. **P0-3 Rubrikordning på Hem + flytta "Topp betygsatta" till Matställen** med tydlig kriterie-text.
-4. **P1-8 Primär åtgärd i detaljvyn** — snabb vinst för kärnflödet.
-5. **P1-6 Kollapsa filterrad på Matställen.**
-6. **P1-4 Byt "Måltid" → "Tillfälle"** och P1-7 slå ihop statusen "Delvis"/"Några har provat".
-7. **P1-5 Emoji-som-foto:** förstärk gradient-fallback och förbered `Place.photo` för URL.
-8. **P1-9 Inbjudan** som Kopiera/Dela istället för URL-textfält.
-9. **P2** i valfri ordning.
+Motivering av trösklar: en aktiv grupp som besöker ~1 ställe/vecka når nivå 3 på ca två månader, nivå 4 på ~5 månader, nivå 5 på nästan ett år. Håller progressionen levande utan att bli triviell. Justera efter första riktiga användning.
 
-## Detalj-anteckningar för implementation
-- Root-container i `AppShell.tsx` styr max-bredd och padding för hela appen — här sker desktop-refaktorn.
-- Ny "Aktivitet"-flik kan i första steg återanvända `state.activity` från store; ingen datamodelländring krävs.
-- Statusreduktion kräver bara ändring i `StatusBadge.tsx` + `statusOf()` i store.
-- Byte av "Måltid" till "Tillfälle" påverkar `Visit.meal`-typen; behåll fältnamnet i typen och byt bara label + defaults för att undvika bred refaktor.
+### Badges (komplement, inte ersättning)
 
-**Ingen kod har ändrats.** Godkänn planen så börjar jag med P0-2 (Gruppen-fliken) enligt rekommenderad ordning.
+Nivåer visar bredd. Badges visar karaktär. Ett litet antal, mjuka och beskrivande — inte "achievements" i spelmening:
+
+- **Fikaexpert** — 5+ besök i kategori café/bageri.
+- **Nattugglan** — 3+ besök med tillfälle "Kväll".
+- **Världsresenären** — provat 5+ olika kök.
+- **Pionjär** — först i gruppen att prova 3+ ställen.
+- **Bidragaren** — föreslagit 5+ ställen som andra sen besökt.
+
+Alla räknas per grupp. Visas som små chips på medlemsprofilen under nivåbadgen.
+
+### Leaderboard: nej, men "Denna månad i gruppen"
+
+En traditionell leaderboard ("Anna 42, Erik 31, Maja 12") skapar fel dynamik i en liten privat grupp — det pekar ut den som registrerar minst. Istället: en liten **"Denna månad"-modul** i Gruppen-fliken som lyfter *aktivitet*, inte rangordning:
+
+- "Ni har provat 4 nya ställen denna månad"
+- "Erik föreslog flest ställen (3)"
+- "Maja provade sitt första bageri"
+
+Positivt, kollektivt fokus, roterande innehåll. Om användarna senare uttryckligen ber om rangordning kan en opt-in leaderboard läggas till per grupp.
+
+### Anti-missbruk
+
+- Nivå räknas på **unika `placeId`**, inte besöksrader.
+- Badges som räknar besök har högsta rimliga tröskel (5+, inte 20+).
+- Ingen synlig "poäng" — bara nivånamn och unika-ställen-räknare. Utan siffra att jaga blir manipulation ointressant.
+- Ingen påminnelse/notis av typen "du är 1 besök från nästa nivå" — det är precis den mekanism som lockar till fejkbesök.
+
+### Datamodells- och UI-konsekvenser
+
+- **Ingen ny persisterad data behövs** för nivåer och badges — allt härleds från befintliga `visits`, `favorites`, `places` via en ren funktion `deriveMemberStats(state, memberId)` i `src/lib/matrundan/store.tsx` eller ny `src/lib/matrundan/gamification.ts`.
+- **Ny modul `gamification.ts`:** definierar `LEVELS`, `BADGES`, funktioner `levelFor(uniquePlaces)`, `badgesFor(stats)`, `monthlyGroupHighlights(state)`.
+- **UI-ändringar:**
+  - `MemberProfileSheet`: lägg till nivåbadge i headern (bredvid rollen), badge-chips under smakprofil, samt ett "Totalt"-block som bara syns för `currentUserId === member.id`.
+  - `gruppen.tsx`: ny "Denna månad"-modul ovanför medlemslistan.
+  - Ingen ändring i `types.ts` eller `store.tsx` state.
+- **Svenska termer:** "Nivå", "Utmärkelser", "Denna månad". Undvik "achievements", "score", "XP".
+
+### Vad byggs nu / senare / inte alls
+
+- **Nu:** nivåer (härledda), 4-5 badges, nivåbadge på medlemsprofil, "Totalt"-block för egen profil.
+- **Senare:** "Denna månad"-modulen i Gruppen-fliken (kräver lite mer polering av copy och roterande innehåll).
+- **Inte alls, tills vidare:** traditionell leaderboard med rangordning, notiser om "nästa nivå", synliga poängsummor, cross-group nivåer, streaks/serier.
+
+---
+
+## Sammanfattning av nästa steg
+
+1. **Sökning:** enfältsmönster med Vad + Var (autocomplete), Nära/Överallt-toggle, ny provider-signatur, uppdaterad demo-provider.
+2. **Gamification:** ny `gamification.ts` med härledda nivåer och badges, uppdaterad `MemberProfileSheet` med nivå, badges och privat "Totalt"-block.
+3. **Senare:** "Denna månad"-modul och skarp Geoapify-provider.
+
+Säg till om något av detta ska justeras — t.ex. andra nivånamn, andra trösklar, eller om du hellre vill dela upp implementationen i två separata leveranser (sökning först, gamification sedan).

@@ -8,8 +8,8 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.3.0";
-export const APP_VERSION_DATE = "2026-07-24";
+export const APP_VERSION = "0.4.0";
+export const APP_VERSION_DATE = "2026-07-25";
 
 export interface ChangelogEntry {
   version: string;
@@ -26,6 +26,30 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Autocomplete-sök på plats, nivåer och utmärkelser i gruppen.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Nivåer per grupp – från Nyfiken till Matrundanmästare – baserat på antal unika ställen du provat.",
+          "Utmärkelser: Utforskare, Kritiker, Stammis, Varieté och Månadens matvän.",
+          "”Denna månad”-höjdpunkt i Gruppen som lyfter fram månadens matvän.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Plats-sökningen använder nu autocomplete istället för ”Område, Stad”. Ett unikt namn som ”Gamla Enskede” räcker.",
+          "Två sökområden ersätter radievalet: ”Nära vald plats” eller ”Överallt”.",
+          "Medlemskort i Gruppen visar diskret nivå-emblem.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.3.0",
+    date: "2026-07-24",
     summary:
       "Medlemsprofiler, geografisk utforskning, tydligare betyg och navigerbar aktivitet.",
     sections: [

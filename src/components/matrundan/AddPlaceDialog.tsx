@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Search, Loader2, Plus, List as ListIcon, Map as MapIcon } from "lucide-react";
+import { Search, Loader2, Plus, List as ListIcon, Map as MapIcon, MapPin, X, Globe2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -30,20 +30,17 @@ import {
 import { useStore } from "@/lib/matrundan/store";
 import {
   getPlacesProvider,
+  NEAR_RADIUS_KM,
   type PlaceSuggestion,
+  type SearchMode,
 } from "@/lib/matrundan/places-provider";
-import { parseLocation, formatLocation } from "@/lib/matrundan/location";
+import {
+  locationForCity,
+  searchLocations,
+  type LocationBias,
+} from "@/lib/matrundan/location";
 
 const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
-const RADIUS_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: "Inom 1 km" },
-  { value: 3, label: "Inom 3 km" },
-  { value: 5, label: "Inom 5 km" },
-  { value: 10, label: "Inom 10 km" },
-  { value: 25, label: "Inom 25 km" },
-  { value: 9999, label: "Hela landet" },
-];
-const DEFAULT_RADIUS = 5;
 
 export function AddPlaceDialog({
   open,
@@ -57,17 +54,16 @@ export function AddPlaceDialog({
 
   // sök & utforska
   const [query, setQuery] = React.useState("");
-  const [location, setLocation] = React.useState(state.group.city);
-  const [radiusKm, setRadiusKm] = React.useState<number>(DEFAULT_RADIUS);
+  const initialNear = React.useMemo(
+    () => locationForCity(state.group.city) ?? null,
+    [state.group.city],
+  );
+  const [near, setNear] = React.useState<LocationBias | null>(initialNear);
+  const [mode, setMode] = React.useState<SearchMode>("near");
   const [view, setView] = React.useState<"list" | "map">("list");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
-
-  const parsed = React.useMemo(
-    () => parseLocation(location, state.group.city),
-    [location, state.group.city],
-  );
 
   // manuellt
   const [name, setName] = React.useState("");
@@ -83,8 +79,8 @@ export function AddPlaceDialog({
   React.useEffect(() => {
     if (!open) {
       setQuery("");
-      setLocation(state.group.city);
-      setRadiusKm(DEFAULT_RADIUS);
+      setNear(initialNear);
+      setMode("near");
       setView("list");
       setSelectedId(null);
       setResults([]);
@@ -97,33 +93,28 @@ export function AddPlaceDialog({
       setCategory("restaurang");
       setPhoto("🍽️");
       setTab("sok");
+      setCity(state.group.city);
     }
-  }, [open, state.group.city]);
-
-  const cityValid = parsed.city.trim().length > 0;
+  }, [open, initialNear, state.group.city]);
 
   React.useEffect(() => {
-    if (tab !== "sok" || !open || !cityValid) {
-      if (!cityValid) setResults([]);
-      return;
-    }
+    if (tab !== "sok" || !open) return;
     const t = setTimeout(() => {
       setLoading(true);
       getPlacesProvider()
         .search({
           query: query.trim() || undefined,
-          city: parsed.city,
-          area: parsed.area,
-          radiusKm: radiusKm >= 9999 ? null : radiusKm,
+          near,
+          mode: near ? mode : "everywhere",
         })
         .then((r) => {
           setResults(r);
           setSelectedId(r[0]?.externalId ?? null);
         })
         .finally(() => setLoading(false));
-    }, 250);
+    }, 220);
     return () => clearTimeout(t);
-  }, [query, parsed.city, parsed.area, radiusKm, tab, open, cityValid]);
+  }, [query, near, mode, tab, open]);
 
   const pickSuggestion = (s: PlaceSuggestion) => {
     const p = addPlace({
@@ -140,7 +131,7 @@ export function AddPlaceDialog({
       photo: emojiForCategory(s.category),
     });
     toast.success(`${p.name} tillagd`, {
-      description: "Området är bara ett förslag – ställen får ligga var som helst.",
+      description: "Ställen får ligga var som helst – detta är bara ett förslag.",
     });
     onOpenChange(false);
   };
@@ -169,9 +160,11 @@ export function AddPlaceDialog({
     onOpenChange(false);
   };
 
-  const filterSummary = `${formatLocation(parsed)} · ${
-    radiusKm >= 9999 ? "hela landet" : `inom ${radiusKm} km`
-  }`;
+  const filterSummary = near
+    ? mode === "near"
+      ? `Nära ${near.label} · ~${NEAR_RADIUS_KM} km`
+      : `Överallt · sorterat efter avstånd från ${near.label}`
+    : "Hela Sverige";
 
   const hasCoords = results.some((r) => r.lat != null && r.lng != null);
   const selected = results.find((r) => r.externalId === selectedId) ?? null;
@@ -184,8 +177,8 @@ export function AddPlaceDialog({
             Lägg till matställe
           </DialogTitle>
           <DialogDescription>
-            Utforska ett område eller lägg till manuellt. Ett ställe får ligga var
-            som helst – området är bara ett sökförslag.
+            Sök på namn, kök eller plats. Ställen får ligga var som helst –
+            valet av plats är bara ett förslag.
           </DialogDescription>
         </DialogHeader>
 
@@ -223,38 +216,25 @@ export function AddPlaceDialog({
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="s-location">Plats</Label>
-              <Input
-                id="s-location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
-                aria-invalid={!cityValid}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Söker i {formatLocation(parsed)}. Skriv med komma för att peka
-                ut ett område.
-              </p>
-            </div>
+            <LocationAutocomplete value={near} onChange={setNear} />
 
-            <div className="space-y-1.5">
-              <Label>Sökradie</Label>
-              <Select
-                value={String(radiusKm)}
-                onValueChange={(v) => setRadiusKm(Number(v))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RADIUS_OPTIONS.map((r) => (
-                    <SelectItem key={r.value} value={String(r.value)}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div
+              className="grid grid-cols-2 gap-2 rounded-full bg-muted p-1"
+              aria-label="Sökområde"
+            >
+              <ModeToggle
+                active={mode === "near" && !!near}
+                disabled={!near}
+                onClick={() => setMode("near")}
+                icon={<MapPin className="h-3.5 w-3.5" />}
+                label={near ? `Nära ${near.label.split(",")[0]}` : "Nära"}
+              />
+              <ModeToggle
+                active={mode === "everywhere" || !near}
+                onClick={() => setMode("everywhere")}
+                icon={<Globe2 className="h-3.5 w-3.5" />}
+                label="Överallt"
+              />
             </div>
 
             <div className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2 text-xs">
@@ -279,18 +259,16 @@ export function AddPlaceDialog({
               ) : null}
             </div>
 
-            {!cityValid ? (
-              <EmptyBlock text="Ange en stad för att börja utforska." />
-            ) : loading ? (
+            {loading ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
               </div>
             ) : results.length === 0 ? (
               <EmptyBlock
                 text={
-                  parsed.area
-                    ? `Inga träffar i ${parsed.area} (${parsed.city}) inom ${radiusKm >= 9999 ? "hela landet" : radiusKm + " km"}. Prova ett bredare område eller lägg till manuellt.`
-                    : "Inga träffar i området. Prova en annan sökterm eller större radie."
+                  near && mode === "near"
+                    ? `Inga träffar inom ~${NEAR_RADIUS_KM} km från ${near.label}. Prova ”Överallt” eller lägg till manuellt.`
+                    : "Inga träffar. Prova en annan sökterm eller plats."
                 }
               />
             ) : view === "list" ? (
@@ -335,8 +313,8 @@ export function AddPlaceDialog({
               />
             )}
             <p className="text-[11px] text-muted-foreground">
-              Demo-provider aktiv. Riktig kartdata och platssök aktiveras när
-              backend kopplas på.
+              Demo-provider aktiv. När Geoapify kopplas på blir platsförslagen
+              och sökträffarna riktiga – gränssnittet är detsamma.
             </p>
           </div>
         ) : (
@@ -467,6 +445,145 @@ export function AddPlaceDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function LocationAutocomplete({
+  value,
+  onChange,
+}: {
+  value: LocationBias | null;
+  onChange: (v: LocationBias | null) => void;
+}) {
+  const [input, setInput] = React.useState("");
+  const [focus, setFocus] = React.useState(false);
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+
+  const suggestions = React.useMemo(() => searchLocations(input), [input]);
+  const show = focus && !value;
+
+  React.useEffect(() => {
+    if (!focus) return;
+    const onDoc = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setFocus(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [focus]);
+
+  const pick = (loc: LocationBias) => {
+    onChange(loc);
+    setInput("");
+    setFocus(false);
+  };
+
+  return (
+    <div className="space-y-1.5" ref={wrapRef}>
+      <Label htmlFor="s-location">Var?</Label>
+      {value ? (
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium">{value.label}</div>
+            {value.hint ? (
+              <div className="text-[11px] text-muted-foreground">{value.hint}</div>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            aria-label="Rensa plats"
+            className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="s-location"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onFocus={() => setFocus(true)}
+            placeholder="Stad eller stadsdel – t.ex. Enskede"
+            className="pl-9"
+            autoComplete="off"
+          />
+          {show ? (
+            <div
+              role="listbox"
+              className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-lg"
+            >
+              {suggestions.length === 0 ? (
+                <div className="px-3 py-2 text-xs text-muted-foreground">
+                  Inga träffar. Lämna tomt för hela Sverige.
+                </div>
+              ) : (
+                suggestions.map((s) => (
+                  <button
+                    type="button"
+                    key={s.id}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      pick(s);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-accent"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="flex-1 truncate">{s.label}</span>
+                    {s.hint ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        {s.hint}
+                      </span>
+                    ) : null}
+                  </button>
+                ))
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        Lämna tomt för att söka i hela Sverige. Ett unikt namn som ”Gamla
+        Enskede” räcker – ingen komma behövs.
+      </p>
+    </div>
+  );
+}
+
+function ModeToggle({
+  active,
+  disabled,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={[
+        "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors",
+        active
+          ? "bg-background text-foreground shadow-sm"
+          : "text-muted-foreground",
+        disabled ? "cursor-not-allowed opacity-50" : "",
+      ].join(" ")}
+    >
+      {icon}
+      <span className="truncate">{label}</span>
+    </button>
   );
 }
 

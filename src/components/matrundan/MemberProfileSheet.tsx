@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Heart, MapPin, Sparkles, UtensilsCrossed } from "lucide-react";
+import { Heart, MapPin, Sparkles, UtensilsCrossed, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -14,6 +14,13 @@ import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
 import { RatingStars } from "./Rating";
 import { ActivityRow } from "./ActivityRow";
+import {
+  badgesFor,
+  levelFor,
+  triedPlacesCount,
+  type Badge as GameBadge,
+  type LevelInfo,
+} from "@/lib/matrundan/gamification";
 
 interface MemberProfileData {
   visitCount: number;
@@ -24,6 +31,8 @@ interface MemberProfileData {
   otherFavorites: Place[];
   topCuisines: string[];
   recentActivity: ReturnType<typeof useStore>["state"]["activity"];
+  levelInfo: LevelInfo;
+  badges: GameBadge[];
 }
 
 function useMemberProfile(memberId: string | null): MemberProfileData | null {
@@ -84,6 +93,10 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       .filter((a) => a.memberId === memberId)
       .slice(0, 4);
 
+    const tried = triedPlacesCount(state, memberId);
+    const levelInfo = levelFor(tried);
+    const badges = badgesFor(state, memberId);
+
     return {
       visitCount: visits.length,
       triedPlaces,
@@ -93,6 +106,8 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       otherFavorites,
       topCuisines,
       recentActivity,
+      levelInfo,
+      badges,
     };
   }, [memberId, state, getPlace]);
 }
@@ -144,6 +159,31 @@ export function MemberProfileSheet({
             </SheetHeader>
 
             <div className="space-y-5 p-5">
+              {/* Nivå */}
+              <LevelCard info={profile.levelInfo} />
+
+              {/* Utmärkelser */}
+              {profile.badges.length > 0 ? (
+                <section>
+                  <h3 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                    <Trophy className="h-3.5 w-3.5 text-mustard-foreground" />
+                    Utmärkelser
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.badges.map((b) => (
+                      <span
+                        key={b.id}
+                        title={b.description}
+                        className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs"
+                      >
+                        <span>{b.emoji}</span>
+                        <span>{b.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
               {/* Nyckeltal */}
               <div className="grid grid-cols-3 gap-2">
                 <Stat label="Besök" value={profile.visitCount} />
@@ -289,6 +329,52 @@ function Stat({ label, value }: { label: string; value: number }) {
       <div className="font-display text-2xl leading-none">{value}</div>
       <div className="mt-1 text-[11px] text-muted-foreground">{label}</div>
     </div>
+  );
+}
+
+function LevelCard({ info }: { info: LevelInfo }) {
+  const pct = Math.round(info.progress * 100);
+  return (
+    <section
+      className="rounded-2xl border border-border/70 bg-gradient-to-br from-mustard/25 to-card p-4"
+      aria-label="Nivå i gruppen"
+    >
+      <div className="flex items-center gap-3">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-background text-2xl shadow-sm">
+          {info.level.emoji}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Nivå i gruppen
+          </div>
+          <div className="truncate font-display text-lg leading-tight">
+            {info.level.name}
+          </div>
+        </div>
+        <div className="shrink-0 text-right text-[11px] text-muted-foreground">
+          {info.triedCount} provade
+        </div>
+      </div>
+      <div className="mt-3">
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="mt-1.5 text-[11px] text-muted-foreground">
+          {info.next
+            ? `${info.toNext} ställe${info.toNext === 1 ? "" : "n"} kvar till ${info.next.name} ${info.next.emoji}`
+            : "Topp-nivå uppnådd 🎉"}
+        </div>
+      </div>
+    </section>
   );
 }
 
