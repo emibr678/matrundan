@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Search, Loader2, Plus, List as ListIcon, Map as MapIcon } from "lucide-react";
+import { Search, Loader2, Plus, ArrowLeft, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -40,15 +40,85 @@ import {
 import { parseLocation, formatLocation } from "@/lib/matrundan/location";
 
 const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
-const RADIUS_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: "Inom 1 km" },
-  { value: 3, label: "Inom 3 km" },
-  { value: 5, label: "Inom 5 km" },
-  { value: 10, label: "Inom 10 km" },
-  { value: 25, label: "Inom 25 km" },
-  { value: 9999, label: "Hela landet" },
+
+/**
+ * Sökradieval. Server-funktionen tillåter 1/3/5/10/25 km eller `null` (som
+ * i sin tur mappas till en avgränsad ~50 km-cirkel runt centrum – inte
+ * verklig rikstäckning). Vi speglar det i UI:t med "Större område · inom
+ * 50 km" istället för den missvisande "Hela landet".
+ */
+const RADIUS_OPTIONS: { value: number; label: string; short: string }[] = [
+  { value: 1, label: "Inom 1 km", short: "inom 1 km" },
+  { value: 3, label: "Inom 3 km", short: "inom 3 km" },
+  { value: 5, label: "Inom 5 km", short: "inom 5 km" },
+  { value: 10, label: "Inom 10 km", short: "inom 10 km" },
+  { value: 25, label: "Inom 25 km", short: "inom 25 km" },
+  { value: 50, label: "Större område · inom 50 km", short: "inom 50 km" },
 ];
 const DEFAULT_RADIUS = 5;
+
+/** Server accepterar 1/3/5/10/25 eller null. 50 skickas som null. */
+function toServerRadius(km: number): 1 | 3 | 5 | 10 | 25 | null {
+  if (km === 1 || km === 3 || km === 5 || km === 10 || km === 25) return km;
+  return null;
+}
+
+type LocationSuggestion = {
+  label: string;
+  city: string;
+  area?: string;
+  lat?: number;
+  lng?: number;
+};
+
+type ProviderError = {
+  message: string;
+  code?: string;
+  retryable: boolean;
+};
+
+function classifyError(e: unknown): ProviderError {
+  const err = e as Error & { code?: string };
+  const msg = err?.message ?? "Kunde inte hämta förslag.";
+  // Server kastar strängar med prefix – tolka rimligt.
+  if (/GEOAPIFY_NOT_CONFIGURED/i.test(msg) || err?.code === "geoapify_not_configured") {
+    return {
+      message:
+        "Platssökningen är ännu inte aktiverad på servern. Använd fliken Lägg till manuellt tills nyckeln finns på plats.",
+      code: "not_configured",
+      retryable: false,
+    };
+  }
+  if (/GEOAPIFY_RATE_LIMIT/i.test(msg)) {
+    return {
+      message: "Sökningen används mycket just nu. Vänta en stund och försök igen.",
+      code: "rate_limit",
+      retryable: true,
+    };
+  }
+  if (/GEOAPIFY_CONFIG_ERROR/i.test(msg)) {
+    return {
+      message: "Platssökningen är felkonfigurerad på servern. Testa manuellt tills det är åtgärdat.",
+      code: "config_error",
+      retryable: false,
+    };
+  }
+  if (/GEOAPIFY_TIMEOUT/i.test(msg)) {
+    return {
+      message: "Sökningen tog för lång tid. Försök igen.",
+      code: "timeout",
+      retryable: true,
+    };
+  }
+  if (/GEOAPIFY_UNAVAILABLE|GEOAPIFY_MALFORMED|network|fetch/i.test(msg)) {
+    return {
+      message: "Kunde inte nå platstjänsten just nu. Försök igen strax.",
+      code: "network",
+      retryable: true,
+    };
+  }
+  return { message: msg, retryable: true };
+}
 
 export function AddPlaceDialog({
   open,
@@ -63,14 +133,12 @@ export function AddPlaceDialog({
   const [busy, setBusy] = React.useState(false);
   const isBusy = busy || submitting;
   const [tab, setTab] = React.useState<"sok" | "manuell">("sok");
-  const [providerError, setProviderError] = React.useState<string | null>(null);
+  const [providerError, setProviderError] = React.useState<ProviderError | null>(null);
 
   // sök & utforska
   const [query, setQuery] = React.useState("");
   const [location, setLocation] = React.useState(state.group.city);
   const [radiusKm, setRadiusKm] = React.useState<number>(DEFAULT_RADIUS);
-  const [view, setView] = React.useState<"list" | "map">("list");
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
 
@@ -78,10 +146,22 @@ export function AddPlaceDialog({
   // geokodar på varje tangenttryck och för att kunna filtrera på radie.
   const [center, setCenter] = React.useState<{ lat: number; lng: number } | null>(null);
   const [centerLabel, setCenterLabel] = React.useState<string>("");
-  const [locationSuggestions, setLocationSuggestions] = React.useState<
-    { label: string; city: string; area?: string; lat?: number; lng?: number }[]
-  >([]);
+  const [locationSuggestions, setLocationSuggestions] = React.useState<LocationSuggestion[]>([]);
   const [showLocationSuggest, setShowLocationSuggest] = React.useState(false);
+  const [locationActiveIx, setLocationActiveIx] = React.useState(-1);
+  const [locationLoading, setLocationLoading] = React.useState(false);
+
+  // Race-protection: räknare per svar-typ; vi accepterar bara det senaste.
+  const locationReqRef = React.useRef(0);
+  const searchReqRef = React.useRef(0);
+
+  // Bekräftelsesteget: användaren har valt ett förslag, väljer occasions
+  // och anteckning innan riktig save körs.
+  const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
+  const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>([
+    "avslappnat",
+  ]);
+  const [pendingNotes, setPendingNotes] = React.useState("");
 
   const parsed = React.useMemo(
     () => parseLocation(location, state.group.city),
@@ -99,104 +179,127 @@ export function AddPlaceDialog({
   const [notes, setNotes] = React.useState("");
   const [photo, setPhoto] = React.useState("🍽️");
 
+  const resetAll = React.useCallback(() => {
+    setQuery("");
+    setLocation(state.group.city);
+    setRadiusKm(DEFAULT_RADIUS);
+    setResults([]);
+    setCenter(null);
+    setCenterLabel("");
+    setLocationSuggestions([]);
+    setShowLocationSuggest(false);
+    setLocationActiveIx(-1);
+    setProviderError(null);
+    setPending(null);
+    setPendingOccasions(["avslappnat"]);
+    setPendingNotes("");
+    setName("");
+    setAddress("");
+    setManualArea("");
+    setCuisines("");
+    setNotes("");
+    setOccasions(["avslappnat"]);
+    setCategory("restaurang");
+    setPhoto("🍽️");
+    setTab("sok");
+  }, [state.group.city]);
+
   React.useEffect(() => {
-    if (!open) {
-      setQuery("");
-      setLocation(state.group.city);
-      setRadiusKm(DEFAULT_RADIUS);
-      setView("list");
-      setSelectedId(null);
-      setResults([]);
-      setCenter(null);
-      setCenterLabel("");
-      setLocationSuggestions([]);
-      setShowLocationSuggest(false);
-      setProviderError(null);
-      setName("");
-      setAddress("");
-      setManualArea("");
-      setCuisines("");
-      setNotes("");
-      setOccasions(["avslappnat"]);
-      setCategory("restaurang");
-      setPhoto("🍽️");
-      setTab("sok");
-    }
-  }, [open, state.group.city]);
+    if (!open) resetAll();
+  }, [open, resetAll]);
 
   const cityValid = parsed.city.trim().length > 0;
 
-  // Live-läge: autocomplete-förslag för Plats-fältet.
+  // När användaren skriver om platsen manuellt: invalidera centrum om
+  // texten inte längre motsvarar det senast valda förslaget.
   React.useEffect(() => {
-    if (!isLive || !open || tab !== "sok") return;
+    if (centerLabel && location.trim() !== centerLabel) {
+      setCenter(null);
+      setCenterLabel("");
+    }
+  }, [location, centerLabel]);
+
+  // Live-läge: autocomplete-förslag för Plats-fältet (debounce 300 ms).
+  React.useEffect(() => {
+    if (!isLive || !open || tab !== "sok" || pending) return;
     const text = location.trim();
     if (text.length < 2) {
       setLocationSuggestions([]);
+      setLocationLoading(false);
       return;
     }
-    let cancelled = false;
+    const reqId = ++locationReqRef.current;
+    setLocationLoading(true);
     const t = setTimeout(() => {
-      geoapifyAutocompleteLocation({ data: { text, limit: 6 } })
+      geoapifyAutocompleteLocation({
+        data: {
+          text,
+          limit: 6,
+          biasLat: center?.lat,
+          biasLng: center?.lng,
+        },
+      })
         .then((rows) => {
-          if (cancelled) return;
+          if (reqId !== locationReqRef.current) return;
           setLocationSuggestions(rows);
+          setLocationActiveIx(-1);
+          setLocationLoading(false);
         })
-        .catch((e: Error) => {
-          if (cancelled) return;
+        .catch((e: unknown) => {
+          if (reqId !== locationReqRef.current) return;
           setLocationSuggestions([]);
-          if ((e as { code?: string })?.code === "geoapify_not_configured") {
-            setProviderError(e.message);
+          setLocationLoading(false);
+          const pe = classifyError(e);
+          if (pe.code === "not_configured" || pe.code === "config_error") {
+            setProviderError(pe);
           }
         });
-    }, 250);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [isLive, open, tab, location]);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [isLive, open, tab, location, center, pending]);
 
   // Sök-effekten: demo eller live beroende på läge.
   React.useEffect(() => {
-    if (tab !== "sok" || !open || !cityValid) {
+    if (tab !== "sok" || !open || !cityValid || pending) {
       if (!cityValid) setResults([]);
       return;
     }
-    let cancelled = false;
+    const reqId = ++searchReqRef.current;
     const t = setTimeout(async () => {
       setLoading(true);
       try {
         if (isLive) {
-          // Se till att vi har koordinater för Plats-texten.
           let c = center;
           const targetLabel = formatLocation(parsed);
           if (!c || centerLabel !== targetLabel) {
             const rows = await geoapifyAutocompleteLocation({
               data: { text: targetLabel, limit: 1 },
             });
+            if (reqId !== searchReqRef.current) return;
             const first = rows[0];
             if (!first || first.lat == null || first.lng == null) {
-              if (!cancelled) {
-                setResults([]);
-                setLoading(false);
-              }
+              setResults([]);
+              setProviderError({
+                message: `Hittade ingen plats för “${targetLabel}”. Försök skriva mer exakt eller välj ett förslag i listan.`,
+                retryable: false,
+              });
+              setLoading(false);
               return;
             }
             c = { lat: first.lat, lng: first.lng };
-            if (!cancelled) {
-              setCenter(c);
-              setCenterLabel(targetLabel);
-            }
+            setCenter(c);
+            setCenterLabel(targetLabel);
           }
           const rows = await geoapifySearchPlaces({
             data: {
               text: query.trim() || undefined,
               lat: c.lat,
               lng: c.lng,
-              radiusKm: radiusKm >= 9999 ? null : radiusKm,
+              radiusKm: toServerRadius(radiusKm),
               limit: 25,
             },
           });
-          if (cancelled) return;
+          if (reqId !== searchReqRef.current) return;
           const mapped: PlaceSuggestion[] = rows.map((r) => ({
             externalId: r.externalId,
             provider: r.provider,
@@ -208,39 +311,31 @@ export function AddPlaceDialog({
             area: r.area,
             lat: r.lat,
             lng: r.lng,
+            distanceKm: r.distanceKm,
             raw: r.raw,
           }));
           setResults(mapped);
-          setSelectedId(mapped[0]?.externalId ?? null);
           setProviderError(null);
         } else {
           const r = await getPlacesProvider().search({
             query: query.trim() || undefined,
             city: parsed.city,
             area: parsed.area,
-            radiusKm: radiusKm >= 9999 ? null : radiusKm,
+            radiusKm: toServerRadius(radiusKm),
           });
-          if (cancelled) return;
+          if (reqId !== searchReqRef.current) return;
           setResults(r);
-          setSelectedId(r[0]?.externalId ?? null);
+          setProviderError(null);
         }
       } catch (e) {
-        if (cancelled) return;
+        if (reqId !== searchReqRef.current) return;
         setResults([]);
-        const err = e as Error & { code?: string };
-        if (err?.code === "geoapify_not_configured") {
-          setProviderError(err.message);
-        } else {
-          setProviderError(err.message ?? "Kunde inte hämta förslag.");
-        }
+        setProviderError(classifyError(e));
       } finally {
-        if (!cancelled) setLoading(false);
+        if (reqId === searchReqRef.current) setLoading(false);
       }
     }, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
+    return () => clearTimeout(t);
   }, [
     query,
     parsed.city,
@@ -253,45 +348,99 @@ export function AddPlaceDialog({
     center,
     centerLabel,
     parsed,
+    pending,
   ]);
 
-  const pickSuggestion = async (s: PlaceSuggestion) => {
+  const openConfirm = (s: PlaceSuggestion) => {
     if (isBusy) return;
+    setPending(s);
+    setPendingOccasions(["avslappnat"]);
+    setPendingNotes("");
+  };
+
+  const confirmAdd = async () => {
+    if (!pending || isBusy) return;
     setBusy(true);
     try {
       const base = {
-        name: s.name,
-        category: s.category,
-        cuisines: s.cuisines ?? [],
-        occasions: ["avslappnat"] as Occasion[],
-        address: s.address,
-        area: s.area,
-        city: s.city,
-        lat: s.lat,
-        lng: s.lng,
+        name: pending.name,
+        category: pending.category,
+        cuisines: pending.cuisines ?? [],
+        occasions: pendingOccasions,
+        address: pending.address,
+        area: pending.area,
+        city: pending.city,
+        lat: pending.lat,
+        lng: pending.lng,
         addedBy: state.currentUserId,
-        photo: emojiForCategory(s.category),
+        photo: emojiForCategory(pending.category),
+        notes: pendingNotes.trim() || undefined,
       };
       const p =
-        isLive && s.provider && s.provider !== "demo"
+        isLive && pending.provider && pending.provider !== "demo"
           ? await addProviderPlace({
-              provider: s.provider,
-              providerPlaceId: s.externalId,
+              provider: pending.provider,
+              providerPlaceId: pending.externalId,
               place: base,
-              raw: s.raw ? safeParse(s.raw) : {},
+              raw: pending.raw ? safeParse(pending.raw) : {},
             })
           : await addPlace(base);
-      toast.success(`${p.name} tillagd`, {
-        description: "Området är bara ett förslag – ställen får ligga var som helst.",
-      });
+      toast.success(`${p.name} tillagd`);
       onOpenChange(false);
     } catch (e) {
-      toast.error((e as Error).message || "Kunde inte lägga till stället.");
+      const msg = (e as Error).message || "Kunde inte lägga till stället.";
+      if (/redan|already|duplicate|unique/i.test(msg)) {
+        toast.info("Det här stället finns redan i gruppen.");
+        onOpenChange(false);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
   };
 
+  const filterSummary = `${formatLocation(parsed)} · ${radiusSummary(radiusKm)}`;
+
+  const onLocationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isLive) return;
+    if (!showLocationSuggest || locationSuggestions.length === 0) {
+      if (e.key === "ArrowDown" && locationSuggestions.length > 0) {
+        setShowLocationSuggest(true);
+        setLocationActiveIx(0);
+        e.preventDefault();
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setLocationActiveIx((ix) => (ix + 1) % locationSuggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setLocationActiveIx((ix) =>
+        ix <= 0 ? locationSuggestions.length - 1 : ix - 1,
+      );
+    } else if (e.key === "Enter") {
+      if (locationActiveIx >= 0) {
+        e.preventDefault();
+        applyLocationSuggestion(locationSuggestions[locationActiveIx]);
+      }
+    } else if (e.key === "Escape") {
+      setShowLocationSuggest(false);
+      setLocationActiveIx(-1);
+    }
+  };
+
+  const applyLocationSuggestion = (s: LocationSuggestion) => {
+    const text = s.area ? `${s.area}, ${s.city}` : s.city;
+    setLocation(text);
+    if (s.lat != null && s.lng != null) {
+      setCenter({ lat: s.lat, lng: s.lng });
+      setCenterLabel(text);
+    }
+    setShowLocationSuggest(false);
+    setLocationActiveIx(-1);
+  };
 
   const submitManual = async () => {
     if (isBusy) return;
@@ -325,13 +474,113 @@ export function AddPlaceDialog({
     }
   };
 
-  const filterSummary = `${formatLocation(parsed)} · ${
-    radiusKm >= 9999 ? "hela landet" : `inom ${radiusKm} km`
-  }`;
+  // === Bekräftelsesteg ===
+  if (pending) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              Lägg till i gruppen
+            </DialogTitle>
+            <DialogDescription>
+              Kontrollera detaljerna innan du lägger till stället.
+            </DialogDescription>
+          </DialogHeader>
 
-  const hasCoords = results.some((r) => r.lat != null && r.lng != null);
-  const selected = results.find((r) => r.externalId === selectedId) ?? null;
+          <div className="rounded-2xl border border-border/70 bg-card p-3">
+            <div className="flex items-start gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-secondary text-2xl">
+                {emojiForCategory(pending.category)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{pending.name}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {CATEGORY_LABEL[pending.category]}
+                  {pending.cuisines?.length
+                    ? ` · ${pending.cuisines.join(", ")}`
+                    : ""}
+                </div>
+                {pending.address ? (
+                  <div className="truncate text-[11px] text-muted-foreground">
+                    {pending.address}
+                  </div>
+                ) : null}
+                <div className="truncate text-[11px] text-muted-foreground">
+                  {pending.area ? `${pending.area} · ` : ""}
+                  {pending.city}
+                </div>
+              </div>
+            </div>
+          </div>
 
+          <div className="space-y-1.5">
+            <Label>Passar för</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Välj situation – flera går bra. Avslappnat är förvalt, ändra fritt.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {OCCASIONS.map((o) => {
+                const active = pendingOccasions.includes(o);
+                return (
+                  <button
+                    key={o}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() =>
+                      setPendingOccasions((cur) =>
+                        active ? cur.filter((x) => x !== o) : [...cur, o],
+                      )
+                    }
+                    className="min-h-11"
+                  >
+                    <Badge
+                      variant={active ? "default" : "outline"}
+                      className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                    >
+                      {OCCASION_LABEL[o]}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="pending-notes">Anteckning till gruppen (frivilligt)</Label>
+            <Textarea
+              id="pending-notes"
+              value={pendingNotes}
+              onChange={(e) => setPendingNotes(e.target.value)}
+              placeholder="T.ex. deras surdegspizza är otrolig…"
+              rows={2}
+            />
+          </div>
+
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setPending(null)}
+              disabled={isBusy}
+              className="min-h-11"
+            >
+              <ArrowLeft className="h-4 w-4" /> Tillbaka
+            </Button>
+            <Button
+              onClick={confirmAdd}
+              disabled={isBusy || pendingOccasions.length === 0}
+              className="min-h-11"
+            >
+              {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Lägg till i gruppen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // === Huvudvy: Sök eller Manuell ===
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -352,7 +601,7 @@ export function AddPlaceDialog({
               onClick={() => setTab(t)}
               aria-pressed={tab === t}
               className={[
-                "rounded-full py-1.5 text-sm font-medium transition-colors",
+                "min-h-11 rounded-full py-1.5 text-sm font-medium transition-colors",
                 tab === t
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground",
@@ -391,43 +640,62 @@ export function AddPlaceDialog({
                   }}
                   onFocus={() => setShowLocationSuggest(true)}
                   onBlur={() =>
-                    // Låt klick på förslag hinna innan vi stänger.
                     setTimeout(() => setShowLocationSuggest(false), 150)
                   }
+                  onKeyDown={onLocationKeyDown}
                   placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
                   aria-invalid={!cityValid}
                   autoComplete="off"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded={
+                    isLive && showLocationSuggest && locationSuggestions.length > 0
+                  }
+                  aria-controls="location-listbox"
+                  aria-activedescendant={
+                    locationActiveIx >= 0
+                      ? `location-opt-${locationActiveIx}`
+                      : undefined
+                  }
                 />
                 {isLive &&
                 showLocationSuggest &&
-                locationSuggestions.length > 0 ? (
+                (locationSuggestions.length > 0 || locationLoading) ? (
                   <ul
+                    id="location-listbox"
                     role="listbox"
                     className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
                   >
-                    {locationSuggestions.map((s, i) => (
-                      <li key={`${s.label}-${i}`}>
-                        <button
-                          type="button"
-                          className="w-full rounded px-2 py-1.5 text-left hover:bg-accent"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setLocation(
-                              s.area ? `${s.area}, ${s.city}` : s.city,
-                            );
-                            if (s.lat != null && s.lng != null) {
-                              setCenter({ lat: s.lat, lng: s.lng });
-                              setCenterLabel(
-                                s.area ? `${s.area}, ${s.city}` : s.city,
-                              );
-                            }
-                            setShowLocationSuggest(false);
-                          }}
-                        >
-                          {s.label}
-                        </button>
+                    {locationLoading && locationSuggestions.length === 0 ? (
+                      <li className="px-2 py-2 text-muted-foreground">Söker…</li>
+                    ) : locationSuggestions.length === 0 ? (
+                      <li className="px-2 py-2 text-muted-foreground">
+                        Inga träffar
                       </li>
-                    ))}
+                    ) : (
+                      locationSuggestions.map((s, i) => (
+                        <li
+                          key={`${s.label}-${i}`}
+                          id={`location-opt-${i}`}
+                          role="option"
+                          aria-selected={i === locationActiveIx}
+                        >
+                          <button
+                            type="button"
+                            className={[
+                              "w-full rounded px-2 py-1.5 text-left hover:bg-accent",
+                              i === locationActiveIx ? "bg-accent" : "",
+                            ].join(" ")}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              applyLocationSuggestion(s);
+                            }}
+                          >
+                            {s.label}
+                          </button>
+                        </li>
+                      ))
+                    )}
                   </ul>
                 ) : null}
               </div>
@@ -435,11 +703,7 @@ export function AddPlaceDialog({
                 Söker i {formatLocation(parsed)}. Skriv med komma för att peka
                 ut ett område.
               </p>
-              {providerError ? (
-                <p className="text-[11px] text-destructive">{providerError}</p>
-              ) : null}
             </div>
-
 
             <div className="space-y-1.5">
               <Label>Sökradie</Label>
@@ -460,27 +724,44 @@ export function AddPlaceDialog({
               </Select>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2 text-xs">
+            <div className="rounded-xl bg-secondary/60 px-3 py-2 text-xs">
               <span className="truncate text-muted-foreground">
                 {filterSummary}
               </span>
-              {results.length > 0 && hasCoords ? (
-                <div className="ml-2 flex gap-1 rounded-full bg-background p-0.5">
-                  <ViewToggle
-                    active={view === "list"}
-                    onClick={() => setView("list")}
-                    icon={<ListIcon className="h-3.5 w-3.5" />}
-                    label="Lista"
-                  />
-                  <ViewToggle
-                    active={view === "map"}
-                    onClick={() => setView("map")}
-                    icon={<MapIcon className="h-3.5 w-3.5" />}
-                    label="Karta"
-                  />
-                </div>
-              ) : null}
             </div>
+
+            {providerError ? (
+              <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                <p className="text-destructive">{providerError.message}</p>
+                <div className="flex flex-wrap gap-2">
+                  {providerError.retryable ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setProviderError(null);
+                        // Trigga om-sök genom att bumpa en dummy-effekt via query-state.
+                        setQuery((q) => q);
+                        searchReqRef.current++;
+                        setLoading(true);
+                        setTimeout(() => setLoading(false), 0);
+                      }}
+                      className="min-h-11"
+                    >
+                      <RefreshCcw className="h-4 w-4" /> Försök igen
+                    </Button>
+                  ) : null}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setTab("manuell")}
+                    className="min-h-11"
+                  >
+                    Lägg till manuellt
+                  </Button>
+                </div>
+              </div>
+            ) : null}
 
             {!cityValid ? (
               <EmptyBlock text="Ange en stad för att börja utforska." />
@@ -488,22 +769,22 @@ export function AddPlaceDialog({
               <div className="flex items-center justify-center py-8 text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
               </div>
-            ) : results.length === 0 ? (
+            ) : results.length === 0 && !providerError ? (
               <EmptyBlock
                 text={
-                  parsed.area
-                    ? `Inga träffar i ${parsed.area} (${parsed.city}) inom ${radiusKm >= 9999 ? "hela landet" : radiusKm + " km"}. Prova ett bredare område eller lägg till manuellt.`
-                    : "Inga träffar i området. Prova en annan sökterm eller större radie."
+                  query.trim()
+                    ? `Inga träffar för “${query.trim()}” ${radiusSummary(radiusKm)} i ${formatLocation(parsed)}. Prova ett bredare område eller lägg till manuellt.`
+                    : `Inga matställen hittades ${radiusSummary(radiusKm)} i ${formatLocation(parsed)}. Prova ett bredare område.`
                 }
               />
-            ) : view === "list" ? (
+            ) : results.length > 0 ? (
               <div className="space-y-2">
                 {results.map((r) => (
                   <div
                     key={r.externalId}
                     className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3"
                   >
-                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-secondary text-xl">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-xl">
                       {emojiForCategory(r.category)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -517,29 +798,29 @@ export function AddPlaceDialog({
                         {r.city}
                         {r.distanceKm != null ? ` · ~${r.distanceKm} km` : ""}
                       </div>
+                      {r.address ? (
+                        <div className="truncate text-[11px] text-muted-foreground">
+                          {r.address}
+                        </div>
+                      ) : null}
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => pickSuggestion(r)}
-                      className="min-h-11"
+                      onClick={() => openConfirm(r)}
+                      className="min-h-11 shrink-0"
+                      disabled={isBusy}
                     >
                       <Plus className="h-4 w-4" /> Lägg till
                     </Button>
                   </div>
                 ))}
               </div>
-            ) : (
-              <DemoMap
-                results={results.filter((r) => r.lat != null && r.lng != null)}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onAdd={pickSuggestion}
-                selected={selected}
-              />
-            )}
+            ) : null}
+
             <p className="text-[11px] text-muted-foreground">
-              Demo-provider aktiv. Riktig kartdata och platssök aktiveras när
-              backend kopplas på.
+              {isLive
+                ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
+                : "Demodata"}
             </p>
           </div>
         ) : (
@@ -634,6 +915,7 @@ export function AddPlaceDialog({
                           active ? cur.filter((x) => x !== o) : [...cur, o],
                         )
                       }
+                      className="min-h-11"
                     >
                       <Badge
                         variant={active ? "default" : "outline"}
@@ -661,11 +943,16 @@ export function AddPlaceDialog({
         )}
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isBusy}>
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            disabled={isBusy}
+            className="min-h-11"
+          >
             Avbryt
           </Button>
           {tab === "manuell" ? (
-            <Button onClick={submitManual} disabled={isBusy}>
+            <Button onClick={submitManual} disabled={isBusy} className="min-h-11">
               {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Lägg till
             </Button>
@@ -676,120 +963,15 @@ export function AddPlaceDialog({
   );
 }
 
-function ViewToggle({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={[
-        "inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
-        active ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-      ].join(" ")}
-    >
-      {icon}
-      {label}
-    </button>
-  );
+function radiusSummary(km: number): string {
+  const opt = RADIUS_OPTIONS.find((r) => r.value === km);
+  return opt ? opt.short : `inom ${km} km`;
 }
 
 function EmptyBlock({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-dashed border-border/70 bg-card/60 p-6 text-center text-sm text-muted-foreground">
       {text}
-    </div>
-  );
-}
-
-function DemoMap({
-  results,
-  selectedId,
-  onSelect,
-  onAdd,
-  selected,
-}: {
-  results: PlaceSuggestion[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  onAdd: (s: PlaceSuggestion) => void;
-  selected: PlaceSuggestion | null;
-}) {
-  if (results.length === 0) {
-    return <EmptyBlock text="Inga koordinater att visa på karta." />;
-  }
-
-  const lats = results.map((r) => r.lat!);
-  const lngs = results.map((r) => r.lng!);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const dLat = Math.max(maxLat - minLat, 0.005);
-  const dLng = Math.max(maxLng - minLng, 0.005);
-
-  return (
-    <div className="space-y-2">
-      <div
-        className="relative h-64 w-full overflow-hidden rounded-2xl border border-border/70 bg-[linear-gradient(135deg,hsl(var(--secondary))_0%,hsl(var(--muted))_100%)]"
-        role="img"
-        aria-label="Kartvy (demo) av sökresultaten"
-      >
-        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(hsl(var(--border))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border))_1px,transparent_1px)] [background-size:32px_32px]" />
-        <div className="absolute left-2 top-2 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm">
-          Kartvy (demo) · riktig kartdata aktiveras senare
-        </div>
-        {results.map((r) => {
-          const left = 8 + ((r.lng! - minLng) / dLng) * 84;
-          const top = 12 + (1 - (r.lat! - minLat) / dLat) * 76;
-          const active = r.externalId === selectedId;
-          return (
-            <button
-              key={r.externalId}
-              type="button"
-              onClick={() => onSelect(r.externalId)}
-              aria-pressed={active}
-              aria-label={r.name}
-              className={[
-                "absolute -translate-x-1/2 -translate-y-full rounded-full px-2 py-1 text-xs font-medium shadow-md transition-transform",
-                active
-                  ? "z-10 scale-110 bg-primary text-primary-foreground"
-                  : "bg-background text-foreground",
-              ].join(" ")}
-              style={{ left: `${left}%`, top: `${top}%` }}
-            >
-              {emojiForCategory(r.category)}
-            </button>
-          );
-        })}
-      </div>
-      {selected ? (
-        <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3">
-          <div className="grid h-10 w-10 place-items-center rounded-lg bg-secondary text-xl">
-            {emojiForCategory(selected.category)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate font-medium">{selected.name}</div>
-            <div className="truncate text-xs text-muted-foreground">
-              {CATEGORY_LABEL[selected.category]}
-              {selected.area ? ` · ${selected.area}` : ""}
-              {selected.distanceKm != null ? ` · ~${selected.distanceKm} km` : ""}
-            </div>
-          </div>
-          <Button size="sm" onClick={() => onAdd(selected)} className="min-h-11">
-            <Plus className="h-4 w-4" /> Lägg till
-          </Button>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -803,7 +985,7 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (v: string)
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="grid h-10 w-10 place-items-center rounded-lg bg-secondary text-2xl"
+        className="grid h-11 w-11 place-items-center rounded-lg bg-secondary text-2xl"
         aria-label="Välj emoji"
       >
         {value}
