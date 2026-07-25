@@ -1,11 +1,15 @@
 import * as React from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/matrundan/session";
 import { toast } from "sonner";
+import {
+  createGroupWithOwner,
+  type VerifiedHomeLocation,
+} from "@/lib/matrundan/live-admin";
+import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
 const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
 
@@ -13,7 +17,8 @@ export function OnboardingScreen() {
   const { refreshGroups, selectGroup, signOut } = useSession();
   const [name, setName] = React.useState("");
   const [emoji, setEmoji] = React.useState("🍽️");
-  const [location, setLocation] = React.useState("");
+  const [locationText, setLocationText] = React.useState("");
+  const [verified, setVerified] = React.useState<VerifiedHomeLocation | null>(null);
   const [busy, setBusy] = React.useState(false);
 
   async function handleCreate(e: React.FormEvent) {
@@ -24,19 +29,13 @@ export function OnboardingScreen() {
     }
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc("create_group_with_owner", {
-        _name: name.trim(),
-        _emoji: emoji,
-        _home_label: location.trim() || undefined,
-      });
-      if (error) throw error;
-      const groupId = data as unknown as string;
+      const groupId = await createGroupWithOwner(name.trim(), emoji, verified);
       await refreshGroups();
       if (groupId) selectGroup(groupId);
       toast.success("Din grupp är skapad!");
     } catch (err) {
       console.error(err);
-      toast.error("Kunde inte skapa gruppen. Försök igen.");
+      toast.error(err instanceof Error ? err.message : "Kunde inte skapa gruppen. Försök igen.");
     } finally {
       setBusy(false);
     }
@@ -91,16 +90,24 @@ export function OnboardingScreen() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="group-location">Hemområde (valfritt)</Label>
-            <Input
+            <Label htmlFor="group-location">Förvalt sökområde (valfritt)</Label>
+            <GeoapifyLocationInput
               id="group-location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="t.ex. Göteborg eller Söder, Stockholm"
+              value={locationText}
+              onChange={(text) => {
+                setLocationText(text);
+                if (verified && text !== verified.label) setVerified(null);
+              }}
+              onSelect={(v) => {
+                setVerified(v);
+                setLocationText(v.label);
+              }}
+              onClearVerified={() => setVerified(null)}
+              placeholder="t.ex. Gamla Enskede, Stockholm"
             />
             <p className="text-xs text-muted-foreground">
-              Endast förslag vid sökning. Ni kan alltid lägga till ställen var som
-              helst.
+              Fylls i automatiskt när gruppen söker efter nya matställen. Kan
+              alltid ändras för en enskild sökning.
             </p>
           </div>
 
