@@ -184,6 +184,34 @@ export function StoreProvider({
         return place;
       },
 
+      addProviderPlace: async ({ provider, providerPlaceId, place, raw }) => {
+        if (mode !== "live") {
+          throw new Error(
+            "Extern platssök är bara tillgänglig i live-läge (inloggad).",
+          );
+        }
+        const id = await runLive((gid) =>
+          liveCreateOrLinkProviderPlace(gid, {
+            provider,
+            providerPlaceId,
+            name: place.name,
+            category: place.category,
+            cuisines: place.cuisines ?? [],
+            occasions: place.occasions ?? [],
+            address: place.address ?? "",
+            area: place.area,
+            city: place.city ?? "",
+            lat: place.lat,
+            lng: place.lng,
+            notes: place.notes,
+            photo: place.photo,
+            raw,
+          }),
+        );
+        return { ...place, id, addedAt: new Date().toISOString() } as Place;
+      },
+
+
       toggleFavorite: async (placeId) => {
         if (mode === "live") {
           await runLive((gid) => liveToggleFavorite(gid, placeId));
