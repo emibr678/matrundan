@@ -402,23 +402,35 @@ function GroupSettingsSection({
   initialName,
   initialEmoji,
   initialLocation,
+  initialShareCounts,
 }: {
   groupId: string;
   initialName: string;
   initialEmoji: string;
   initialLocation: string;
+  initialShareCounts: boolean;
 }) {
   const [name, setName] = React.useState(initialName);
   const [emoji, setEmoji] = React.useState(initialEmoji);
   const [loc, setLoc] = React.useState(initialLocation);
+  const [shareCounts, setShareCounts] = React.useState(initialShareCounts);
   const [busy, setBusy] = React.useState(false);
   const { refreshGroups } = useSession();
 
   async function save() {
     setBusy(true);
     try {
-      await updateGroupSettings(groupId, name.trim(), emoji, loc.trim() || null);
+      await updateGroupSettings(
+        groupId,
+        name.trim(),
+        emoji,
+        loc.trim() || null,
+        shareCounts,
+      );
       await refreshGroups();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("matrundan:reload"));
+      }
       toast.success("Gruppen är uppdaterad.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Kunde inte spara.");
@@ -448,6 +460,25 @@ function GroupSettingsSection({
           <Label htmlFor="gs-loc">Hemområde</Label>
           <Input id="gs-loc" value={loc} onChange={(e) => setLoc(e.target.value)} />
         </div>
+
+        <div className="space-y-2 rounded-xl border border-border/60 bg-muted/30 p-3">
+          <div className="text-sm font-medium">Delade besök</div>
+          <div className="flex items-start justify-between gap-3">
+            <Label htmlFor="gs-share-counts" className="text-sm font-normal">
+              Räkna delade besök i progression
+            </Label>
+            <Switch
+              id="gs-share-counts"
+              checked={shareCounts}
+              onCheckedChange={setShareCounts}
+            />
+          </div>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Delade besök syns alltid i historik, besöksstatus och betyg.
+            Inställningen påverkar bara framtida nivåer och märken.
+          </p>
+        </div>
+
         <div className="flex justify-end">
           <Button onClick={save} disabled={busy}>
             {busy ? "Sparar…" : "Spara"}
