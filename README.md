@@ -145,8 +145,8 @@ Ingen service-role-nyckel finns i klientkoden eller i några `VITE_`-variabler.
 Klienten använder enbart publishable key + användarens JWT; all känslig
 åtkomst ligger bakom RLS.
 
-Geoapify API-nyckeln (`GEOAPIFY_API_KEY`) läggs i Lovable Project
-Settings → Secrets, aldrig som en `VITE_`-variabel eller i repot. Servern
+Geoapify API-nyckeln (`GEOAPIFY_API_KEY`) läggs i Lovable Cloud → Secrets,
+aldrig som en `VITE_`-variabel eller i repot. Servern
 anropar Geoapify, så nyckeln exponeras aldrig för klienten. Om nyckeln
 saknas visas ett tydligt konfigurationsfel i live-sökningen, medan
 fliken för manuellt tillägg fortsätter fungera.
