@@ -30,6 +30,17 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 - Matrundan skickar inte e-post själv; ”Öppna e-post” fyller i en mailto med
   färdig svensk text.
 
+### Säkerhet
+- `invitations`-tabellen är inte längre direkt läsbar från klienten;
+  `token_hash` kan inte längre exponeras. Inbjudningar hämtas endast via
+  `list_group_invitations`/`get_invitation_preview`.
+- Direkta INSERT/UPDATE/DELETE på `memberships` och `profiles` är återkallade
+  för inloggade användare; all administration går via RPC:erna.
+- Databasgaranti: exakt en aktiv ägare per grupp (`memberships_one_active_owner_per_group`).
+- `shares_group` kräver att viewern är aktiv medlem men matchar target även
+  om target lämnat gruppen – så tidigare medlemmars namn/avatar kan visas
+  diskret i historisk data utan att ge dem åtkomst tillbaka.
+
 ### Känt
 - Delade besök mellan grupper, Geoapify och gamification är fortfarande utanför scope.
 - Gruppborttagning ingår inte i detta paket.
