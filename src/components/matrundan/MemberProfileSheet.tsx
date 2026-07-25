@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Heart, MapPin, Sparkles, UtensilsCrossed } from "lucide-react";
+import { Heart, MapPin, Sparkles, UtensilsCrossed, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -14,6 +14,13 @@ import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
 import { RatingStars } from "./Rating";
 import { ActivityRow } from "./ActivityRow";
+import {
+  badgesFor,
+  levelFor,
+  triedPlacesCount,
+  type Badge as GameBadge,
+  type LevelInfo,
+} from "@/lib/matrundan/gamification";
 
 interface MemberProfileData {
   visitCount: number;
