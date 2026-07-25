@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Search, Loader2, Plus, List as ListIcon, Map as MapIcon, MapPin, X, Globe2 } from "lucide-react";
+import { Search, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -30,15 +30,9 @@ import {
 import { useStore } from "@/lib/matrundan/store";
 import {
   getPlacesProvider,
-  NEAR_RADIUS_KM,
   type PlaceSuggestion,
-  type SearchMode,
 } from "@/lib/matrundan/places-provider";
-import {
-  locationForCity,
-  searchLocations,
-  type LocationBias,
-} from "@/lib/matrundan/location";
+import { locationForCity } from "@/lib/matrundan/location";
 
 const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
 
@@ -52,16 +46,12 @@ export function AddPlaceDialog({
   const { addPlace, state } = useStore();
   const [tab, setTab] = React.useState<"sok" | "manuell">("sok");
 
-  // sök & utforska
+  // sök & utforska – ett enda fält, gruppens stad som dold bias
   const [query, setQuery] = React.useState("");
-  const initialNear = React.useMemo(
+  const bias = React.useMemo(
     () => locationForCity(state.group.city) ?? null,
     [state.group.city],
   );
-  const [near, setNear] = React.useState<LocationBias | null>(initialNear);
-  const [mode, setMode] = React.useState<SearchMode>("near");
-  const [view, setView] = React.useState<"list" | "map">("list");
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
 
@@ -79,10 +69,6 @@ export function AddPlaceDialog({
   React.useEffect(() => {
     if (!open) {
       setQuery("");
-      setNear(initialNear);
-      setMode("near");
-      setView("list");
-      setSelectedId(null);
       setResults([]);
       setName("");
       setAddress("");
@@ -95,7 +81,7 @@ export function AddPlaceDialog({
       setTab("sok");
       setCity(state.group.city);
     }
-  }, [open, initialNear, state.group.city]);
+  }, [open, state.group.city]);
 
   React.useEffect(() => {
     if (tab !== "sok" || !open) return;
@@ -104,17 +90,14 @@ export function AddPlaceDialog({
       getPlacesProvider()
         .search({
           query: query.trim() || undefined,
-          near,
-          mode: near ? mode : "everywhere",
+          near: bias,
+          mode: "everywhere",
         })
-        .then((r) => {
-          setResults(r);
-          setSelectedId(r[0]?.externalId ?? null);
-        })
+        .then((r) => setResults(r))
         .finally(() => setLoading(false));
     }, 220);
     return () => clearTimeout(t);
-  }, [query, near, mode, tab, open]);
+  }, [query, bias, tab, open]);
 
   const pickSuggestion = (s: PlaceSuggestion) => {
     const p = addPlace({
@@ -159,15 +142,6 @@ export function AddPlaceDialog({
     toast.success(`${p.name} tillagd`);
     onOpenChange(false);
   };
-
-  const filterSummary = near
-    ? mode === "near"
-      ? `Nära ${near.label} · ~${NEAR_RADIUS_KM} km`
-      : `Överallt · sorterat efter avstånd från ${near.label}`
-    : "Hela Sverige";
-
-  const hasCoords = results.some((r) => r.lat != null && r.lng != null);
-  const selected = results.find((r) => r.externalId === selectedId) ?? null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
