@@ -469,6 +469,8 @@ export function AddPlaceDialog({
     }
     setShowLocationSuggest(false);
     setLocationActiveIx(-1);
+    setLocationSuggestions([]);
+    setLocationRequestDone(false);
   };
 
   const submitManual = async () => {
