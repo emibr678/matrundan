@@ -1,126 +1,97 @@
 
-# Rekommendation: Sökning & Gamification i Matrundan
+# Kritisk granskning: plats-UX & gamification
 
-Ingen kod ändras här — detta är ett beslutsunderlag. Efter godkännande delar jag upp det i konkreta implementationssteg.
-
----
-
-## 1. Geoapify och områdessökning
-
-### Nuläge
-`AddPlaceDialog` har idag två separata inmatningar: fritt sökord + ett "Plats"-fält som `parseLocation` splittar på komma till `{area, city}`. Provider-kontraktet (`PlacesSearchOpts`) kräver `city` som obligatorisk sträng och tolkar `area` som filter. Det tvingar användaren att veta och skriva båda — en krycka för att demo-providern inte kan geokoda.
-
-### Princip
-Rätt mönster med en riktig geokodare (Geoapify) är **ett fält, autocomplete-driven**. Användaren skriver "Gamla Enskede", får ett rankat förslag, väljer det, och appen får tillbaka strukturerad data (område, stad, lat/lng, land). Tvetydiga namn ("Centrum") disambigueras genom att flera förslag visas — inte genom att användaren fyller i mer.
-
-### Rekommenderat upplägg
-
-**Två inmatningsfält, men båda med autocomplete och båda valfria:**
-
-1. **Vad** (frivilligt) — namn eller typ, t.ex. "pizza", "Trattoria La Strada".
-2. **Var** (frivilligt) — område, stad, adress eller landmärke. Autocomplete via Geoapify Autocomplete API. När användaren väljer ett förslag lagras `{lat, lng, city, area, country, boundingBox}` som en `LocationBias`.
-
-**Sökbeteende:**
-- Har användaren valt en Var-plats → använd `bias`-parameter (mjuk viktning), inte `filter` (hård begränsning). Geoapify stödjer detta via `bias=proximity:lng,lat` och `bias=countrycode:se`.
-- Ingen Var vald → använd gruppens valfria hemort som mjuk bias, annars hela Sverige.
-- **Radiereglaget slopas** i sitt nuvarande skarpa läge. Ersätts av en enkel toggle: **"Nära vald plats"** (bias) ↔ **"Hela landet"** (ingen bias). Att välja km i förväg är fel abstraktion — användaren tänker inte i kilometer, hen tänker "här" eller "överallt".
-- Gruppens hemort är alltid mjuk bias, aldrig hård begränsning. Uppfyller kravet "grupper som vill utforska pizzerior i hela Sverige".
-
-### Datamodells- och UI-konsekvenser
-
-- **Provider-kontrakt:** ersätt `{ city, area, radiusKm }` med `{ query?, near?: { lat, lng, radiusKm? } | null, countryCode? }`. `near` är den valda Var-platsen, `null` = ingen bias.
-- **Ny typ `LocationBias`** i `location.ts`: `{ label, lat, lng, city?, area?, country }`. Ersätter `parseLocation`/`formatLocation`.
-- **UI i `AddPlaceDialog`:** två `Command`-baserade combobox-fält (shadcn), en toggle "Nära/Överallt", ingen km-select. Kartvyn behålls men centreras på Var-platsen om vald, annars på första träffen.
-- **Ingen ny state i store** — Var-valet är dialoglokalt.
-- **Demo-läget:** demo-providern får en enkel autocomplete-lista över svenska stadsdelar (Gamla Enskede, Södermalm, Haga, Majorna, Centrum-Göteborg vs Centrum-Malmö osv.) så mönstret är korrekt redan innan Geoapify kopplas in. Ingen fuzzy stad+område-splittring behövs längre.
-- **Geoapify-nyckeln** läses via server-funktion när backend kopplas på; inget i klientkoden.
-
-### Vad byggs nu / senare
-- **Nu:** enfältsmönstret (Vad + Var som autocomplete) mot demo-providern, ny provider-signatur, borttagen radie-select, toggle Nära/Överallt.
-- **Senare:** Geoapify-provider som drop-in mot samma kontrakt.
+Ingen kod ändras. Detta är en produktrekommendation. Utgångspunkten är en privat grupp på ~6 personer som äter tillsammans ~1–4 gånger/månad, ofta samma personer samtidigt.
 
 ---
 
-## 2. Gamification
+## Del 1 – Gamification: är det överbyggt?
 
-### Grundhållning
-Matrundan är en varm, privat app för familj/vänner — inte Foursquare. Gamification får förstärka det sociala utforskandet men aldrig göra registrering av besök till en självbelöning. Detta styr alla val nedan.
+**Kort svar: ja, tydligt överbyggt för användningsfallet.** Systemet är designat som för en publik app med hundratals användare och tävlingslogik. I en 6-personers vänskapsgrupp bryter flera antaganden.
 
-### Rekommendation: gruppintern nivå + mjuka utmärkelser. Ingen global leaderboard.
+### 1. Nivåer tillför lite utöver ren statistik
+- Nivån är en monoton funktion av "unika provade ställen". Det är samma information som siffran "Provade ställen" på profilen, bara omslaget i emoji.
+- När samma gäng alltid går tillsammans rör sig alla i lås. Nivåerna blir en gemensam räknare, inte en personlig milstolpe.
+- Rekommendation: **ta bort nivåsystemet** i sin nuvarande form. Behåll de tre nyckeltalen (Besök, Provade ställen, Föreslagna) på profilen. Om något behövs som "roligt", räcker en enda mjuk milstolpe per medlem ("10 ställen provade 🎉") som visas som en liten notis, inte en permanent progressbar.
 
-**Nivå = per grupp.** Global nivå bryter isoleringsprincipen (skulle kräva att medlem A ser data från medlem B:s andra grupper, vilket är fel för en privat app). Per-grupp håller känslan intim och gör att en ny grupp känns som en ny resa, inte en fortsättning av ett existerande poängkonto.
+### 2. Nivågränserna passar inte kadensen
+- Vid 1–4 gemensamma besök/månad, och stort överlapp mellan besökta ställen, tar det ~1 år att nå nivå 3 och ~5+ år till "Matrundanmästare". Det motiverar inte, det tröttnar.
+- Även om gränserna sänks blir problemet i (1) kvar: alla klättrar samtidigt.
 
-**Statistik på medlemsprofilen delas i två block:**
-- *I den här gruppen* (primärt, större): besök, provade ställen, favoriter, aktuell nivå.
-- *Totalt* (sekundärt, mindre, längst ner): summerat över alla grupper användaren är med i, utan att avslöja gruppnamn. Skapar en känsla av personlig resa utan att exponera andra grupper. Endast användaren själv ser sitt "Totalt"-block på egen profil — andras profiler visar bara gruppdata.
+### 3. Gruppintern nivå ger inte individualitet
+- Individualiteten uppstår bara om medlemmar gör olika saker. I praktiken går ni ut tillsammans, så deltagarlistan är nästan identisk per besök. Nivån blir därmed en dubblett av gruppens totala besök, per person.
+- Där verklig individualitet finns är i **smak och åsikter**: favoritkök, snittbetyg, "gillar sött", "streng recensent". Det är där profilen bör investera, inte i XP.
 
-### Nivåmodell
+### 4. Badges riskerar belöna admin-beteende
+- "Utforskare" (föreslår ställen) och "Kritiker" (fyller i detaljbetyg) belönar exakt det som redan är friktion. Den som råkar vara mest strukturerad vinner, inte den som är roligast att äta med.
+- "Stammis" och "Varieté" är däremot upplevelsebaserade och OK.
+- Rekommendation: **behåll Stammis och Varieté**, gärna omdöpta till neutrala "smakspår" istället för utmärkelser. **Ta bort Utforskare, Kritiker och Månadens matvän som badges.**
 
-Mät på **unika matställen provade i gruppen**, inte antal besök. Det korrigerar direkt för missbruk (registrera 10 besök samma vecka på samma ställe ger inte nivå). Besöksantal kan visas som separat statistik men styr inte progression.
+### 5. "Månadens matvän" blir konstigt i liten grupp
+- Med 6 personer och ~2–4 besök/månad, där ofta 4–6 deltar per besök, är utfallet nästan slumpmässigt eller helt statiskt (samma person varje månad om någon råkar missa ett tillfälle). Att formellt "utse" en vinnare bland familj/nära vänner för att ha gått på fler middagar skaver.
+- Rekommendation: **ta bort "Månadens matvän"**. Ersätt med en varm, icke-rankande månadssammanfattning: "I april åt ni på 3 nya ställen. Högst betyg: Lilla Napoli 4,3." Det firar gruppen, inte en individ.
 
-Fem nivåer med lätt-svensk ton:
+### 6. Topplista alls?
+- Nej, inte som ranking. Alternativ som passar bättre för produkten:
+  - **Gemensamma milstolpar**: "10 ställen provade tillsammans", "1 år sedan första Matrundan".
+  - **Årsöversikt** (Spotify Wrapped-light) en gång/år: mest besökta ställe, högst betyg, nytt kök ni upptäckte.
+  - **Roterande höjdpunkter** utan poäng: "Senaste favoriten", "Nyaste stället", "Ni har inte varit på X sedan i höstas".
+- Detta bevarar den varma sociala känslan utan att rangordna vänner.
 
-| # | Namn | Unika ställen |
-|---|---|---|
-| 1 | Nybörjare | 0 |
-| 2 | Matupptäckare | 3 |
-| 3 | Smakletare | 8 |
-| 4 | Mataventyrare | 20 |
-| 5 | Matkonnässör | 40 |
+### 7. Total nivå över grupper – planera i datamodellen nu?
+- Nej. Datamodellen i Supabase-planen (memberships × visits × groups) räcker redan för att beräkna cross-group-statistik senare — inga extra fält behövs nu. Att bygga cross-group-nivå innan multi-group ens finns är prematur optimering och motverkar dessutom poängen med isolerade grupper.
+- Rekommendation: **vänta**. Inga schemaändringar krävs.
 
-Motivering av trösklar: en aktiv grupp som besöker ~1 ställe/vecka når nivå 3 på ca två månader, nivå 4 på ~5 månader, nivå 5 på nästan ett år. Håller progressionen levande utan att bli triviell. Justera efter första riktiga användning.
-
-### Badges (komplement, inte ersättning)
-
-Nivåer visar bredd. Badges visar karaktär. Ett litet antal, mjuka och beskrivande — inte "achievements" i spelmening:
-
-- **Fikaexpert** — 5+ besök i kategori café/bageri.
-- **Nattugglan** — 3+ besök med tillfälle "Kväll".
-- **Världsresenären** — provat 5+ olika kök.
-- **Pionjär** — först i gruppen att prova 3+ ställen.
-- **Bidragaren** — föreslagit 5+ ställen som andra sen besökt.
-
-Alla räknas per grupp. Visas som små chips på medlemsprofilen under nivåbadgen.
-
-### Leaderboard: nej, men "Denna månad i gruppen"
-
-En traditionell leaderboard ("Anna 42, Erik 31, Maja 12") skapar fel dynamik i en liten privat grupp — det pekar ut den som registrerar minst. Istället: en liten **"Denna månad"-modul** i Gruppen-fliken som lyfter *aktivitet*, inte rangordning:
-
-- "Ni har provat 4 nya ställen denna månad"
-- "Erik föreslog flest ställen (3)"
-- "Maja provade sitt första bageri"
-
-Positivt, kollektivt fokus, roterande innehåll. Om användarna senare uttryckligen ber om rangordning kan en opt-in leaderboard läggas till per grupp.
-
-### Anti-missbruk
-
-- Nivå räknas på **unika `placeId`**, inte besöksrader.
-- Badges som räknar besök har högsta rimliga tröskel (5+, inte 20+).
-- Ingen synlig "poäng" — bara nivånamn och unika-ställen-räknare. Utan siffra att jaga blir manipulation ointressant.
-- Ingen påminnelse/notis av typen "du är 1 besök från nästa nivå" — det är precis den mekanism som lockar till fejkbesök.
-
-### Datamodells- och UI-konsekvenser
-
-- **Ingen ny persisterad data behövs** för nivåer och badges — allt härleds från befintliga `visits`, `favorites`, `places` via en ren funktion `deriveMemberStats(state, memberId)` i `src/lib/matrundan/store.tsx` eller ny `src/lib/matrundan/gamification.ts`.
-- **Ny modul `gamification.ts`:** definierar `LEVELS`, `BADGES`, funktioner `levelFor(uniquePlaces)`, `badgesFor(stats)`, `monthlyGroupHighlights(state)`.
-- **UI-ändringar:**
-  - `MemberProfileSheet`: lägg till nivåbadge i headern (bredvid rollen), badge-chips under smakprofil, samt ett "Totalt"-block som bara syns för `currentUserId === member.id`.
-  - `gruppen.tsx`: ny "Denna månad"-modul ovanför medlemslistan.
-  - Ingen ändring i `types.ts` eller `store.tsx` state.
-- **Svenska termer:** "Nivå", "Utmärkelser", "Denna månad". Undvik "achievements", "score", "XP".
-
-### Vad byggs nu / senare / inte alls
-
-- **Nu:** nivåer (härledda), 4-5 badges, nivåbadge på medlemsprofil, "Totalt"-block för egen profil.
-- **Senare:** "Denna månad"-modulen i Gruppen-fliken (kräver lite mer polering av copy och roterande innehåll).
-- **Inte alls, tills vidare:** traditionell leaderboard med rangordning, notiser om "nästa nivå", synliga poängsummor, cross-group nivåer, streaks/serier.
+### Sammanfattning gamification
+- Nuvarande system är byggt för en app det inte är. Ta ner det till nästan noll och låt behovet av mer växa fram från riktig användning.
 
 ---
 
-## Sammanfattning av nästa steg
+## Del 2 – Plats-UX
 
-1. **Sökning:** enfältsmönster med Vad + Var (autocomplete), Nära/Överallt-toggle, ny provider-signatur, uppdaterad demo-provider.
-2. **Gamification:** ny `gamification.ts` med härledda nivåer och badges, uppdaterad `MemberProfileSheet` med nivå, badges och privat "Totalt"-block.
-3. **Senare:** "Denna månad"-modul och skarp Geoapify-provider.
+Nuvarande flöde har fyra samtidiga koncept: fritextfråga "Vad är du sugen på?", platsautocomplete, "Nära/Överallt", plus lista/karta-toggle. För en demo utan riktig sökning är det acceptabelt; med Geoapify inkopplat blir det **för mycket kontroller för en enkel uppgift**.
 
-Säg till om något av detta ska justeras — t.ex. andra nivånamn, andra trösklar, eller om du hellre vill dela upp implementationen i två separata leveranser (sökning först, gamification sedan).
+### 8. Två distinkta uppgifter – separera dem
+Det finns egentligen två olika användarintent:
+
+- **A. Jag vet vad stället heter** ("Lilla Napoli"). Då vill jag skriva namnet, se en träfflista, klicka. Plats/radie är irrelevant – Geoapify löser det med biasad global sökning.
+- **B. Jag vill utforska** ("italienskt i Majorna"). Då är plats + kategori/kök relevant.
+
+Idag mixas dessa i samma formulär, vilket gör båda krångligare än de behöver vara.
+
+**Rekommenderat flöde när Geoapify kopplas in:**
+1. **Ett** sökfält högst upp: "Sök matställe eller ort". Autocomplete visar både konkreta ställen (namn + adress) och orter/områden.
+   - Väljer man ett ställe → hoppa direkt till bekräfta-och-lägg-till.
+   - Väljer man en ort → filtrera på område, visa kategori-chips (kök/typ) för utforskning.
+2. Ingen "Nära/Överallt"-toggle. Geoapify biasar automatiskt runt vald plats; utan vald plats söker den brett. Radie är en dold implementationsdetalj.
+3. Kartvyn tas bort från "lägg till"-flödet. Den passar bättre på Matställen-vyn som filter/översikt, inte som en sekundär flik i en dialog.
+4. Behåll "Lägg till manuellt" som en liten länk längst ner för det sällsynta fallet ställe saknas.
+
+### 9. Gruppens stad/område
+- **Dold standardbias.** Inte en synlig obligatorisk inställning, inte helt frånvarande. Gruppen har ofta en tyngdpunkt (Göteborg), och Geoapify blir bättre med den som biasCircle. Men användaren ska aldrig behöva ändra den för att söka i Stockholm på en helg.
+- Konkret: `groups.home_area` finns i botten som bias, men UI:t nämner det bara i Gruppinställningar.
+
+### 10. Slutrekommendation i tre delar
+
+**Behåll nu**
+- Domänmodell och Supabase-planen (profiles, groups, memberships, places, visits, reviews, favorites, group_next_place).
+- Betygsflödet (helhet + valfria detaljer).
+- "Nästa stopp", aktivitetsflöde, klickbara medlemsprofiler.
+- Stammis och Varieté som mjuka "smakspår" (ej som utmärkelser med tävlingston).
+- Gruppens hemområde som **dold** bias.
+
+**Förenkla/ta bort nu (rensning inför Geoapify och riktig användning)**
+- Ta bort nivåsystemet (LEVELS, LevelCard, progressbar). Ersätt med tre siffror + ev. en mjuk milstolpsnotis.
+- Ta bort badges: Utforskare, Kritiker, Månadens matvän.
+- Ta bort "Månadens matvän"-modulen i Grupp-vyn. Ersätt eventuellt med "Denna månad" som en neutral gruppsammanfattning (antal besök, högst betyg), utan att peka ut person.
+- Slå ihop "Vad är du sugen på?" och platsfältet till **ett** sökfält i AddPlaceDialog. Ta bort Nära/Överallt-toggeln. Flytta kartan ur dialogen.
+- Uppdatera version.ts och changelog: 0.5.0 "Enklare, varmare".
+
+**Vänta med tills backend/verklig användning kräver det**
+- Cross-group total nivå/statistik (kräver multi-group + Supabase ändå).
+- Årsöversikt / Wrapped-vy (bygg när det finns ≥1 års data).
+- Riktig kartvy på Matställen (först när Geoapify är inkopplat).
+- Riktig leaderboard – bygg bara om användarna själva efterfrågar det efter några månader.
+
+### Röd tråd
+Matrundans värde är **"vad ska vi äta nästa gång, och vad tyckte vi förra gången"**. Allt som inte direkt stöttar lägg till → välj → besök → betygsätt är brus. Nuvarande gamification och plats-UX har drivit iväg från kärnan; en förenklingsrunda är rätt nästa steg innan Supabase/Geoapify kopplas in.

@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.4.0";
+export const APP_VERSION = "0.5.0";
 export const APP_VERSION_DATE = "2026-07-25";
 
 export interface ChangelogEntry {
@@ -26,6 +26,29 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary: "Enklare och varmare: mindre tävling, tydligare sök.",
+    sections: [
+      {
+        kind: "Förbättrat",
+        items: [
+          "Sökningen är nu ett enda fält – ”Sök matställe eller ort”. Gruppens stad används som dold bias, så du behöver inte ställa in något för att komma igång.",
+          "”Denna månad” i Gruppen sammanfattar nu gänget som helhet (antal besök och månadens högst betygsatta ställe) istället för att peka ut en individ.",
+          "Medlemsprofilen fokuserar på nyckeltal (Besök, Provade, Föreslagna) plus neutrala ”Smakspår”.",
+        ],
+      },
+      {
+        kind: "Rättat",
+        items: [
+          "Tog bort nivåsystem, XP-progressbar och nivå-emblem på medlemskort. För en privat grupp blev det mest en dubblett av gruppens gemensamma räknare.",
+          "Tog bort utmärkelserna Utforskare, Kritiker och Månadens matvän – de belönade administrativt beteende eller kändes konstiga i ett litet gäng.",
+          "Tog bort ”Nära/Överallt”-toggeln och kartvyn ur ”Lägg till matställe”. Kartan får en riktig hemvist senare när Geoapify kopplas in.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.4.0",
+    date: "2026-07-25",
     summary:
       "Autocomplete-sök på plats, nivåer och utmärkelser i gruppen.",
     sections: [
