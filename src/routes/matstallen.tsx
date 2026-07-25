@@ -1,3 +1,4 @@
+import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Search, Plus, SlidersHorizontal, ChevronRight, X } from "lucide-react";
@@ -152,7 +153,7 @@ function PlacesIndex() {
                   <div className="mt-0.5 flex items-center gap-2">
                     <RatingStars value={r.overall} size={12} />
                     <span className="text-xs text-muted-foreground">
-                      {r.overall.toFixed(1)} · {r.count}
+                      {formatRating(r.overall)} · {r.count}
                     </span>
                   </div>
                 </div>

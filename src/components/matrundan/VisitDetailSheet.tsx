@@ -1,3 +1,4 @@
+import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { MapPin, MessageCircle, ExternalLink } from "lucide-react";
@@ -91,7 +92,7 @@ export function VisitDetailSheet({
                 <div className="mt-3 flex items-center justify-between">
                   <RatingStars value={visit.overall} size={18} />
                   <span className="text-sm font-medium">
-                    {visit.overall.toFixed(1)} / 5
+                    {formatRating(visit.overall)} / 5
                   </span>
                 </div>
               </Card>
@@ -165,7 +166,7 @@ function Detail({ label, value }: { label: string; value?: number }) {
     <div>
       <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
       <div className="mt-1 font-display text-lg font-semibold">
-        {value ? value.toFixed(1) : "–"}
+        {value ? formatRating(value) : "–"}
       </div>
     </div>
   );
