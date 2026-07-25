@@ -4,6 +4,36 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.6.0] – 2026-07-25
+
+### Nytt
+- Riktiga engångsinbjudningar: `create_group_invitation` genererar en 256-bitars
+  token; endast SHA-256-hash lagras. Länken visas bara en gång.
+- `/inbjudan/$token`-route med förhandsvisning (`get_invitation_preview`) och
+  tillstånd för giltig, utgången, återkallad, redan använd och e-postmatchning.
+- `accept_group_invitation` – idempotent, återaktiverar historiska medlemskap,
+  matchar e-postbundna länkar mot inloggat konto och skapar en member-joined-post.
+- Egen profil: `update_profile`-RPC med validering, valfri `avatar_emoji`.
+- Gruppadministration via RPC: `update_group_settings`, `set_member_role`,
+  `remove_group_member`, `leave_group`, `transfer_group_ownership`.
+- Skapa ytterligare grupp direkt från kontomenyn.
+
+### Förbättrat
+- Historiska medlemskap: `memberships.status` + `left_at`; bara aktiva medlemmar
+  får åtkomst via `has_membership`/`has_group_role`/`shares_group`.
+- Direktskrivning mot `memberships` och `invitations` från klienten är stängd;
+  allt går via RPC:er med `REVOKE EXECUTE FROM PUBLIC, anon`.
+- Ägar-skyddet (`protect_owner_membership`) tillåter atomisk ägaröverföring via
+  en sessions-flagga men blockerar fortfarande klientdirektskrivningar.
+- Aktuell ägare härleds från medlemsraden; `groups.created_by` betyder alltid
+  ursprunglig skapare.
+- Matrundan skickar inte e-post själv; ”Öppna e-post” fyller i en mailto med
+  färdig svensk text.
+
+### Känt
+- Delade besök mellan grupper, Geoapify och gamification är fortfarande utanför scope.
+- Gruppborttagning ingår inte i detta paket.
+
 ## [0.5.0] – 2026-07-25
 
 ### Nytt
