@@ -28,6 +28,7 @@ function nameOf(state: AppState, memberId: string) {
 
 interface StoreContextValue {
   state: AppState;
+  mode: "demo" | "live";
   addPlace: (input: Omit<Place, "id" | "addedAt">) => Place;
   toggleFavorite: (placeId: string) => void;
   addVisit: (visit: Omit<Visit, "id">) => Visit;
@@ -49,9 +50,24 @@ interface StoreContextValue {
 
 const StoreContext = React.createContext<StoreContextValue | null>(null);
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = React.useState<AppState>(DEMO_STATE);
-  const [hydrated, setHydrated] = React.useState(false);
+export function StoreProvider({
+  children,
+  mode = "demo",
+  initialState,
+}: {
+  children: React.ReactNode;
+  mode?: "demo" | "live";
+  initialState?: AppState;
+}) {
+  const [state, setState] = React.useState<AppState>(initialState ?? DEMO_STATE);
+  const [hydrated, setHydrated] = React.useState(mode === "live");
+
+  // Håll state synkat med prop:en (byte av grupp / omladdning i live-läge).
+  React.useEffect(() => {
+    if (mode === "live" && initialState) {
+      setState(initialState);
+    }
+  }, [mode, initialState]);
 
   React.useEffect(() => {
     try {
