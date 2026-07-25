@@ -12,7 +12,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/matrundan/session";
-import { createGroupWithOwner } from "@/lib/matrundan/live-admin";
+import {
+  createGroupWithOwner,
+  type VerifiedHomeLocation,
+} from "@/lib/matrundan/live-admin";
+import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
 const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
 
@@ -26,7 +30,8 @@ export function CreateGroupDialog({
   const { refreshGroups, selectGroup } = useSession();
   const [name, setName] = React.useState("");
   const [emoji, setEmoji] = React.useState("🍽️");
-  const [location, setLocation] = React.useState("");
+  const [locationText, setLocationText] = React.useState("");
+  const [verified, setVerified] = React.useState<VerifiedHomeLocation | null>(null);
   const [busy, setBusy] = React.useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -34,17 +39,14 @@ export function CreateGroupDialog({
     if (!name.trim()) return toast.error("Ge din grupp ett namn.");
     setBusy(true);
     try {
-      const gid = await createGroupWithOwner(
-        name.trim(),
-        emoji,
-        location.trim() || null,
-      );
+      const gid = await createGroupWithOwner(name.trim(), emoji, verified);
       await refreshGroups();
       if (gid) selectGroup(gid);
       toast.success("Gruppen är skapad!");
       onOpenChange(false);
       setName("");
-      setLocation("");
+      setLocationText("");
+      setVerified(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Kunde inte skapa gruppen.");
     } finally {
@@ -95,13 +97,25 @@ export function CreateGroupDialog({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cg-loc">Hemområde (valfritt)</Label>
-            <Input
+            <Label htmlFor="cg-loc">Förvalt sökområde (valfritt)</Label>
+            <GeoapifyLocationInput
               id="cg-loc"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="t.ex. Göteborg"
+              value={locationText}
+              onChange={(text) => {
+                setLocationText(text);
+                if (verified && text !== verified.label) setVerified(null);
+              }}
+              onSelect={(v) => {
+                setVerified(v);
+                setLocationText(v.label);
+              }}
+              onClearVerified={() => setVerified(null)}
+              placeholder="t.ex. Gamla Enskede, Stockholm"
             />
+            <p className="text-xs text-muted-foreground">
+              Fylls i automatiskt när gruppen söker efter nya matställen. Kan
+              alltid ändras för en enskild sökning.
+            </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
