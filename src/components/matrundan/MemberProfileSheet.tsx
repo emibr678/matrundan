@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Heart, MapPin, Sparkles, UtensilsCrossed, Trophy } from "lucide-react";
+import { Heart, MapPin, Sparkles, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -15,11 +15,8 @@ import type { Member, Place, Visit } from "@/lib/matrundan/types";
 import { RatingStars } from "./Rating";
 import { ActivityRow } from "./ActivityRow";
 import {
-  badgesFor,
-  levelFor,
-  triedPlacesCount,
-  type Badge as GameBadge,
-  type LevelInfo,
+  tasteTracksFor,
+  type TasteTrack,
 } from "@/lib/matrundan/gamification";
 
 interface MemberProfileData {
@@ -31,8 +28,7 @@ interface MemberProfileData {
   otherFavorites: Place[];
   topCuisines: string[];
   recentActivity: ReturnType<typeof useStore>["state"]["activity"];
-  levelInfo: LevelInfo;
-  badges: GameBadge[];
+  tracks: TasteTrack[];
 }
 
 function useMemberProfile(memberId: string | null): MemberProfileData | null {
@@ -93,9 +89,7 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       .filter((a) => a.memberId === memberId)
       .slice(0, 4);
 
-    const tried = triedPlacesCount(state, memberId);
-    const levelInfo = levelFor(tried);
-    const badges = badgesFor(state, memberId);
+    const tracks = tasteTracksFor(state, memberId);
 
     return {
       visitCount: visits.length,
@@ -106,8 +100,7 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       otherFavorites,
       topCuisines,
       recentActivity,
-      levelInfo,
-      badges,
+      tracks,
     };
   }, [memberId, state, getPlace]);
 }
@@ -159,37 +152,31 @@ export function MemberProfileSheet({
             </SheetHeader>
 
             <div className="space-y-5 p-5">
-              {/* Nivå */}
-              <LevelCard info={profile.levelInfo} />
-
-              {/* Utmärkelser */}
-              {profile.badges.length > 0 ? (
-                <section>
-                  <h3 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
-                    <Trophy className="h-3.5 w-3.5 text-mustard-foreground" />
-                    Utmärkelser
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {profile.badges.map((b) => (
-                      <span
-                        key={b.id}
-                        title={b.description}
-                        className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs"
-                      >
-                        <span>{b.emoji}</span>
-                        <span>{b.name}</span>
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
               {/* Nyckeltal */}
               <div className="grid grid-cols-3 gap-2">
                 <Stat label="Besök" value={profile.visitCount} />
                 <Stat label="Provade" value={profile.triedPlaces.length} />
                 <Stat label="Föreslagna" value={profile.proposedCount} />
               </div>
+
+              {/* Smakspår */}
+              {profile.tracks.length > 0 ? (
+                <section>
+                  <h3 className="mb-2 text-sm font-medium">Smakspår</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.tracks.map((t) => (
+                      <span
+                        key={t.id}
+                        title={t.description}
+                        className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs"
+                      >
+                        <span>{t.emoji}</span>
+                        <span>{t.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
 
               {/* Senaste besök */}
               <section>
