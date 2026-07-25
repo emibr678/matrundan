@@ -683,32 +683,34 @@ export function AddPlaceDialog({
                 {results.map((r) => (
                   <div
                     key={r.externalId}
-                    className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3"
+                    className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-3 sm:flex-row sm:items-center"
                   >
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-xl">
-                      {emojiForCategory(r.category)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{r.name}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {CATEGORY_LABEL[r.category]}
-                        {r.cuisines?.length ? ` · ${r.cuisines.join(", ")}` : ""}
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-xl">
+                        {emojiForCategory(r.category)}
                       </div>
-                      <div className="truncate text-[11px] text-muted-foreground">
-                        {r.area ? `${r.area} · ` : ""}
-                        {r.city}
-                        {r.distanceKm != null ? ` · ~${r.distanceKm} km` : ""}
-                      </div>
-                      {r.address ? (
-                        <div className="truncate text-[11px] text-muted-foreground">
-                          {r.address}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{r.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {CATEGORY_LABEL[r.category]}
+                          {r.cuisines?.length ? ` · ${r.cuisines.join(", ")}` : ""}
                         </div>
-                      ) : null}
+                        <div className="truncate text-[11px] text-muted-foreground">
+                          {r.area ? `${r.area} · ` : ""}
+                          {r.city}
+                          {r.distanceKm != null ? ` · ~${r.distanceKm} km` : ""}
+                        </div>
+                        {r.address ? (
+                          <div className="truncate text-[11px] text-muted-foreground">
+                            {r.address}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                     <Button
                       size="sm"
                       onClick={() => openConfirm(r)}
-                      className="min-h-11 shrink-0"
+                      className="min-h-11 w-full shrink-0 sm:w-auto"
                       disabled={isBusy}
                       data-suggestion-add={r.externalId}
                     >
