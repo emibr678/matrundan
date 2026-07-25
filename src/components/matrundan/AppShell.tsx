@@ -123,6 +123,7 @@ function ShellBody() {
 
   return (
     <StoreProvider
+      key={mode === "live" ? `live:${activeGroupId ?? ""}` : "demo"}
       mode={mode}
       initialState={mode === "live" ? liveState ?? undefined : undefined}
       onLiveMutation={mode === "live" ? reloadLive : undefined}
@@ -131,6 +132,7 @@ function ShellBody() {
       <ShellChrome user={!!user} signIn={signInWithGoogle} />
     </StoreProvider>
   );
+
 }
 
 function Header({ showAuth }: { showAuth: boolean }) {
