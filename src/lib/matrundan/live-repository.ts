@@ -87,7 +87,10 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     return {
       id,
       name,
-      avatar: p?.avatar_url ?? memberAvatar(name),
+      // Paket 1: alltid deterministisk emoji-fallback. Riktig bildrendering
+      // av profiles.avatar_url kommer i ett senare paket – vi vill inte att
+      // en URL råkar renderas som text i medlemslistan.
+      avatar: memberAvatar(name),
       role: ROLE_LABEL[(row as { role: string }).role] ?? "medlem",
     };
   });

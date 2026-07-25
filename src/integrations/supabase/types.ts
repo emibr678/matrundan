@@ -104,6 +104,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "favorites_place_group_fkey"
+            columns: ["place_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id", "group_id"]
+          },
+          {
             foreignKeyName: "favorites_place_id_fkey"
             columns: ["place_id"]
             isOneToOne: false
@@ -145,6 +152,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "groups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_next_place_place_group_fkey"
+            columns: ["place_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id", "group_id"]
           },
           {
             foreignKeyName: "group_next_place_place_id_fkey"
@@ -330,6 +344,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "place_sources_place_group_fkey"
+            columns: ["place_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id", "group_id"]
+          },
+          {
             foreignKeyName: "place_sources_place_id_fkey"
             columns: ["place_id"]
             isOneToOne: false
@@ -500,6 +521,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reviews_visit_group_place_fkey"
+            columns: ["visit_id", "group_id", "place_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id", "group_id", "place_id"]
+          },
+          {
             foreignKeyName: "reviews_visit_id_fkey"
             columns: ["visit_id"]
             isOneToOne: false
@@ -583,6 +611,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "groups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_place_group_fkey"
+            columns: ["place_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id", "group_id"]
           },
           {
             foreignKeyName: "visits_place_id_fkey"

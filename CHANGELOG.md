@@ -4,9 +4,39 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
-## [Unreleased]
+## [0.4.0] – 2026-07-25
 
-- Inget släppt ännu.
+### Nytt
+- Google-inloggning via Lovable Cloud (Supabase Auth) med hanterad
+  OAuth-broker – ingen egen Google Cloud-konfiguration behövs.
+- Nytt Supabase-schema för profiles, groups, memberships, invitations,
+  places, place_sources, visits, visit_participants, reviews, favorites,
+  group_next_place och activity, härdat med RLS så att bara gruppmedlemmar
+  når gruppdata.
+- Onboarding för första gruppen (namn, emoji, valfritt hemområde) via
+  `create_group_with_owner`-RPC.
+- Live-läge som läser gruppens matställen, besök, deltagare, omdömen,
+  favoriter, aktivitet och ”nästa stopp” från Supabase; demo-läget finns
+  kvar oförändrat.
+- Gruppväxlare i headern när man är med i flera grupper.
+
+### Förbättrat
+- Repository-lager (`live-repository.ts`) separerar demo- och live-källa så
+  att vykomponenterna är oförändrade.
+- Explicit sandlåde-läge via `?demo=1` i URL:en, oberoende av inloggning.
+- Databashärdning: ägar-medlemskap kan inte demoteras eller raderas via
+  klienten, cross-group-inkonsistens blockeras med composite foreign keys
+  och triggers, identitetsfält (`group_id`, skapare, författare) är
+  immutabla efter insert, och `anon`-rollen har ingen åtkomst till
+  gruppens tabeller.
+
+### Känt
+- Skrivflöden (nya matställen, besök, betyg, favoriter, inbjudningar) landar
+  i Supabase först i Paket 2. Live-läget är read-only i denna version.
+- Ingen data från tidigare Matbingo-versioner har migrerats.
+- Geoapify/OSM-platssökning och gamification är ännu inte med.
+
+
 
 ## [0.3.0] – 2026-07-24
 
