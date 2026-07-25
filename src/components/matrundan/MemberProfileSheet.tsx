@@ -93,6 +93,10 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       .filter((a) => a.memberId === memberId)
       .slice(0, 4);
 
+    const tried = triedPlacesCount(state, memberId);
+    const levelInfo = levelFor(tried);
+    const badges = badgesFor(state, memberId);
+
     return {
       visitCount: visits.length,
       triedPlaces,
@@ -102,6 +106,8 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       otherFavorites,
       topCuisines,
       recentActivity,
+      levelInfo,
+      badges,
     };
   }, [memberId, state, getPlace]);
 }
