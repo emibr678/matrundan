@@ -49,6 +49,15 @@ export interface VisibleReview {
   commentVisible: boolean;
 }
 
+export interface VisitParticipant {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  avatarImage?: string | null;
+  /** active = fortfarande medlem i gruppen; left = tidigare medlem. */
+  status: "active" | "left";
+}
+
 export interface Visit {
   id: string;
   placeId: string;
@@ -65,12 +74,14 @@ export interface Visit {
   linkType?: "original" | "shared";
   linkedBy?: string;
   linkedAt?: string;
-  /** Antal deltagare som saknar aktivt medlemskap i denna grupp. Visas anonymt. */
+  /** Antal deltagare helt utan medlemskapsrad i denna grupp. Visas anonymt. */
   externalParticipantCount?: number;
   /** Räknas mot progression i denna grupp (alltid true för original). */
   countsForProgression?: boolean;
   /** Recensioner som är synliga för denna grupp – bas för aggregat och synlighets-UI. */
   visibleReviews?: VisibleReview[];
+  /** Grupprelevanta deltagare (aktiv eller tidigare medlem) med profildata. */
+  participants?: VisitParticipant[];
 }
 
 export interface Favorite {

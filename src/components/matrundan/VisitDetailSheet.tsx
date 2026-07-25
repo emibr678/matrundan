@@ -215,19 +215,34 @@ export function VisitDetailSheet({
                 <section>
                   <h3 className="mb-2 text-sm font-medium">Deltagare</h3>
                   <div className="flex flex-wrap gap-1.5">
-                    {visit.participantIds.map((pid) => {
-                      const m = memberById(pid);
-                      return (
-                        <Badge
-                          key={pid}
-                          variant="outline"
-                          className="max-w-full rounded-full border-border/70 bg-secondary/60 px-2.5 py-1 text-xs font-normal"
-                        >
-                          <span className="mr-1">{m?.avatar ?? "🙂"}</span>
-                          <span className="truncate">{m?.name ?? "Okänd"}</span>
-                        </Badge>
-                      );
-                    })}
+                    {(visit.participants && visit.participants.length > 0
+                      ? visit.participants
+                      : visit.participantIds.map((pid) => {
+                          const m = memberById(pid);
+                          return {
+                            id: pid,
+                            name: m?.name ?? "Okänd",
+                            avatar: m?.avatar ?? null,
+                            avatarImage: m?.avatarImage ?? null,
+                            status: "active" as const,
+                          };
+                        })
+                    ).map((pp) => (
+                      <Badge
+                        key={pp.id}
+                        variant="outline"
+                        className="max-w-full rounded-full border-border/70 bg-secondary/60 px-2.5 py-1 text-xs font-normal"
+                        title={pp.status === "left" ? "Tidigare medlem" : undefined}
+                      >
+                        <span className="mr-1">{pp.avatar ?? "🙂"}</span>
+                        <span className="truncate">{pp.name}</span>
+                        {pp.status === "left" ? (
+                          <span className="ml-1 text-[10px] text-muted-foreground">
+                            · Tidigare medlem
+                          </span>
+                        ) : null}
+                      </Badge>
+                    ))}
                     {(visit.externalParticipantCount ?? 0) > 0 ? (
                       <Badge
                         variant="outline"

@@ -145,7 +145,9 @@ export function ShareVisitDialog({
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{t.name}</div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
-                        {t.alreadyLinked ? "Redan tillagt" : `${t.visibleParticipants.length} synliga deltagare`}
+                        {t.alreadyLinked
+                          ? "Redan tillagt"
+                          : `${t.visibleParticipants.length} deltagare från gruppen`}
                       </div>
                     </div>
                     {t.alreadyLinked ? (
@@ -165,11 +167,17 @@ export function ShareVisitDialog({
             <div className="flex items-start gap-2">
               <Users2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div>
-                <div className="font-medium">Synliga deltagare</div>
+                <div className="font-medium">Deltagare från gruppen</div>
                 <div className="mt-0.5 text-muted-foreground">
                   {chosen.visibleParticipants.length > 0
-                    ? chosen.visibleParticipants.map((p) => p.name).join(", ")
-                    : "Ingen deltagare har aktivt medlemskap i mottagargruppen."}
+                    ? chosen.visibleParticipants
+                        .map((p) =>
+                          p.status === "left"
+                            ? `${p.name} (tidigare medlem)`
+                            : p.name,
+                        )
+                        .join(", ")
+                    : "Ingen av deltagarna är eller har varit medlem i mottagargruppen."}
                   {chosen.externalParticipantCount > 0 ? (
                     <>
                       {" · "}
@@ -182,8 +190,9 @@ export function ShareVisitDialog({
             <div className="flex items-start gap-2">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="text-muted-foreground">
-                {chosen.relevantReviewCount} betyg blir synligt i gruppen.
-                Kommentarer följer inte automatiskt.
+                {chosen.relevantReviewCount} betyg från personer som är eller har
+                varit medlemmar blir synliga i gruppen. Kommentarer följer inte
+                automatiskt.
               </div>
             </div>
             <div className="flex items-start gap-2">

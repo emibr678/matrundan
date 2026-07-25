@@ -48,6 +48,13 @@ type VisitRow = {
   externalParticipantCount: number;
   countsForProgression: boolean;
   participantIds: string[];
+  participants: {
+    id: string;
+    name: string;
+    avatar: string | null;
+    avatarImage: string | null;
+    status: "active" | "left";
+  }[];
   reviews: ReviewRow[];
 };
 
@@ -194,6 +201,13 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       externalParticipantCount: v.externalParticipantCount ?? 0,
       countsForProgression: v.countsForProgression,
       visibleReviews,
+      participants: (v.participants ?? []).map((pp) => ({
+        id: pp.id,
+        name: pp.name,
+        avatar: pp.avatar ?? undefined,
+        avatarImage: pp.avatarImage ?? undefined,
+        status: pp.status,
+      })),
     };
   });
 

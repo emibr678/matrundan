@@ -16,6 +16,8 @@ export interface VisibleParticipant {
   name: string;
   avatar: string | null;
   avatarImage: string | null;
+  /** active = fortfarande medlem i målgruppen; left = tidigare medlem. */
+  status: "active" | "left";
 }
 
 export interface VisitShareTarget {
