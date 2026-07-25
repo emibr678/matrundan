@@ -184,13 +184,13 @@ export function MemberProfileSheet({
                             {def.emoji}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-medium">
+                            <div className="text-sm font-medium leading-snug break-words">
                               {def.name}
                             </div>
-                            <div className="truncate text-[11px] text-muted-foreground">
+                            <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground break-words">
                               {def.description}
                             </div>
-                            <div className="mt-0.5 text-[10px] text-muted-foreground/80">
+                            <div className="mt-0.5 text-[10px] text-muted-foreground/80 break-words">
                               Erövrad {formatDate(b.earnedAt)}
                             </div>
                           </div>
