@@ -159,6 +159,31 @@ export function MemberProfileSheet({
             </SheetHeader>
 
             <div className="space-y-5 p-5">
+              {/* Nivå */}
+              <LevelCard info={profile.levelInfo} />
+
+              {/* Utmärkelser */}
+              {profile.badges.length > 0 ? (
+                <section>
+                  <h3 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                    <Trophy className="h-3.5 w-3.5 text-mustard-foreground" />
+                    Utmärkelser
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.badges.map((b) => (
+                      <span
+                        key={b.id}
+                        title={b.description}
+                        className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs"
+                      >
+                        <span>{b.emoji}</span>
+                        <span>{b.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
               {/* Nyckeltal */}
               <div className="grid grid-cols-3 gap-2">
                 <Stat label="Besök" value={profile.visitCount} />
