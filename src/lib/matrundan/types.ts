@@ -37,6 +37,18 @@ export interface Place {
   photo?: string;
 }
 
+export interface VisibleReview {
+  id: string;
+  userId: string;
+  overall: number;
+  taste?: number | null;
+  value?: number | null;
+  service?: number | null;
+  comment?: string | null;
+  ratingVisible: boolean;
+  commentVisible: boolean;
+}
+
 export interface Visit {
   id: string;
   placeId: string;
@@ -49,12 +61,16 @@ export interface Visit {
   service?: number;
   comment?: string;
   createdBy: string;
-  /** Om besöket är originalgruppens eller inlänkat från en annan grupp. */
+  /** original = besöket registrerades i denna grupp; shared = tillagt från annan grupp. */
   linkType?: "original" | "shared";
   linkedBy?: string;
   linkedAt?: string;
-  /** Antal deltagare från andra grupper (visas anonymt som "+N"). */
+  /** Antal deltagare som saknar aktivt medlemskap i denna grupp. Visas anonymt. */
   externalParticipantCount?: number;
+  /** Räknas mot progression i denna grupp (alltid true för original). */
+  countsForProgression?: boolean;
+  /** Recensioner som är synliga för denna grupp – bas för aggregat och synlighets-UI. */
+  visibleReviews?: VisibleReview[];
 }
 
 export interface Favorite {
@@ -69,6 +85,8 @@ export interface Group {
   city: string;
   createdAt: string;
   ownerId: string;
+  /** Om delade besök räknas mot progression. */
+  sharedVisitsCountForProgression?: boolean;
 }
 
 export type ActivityKind =
