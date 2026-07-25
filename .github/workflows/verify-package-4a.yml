@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feature/package-4a-map-demo
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
