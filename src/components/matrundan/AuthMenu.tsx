@@ -1,5 +1,6 @@
 import * as React from "react";
 import { LogIn, LogOut, User as UserIcon, Plus, UserCog } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
+
 
 export function AuthMenu() {
   const {
