@@ -40,6 +40,11 @@ import {
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import { APP_VERSION, APP_NAME } from "@/lib/matrundan/version";
 import { formatRating } from "@/lib/matrundan/version";
+import {
+  levelFor,
+  monthlyChampion,
+  triedPlacesCount,
+} from "@/lib/matrundan/gamification";
 
 const GROUP_SEARCH_DEFAULTS = { member: "" };
 
