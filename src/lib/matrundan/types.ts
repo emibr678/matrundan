@@ -29,6 +29,52 @@ export interface Place {
   addedAt: string;
   notes?: string;
   photo?: string;
+  /** Ursprung för gruppens koppling – används bl.a. för Fullträff-badge. */
+  origin?: "manual" | "provider" | "shared";
+}
+
+/** ---- Gamification (härlett – aldrig lagrat) ---- */
+
+export type BadgeId =
+  | "first-round"
+  | "world-taster"
+  | "flavor-spectrum"
+  | "regular"
+  | "bullseye";
+
+export interface EarnedBadge {
+  id: BadgeId;
+  earnedAt: string;
+}
+
+export interface LevelDef {
+  threshold: number;
+  name: string;
+}
+
+export interface MemberProgression {
+  memberId: string;
+  visits: number;
+  uniquePlaces: number;
+  uniqueCuisines: number;
+  breadthCategories: number;
+  levelIndex: number;
+  levelName: string;
+  nextThreshold: number | null;
+  badges: EarnedBadge[];
+}
+
+export interface LeaderboardRow {
+  memberId: string;
+  value: number;
+  rank: number;
+}
+
+export interface GroupMilestone {
+  id: string;
+  kind: "places-count" | "anniversary" | "full-group-visit";
+  at: string;
+  label: string;
 }
 
 export interface VisibleReview {
