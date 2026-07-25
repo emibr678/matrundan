@@ -141,6 +141,8 @@ export function AddPlaceDialog({
   const [radiusKm, setRadiusKm] = React.useState<number>(DEFAULT_RADIUS);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
+  /** Bumpas av Retry-knappen för att verkligen köra om sökeffekten. */
+  const [retryNonce, setRetryNonce] = React.useState(0);
 
   // Live-läge: cachea koordinaterna för Plats-texten så vi inte
   // geokodar på varje tangenttryck och för att kunna filtrera på radie.
@@ -150,10 +152,14 @@ export function AddPlaceDialog({
   const [showLocationSuggest, setShowLocationSuggest] = React.useState(false);
   const [locationActiveIx, setLocationActiveIx] = React.useState(-1);
   const [locationLoading, setLocationLoading] = React.useState(false);
+  /** Sant när senaste autocomplete-anropet är klart (oavsett antal träffar). */
+  const [locationRequestDone, setLocationRequestDone] = React.useState(false);
 
   // Race-protection: räknare per svar-typ; vi accepterar bara det senaste.
   const locationReqRef = React.useRef(0);
   const searchReqRef = React.useRef(0);
+  /** ExternalId för sökresultatets knapp som öppnade bekräftelsesteget – används för att återställa fokus vid Tillbaka. */
+  const [focusReturnId, setFocusReturnId] = React.useState<string | null>(null);
 
   // Bekräftelsesteget: användaren har valt ett förslag, väljer occasions
   // och anteckning innan riktig save körs.
