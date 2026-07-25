@@ -367,10 +367,25 @@ export function AddPlaceDialog({
 
   const openConfirm = (s: PlaceSuggestion) => {
     if (isBusy) return;
+    setFocusReturnId(s.externalId);
     setPending(s);
     setPendingOccasions(["avslappnat"]);
     setPendingNotes("");
   };
+
+  // Återställ fokus till "Lägg till"-knappen som öppnade bekräftelsen när
+  // användaren backar tillbaka till sökresultaten.
+  React.useEffect(() => {
+    if (pending || !focusReturnId || tab !== "sok") return;
+    const raf = requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLButtonElement>(
+        `[data-suggestion-add="${cssEscape(focusReturnId)}"]`,
+      );
+      if (el) el.focus();
+      setFocusReturnId(null);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [pending, focusReturnId, tab, results]);
 
   const confirmAdd = async () => {
     if (!pending || isBusy) return;
