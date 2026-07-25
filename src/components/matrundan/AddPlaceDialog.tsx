@@ -1057,6 +1057,13 @@ function safeParse(raw: string): unknown {
   }
 }
 
+/** Minimal escape av attributvärde för querySelector. Geoapify-id kan innehålla
+ * dubbla citattecken eller backslash, så vi escaper dem för att inte bryta
+ * selectorn. */
+function escapeAttr(v: string): string {
+  return v.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
 function emojiForCategory(c: PlaceCategory) {
   switch (c) {
     case "restaurang":
