@@ -205,7 +205,7 @@ export function normalizePlaceFeature(
     area: areaFromGeoapify(p),
     lat: p.lat,
     lng: p.lon,
-    raw: p,
+    raw: JSON.stringify(p),
   };
 }
 
