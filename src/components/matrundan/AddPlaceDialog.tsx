@@ -381,47 +381,10 @@ export function AddPlaceDialog({
     }
   };
 
-  const filterSummary = `${formatLocation(parsed)} · ${radiusSummary(radiusKm)}`;
+  const filterSummary = isLive
+    ? `${centerLabel || "Välj område"} · ${radiusSummary(radiusKm)}`
+    : `${formatLocation(parsed)} · ${radiusSummary(radiusKm)}`;
 
-  const onLocationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isLive) return;
-    if (!showLocationSuggest || locationSuggestions.length === 0) {
-      if (e.key === "ArrowDown" && locationSuggestions.length > 0) {
-        setShowLocationSuggest(true);
-        setLocationActiveIx(0);
-        e.preventDefault();
-      }
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setLocationActiveIx((ix) => (ix + 1) % locationSuggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setLocationActiveIx((ix) => (ix <= 0 ? locationSuggestions.length - 1 : ix - 1));
-    } else if (e.key === "Enter") {
-      if (locationActiveIx >= 0) {
-        e.preventDefault();
-        applyLocationSuggestion(locationSuggestions[locationActiveIx]);
-      }
-    } else if (e.key === "Escape") {
-      setShowLocationSuggest(false);
-      setLocationActiveIx(-1);
-    }
-  };
-
-  const applyLocationSuggestion = (s: LocationSuggestion) => {
-    const text = s.area ? `${s.area}, ${s.city}` : s.city;
-    setLocation(text);
-    if (s.lat != null && s.lng != null) {
-      setCenter({ lat: s.lat, lng: s.lng });
-      setCenterLabel(text);
-    }
-    setShowLocationSuggest(false);
-    setLocationActiveIx(-1);
-    setLocationSuggestions([]);
-    setLocationRequestDone(false);
-  };
 
   const submitManual = async () => {
     if (isBusy) return;
