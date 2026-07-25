@@ -1,19 +1,16 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, UserPlus, Sparkles, Heart, Star, MapPin, TrendingUp, Award, Flag } from "lucide-react";
+import { ChevronRight, UserPlus, Sparkles, Heart, Star, MapPin } from "lucide-react";
 import { formatDate, useStore } from "@/lib/matrundan/store";
-import { resolveActivityTarget, type Activity, type ActivityKind } from "@/lib/matrundan/types";
+import { resolveActivityTarget, type Activity } from "@/lib/matrundan/types";
 
-const KIND_ICON: Record<ActivityKind, typeof Sparkles> = {
+const KIND_ICON = {
   added: MapPin,
   visited: Star,
   favorited: Heart,
   "next-picked": Sparkles,
   "member-joined": UserPlus,
-  "level-up": TrendingUp,
-  "badge-earned": Award,
-  "group-milestone": Flag,
-};
+} as const;
 
 /**
  * Återanvändbar aktivitetsrad. Bygger rätt länk från

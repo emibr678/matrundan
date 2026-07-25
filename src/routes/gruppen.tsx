@@ -20,9 +20,7 @@ import {
   ShieldOff,
 } from "lucide-react";
 import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
-import { GroupHighlights } from "@/components/matrundan/GroupHighlights";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
-import { computeMemberProgression } from "@/lib/matrundan/gamification";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
 import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
@@ -110,8 +108,7 @@ function GroupPage() {
       .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
     const visitCount = state.visits.filter((v) => v.participantIds.includes(m.id)).length;
     const favCount = state.favorites.filter((f) => f.memberId === m.id).length;
-    const progression = computeMemberProgression(state, m.id);
-    return { m, lastVisit, visitCount, favCount, progression };
+    return { m, lastVisit, visitCount, favCount };
   });
 
   const favByPlace = new Map<string, number>();
@@ -170,7 +167,7 @@ function GroupPage() {
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
-          {memberActivity.map(({ m, lastVisit, visitCount, favCount, progression }) => {
+          {memberActivity.map(({ m, lastVisit, visitCount, favCount }) => {
             const place = lastVisit ? getPlace(lastVisit.placeId) : undefined;
             return (
               <Card
@@ -199,9 +196,6 @@ function GroupPage() {
                       ) : null}
                     </div>
                     <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {progression.levelName} · {progression.visits} besök
-                    </div>
-                    <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
                       {place
                         ? `Senast på ${place.name} · ${formatDate(lastVisit!.date)}`
                         : "Inga besök än"}
@@ -220,9 +214,6 @@ function GroupPage() {
           })}
         </div>
       </section>
-
-      <GroupHighlights />
-
 
       <MemberProfileSheet
         member={activeMember}
