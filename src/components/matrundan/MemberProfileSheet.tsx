@@ -332,6 +332,52 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
+function LevelCard({ info }: { info: LevelInfo }) {
+  const pct = Math.round(info.progress * 100);
+  return (
+    <section
+      className="rounded-2xl border border-border/70 bg-gradient-to-br from-mustard/25 to-card p-4"
+      aria-label="Nivå i gruppen"
+    >
+      <div className="flex items-center gap-3">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-background text-2xl shadow-sm">
+          {info.level.emoji}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Nivå i gruppen
+          </div>
+          <div className="truncate font-display text-lg leading-tight">
+            {info.level.name}
+          </div>
+        </div>
+        <div className="shrink-0 text-right text-[11px] text-muted-foreground">
+          {info.triedCount} provade
+        </div>
+      </div>
+      <div className="mt-3">
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="mt-1.5 text-[11px] text-muted-foreground">
+          {info.next
+            ? `${info.toNext} ställe${info.toNext === 1 ? "" : "n"} kvar till ${info.next.name} ${info.next.emoji}`
+            : "Topp-nivå uppnådd 🎉"}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function EmptyLine({ text }: { text: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 p-3 text-xs italic text-muted-foreground">
