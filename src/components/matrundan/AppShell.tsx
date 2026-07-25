@@ -32,8 +32,18 @@ export function AppShell() {
 function ShellBody() {
   const { loading, mode, needsOnboarding, activeGroupId, user, signInWithGoogle } =
     useSession();
+  const router = useRouter();
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
+
+  // Efter Google-inloggning: navigera till ev. sparad invite-URL.
+  React.useEffect(() => {
+    if (!user) return;
+    const pending = consumePendingInvitePath();
+    if (pending && pending.startsWith("/") && !pending.startsWith("//")) {
+      void router.navigate({ to: pending });
+    }
+  }, [user, router]);
 
   const reloadLive = React.useCallback(async () => {
     if (mode !== "live" || !activeGroupId) return;
