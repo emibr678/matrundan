@@ -135,7 +135,8 @@ export function StoreProvider({
         return place;
       },
 
-      toggleFavorite: (placeId) =>
+      toggleFavorite: (placeId) => {
+        if (mode === "live") return liveBlock();
         setState((s) => {
           const exists = s.favorites.find(
             (f) => f.memberId === s.currentUserId && f.placeId === placeId,
@@ -148,9 +149,14 @@ export function StoreProvider({
                 )
               : [...s.favorites, { memberId: s.currentUserId, placeId }],
           };
-        }),
+        });
+      },
 
       addVisit: (visitInput) => {
+        if (mode === "live") {
+          liveBlock();
+          return { ...visitInput, id: "noop" } as Visit;
+        }
         const visit: Visit = { ...visitInput, id: `v-${Date.now()}` };
         setState((s) => {
           const place = s.places.find((p) => p.id === visit.placeId);
@@ -181,7 +187,8 @@ export function StoreProvider({
         return visit;
       },
 
-      setNext: (placeId) =>
+      setNext: (placeId) => {
+        if (mode === "live") return liveBlock();
         setState((s) => {
           if (!placeId) return { ...s, nextPlaceId: null };
           const place = s.places.find((p) => p.id === placeId);
@@ -199,7 +206,8 @@ export function StoreProvider({
               target: { kind: "place", placeId },
             },
           );
-        }),
+        });
+      },
 
       resetDemo: () => {
         try {
