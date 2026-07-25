@@ -46,6 +46,8 @@ export const CHANGELOG: ChangelogEntry[] = [
           "Ny datamodell med kanoniska matställen och besök: samma besök kan finnas i flera grupper utan att data dupliceras.",
           "All läsning av delade tabeller sker via en säker read-model; källgrupp och externa personers identitet läcker aldrig ut.",
           "Aggregat (snittbetyg, detaljbetyg) baseras bara på recensioner som är synliga i gruppen.",
+          "Tidigare medlemmar räknas som grupprelevanta i historiken – deras deltagande och betyg syns kvar och märks diskret ”Tidigare medlem”. Endast helt utomstående räknas anonymt som +N.",
+          "Härdad rättighetskontroll: matställessynligheten använder alltid inloggad användares ID (går inte att prova mot andras), och en tidigare medlem kan inte längre ta bort ett delat besök efter att ha lämnat gruppen. Aktivitetsposten för ett delat besök städas atomiskt i målgruppen.",
         ],
       },
     ],
