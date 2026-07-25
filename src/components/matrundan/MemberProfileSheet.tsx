@@ -14,10 +14,6 @@ import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
 import { RatingStars } from "./Rating";
 import { ActivityRow } from "./ActivityRow";
-import {
-  tasteTracksFor,
-  type TasteTrack,
-} from "@/lib/matrundan/gamification";
 
 interface MemberProfileData {
   visitCount: number;
@@ -28,7 +24,6 @@ interface MemberProfileData {
   otherFavorites: Place[];
   topCuisines: string[];
   recentActivity: ReturnType<typeof useStore>["state"]["activity"];
-  tracks: TasteTrack[];
 }
 
 function useMemberProfile(memberId: string | null): MemberProfileData | null {
@@ -89,8 +84,6 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       .filter((a) => a.memberId === memberId)
       .slice(0, 4);
 
-    const tracks = tasteTracksFor(state, memberId);
-
     return {
       visitCount: visits.length,
       triedPlaces,
@@ -100,7 +93,6 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       otherFavorites,
       topCuisines,
       recentActivity,
-      tracks,
     };
   }, [memberId, state, getPlace]);
 }
@@ -158,25 +150,6 @@ export function MemberProfileSheet({
                 <Stat label="Provade" value={profile.triedPlaces.length} />
                 <Stat label="Föreslagna" value={profile.proposedCount} />
               </div>
-
-              {/* Smakspår */}
-              {profile.tracks.length > 0 ? (
-                <section>
-                  <h3 className="mb-2 text-sm font-medium">Smakspår</h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {profile.tracks.map((t) => (
-                      <span
-                        key={t.id}
-                        title={t.description}
-                        className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs"
-                      >
-                        <span>{t.emoji}</span>
-                        <span>{t.name}</span>
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
 
               {/* Senaste besök */}
               <section>
@@ -318,7 +291,6 @@ function Stat({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-
 
 function EmptyLine({ text }: { text: string }) {
   return (

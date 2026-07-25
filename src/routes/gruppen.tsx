@@ -40,7 +40,6 @@ import {
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import { APP_VERSION, APP_NAME } from "@/lib/matrundan/version";
 import { formatRating } from "@/lib/matrundan/version";
-import { monthSummary } from "@/lib/matrundan/gamification";
 
 const GROUP_SEARCH_DEFAULTS = { member: "" };
 
@@ -95,8 +94,6 @@ function GroupPage() {
     return { m, lastVisit, visitCount, favCount };
   });
 
-  const month = React.useMemo(() => monthSummary(state), [state]);
-
   const favByPlace = new Map<string, number>();
   state.favorites.forEach((f) => {
     favByPlace.set(f.placeId, (favByPlace.get(f.placeId) ?? 0) + 1);
@@ -150,34 +147,6 @@ function GroupPage() {
         </section>
       ) : null}
 
-      {month.visitCount > 0 ? (
-        <section
-          aria-label="Denna månad"
-          className="rounded-2xl border border-mustard/40 bg-mustard/15 p-3"
-        >
-          <div className="text-[11px] font-medium uppercase tracking-wide text-mustard-foreground">
-            Denna månad
-          </div>
-          <div className="mt-0.5 text-sm">
-            {month.visitCount} besök på {month.uniquePlaceCount}{" "}
-            {month.uniquePlaceCount === 1 ? "ställe" : "ställen"}
-            {month.topPlace ? (
-              <>
-                {" · Högst betyg: "}
-                <Link
-                  to="/matstallen/$placeId"
-                  params={{ placeId: month.topPlace.id }}
-                  className="font-medium underline-offset-2 hover:underline"
-                >
-                  {month.topPlace.name}
-                </Link>{" "}
-                {formatRating(month.topRating)}
-              </>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
@@ -198,7 +167,7 @@ function GroupPage() {
                     {m.avatar}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <span className="truncate font-medium">{m.name}</span>
                       {m.id === state.currentUserId ? (
                         <Badge variant="secondary" className="rounded-full text-[10px]">
@@ -225,7 +194,6 @@ function GroupPage() {
           })}
         </div>
       </section>
-
 
       <MemberProfileSheet
         member={activeMember}

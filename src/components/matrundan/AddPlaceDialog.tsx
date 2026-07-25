@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Search, Loader2, Plus } from "lucide-react";
+import { Search, Loader2, Plus, List as ListIcon, Map as MapIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -32,9 +32,18 @@ import {
   getPlacesProvider,
   type PlaceSuggestion,
 } from "@/lib/matrundan/places-provider";
-import { locationForCity } from "@/lib/matrundan/location";
+import { parseLocation, formatLocation } from "@/lib/matrundan/location";
 
 const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
+const RADIUS_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: "Inom 1 km" },
+  { value: 3, label: "Inom 3 km" },
+  { value: 5, label: "Inom 5 km" },
+  { value: 10, label: "Inom 10 km" },
+  { value: 25, label: "Inom 25 km" },
+  { value: 9999, label: "Hela landet" },
+];
+const DEFAULT_RADIUS = 5;
 
 export function AddPlaceDialog({
   open,
@@ -46,14 +55,19 @@ export function AddPlaceDialog({
   const { addPlace, state } = useStore();
   const [tab, setTab] = React.useState<"sok" | "manuell">("sok");
 
-  // sök & utforska – ett enda fält, gruppens stad som dold bias
+  // sök & utforska
   const [query, setQuery] = React.useState("");
-  const bias = React.useMemo(
-    () => locationForCity(state.group.city) ?? null,
-    [state.group.city],
-  );
+  const [location, setLocation] = React.useState(state.group.city);
+  const [radiusKm, setRadiusKm] = React.useState<number>(DEFAULT_RADIUS);
+  const [view, setView] = React.useState<"list" | "map">("list");
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
+
+  const parsed = React.useMemo(
+    () => parseLocation(location, state.group.city),
+    [location, state.group.city],
+  );
 
   // manuellt
   const [name, setName] = React.useState("");
@@ -69,6 +83,10 @@ export function AddPlaceDialog({
   React.useEffect(() => {
     if (!open) {
       setQuery("");
+      setLocation(state.group.city);
+      setRadiusKm(DEFAULT_RADIUS);
+      setView("list");
+      setSelectedId(null);
       setResults([]);
       setName("");
       setAddress("");
@@ -79,25 +97,33 @@ export function AddPlaceDialog({
       setCategory("restaurang");
       setPhoto("🍽️");
       setTab("sok");
-      setCity(state.group.city);
     }
   }, [open, state.group.city]);
 
+  const cityValid = parsed.city.trim().length > 0;
+
   React.useEffect(() => {
-    if (tab !== "sok" || !open) return;
+    if (tab !== "sok" || !open || !cityValid) {
+      if (!cityValid) setResults([]);
+      return;
+    }
     const t = setTimeout(() => {
       setLoading(true);
       getPlacesProvider()
         .search({
           query: query.trim() || undefined,
-          near: bias,
-          mode: "everywhere",
+          city: parsed.city,
+          area: parsed.area,
+          radiusKm: radiusKm >= 9999 ? null : radiusKm,
         })
-        .then((r) => setResults(r))
+        .then((r) => {
+          setResults(r);
+          setSelectedId(r[0]?.externalId ?? null);
+        })
         .finally(() => setLoading(false));
-    }, 220);
+    }, 250);
     return () => clearTimeout(t);
-  }, [query, bias, tab, open]);
+  }, [query, parsed.city, parsed.area, radiusKm, tab, open, cityValid]);
 
   const pickSuggestion = (s: PlaceSuggestion) => {
     const p = addPlace({
@@ -114,7 +140,7 @@ export function AddPlaceDialog({
       photo: emojiForCategory(s.category),
     });
     toast.success(`${p.name} tillagd`, {
-      description: "Ställen får ligga var som helst – detta är bara ett förslag.",
+      description: "Området är bara ett förslag – ställen får ligga var som helst.",
     });
     onOpenChange(false);
   };
@@ -143,6 +169,13 @@ export function AddPlaceDialog({
     onOpenChange(false);
   };
 
+  const filterSummary = `${formatLocation(parsed)} · ${
+    radiusKm >= 9999 ? "hela landet" : `inom ${radiusKm} km`
+  }`;
+
+  const hasCoords = results.some((r) => r.lat != null && r.lng != null);
+  const selected = results.find((r) => r.externalId === selectedId) ?? null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -151,8 +184,8 @@ export function AddPlaceDialog({
             Lägg till matställe
           </DialogTitle>
           <DialogDescription>
-            Sök på namn, kök eller plats. Ställen får ligga var som helst –
-            valet av plats är bara ett förslag.
+            Utforska ett område eller lägg till manuellt. Ett ställe får ligga var
+            som helst – området är bara ett sökförslag.
           </DialogDescription>
         </DialogHeader>
 
@@ -177,32 +210,90 @@ export function AddPlaceDialog({
         {tab === "sok" ? (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="q">Sök matställe eller ort</Label>
+              <Label htmlFor="q">Vad är du sugen på?</Label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="q"
-                  placeholder="Namn, kök, kategori eller ort"
+                  placeholder="Namn, kök eller kategori (valfritt)"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="pl-9"
-                  autoFocus
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="s-location">Plats</Label>
+              <Input
+                id="s-location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
+                aria-invalid={!cityValid}
+              />
               <p className="text-[11px] text-muted-foreground">
-                {bias
-                  ? `Träffar nära ${bias.label} visas först. Sök på ort för att utforska annanstans.`
-                  : "Sök i hela Sverige."}
+                Söker i {formatLocation(parsed)}. Skriv med komma för att peka
+                ut ett område.
               </p>
             </div>
 
-            {loading ? (
+            <div className="space-y-1.5">
+              <Label>Sökradie</Label>
+              <Select
+                value={String(radiusKm)}
+                onValueChange={(v) => setRadiusKm(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RADIUS_OPTIONS.map((r) => (
+                    <SelectItem key={r.value} value={String(r.value)}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2 text-xs">
+              <span className="truncate text-muted-foreground">
+                {filterSummary}
+              </span>
+              {results.length > 0 && hasCoords ? (
+                <div className="ml-2 flex gap-1 rounded-full bg-background p-0.5">
+                  <ViewToggle
+                    active={view === "list"}
+                    onClick={() => setView("list")}
+                    icon={<ListIcon className="h-3.5 w-3.5" />}
+                    label="Lista"
+                  />
+                  <ViewToggle
+                    active={view === "map"}
+                    onClick={() => setView("map")}
+                    icon={<MapIcon className="h-3.5 w-3.5" />}
+                    label="Karta"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {!cityValid ? (
+              <EmptyBlock text="Ange en stad för att börja utforska." />
+            ) : loading ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
               </div>
             ) : results.length === 0 ? (
-              <EmptyBlock text="Inga träffar. Prova en annan sökterm eller lägg till manuellt." />
-            ) : (
+              <EmptyBlock
+                text={
+                  parsed.area
+                    ? `Inga träffar i ${parsed.area} (${parsed.city}) inom ${radiusKm >= 9999 ? "hela landet" : radiusKm + " km"}. Prova ett bredare område eller lägg till manuellt.`
+                    : "Inga träffar i området. Prova en annan sökterm eller större radie."
+                }
+              />
+            ) : view === "list" ? (
               <div className="space-y-2">
                 {results.map((r) => (
                   <div
@@ -234,10 +325,18 @@ export function AddPlaceDialog({
                   </div>
                 ))}
               </div>
+            ) : (
+              <DemoMap
+                results={results.filter((r) => r.lat != null && r.lng != null)}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onAdd={pickSuggestion}
+                selected={selected}
+              />
             )}
             <p className="text-[11px] text-muted-foreground">
-              Demo-provider aktiv. När Geoapify kopplas på blir träffarna
-              riktiga – gränssnittet är detsamma.
+              Demo-provider aktiv. Riktig kartdata och platssök aktiveras när
+              backend kopplas på.
             </p>
           </div>
         ) : (
@@ -371,10 +470,120 @@ export function AddPlaceDialog({
   );
 }
 
+function ViewToggle({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={[
+        "inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
+        active ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+      ].join(" ")}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 function EmptyBlock({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-dashed border-border/70 bg-card/60 p-6 text-center text-sm text-muted-foreground">
       {text}
+    </div>
+  );
+}
+
+function DemoMap({
+  results,
+  selectedId,
+  onSelect,
+  onAdd,
+  selected,
+}: {
+  results: PlaceSuggestion[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onAdd: (s: PlaceSuggestion) => void;
+  selected: PlaceSuggestion | null;
+}) {
+  if (results.length === 0) {
+    return <EmptyBlock text="Inga koordinater att visa på karta." />;
+  }
+
+  const lats = results.map((r) => r.lat!);
+  const lngs = results.map((r) => r.lng!);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const dLat = Math.max(maxLat - minLat, 0.005);
+  const dLng = Math.max(maxLng - minLng, 0.005);
+
+  return (
+    <div className="space-y-2">
+      <div
+        className="relative h-64 w-full overflow-hidden rounded-2xl border border-border/70 bg-[linear-gradient(135deg,hsl(var(--secondary))_0%,hsl(var(--muted))_100%)]"
+        role="img"
+        aria-label="Kartvy (demo) av sökresultaten"
+      >
+        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(hsl(var(--border))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border))_1px,transparent_1px)] [background-size:32px_32px]" />
+        <div className="absolute left-2 top-2 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm">
+          Kartvy (demo) · riktig kartdata aktiveras senare
+        </div>
+        {results.map((r) => {
+          const left = 8 + ((r.lng! - minLng) / dLng) * 84;
+          const top = 12 + (1 - (r.lat! - minLat) / dLat) * 76;
+          const active = r.externalId === selectedId;
+          return (
+            <button
+              key={r.externalId}
+              type="button"
+              onClick={() => onSelect(r.externalId)}
+              aria-pressed={active}
+              aria-label={r.name}
+              className={[
+                "absolute -translate-x-1/2 -translate-y-full rounded-full px-2 py-1 text-xs font-medium shadow-md transition-transform",
+                active
+                  ? "z-10 scale-110 bg-primary text-primary-foreground"
+                  : "bg-background text-foreground",
+              ].join(" ")}
+              style={{ left: `${left}%`, top: `${top}%` }}
+            >
+              {emojiForCategory(r.category)}
+            </button>
+          );
+        })}
+      </div>
+      {selected ? (
+        <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3">
+          <div className="grid h-10 w-10 place-items-center rounded-lg bg-secondary text-xl">
+            {emojiForCategory(selected.category)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-medium">{selected.name}</div>
+            <div className="truncate text-xs text-muted-foreground">
+              {CATEGORY_LABEL[selected.category]}
+              {selected.area ? ` · ${selected.area}` : ""}
+              {selected.distanceKm != null ? ` · ~${selected.distanceKm} km` : ""}
+            </div>
+          </div>
+          <Button size="sm" onClick={() => onAdd(selected)} className="min-h-11">
+            <Plus className="h-4 w-4" /> Lägg till
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
