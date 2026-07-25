@@ -31,12 +31,24 @@ export function CreateGroupDialog({
   const [verified, setVerified] = React.useState<VerifiedHomeLocation | null>(null);
   const [busy, setBusy] = React.useState(false);
 
+  const locHasText = locationText.trim().length > 0;
+  const locMatchesVerified = !!verified && locationText.trim() === verified.label.trim();
+  const locInvalid = locHasText && !locMatchesVerified;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return toast.error("Ge din grupp ett namn.");
+    if (locInvalid) {
+      toast.error("Välj sökområdet från listan eller lämna fältet tomt.");
+      return;
+    }
     setBusy(true);
     try {
-      const gid = await createGroupWithOwner(name.trim(), emoji, verified);
+      const gid = await createGroupWithOwner(
+        name.trim(),
+        emoji,
+        locMatchesVerified ? verified : null,
+      );
       await refreshGroups();
       if (gid) selectGroup(gid);
       toast.success("Gruppen är skapad!");
