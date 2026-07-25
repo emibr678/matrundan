@@ -68,6 +68,14 @@ type Payload = {
     createdAt: string;
     ownerId: string;
     sharedVisitsCountForProgression: boolean;
+    homeLocation: {
+      label: string;
+      verified: boolean;
+      lat?: number;
+      lng?: number;
+      provider?: string;
+      placeId?: string;
+    } | null;
   };
   members: {
     id: string;
@@ -122,6 +130,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
   }
   const p = data as unknown as Payload;
 
+  const home = p.group.homeLocation;
   const group: Group = {
     id: p.group.id,
     name: p.group.name,
@@ -130,6 +139,16 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     createdAt: p.group.createdAt,
     ownerId: p.group.ownerId,
     sharedVisitsCountForProgression: p.group.sharedVisitsCountForProgression,
+    homeLocation: home
+      ? {
+          label: home.label,
+          verified: home.verified,
+          lat: home.lat,
+          lng: home.lng,
+          provider: home.provider === "geoapify" ? "geoapify" : undefined,
+          placeId: home.placeId,
+        }
+      : null,
   };
 
   const members: Member[] = p.members.map((m) => ({
