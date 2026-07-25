@@ -1,208 +1,159 @@
 
-# Matrundan v2 — arkitektur- och migreringsplan
+# Delade besök mellan grupper — analys & rekommendation
 
-Rekommendationen nedan är ett diskussionsunderlag. Ingen kod skrivs förrän du godkänner riktning och svarat på de öppna frågorna i §11.
+Ingen kod, ingen migration, ingen versionsbump. Detta är beslutsunderlag inför nästa paket.
 
-## 1. Val av Supabase-strategi: **C (nytt projekt), med förbehåll**
+## 1. Produktprincip
 
-Rekommendation: **Alternativ C — nytt Supabase-projekt för Lovable-versionen**, men återanvänd Google OAuth-klient och Geoapify-konto.
+**Ja, men som sekundär funktion — inte kärnflöde.** Kärnflödet förblir lägg till → välj → besök → betygsätt inom en grupp. Delning är en efterhandshandling på ett redan registrerat besök, inte en variant av besöksregistreringen. Att bygga in delning i själva registreringsdialogen skulle blåsa upp den mest använda vyn för ett kant-case.
 
-Varför inte A (samma projekt, nya v2-tabeller):
-- Två parallella scheman i samma DB gör RLS-granskning svårare och riskerar att en glömd `service_role`-policy från gamla appen läcker in i nya. Auditbarheten blir sämre precis när vi går från service-role-modell till äkta RLS.
-- Migrationshistoriken är tung och byggd runt e-post-identitet. Nya migrationer blandas med gammal historik.
+**UX-benämning:** "**Lägg till i annan grupp**" på besöket. Undvik "Dela" (antyder social feed / publikt), "Importera" (antyder kopia), "Koppla" (för tekniskt). Formuleringen speglar att gruppen får besöket i sin historik utan att något dupliceras.
 
-Varför inte B (omarbeta befintliga tabeller):
-- Att flytta identitet från e-post/appgenererade UUID:n till `auth.users.id` på befintliga tabeller kräver backfills, temporära kolumner och en period där båda apparna skriver. Det är den dyraste vägen, och nyttan (behålla ~låg mängd produktionsdata) är liten.
+Motivering till att bygga det: det matchar en verklig situation (överlappande umgängen) och blockeras idag av datamodellen. Om vi inte löser det kommer användare att dubbelregistrera samma kväll i två grupper, vilket ger ihåliga betyg och trasig progression.
 
-Varför C:
-- Ren RLS-modell från dag ett, ingen risk för service-role-läckage från gamla policies.
-- Streamlit-appen kan fortsätta leva orörd tills den stängs av — noll driftrisk.
-- "Migrering" reduceras till en engångsexport→import av det fåtal rader som faktiskt är värda att bevara (se §8).
-- Kostnad: ett extra gratis Supabase-projekt. Marginellt.
+## 2. Datamodell
 
-Förbehåll: om du redan har externa integrationer (t.ex. bokmärken, delade länkar) som pekar på det gamla projektets URL, väger det över mot A. Baserat på beskrivningen finns inga sådana.
-
-## 2. Vad som återanvänds
-
-**Oförändrat (kopiera rakt av):**
-- Google Cloud OAuth-klient (client ID/secret) — lägg bara till Supabase-projektets `/auth/v1/callback` som redirect URI. Se §4.
-- Geoapify-konto och API-nyckel.
-- OSM-attributionstexter.
-
-**Som specifikation/koncept (skrivs om i TypeScript):**
-- Svensk kategorinormalisering och köksmappning från Geoapify-adaptern.
-- `PlaceCandidate` / `PlaceProvider`-gränssnittet — matchar redan vår befintliga `PlacesProvider` i `src/lib/matrundan/places-provider.ts`.
-- Transaktionell besöks-RPC (visit + participants + första recension) — bra mönster, portas till en Postgres-funktion.
-- Gruppspecifikt dubblettskydd på provider-place-ID (unique constraint `(group_id, provider, provider_place_id)`).
-- Rollmodell owner/admin/member och inbjudningsflödet.
-
-**Kasseras:**
-- All service-role-logik i klientkoden och medlemskapskontroller i applikationslagret — ersätts av RLS.
-- E-post och app-UUID som primär identitet — ersätts av `auth.users.id`.
-- SQLite-lokalläge — Lovable-appen kör Supabase i alla lägen utom demo (§9).
-- Streamlit `st.login()`-flödet.
-
-## 3. Google Auth-övergång utan att bryta gamla appen
-
-1. Behåll den gamla OAuth-klienten. Lägg till två nya "Authorized redirect URIs":
-   - `https://<nytt-projekt>.supabase.co/auth/v1/callback`
-   - Lovable preview- och publicerade URL:er (Lovable Auth hanterar detta automatiskt när Supabase kopplas via `supabase--enable`).
-2. Inga ändringar i den gamla Streamlit-appens `[auth]`-block behövs.
-3. Aktivera Google som provider i det nya Supabase-projektet (via `supabase--configure_social_auth`).
-4. Bägge apparna kan därmed logga in samma användare parallellt. E-postmatchning gör det trivialt att koppla en gammal profil till en ny `auth.users.id` om/när du migrerar data.
-
-Alternativ: skapa en ny OAuth-klient enbart för Matrundan v2. Föredras om du vill kunna revokera gammal åtkomst separat eller om Streamlit-appens redirect-URI-lista redan är rörig. Marginell extra insats.
-
-**Rekommendation:** återanvänd befintlig klient. Miljöseparation ligger ändå i Supabase-projektet, inte i OAuth-klienten.
-
-## 4. Geoapify: direktanrop vs Edge Function
-
-**Rekommendation: TanStack server function (createServerFn), inte direktanrop från browsern och inte Supabase Edge Function.**
-
-Skäl:
-- Direktanrop från browsern kräver att nyckeln exponeras. Geoapifys origin-restriktioner hjälper men skyddar inte mot kvotmissbruk från legitima origins.
-- Vår stack är TanStack Start — server functions är rätt verktyg för app-intern serverlogik. Supabase Edge Functions ska undvikas här (se `tanstack-supabase-integration`).
-- Server function kan cachea autocomplete-svar per (query, bbox) i minne/KV och normalisera svaret till `PlaceCandidate` innan det når klienten.
-
-Nyckeln (`GEOAPIFY_API_KEY`) läggs i Project Settings → Secrets, läses via `process.env` inuti handler.
-
-## 5. Föreslaget v2-schema (utan SQL, bara relationer)
+Rekommendation: **dela upp både `places` och `visits` i canonical + gruppspecifik del**. Detta är den enda modellen som skalar både till "samma ställe i flera grupper" och "samma besök i flera grupper" utan dubbelräkning.
 
 ```text
-auth.users (Supabase-managed)
-  └── profiles (1:1, PK = auth.users.id)
-        display_name, avatar_url, created_at
+places_canonical
+  id, provider ('geoapify'|'manual'), provider_place_id (nullable för manual),
+  name, address, city, area, lat, lng, category (kanonisk),
+  created_by, created_at
+  UNIQUE (provider, provider_place_id) där provider_place_id IS NOT NULL
 
-groups
-  id, name, emoji, city (default), owner_id → profiles.id, created_at
+group_places  (ersätter dagens places-roll som "gruppens lista")
+  id, group_id, place_id → places_canonical.id,
+  cuisines[], occasions[], notes, photo_url, added_by, added_at
+  UNIQUE (group_id, place_id)
 
-memberships
-  (group_id, user_id) composite PK
-  role: enum('owner','admin','member')
-  joined_at
-  → groups.id, → profiles.id
-
-invitations
-  id, group_id, email, role, token, invited_by, expires_at, accepted_at
-  (accept-flödet kopplar email→auth.users vid inloggning)
-
-places
-  id, group_id, name, category, address, city, area, lat, lng,
-  added_by → profiles.id, added_at, notes, photo_url
-  UNIQUE (group_id, name, address)  -- mjukt dubblettskydd
-
-place_sources
-  place_id, provider ('geoapify'|'manual'|'osm'), provider_place_id,
-  raw jsonb, fetched_at
-  UNIQUE (place_id, provider)
-  UNIQUE (group_id, provider, provider_place_id) via denormaliserad group_id
-
-visits
-  id, group_id, place_id, date, occasion, created_by → profiles.id, created_at
-  overall (numeric) -- gruppens helhetsbetyg, härlett eller sparat
+visits  (blir gruppoberoende händelse)
+  id, place_id → places_canonical.id,
+  visited_on, meal_type, created_by, created_at
+  (INGEN group_id längre)
 
 visit_participants
-  (visit_id, user_id) PK, → profiles.id
+  (visit_id, user_id) — deltagarfaktum, oberoende av grupp
 
 reviews
-  id, visit_id, author_id → profiles.id,
-  taste, value, service, comment, created_at
-  UNIQUE (visit_id, author_id)
+  id, visit_id, user_id, overall, taste, value, service, comment
+  UNIQUE (visit_id, user_id)  — en review per person per besök, återanvänds i alla grupper
 
-favorites
-  (user_id, place_id) PK
+visit_group_links  (kärnan i delningen)
+  id, visit_id, group_id, linked_by, linked_at,
+  is_origin bool  — true för gruppen där besöket först registrerades
+  UNIQUE (visit_id, group_id)
 
-group_next_place
-  group_id PK, place_id, picked_by, picked_at
-
-activity
-  id, group_id, kind, actor_id, place_id?, visit_id?, at, payload jsonb
+groups
+  ... + count_shared_visits_in_progression bool default true
+       (gruppinställningen från §5)
 ```
 
-Notera:
-- `group_id` denormaliseras på `places`, `visits`, `favorites` (via place), `activity` för att förenkla RLS-policies (en enda `has_membership(group_id, auth.uid())`-check per policy).
-- Ingen `email`-kolumn på `profiles` — den ligger redan på `auth.users`.
-- Nivåer/badges (från gamification-diskussionen) härleds i vyer/SQL-funktioner, sparas inte som kolumner initialt.
+Konsekvenser:
+- Ett besök har alltid minst en `visit_group_links`-rad (origin). Att "ta bort kopplingen" = radera länken; besöket lever kvar så länge origin-länken finns.
+- Att radera besöket helt får bara origin-länkens skapare/admin i origingruppen.
+- Reviews är knutna till besöket, inte till grupp — samma review "syns" i alla länkade grupper men räknas bara där integritetsfiltret §3 släpper igenom den.
+- Ett Geoapify-ställe får en enda canonical rad även när tio grupper sparat det.
 
-## 6. RLS-principer per tabell
+**Autoskapa gruppens place-post?** Ja. När en användare lägger till besöket i målgrupp G och `group_places(G, place)` inte finns, skapa den automatiskt med defaultvärden (`added_by = linked_by`, `added_at = linked_at`, tomma cuisines/occasions/notes). Alternativet — "du måste först lägga till stället" — är onödig friktion när canonical-datan redan finns. Gruppen kan sedan redigera sin group_places-rad fritt.
 
-Grundregel: **allt public-schema-skrivbart bakom `has_membership(group_id, auth.uid())`**, implementerad som SECURITY DEFINER-funktion mot `memberships` (för att undvika rekursion, jfr `infinite-recursion-in-rls`).
+## 3. Integritet och behörighet
 
-| Tabell | SELECT | INSERT | UPDATE | DELETE |
-|---|---|---|---|---|
-| profiles | egen + medlemmar i samma grupp | egen (self) | egen | — |
-| groups | medlem | authenticated (blir owner) | owner/admin | owner |
-| memberships | medlem i samma grupp | via invitation-RPC | owner/admin (utom sista owner) | owner/admin eller self |
-| invitations | owner/admin i gruppen + inbjuden e-post | owner/admin | owner/admin | owner/admin |
-| places | medlem | medlem | medlem (eller added_by/admin) | added_by eller admin |
-| place_sources | medlem | medlem | medlem | admin |
-| visits | medlem | medlem (via RPC) | created_by/admin | created_by/admin |
-| visit_participants | medlem | via visit-RPC | — | via visit-RPC |
-| reviews | medlem | author = auth.uid() OCH medlem | author | author/admin |
-| favorites | egen | egen | — | egen |
-| group_next_place | medlem | medlem | medlem | medlem |
-| activity | medlem | via triggers/RPC | — | — |
+**Vem får koppla?** Länkaren måste (a) vara medlem i målgruppen OCH (b) vara deltagare i besöket ELLER besökets `created_by`. Räcker som regel — övriga deltagare behöver inte godkänna, eftersom filtret nedan skyddar deras data.
 
-Skrivningar som spänner över flera tabeller (skapa besök, acceptera inbjudan, skapa grupp+owner-membership) körs via `SECURITY DEFINER` RPC:er som validerar medlemskap explicit — inte via klient-transaktioner.
+**Vad ser målgruppen?**
+- **Deltagare:** endast de som är nuvarande medlemmar i målgruppen listas med namn/avatar. Övriga döljs helt bakom en neutral rad "**+ N personer utanför gruppen**" — inte anonymiserade profiler (som lockar till gissning), inte helt osynliga (som gör betyg oförklarliga). Antalet är tillräckligt för kontext.
+- **Reviews:** endast reviews från deltagare som är medlemmar i målgruppen. Övrigas kommentarer och betyg visas inte alls i målgruppens vy — de tillhör en annan grupps sammanhang.
+- **Besöksdatum, måltid, ställe, gruppens egna medlemmars betyg:** synligt.
 
-## 7. Datamigrering: **arkivera, migrera inte automatiskt**
+**Ta bort länken:** länkaren själv OCH målgruppens owner/admin. Origin-länken (`is_origin = true`) kan inte tas bort — bara besöket i sin helhet kan raderas, och då av origin-gruppens vanliga regler.
 
-Rekommendation:
-1. Behåll gamla Supabase-projektet i read-only-läge (revoke skrivrättigheter, stäng av Streamlit-appen eller sätt banner).
-2. Exportera relevanta tabeller till CSV/JSON som arkiv.
-3. Om det finns >0 verkligt värdefulla besök: skriv ett engångsskript som mappar `email → auth.users.id` (efter att användarna loggat in en gång på nya appen) och importerar `groups`, `memberships`, `places`, `visits`, `reviews`. Kör manuellt, inte som automatisk migrering.
-4. Om värdet är lågt: skapa gruppen på nytt i v2 och låt användarna backfilla några historiska besök manuellt via "Registrera besök"-flödet med bakåtdaterat datum.
+**Ex-medlemmar:** en review från någon som var medlem vid besökstillfället men lämnat gruppen — se §4.
 
-Beslutskriterium: kör en snabb `SELECT COUNT(*) FROM visits` och `SELECT COUNT(DISTINCT restaurant_id) FROM visits` i gamla DB. Under ~50 besök → manuell backfill. Över → engångsimport.
+## 4. Betyg och statistik
 
-## 8. Demo-läget efter Supabase-koppling
+Regel för gruppens ställe-betyg och besökslistor:
 
-Behåll nuvarande `StoreProvider` + `localStorage` som **anonymt demo-läge** som körs när användaren inte är inloggad. Två klara lägen:
+> En review räknas i grupp G om (a) besöket är länkat till G och (b) reviewerns user_id finns i `memberships(G)` **just nu**.
 
-- **Demo** (ej inloggad): dagens `DEMO_STATE`, allt i localStorage, ingen Supabase-trafik. Bra för landningssida och för att prova appen utan konto.
-- **Live** (inloggad): all data via Supabase + RLS. `StoreProvider` byts mot en tunn Supabase-repository-implementation bakom samma interface.
+Konsekvenser, medvetna:
+- Lämnar en medlem gruppen försvinner hens bidrag från gruppens sammanställning framåt. Det är korrekt — gruppen är levande, inte ett arkiv. Historikvyn (enskilt besök) visar fortfarande att besöket ägde rum.
+- Dubbelräkning omöjliggjord av `UNIQUE (visit_id, user_id)` på reviews och `UNIQUE (visit_id, group_id)` på länken.
+- Om samma restaurang redan har egna besök i målgruppen räknas allt in — det är samma canonical place, alla besök därav i gruppens historik bidrar.
 
-Nyckelbeslut: gör `StoreContextValue` till ett interface, byt implementation baserat på auth-state. Detta gör att alla vyer förblir orörda.
+## 5. Progression, nivåer, badges
 
-Ingen datasynk mellan demo och live — demo är sandlåda, inget mer.
+**Gruppinställning `count_shared_visits_in_progression`** (default: **på**). Motivering för default på: den vanligaste situationen är att gruppen faktiskt tycker "vi har varit där tillsammans, det räknas". Grupper som vill hålla progression strikt till egenregistrerade besök kan slå av.
 
-## 9. Implementationsordning och rollback
+**Per-besök-override:** nej. Kompliceras UX och öppnar för missbruk ("jag inkluderar mina, exkluderar dina"). Gruppnivå räcker.
 
-Föreslagen ordning, varje steg är en avslutbar milstolpe:
+När inställningen är **på**:
+- Deltagande i länkade besök räknas mot medlemmars nivåer.
+- Unika ställen och kategori-/kök-badges räknas.
+- Ställe räknas som "besökt av gruppen".
 
-1. **`supabase--enable`** → Lovable provisionerar nytt projekt.
-2. **Migrationer:** schema från §5 + `has_membership`-funktion + grants + RLS-policies. Ingen appkod ändras än.
-3. **Auth:** aktivera Google via `supabase--configure_social_auth`. Lägg till `/_authenticated`-layout, publik `/auth`-route.
-4. **Repository-lager:** implementera Supabase-versionen av `StoreContextValue`-interfacet vid sidan av demo-versionen. Feature-flagga.
-5. **Läsflöden först:** matställen-lista, detaljvy, gruppmedlemmar — verifiera RLS med två testkonton.
-6. **Skrivflöden:** lägg till plats, registrera besök (via RPC), favoriter, nästa stopp.
-7. **Geoapify server function** ersätter demo-provider bakom samma `PlacesProvider`-interface.
-8. **Inbjudningsflöde** (invitations-tabell + accept-RPC + e-postlänk).
-9. **Gamification-härledningar** (från tidigare plan) — läggs som Postgres-vyer.
-10. **Data-arkivering/backfill** enligt §7.
-11. Stäng av Streamlit-appen.
+När **av**:
+- Länkade besök syns i historik och på ställets detaljvy, men räknas inte i nivåtröskel, badges eller "besökt av gruppen"-status.
 
-**Rollback:** varje steg är additivt. Feature-flag mellan demo och live gör att vi kan falla tillbaka till demo-läge om något RLS-hål upptäcks. Streamlit-appen rörs inte förrän steg 11, så den är alltid en fallback.
+**Dubbel-progression-skydd:** en medlem kan bara få progression från ett besök en gång per grupp (naturligt via `UNIQUE (visit_id, group_id)` i länken + unik user per visit_participants).
 
-## 10. Vad du behöver konfigurera manuellt
+**Topplista:** stryks som primär vy även fortsatt. Grupphöjdpunkter (§ tidigare gamification-diskussion) står sig. Delade besök gör en klassisk leaderboard än mer missvisande, eftersom aktiviteten inte längre är jämförbar mellan medlemmar med olika grupptillhörigheter.
 
-**Du (manuellt):**
-- Godkänn `supabase--enable` när steget körs.
-- Lägg till Supabase callback-URI i Google Cloud Console (en engångsåtgärd; instruktioner kommer i implementationen).
-- Lägg `GEOAPIFY_API_KEY` i Project Settings → Secrets när vi når steg 7.
-- Beslut i §11 nedan.
+## 6. UX-flöde
 
-**Lovable/Supabase hanterar automatiskt:**
-- Supabase-projektuppsättning, keys, URL:er, JWT-signering.
-- Google-provider-konfiguration via `supabase--configure_social_auth` (du fyller i client ID/secret som secrets).
-- Redirect URLs för preview och publicerad app.
-- Migrationer och grants.
+Från besökets detaljvy (VisitDetailSheet):
 
-## 11. Öppna frågor innan implementation
+1. Sekundär knapp: **"Lägg till i annan grupp"**. Visas bara om användaren är deltagare/skapare och är medlem i ≥1 annan grupp där besöket inte redan är länkat.
+2. Bottom sheet listar bara valbara grupper. Grupper där besöket redan är länkat visas överst som "Redan tillagt" (disabled). Grupper där användaren saknar deltagande i besöket filtreras bort helt.
+3. Förhandsvisning: "I *Fredagsgänget* kommer detta synas som besök på **Bar Central**, 12 sep, med **Emil, Karin**. + 1 person utanför gruppen. Din review räknas mot gruppens betyg." Vid `count_shared_visits_in_progression=false` byts sista meningen mot "Räknas inte mot gruppens progression."
+4. Bekräfta → länken skapas, group_places autoskapas vid behov, "next-picked" påverkas ej, aktivitetsrad läggs i målgruppen: "*Emil* lade till ett besök på *Bar Central* från en annan grupp."
+5. I målgruppen märks det med diskret chip "delat besök" på besökskortet.
+6. **Ta bort:** samma sheet, "Ta bort från *Fredagsgänget*". Bekräftelsedialog: "Besöket finns kvar i *Emil & Karin*. Denna gruppens sammanställning uppdateras."
 
-1. **Ny eller återanvänd OAuth-klient?** Rekommendation: återanvänd. Bekräfta.
-2. **Datamigrering:** ungefärlig storlek på gamla DB (räcker manuell backfill eller behövs engångsimport)?
-3. **Demo kvar efter live?** Rekommendation: ja, som anonymt sandlådeläge. Bekräfta.
-4. **Startpunkt:** vill du att jag börjar med steg 1–3 (Supabase + auth + tom skala) i första implementationsomgången, eller inkludera läs-flöden (steg 5) direkt?
+Kanter:
+- Ställe finns redan i målgruppen → använd befintlig `group_places`-rad, ingen dubblett.
+- Besöket redan länkat → knappen visar det, inget nytt anrop.
 
-Efter dessa svar bedömer jag att vi är redo för implementation.
+## 7. Migration
+
+Additivt går, men **brytande är renare och rätt val nu** eftersom Paket 1–2 bara har testdata och v2-schemat annars bär group-centrerade kolumner för alltid. Konkret:
+
+1. Ny migration: skapa `places_canonical`, `group_places`, `visit_group_links`, ny `visits`/`reviews` utan `group_id`.
+2. Backfilla: varje befintlig `places`-rad → en `places_canonical` + en `group_places`. Varje `visits` → ny visits-rad + en `visit_group_links(is_origin=true)`. `reviews` tappar `group_id`/`place_id` (härleds via visit).
+3. Dra tillbaka gamla `group_id`-kolumner och tabeller.
+4. RPC:er (`create_place`, `create_visit_with_review`, `toggle_favorite`, `set_next_place`) skrivs om mot nya modellen. `create_visit_with_review` skapar också origin-länken.
+
+Estimerat en migration + en RPC-omskrivning. Går att göra i ett steg utan mellantillstånd i klienten eftersom repository-lagret redan är centralt.
+
+## 8. Paketering
+
+**Delningsmodellen måste ligga före gamification.** Gamification räknar på ett datamodell-lager som ändras här — bygger vi badges/nivåer först får vi räkna om dem direkt efteråt.
+
+Delningsmodellen ligger dock **inte** naturligt med inbjudningar/administration — de rör olika ytor och är oberoende. Föreslagen ordning:
+
+- **Paket 3a: Inbjudningar & medlemsadministration** (som planerat A + B, minus gamification).
+- **Paket 3b: Canonical places + delade besök** (schema-refaktor + UX).
+- **Paket 4: Gamification** på det stabila schemat.
+
+3a och 3b kan i praktiken parallelliseras eftersom ytorna inte överlappar, men 3b måste stängas före 4.
+
+## 9. Slutlig rekommendation
+
+- **Produktregel:** delning är en tillåten efterhandshandling på ett befintligt besök, aldrig en variant av besöksregistrering.
+- **Datamodell:** `places_canonical` + `group_places`; gruppoberoende `visits` + `visit_group_links` med `is_origin`. Reviews knutna till visit + user, filtreras per grupp vid läsning.
+- **Integritet:** endast deltagare som är nuvarande medlemmar i målgruppen visas namngivna och räknas; övriga aggregeras till "+N personer utanför gruppen". Ingen godkännande-flow.
+- **Statistik:** review räknas där besöket är länkat och reviewern är medlem *nu*.
+- **Progression:** gruppinställning `count_shared_visits_in_progression`, default på, ingen per-besök-override.
+- **UX-benämning:** "Lägg till i annan grupp".
+- **Implementeringsordning:** 3a Inbjudningar/admin → 3b Canonical places + delade besök → 4 Gamification.
+
+## Öppna frågor att avgöra före implementation
+
+1. **Default för gruppinställningen:** på eller av? (Rekommendation: på.)
+2. **"+ N personer utanför gruppen":** visa antal exakt, eller bara "andra personer" utan siffra? (Siffra läcker inget i praktiken men är ett produktbeslut.)
+3. **Ex-medlemmars bidrag:** verkligen försvinna framåt, eller frysas som "historisk medlem"? (Rekommendation: försvinna. Enklare, ärligare.)
+4. **Radering av besök:** endast origin-gruppens skapare/admin, eller får senaste kvarvarande länkgrupp ta över? (Rekommendation: bara origin — enklare regel.)
+5. **Brytande migration nu:** bekräfta att testdata i Paket 1–2 får rensas.
+6. **Ska "Lägg till i annan grupp" kunna göras även av en deltagare som inte skapade besöket?** (Rekommendation: ja, om hen är deltagare och medlem i målgruppen.)
+
+Bekräfta punkterna ovan så packeterar jag 3a och 3b som konkreta implementationsplaner.
