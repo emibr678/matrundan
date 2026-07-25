@@ -21,8 +21,8 @@ export interface NormalizedPlaceSuggestion {
   area?: string;
   lat?: number;
   lng?: number;
-  /** Rå Geoapify-properties (JSON) sparas i `place_sources.raw`. */
-  raw: Record<string, unknown>;
+  /** JSON-serialiserad rå Geoapify-properties (för `place_sources.raw`). */
+  raw: string;
 }
 
 export interface NormalizedLocationSuggestion {
