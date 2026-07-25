@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  createFileRoute,
-  Link,
-  stripSearchParams,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
@@ -28,6 +23,7 @@ import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
 import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
+import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -83,8 +79,7 @@ export const Route = createFileRoute("/gruppen")({
       { title: "Gruppen · Matrundan" },
       {
         name: "description",
-        content:
-          "Se vad gänget snackar om, senaste besöken, favoriterna och nästa stopp.",
+        content: "Se vad gänget snackar om, senaste besöken, favoriterna och nästa stopp.",
       },
       { property: "og:title", content: "Gruppen · Matrundan" },
       { property: "og:description", content: "Gänget, aktivitet och favoriter." },
@@ -100,8 +95,7 @@ function GroupPage() {
   const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
 
   const activeMember = React.useMemo(
-    () =>
-      search.member ? state.members.find((m) => m.id === search.member) ?? null : null,
+    () => (search.member ? (state.members.find((m) => m.id === search.member) ?? null) : null),
     [search.member, state.members],
   );
 
@@ -112,9 +106,7 @@ function GroupPage() {
     const lastVisit = state.visits
       .filter((v) => v.participantIds.includes(m.id))
       .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
-    const visitCount = state.visits.filter((v) =>
-      v.participantIds.includes(m.id),
-    ).length;
+    const visitCount = state.visits.filter((v) => v.participantIds.includes(m.id)).length;
     const favCount = state.favorites.filter((f) => f.memberId === m.id).length;
     return { m, lastVisit, visitCount, favCount };
   });
@@ -143,7 +135,6 @@ function GroupPage() {
               </h1>
               <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
                 {state.members.length} medlemmar
-                {state.group.city ? ` · ${state.group.city}` : ""}
               </div>
             </div>
             <div className="shrink-0">
@@ -152,7 +143,6 @@ function GroupPage() {
           </div>
         </Card>
       </section>
-
 
       {next ? (
         <section>
@@ -163,9 +153,7 @@ function GroupPage() {
           >
             <Sparkles className="h-5 w-5 shrink-0 text-primary" />
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-medium tracking-wide text-primary">
-                Nästa stopp
-              </div>
+              <div className="text-[11px] font-medium tracking-wide text-primary">Nästa stopp</div>
               <div className="truncate font-medium">{next.name}</div>
               <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
@@ -222,7 +210,6 @@ function GroupPage() {
                   <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
                 </button>
               </Card>
-
             );
           })}
         </div>
@@ -316,10 +303,8 @@ function SettingsSheet() {
                 groupId={activeGroupId}
                 initialName={state.group.name}
                 initialEmoji={state.group.emoji}
-                initialLocation={state.group.city}
-                initialShareCounts={
-                  state.group.sharedVisitsCountForProgression ?? true
-                }
+                initialHome={state.group.homeLocation ?? null}
+                initialShareCounts={state.group.sharedVisitsCountForProgression ?? true}
               />
             ) : null}
 
@@ -332,16 +317,10 @@ function SettingsSheet() {
               onChanged={refreshGroups}
             />
 
-            {isAdmin && activeGroupId ? (
-              <InvitationsSection groupId={activeGroupId} />
-            ) : null}
+            {isAdmin && activeGroupId ? <InvitationsSection groupId={activeGroupId} /> : null}
 
             {isLive && activeGroupId ? (
-              <LeaveGroupSection
-                groupId={activeGroupId}
-                isOwner={isOwner}
-                onLeft={refreshGroups}
-              />
+              <LeaveGroupSection groupId={activeGroupId} isOwner={isOwner} onLeft={refreshGroups} />
             ) : null}
 
             {mode === "demo" ? (
@@ -387,9 +366,7 @@ function SettingsSheet() {
             </section>
 
             {isLive && user ? (
-              <div className="text-[11px] text-muted-foreground">
-                Inloggad som {user.email}
-              </div>
+              <div className="text-[11px] text-muted-foreground">Inloggad som {user.email}</div>
             ) : null}
           </div>
         </SheetContent>
@@ -405,18 +382,36 @@ function GroupSettingsSection({
   groupId,
   initialName,
   initialEmoji,
-  initialLocation,
+  initialHome,
   initialShareCounts,
 }: {
   groupId: string;
   initialName: string;
   initialEmoji: string;
-  initialLocation: string;
+  initialHome: import("@/lib/matrundan/types").HomeLocation | null;
   initialShareCounts: boolean;
 }) {
   const [name, setName] = React.useState(initialName);
   const [emoji, setEmoji] = React.useState(initialEmoji);
-  const [loc, setLoc] = React.useState(initialLocation);
+  const [locText, setLocText] = React.useState(initialHome?.label ?? "");
+  const [verified, setVerified] = React.useState<
+    import("@/lib/matrundan/live-admin").VerifiedHomeLocation | null
+  >(
+    initialHome &&
+      initialHome.verified &&
+      initialHome.lat != null &&
+      initialHome.lng != null &&
+      initialHome.placeId
+      ? {
+          label: initialHome.label,
+          lat: initialHome.lat,
+          lng: initialHome.lng,
+          provider: "geoapify",
+          placeId: initialHome.placeId,
+        }
+      : null,
+  );
+  const legacyOnly = !!initialHome && !initialHome.verified;
   const [shareCounts, setShareCounts] = React.useState(initialShareCounts);
   const [busy, setBusy] = React.useState(false);
   const { refreshGroups } = useSession();
@@ -424,13 +419,23 @@ function GroupSettingsSection({
   async function save() {
     setBusy(true);
     try {
-      await updateGroupSettings(
-        groupId,
-        name.trim(),
+      // Bestäm home-payload:
+      // - Tomt fält och gruppen har något sparat sedan tidigare → rensa allt.
+      // - Verifierat val (från listan) → spara komplett.
+      // - Fritext utan val → rör inte hemområdet (undviker att skapa falsk precision).
+      let homePayload: import("@/lib/matrundan/live-admin").VerifiedHomeLocation | null | "clear" =
+        null;
+      if (locText.trim() === "" && initialHome) {
+        homePayload = "clear";
+      } else if (verified && locText.trim() === verified.label.trim()) {
+        homePayload = verified;
+      }
+      await updateGroupSettings(groupId, {
+        name: name.trim(),
         emoji,
-        loc.trim() || null,
-        shareCounts,
-      );
+        homeLocation: homePayload,
+        sharedVisitsCountForProgression: shareCounts,
+      });
       await refreshGroups();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("matrundan:reload"));
@@ -461,8 +466,31 @@ function GroupSettingsSection({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="gs-loc">Hemområde</Label>
-          <Input id="gs-loc" value={loc} onChange={(e) => setLoc(e.target.value)} />
+          <Label htmlFor="gs-loc">Förvalt sökområde (valfritt)</Label>
+          <GeoapifyLocationInput
+            id="gs-loc"
+            value={locText}
+            onChange={(t) => {
+              setLocText(t);
+              if (verified && t !== verified.label) setVerified(null);
+            }}
+            onSelect={(v) => {
+              setVerified(v);
+              setLocText(v.label);
+            }}
+            onClearVerified={() => setVerified(null)}
+            placeholder="t.ex. Gamla Enskede, Stockholm"
+          />
+          <p className="text-xs text-muted-foreground">
+            Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
+            enskild sökning.
+          </p>
+          {legacyOnly && !verified ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Gruppen har ett äldre område ({initialHome?.label}). Välj området från listan för att
+              aktivera det som förvalt sökområde.
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-2 rounded-xl border border-border/60 bg-muted/30 p-3">
@@ -471,15 +499,11 @@ function GroupSettingsSection({
             <Label htmlFor="gs-share-counts" className="text-sm font-normal">
               Räkna delade besök i progression
             </Label>
-            <Switch
-              id="gs-share-counts"
-              checked={shareCounts}
-              onCheckedChange={setShareCounts}
-            />
+            <Switch id="gs-share-counts" checked={shareCounts} onCheckedChange={setShareCounts} />
           </div>
           <p className="text-[11px] leading-snug text-muted-foreground">
-            Delade besök syns alltid i historik, besöksstatus och betyg.
-            Inställningen påverkar bara framtida nivåer och märken.
+            Delade besök syns alltid i historik, besöksstatus och betyg. Inställningen påverkar bara
+            framtida nivåer och märken.
           </p>
         </div>
 
@@ -626,16 +650,12 @@ function MembersSection({
         })}
       </Card>
 
-      <AlertDialog
-        open={!!removeTarget}
-        onOpenChange={(o) => !o && setRemoveTarget(null)}
-      >
+      <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Ta bort {removeTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Personen förlorar åtkomsten direkt. Historiska besök och betyg finns kvar
-              i gruppen.
+              Personen förlorar åtkomsten direkt. Historiska besök och betyg finns kvar i gruppen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -645,16 +665,13 @@ function MembersSection({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={!!transferTarget}
-        onOpenChange={(o) => !o && setTransferTarget(null)}
-      >
+      <AlertDialog open={!!transferTarget} onOpenChange={(o) => !o && setTransferTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Överför ägarskap till {transferTarget?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Du blir admin och {transferTarget?.name} blir gruppens ägare. Endast ägaren
-              kan hantera admins och överföra ägarskap.
+              Du blir admin och {transferTarget?.name} blir gruppens ägare. Endast ägaren kan
+              hantera admins och överföra ägarskap.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -696,10 +713,7 @@ function InvitationsSection({ groupId }: { groupId: string }) {
     setCreating(true);
     try {
       const trimmed = email.trim();
-      const inv = await createGroupInvitation(
-        groupId,
-        withEmail && trimmed ? trimmed : null,
-      );
+      const inv = await createGroupInvitation(groupId, withEmail && trimmed ? trimmed : null);
       const link =
         typeof window !== "undefined"
           ? `${window.location.origin}/inbjudan/${inv.token}`
@@ -783,29 +797,18 @@ function InvitationsSection({ groupId }: { groupId: string }) {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            onClick={() => createInvite(false)}
-            disabled={creating}
-          >
+          <Button variant="outline" onClick={() => createInvite(false)} disabled={creating}>
             Skapa öppen länk
           </Button>
-          <Button
-            onClick={() => createInvite(true)}
-            disabled={creating || !email.trim()}
-          >
+          <Button onClick={() => createInvite(true)} disabled={creating || !email.trim()}>
             <Mail className="mr-1 h-4 w-4" /> Skapa för e-post
           </Button>
         </div>
 
         {lastLink ? (
           <div className="rounded-xl border border-border/70 bg-muted/40 p-3 text-sm">
-            <div className="mb-2 text-xs font-medium">
-              Din inbjudningslänk – visas bara nu
-            </div>
-            <div className="break-all rounded-md bg-background p-2 text-xs">
-              {lastLink}
-            </div>
+            <div className="mb-2 text-xs font-medium">Din inbjudningslänk – visas bara nu</div>
+            <div className="break-all rounded-md bg-background p-2 text-xs">{lastLink}</div>
             <div className="mt-2 flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={copyLink}>
                 <Copy className="h-4 w-4" /> Kopiera
@@ -841,9 +844,7 @@ function InvitationsSection({ groupId }: { groupId: string }) {
               {items.map((i) => (
                 <li key={i.id} className="flex items-center gap-2 p-2 text-xs">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">
-                      {i.invited_email ?? "Öppen länk"}
-                    </div>
+                    <div className="truncate font-medium">{i.invited_email ?? "Öppen länk"}</div>
                     <div className="text-muted-foreground">
                       {stateLabel(i.state)} · går ut {formatDateShort(i.expires_at)}
                     </div>
@@ -917,8 +918,7 @@ function LeaveGroupSection({
           <AlertDialogHeader>
             <AlertDialogTitle>Lämna gruppen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Du förlorar åtkomsten direkt. Dina tidigare besök och betyg finns kvar
-              i gruppen.
+              Du förlorar åtkomsten direkt. Dina tidigare besök och betyg finns kvar i gruppen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

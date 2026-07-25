@@ -1,10 +1,4 @@
-export type PlaceCategory =
-  | "restaurang"
-  | "café"
-  | "bageri"
-  | "snabbmat"
-  | "pub"
-  | "matvagn";
+export type PlaceCategory = "restaurang" | "café" | "bageri" | "snabbmat" | "pub" | "matvagn";
 
 export type Occasion = "snabbt" | "avslappnat" | "middag";
 
@@ -89,23 +83,34 @@ export interface Favorite {
   placeId: string;
 }
 
+/**
+ * Gruppens förvalda sökområde. Endast `verified=true` (dvs. ett val från
+ * Geoapify med både koordinater och place_id) får användas som sökcentrum.
+ */
+export interface HomeLocation {
+  label: string;
+  verified: boolean;
+  lat?: number;
+  lng?: number;
+  provider?: "geoapify";
+  placeId?: string;
+}
+
 export interface Group {
   id: string;
   name: string;
   emoji: string;
+  /** Legacy: används fortfarande av demo-läget för fallback-stad. */
   city: string;
   createdAt: string;
   ownerId: string;
   /** Om delade besök räknas mot progression. */
   sharedVisitsCountForProgression?: boolean;
+  /** Förvalt sökområde (valfritt). Null om ingen text finns sparad. */
+  homeLocation?: HomeLocation | null;
 }
 
-export type ActivityKind =
-  | "added"
-  | "visited"
-  | "favorited"
-  | "next-picked"
-  | "member-joined";
+export type ActivityKind = "added" | "visited" | "favorited" | "next-picked" | "member-joined";
 
 export type ActivityTarget =
   | { kind: "place"; placeId: string }
@@ -155,10 +160,7 @@ export function resolveActivityTarget(a: Activity): ActivityTarget | null {
   if (a.kind === "visited" && a.placeId && a.visitId) {
     return { kind: "visit", placeId: a.placeId, visitId: a.visitId };
   }
-  if (
-    (a.kind === "added" || a.kind === "favorited" || a.kind === "next-picked") &&
-    a.placeId
-  ) {
+  if ((a.kind === "added" || a.kind === "favorited" || a.kind === "next-picked") && a.placeId) {
     return { kind: "place", placeId: a.placeId };
   }
   if (a.kind === "member-joined" && a.memberId) {

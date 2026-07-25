@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.8.0";
+export const APP_VERSION = "0.8.1";
 export const APP_VERSION_DATE = "2026-07-25";
 
 export interface ChangelogEntry {
@@ -26,6 +26,31 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Verifierade sökområden i live-läget – Plats-fältet kräver ett riktigt Geoapify-val och dialogerna sitter fint på 360 px.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Ny återanvändbar Plats-komponent med Geoapify-autocomplete. Endast verifierade val (label + koordinater + provider) sparas.",
+          "Gruppinställningen ”Förvalt sökområde” ersätter fritext-”Hemområde” och används automatiskt som sökcentrum i Lägg till matställe.",
+          "Sökradien startar nu på 1 km för mer relevanta träffar.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Alla dialoger klarar 360 px utan horisontell scroll (max-bredd bunden till viewport).",
+          "Resultatkort staplar innehåll och knapp på mobil – ingen text kapas.",
+          "Äldre fritext-hemområden visas som ”obekräftade” tills ägaren väljer ett nytt verifierat område.",
+          "I live-läge gissar Lägg till matställe aldrig koordinater från fritext – ett val från listan krävs.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.8.0",
+    date: "2026-07-25",
     summary:
       "Riktig platssök via Geoapify i live-läget – med skyddad servernyckel, bekräftelsesteg och avgränsade sökområden.",
     sections: [

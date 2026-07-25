@@ -8,8 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 function toErr(e: unknown): Error {
   const msg =
-    (e as { message?: string } | null)?.message ??
-    "Något gick fel mot servern. Försök igen.";
+    (e as { message?: string } | null)?.message ?? "Något gick fel mot servern. Försök igen.";
   return new Error(msg);
 }
 
@@ -45,9 +44,7 @@ export interface InvitationPreview {
   email_bound?: boolean;
 }
 
-export async function getInvitationPreview(
-  token: string,
-): Promise<InvitationPreview> {
+export async function getInvitationPreview(token: string): Promise<InvitationPreview> {
   const { data, error } = await supabase.rpc("get_invitation_preview", {
     _token: token,
   });
@@ -85,9 +82,7 @@ export interface InvitationListItem {
   state: "active" | "accepted" | "revoked" | "expired";
 }
 
-export async function listGroupInvitations(
-  groupId: string,
-): Promise<InvitationListItem[]> {
+export async function listGroupInvitations(groupId: string): Promise<InvitationListItem[]> {
   const { data, error } = await supabase.rpc("list_group_invitations", {
     _group_id: groupId,
   });
@@ -106,21 +101,57 @@ export async function updateProfile(
   if (error) throw toErr(error);
 }
 
+export interface VerifiedHomeLocation {
+  label: string;
+  lat: number;
+  lng: number;
+  provider: "geoapify";
+  placeId: string;
+}
+
+export interface GroupSettingsInput {
+  name: string;
+  emoji: string | null;
+  /**
+   * Antingen ett verifierat sökområde (label + koordinater + provider/place_id),
+   * `null` för att inte röra sökområdet, eller `"clear"` för att nolla allt.
+   */
+  homeLocation: VerifiedHomeLocation | null | "clear";
+  sharedVisitsCountForProgression?: boolean;
+}
+
 export async function updateGroupSettings(
   groupId: string,
-  name: string,
-  emoji: string | null,
-  homeLabel: string | null,
-  sharedVisitsCountForProgression?: boolean,
+  input: GroupSettingsInput,
 ): Promise<void> {
-  const { error } = await supabase.rpc("update_group_settings", {
+  const home = input.homeLocation;
+  const rpcArgs: {
+    _group_id: string;
+    _name: string;
+    _emoji?: string;
+    _home_label?: string;
+    _home_lat?: number;
+    _home_lng?: number;
+    _home_provider?: string;
+    _home_place_id?: string;
+    _clear_home?: boolean;
+    _shared_visits_count_for_progression?: boolean;
+  } = {
     _group_id: groupId,
-    _name: name,
-    _emoji: emoji ?? undefined,
-    _home_label: homeLabel ?? undefined,
-    _shared_visits_count_for_progression:
-      sharedVisitsCountForProgression ?? undefined,
-  });
+    _name: input.name,
+    _emoji: input.emoji ?? undefined,
+    _shared_visits_count_for_progression: input.sharedVisitsCountForProgression ?? undefined,
+  };
+  if (home === "clear") {
+    rpcArgs._clear_home = true;
+  } else if (home && typeof home === "object") {
+    rpcArgs._home_label = home.label;
+    rpcArgs._home_lat = home.lat;
+    rpcArgs._home_lng = home.lng;
+    rpcArgs._home_provider = home.provider;
+    rpcArgs._home_place_id = home.placeId;
+  }
+  const { error } = await supabase.rpc("update_group_settings", rpcArgs);
   if (error) throw toErr(error);
 }
 
@@ -137,10 +168,7 @@ export async function setMemberRole(
   if (error) throw toErr(error);
 }
 
-export async function removeGroupMember(
-  groupId: string,
-  userId: string,
-): Promise<void> {
+export async function removeGroupMember(groupId: string, userId: string): Promise<void> {
   const { error } = await supabase.rpc("remove_group_member", {
     _group_id: groupId,
     _user_id: userId,
@@ -153,10 +181,7 @@ export async function leaveGroup(groupId: string): Promise<void> {
   if (error) throw toErr(error);
 }
 
-export async function transferGroupOwnership(
-  groupId: string,
-  newOwnerId: string,
-): Promise<void> {
+export async function transferGroupOwnership(groupId: string, newOwnerId: string): Promise<void> {
   const { error } = await supabase.rpc("transfer_group_ownership", {
     _group_id: groupId,
     _new_owner_id: newOwnerId,
@@ -167,13 +192,28 @@ export async function transferGroupOwnership(
 export async function createGroupWithOwner(
   name: string,
   emoji: string | null,
-  homeLabel: string | null,
+  homeLocation: VerifiedHomeLocation | null,
 ): Promise<string> {
-  const { data, error } = await supabase.rpc("create_group_with_owner", {
+  const rpcArgs: {
+    _name: string;
+    _emoji?: string;
+    _home_label?: string;
+    _home_lat?: number;
+    _home_lng?: number;
+    _home_provider?: string;
+    _home_place_id?: string;
+  } = {
     _name: name,
     _emoji: emoji ?? undefined,
-    _home_label: homeLabel ?? undefined,
-  });
+  };
+  if (homeLocation) {
+    rpcArgs._home_label = homeLocation.label;
+    rpcArgs._home_lat = homeLocation.lat;
+    rpcArgs._home_lng = homeLocation.lng;
+    rpcArgs._home_provider = homeLocation.provider;
+    rpcArgs._home_place_id = homeLocation.placeId;
+  }
+  const { data, error } = await supabase.rpc("create_group_with_owner", rpcArgs);
   if (error) throw toErr(error);
   return data as unknown as string;
 }
