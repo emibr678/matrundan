@@ -456,7 +456,7 @@ export function computeGroupMilestones(
 
   const activeIds = state.members.map((m) => m.id);
   if (activeIds.length >= 2) {
-    const full = state.visits
+    const full = allVisits
       .filter((v) => activeIds.every((id) => v.participantIds.includes(id)))
       .slice()
       .sort(chronologically)[0];
