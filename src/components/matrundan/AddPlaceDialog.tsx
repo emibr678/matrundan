@@ -362,6 +362,7 @@ export function AddPlaceDialog({
     centerLabel,
     parsed,
     pending,
+    retryNonce,
   ]);
 
   const openConfirm = (s: PlaceSuggestion) => {
