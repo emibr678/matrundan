@@ -52,7 +52,9 @@ export function AddPlaceDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { addPlace, state } = useStore();
+  const { addPlace, state, submitting } = useStore();
+  const [busy, setBusy] = React.useState(false);
+  const isBusy = busy || submitting;
   const [tab, setTab] = React.useState<"sok" | "manuell">("sok");
 
   // sök & utforska
@@ -125,48 +127,64 @@ export function AddPlaceDialog({
     return () => clearTimeout(t);
   }, [query, parsed.city, parsed.area, radiusKm, tab, open, cityValid]);
 
-  const pickSuggestion = (s: PlaceSuggestion) => {
-    const p = addPlace({
-      name: s.name,
-      category: s.category,
-      cuisines: s.cuisines ?? [],
-      occasions: ["avslappnat"],
-      address: s.address,
-      area: s.area,
-      city: s.city,
-      lat: s.lat,
-      lng: s.lng,
-      addedBy: state.currentUserId,
-      photo: emojiForCategory(s.category),
-    });
-    toast.success(`${p.name} tillagd`, {
-      description: "Området är bara ett förslag – ställen får ligga var som helst.",
-    });
-    onOpenChange(false);
+  const pickSuggestion = async (s: PlaceSuggestion) => {
+    if (isBusy) return;
+    setBusy(true);
+    try {
+      const p = await addPlace({
+        name: s.name,
+        category: s.category,
+        cuisines: s.cuisines ?? [],
+        occasions: ["avslappnat"],
+        address: s.address,
+        area: s.area,
+        city: s.city,
+        lat: s.lat,
+        lng: s.lng,
+        addedBy: state.currentUserId,
+        photo: emojiForCategory(s.category),
+      });
+      toast.success(`${p.name} tillagd`, {
+        description: "Området är bara ett förslag – ställen får ligga var som helst.",
+      });
+      onOpenChange(false);
+    } catch (e) {
+      toast.error((e as Error).message || "Kunde inte lägga till stället.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const submitManual = () => {
+  const submitManual = async () => {
+    if (isBusy) return;
     if (!name.trim()) {
       toast.error("Ge stället ett namn");
       return;
     }
-    const p = addPlace({
-      name: name.trim(),
-      category,
-      cuisines: cuisines
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
-      occasions,
-      address: address.trim(),
-      area: manualArea.trim() || undefined,
-      city: city.trim() || state.group.city,
-      addedBy: state.currentUserId,
-      notes: notes.trim() || undefined,
-      photo,
-    });
-    toast.success(`${p.name} tillagd`);
-    onOpenChange(false);
+    setBusy(true);
+    try {
+      const p = await addPlace({
+        name: name.trim(),
+        category,
+        cuisines: cuisines
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean),
+        occasions,
+        address: address.trim(),
+        area: manualArea.trim() || undefined,
+        city: city.trim() || state.group.city,
+        addedBy: state.currentUserId,
+        notes: notes.trim() || undefined,
+        photo,
+      });
+      toast.success(`${p.name} tillagd`);
+      onOpenChange(false);
+    } catch (e) {
+      toast.error((e as Error).message || "Kunde inte lägga till stället.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const filterSummary = `${formatLocation(parsed)} · ${
@@ -458,11 +476,14 @@ export function AddPlaceDialog({
         )}
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isBusy}>
             Avbryt
           </Button>
           {tab === "manuell" ? (
-            <Button onClick={submitManual}>Lägg till</Button>
+            <Button onClick={submitManual} disabled={isBusy}>
+              {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Lägg till
+            </Button>
           ) : null}
         </DialogFooter>
       </DialogContent>
