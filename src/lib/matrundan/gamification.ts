@@ -464,8 +464,3 @@ export function computeGroupMilestones(
 
   return out.sort((a, b) => (a.at < b.at ? 1 : -1));
 }
-
-/* Hjälp för aktivitetsfilter – 3D lägger inte till nya activity-typer. */
-export function isGamificationActivity(_a: Activity): boolean {
-  return false;
-}
