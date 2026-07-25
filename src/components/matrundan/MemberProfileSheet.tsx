@@ -349,3 +349,54 @@ function EmptyLine({ text }: { text: string }) {
     </div>
   );
 }
+
+function LevelProgress({ progression }: { progression: MemberProgression }) {
+  const { level, visits } = progression;
+  if (level.nextThreshold == null) {
+    return (
+      <section>
+        <h3 className="mb-2 text-sm font-medium">Nivå</h3>
+        <Card className="rounded-2xl border-border/70 p-3 text-sm">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">{level.name}</span>
+            <span className="text-xs text-muted-foreground">
+              Högsta nivån är nådd
+            </span>
+          </div>
+        </Card>
+      </section>
+    );
+  }
+  const span = Math.max(1, level.nextThreshold - level.threshold);
+  const done = Math.min(span, Math.max(0, visits - level.threshold));
+  const pct = Math.round((done / span) * 100);
+  const remaining = Math.max(0, level.nextThreshold - visits);
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-medium">Nivå</h3>
+      <Card className="space-y-2 rounded-2xl border-border/70 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-sm">
+          <span className="font-medium">{level.name}</span>
+          <span className="text-xs text-muted-foreground">
+            {remaining === 0
+              ? `Nästa nivå: ${level.nextName}`
+              : `${remaining} besök till ${level.nextName}`}
+          </span>
+        </div>
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Progression mot ${level.nextName}`}
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </Card>
+    </section>
+  );
+}
