@@ -1,19 +1,27 @@
 /**
- * Lokalt applikationstillstånd för Matrundan.
+ * Applikationstillstånd för Matrundan.
  *
- * Detta lager är avsiktligt separerat från vyerna så att det senare kan
- * bytas ut mot ett Supabase-repository utan att ändra komponenterna.
- * Modellen speglar den planerade Supabase-schemat: profiles, groups,
- * memberships, places, visits, reviews, favorites, activity.
+ * Stöder två lägen sida vid sida:
+ * - demo: hela state lever i localStorage och muteras direkt i klienten.
+ * - live: state kommer från Supabase (via live-repository) och alla
+ *   skrivningar går genom SECURITY DEFINER-RPC:er. Efter en lyckad
+ *   live-mutation kallar vi onLiveMutation() så att AppShell kan
+ *   ladda om gruppens data.
  */
 
 import * as React from "react";
+import { toast } from "sonner";
 import { DEMO_STATE } from "./demo-data";
 import { APP_VERSION } from "./version";
+import {
+  liveCreatePlace,
+  liveCreateVisitWithReview,
+  liveSetNextPlace,
+  liveToggleFavorite,
+} from "./live-mutations";
 import type {
   Activity,
   AppState,
-  Favorite,
   Place,
   PlaceCategory,
   Occasion,
@@ -29,10 +37,12 @@ function nameOf(state: AppState, memberId: string) {
 interface StoreContextValue {
   state: AppState;
   mode: "demo" | "live";
-  addPlace: (input: Omit<Place, "id" | "addedAt">) => Place;
-  toggleFavorite: (placeId: string) => void;
-  addVisit: (visit: Omit<Visit, "id">) => Visit;
-  setNext: (placeId: string | null) => void;
+  /** true medan en live-mutation pågår – används för att inaktivera CTA:er. */
+  submitting: boolean;
+  addPlace: (input: Omit<Place, "id" | "addedAt">) => Promise<Place>;
+  toggleFavorite: (placeId: string) => Promise<void>;
+  addVisit: (visit: Omit<Visit, "id">) => Promise<Visit>;
+  setNext: (placeId: string | null) => Promise<void>;
   resetDemo: () => void;
   // selectors
   getPlace: (id: string) => Place | undefined;
@@ -54,15 +64,21 @@ export function StoreProvider({
   children,
   mode = "demo",
   initialState,
+  onLiveMutation,
+  activeGroupId,
 }: {
   children: React.ReactNode;
   mode?: "demo" | "live";
   initialState?: AppState;
+  /** Kallas efter lyckad live-skrivning; AppShell laddar om gruppen. */
+  onLiveMutation?: () => Promise<void> | void;
+  /** Aktivt group_id i live-läget; obligatoriskt för live-mutationer. */
+  activeGroupId?: string | null;
 }) {
   const [state, setState] = React.useState<AppState>(initialState ?? DEMO_STATE);
   const [hydrated, setHydrated] = React.useState(mode === "live");
+  const [submitting, setSubmitting] = React.useState(false);
 
-  // Håll state synkat med prop:en (byte av grupp / omladdning i live-läge).
   React.useEffect(() => {
     if (mode === "live" && initialState) {
       setState(initialState);
@@ -75,7 +91,6 @@ export function StoreProvider({
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as AppState;
-        // Håll version i sync med APP_VERSION även om äldre data cachas.
         setState({ ...parsed, version: APP_VERSION });
       }
     } catch {
@@ -93,12 +108,34 @@ export function StoreProvider({
     }
   }, [state, hydrated, mode]);
 
+  // Håll senaste callback/grupp-id i refs så att value-memon inte behöver
+  // återskapas för varje omladdning av live-state.
+  const onLiveMutationRef = React.useRef(onLiveMutation);
+  const activeGroupIdRef = React.useRef(activeGroupId);
+  React.useEffect(() => {
+    onLiveMutationRef.current = onLiveMutation;
+  }, [onLiveMutation]);
+  React.useEffect(() => {
+    activeGroupIdRef.current = activeGroupId;
+  }, [activeGroupId]);
+
+  const runLive = React.useCallback(
+    async <T,>(op: (groupId: string) => Promise<T>): Promise<T> => {
+      const gid = activeGroupIdRef.current;
+      if (!gid) throw new Error("Ingen aktiv grupp.");
+      setSubmitting(true);
+      try {
+        const result = await op(gid);
+        await Promise.resolve(onLiveMutationRef.current?.());
+        return result;
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [],
+  );
+
   const value = React.useMemo<StoreContextValue>(() => {
-    const liveBlock = () => {
-      const message = "Skrivningar kommer i nästa paket. Kör ?demo=1 för att prova.";
-      // Lazy toast för att undvika krasch om sonner inte laddats.
-      import("sonner").then(({ toast }) => toast.info(message)).catch(() => {});
-    };
     const pushActivity = (s: AppState, a: Activity): AppState => ({
       ...s,
       activity: [a, ...s.activity].slice(0, 50),
@@ -107,11 +144,12 @@ export function StoreProvider({
     return {
       state,
       mode,
+      submitting,
 
-      addPlace: (input) => {
+      addPlace: async (input) => {
         if (mode === "live") {
-          liveBlock();
-          return { ...input, id: "noop", addedAt: new Date().toISOString() } as Place;
+          const id = await runLive((gid) => liveCreatePlace(gid, input));
+          return { ...input, id, addedAt: new Date().toISOString() } as Place;
         }
         const place: Place = {
           ...input,
@@ -135,8 +173,11 @@ export function StoreProvider({
         return place;
       },
 
-      toggleFavorite: (placeId) => {
-        if (mode === "live") return liveBlock();
+      toggleFavorite: async (placeId) => {
+        if (mode === "live") {
+          await runLive((gid) => liveToggleFavorite(gid, placeId));
+          return;
+        }
         setState((s) => {
           const exists = s.favorites.find(
             (f) => f.memberId === s.currentUserId && f.placeId === placeId,
@@ -152,10 +193,12 @@ export function StoreProvider({
         });
       },
 
-      addVisit: (visitInput) => {
+      addVisit: async (visitInput) => {
         if (mode === "live") {
-          liveBlock();
-          return { ...visitInput, id: "noop" } as Visit;
+          const id = await runLive((gid) =>
+            liveCreateVisitWithReview(gid, visitInput),
+          );
+          return { ...visitInput, id } as Visit;
         }
         const visit: Visit = { ...visitInput, id: `v-${Date.now()}` };
         setState((s) => {
@@ -187,8 +230,11 @@ export function StoreProvider({
         return visit;
       },
 
-      setNext: (placeId) => {
-        if (mode === "live") return liveBlock();
+      setNext: async (placeId) => {
+        if (mode === "live") {
+          await runLive((gid) => liveSetNextPlace(gid, placeId));
+          return;
+        }
         setState((s) => {
           if (!placeId) return { ...s, nextPlaceId: null };
           const place = s.places.find((p) => p.id === placeId);
@@ -210,6 +256,10 @@ export function StoreProvider({
       },
 
       resetDemo: () => {
+        if (mode !== "demo") {
+          toast.info("Demo-återställning fungerar bara i demo-läget.");
+          return;
+        }
         try {
           window.localStorage.removeItem(STORAGE_KEY);
         } catch {
@@ -295,7 +345,7 @@ export function StoreProvider({
         return acc;
       },
     };
-  }, [state, mode]);
+  }, [state, mode, submitting, runLive]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
