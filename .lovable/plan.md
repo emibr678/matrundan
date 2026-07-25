@@ -1,153 +1,208 @@
-# Matrundan — konkretisering av gamification (produkt/UX, ingen kod)
 
-Ren rekommendation. Inga filer, ingen version, ingen changelog ändras.
+# Matrundan v2 — arkitektur- och migreringsplan
 
----
+Rekommendationen nedan är ett diskussionsunderlag. Ingen kod skrivs förrän du godkänner riktning och svarat på de öppna frågorna i §11.
 
-## 1. Nivågränser — inte ren Fibonacci
+## 1. Val av Supabase-strategi: **C (nytt projekt), med förbehåll**
 
-Fibonacci (1, 2, 3, 5, 8, 13, 21, 34, 55) ger fin matematisk känsla men fel kurva för Matrundan: stegen 1→2→3 är för täta (tre nivåuppgraderingar under gruppens första månad känns billigt) och slutet växer för långsamt jämfört med hur sällan besök faktiskt sker.
+Rekommendation: **Alternativ C — nytt Supabase-projekt för Lovable-versionen**, men återanvänd Google OAuth-klient och Geoapify-konto.
 
-Anta 1–4 gruppbesök/månad och att en aktiv medlem deltar i ~60–70%. Det ger ~15–25 deltagna besök/år för en engagerad person. Kurvan bör:
-- ge **första uppgraderingen direkt efter första besöket** (belöning för att komma igång)
-- ge **andra uppgraderingen inom första månaden** för aktiva
-- göra **mellannivåerna kännbara** (~kvartal till år)
-- göra **topnivån till ett flerårigt mål** som håller även när appen blir publik och några användare besöker mycket oftare
+Varför inte A (samma projekt, nya v2-tabeller):
+- Två parallella scheman i samma DB gör RLS-granskning svårare och riskerar att en glömd `service_role`-policy från gamla appen läcker in i nya. Auditbarheten blir sämre precis när vi går från service-role-modell till äkta RLS.
+- Migrationshistoriken är tung och byggd runt e-post-identitet. Nya migrationer blandas med gammal historik.
 
-Rekommenderade **kumulativa** trösklar (deltagna besök i gruppen):
+Varför inte B (omarbeta befintliga tabeller):
+- Att flytta identitet från e-post/appgenererade UUID:n till `auth.users.id` på befintliga tabeller kräver backfills, temporära kolumner och en period där båda apparna skriver. Det är den dyraste vägen, och nyttan (behålla ~låg mängd produktionsdata) är liten.
+
+Varför C:
+- Ren RLS-modell från dag ett, ingen risk för service-role-läckage från gamla policies.
+- Streamlit-appen kan fortsätta leva orörd tills den stängs av — noll driftrisk.
+- "Migrering" reduceras till en engångsexport→import av det fåtal rader som faktiskt är värda att bevara (se §8).
+- Kostnad: ett extra gratis Supabase-projekt. Marginellt.
+
+Förbehåll: om du redan har externa integrationer (t.ex. bokmärken, delade länkar) som pekar på det gamla projektets URL, väger det över mot A. Baserat på beskrivningen finns inga sådana.
+
+## 2. Vad som återanvänds
+
+**Oförändrat (kopiera rakt av):**
+- Google Cloud OAuth-klient (client ID/secret) — lägg bara till Supabase-projektets `/auth/v1/callback` som redirect URI. Se §4.
+- Geoapify-konto och API-nyckel.
+- OSM-attributionstexter.
+
+**Som specifikation/koncept (skrivs om i TypeScript):**
+- Svensk kategorinormalisering och köksmappning från Geoapify-adaptern.
+- `PlaceCandidate` / `PlaceProvider`-gränssnittet — matchar redan vår befintliga `PlacesProvider` i `src/lib/matrundan/places-provider.ts`.
+- Transaktionell besöks-RPC (visit + participants + första recension) — bra mönster, portas till en Postgres-funktion.
+- Gruppspecifikt dubblettskydd på provider-place-ID (unique constraint `(group_id, provider, provider_place_id)`).
+- Rollmodell owner/admin/member och inbjudningsflödet.
+
+**Kasseras:**
+- All service-role-logik i klientkoden och medlemskapskontroller i applikationslagret — ersätts av RLS.
+- E-post och app-UUID som primär identitet — ersätts av `auth.users.id`.
+- SQLite-lokalläge — Lovable-appen kör Supabase i alla lägen utom demo (§9).
+- Streamlit `st.login()`-flödet.
+
+## 3. Google Auth-övergång utan att bryta gamla appen
+
+1. Behåll den gamla OAuth-klienten. Lägg till två nya "Authorized redirect URIs":
+   - `https://<nytt-projekt>.supabase.co/auth/v1/callback`
+   - Lovable preview- och publicerade URL:er (Lovable Auth hanterar detta automatiskt när Supabase kopplas via `supabase--enable`).
+2. Inga ändringar i den gamla Streamlit-appens `[auth]`-block behövs.
+3. Aktivera Google som provider i det nya Supabase-projektet (via `supabase--configure_social_auth`).
+4. Bägge apparna kan därmed logga in samma användare parallellt. E-postmatchning gör det trivialt att koppla en gammal profil till en ny `auth.users.id` om/när du migrerar data.
+
+Alternativ: skapa en ny OAuth-klient enbart för Matrundan v2. Föredras om du vill kunna revokera gammal åtkomst separat eller om Streamlit-appens redirect-URI-lista redan är rörig. Marginell extra insats.
+
+**Rekommendation:** återanvänd befintlig klient. Miljöseparation ligger ändå i Supabase-projektet, inte i OAuth-klienten.
+
+## 4. Geoapify: direktanrop vs Edge Function
+
+**Rekommendation: TanStack server function (createServerFn), inte direktanrop från browsern och inte Supabase Edge Function.**
+
+Skäl:
+- Direktanrop från browsern kräver att nyckeln exponeras. Geoapifys origin-restriktioner hjälper men skyddar inte mot kvotmissbruk från legitima origins.
+- Vår stack är TanStack Start — server functions är rätt verktyg för app-intern serverlogik. Supabase Edge Functions ska undvikas här (se `tanstack-supabase-integration`).
+- Server function kan cachea autocomplete-svar per (query, bbox) i minne/KV och normalisera svaret till `PlaceCandidate` innan det når klienten.
+
+Nyckeln (`GEOAPIFY_API_KEY`) läggs i Project Settings → Secrets, läses via `process.env` inuti handler.
+
+## 5. Föreslaget v2-schema (utan SQL, bara relationer)
 
 ```text
-0    Nyfiken smakare        (start)
-1    Smakletare             (första besöket — omedelbar belöning)
-4    Krogspanaren           (~första månaden för aktiva)
-10   Fikafantast            (~kvartal)
-20   Mataventyrare          (~halvår–år)
-40   Matkonnässör           (~år+ för aktiva)
-75   Matrundans mästare     (flerårigt mål, håller för publik produkt)
+auth.users (Supabase-managed)
+  └── profiles (1:1, PK = auth.users.id)
+        display_name, avatar_url, created_at
+
+groups
+  id, name, emoji, city (default), owner_id → profiles.id, created_at
+
+memberships
+  (group_id, user_id) composite PK
+  role: enum('owner','admin','member')
+  joined_at
+  → groups.id, → profiles.id
+
+invitations
+  id, group_id, email, role, token, invited_by, expires_at, accepted_at
+  (accept-flödet kopplar email→auth.users vid inloggning)
+
+places
+  id, group_id, name, category, address, city, area, lat, lng,
+  added_by → profiles.id, added_at, notes, photo_url
+  UNIQUE (group_id, name, address)  -- mjukt dubblettskydd
+
+place_sources
+  place_id, provider ('geoapify'|'manual'|'osm'), provider_place_id,
+  raw jsonb, fetched_at
+  UNIQUE (place_id, provider)
+  UNIQUE (group_id, provider, provider_place_id) via denormaliserad group_id
+
+visits
+  id, group_id, place_id, date, occasion, created_by → profiles.id, created_at
+  overall (numeric) -- gruppens helhetsbetyg, härlett eller sparat
+
+visit_participants
+  (visit_id, user_id) PK, → profiles.id
+
+reviews
+  id, visit_id, author_id → profiles.id,
+  taste, value, service, comment, created_at
+  UNIQUE (visit_id, author_id)
+
+favorites
+  (user_id, place_id) PK
+
+group_next_place
+  group_id PK, place_id, picked_by, picked_at
+
+activity
+  id, group_id, kind, actor_id, place_id?, visit_id?, at, payload jsonb
 ```
 
-Sju nivåer. Kurvan är ungefär geometrisk (×2–2.5) efter första steget, inte Fibonacci. Trösklarna är runda tal — lättare att kommunicera än 1/3/8/21.
+Notera:
+- `group_id` denormaliseras på `places`, `visits`, `favorites` (via place), `activity` för att förenkla RLS-policies (en enda `has_membership(group_id, auth.uid())`-check per policy).
+- Ingen `email`-kolumn på `profiles` — den ligger redan på `auth.users`.
+- Nivåer/badges (från gamification-diskussionen) härleds i vyer/SQL-funktioner, sparas inte som kolumner initialt.
 
-Motiv att avvika från Fibonacci: appen mäter i **händelser med lång periodicitet**, inte kontinuerlig aktivitet. Fibonacci passar bättre för dagliga streaks och XP.
+## 6. RLS-principer per tabell
 
-## 2. Nivånamn — tre serier + rekommendation
+Grundregel: **allt public-schema-skrivbart bakom `has_membership(group_id, auth.uid())`**, implementerad som SECURITY DEFINER-funktion mot `memberships` (för att undvika rekursion, jfr `infinite-recursion-in-rls`).
 
-**Serie A — Utforskare (rekommenderad).** Bygger på "spanar/letar/upptäcker", fungerar för alla kategorier, har glimten i ögat utan att bli barnsligt:
+| Tabell | SELECT | INSERT | UPDATE | DELETE |
+|---|---|---|---|---|
+| profiles | egen + medlemmar i samma grupp | egen (self) | egen | — |
+| groups | medlem | authenticated (blir owner) | owner/admin | owner |
+| memberships | medlem i samma grupp | via invitation-RPC | owner/admin (utom sista owner) | owner/admin eller self |
+| invitations | owner/admin i gruppen + inbjuden e-post | owner/admin | owner/admin | owner/admin |
+| places | medlem | medlem | medlem (eller added_by/admin) | added_by eller admin |
+| place_sources | medlem | medlem | medlem | admin |
+| visits | medlem | medlem (via RPC) | created_by/admin | created_by/admin |
+| visit_participants | medlem | via visit-RPC | — | via visit-RPC |
+| reviews | medlem | author = auth.uid() OCH medlem | author | author/admin |
+| favorites | egen | egen | — | egen |
+| group_next_place | medlem | medlem | medlem | medlem |
+| activity | medlem | via triggers/RPC | — | — |
 
-```text
-Nyfiken smakare
-Smakletare
-Krogspanaren
-Fikafantast
-Mataventyrare
-Matkonnässör
-Matrundans mästare
-```
+Skrivningar som spänner över flera tabeller (skapa besök, acceptera inbjudan, skapa grupp+owner-membership) körs via `SECURITY DEFINER` RPC:er som validerar medlemskap explicit — inte via klient-transaktioner.
 
-**Serie B — Sällskapet.** Mer social ton, mindre koppling till mat specifikt:
-
-```text
-Nykomling vid bordet
-Bordsgäst
-Stammis
-Rundans följeslagare
-Middagsstrateg
-Sällskapets sakkunnige
-Rundans hövding
-```
-
-**Serie C — Vardagsheroisk.** Torrare svensk humor:
-
-```text
-Provsmakaren
-Menyläsaren
-Krogspanaren
-Notaförhandlaren
-Måltidsveteranen
-Matrundans orakel
-Matrundans mästare
-```
-
-**Rekommendation: Serie A.** Skäl:
-- "Krogspanaren" som användaren gillade sitter mitt i serien där den gör mest nytta (första "riktiga" nivån).
-- Fungerar för café/pub/matvagn — "spanare/letare/äventyrare" är kategorineutralt.
-- Blandar allvar och lek utan att bli krystat.
-- Skiljer sig lexikalt från badges (badges använder verbfraser/ögonblick, nivåer använder personroller).
-
-## 3. Badges — exakt 5 för v1
-
-Kriterier: fira **ögonblick och variation**, inte volym (det gör nivåerna). Ingen ska kunna game:as genom app-klick. Ingen "lade till 10 ställen"-badge — det driver spam.
-
-1. **Första besöket** — deltog i sitt första registrerade besök i gruppen. *Varför:* välkomstögonblick, kompletterar nivå 1 med en visuell markör.
-2. **Provsmakare** — deltagit i besök i minst 4 olika kategorier (restaurang, café, bageri, snabbmat, pub, matvagn). *Varför:* belönar bredd utan att kräva alla 6 (matvagn/pub finns inte i alla städer).
-3. **Kökskosmopolit** — deltagit i besök som täcker minst 5 olika kök (fältet `cuisines`). *Varför:* belönar kulinarisk variation oberoende av kategori; skiljer sig från Provsmakare som mäter formatet.
-4. **Återvändare** — deltog i tredje besöket på samma ställe. *Varför:* firar att gruppen har favoriter; motverkar "unika ställen"-fixering.
-5. **Kurator** — föreslog ett ställe som gruppen senare faktiskt besökte (≥1). *Varför:* belönar bidrag utan att belöna spam — ett förslag som ingen bryr sig om ger ingenting.
-
-**Uttryckligen bortvalt:**
-- "Hela gänget samlat" (alla deltar) — omöjligt när gruppen växer och skalar dåligt för publik produkt. Passar bättre som grupphöjdpunkt (§5).
-- "Snabb bokare" / "Föreslog Nästa stopp som besöktes inom en vecka" — överlappar Kurator och tidspressar flödet.
-- Ren "unika ställen"-badge — nivåerna räknar redan deltagna besök; unika ställen visas som separat statistik i profilen (mätvärde, inte badge).
-
-Fem räcker. Sex är taket; bättre lägga till en efter första skarpa användning än att inflatera nu.
-
-## 4. UI — placering
-
-**Medlemslista (Gruppen-fliken):**
-- Liten nivå-chip efter namnet: `Lv 3 · Krogspanaren` i muted färg. Ingen progressbar, inga badge-ikoner här (för mycket brus i listan).
-- Hela kortet fortsatt klickbart → öppnar MemberProfileSheet.
-
-**MemberProfileSheet:**
-- Överst: avatar + namn + nivå-chip. Under chippen: **liten diskret text** "3 besök till nästa nivå" (progress som text, inte som bar). *Motiv att visa progress:* användaren vill se att systemet finns och rör sig; risk för fel incitament dämpas av att det bara syns i egen/andras profil, inte på hem/matställen. Om det visar sig driva farmning i skarpt läge — dölj för andra, behåll för egen profil.
-- Nyckeltal-rad: Besök · Unika ställen · Föreslagna. (Unika ställen som separat siffra löser användarens punkt om att inte blanda in dem i nivån.)
-- Badges-rad: horisontell rad med intjänade badges som små emoji-chips med tooltip/label. Ej intjänade visas **inte** (ingen "låst"-lista — det signalerar checklist-beteende).
-- Sedan: senaste besök, favorit just nu, smakprofil, senaste aktivitet (som idag).
-
-**Hem och Matställen:** ingen nivå- eller badge-yta. Skyddar kärnflödet.
-
-## 5. Gruppens höjdpunkter — 6 mallar
-
-Rotera 1–2 åt gången i Gruppen-fliken. Alla ska ge meningsfull text även vid låg aktivitet; de som kräver tröskel visas inte förrän tröskeln är nådd (inget tomt kort).
-
-1. **"Ni har tillsammans besökt {N} ställen"** — alltid tillgänglig (N≥1).
-2. **"Er mest besökta plats är {Ställe} med {N} besök"** — kräver N≥2 på något ställe.
-3. **"Ni har provat {N} olika kök"** — kräver N≥3.
-4. **"Senaste månaden: {N} besök tillsammans"** — kräver N≥1 senaste 30 dagarna.
-5. **"{Namn} föreslog {Ställe} som ni sedan besökte"** — kräver att en kurator-koppling finns; roterar mellan medlemmar.
-6. **"Nästa stopp: {Ställe}"** — alltid tillgänglig om `nextPlaceId` är satt (fungerar som mjuk påminnelse).
-
-**Uttryckligen inte:** "flest besök", "flest förslag", "flest kommentarer" — rangordnar medlemmar och krockar med beslutet att inte ha leaderboard.
-
-## 6. Ordningsföljd: demo → Supabase → Geoapify
+## 7. Datamigrering: **arkivera, migrera inte automatiskt**
 
 Rekommendation:
+1. Behåll gamla Supabase-projektet i read-only-läge (revoke skrivrättigheter, stäng av Streamlit-appen eller sätt banner).
+2. Exportera relevanta tabeller till CSV/JSON som arkiv.
+3. Om det finns >0 verkligt värdefulla besök: skriv ett engångsskript som mappar `email → auth.users.id` (efter att användarna loggat in en gång på nya appen) och importerar `groups`, `memberships`, `places`, `visits`, `reviews`. Kör manuellt, inte som automatisk migrering.
+4. Om värdet är lågt: skapa gruppen på nytt i v2 och låt användarna backfilla några historiska besök manuellt via "Registrera besök"-flödet med bakåtdaterat datum.
 
-1. **Färdigställ gamification-UX i demo först.** Skäl: nivå- och badge-logik är rent härledd från `visits` + `participantIds`, som redan finns i datamodellen. Ingen ny tabell krävs. Att iterera visuellt i demo är snabbt och billigt. Risk för omarbete är låg eftersom regeln (härled, lagra ej) redan är etablerad.
-2. **Supabase därefter.** När UX sitter är datamodellen bekräftad; migreringen blir mekanisk. Supabase före gamification skulle tvinga fram schema-beslut innan UX validerat att de behövs.
-3. **Geoapify sist.** Sökning är en ortogonal förbättring som inte påverkar gamification eller gruppmodellen. Att göra den sist håller UX-iterationen snabb (ingen API-latens/nyckelhantering i demo).
+Beslutskriterium: kör en snabb `SELECT COUNT(*) FROM visits` och `SELECT COUNT(DISTINCT restaurant_id) FROM visits` i gamla DB. Under ~50 besök → manuell backfill. Över → engångsimport.
 
-**Behåll demo-läget efter Supabase-koppling.** Konkret: en `?demo=1`-flagga eller en toggle i Om-appen som laddar in-memory state istället för Supabase. Skäl: gör onboarding/marknadsföring lättare (klickbar demo utan konto), snabbar upp lokal utveckling, och ger en säkerhetsventil när backenden är nere. Håll demon read-only-liknande (skriv till minne, aldrig till Supabase) för att undvika förvirring.
+## 8. Demo-läget efter Supabase-koppling
 
-## 7. Rekommenderat nästa implementationspaket
+Behåll nuvarande `StoreProvider` + `localStorage` som **anonymt demo-läge** som körs när användaren inte är inloggad. Två klara lägen:
 
-**Ingår i samma steg (gamification v1 i demo):**
-- Härlederingslogik i store: nivå per medlem+grupp, intjänade badges, unika-ställen-count.
-- Nivå-chip i medlemslistan.
-- Nivå-chip + progress-text + badges-rad + unika-ställen-siffra i MemberProfileSheet.
-- "Gruppens höjdpunkter"-sektion i Gruppen-fliken med de 6 mallarna och rotationslogik.
-- Diskret toast "Du är nu Krogspanaren" vid nästa appöppning efter nivåuppgradering.
-- Version bump + changelog-post.
+- **Demo** (ej inloggad): dagens `DEMO_STATE`, allt i localStorage, ingen Supabase-trafik. Bra för landningssida och för att prova appen utan konto.
+- **Live** (inloggad): all data via Supabase + RLS. `StoreProvider` byts mot en tunn Supabase-repository-implementation bakom samma interface.
 
-**Väntar uttryckligen:**
-- Supabase-koppling.
-- Geoapify-koppling.
-- Privat livstidsräknare/global profil.
-- Badge nr 6 (lägg till efter första skarpa användning om det behövs).
-- Säsongsutmaningar, streaks, publika leaderboards.
+Nyckelbeslut: gör `StoreContextValue` till ett interface, byt implementation baserat på auth-state. Detta gör att alla vyer förblir orörda.
 
-**Öppen produktfråga innan implementation:** ingen kritisk. Kvar att bekräfta med användaren:
-- Godkänner nivåkurvan 1/4/10/20/40/75 (avviker från Fibonacci)?
-- Godkänner Serie A som nivånamn?
-- Godkänner de 5 badgesen (vill användaren lägga till "hela gänget samlat" som badge trots överlapp med grupphöjdpunkt §5.4)?
+Ingen datasynk mellan demo och live — demo är sandlåda, inget mer.
 
-När dessa tre är bekräftade är vi redo för implementation.
+## 9. Implementationsordning och rollback
+
+Föreslagen ordning, varje steg är en avslutbar milstolpe:
+
+1. **`supabase--enable`** → Lovable provisionerar nytt projekt.
+2. **Migrationer:** schema från §5 + `has_membership`-funktion + grants + RLS-policies. Ingen appkod ändras än.
+3. **Auth:** aktivera Google via `supabase--configure_social_auth`. Lägg till `/_authenticated`-layout, publik `/auth`-route.
+4. **Repository-lager:** implementera Supabase-versionen av `StoreContextValue`-interfacet vid sidan av demo-versionen. Feature-flagga.
+5. **Läsflöden först:** matställen-lista, detaljvy, gruppmedlemmar — verifiera RLS med två testkonton.
+6. **Skrivflöden:** lägg till plats, registrera besök (via RPC), favoriter, nästa stopp.
+7. **Geoapify server function** ersätter demo-provider bakom samma `PlacesProvider`-interface.
+8. **Inbjudningsflöde** (invitations-tabell + accept-RPC + e-postlänk).
+9. **Gamification-härledningar** (från tidigare plan) — läggs som Postgres-vyer.
+10. **Data-arkivering/backfill** enligt §7.
+11. Stäng av Streamlit-appen.
+
+**Rollback:** varje steg är additivt. Feature-flag mellan demo och live gör att vi kan falla tillbaka till demo-läge om något RLS-hål upptäcks. Streamlit-appen rörs inte förrän steg 11, så den är alltid en fallback.
+
+## 10. Vad du behöver konfigurera manuellt
+
+**Du (manuellt):**
+- Godkänn `supabase--enable` när steget körs.
+- Lägg till Supabase callback-URI i Google Cloud Console (en engångsåtgärd; instruktioner kommer i implementationen).
+- Lägg `GEOAPIFY_API_KEY` i Project Settings → Secrets när vi når steg 7.
+- Beslut i §11 nedan.
+
+**Lovable/Supabase hanterar automatiskt:**
+- Supabase-projektuppsättning, keys, URL:er, JWT-signering.
+- Google-provider-konfiguration via `supabase--configure_social_auth` (du fyller i client ID/secret som secrets).
+- Redirect URLs för preview och publicerad app.
+- Migrationer och grants.
+
+## 11. Öppna frågor innan implementation
+
+1. **Ny eller återanvänd OAuth-klient?** Rekommendation: återanvänd. Bekräfta.
+2. **Datamigrering:** ungefärlig storlek på gamla DB (räcker manuell backfill eller behövs engångsimport)?
+3. **Demo kvar efter live?** Rekommendation: ja, som anonymt sandlådeläge. Bekräfta.
+4. **Startpunkt:** vill du att jag börjar med steg 1–3 (Supabase + auth + tom skala) i första implementationsomgången, eller inkludera läs-flöden (steg 5) direkt?
+
+Efter dessa svar bedömer jag att vi är redo för implementation.
