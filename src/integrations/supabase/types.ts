@@ -104,13 +104,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "favorites_place_group_fkey"
-            columns: ["place_id", "group_id"]
-            isOneToOne: false
-            referencedRelation: "places"
-            referencedColumns: ["id", "group_id"]
-          },
-          {
             foreignKeyName: "favorites_place_id_fkey"
             columns: ["place_id"]
             isOneToOne: false
@@ -154,13 +147,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "group_next_place_place_group_fkey"
-            columns: ["place_id", "group_id"]
-            isOneToOne: false
-            referencedRelation: "places"
-            referencedColumns: ["id", "group_id"]
-          },
-          {
             foreignKeyName: "group_next_place_place_id_fkey"
             columns: ["place_id"]
             isOneToOne: false
@@ -176,6 +162,64 @@ export type Database = {
           },
         ]
       }
+      group_places: {
+        Row: {
+          added_by: string
+          created_at: string
+          group_id: string
+          notes: string | null
+          occasions: string[]
+          origin: string
+          place_id: string
+          source_group_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          group_id: string
+          notes?: string | null
+          occasions?: string[]
+          origin?: string
+          place_id: string
+          source_group_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          group_id?: string
+          notes?: string | null
+          occasions?: string[]
+          origin?: string
+          place_id?: string
+          source_group_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_places_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_places_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_places_source_group_id_fkey"
+            columns: ["source_group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groups: {
         Row: {
           created_at: string
@@ -186,6 +230,7 @@ export type Database = {
           home_location_label: string | null
           id: string
           name: string
+          shared_visits_count_for_progression: boolean
           updated_at: string
         }
         Insert: {
@@ -197,6 +242,7 @@ export type Database = {
           home_location_label?: string | null
           id?: string
           name: string
+          shared_visits_count_for_progression?: boolean
           updated_at?: string
         }
         Update: {
@@ -208,6 +254,7 @@ export type Database = {
           home_location_label?: string | null
           id?: string
           name?: string
+          shared_visits_count_for_progression?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -325,7 +372,6 @@ export type Database = {
       place_sources: {
         Row: {
           fetched_at: string
-          group_id: string
           id: string
           place_id: string
           provider: string
@@ -334,7 +380,6 @@ export type Database = {
         }
         Insert: {
           fetched_at?: string
-          group_id: string
           id?: string
           place_id: string
           provider: string
@@ -343,7 +388,6 @@ export type Database = {
         }
         Update: {
           fetched_at?: string
-          group_id?: string
           id?: string
           place_id?: string
           provider?: string
@@ -351,20 +395,6 @@ export type Database = {
           raw?: Json
         }
         Relationships: [
-          {
-            foreignKeyName: "place_sources_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "place_sources_place_group_fkey"
-            columns: ["place_id", "group_id"]
-            isOneToOne: false
-            referencedRelation: "places"
-            referencedColumns: ["id", "group_id"]
-          },
           {
             foreignKeyName: "place_sources_place_id_fkey"
             columns: ["place_id"]
@@ -383,13 +413,10 @@ export type Database = {
           city: string
           created_at: string
           cuisines: string[]
-          group_id: string
           id: string
           lat: number | null
           lng: number | null
           name: string
-          notes: string | null
-          occasions: string[]
           photo_url: string | null
           updated_at: string
         }
@@ -401,13 +428,10 @@ export type Database = {
           city?: string
           created_at?: string
           cuisines?: string[]
-          group_id: string
           id?: string
           lat?: number | null
           lng?: number | null
           name: string
-          notes?: string | null
-          occasions?: string[]
           photo_url?: string | null
           updated_at?: string
         }
@@ -419,13 +443,10 @@ export type Database = {
           city?: string
           created_at?: string
           cuisines?: string[]
-          group_id?: string
           id?: string
           lat?: number | null
           lng?: number | null
           name?: string
-          notes?: string | null
-          occasions?: string[]
           photo_url?: string | null
           updated_at?: string
         }
@@ -435,13 +456,6 @@ export type Database = {
             columns: ["added_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "places_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
         ]
@@ -473,14 +487,51 @@ export type Database = {
         }
         Relationships: []
       }
+      review_group_visibility: {
+        Row: {
+          comment_visible: boolean
+          group_id: string
+          rating_visible: boolean
+          review_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment_visible?: boolean
+          group_id: string
+          rating_visible?: boolean
+          review_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment_visible?: boolean
+          group_id?: string
+          rating_visible?: boolean
+          review_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_group_visibility_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_group_visibility_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           comment: string | null
           created_at: string
-          group_id: string
           id: string
           overall: number
-          place_id: string
           service: number | null
           taste: number | null
           updated_at: string
@@ -491,10 +542,8 @@ export type Database = {
         Insert: {
           comment?: string | null
           created_at?: string
-          group_id: string
           id?: string
           overall: number
-          place_id: string
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -505,10 +554,8 @@ export type Database = {
         Update: {
           comment?: string | null
           created_at?: string
-          group_id?: string
           id?: string
           overall?: number
-          place_id?: string
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -518,20 +565,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "reviews_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_place_id_fkey"
-            columns: ["place_id"]
-            isOneToOne: false
-            referencedRelation: "places"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "reviews_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -539,14 +572,56 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reviews_visit_group_place_fkey"
-            columns: ["visit_id", "group_id", "place_id"]
+            foreignKeyName: "reviews_visit_id_fkey"
+            columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
-            referencedColumns: ["id", "group_id", "place_id"]
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visit_group_links: {
+        Row: {
+          group_id: string
+          link_type: string
+          linked_at: string
+          linked_by: string
+          source_group_id: string | null
+          visit_id: string
+        }
+        Insert: {
+          group_id: string
+          link_type: string
+          linked_at?: string
+          linked_by: string
+          source_group_id?: string | null
+          visit_id: string
+        }
+        Update: {
+          group_id?: string
+          link_type?: string
+          linked_at?: string
+          linked_by?: string
+          source_group_id?: string | null
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_group_links_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reviews_visit_id_fkey"
+            foreignKeyName: "visit_group_links_source_group_id_fkey"
+            columns: ["source_group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_group_links_visit_id_fkey"
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
@@ -588,7 +663,6 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
-          group_id: string
           id: string
           meal_type: string
           place_id: string
@@ -598,7 +672,6 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
-          group_id: string
           id?: string
           meal_type: string
           place_id: string
@@ -608,7 +681,6 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
-          group_id?: string
           id?: string
           meal_type?: string
           place_id?: string
@@ -622,20 +694,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "visits_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "visits_place_group_fkey"
-            columns: ["place_id", "group_id"]
-            isOneToOne: false
-            referencedRelation: "places"
-            referencedColumns: ["id", "group_id"]
           },
           {
             foreignKeyName: "visits_place_id_fkey"
@@ -703,6 +761,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_group_app_state: { Args: { _group_id: string }; Returns: Json }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
@@ -756,15 +815,26 @@ export type Database = {
         Args: { _group_id: string; _new_owner_id: string }
         Returns: undefined
       }
-      update_group_settings: {
-        Args: {
-          _emoji?: string
-          _group_id: string
-          _home_label?: string
-          _name: string
-        }
-        Returns: undefined
-      }
+      update_group_settings:
+        | {
+            Args: {
+              _emoji?: string
+              _group_id: string
+              _home_label?: string
+              _name: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _emoji?: string
+              _group_id: string
+              _home_label?: string
+              _name: string
+              _shared_visits_count_for_progression?: boolean
+            }
+            Returns: undefined
+          }
       update_profile: {
         Args: { _avatar_emoji?: string; _display_name: string }
         Returns: undefined

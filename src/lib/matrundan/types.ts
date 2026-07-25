@@ -49,6 +49,12 @@ export interface Visit {
   service?: number;
   comment?: string;
   createdBy: string;
+  /** Om besöket är originalgruppens eller inlänkat från en annan grupp. */
+  linkType?: "original" | "shared";
+  linkedBy?: string;
+  linkedAt?: string;
+  /** Antal deltagare från andra grupper (visas anonymt som "+N"). */
+  externalParticipantCount?: number;
 }
 
 export interface Favorite {

@@ -1,6 +1,6 @@
 /**
- * Live-repository: läser en grupps tillstånd från Supabase och mappar det
- * till appens interna AppState-format. Bara aktiva medlemskap räknas.
+ * Live-repository: läser en grupps state via den säkra RPC:n
+ * get_group_app_state, som filtrerar deltagare/omdömen per grupp.
  */
 import { supabase } from "@/integrations/supabase/client";
 import type {
@@ -23,179 +23,181 @@ const ROLE_LABEL: Record<string, Role> = {
   member: "medlem",
 };
 
+type ReviewRow = {
+  id: string;
+  userId: string;
+  overall: number;
+  taste: number | null;
+  value: number | null;
+  service: number | null;
+  comment: string | null;
+  ratingVisible: boolean;
+  commentVisible: boolean;
+};
+
+type VisitRow = {
+  id: string;
+  placeId: string;
+  date: string;
+  meal: Visit["meal"];
+  createdBy: string;
+  linkType: "original" | "shared";
+  linkedBy: string;
+  linkedAt: string;
+  externalParticipantCount: number;
+  participantIds: string[];
+  reviews: ReviewRow[];
+};
+
+type Payload = {
+  currentUserId: string;
+  group: {
+    id: string;
+    name: string;
+    emoji: string | null;
+    city: string;
+    createdAt: string;
+    ownerId: string;
+    sharedVisitsCountForProgression: boolean;
+  };
+  members: {
+    id: string;
+    name: string;
+    avatar: string | null;
+    avatarImage: string | null;
+    role: string;
+  }[];
+  places: {
+    id: string;
+    name: string;
+    category: string;
+    cuisines: string[];
+    occasions: string[];
+    address: string;
+    area: string | null;
+    city: string;
+    lat: number | null;
+    lng: number | null;
+    photo: string | null;
+    notes: string | null;
+    addedBy: string;
+    addedAt: string;
+    origin: string;
+  }[];
+  visits: VisitRow[];
+  favorites: { memberId: string; placeId: string }[];
+  activity: {
+    id: string;
+    kind: string;
+    memberId: string;
+    placeId: string | null;
+    visitId: string | null;
+    at: string;
+    text: string;
+  }[];
+  nextPlaceId: string | null;
+};
+
+function avg(xs: number[]): number | undefined {
+  if (!xs.length) return undefined;
+  return xs.reduce((a, b) => a + b, 0) / xs.length;
+}
+
 export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const { data: userData } = await supabase.auth.getUser();
-  const currentUserId = userData.user?.id;
-  if (!currentUserId) return null;
-
-  const [
-    groupRes,
-    membersRes,
-    placesRes,
-    visitsRes,
-    participantsRes,
-    reviewsRes,
-    favRes,
-    nextRes,
-    activityRes,
-  ] = await Promise.all([
-    supabase.from("groups").select("*").eq("id", groupId).maybeSingle(),
-    supabase
-      .from("memberships")
-      .select(
-        "user_id, role, joined_at, status, profiles(id, display_name, avatar_url, avatar_emoji)",
-      )
-      .eq("group_id", groupId)
-      .eq("status", "active"),
-    supabase.from("places").select("*").eq("group_id", groupId),
-    supabase.from("visits").select("*").eq("group_id", groupId),
-    supabase
-      .from("visit_participants")
-      .select("visit_id, user_id, visits!inner(group_id)")
-      .eq("visits.group_id", groupId),
-    supabase.from("reviews").select("*").eq("group_id", groupId),
-    supabase.from("favorites").select("*").eq("group_id", groupId),
-    supabase
-      .from("group_next_place")
-      .select("*")
-      .eq("group_id", groupId)
-      .maybeSingle(),
-    supabase
-      .from("activity")
-      .select("*")
-      .eq("group_id", groupId)
-      .order("created_at", { ascending: false })
-      .limit(50),
-  ]);
-
-  if (groupRes.error || !groupRes.data) {
-    console.error("[Matrundan] kunde inte läsa grupp:", groupRes.error);
+  const { data, error } = await supabase.rpc("get_group_app_state", {
+    _group_id: groupId,
+  });
+  if (error || !data) {
+    console.error("[Matrundan] get_group_app_state:", error);
     return null;
   }
-
-  const groupRow = groupRes.data;
-
-  // Härled aktuell ägare från medlemsraden (kan skilja från created_by efter transfer).
-  const ownerRow = (membersRes.data ?? []).find(
-    (r) => (r as { role: string }).role === "owner",
-  );
-  const ownerId =
-    (ownerRow as { user_id?: string } | undefined)?.user_id ?? groupRow.created_by;
+  const p = data as unknown as Payload;
 
   const group: Group = {
-    id: groupRow.id,
-    name: groupRow.name,
-    emoji: groupRow.emoji ?? "🍽️",
-    city: groupRow.home_location_label ?? "",
-    createdAt: groupRow.created_at,
-    ownerId,
+    id: p.group.id,
+    name: p.group.name,
+    emoji: p.group.emoji ?? "🍽️",
+    city: p.group.city ?? "",
+    createdAt: p.group.createdAt,
+    ownerId: p.group.ownerId,
   };
 
-  const members: Member[] = (membersRes.data ?? []).map((row) => {
-    const p = (row as {
-      profiles: {
-        id: string;
-        display_name: string | null;
-        avatar_url: string | null;
-        avatar_emoji: string | null;
-      } | null;
-    }).profiles;
-    const id = p?.id ?? (row as { user_id: string }).user_id;
-    const name = p?.display_name?.trim() || "Medlem";
-    return {
-      id,
-      name,
-      avatar: p?.avatar_emoji ?? undefined,
-      avatarImage: p?.avatar_url ?? undefined,
-      role: ROLE_LABEL[(row as { role: string }).role] ?? "medlem",
-    };
-  });
-
-  const places: Place[] = (placesRes.data ?? []).map((p) => ({
-    id: p.id,
-    name: p.name,
-    category: p.category as PlaceCategory,
-    cuisines: p.cuisines ?? [],
-    occasions: (p.occasions ?? []) as Occasion[],
-    address: p.address ?? "",
-    city: p.city ?? "",
-    area: p.area ?? undefined,
-    lat: p.lat ?? undefined,
-    lng: p.lng ?? undefined,
-    addedBy: p.added_by,
-    addedAt: p.created_at,
-    notes: p.notes ?? undefined,
-    photo: p.photo_url ?? undefined,
+  const members: Member[] = p.members.map((m) => ({
+    id: m.id,
+    name: m.name,
+    avatar: m.avatar ?? undefined,
+    avatarImage: m.avatarImage ?? undefined,
+    role: ROLE_LABEL[m.role] ?? "medlem",
   }));
 
-  const participantsByVisit = new Map<string, string[]>();
-  for (const row of participantsRes.data ?? []) {
-    const vId = (row as { visit_id: string }).visit_id;
-    const uId = (row as { user_id: string }).user_id;
-    if (!participantsByVisit.has(vId)) participantsByVisit.set(vId, []);
-    participantsByVisit.get(vId)!.push(uId);
-  }
+  const places: Place[] = p.places.map((pl) => ({
+    id: pl.id,
+    name: pl.name,
+    category: pl.category as PlaceCategory,
+    cuisines: pl.cuisines ?? [],
+    occasions: (pl.occasions ?? []) as Occasion[],
+    address: pl.address ?? "",
+    city: pl.city ?? "",
+    area: pl.area ?? undefined,
+    lat: pl.lat ?? undefined,
+    lng: pl.lng ?? undefined,
+    addedBy: pl.addedBy,
+    addedAt: pl.addedAt,
+    notes: pl.notes ?? undefined,
+    photo: pl.photo ?? undefined,
+  }));
 
-  const reviewsByVisit = new Map<
-    string,
-    { overall: number[]; taste: number[]; value: number[]; service: number[]; comment?: string }
-  >();
-  for (const r of reviewsRes.data ?? []) {
-    const key = r.visit_id;
-    if (!reviewsByVisit.has(key)) {
-      reviewsByVisit.set(key, { overall: [], taste: [], value: [], service: [] });
-    }
-    const bucket = reviewsByVisit.get(key)!;
-    bucket.overall.push(r.overall);
-    if (r.taste != null) bucket.taste.push(r.taste);
-    if (r.value != null) bucket.value.push(r.value);
-    if (r.service != null) bucket.service.push(r.service);
-    if (r.comment && !bucket.comment) bucket.comment = r.comment;
-  }
-  const avg = (xs: number[]) =>
-    xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : undefined;
-
-  const visits: Visit[] = (visitsRes.data ?? []).map((v) => {
-    const bucket = reviewsByVisit.get(v.id);
+  const visits: Visit[] = p.visits.map((v) => {
+    const overall = v.reviews.map((r) => r.overall);
+    const taste = v.reviews.map((r) => r.taste).filter((x): x is number => x != null);
+    const value = v.reviews.map((r) => r.value).filter((x): x is number => x != null);
+    const service = v.reviews
+      .map((r) => r.service)
+      .filter((x): x is number => x != null);
+    const comment = v.reviews.find((r) => r.comment)?.comment ?? undefined;
     return {
       id: v.id,
-      placeId: v.place_id,
-      date: v.visited_on,
-      meal: v.meal_type as Visit["meal"],
-      participantIds: participantsByVisit.get(v.id) ?? [],
-      overall: bucket?.overall.length ? avg(bucket.overall)! : 0,
-      taste: avg(bucket?.taste ?? []),
-      value: avg(bucket?.value ?? []),
-      service: avg(bucket?.service ?? []),
-      comment: bucket?.comment,
-      createdBy: v.created_by,
+      placeId: v.placeId,
+      date: v.date,
+      meal: v.meal,
+      participantIds: v.participantIds ?? [],
+      overall: avg(overall) ?? 0,
+      taste: avg(taste),
+      value: avg(value),
+      service: avg(service),
+      comment,
+      createdBy: v.createdBy,
+      linkType: v.linkType,
+      linkedBy: v.linkedBy,
+      linkedAt: v.linkedAt,
+      externalParticipantCount: v.externalParticipantCount ?? 0,
     };
   });
 
-  const favorites: Favorite[] = (favRes.data ?? []).map((f) => ({
-    memberId: f.user_id,
-    placeId: f.place_id,
+  const favorites: Favorite[] = p.favorites.map((f) => ({
+    memberId: f.memberId,
+    placeId: f.placeId,
   }));
 
-  const activity: Activity[] = (activityRes.data ?? []).map((a) => ({
+  const activity: Activity[] = p.activity.map((a) => ({
     id: a.id,
     kind: (a.kind as Activity["kind"]) ?? "added",
-    memberId: a.actor_id ?? currentUserId,
-    placeId: a.place_id ?? undefined,
-    visitId: a.visit_id ?? undefined,
-    at: a.created_at,
-    text: (a.payload as { text?: string } | null)?.text ?? "Aktivitet",
+    memberId: a.memberId ?? p.currentUserId,
+    placeId: a.placeId ?? undefined,
+    visitId: a.visitId ?? undefined,
+    at: a.at,
+    text: a.text ?? "Aktivitet",
   }));
 
   return {
     version: APP_VERSION,
-    currentUserId,
+    currentUserId: p.currentUserId,
     group,
     members,
     places,
     visits,
     favorites,
     activity,
-    nextPlaceId: nextRes.data?.place_id ?? null,
+    nextPlaceId: p.nextPlaceId,
   };
 }
