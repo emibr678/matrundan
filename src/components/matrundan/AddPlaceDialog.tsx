@@ -235,10 +235,12 @@ export function AddPlaceDialog({
     if (text.length < 2) {
       setLocationSuggestions([]);
       setLocationLoading(false);
+      setLocationRequestDone(false);
       return;
     }
     const reqId = ++locationReqRef.current;
     setLocationLoading(true);
+    setLocationRequestDone(false);
     const t = setTimeout(() => {
       geoapifyAutocompleteLocation({
         data: {
@@ -253,11 +255,13 @@ export function AddPlaceDialog({
           setLocationSuggestions(rows);
           setLocationActiveIx(-1);
           setLocationLoading(false);
+          setLocationRequestDone(true);
         })
         .catch((e: unknown) => {
           if (reqId !== locationReqRef.current) return;
           setLocationSuggestions([]);
           setLocationLoading(false);
+          setLocationRequestDone(true);
           const pe = classifyError(e);
           if (pe.code === "not_configured" || pe.code === "config_error") {
             setProviderError(pe);
