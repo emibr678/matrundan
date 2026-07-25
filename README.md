@@ -27,47 +27,48 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som enda externa länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.5.0
+## Status – v0.7.0
 
-Med Paket 2 är live-läget inte längre read-only. De centrala skrivflödena
-– lägga till matställe, registrera besök med betyg, favoritmarkera och
-sätta/rensa gruppens nästa stopp – går nu direkt mot Supabase, samtidigt
-som demo-läget finns kvar oförändrat.
+Med Paket 3B kan samma besök finnas i flera grupper utan att data
+dupliceras, och delade besök har tydlig integritetskontroll. Paket 1–3A
+(inbjudningar, roller, profiler) ligger kvar oförändrat.
 
 ### Två lägen sida vid sida
 
 - **Demo-läge (standard när man är utloggad):** all data ligger i webbläsarens
   `localStorage` med svensk demodata. Ingen inloggning behövs. En explicit
-  sandlådevariant nås via `?demo=1` i URL:en – bra för att visa upp appen
-  utan att röra riktiga grupper.
+  sandlådevariant nås via `?demo=1` i URL:en.
 - **Live-läge (när man är inloggad):** både läsning och skrivning går mot
-  Supabase enligt RLS – bara gruppmedlemmar når gruppens matställen, besök,
-  betyg och aktivitet. Har man inga grupper visas onboardingen.
+  Supabase enligt RLS. Har man inga grupper visas onboardingen.
 
-### Vad som fungerar i live-läget i Paket 2
+### Vad som fungerar i live-läget
 
-- Google-inloggning via Lovable Cloud (Supabase Auth).
-- Skapa sin första grupp via `create_group_with_owner`-RPC.
-- Läs alla gruppens matställen, besök, deltagare, omdömen, favoriter,
-  aktivitet och ”nästa stopp” från Supabase.
-- **Lägg till matställe** manuellt via `create_place`-RPC (med dubblettskydd
-  på namn + adress per grupp).
-- **Registrera besök** atomärt via `create_visit_with_review`-RPC – besök,
-  deltagare, författarens omdöme och aktivitetspost skapas i samma
-  transaktion, och gruppens ”nästa stopp” rensas om det matchade.
-- **Favoritmarkera** ett matställe via `toggle_favorite`-RPC.
-- **Sätta/byta/rensa gruppens nästa stopp** via `set_next_place`-RPC.
-- Aktivitetsflödet uppdateras automatiskt av RPC:erna – klienten skapar
-  inte längre aktivitetsposter direkt.
+- Google-inloggning via Lovable Cloud.
+- Skapa och administrera grupper, bjuda in via engångstoken, byta roll,
+  ta bort medlemmar, överföra ägarskap, lämna grupp, redigera profil.
+- Lägga till matställen, registrera besök med deltagare + omdöme atomärt,
+  favoritmarkera, sätta/byta/rensa gruppens nästa stopp.
+- **Kanonisk datamodell:** ett matställe (`places`) och ett besök (`visits`)
+  existerar bara en gång; varje grupp kopplas via `group_places` respektive
+  `visit_group_links`. Recensionens synlighet per grupp styrs av
+  `review_group_visibility`.
+- **Dela besök till en annan grupp** där du är medlem och deltog – matstället
+  kopplas in i målgruppen om det saknas, betygen från medlemmar som finns i
+  målgruppen blir synliga, och personer utanför räknas anonymt som +N.
+  Ta bort ett delat besök från en grupp utan att röra originalet.
+- **Egen kommentarssynlighet** per grupp: betyget syns alltid, kommentaren
+  kan du dölja i valfri grupp.
+- **Gruppinställning:** räkna delade besök i progression (av/på).
+- **Säker läsmodell:** all känslig läsning går via `get_group_app_state`
+  (SECURITY DEFINER); kopplingstabellernas rader är inte direkt läsbara från
+  klienten, och `source_group_id` lämnar aldrig servern.
 
-### Vad som ännu bara fungerar i demo-läget
+### Vad som inte är med ännu
 
-Inbjudningar av nya medlemmar och profilredigering landar i Supabase först
-i ett senare paket. Andra funktioner som **inte** är med ännu:
 Geoapify/OSM-platssökning (providern är fortfarande demo-only) och
-gamification/nivåer/badges.
+gamification/nivåer/badges. Se [CHANGELOG.md](./CHANGELOG.md) och
+"Om Matrundan" i appen för fullständig versionshistorik.
 
-Se [CHANGELOG.md](./CHANGELOG.md) för fullständig versionshistorik.
 
 ## Teknik
 
