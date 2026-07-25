@@ -1,10 +1,14 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import { Home, MapPin, Users, LogIn } from "lucide-react";
 import * as React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { StoreProvider } from "@/lib/matrundan/store";
-import { SessionProvider, useSession } from "@/lib/matrundan/session";
+import {
+  SessionProvider,
+  useSession,
+  consumePendingInvitePath,
+} from "@/lib/matrundan/session";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
