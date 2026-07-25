@@ -111,12 +111,15 @@ export async function updateGroupSettings(
   name: string,
   emoji: string | null,
   homeLabel: string | null,
+  sharedVisitsCountForProgression?: boolean,
 ): Promise<void> {
   const { error } = await supabase.rpc("update_group_settings", {
     _group_id: groupId,
     _name: name,
     _emoji: emoji ?? undefined,
     _home_label: homeLabel ?? undefined,
+    _shared_visits_count_for_progression:
+      sharedVisitsCountForProgression ?? undefined,
   });
   if (error) throw toErr(error);
 }

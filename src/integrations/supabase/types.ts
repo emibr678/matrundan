@@ -711,6 +711,10 @@ export type Database = {
     Functions: {
       _token_hash: { Args: { _token: string }; Returns: string }
       accept_group_invitation: { Args: { _token: string }; Returns: Json }
+      can_see_place: {
+        Args: { _place_id: string; _user_id: string }
+        Returns: boolean
+      }
       create_group_invitation: {
         Args: {
           _expires_in_days?: number
@@ -787,8 +791,13 @@ export type Database = {
           state: string
         }[]
       }
+      list_visit_share_targets: { Args: { _visit_id: string }; Returns: Json }
       remove_group_member: {
         Args: { _group_id: string; _user_id: string }
+        Returns: undefined
+      }
+      remove_shared_visit_from_group: {
+        Args: { _group_id: string; _visit_id: string }
         Returns: undefined
       }
       revoke_group_invitation: {
@@ -803,6 +812,23 @@ export type Database = {
         Args: { _group_id: string; _place_id: string }
         Returns: undefined
       }
+      set_review_group_visibility: {
+        Args: {
+          _comment_visible: boolean
+          _group_id: string
+          _rating_visible: boolean
+          _review_id: string
+        }
+        Returns: undefined
+      }
+      share_visit_to_group: {
+        Args: {
+          _share_own_comment?: boolean
+          _target_group_id: string
+          _visit_id: string
+        }
+        Returns: string
+      }
       shares_group: {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
@@ -815,26 +841,16 @@ export type Database = {
         Args: { _group_id: string; _new_owner_id: string }
         Returns: undefined
       }
-      update_group_settings:
-        | {
-            Args: {
-              _emoji?: string
-              _group_id: string
-              _home_label?: string
-              _name: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              _emoji?: string
-              _group_id: string
-              _home_label?: string
-              _name: string
-              _shared_visits_count_for_progression?: boolean
-            }
-            Returns: undefined
-          }
+      update_group_settings: {
+        Args: {
+          _emoji?: string
+          _group_id: string
+          _home_label?: string
+          _name: string
+          _shared_visits_count_for_progression?: boolean
+        }
+        Returns: undefined
+      }
       update_profile: {
         Args: { _avatar_emoji?: string; _display_name: string }
         Returns: undefined

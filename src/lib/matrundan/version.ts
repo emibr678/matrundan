@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.6.1";
+export const APP_VERSION = "0.7.0";
 export const APP_VERSION_DATE = "2026-07-25";
 
 
@@ -27,6 +27,32 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Dela besök mellan grupper utan att duplicera – med tydlig kontroll över vem som ser vad.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Lägg till ett besök i en annan grupp där du är medlem: matstället kopplas in om det saknas och besöket dyker upp i den andra gruppens historik.",
+          "Delade besök visas med en tydlig badge; personer utanför gruppen räknas anonymt som +N.",
+          "Ta bort ett delat besök från en grupp utan att röra originalet eller matstället.",
+          "Gruppinställning: räkna delade besök i progression (av/på).",
+          "Styr synligheten av din egen kommentar per grupp – betyget visas alltid, kommentaren kan du dölja.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Ny datamodell med kanoniska matställen och besök: samma besök kan finnas i flera grupper utan att data dupliceras.",
+          "All läsning av delade tabeller sker via en säker read-model; källgrupp och externa personers identitet läcker aldrig ut.",
+          "Aggregat (snittbetyg, detaljbetyg) baseras bara på recensioner som är synliga i gruppen.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.6.1",
+    date: "2026-07-25",
     summary:
       "Mobilfixar och renare utloggning – ingen live-data blir kvar när du loggar ut.",
     sections: [

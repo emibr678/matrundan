@@ -13,6 +13,7 @@ import type {
   Place,
   PlaceCategory,
   Role,
+  VisibleReview,
   Visit,
 } from "./types";
 import { APP_VERSION } from "./version";
@@ -45,6 +46,7 @@ type VisitRow = {
   linkedBy: string;
   linkedAt: string;
   externalParticipantCount: number;
+  countsForProgression: boolean;
   participantIds: string[];
   reviews: ReviewRow[];
 };
@@ -120,6 +122,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     city: p.group.city ?? "",
     createdAt: p.group.createdAt,
     ownerId: p.group.ownerId,
+    sharedVisitsCountForProgression: p.group.sharedVisitsCountForProgression,
   };
 
   const members: Member[] = p.members.map((m) => ({
@@ -148,13 +151,31 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
   }));
 
   const visits: Visit[] = p.visits.map((v) => {
-    const overall = v.reviews.map((r) => r.overall);
-    const taste = v.reviews.map((r) => r.taste).filter((x): x is number => x != null);
-    const value = v.reviews.map((r) => r.value).filter((x): x is number => x != null);
-    const service = v.reviews
+    const visibleReviews: VisibleReview[] = v.reviews.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      overall: r.overall,
+      taste: r.taste,
+      value: r.value,
+      service: r.service,
+      comment: r.comment,
+      ratingVisible: r.ratingVisible,
+      commentVisible: r.commentVisible,
+    }));
+    // Aggregat räknas bara från synliga betyg.
+    const rated = visibleReviews.filter((r) => r.ratingVisible);
+    const overall = rated.map((r) => r.overall);
+    const taste = rated
+      .map((r) => r.taste)
+      .filter((x): x is number => x != null);
+    const value = rated
+      .map((r) => r.value)
+      .filter((x): x is number => x != null);
+    const service = rated
       .map((r) => r.service)
       .filter((x): x is number => x != null);
-    const comment = v.reviews.find((r) => r.comment)?.comment ?? undefined;
+    const comment =
+      rated.find((r) => r.commentVisible && r.comment)?.comment ?? undefined;
     return {
       id: v.id,
       placeId: v.placeId,
@@ -165,12 +186,14 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       taste: avg(taste),
       value: avg(value),
       service: avg(service),
-      comment,
+      comment: comment ?? undefined,
       createdBy: v.createdBy,
       linkType: v.linkType,
       linkedBy: v.linkedBy,
       linkedAt: v.linkedAt,
       externalParticipantCount: v.externalParticipantCount ?? 0,
+      countsForProgression: v.countsForProgression,
+      visibleReviews,
     };
   });
 
