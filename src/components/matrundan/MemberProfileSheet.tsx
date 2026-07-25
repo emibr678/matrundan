@@ -351,3 +351,36 @@ function EmptyLine({ text }: { text: string }) {
     </div>
   );
 }
+
+function ProgressBar({
+  current,
+  base,
+  next,
+  nextName,
+}: {
+  current: number;
+  base: number;
+  next: number;
+  nextName: string;
+}) {
+  const span = Math.max(1, next - base);
+  const done = Math.min(span, Math.max(0, current - base));
+  const pct = Math.round((done / span) * 100);
+  const remaining = Math.max(0, next - current);
+  return (
+    <div className="mt-2">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary transition-all"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="mt-1 text-[11px] text-muted-foreground">
+        {remaining === 0
+          ? `Klar för ${nextName}`
+          : `${remaining} besök till ${nextName}`}
+      </div>
+    </div>
+  );
+}
+
