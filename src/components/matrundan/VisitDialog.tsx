@@ -209,10 +209,13 @@ export function VisitDialog({
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isBusy}>
             Avbryt
           </Button>
-          <Button onClick={submit}>Spara besök</Button>
+          <Button onClick={submit} disabled={isBusy}>
+            {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Spara besök
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
