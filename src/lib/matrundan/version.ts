@@ -29,6 +29,27 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: APP_VERSION,
     date: APP_VERSION_DATE,
     summary:
+      "Fixad besöksregistrering efter kanonisk migration – och ny knapp för att direkt lägga till besöket i en annan grupp.",
+    sections: [
+      {
+        kind: "Rättat",
+        items: [
+          "Registrering av besök fungerar igen: valideringen av deltagare slår upp originalgruppen via länktabellen istället för den borttagna kolumnen på besök.",
+          "Städade bort en dubblerad valideringstrigger på aktivitet.",
+        ],
+      },
+      {
+        kind: "Nytt",
+        items: [
+          "Ny knapp i registreringsdialogen: Spara och lägg till i annan grupp. Besöket sparas en gång och delas direkt till vald grupp via befintligt säkert delningsflöde.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.7.0",
+    date: "2026-07-25",
+    summary:
       "Dela besök mellan grupper utan att duplicera – med tydlig kontroll över vem som ser vad.",
     sections: [
       {
@@ -53,6 +74,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       },
     ],
   },
+
   {
     version: "0.6.1",
     date: "2026-07-25",
