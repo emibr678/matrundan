@@ -239,50 +239,9 @@ export function AddPlaceDialog({
     }
   }, [location, centerLabel]);
 
-  // Live-läge: autocomplete-förslag för Plats-fältet (debounce 300 ms).
-  React.useEffect(() => {
-    if (!isLive || !open || tab !== "sok" || pending) return;
-    const text = location.trim();
-    if (text.length < 2) {
-      setLocationSuggestions([]);
-      setLocationLoading(false);
-      setLocationRequestDone(false);
-      return;
-    }
-    const reqId = ++locationReqRef.current;
-    setLocationLoading(true);
-    setLocationRequestDone(false);
-    const t = setTimeout(() => {
-      geoapifyAutocompleteLocation({
-        data: {
-          text,
-          limit: 6,
-          biasLat: center?.lat,
-          biasLng: center?.lng,
-        },
-      })
-        .then((rows) => {
-          if (reqId !== locationReqRef.current) return;
-          setLocationSuggestions(rows);
-          setLocationActiveIx(-1);
-          setLocationLoading(false);
-          setLocationRequestDone(true);
-        })
-        .catch((e: unknown) => {
-          if (reqId !== locationReqRef.current) return;
-          setLocationSuggestions([]);
-          setLocationLoading(false);
-          setLocationRequestDone(true);
-          const pe = classifyError(e);
-          if (pe.code === "not_configured" || pe.code === "config_error") {
-            setProviderError(pe);
-          }
-        });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [isLive, open, tab, location, center, pending]);
-
   // Sök-effekten: demo eller live beroende på läge.
+  // I live-läget krävs ett verifierat centrum – vi gissar aldrig koordinater
+  // från fritext och kombinerar aldrig med gruppens legacy-stad.
   React.useEffect(() => {
     if (tab !== "sok" || !open || !cityValid || pending) {
       if (!cityValid) setResults([]);
@@ -293,32 +252,16 @@ export function AddPlaceDialog({
       setLoading(true);
       try {
         if (isLive) {
-          let c = center;
-          const targetLabel = formatLocation(parsed);
-          if (!c || centerLabel !== targetLabel) {
-            const rows = await geoapifyAutocompleteLocation({
-              data: { text: targetLabel, limit: 1 },
-            });
-            if (reqId !== searchReqRef.current) return;
-            const first = rows[0];
-            if (!first || first.lat == null || first.lng == null) {
-              setResults([]);
-              setProviderError({
-                message: `Hittade ingen plats för “${targetLabel}”. Försök skriva mer exakt eller välj ett förslag i listan.`,
-                retryable: false,
-              });
-              setLoading(false);
-              return;
-            }
-            c = { lat: first.lat, lng: first.lng };
-            setCenter(c);
-            setCenterLabel(targetLabel);
+          if (!center) {
+            setResults([]);
+            setLoading(false);
+            return;
           }
           const rows = await geoapifySearchPlaces({
             data: {
               text: query.trim() || undefined,
-              lat: c.lat,
-              lng: c.lng,
+              lat: center.lat,
+              lng: center.lng,
               radiusKm: toServerRadius(radiusKm),
               limit: 25,
             },
@@ -370,8 +313,6 @@ export function AddPlaceDialog({
     cityValid,
     isLive,
     center,
-    centerLabel,
-    parsed,
     pending,
     retryNonce,
   ]);
