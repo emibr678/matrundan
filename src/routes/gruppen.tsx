@@ -166,6 +166,10 @@ function GroupPage() {
         </section>
       ) : null}
 
+      <GroupHighlights />
+
+
+
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
