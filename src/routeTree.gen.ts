@@ -13,6 +13,7 @@ import { Route as MatstallenRouteImport } from './routes/matstallen'
 import { Route as GruppenRouteImport } from './routes/gruppen'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
+import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
 
 const MatstallenRoute = MatstallenRouteImport.update({
   id: '/matstallen',
@@ -34,17 +35,24 @@ const MatstallenPlaceIdRoute = MatstallenPlaceIdRouteImport.update({
   path: '/$placeId',
   getParentRoute: () => MatstallenRoute,
 } as any)
+const InbjudanTokenRoute = InbjudanTokenRouteImport.update({
+  id: '/inbjudan/$token',
+  path: '/inbjudan/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/gruppen': typeof GruppenRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/gruppen': typeof GruppenRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,38 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/gruppen': typeof GruppenRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/gruppen' | '/matstallen' | '/matstallen/$placeId'
+  fullPaths:
+    | '/'
+    | '/gruppen'
+    | '/matstallen'
+    | '/inbjudan/$token'
+    | '/matstallen/$placeId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/gruppen' | '/matstallen' | '/matstallen/$placeId'
-  id: '__root__' | '/' | '/gruppen' | '/matstallen' | '/matstallen/$placeId'
+  to:
+    | '/'
+    | '/gruppen'
+    | '/matstallen'
+    | '/inbjudan/$token'
+    | '/matstallen/$placeId'
+  id:
+    | '__root__'
+    | '/'
+    | '/gruppen'
+    | '/matstallen'
+    | '/inbjudan/$token'
+    | '/matstallen/$placeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GruppenRoute: typeof GruppenRoute
   MatstallenRoute: typeof MatstallenRouteWithChildren
+  InbjudanTokenRoute: typeof InbjudanTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -98,6 +124,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatstallenPlaceIdRouteImport
       parentRoute: typeof MatstallenRoute
     }
+    '/inbjudan/$token': {
+      id: '/inbjudan/$token'
+      path: '/inbjudan/$token'
+      fullPath: '/inbjudan/$token'
+      preLoaderRoute: typeof InbjudanTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -117,6 +150,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GruppenRoute: GruppenRoute,
   MatstallenRoute: MatstallenRouteWithChildren,
+  InbjudanTokenRoute: InbjudanTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

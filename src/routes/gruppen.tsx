@@ -11,7 +11,6 @@ import {
   Copy,
   Mail,
   Share2,
-  LogIn,
   RotateCcw,
   Info,
   Settings,
@@ -19,10 +18,16 @@ import {
   Sparkles,
   MapPin,
   ChevronRight,
+  Trash2,
+  Crown,
+  LogOut,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
+import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,21 +42,41 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useStore, formatDate } from "@/lib/matrundan/store";
+import { useSession } from "@/lib/matrundan/session";
+import {
+  createGroupInvitation,
+  leaveGroup,
+  listGroupInvitations,
+  removeGroupMember,
+  revokeGroupInvitation,
+  setMemberRole,
+  transferGroupOwnership,
+  updateGroupSettings,
+  type InvitationListItem,
+} from "@/lib/matrundan/live-admin";
 import { APP_VERSION, APP_NAME } from "@/lib/matrundan/version";
 import { formatRating } from "@/lib/matrundan/version";
+import type { Member } from "@/lib/matrundan/types";
 
 const GROUP_SEARCH_DEFAULTS = { member: "" };
-
 const groupSearchSchema = z.object({
   member: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/gruppen")({
   validateSearch: zodValidator(groupSearchSchema),
-  search: {
-    middlewares: [stripSearchParams(GROUP_SEARCH_DEFAULTS)],
-  },
+  search: { middlewares: [stripSearchParams(GROUP_SEARCH_DEFAULTS)] },
   head: () => ({
     meta: [
       { title: "Gruppen · Matrundan" },
@@ -80,7 +105,6 @@ function GroupPage() {
   );
 
   const closeMember = () => navigate({ search: { member: "" } });
-
   const activity = state.activity.slice(0, 10);
 
   const memberActivity = state.members.map((m) => {
@@ -117,7 +141,8 @@ function GroupPage() {
                 {state.group.name}
               </h1>
               <div className="mt-0.5 text-sm text-muted-foreground">
-                {state.members.length} medlemmar · {state.group.city}
+                {state.members.length} medlemmar
+                {state.group.city ? ` · ${state.group.city}` : ""}
               </div>
             </div>
             <SettingsSheet />
@@ -163,15 +188,18 @@ function GroupPage() {
                   className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none"
                   aria-label={`Öppna profil för ${m.name}`}
                 >
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary text-2xl">
-                    {m.avatar}
-                  </div>
+                  <MemberAvatar member={m} size={44} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium">{m.name}</span>
                       {m.id === state.currentUserId ? (
                         <Badge variant="secondary" className="rounded-full text-[10px]">
                           Du
+                        </Badge>
+                      ) : null}
+                      {m.role !== "medlem" ? (
+                        <Badge variant="outline" className="rounded-full text-[10px]">
+                          {m.role}
                         </Badge>
                       ) : null}
                     </div>
@@ -247,41 +275,12 @@ function GroupPage() {
 
 function SettingsSheet() {
   const { state, resetDemo } = useStore();
+  const { mode, activeGroupId, activeGroupRole, refreshGroups, user } = useSession();
   const [open, setOpen] = React.useState(false);
   const [about, setAbout] = React.useState(false);
-  const [invite, setInvite] = React.useState("");
-
-  const inviteLink =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/inbjudan/${state.group.id}?kod=matr-${state.group.id.slice(-4)}`
-      : "";
-
-  const copyInvite = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      toast.success("Inbjudningslänk kopierad");
-    } catch {
-      toast.error("Kunde inte kopiera");
-    }
-  };
-
-  const shareInvite = async () => {
-    const data = {
-      title: APP_NAME,
-      text: `Häng med i ${state.group.name} på ${APP_NAME}.`,
-      url: inviteLink,
-    };
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await (navigator as Navigator & { share: (d: ShareData) => Promise<void> })
-          .share(data);
-      } catch {
-        /* user cancel */
-      }
-    } else {
-      copyInvite();
-    }
-  };
+  const isLive = mode === "live" && !!activeGroupId;
+  const isOwner = isLive && activeGroupRole === "owner";
+  const isAdmin = isLive && (activeGroupRole === "owner" || activeGroupRole === "admin");
 
   return (
     <>
@@ -299,89 +298,63 @@ function SettingsSheet() {
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
             <SheetTitle>Gruppinställningar</SheetTitle>
-            <SheetDescription>Inbjudan, roller och konto.</SheetDescription>
+            <SheetDescription>
+              {isLive
+                ? "Bjud in, hantera roller och profil."
+                : "Demo-läge: skrivningar sparas bara lokalt."}
+            </SheetDescription>
           </SheetHeader>
 
           <div className="space-y-5 py-4">
-            <section>
-              <h3 className="mb-2 text-sm font-medium">Medlemmar & roller</h3>
-              <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-                {state.members.map((m) => (
-                  <div key={m.id} className="flex items-center gap-3 p-3">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-xl">
-                      {m.avatar}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{m.name}</div>
-                      <div className="text-xs capitalize text-muted-foreground">
-                        {m.role}
-                      </div>
-                    </div>
-                    <RoleBadge role={m.role} />
-                  </div>
-                ))}
-              </Card>
-            </section>
+            {isAdmin && activeGroupId ? (
+              <GroupSettingsSection
+                groupId={activeGroupId}
+                initialName={state.group.name}
+                initialEmoji={state.group.emoji}
+                initialLocation={state.group.city}
+              />
+            ) : null}
 
-            <section>
-              <h3 className="mb-2 text-sm font-medium">Bjud in</h3>
-              <Card className="space-y-3 rounded-2xl border-border/70 p-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={copyInvite} variant="outline">
-                    <Copy className="h-4 w-4" /> Kopiera länk
-                  </Button>
-                  <Button onClick={shareInvite}>
-                    <Share2 className="h-4 w-4" /> Dela…
-                  </Button>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="invite-email">Eller skicka via e-post</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="invite-email"
-                      type="email"
-                      placeholder="vän@example.se"
-                      value={invite}
-                      onChange={(e) => setInvite(e.target.value)}
-                    />
-                    <Button
-                      onClick={() => {
-                        if (!invite.trim()) return toast.error("Ange en e-post");
-                        toast.success("Inbjudan skickad (demo)");
-                        setInvite("");
-                      }}
-                      aria-label="Skicka inbjudan"
-                    >
-                      <Mail className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Endast personer med länk och godkänd inbjudan blir medlemmar.
-                </p>
-              </Card>
-            </section>
+            <MembersSection
+              members={state.members}
+              currentUserId={state.currentUserId}
+              isOwner={isOwner}
+              isAdmin={isAdmin}
+              groupId={activeGroupId}
+              onChanged={refreshGroups}
+            />
 
-            <section>
-              <h3 className="mb-2 text-sm font-medium">Konto</h3>
-              <Card className="space-y-2 rounded-2xl border-border/70 p-4">
-                <Button variant="outline" className="w-full justify-start" disabled>
-                  <LogIn className="h-4 w-4" /> Logga in med Google (aktiveras med backend)
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-destructive"
-                  onClick={() => {
-                    if (confirm("Nollställ demo-data?")) {
-                      resetDemo();
-                      toast.success("Demo-data återställd");
-                    }
-                  }}
-                >
-                  <RotateCcw className="h-4 w-4" /> Återställ demo-data
-                </Button>
-              </Card>
-            </section>
+            {isAdmin && activeGroupId ? (
+              <InvitationsSection groupId={activeGroupId} />
+            ) : null}
+
+            {isLive && activeGroupId ? (
+              <LeaveGroupSection
+                groupId={activeGroupId}
+                isOwner={isOwner}
+                onLeft={refreshGroups}
+              />
+            ) : null}
+
+            {mode === "demo" ? (
+              <section>
+                <h3 className="mb-2 text-sm font-medium">Demo-data</h3>
+                <Card className="rounded-2xl border-border/70 p-4">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-destructive"
+                    onClick={() => {
+                      if (confirm("Nollställ demo-data?")) {
+                        resetDemo();
+                        toast.success("Demo-data återställd");
+                      }
+                    }}
+                  >
+                    <RotateCcw className="h-4 w-4" /> Återställ demo-data
+                  </Button>
+                </Card>
+              </section>
+            ) : null}
 
             <section>
               <h3 className="mb-2 text-sm font-medium">Om appen</h3>
@@ -404,6 +377,12 @@ function SettingsSheet() {
                 </button>
               </Card>
             </section>
+
+            {isLive && user ? (
+              <div className="text-[11px] text-muted-foreground">
+                Inloggad som {user.email}
+              </div>
+            ) : null}
           </div>
         </SheetContent>
       </Sheet>
@@ -412,16 +391,526 @@ function SettingsSheet() {
   );
 }
 
-function RoleBadge({ role }: { role: "ägare" | "admin" | "medlem" }) {
-  const cls =
-    role === "ägare"
-      ? "bg-primary/15 text-primary border-primary/30"
-      : role === "admin"
-        ? "bg-mustard/40 text-mustard-foreground border-mustard/50"
-        : "bg-muted text-muted-foreground border-border";
+// ------- Sections --------
+
+function GroupSettingsSection({
+  groupId,
+  initialName,
+  initialEmoji,
+  initialLocation,
+}: {
+  groupId: string;
+  initialName: string;
+  initialEmoji: string;
+  initialLocation: string;
+}) {
+  const [name, setName] = React.useState(initialName);
+  const [emoji, setEmoji] = React.useState(initialEmoji);
+  const [loc, setLoc] = React.useState(initialLocation);
+  const [busy, setBusy] = React.useState(false);
+  const { refreshGroups } = useSession();
+
+  async function save() {
+    setBusy(true);
+    try {
+      await updateGroupSettings(groupId, name.trim(), emoji, loc.trim() || null);
+      await refreshGroups();
+      toast.success("Gruppen är uppdaterad.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte spara.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <Badge variant="outline" className={`rounded-full text-[11px] ${cls}`}>
-      {role}
-    </Badge>
+    <section>
+      <h3 className="mb-2 text-sm font-medium">Gruppinställningar</h3>
+      <Card className="space-y-3 rounded-2xl border-border/70 p-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="gs-name">Namn</Label>
+          <Input id="gs-name" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="gs-emoji">Emoji</Label>
+          <Input
+            id="gs-emoji"
+            value={emoji}
+            onChange={(e) => setEmoji(e.target.value)}
+            maxLength={4}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="gs-loc">Hemområde</Label>
+          <Input id="gs-loc" value={loc} onChange={(e) => setLoc(e.target.value)} />
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={save} disabled={busy}>
+            {busy ? "Sparar…" : "Spara"}
+          </Button>
+        </div>
+      </Card>
+    </section>
   );
+}
+
+function MembersSection({
+  members,
+  currentUserId,
+  isOwner,
+  isAdmin,
+  groupId,
+  onChanged,
+}: {
+  members: Member[];
+  currentUserId: string;
+  isOwner: boolean;
+  isAdmin: boolean;
+  groupId: string | null;
+  onChanged: () => Promise<void>;
+}) {
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = React.useState<Member | null>(null);
+  const [transferTarget, setTransferTarget] = React.useState<Member | null>(null);
+
+  async function runRoleChange(m: Member, next: "admin" | "member") {
+    if (!groupId) return;
+    setBusyId(m.id);
+    try {
+      await setMemberRole(groupId, m.id, next);
+      await onChanged();
+      toast.success("Rollen är uppdaterad.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte ändra roll.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function confirmRemove() {
+    if (!groupId || !removeTarget) return;
+    setBusyId(removeTarget.id);
+    try {
+      await removeGroupMember(groupId, removeTarget.id);
+      await onChanged();
+      toast.success(`${removeTarget.name} är borttagen.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte ta bort medlem.");
+    } finally {
+      setBusyId(null);
+      setRemoveTarget(null);
+    }
+  }
+
+  async function confirmTransfer() {
+    if (!groupId || !transferTarget) return;
+    setBusyId(transferTarget.id);
+    try {
+      await transferGroupOwnership(groupId, transferTarget.id);
+      await onChanged();
+      toast.success(`Ägarskap överfört till ${transferTarget.name}.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte överföra ägarskap.");
+    } finally {
+      setBusyId(null);
+      setTransferTarget(null);
+    }
+  }
+
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-medium">Medlemmar & roller</h3>
+      <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
+        {members.map((m) => {
+          const isSelf = m.id === currentUserId;
+          const canRemove =
+            !isSelf &&
+            groupId &&
+            m.role !== "ägare" &&
+            (isOwner || (isAdmin && m.role === "medlem"));
+          return (
+            <div key={m.id} className="flex items-center gap-3 p-3">
+              <MemberAvatar member={m} size={40} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">
+                  {m.name}
+                  {isSelf ? " (du)" : ""}
+                </div>
+                <div className="text-xs capitalize text-muted-foreground">{m.role}</div>
+              </div>
+              {isOwner && !isSelf && m.role === "medlem" ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busyId === m.id}
+                  onClick={() => runRoleChange(m, "admin")}
+                  title="Gör till admin"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                </Button>
+              ) : null}
+              {isOwner && !isSelf && m.role === "admin" ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busyId === m.id}
+                  onClick={() => runRoleChange(m, "member")}
+                  title="Ta bort admin-roll"
+                >
+                  <ShieldOff className="h-4 w-4" />
+                </Button>
+              ) : null}
+              {isOwner && !isSelf && m.role !== "ägare" ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busyId === m.id}
+                  onClick={() => setTransferTarget(m)}
+                  title="Överför ägarskap"
+                >
+                  <Crown className="h-4 w-4" />
+                </Button>
+              ) : null}
+              {canRemove ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busyId === m.id}
+                  onClick={() => setRemoveTarget(m)}
+                  aria-label={`Ta bort ${m.name}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              ) : null}
+            </div>
+          );
+        })}
+      </Card>
+
+      <AlertDialog
+        open={!!removeTarget}
+        onOpenChange={(o) => !o && setRemoveTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort {removeTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Personen förlorar åtkomsten direkt. Historiska besök och betyg finns kvar
+              i gruppen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove}>Ta bort</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!transferTarget}
+        onOpenChange={(o) => !o && setTransferTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Överför ägarskap till {transferTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Du blir admin och {transferTarget?.name} blir gruppens ägare. Endast ägaren
+              kan hantera admins och överföra ägarskap.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTransfer}>Överför</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </section>
+  );
+}
+
+function InvitationsSection({ groupId }: { groupId: string }) {
+  const [email, setEmail] = React.useState("");
+  const [creating, setCreating] = React.useState(false);
+  const [lastLink, setLastLink] = React.useState<string | null>(null);
+  const [lastEmail, setLastEmail] = React.useState<string | null>(null);
+  const [items, setItems] = React.useState<InvitationListItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const rows = await listGroupInvitations(groupId);
+      setItems(rows);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId]);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function createInvite(withEmail: boolean) {
+    setCreating(true);
+    try {
+      const trimmed = email.trim();
+      const inv = await createGroupInvitation(
+        groupId,
+        withEmail && trimmed ? trimmed : null,
+      );
+      const link =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/inbjudan/${inv.token}`
+          : `/inbjudan/${inv.token}`;
+      setLastLink(link);
+      setLastEmail(withEmail && trimmed ? trimmed : null);
+      if (withEmail) setEmail("");
+      toast.success("Inbjudan skapad – kopiera länken nu.");
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte skapa inbjudan.");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function revoke(id: string) {
+    setBusyId(id);
+    try {
+      await revokeGroupInvitation(id);
+      await load();
+      toast.success("Inbjudan återkallad.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte återkalla.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function copyLink() {
+    if (!lastLink) return;
+    try {
+      await navigator.clipboard.writeText(lastLink);
+      toast.success("Länk kopierad");
+    } catch {
+      toast.error("Kunde inte kopiera");
+    }
+  }
+
+  function shareLink() {
+    if (!lastLink) return;
+    const data: ShareData = {
+      title: APP_NAME,
+      text: `Häng med i gruppen på ${APP_NAME}.`,
+      url: lastLink,
+    };
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      void (navigator as Navigator & { share: (d: ShareData) => Promise<void> })
+        .share(data)
+        .catch(() => {});
+    } else {
+      void copyLink();
+    }
+  }
+
+  function openMailClient() {
+    if (!lastLink || !lastEmail) return;
+    const subject = encodeURIComponent(`Inbjudan till ${APP_NAME}`);
+    const body = encodeURIComponent(
+      `Hej!\n\nJag vill bjuda in dig till vår grupp i ${APP_NAME}.\n` +
+        `Gå med här: ${lastLink}\n\nLänken gäller i sju dagar och kan bara användas en gång.`,
+    );
+    window.location.href = `mailto:${lastEmail}?subject=${subject}&body=${body}`;
+  }
+
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-medium">Bjud in</h3>
+      <Card className="space-y-3 rounded-2xl border-border/70 p-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="inv-email">E-post (valfritt)</Label>
+          <Input
+            id="inv-email"
+            type="email"
+            placeholder="vän@example.se"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Med e-post: bara den adressen kan använda länken.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            onClick={() => createInvite(false)}
+            disabled={creating}
+          >
+            Skapa öppen länk
+          </Button>
+          <Button
+            onClick={() => createInvite(true)}
+            disabled={creating || !email.trim()}
+          >
+            <Mail className="mr-1 h-4 w-4" /> Skapa & öppna e-post
+          </Button>
+        </div>
+
+        {lastLink ? (
+          <div className="rounded-xl border border-border/70 bg-muted/40 p-3 text-sm">
+            <div className="mb-2 text-xs font-medium">
+              Din inbjudningslänk – visas bara nu
+            </div>
+            <div className="break-all rounded-md bg-background p-2 text-xs">
+              {lastLink}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={copyLink}>
+                <Copy className="h-4 w-4" /> Kopiera
+              </Button>
+              <Button size="sm" variant="outline" onClick={shareLink}>
+                <Share2 className="h-4 w-4" /> Dela…
+              </Button>
+              {lastEmail ? (
+                <Button size="sm" onClick={openMailClient}>
+                  <Mail className="h-4 w-4" /> Öppna e-post
+                </Button>
+              ) : null}
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Vi lagrar inte länken i klartext. Tappar du bort den – skapa en ny.
+              {lastEmail
+                ? " ”Öppna e-post” fyller i ett förslag i din e-postklient; Matrundan skickar inte e-post själv."
+                : ""}
+            </p>
+          </div>
+        ) : null}
+
+        <div>
+          <div className="mb-1 text-xs font-medium text-muted-foreground">
+            Aktiva och nyligen använda inbjudningar
+          </div>
+          {loading ? (
+            <div className="text-xs text-muted-foreground">Laddar…</div>
+          ) : items.length === 0 ? (
+            <div className="text-xs text-muted-foreground">Inga inbjudningar än.</div>
+          ) : (
+            <ul className="divide-y divide-border/60 rounded-xl border border-border/70">
+              {items.map((i) => (
+                <li key={i.id} className="flex items-center gap-2 p-2 text-xs">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">
+                      {i.invited_email ?? "Öppen länk"}
+                    </div>
+                    <div className="text-muted-foreground">
+                      {stateLabel(i.state)} · går ut {formatDateShort(i.expires_at)}
+                    </div>
+                  </div>
+                  {i.state === "active" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busyId === i.id}
+                      onClick={() => revoke(i.id)}
+                    >
+                      Återkalla
+                    </Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function LeaveGroupSection({
+  groupId,
+  isOwner,
+  onLeft,
+}: {
+  groupId: string;
+  isOwner: boolean;
+  onLeft: () => Promise<void>;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+
+  async function confirmLeave() {
+    setBusy(true);
+    try {
+      await leaveGroup(groupId);
+      await onLeft();
+      toast.success("Du har lämnat gruppen.");
+      setOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte lämna gruppen.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-medium">Lämna gruppen</h3>
+      <Card className="rounded-2xl border-border/70 p-4">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-destructive"
+          disabled={isOwner}
+          onClick={() => setOpen(true)}
+        >
+          <LogOut className="h-4 w-4" /> Lämna gruppen
+        </Button>
+        {isOwner ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Som ägare kan du inte lämna gruppen förrän du har överfört ägarskapet.
+          </p>
+        ) : null}
+      </Card>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Lämna gruppen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Du förlorar åtkomsten direkt. Dina tidigare besök och betyg finns kvar
+              i gruppen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLeave} disabled={busy}>
+              {busy ? "Lämnar…" : "Lämna"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </section>
+  );
+}
+
+function stateLabel(s: InvitationListItem["state"]): string {
+  switch (s) {
+    case "active":
+      return "Aktiv";
+    case "accepted":
+      return "Använd";
+    case "expired":
+      return "Utgången";
+    case "revoked":
+      return "Återkallad";
+  }
+}
+
+function formatDateShort(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("sv-SE");
+  } catch {
+    return iso;
+  }
 }
