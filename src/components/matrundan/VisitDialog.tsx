@@ -24,6 +24,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { RatingInput } from "./Rating";
 import { useStore } from "@/lib/matrundan/store";
+import { useSession } from "@/lib/matrundan/session";
+import { ShareVisitDialog } from "./ShareVisitDialog";
+
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
