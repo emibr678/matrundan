@@ -29,37 +29,41 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Format candidate sources
+        run: >-
+          bunx prettier --write
+          src/components/matrundan/AddPlaceDialog.tsx
+          src/components/matrundan/AddPlaceDialogImpl.tsx
+          src/components/matrundan/PlaceMap.tsx
+          src/lib/matrundan/demo-data.ts
+          src/lib/matrundan/places-provider.ts
+          src/routes/matstallen.tsx
+
+      - name: Upload formatted sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-4a-formatted
+          path: |
+            src/components/matrundan/AddPlaceDialog.tsx
+            src/components/matrundan/AddPlaceDialogImpl.tsx
+            src/components/matrundan/PlaceMap.tsx
+            src/lib/matrundan/demo-data.ts
+            src/lib/matrundan/places-provider.ts
+            src/routes/matstallen.tsx
+          if-no-files-found: error
+
       - name: TypeScript
         run: bunx tsc --noEmit
 
       - name: Lint changed source files
-        shell: bash
-        run: |
-          set +e
-          bunx eslint \
-            src/components/matrundan/AddPlaceDialog.tsx \
-            src/components/matrundan/AddPlaceDialogImpl.tsx \
-            src/components/matrundan/PlaceMap.tsx \
-            src/lib/matrundan/demo-data.ts \
-            src/lib/matrundan/places-provider.ts \
-            src/routes/matstallen.tsx \
-            > lint.log 2>&1
-          status=$?
-          echo "$status" > lint.status
-          cat lint.log
-          exit 0
-
-      - name: Upload lint log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-4a-lint
-          path: lint.log
-          if-no-files-found: error
+        run: >-
+          bunx eslint
+          src/components/matrundan/AddPlaceDialog.tsx
+          src/components/matrundan/AddPlaceDialogImpl.tsx
+          src/components/matrundan/PlaceMap.tsx
+          src/lib/matrundan/demo-data.ts
+          src/lib/matrundan/places-provider.ts
+          src/routes/matstallen.tsx
 
       - name: Production build
         run: bun run build
-
-      - name: Enforce lint result
-        shell: bash
-        run: test "$(cat lint.status)" = "0"
