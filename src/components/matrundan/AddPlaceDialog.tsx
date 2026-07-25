@@ -59,13 +59,6 @@ function toServerRadius(km: number): 1 | 3 | 5 | 10 | 25 | null {
   return null;
 }
 
-type LocationSuggestion = {
-  label: string;
-  city: string;
-  area?: string;
-  lat?: number;
-  lng?: number;
-};
 
 type ProviderError = {
   message: string;
