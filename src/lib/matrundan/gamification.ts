@@ -209,8 +209,9 @@ export function computeMemberProgression(
   memberId: string,
 ): MemberProgression {
   const placeById = new Map<string, Place>(state.places.map((p) => [p.id, p]));
+  const allVisits = dedupeVisits(state.visits);
 
-  const participated = state.visits
+  const participated = allVisits
     .filter((v) => v.participantIds.includes(memberId))
     .slice()
     .sort(chronologically);
