@@ -8,10 +8,8 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.8.1";
+export const APP_VERSION = "0.8.0";
 export const APP_VERSION_DATE = "2026-07-25";
-
-
 
 export interface ChangelogEntry {
   version: string;
@@ -29,44 +27,24 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: APP_VERSION,
     date: APP_VERSION_DATE,
     summary:
-      "Färdigslipad Geoapify-UX: bekräftelsesteg, snabb autocomplete med tangentbord och avgränsade sökområden.",
+      "Riktig platssök via Geoapify i live-läget – med skyddad servernyckel, bekräftelsesteg och avgränsade sökområden.",
     sections: [
       {
         kind: "Nytt",
         items: [
-          "Sökresultat sparas inte längre direkt – ett bekräftelsesteg låter dig välja Passar för och lägga till en anteckning innan matstället läggs till i gruppen.",
-          "Autocomplete för Plats-fältet stöder piltangenter, Enter och Escape, med ARIA-combobox för skärmläsare.",
+          "Live-läget söker matställen och områden via Geoapify. Nyckeln lever bara på servern och exponeras aldrig i klienten.",
+          "Autocomplete för Plats-fältet: välj stad/område direkt ur en lista när du är inloggad, med stöd för piltangenter, Enter och Escape samt ARIA-combobox för skärmläsare.",
+          "Bekräftelsesteg innan ett sökresultat sparas: välj Passar för och lägg till en anteckning till gruppen först.",
+          "Kategori och kökstyp fylls i automatiskt från Geoapifys taxonomi (justerbart i manuellt läge).",
           "Tydlig attribution: “Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.”",
         ],
       },
       {
         kind: "Förbättrat",
         items: [
-          "Sökradien ersätter det missvisande “Hela landet” med ett avgränsat större område inom 50 km.",
-          "Race-skydd: bara det senaste sökresultatet visas, inga blinkande gamla träffar.",
+          "Sökradien har avgränsade alternativ 1/3/5/10/25 km samt ett större område inom 50 km – ingen missvisande rikstäckning.",
+          "Race-skydd: bara det senaste sökresultatet visas, inga blinkande gamla träffar. Försök igen kör om senaste platsupplösning + matställessökning.",
           "Kartprototypen är borttagen i sökflödet – enhetlig listvy på mobil (fungerar på 360 px) och tydligare felmeddelanden med Försök igen / Lägg till manuellt.",
-          "Servernyckeln för Geoapify läses fortfarande bara i serverfunktionerna – aldrig i klientbundeln.",
-        ],
-      },
-    ],
-  },
-  {
-    version: "0.8.0",
-    date: "2026-07-25",
-    summary:
-      "Riktig platssök via Geoapify i live-läget – med skyddad servernyckel och automatiskt dubblettskydd.",
-    sections: [
-      {
-        kind: "Nytt",
-        items: [
-          "Live-läget söker matställen och områden via Geoapify. Nyckeln lever bara på servern och exponeras aldrig i klienten.",
-          "Autocomplete för Plats-fältet: välj stad/område direkt ur en lista när du är inloggad.",
-          "Kategori och kökstyp fylls i automatiskt från Geoapifys taxonomi (justerbart i manuellt läge).",
-        ],
-      },
-      {
-        kind: "Förbättrat",
-        items: [
           "Samma matställe skapas aldrig två gånger: dubblettskydd via unikt index på (leverantör, externt-id) och atomär RPC.",
           "Demo-läget använder fortfarande den lokala provider-datan – helt oförändrat och isolerat från live-flödet.",
         ],
@@ -126,8 +104,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "0.6.1",
     date: "2026-07-25",
-    summary:
-      "Mobilfixar och renare utloggning – ingen live-data blir kvar när du loggar ut.",
+    summary: "Mobilfixar och renare utloggning – ingen live-data blir kvar när du loggar ut.",
     sections: [
       {
         kind: "Rättat",
@@ -221,8 +198,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "0.3.0",
     date: "2026-07-24",
-    summary:
-      "Medlemsprofiler, geografisk utforskning, tydligare betyg och navigerbar aktivitet.",
+    summary: "Medlemsprofiler, geografisk utforskning, tydligare betyg och navigerbar aktivitet.",
     sections: [
       {
         kind: "Nytt",
@@ -273,10 +249,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     sections: [
       {
         kind: "Nytt",
-        items: [
-          "Lokal demodata i localStorage.",
-          "Provider-arkitektur för framtida platssökning.",
-        ],
+        items: ["Lokal demodata i localStorage.", "Provider-arkitektur för framtida platssökning."],
       },
     ],
   },

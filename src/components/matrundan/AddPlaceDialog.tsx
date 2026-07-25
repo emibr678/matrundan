@@ -29,10 +29,7 @@ import {
 } from "@/lib/matrundan/types";
 import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
-import {
-  getPlacesProvider,
-  type PlaceSuggestion,
-} from "@/lib/matrundan/places-provider";
+import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import {
   geoapifyAutocompleteLocation,
   geoapifySearchPlaces,
@@ -43,9 +40,8 @@ const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
 
 /**
  * Sökradieval. Server-funktionen tillåter 1/3/5/10/25 km eller `null` (som
- * i sin tur mappas till en avgränsad ~50 km-cirkel runt centrum – inte
- * verklig rikstäckning). Vi speglar det i UI:t med "Större område · inom
- * 50 km" istället för den missvisande "Hela landet".
+ * i sin tur mappas till en avgränsad ~50 km-cirkel runt centrum). Alternativet
+ * "Större område · inom 50 km" skickas som `null` till servern.
  */
 const RADIUS_OPTIONS: { value: number; label: string; short: string }[] = [
   { value: 1, label: "Inom 1 km", short: "inom 1 km" },
@@ -98,7 +94,8 @@ function classifyError(e: unknown): ProviderError {
   }
   if (/GEOAPIFY_CONFIG_ERROR/i.test(msg)) {
     return {
-      message: "Platssökningen är felkonfigurerad på servern. Testa manuellt tills det är åtgärdat.",
+      message:
+        "Platssökningen är felkonfigurerad på servern. Testa manuellt tills det är åtgärdat.",
       code: "config_error",
       retryable: false,
     };
@@ -141,6 +138,8 @@ export function AddPlaceDialog({
   const [radiusKm, setRadiusKm] = React.useState<number>(DEFAULT_RADIUS);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
+  /** Bumpas av Retry-knappen för att verkligen köra om sökeffekten. */
+  const [retryNonce, setRetryNonce] = React.useState(0);
 
   // Live-läge: cachea koordinaterna för Plats-texten så vi inte
   // geokodar på varje tangenttryck och för att kunna filtrera på radie.
@@ -150,17 +149,19 @@ export function AddPlaceDialog({
   const [showLocationSuggest, setShowLocationSuggest] = React.useState(false);
   const [locationActiveIx, setLocationActiveIx] = React.useState(-1);
   const [locationLoading, setLocationLoading] = React.useState(false);
+  /** Sant när senaste autocomplete-anropet är klart (oavsett antal träffar). */
+  const [locationRequestDone, setLocationRequestDone] = React.useState(false);
 
   // Race-protection: räknare per svar-typ; vi accepterar bara det senaste.
   const locationReqRef = React.useRef(0);
   const searchReqRef = React.useRef(0);
+  /** ExternalId för sökresultatets knapp som öppnade bekräftelsesteget – används för att återställa fokus vid Tillbaka. */
+  const [focusReturnId, setFocusReturnId] = React.useState<string | null>(null);
 
   // Bekräftelsesteget: användaren har valt ett förslag, väljer occasions
   // och anteckning innan riktig save körs.
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
-  const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>([
-    "avslappnat",
-  ]);
+  const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>(["avslappnat"]);
   const [pendingNotes, setPendingNotes] = React.useState("");
 
   const parsed = React.useMemo(
@@ -189,10 +190,13 @@ export function AddPlaceDialog({
     setLocationSuggestions([]);
     setShowLocationSuggest(false);
     setLocationActiveIx(-1);
+    setLocationRequestDone(false);
     setProviderError(null);
     setPending(null);
     setPendingOccasions(["avslappnat"]);
     setPendingNotes("");
+    setFocusReturnId(null);
+    setRetryNonce(0);
     setName("");
     setAddress("");
     setManualArea("");
@@ -226,10 +230,12 @@ export function AddPlaceDialog({
     if (text.length < 2) {
       setLocationSuggestions([]);
       setLocationLoading(false);
+      setLocationRequestDone(false);
       return;
     }
     const reqId = ++locationReqRef.current;
     setLocationLoading(true);
+    setLocationRequestDone(false);
     const t = setTimeout(() => {
       geoapifyAutocompleteLocation({
         data: {
@@ -244,11 +250,13 @@ export function AddPlaceDialog({
           setLocationSuggestions(rows);
           setLocationActiveIx(-1);
           setLocationLoading(false);
+          setLocationRequestDone(true);
         })
         .catch((e: unknown) => {
           if (reqId !== locationReqRef.current) return;
           setLocationSuggestions([]);
           setLocationLoading(false);
+          setLocationRequestDone(true);
           const pe = classifyError(e);
           if (pe.code === "not_configured" || pe.code === "config_error") {
             setProviderError(pe);
@@ -349,14 +357,30 @@ export function AddPlaceDialog({
     centerLabel,
     parsed,
     pending,
+    retryNonce,
   ]);
 
   const openConfirm = (s: PlaceSuggestion) => {
     if (isBusy) return;
+    setFocusReturnId(s.externalId);
     setPending(s);
     setPendingOccasions(["avslappnat"]);
     setPendingNotes("");
   };
+
+  // Återställ fokus till "Lägg till"-knappen som öppnade bekräftelsen när
+  // användaren backar tillbaka till sökresultaten.
+  React.useEffect(() => {
+    if (pending || !focusReturnId || tab !== "sok") return;
+    const raf = requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLButtonElement>(
+        `[data-suggestion-add="${escapeAttr(focusReturnId)}"]`,
+      );
+      if (el) el.focus();
+      setFocusReturnId(null);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [pending, focusReturnId, tab, results]);
 
   const confirmAdd = async () => {
     if (!pending || isBusy) return;
@@ -417,9 +441,7 @@ export function AddPlaceDialog({
       setLocationActiveIx((ix) => (ix + 1) % locationSuggestions.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setLocationActiveIx((ix) =>
-        ix <= 0 ? locationSuggestions.length - 1 : ix - 1,
-      );
+      setLocationActiveIx((ix) => (ix <= 0 ? locationSuggestions.length - 1 : ix - 1));
     } else if (e.key === "Enter") {
       if (locationActiveIx >= 0) {
         e.preventDefault();
@@ -440,6 +462,8 @@ export function AddPlaceDialog({
     }
     setShowLocationSuggest(false);
     setLocationActiveIx(-1);
+    setLocationSuggestions([]);
+    setLocationRequestDone(false);
   };
 
   const submitManual = async () => {
@@ -480,9 +504,7 @@ export function AddPlaceDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">
-              Lägg till i gruppen
-            </DialogTitle>
+            <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
             <DialogDescription>
               Kontrollera detaljerna innan du lägger till stället.
             </DialogDescription>
@@ -497,9 +519,7 @@ export function AddPlaceDialog({
                 <div className="truncate font-medium">{pending.name}</div>
                 <div className="truncate text-xs text-muted-foreground">
                   {CATEGORY_LABEL[pending.category]}
-                  {pending.cuisines?.length
-                    ? ` · ${pending.cuisines.join(", ")}`
-                    : ""}
+                  {pending.cuisines?.length ? ` · ${pending.cuisines.join(", ")}` : ""}
                 </div>
                 {pending.address ? (
                   <div className="truncate text-[11px] text-muted-foreground">
@@ -585,12 +605,10 @@ export function AddPlaceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">
-            Lägg till matställe
-          </DialogTitle>
+          <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
           <DialogDescription>
-            Utforska ett område eller lägg till manuellt. Ett ställe får ligga var
-            som helst – området är bara ett sökförslag.
+            Utforska ett område eller lägg till manuellt. Ett ställe får ligga var som helst –
+            området är bara ett sökförslag.
           </DialogDescription>
         </DialogHeader>
 
@@ -602,9 +620,7 @@ export function AddPlaceDialog({
               aria-pressed={tab === t}
               className={[
                 "min-h-11 rounded-full py-1.5 text-sm font-medium transition-colors",
-                tab === t
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground",
+                tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
               ].join(" ")}
             >
               {t === "sok" ? "Sök & utforska" : "Lägg till manuellt"}
@@ -639,9 +655,7 @@ export function AddPlaceDialog({
                     setShowLocationSuggest(true);
                   }}
                   onFocus={() => setShowLocationSuggest(true)}
-                  onBlur={() =>
-                    setTimeout(() => setShowLocationSuggest(false), 150)
-                  }
+                  onBlur={() => setTimeout(() => setShowLocationSuggest(false), 150)}
                   onKeyDown={onLocationKeyDown}
                   placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
                   aria-invalid={!cityValid}
@@ -649,18 +663,20 @@ export function AddPlaceDialog({
                   role="combobox"
                   aria-autocomplete="list"
                   aria-expanded={
-                    isLive && showLocationSuggest && locationSuggestions.length > 0
+                    isLive &&
+                    showLocationSuggest &&
+                    location.trim().length >= 2 &&
+                    (locationLoading || locationSuggestions.length > 0 || locationRequestDone)
                   }
                   aria-controls="location-listbox"
                   aria-activedescendant={
-                    locationActiveIx >= 0
-                      ? `location-opt-${locationActiveIx}`
-                      : undefined
+                    locationActiveIx >= 0 ? `location-opt-${locationActiveIx}` : undefined
                   }
                 />
                 {isLive &&
                 showLocationSuggest &&
-                (locationSuggestions.length > 0 || locationLoading) ? (
+                location.trim().length >= 2 &&
+                (locationLoading || locationSuggestions.length > 0 || locationRequestDone) ? (
                   <ul
                     id="location-listbox"
                     role="listbox"
@@ -669,9 +685,7 @@ export function AddPlaceDialog({
                     {locationLoading && locationSuggestions.length === 0 ? (
                       <li className="px-2 py-2 text-muted-foreground">Söker…</li>
                     ) : locationSuggestions.length === 0 ? (
-                      <li className="px-2 py-2 text-muted-foreground">
-                        Inga träffar
-                      </li>
+                      <li className="px-2 py-2 text-muted-foreground">Inga träffar</li>
                     ) : (
                       locationSuggestions.map((s, i) => (
                         <li
@@ -700,17 +714,13 @@ export function AddPlaceDialog({
                 ) : null}
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Söker i {formatLocation(parsed)}. Skriv med komma för att peka
-                ut ett område.
+                Söker i {formatLocation(parsed)}. Skriv med komma för att peka ut ett område.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label>Sökradie</Label>
-              <Select
-                value={String(radiusKm)}
-                onValueChange={(v) => setRadiusKm(Number(v))}
-              >
+              <Select value={String(radiusKm)} onValueChange={(v) => setRadiusKm(Number(v))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -725,9 +735,7 @@ export function AddPlaceDialog({
             </div>
 
             <div className="rounded-xl bg-secondary/60 px-3 py-2 text-xs">
-              <span className="truncate text-muted-foreground">
-                {filterSummary}
-              </span>
+              <span className="truncate text-muted-foreground">{filterSummary}</span>
             </div>
 
             {providerError ? (
@@ -740,11 +748,9 @@ export function AddPlaceDialog({
                       variant="secondary"
                       onClick={() => {
                         setProviderError(null);
-                        // Trigga om-sök genom att bumpa en dummy-effekt via query-state.
-                        setQuery((q) => q);
-                        searchReqRef.current++;
-                        setLoading(true);
-                        setTimeout(() => setLoading(false), 0);
+                        // Bump av retryNonce triggar sökeffekten på riktigt;
+                        // race-skyddet i searchReqRef är intakt.
+                        setRetryNonce((n) => n + 1);
                       }}
                       className="min-h-11"
                     >
@@ -809,6 +815,7 @@ export function AddPlaceDialog({
                       onClick={() => openConfirm(r)}
                       className="min-h-11 shrink-0"
                       disabled={isBusy}
+                      data-suggestion-add={r.externalId}
                     >
                       <Plus className="h-4 w-4" /> Lägg till
                     </Button>
@@ -818,9 +825,7 @@ export function AddPlaceDialog({
             ) : null}
 
             <p className="text-[11px] text-muted-foreground">
-              {isLive
-                ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
-                : "Demodata"}
+              {isLive ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare." : "Demodata"}
             </p>
           </div>
         ) : (
@@ -841,10 +846,7 @@ export function AddPlaceDialog({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Kategori</Label>
-                <Select
-                  value={category}
-                  onValueChange={(v) => setCategory(v as PlaceCategory)}
-                >
+                <Select value={category} onValueChange={(v) => setCategory(v as PlaceCategory)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -871,19 +873,11 @@ export function AddPlaceDialog({
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="address">Adress</Label>
-                <Input
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
+                <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="city">Stad</Label>
-                <Input
-                  id="city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
+                <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} />
               </div>
             </div>
 
@@ -911,9 +905,7 @@ export function AddPlaceDialog({
                       type="button"
                       aria-pressed={active}
                       onClick={() =>
-                        setOccasions((cur) =>
-                          active ? cur.filter((x) => x !== o) : [...cur, o],
-                        )
+                        setOccasions((cur) => (active ? cur.filter((x) => x !== o) : [...cur, o]))
                       }
                       className="min-h-11"
                     >
@@ -1017,6 +1009,13 @@ function safeParse(raw: string): unknown {
   } catch {
     return {};
   }
+}
+
+/** Minimal escape av attributvärde för querySelector. Geoapify-id kan innehålla
+ * dubbla citattecken eller backslash, så vi escaper dem för att inte bryta
+ * selectorn. */
+function escapeAttr(v: string): string {
+  return v.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function emojiForCategory(c: PlaceCategory) {

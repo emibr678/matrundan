@@ -4,6 +4,39 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.8.0] – 2026-07-25
+
+### Nytt
+- **Riktig platssök via Geoapify i live-läget.** Autentiserad serveradapter
+  (`geoapifyAutocompleteLocation`, `geoapifySearchPlaces`) läser
+  `GEOAPIFY_API_KEY` enbart på servern – nyckeln finns aldrig i klientbundeln.
+- **Bekräftelsesteg** innan ett sökresultat läggs till: användaren väljer
+  Passar för och kan skriva en anteckning till gruppen. Inget sparas direkt
+  från resultatlistan.
+- **Autocomplete för Plats-fältet** med tangentbordsstöd (piltangenter, Enter,
+  Escape), ARIA-combobox och stabil dropdown som även visar “Inga träffar”
+  när sökningen är klar utan resultat.
+- **Race-skyddad sökeffekt** via inkrementell request-id – bara det senaste
+  svaret uppdaterar resultatlistan. Försök igen bumpar en retry-nonce så
+  effekten verkligen körs om (platsupplösning + matställessökning) och
+  visar loading tills svaret kommer.
+- **Dubblettskydd** via unikt index på `(provider, provider_place_id)` och
+  atomär RPC `create_or_link_provider_place`.
+
+### Förbättrat
+- Avgränsade sökradier 1/3/5/10/25 km samt “Större område · inom 50 km”.
+  Servervalidatorn accepterar `1|3|5|10|25|null` – 50 skickas som `null`
+  och tolkas som en 50 km-cirkel runt centrum. Inga påståenden om
+  rikstäckning kvar i UI:t.
+- Kartprototypen är borttagen från sökflödet – enhetlig listvy även på
+  360 px, 44 px träffytor, tydliga felmeddelanden med “Försök igen” och
+  “Lägg till manuellt”.
+- Fokus återgår till det “Lägg till”-alternativ som öppnade bekräftelsen
+  när användaren backar tillbaka. Val av autocomplete-förslag stänger inte
+  dialogen.
+- Tydlig attribution: “Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.”
+- Demo-läget är oförändrat och fortsätter använda den lokala provider-datan.
+
 ## [0.7.1] – 2026-07-25
 
 ### Rättat
