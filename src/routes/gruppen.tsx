@@ -108,9 +108,9 @@ function GroupPage() {
     const lastVisit = state.visits
       .filter((v) => v.participantIds.includes(m.id))
       .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
-    const visitCount = state.visits.filter((v) => v.participantIds.includes(m.id)).length;
     const favCount = state.favorites.filter((f) => f.memberId === m.id).length;
-    return { m, lastVisit, visitCount, favCount };
+    const progression = computeMemberProgression(state, m.id);
+    return { m, lastVisit, favCount, progression };
   });
 
   const favByPlace = new Map<string, number>();
