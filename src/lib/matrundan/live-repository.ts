@@ -174,6 +174,10 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     addedAt: pl.addedAt,
     notes: pl.notes ?? undefined,
     photo: pl.photo ?? undefined,
+    origin:
+      pl.origin === "manual" || pl.origin === "provider" || pl.origin === "shared"
+        ? pl.origin
+        : "manual",
   }));
 
   const visits: Visit[] = p.visits.map((v) => {
