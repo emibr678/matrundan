@@ -75,7 +75,12 @@ function Home() {
 
         {next ? (
           <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
-            <div className="relative bg-gradient-to-br from-primary/85 to-primary p-6 text-primary-foreground">
+            <Link
+              to="/matstallen/$placeId"
+              params={{ placeId: next.id }}
+              className="block bg-gradient-to-br from-primary/85 to-primary p-6 text-primary-foreground transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              aria-label={`Öppna ${next.name}`}
+            >
               <div className="text-6xl">{next.photo ?? "🍽️"}</div>
               <div className="mt-3">
                 <div className="text-xs tracking-wide opacity-80">
@@ -94,19 +99,14 @@ function Home() {
                   </div>
                 ) : null}
               </div>
-            </div>
-            <div className="flex flex-col gap-2 p-4 sm:flex-row">
+            </Link>
+            <div className="p-4">
               <Button
                 onClick={() => setVisitPlace(next.id)}
-                className="flex-1"
+                className="h-12 w-full text-base"
                 size="lg"
               >
                 Registrera besök
-              </Button>
-              <Button asChild variant="outline" size="lg" className="flex-1">
-                <Link to="/matstallen/$placeId" params={{ placeId: next.id }}>
-                  Visa detaljer
-                </Link>
               </Button>
             </div>
           </Card>
