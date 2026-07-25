@@ -1,100 +1,120 @@
+# Matrundan — gamification-strategi (produkt/UX, ingen kod)
 
-# UX-granskning av Matrundan (ingen kod ändrad)
+Detta är en ren rekommendation. Inga filer, ingen version, ingen changelog ändras.
 
-## Helhetsbedömning
-Appen har en varm, sammanhållen nordisk identitet, tydlig bottennav och ett tight kärnflöde: Hem → Nästa stopp → Registrera besök fungerar i praktiken på 2–3 klick. Största friktionen ligger i **desktop-layouten**, i **Gruppen-fliken som är övervägande administration**, samt i några **mikrotexter och terminologival** som skaver. Detaljvyn är behagligt avskalad — bra att extern restauranginfo inte trängs in.
+## TL;DR
 
-Testat i preview på mobil (390×844) och desktop (1280×1800) via alla huvudflöden. Inga typecheck-fel att åtgärda; det handlar om produkt- och interaktionsjusteringar.
+Behåll nivåer, men gör om dem: **per-grupp, deltagandebaserat, sekundärt**. Lägg till en liten uppsättning **upplevelsebaserade badges**. Ha **en enda mjuk "höjdpunkter"-lista** i Gruppen-fliken i stället för klassisk leaderboard. Ingen global XP, ingen cross-group-exponering i v1.
 
-## Vad som redan fungerar och bör behållas
-- **Hero "Nästa stopp"** kommunicerar syftet direkt när man landar — den ska förbli sidans centrum.
-- **Slumpa-knappen** sitter där ögat söker den, och tomlägestexten när inget nästa stopp finns är tydlig.
-- **Statuschippen** ("Nytt för mig", "Nytt för gruppen", "Alla har provat", "Några har provat") är korta och färgkodade — bra semantik.
-- **VisitDialog** — 4-stjärnigt default på helhetsbetyg, deltagare förvalda till "Du", detaljbetyg dolt bakom Collapsible. Läroboksexempel på "frivilliga detaljer visas när användaren ber om dem".
-- **AddPlaceDialog** — tydlig Sök/Manuellt-toggle och den lilla textraden "Ställen får ligga var som helst – gruppens stad är bara ett förslag" motverkar exakt den geografiska missuppfattningen som beskrevs.
-- **Detaljvyn** har en enda Google Maps-knapp — inga externa recensioner, inget brus. Behåll.
-- **Progressbaren "X av Y provade"** ger tydligt gruppmål utan att bli tävling.
-- **Kategori + flera kök** (Restaurang · italienskt · pizza) läser sig naturligt i PlaceCard.
+---
 
-## Problem, prioriterade
+## 1. Gör varierande konstellationer nivåer mer meningsfulla?
 
-### P0 — måste åtgärdas
+Ja, men inte som vi först tänkte. När 6 personer sällan är samlade blir "antal besök jag var med på" en **rättvisare** mätare än "antal besök i gruppen totalt" (som straffar den som missar middagar). Det gör också nivån personlig utan att bli en ren aktivitetstävling — du går upp när **du faktiskt varit med och ätit**, inte när du klickat mest i appen.
 
-**1. Desktop-layouten är för smal och känns ofärdig**
-Var: alla sidor. Root-shellet klampar innehållet till `max-w-2xl` (≈672 px) mitt på en 1280+ skärm; på desktop syns ~40 % innehåll och ~60 % tomma gradientytor. Bottennav ligger dessutom fixed på desktop, vilket ser som en mobilemulator.
-Varför: appen påstår "bra desktop-layout" men levererar en mobilramme i mitten. För en konsumentapp för vänner är det ok att vara mobile-first, men desktop måste kännas medvetet.
-Lösning: På ≥`md` bredda huvudkolumnen (t.ex. `max-w-5xl`) och lägg Hem som 2-kolumn (Nästa stopp + statistik/aktivitet vid sidan), samt byt bottennav mot en topp- eller sidonav. Behåll bottennav endast på `<md`.
+Risk: den som organiserar mycket men sällan hinner delta kan känna sig osynlig. Lös det med en separat badge för bidrag (se §5), inte via nivåsystemet.
 
-**2. "Gruppen" är en huvudflik med nästan bara administration**
-Var: bottennav → Gruppen. Innehållet är medlemslista, inbjudan, Google-login-platshållare, återställ demo-data och admin-changelog. Inget av det används dagligen; det tar samma vikt i navigationen som Hem och Matställen.
-Varför: bryter proportionerna i informationsarkitekturen och skjuter kärnflödet (lägg till → välj → besök → betygsätt) åt sidan. Användaren nämnde själv detta.
-Lösning: Ersätt fliken "Gruppen" med **"Aktivitet"** eller **"Gänget"** som visar det som är socialt värdefullt dagligen (aktivitetsflöde, vem har provat vad, vem har favoriserat, vems tur att välja) och flytta inbjudan/roller/inställningar/admin till en **kugghjulsikon i headern** eller ett menyval "Inställningar" längst ner i den fliken. Bevaka: medlemslistan i sig hör hemma på fliken (den är social), det är inbjudan/roller/version som ska bli sekundärt.
+## 2. Unika ställen, deltagna besök eller kombination?
 
-**3. Rubriken/rooten "Utforskningen" saknas — men rubrikerna "Topp betygsatta" och "Senaste aktivitet" på Hem konkurrerar om samma yta som "Nästa stopp"**
-Var: Hem, under fold.
-Varför: När man scrollar möts man av tre likvärdiga sektioner utan hierarki. "Topp betygsatta" är dessutom otydligt — bygger den på gruppens medelbetyg? På vilket urval?
-Lösning: Rama in Hem som "Gruppens gemensamma val + snabb överblick"; flytta hela "Topp betygsatta" till Matställen-fliken där den hör hemma (som ett sorteringsläge eller egen sektion högst upp). Bevara "Senaste aktivitet" på Hem — den är kort och socialt drivande. Under topplistan sätt hjälptext "Baserat på gruppens medelbetyg (minst 1 besök)" så kriteriet är klart.
+**Deltagna besök som primär mätare.** Enkelt, ärligt, matchar kärnflödet (lägg till → välj → besök → betygsätt). Unika ställen fungerar sämre för Matrundan eftersom återbesök till favoriter är en del av poängen — att gå på Bhoga tre gånger ska inte "räknas mindre".
 
-### P1 — bör åtgärdas snart
+Undvik XP-poäng med olika vikter. Det är krångligt att förklara och lätt att game:a. En räknare, en tröskel.
 
-**4. Meny/måltid-terminologi blandar frukost/lunch/**fika**/middag/kväll**
-Var: VisitDialog "Måltid"-select.
-Varför: "fika" och "kväll" är inte samma taxonomi som "frukost/lunch/middag" — fika är socialt, kväll är tidpunkt. Nybörjare fastnar en sekund.
-Lösning: Byt fältet från "Måltid" till "**Tillfälle**" och lista: Frukost, Lunch, Fika, Middag, Kvällsöl/sent. Alternativt: låt kategorin på stället styra defaultvärdet (café → Fika).
+## 3. Per grupp, globalt eller två lager?
 
-**5. Emoji används som "photo" — bräckligt och inkonsekvent**
-Var: PlaceCard, Hem-hero, detaljvy. På preview-servern renderas flera emoji som tomma rutor (t.ex. Koka visas som ☆). På mobiler med gamla emojiuppsättningar blir det ännu värre.
-Varför: appen ger sken av visuell rikedom men riskerar att se trasig ut.
-Lösning: Låt emoji vara *default-avatar* men gör tydligt utrymme för framtida riktig bild (Storage-URL i `Place.photo`). På hero: om ingen bild, använd en varm färgad gradient med kategori-emoji **plus** kategoritext, inte bara en emoji ovanpå en färgruta.
+**Per grupp i v1.** Skäl:
+- Gruppisolering är kärnprincipen; global nivå läcker beteende mellan grupper.
+- Integritet: en användare i två grupper vill inte att grupp B ser hur aktiv hen är i grupp A.
+- Enkelhet: en siffra per medlemskap, inget aggregat.
 
-**6. Toppen av Matställen är filter-tung**
-Var: Matställen-listan. Fyra filterchip + tre selects + sökfält = sju kontroller innan första kortet på mobil.
-Varför: nedlastar mobilanvändaren och skymmer att listan är kort.
-Lösning: Kollapsa Kategori/Situation/Sortering bakom en "Filter"-knapp med räknarplopp när aktiva; behåll bara sök + snabbchipsen (Alla/Favoriter/Nytt för mig).
+Förbered datamodellen för ett framtida "livstidsmärke" som **bara användaren själv ser** på sin egen profil (privat räknare). Bygg det inte i UI:t nu.
 
-**7. Statusbadge-varianten "Delvis / Några har provat" är otydlig i sin nytta**
-Varför: användaren behöver sällan skilja på "1 av 5 har provat" vs "4 av 5 har provat" — de gör inte olika saker med informationen.
-Lösning: Slå ihop till en enda "Några har provat"-status och visa antal besök på hover/i detaljvy istället. Alternativt visa "3/5 i gänget provat" numeriskt när den är delvis.
+## 4. Vad ser andra om aktivitet i andra grupper?
 
-**8. Detaljvyn saknar tydlig hierarki mellan action-knapparna**
-Var: `matstallen.$placeId.tsx` — fyra likstora outline-knappar i rad ("Besök", "Nästa stopp", "Spara", "Google Maps").
-Varför: primär åtgärd (Besök) drunknar; "Google Maps" (extern) väger lika mycket som "Registrera besök" (kärnflödet).
-Lösning: Gör "Registrera besök" till full-bredd primary; lägg de andra tre som mindre outline/ghost i en rad under. Behåll Google Maps som enda externa länk.
+**Ingenting.** Inte antal grupper, inte total nivå, inte "aktiv i X grupper". Det bryter mot gruppens intima känsla och öppnar för jämförelser Matrundan inte ska handla om. När produkten går publik: fortsatt default off, ev. opt-in "visa min publika matprofil" — men det är en v2-fråga.
 
-**9. "Bjud in" — inbjudningslänken är för teknisk**
-Var: Gruppen-fliken. `http://localhost:8080/inbjudan/g1?kod=matr-1234` monospace, långt, syns till hälften.
-Varför: känns som en admin-panel, inte som att bjuda in en vän.
-Lösning: Presentera som "Kopiera länk" + "Dela via…" (system share sheet på mobil). Dölj själva URL-strängen bakom ett litet "visa länk"-toggle.
+## 5. Badges vs nivåer
 
-### P2 — polish
+Båda, med olika roll:
 
-**10. Bakåt-länken i detaljvyn är en textlänk högst upp.** Byt till en riktig ikonknapp (`< Tillbaka`) med större träffyta (44×44) — särskilt eftersom det är den enda vägen tillbaka.
+- **Nivå** = din takt i just den här gruppen. En siffra, ett namn, växer långsamt.
+- **Badges** = minnesvärda ögonblick, inte prestation. T.ex. "Första besöket", "Provat alla kategorier", "Fem fika i rad", "Besökt gruppens Nästa stopp inom en vecka", "Återvändare" (tredje besök på samma ställe).
 
-**11. Star-fältet i StatTile på Hem har rubriker i versaler ("STÄLLEN", "BESÖK", "KVAR ATT PROVA") — läsligt men skriker.** Överväg små caps-utseende via typografi istället, eller normal case.
+**Skilj tydligt** upplevelsebadges (belönar att äta tillsammans) från admin-badges (belönar att fylla i appen). Ha få eller inga av det senare — max en diskret "Kurator" för den som lagt till många ställen. Annars driver appen fel beteende: folk lägger in ställen de aldrig tänkt besöka.
 
-**12. "Fredagsgänget · Göteborg" i headern är statisk även på Gruppen där gruppens namn står stort i hero.** Redundans. Dölj headern-text på just den vyn eller ersätt med aktuell platsindikator.
+## 6. Leaderboard?
 
-**13. Progressbar "4 av 8 provade" — 8 låter litet.** Gör hjälptext "Du och gänget har provat 4 av 8 tillagda ställen" så tal känns mänskligt.
+Klassisk leaderboard: **nej.** Det gör Matrundan till en tävling och krockar med att alla inte kan delta lika ofta.
 
-**14. Ingen indikation på vems tur det är att välja nästa stopp.** Om "gruppens gemensamma nästa" är centralt kan man addera "Föreslaget av Johan · Ändra"-rad under hero-kortet. Frivilligt, men förstärker det sociala.
+Istället: **"Gruppens höjdpunkter"** — en liten sektion i Gruppen-fliken som roterar mjuka fakta:
+- "Ni har tillsammans besökt 24 ställen"
+- "Sara har föreslagit flest ställen den här månaden"
+- "Emilia har varit med på flest middagar i höst"
 
-**15. Accessibility:** `<button>`-baserade chip på filter/deltagare bör ha `aria-pressed`; ikonknappar (favorit-hjärtat) har label — bra; kontrollera att `<main>` bara renderas en gång — det gör den; datepickerns nativa input i VisitDialog har låg kontrast på placeholdertext ("07/23/2026") — låt Label bära all information och behåll input.
+Det firar bidrag utan rangordnad lista. Ingen "vinnare", ingen "sist".
 
-## Rekommenderad implementeringsordning
-1. **P0-2 Omforma "Gruppen"-fliken.** Byt till "Aktivitet/Gänget" som primärflik; flytta administration till kugghjul/inställningssida. Detta återställer proportioner i IA innan andra ändringar görs.
-2. **P0-1 Desktop-layout.** Bredda kolumnen, gör Hem 2-spalt på ≥md, ersätt bottennav med topnav på desktop.
-3. **P0-3 Rubrikordning på Hem + flytta "Topp betygsatta" till Matställen** med tydlig kriterie-text.
-4. **P1-8 Primär åtgärd i detaljvyn** — snabb vinst för kärnflödet.
-5. **P1-6 Kollapsa filterrad på Matställen.**
-6. **P1-4 Byt "Måltid" → "Tillfälle"** och P1-7 slå ihop statusen "Delvis"/"Några har provat".
-7. **P1-5 Emoji-som-foto:** förstärk gradient-fallback och förbered `Place.photo` för URL.
-8. **P1-9 Inbjudan** som Kopiera/Dela istället för URL-textfält.
-9. **P2** i valfri ordning.
+## 7. Registrering: flera deltagare, historiska besök, dubbletter
 
-## Detalj-anteckningar för implementation
-- Root-container i `AppShell.tsx` styr max-bredd och padding för hela appen — här sker desktop-refaktorn.
-- Ny "Aktivitet"-flik kan i första steg återanvända `state.activity` från store; ingen datamodelländring krävs.
-- Statusreduktion kräver bara ändring i `StatusBadge.tsx` + `statusOf()` i store.
-- Byte av "Måltid" till "Tillfälle" påverkar `Visit.meal`-typen; behåll fältnamnet i typen och byt bara label + defaults för att undvika bred refaktor.
+Kärnregel: **ett besök = en händelse med N deltagare.** Nivån ökar för alla i `participantIds`, inte bara `createdBy`. Detta är redan datamodellens form — bra.
 
-**Ingen kod har ändrats.** Godkänn planen så börjar jag med P0-2 (Gruppen-fliken) enligt rekommenderad ordning.
+- **Historiska besök:** tillåt datum i det förflutna. Räkna dem normalt. Ingen "streak"-mekanik som straffar sena inlägg.
+- **Dubbletter:** mjuk varning i UI om samma plats + samma datum finns; låt användaren bekräfta. Inget hårt block — gruppen kan ha ätit där två gånger samma dag.
+- **Fel/ånger:** vem som helst i `participantIds` får ta bort sig själv; `createdBy` eller admin får ta bort hela besöket. Nivåer räknas om deterministiskt från besökslistan, så borttagning "återlämnar" nivån utan bokföring.
+- **Retroaktiva nivåuppgraderingar:** visa en diskret toast först nästa gång användaren öppnar appen ("Du är nu Fikafantast"), inte mitt i registreringsflödet.
+
+## 8. Vad byggs nu, vad förbereds, vad väntar?
+
+**Bygg i demo-UX nu:**
+- Nivå per medlemskap, synlig på medlemsprofilen och som liten chip bredvid namnet i medlemslistan.
+- 4–6 upplevelsebadges med tydliga triggers.
+- "Gruppens höjdpunkter"-sektion (statisk logik, ingen tävling).
+
+**Förbered i datamodell inför Supabase:**
+- `visit_participants` som separat tabell (redan planerat) — nivån härleds därifrån, lagras inte.
+- Fält för privat livstidsräknare per profil, ej exponerat.
+- Badge-definitioner som konfiguration, inte hårdkodat per användare.
+
+**Vänta:**
+- Global profil, cross-group-synlighet, publika leaderboards, säsongsutmaningar, streaks. Kräver verklig användardata för att kalibrera trösklar och undvika fel incitament.
+
+## 9. Konkret förslag: nivåer och namn
+
+Deltagna besök i gruppen → nivå. Trösklar valda för att ge snabb första belöning och sedan sakta ner:
+
+```text
+0    Nyfiken smakare
+1    Smakletare
+5    Fikafantast
+15   Mataventyrare
+30   Matkonnässör
+60   Matrundans mästare
+```
+
+Sex nivåer räcker. Namnen är lekfulla, svenska, könsneutrala, inte översatta från engelska "foodie".
+
+**UI-prioritering:**
+- Medlemsprofil-sheet: nivå-chip högst upp, badges under nyckeltalen, inte överst.
+- Medlemslistan i Gruppen: liten chip efter namnet, ingen progressbar.
+- Hem och Matställen: **ingen** nivå-yta. Skyddar kärnflödet.
+- Ingen notis "du är nära nästa nivå" — det driver fel beteende.
+
+## 10. Långsiktig differentiering mot Google Maps / TheFork / Tripadvisor
+
+Matrundans försvarbara kärna är **den privata, delade minnesboken för en liten grupp**. Håll fast vid tre principer när produkten skalar:
+
+1. **Grupp först, inte plats först.** Konkurrenter börjar med "hitta en restaurang". Matrundan börjar med "vad ska vi göra tillsammans nästa gång". Nivåer och badges får aldrig flytta fokus från gruppen till platsen.
+2. **Ingen publik recension.** Betyg är gruppens, inte världens. Även när produkten går publik: default privat, delning är opt-in per grupp, aldrig per plats.
+3. **Kvalitativa minnen över kvantitativa poäng.** Kommentarer, foton, "vi var där när Nora fyllde år" är viktigare än stjärnsnitt. Gamification ska förstärka minnet, inte ersätta det.
+
+Risker att bevaka:
+- **Badge-inflation:** för många triggers gör att inget känns värt något. Håll listan kort och redigera hellre än att lägga till.
+- **Nivåfixering:** om folk börjar registrera besök de inte varit på för att gå upp i nivå, är systemet trasigt. Motverkas av deltagarbaserad räkning + mjuk dubblettvarning.
+- **Publik glidning:** varje gång någon föreslår "visa top-restauranger i stan" — säg nej. Det finns tio appar för det. Det finns ingen för det Matrundan gör.
+
+---
+
+## Rekommendation i en mening
+
+Nivå per grupp baserad på deltagna besök, sex lekfulla svenska nivåer, en handfull upplevelsebadges, "Gruppens höjdpunkter" istället för leaderboard, ingen cross-group-synlighet i v1 — och behåll disciplinen att gamification alltid är sekundärt till lägg till → välj → besök → betygsätt.
+
+Säg till om du vill att jag konkretiserar badge-listan eller ritar upp exakt var chip/badges placeras i Gruppen-vyn innan vi någonsin rör kod.
