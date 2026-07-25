@@ -177,60 +177,23 @@ export function AddPlaceDialog({
         {tab === "sok" ? (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="q">Vad är du sugen på?</Label>
+              <Label htmlFor="q">Sök matställe eller ort</Label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="q"
-                  placeholder="Namn, kök eller kategori (valfritt)"
+                  placeholder="Namn, kök, kategori eller ort"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="pl-9"
+                  autoFocus
                 />
               </div>
-            </div>
-
-            <LocationAutocomplete value={near} onChange={setNear} />
-
-            <div
-              className="grid grid-cols-2 gap-2 rounded-full bg-muted p-1"
-              aria-label="Sökområde"
-            >
-              <ModeToggle
-                active={mode === "near" && !!near}
-                disabled={!near}
-                onClick={() => setMode("near")}
-                icon={<MapPin className="h-3.5 w-3.5" />}
-                label={near ? `Nära ${near.label.split(",")[0]}` : "Nära"}
-              />
-              <ModeToggle
-                active={mode === "everywhere" || !near}
-                onClick={() => setMode("everywhere")}
-                icon={<Globe2 className="h-3.5 w-3.5" />}
-                label="Överallt"
-              />
-            </div>
-
-            <div className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2 text-xs">
-              <span className="truncate text-muted-foreground">
-                {filterSummary}
-              </span>
-              {results.length > 0 && hasCoords ? (
-                <div className="ml-2 flex gap-1 rounded-full bg-background p-0.5">
-                  <ViewToggle
-                    active={view === "list"}
-                    onClick={() => setView("list")}
-                    icon={<ListIcon className="h-3.5 w-3.5" />}
-                    label="Lista"
-                  />
-                  <ViewToggle
-                    active={view === "map"}
-                    onClick={() => setView("map")}
-                    icon={<MapIcon className="h-3.5 w-3.5" />}
-                    label="Karta"
-                  />
-                </div>
-              ) : null}
+              <p className="text-[11px] text-muted-foreground">
+                {bias
+                  ? `Träffar nära ${bias.label} visas först. Sök på ort för att utforska annanstans.`
+                  : "Sök i hela Sverige."}
+              </p>
             </div>
 
             {loading ? (
@@ -238,14 +201,8 @@ export function AddPlaceDialog({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
               </div>
             ) : results.length === 0 ? (
-              <EmptyBlock
-                text={
-                  near && mode === "near"
-                    ? `Inga träffar inom ~${NEAR_RADIUS_KM} km från ${near.label}. Prova ”Överallt” eller lägg till manuellt.`
-                    : "Inga träffar. Prova en annan sökterm eller plats."
-                }
-              />
-            ) : view === "list" ? (
+              <EmptyBlock text="Inga träffar. Prova en annan sökterm eller lägg till manuellt." />
+            ) : (
               <div className="space-y-2">
                 {results.map((r) => (
                   <div
@@ -277,18 +234,10 @@ export function AddPlaceDialog({
                   </div>
                 ))}
               </div>
-            ) : (
-              <DemoMap
-                results={results.filter((r) => r.lat != null && r.lng != null)}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onAdd={pickSuggestion}
-                selected={selected}
-              />
             )}
             <p className="text-[11px] text-muted-foreground">
-              Demo-provider aktiv. När Geoapify kopplas på blir platsförslagen
-              och sökträffarna riktiga – gränssnittet är detsamma.
+              Demo-provider aktiv. När Geoapify kopplas på blir träffarna
+              riktiga – gränssnittet är detsamma.
             </p>
           </div>
         ) : (
