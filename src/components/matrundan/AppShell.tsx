@@ -96,7 +96,6 @@ function ShellBody() {
         <main id="innehall" className="mx-auto max-w-6xl px-4 md:px-6">
           <Outlet />
         </main>
-        <Toaster position="top-center" richColors />
       </div>
     );
   }
