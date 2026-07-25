@@ -415,6 +415,9 @@ export function AddPlaceDialog({
 
             <div className="space-y-1.5">
               <Label>Passar för</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Välj situation – flera går bra. Snabbt & enkelt, Avslappnat eller Trevlig middag.
+              </p>
               <div className="flex flex-wrap gap-2">
                 {OCCASIONS.map((o) => {
                   const active = occasions.includes(o);
