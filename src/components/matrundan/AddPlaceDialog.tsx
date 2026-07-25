@@ -379,7 +379,7 @@ export function AddPlaceDialog({
     if (pending || !focusReturnId || tab !== "sok") return;
     const raf = requestAnimationFrame(() => {
       const el = document.querySelector<HTMLButtonElement>(
-        `[data-suggestion-add="${cssEscape(focusReturnId)}"]`,
+        `[data-suggestion-add="${escapeAttr(focusReturnId)}"]`,
       );
       if (el) el.focus();
       setFocusReturnId(null);
