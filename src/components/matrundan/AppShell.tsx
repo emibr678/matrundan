@@ -79,6 +79,15 @@ function ShellBody() {
     };
   }, [mode, activeGroupId]);
 
+  // Global reload-hook för live-mutationer som sker utanför StoreProvider
+  // (t.ex. delnings-/unlink-/synlighets-actions).
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => void reloadLive();
+    window.addEventListener("matrundan:reload", handler);
+    return () => window.removeEventListener("matrundan:reload", handler);
+  }, [reloadLive]);
+
   if (loading) {
     return (
       <div className="paper-grain flex min-h-dvh items-center justify-center text-sm text-muted-foreground">
