@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { DEMO_STATE } from "./demo-data";
 import { APP_VERSION } from "./version";
 import {
+  liveCreateOrLinkProviderPlace,
   liveCreatePlace,
   liveCreateVisitWithReview,
   liveSetNextPlace,
