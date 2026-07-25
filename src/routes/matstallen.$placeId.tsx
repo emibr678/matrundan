@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   createFileRoute,
   Link,
+  stripSearchParams,
   useParams,
   useRouter,
   useNavigate,
@@ -27,6 +28,7 @@ import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
 import { CATEGORY_LABEL, OCCASION_LABEL } from "@/lib/matrundan/types";
+import { formatRating } from "@/lib/matrundan/version";
 
 const MEAL_LABEL: Record<string, string> = {
   frukost: "Frukost",
@@ -36,12 +38,17 @@ const MEAL_LABEL: Record<string, string> = {
   kväll: "Kväll",
 };
 
+const PLACE_SEARCH_DEFAULTS = { visit: "" };
+
 const placeSearchSchema = z.object({
   visit: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/matstallen/$placeId")({
   validateSearch: zodValidator(placeSearchSchema),
+  search: {
+    middlewares: [stripSearchParams(PLACE_SEARCH_DEFAULTS)],
+  },
   head: () => ({
     meta: [
       { title: "Matställe · Matrundan" },
@@ -141,16 +148,31 @@ function PlaceDetail() {
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge placeId={place.id} />
-              {rating.count > 0 ? (
-                <div className="flex items-center gap-1.5 rounded-full bg-background px-2.5 py-0.5 text-xs">
-                  <RatingStars value={rating.overall} size={12} />
-                  <span className="font-medium">{rating.overall.toFixed(1)}</span>
-                  <span className="text-muted-foreground">· {rating.count}</span>
-                </div>
-              ) : null}
             </div>
           </div>
         </div>
+
+        {rating.count > 0 ? (
+          <div className="flex items-center gap-4 border-t border-border/60 bg-background/60 px-5 py-4">
+            <div className="text-center">
+              <div className="font-display text-3xl font-semibold leading-none">
+                {formatRating(rating.overall)}
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                av 5
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-medium tracking-wide text-muted-foreground">
+                Gruppens helhetsbetyg
+              </div>
+              <RatingStars value={rating.overall} size={16} className="mt-0.5" />
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {rating.count} betyg från gänget
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="space-y-2 p-4">
           <Button
@@ -224,7 +246,10 @@ function PlaceDetail() {
 
       {rating.count > 0 ? (
         <section>
-          <h2 className="mb-2 font-display text-lg">Gruppens betyg</h2>
+          <h2 className="mb-2 font-display text-lg">Betygsdetaljer</h2>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Frivilliga snitt per aspekt – syns bara när gänget har lämnat dem.
+          </p>
           <Card className="grid grid-cols-3 gap-3 rounded-2xl border-border/70 p-4">
             <RatingCell label="Smak" value={detail.taste} />
             <RatingCell label="Prisvärd" value={detail.value} />
@@ -317,7 +342,7 @@ function RatingCell({ label, value }: { label: string; value: number }) {
     <div className="text-center">
       <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
       <div className="mt-1 font-display text-xl font-semibold">
-        {value > 0 ? value.toFixed(1) : "–"}
+        {value > 0 ? formatRating(value) : "–"}
       </div>
       <RatingStars value={value} size={11} className="mt-1 justify-center" />
     </div>

@@ -1,3 +1,4 @@
+import { formatRating } from "@/lib/matrundan/version";
 import { Link } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,7 @@ export function PlaceCard({ place }: { place: Place }) {
                 <>
                   <RatingStars value={rating.overall} size={14} />
                   <span className="text-xs text-muted-foreground">
-                    {rating.overall.toFixed(1)} · {rating.count} besök
+                    {formatRating(rating.overall)} · {rating.count} besök
                   </span>
                 </>
               ) : (

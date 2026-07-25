@@ -32,9 +32,18 @@ import {
   getPlacesProvider,
   type PlaceSuggestion,
 } from "@/lib/matrundan/places-provider";
+import { parseLocation, formatLocation } from "@/lib/matrundan/location";
 
 const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
-const RADIUS_OPTIONS = [1, 3, 5, 10, 25] as const;
+const RADIUS_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: "Inom 1 km" },
+  { value: 3, label: "Inom 3 km" },
+  { value: 5, label: "Inom 5 km" },
+  { value: 10, label: "Inom 10 km" },
+  { value: 25, label: "Inom 25 km" },
+  { value: 9999, label: "Hela landet" },
+];
+const DEFAULT_RADIUS = 5;
 
 export function AddPlaceDialog({
   open,
@@ -48,13 +57,17 @@ export function AddPlaceDialog({
 
   // sök & utforska
   const [query, setQuery] = React.useState("");
-  const [searchCity, setSearchCity] = React.useState(state.group.city);
-  const [searchArea, setSearchArea] = React.useState("");
-  const [radiusKm, setRadiusKm] = React.useState<number>(3);
+  const [location, setLocation] = React.useState(state.group.city);
+  const [radiusKm, setRadiusKm] = React.useState<number>(DEFAULT_RADIUS);
   const [view, setView] = React.useState<"list" | "map">("list");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
+
+  const parsed = React.useMemo(
+    () => parseLocation(location, state.group.city),
+    [location, state.group.city],
+  );
 
   // manuellt
   const [name, setName] = React.useState("");
@@ -70,9 +83,8 @@ export function AddPlaceDialog({
   React.useEffect(() => {
     if (!open) {
       setQuery("");
-      setSearchCity(state.group.city);
-      setSearchArea("");
-      setRadiusKm(3);
+      setLocation(state.group.city);
+      setRadiusKm(DEFAULT_RADIUS);
       setView("list");
       setSelectedId(null);
       setResults([]);
@@ -88,7 +100,7 @@ export function AddPlaceDialog({
     }
   }, [open, state.group.city]);
 
-  const cityValid = searchCity.trim().length > 0;
+  const cityValid = parsed.city.trim().length > 0;
 
   React.useEffect(() => {
     if (tab !== "sok" || !open || !cityValid) {
@@ -100,9 +112,9 @@ export function AddPlaceDialog({
       getPlacesProvider()
         .search({
           query: query.trim() || undefined,
-          city: searchCity.trim(),
-          area: searchArea.trim() || undefined,
-          radiusKm,
+          city: parsed.city,
+          area: parsed.area,
+          radiusKm: radiusKm >= 9999 ? null : radiusKm,
         })
         .then((r) => {
           setResults(r);
@@ -111,7 +123,7 @@ export function AddPlaceDialog({
         .finally(() => setLoading(false));
     }, 250);
     return () => clearTimeout(t);
-  }, [query, searchCity, searchArea, radiusKm, tab, open, cityValid]);
+  }, [query, parsed.city, parsed.area, radiusKm, tab, open, cityValid]);
 
   const pickSuggestion = (s: PlaceSuggestion) => {
     const p = addPlace({
@@ -157,9 +169,9 @@ export function AddPlaceDialog({
     onOpenChange(false);
   };
 
-  const filterSummary = searchArea.trim()
-    ? `${searchArea.trim()}, ${searchCity} · inom ${radiusKm} km`
-    : `${searchCity || "Ingen stad"} · inom ${radiusKm} km`;
+  const filterSummary = `${formatLocation(parsed)} · ${
+    radiusKm >= 9999 ? "hela landet" : `inom ${radiusKm} km`
+  }`;
 
   const hasCoords = results.some((r) => r.lat != null && r.lng != null);
   const selected = results.find((r) => r.externalId === selectedId) ?? null;
@@ -211,26 +223,19 @@ export function AddPlaceDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="s-city">Stad</Label>
-                <Input
-                  id="s-city"
-                  value={searchCity}
-                  onChange={(e) => setSearchCity(e.target.value)}
-                  placeholder="Göteborg"
-                  aria-invalid={!cityValid}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="s-area">Område (valfritt)</Label>
-                <Input
-                  id="s-area"
-                  value={searchArea}
-                  onChange={(e) => setSearchArea(e.target.value)}
-                  placeholder="Haga, Södermalm…"
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="s-location">Plats</Label>
+              <Input
+                id="s-location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
+                aria-invalid={!cityValid}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Söker i {formatLocation(parsed)}. Skriv med komma för att peka
+                ut ett område.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -244,8 +249,8 @@ export function AddPlaceDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {RADIUS_OPTIONS.map((r) => (
-                    <SelectItem key={r} value={String(r)}>
-                      Inom {r} km
+                    <SelectItem key={r.value} value={String(r.value)}>
+                      {r.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -283,8 +288,8 @@ export function AddPlaceDialog({
             ) : results.length === 0 ? (
               <EmptyBlock
                 text={
-                  searchArea.trim()
-                    ? `Inga träffar i ${searchArea.trim()} inom ${radiusKm} km. Prova ett bredare område eller lägg till manuellt.`
+                  parsed.area
+                    ? `Inga träffar i ${parsed.area} (${parsed.city}) inom ${radiusKm >= 9999 ? "hela landet" : radiusKm + " km"}. Prova ett bredare område eller lägg till manuellt.`
                     : "Inga träffar i området. Prova en annan sökterm eller större radie."
                 }
               />
@@ -410,6 +415,9 @@ export function AddPlaceDialog({
 
             <div className="space-y-1.5">
               <Label>Passar för</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Välj situation – flera går bra. Snabbt & enkelt, Avslappnat eller Trevlig middag.
+              </p>
               <div className="flex flex-wrap gap-2">
                 {OCCASIONS.map((o) => {
                   const active = occasions.includes(o);

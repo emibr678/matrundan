@@ -9,6 +9,7 @@
 
 import * as React from "react";
 import { DEMO_STATE } from "./demo-data";
+import { APP_VERSION } from "./version";
 import type {
   Activity,
   AppState,
@@ -55,7 +56,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setState(JSON.parse(raw) as AppState);
+      if (raw) {
+        const parsed = JSON.parse(raw) as AppState;
+        // Håll version i sync med APP_VERSION även om äldre data cachas.
+        setState({ ...parsed, version: APP_VERSION });
+      }
     } catch {
       /* ignore */
     }

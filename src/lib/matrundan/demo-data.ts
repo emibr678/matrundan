@@ -1,11 +1,12 @@
 import type { AppState } from "./types";
+import { APP_VERSION } from "./version";
 
 const today = new Date();
 const daysAgo = (n: number) =>
   new Date(today.getTime() - n * 24 * 60 * 60 * 1000).toISOString();
 
 export const DEMO_STATE: AppState = {
-  version: "0.2.0",
+  version: APP_VERSION,
   currentUserId: "m1",
   group: {
     id: "g1",
@@ -235,21 +236,3 @@ export const DEMO_STATE: AppState = {
   ],
   nextPlaceId: "p5",
 };
-
-export const CHANGELOG: { version: string; date: string; items: string[] }[] = [
-  {
-    version: "0.2.0",
-    date: "2026-07-20",
-    items: [
-      "Ny mobilanpassad Matrundan-upplevelse med tre huvudvyer.",
-      "Slumpa nästa stopp direkt från hemvyn.",
-      "Snabbt helhetsbetyg med valfria detaljbetyg.",
-      "Status per matställe: nytt för mig, nytt för gruppen, alla har provat.",
-    ],
-  },
-  {
-    version: "0.1.0",
-    date: "2026-06-01",
-    items: ["Första interna versionen med grundflödet lägg till → besök → betyg."],
-  },
-];
