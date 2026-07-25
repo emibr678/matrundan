@@ -9,12 +9,7 @@
  * `sharedVisitsCountForProgression` och besökets `countsForProgression`
  * tillåter det).
  */
-import type {
-  Activity,
-  AppState,
-  Place,
-  Visit,
-} from "./types";
+import type { AppState, Place, Visit } from "./types";
 
 /* ---------- Nivåer ---------- */
 
