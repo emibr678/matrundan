@@ -143,8 +143,10 @@ export function MemberProfileSheet({
                       </Badge>
                     ) : null}
                   </SheetTitle>
-                  <SheetDescription className="mt-0.5 capitalize">
-                    {member.role}
+                  <SheetDescription className="mt-0.5">
+                    <span className="capitalize">{member.role}</span>
+                    <span className="mx-1.5 text-muted-foreground/60">·</span>
+                    <span>{profile.progression.level.name}</span>
                   </SheetDescription>
                 </div>
               </div>
@@ -153,10 +155,51 @@ export function MemberProfileSheet({
             <div className="space-y-5 p-5">
               {/* Nyckeltal */}
               <div className="grid grid-cols-3 gap-2">
-                <Stat label="Besök" value={profile.visitCount} />
-                <Stat label="Provade" value={profile.triedPlaces.length} />
-                <Stat label="Föreslagna" value={profile.proposedCount} />
+                <Stat label="Deltagna besök" value={profile.progression.visits} />
+                <Stat label="Unika ställen" value={profile.progression.uniquePlaces} />
+                <Stat label="Kökstyper" value={profile.progression.uniqueCuisines} />
               </div>
+
+              {/* Nivå-progression (egen profil) */}
+              {member.id === state.currentUserId ? (
+                <LevelProgress progression={profile.progression} />
+              ) : null}
+
+              {/* Badges */}
+              {profile.progression.badges.length > 0 ? (
+                <section>
+                  <h3 className="mb-2 text-sm font-medium">Utmärkelser</h3>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {profile.progression.badges.map((b) => {
+                      const def = BADGES[b.id];
+                      return (
+                        <div
+                          key={b.id}
+                          className="flex items-center gap-2.5 rounded-2xl border border-border/70 bg-card p-2.5"
+                        >
+                          <div
+                            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary/60 text-lg"
+                            aria-hidden="true"
+                          >
+                            {def.emoji}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium">
+                              {def.name}
+                            </div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {def.description}
+                            </div>
+                            <div className="mt-0.5 text-[10px] text-muted-foreground/80">
+                              Erövrad {formatDate(b.earnedAt)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
 
               {/* Senaste besök */}
               <section>
