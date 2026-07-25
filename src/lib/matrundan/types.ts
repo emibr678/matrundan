@@ -29,6 +29,14 @@ export interface Place {
   addedAt: string;
   notes?: string;
   photo?: string;
+  /**
+   * Ursprung för gruppens koppling till stället (`group_places.origin`):
+   * - `manual`: skapat i denna grupp
+   * - `provider`: importerat från extern källa (t.ex. Geoapify) i denna grupp
+   * - `shared`: kopplat in via delning från en annan grupp
+   * Används bl.a. för Fullträff-badgen som inte utlöses av delade platser.
+   */
+  origin?: "manual" | "provider" | "shared";
 }
 
 export interface VisibleReview {
