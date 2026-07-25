@@ -1,0 +1,118 @@
+import * as React from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useSession } from "@/lib/matrundan/session";
+import { createGroupWithOwner } from "@/lib/matrundan/live-admin";
+
+const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
+
+export function CreateGroupDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const { refreshGroups, selectGroup } = useSession();
+  const [name, setName] = React.useState("");
+  const [emoji, setEmoji] = React.useState("🍽️");
+  const [location, setLocation] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return toast.error("Ge din grupp ett namn.");
+    setBusy(true);
+    try {
+      const gid = await createGroupWithOwner(
+        name.trim(),
+        emoji,
+        location.trim() || null,
+      );
+      await refreshGroups();
+      if (gid) selectGroup(gid);
+      toast.success("Gruppen är skapad!");
+      onOpenChange(false);
+      setName("");
+      setLocation("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunde inte skapa gruppen.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Skapa ny grupp</DialogTitle>
+          <DialogDescription>
+            Du blir automatiskt ägare. Du kan bjuda in fler efteråt.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="cg-name">Gruppens namn</Label>
+            <Input
+              id="cg-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="t.ex. Fredagsgänget"
+              autoFocus
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Emoji</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {EMOJIS.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  aria-pressed={emoji === e}
+                  onClick={() => setEmoji(e)}
+                  className={
+                    "h-10 w-10 rounded-xl border text-xl transition " +
+                    (emoji === e
+                      ? "border-primary bg-primary/10"
+                      : "border-border/70 hover:bg-muted")
+                  }
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cg-loc">Hemområde (valfritt)</Label>
+            <Input
+              id="cg-loc"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="t.ex. Göteborg"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Avbryt
+            </Button>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Skapar…" : "Skapa grupp"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

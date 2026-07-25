@@ -13,7 +13,10 @@ export type Role = "ägare" | "admin" | "medlem";
 export interface Member {
   id: string;
   name: string;
+  /** Emoji-avatar (default). Rendreras som text i MemberAvatar. */
   avatar?: string;
+  /** Valfri bildavatar (t.ex. Google-profilbild). Prioriteras när emoji saknas. */
+  avatarImage?: string;
   role: Role;
 }
 
@@ -82,7 +85,6 @@ export interface Activity {
   visitId?: string;
   at: string;
   text: string;
-  /** Ny, typad navigering. Äldre data faller tillbaka på kind + fält ovan. */
   target?: ActivityTarget;
 }
 
@@ -113,10 +115,6 @@ export const OCCASION_LABEL: Record<Occasion, string> = {
   middag: "Trevlig middag",
 };
 
-/**
- * Härled ett navigeringsmål ur en aktivitet. Bakåtkompatibelt med
- * gammal localStorage-data som saknar `target`.
- */
 export function resolveActivityTarget(a: Activity): ActivityTarget | null {
   if (a.target) return a.target;
   if (a.kind === "visited" && a.placeId && a.visitId) {

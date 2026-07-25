@@ -1,15 +1,8 @@
 /**
  * Sessions- och läges-hantering för Matrundan.
  *
- * Denna provider isolerar Supabase Auth från övriga komponenter och
- * bestämmer om appen körs i demo- eller live-läge:
- *
- * - Ej inloggad + inget ?demo=1 → demo-läge (standard, ingen skrivning).
- * - Inloggad + inget ?demo=1     → live-läge, läser från Supabase.
- * - ?demo=1                      → demo-läge alltid (utveckling/sandlåda).
- *
- * Vykomponenterna använder useSession() och useStore() – de behöver inte
- * känna till hur data hämtas.
+ * Filtrerar grupper på aktivt medlemskap och hanterar pending invite path
+ * genom OAuth-flödet via sessionStorage.
  */
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
@@ -17,11 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
 export type AppMode = "demo" | "live";
+export type GroupRole = "owner" | "admin" | "member";
 
 export interface UserGroupSummary {
   id: string;
   name: string;
   emoji: string | null;
+  role: GroupRole;
 }
 
 interface SessionState {
@@ -29,12 +24,11 @@ interface SessionState {
   user: User | null;
   session: Session | null;
   mode: AppMode;
-  /** true om användaren är inloggad men ingen aktiv grupp valts än. */
   needsOnboarding: boolean;
-  /** Aktivt grupp-id i live-läge, eller null om ingen finns/valts. */
   activeGroupId: string | null;
+  activeGroupRole: GroupRole | null;
   userGroups: UserGroupSummary[];
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
   signOut: () => Promise<void>;
   selectGroup: (groupId: string) => void;
   refreshGroups: () => Promise<void>;
@@ -42,12 +36,33 @@ interface SessionState {
 
 const SessionContext = React.createContext<SessionState | null>(null);
 const ACTIVE_GROUP_KEY = "matrundan.activeGroup.v1";
+const PENDING_INVITE_KEY = "matrundan.pendingInvite.v1";
 
 function useForceDemo(): boolean {
   return React.useMemo(() => {
     if (typeof window === "undefined") return false;
     return new URLSearchParams(window.location.search).get("demo") === "1";
   }, []);
+}
+
+export function setPendingInvitePath(path: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(PENDING_INVITE_KEY, path);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function consumePendingInvitePath(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.sessionStorage.getItem(PENDING_INVITE_KEY);
+    if (v) window.sessionStorage.removeItem(PENDING_INVITE_KEY);
+    return v;
+  } catch {
+    return null;
+  }
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
@@ -67,8 +82,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
     const { data, error } = await supabase
       .from("memberships")
-      .select("group_id, groups(id, name, emoji)")
-      .eq("user_id", uid);
+      .select("group_id, role, status, groups(id, name, emoji)")
+      .eq("user_id", uid)
+      .eq("status", "active");
     if (error) {
       console.error("[Matrundan] kunde inte läsa medlemskap:", error);
       setUserGroups([]);
@@ -77,7 +93,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const groups: UserGroupSummary[] = (data ?? [])
       .map((row) => {
         const g = (row as { groups: { id: string; name: string; emoji: string | null } | null }).groups;
-        return g ? { id: g.id, name: g.name, emoji: g.emoji } : null;
+        const role = (row as { role: string }).role as GroupRole;
+        return g ? { id: g.id, name: g.name, emoji: g.emoji, role } : null;
       })
       .filter((g): g is UserGroupSummary => g !== null);
     setUserGroups(groups);
@@ -86,6 +103,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const first = groups[0]?.id ?? null;
       if (first && typeof window !== "undefined") {
         window.localStorage.setItem(ACTIVE_GROUP_KEY, first);
+      } else if (!first && typeof window !== "undefined") {
+        window.localStorage.removeItem(ACTIVE_GROUP_KEY);
       }
       return first;
     });
@@ -93,7 +112,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     let cancelled = false;
-    // Registrera lyssnare först, gör sedan initial getSession.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       if (cancelled) return;
       setSession(s);
@@ -124,17 +142,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const signInWithGoogle = React.useCallback(async () => {
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : undefined;
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: origin,
-    });
-    if (result.error) {
-      console.error("[Matrundan] Google-inloggning misslyckades:", result.error);
-      throw result.error;
-    }
-  }, []);
+  const signInWithGoogle = React.useCallback(
+    async (opts?: { redirectPath?: string }) => {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : undefined;
+      // Bevara ev. pending invite via sessionStorage-fallback.
+      if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: origin,
+      });
+      if (result.error) {
+        console.error("[Matrundan] Google-inloggning misslyckades:", result.error);
+        throw result.error;
+      }
+    },
+    [],
+  );
 
   const signOut = React.useCallback(async () => {
     await supabase.auth.signOut();
@@ -151,6 +174,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo<SessionState>(() => {
     const user = session?.user ?? null;
     const isLive = !forceDemo && !!user;
+    const activeRole =
+      userGroups.find((g) => g.id === activeGroupId)?.role ?? null;
     return {
       loading,
       user,
@@ -158,6 +183,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       mode: isLive ? "live" : "demo",
       needsOnboarding: isLive && userGroups.length === 0,
       activeGroupId: isLive ? activeGroupId : null,
+      activeGroupRole: isLive ? activeRole : null,
       userGroups,
       signInWithGoogle,
       signOut,

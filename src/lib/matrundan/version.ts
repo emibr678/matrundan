@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.5.0";
+export const APP_VERSION = "0.6.0";
 export const APP_VERSION_DATE = "2026-07-25";
 
 export interface ChangelogEntry {
@@ -26,6 +26,34 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Riktiga inbjudningar, medlemshantering och profil i live-läget – utan att någon historik försvinner.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Bjud in via engångslänk (öppen eller e-postbunden); länken visas bara vid skapandet.",
+          "Egen sida för att gå med i gruppen: /inbjudan/<token> med tydliga tillstånd för giltig, utgången, återkallad och redan använd.",
+          "Uppdatera din profil: namn och valfri emoji-avatar.",
+          "Redigera gruppens namn, emoji och hemområde (ägare/admin).",
+          "Ägaren kan utse/demotera admins och överföra ägarskapet.",
+          "Admin kan ta bort vanliga medlemmar; alla utom ägaren kan lämna gruppen själv.",
+          "Skapa ytterligare grupp från kontomenyn även om du redan är medlem.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Historiska medlemskap bevaras (status active/left); den som lämnar eller tas bort förlorar åtkomsten direkt men syns kvar i äldre besök när det senare stöds.",
+          "Alla känsliga skrivningar går genom nya SECURITY DEFINER-RPC:er; klienten kan inte längre redigera roller, medlemsstatus eller inbjudningar direkt.",
+          "Inbjudningens råa token lagras aldrig i databasen – bara SHA-256-hash. Matrundan skickar inte e-post själv, men fyller i ett förslag i din e-postklient.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.5.0",
+    date: "2026-07-25",
     summary:
       "Skrivflödena är live: lägg till, besök, betyg, favoriter och nästa stopp sparas i Supabase.",
     sections: [

@@ -223,34 +223,40 @@ export type Database = {
       invitations: {
         Row: {
           accepted_at: string | null
+          accepted_by: string | null
           created_at: string
           expires_at: string
           group_id: string
           id: string
           invited_by: string
           invited_email: string | null
+          revoked_at: string | null
           role: string
           token_hash: string
         }
         Insert: {
           accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string
           expires_at: string
           group_id: string
           id?: string
           invited_by: string
           invited_email?: string | null
+          revoked_at?: string | null
           role?: string
           token_hash: string
         }
         Update: {
           accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string
           expires_at?: string
           group_id?: string
           id?: string
           invited_by?: string
           invited_email?: string | null
+          revoked_at?: string | null
           role?: string
           token_hash?: string
         }
@@ -275,19 +281,28 @@ export type Database = {
         Row: {
           group_id: string
           joined_at: string
+          left_at: string | null
+          rejoined_at: string | null
           role: string
+          status: string
           user_id: string
         }
         Insert: {
           group_id: string
           joined_at?: string
+          left_at?: string | null
+          rejoined_at?: string | null
           role: string
+          status?: string
           user_id: string
         }
         Update: {
           group_id?: string
           joined_at?: string
+          left_at?: string | null
+          rejoined_at?: string | null
           role?: string
+          status?: string
           user_id?: string
         }
         Relationships: [
@@ -433,6 +448,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_emoji: string | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
@@ -440,6 +456,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_emoji?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -447,6 +464,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_emoji?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -633,6 +651,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _token_hash: { Args: { _token: string }; Returns: string }
+      accept_group_invitation: { Args: { _token: string }; Returns: Json }
+      create_group_invitation: {
+        Args: {
+          _expires_in_days?: number
+          _group_id: string
+          _invited_email?: string
+        }
+        Returns: Json
+      }
       create_group_with_owner: {
         Args: {
           _emoji?: string
@@ -675,6 +703,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_invitation_preview: { Args: { _token: string }; Returns: Json }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
@@ -682,6 +711,34 @@ export type Database = {
       has_membership: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
+      }
+      leave_group: { Args: { _group_id: string }; Returns: undefined }
+      list_group_invitations: {
+        Args: { _group_id: string }
+        Returns: {
+          accepted_at: string
+          created_at: string
+          expires_at: string
+          id: string
+          invited_by: string
+          invited_by_name: string
+          invited_email: string
+          revoked_at: string
+          role: string
+          state: string
+        }[]
+      }
+      remove_group_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: undefined
+      }
+      revoke_group_invitation: {
+        Args: { _invitation_id: string }
+        Returns: undefined
+      }
+      set_member_role: {
+        Args: { _group_id: string; _role: string; _user_id: string }
+        Returns: undefined
       }
       set_next_place: {
         Args: { _group_id: string; _place_id: string }
@@ -694,6 +751,23 @@ export type Database = {
       toggle_favorite: {
         Args: { _group_id: string; _place_id: string }
         Returns: boolean
+      }
+      transfer_group_ownership: {
+        Args: { _group_id: string; _new_owner_id: string }
+        Returns: undefined
+      }
+      update_group_settings: {
+        Args: {
+          _emoji?: string
+          _group_id: string
+          _home_label?: string
+          _name: string
+        }
+        Returns: undefined
+      }
+      update_profile: {
+        Args: { _avatar_emoji?: string; _display_name: string }
+        Returns: undefined
       }
     }
     Enums: {
