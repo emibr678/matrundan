@@ -195,10 +195,13 @@ export function AddPlaceDialog({
     setLocationSuggestions([]);
     setShowLocationSuggest(false);
     setLocationActiveIx(-1);
+    setLocationRequestDone(false);
     setProviderError(null);
     setPending(null);
     setPendingOccasions(["avslappnat"]);
     setPendingNotes("");
+    setFocusReturnId(null);
+    setRetryNonce(0);
     setName("");
     setAddress("");
     setManualArea("");
