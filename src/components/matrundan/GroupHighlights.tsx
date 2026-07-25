@@ -46,8 +46,6 @@ export function GroupHighlights() {
   const meInTop = meRow ? top.some((r) => r.memberId === meRow.memberId) : true;
   const suffix = CATEGORIES.find((c) => c.id === category)!.suffix;
 
-  if (!anyValue && milestones.length === 0) return null;
-
   return (
     <section>
       <h2 className="mb-2 font-display text-lg">Gruppens höjdpunkter</h2>
@@ -90,9 +88,7 @@ export function GroupHighlights() {
                 onClick={() => setPeriod(pp)}
                 className={
                   "min-h-8 rounded-full px-2.5 transition " +
-                  (period === pp
-                    ? "bg-background font-medium shadow-sm"
-                    : "text-muted-foreground")
+                  (period === pp ? "bg-background font-medium shadow-sm" : "text-muted-foreground")
                 }
               >
                 {pp === "year" ? "I år" : "Totalt"}

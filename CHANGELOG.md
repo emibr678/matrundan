@@ -4,7 +4,49 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
-## [0.8.1] – 2026-07-25
+## [0.9.0] – 2026-07-25
+
+### Nytt
+- **Privat, gruppcentrerad gamification (Paket 3D).** Nivåer, badges och
+  topplistor är helt härledda från gruppens besök, deltagare, kanoniska
+  platser och gruppinställningar. Inga poängsaldon eller nya
+  activity-typer lagras.
+- **Nivåserie:** 0 Nyfiken, 1 Provsmakaren, 4 Krogspanaren,
+  10 Matupptäckaren, 20 Smakjägaren, 40 Matkonnässören,
+  75 Matrundemästaren. Progressionsstapel visas bara på egen profil.
+- **Fem badges:** Första rundan, Världsvan (5 unika kökstyper efter
+  normalisering), Brett register (4 unika `places.category`), Stammis
+  (3:e progression-räknade besöket på samma kanoniska plats) och
+  Fullträff (ett `manual`/`provider`-ställe man föreslagit besöktes med
+  minst en annan gruppmedlem, `linkType='original'`).
+- **Privata topplistor på Gruppen-sidan** (sektionen ”Gruppens höjdpunkter”):
+  Deltagna besök, Nya ställen och Köksbredd, i två perioder
+  (I år / Totalt), med competition-ranking (1, 1, 3). Sektionen visas
+  alltid med en lugn tomstatus i nya grupper.
+- **Gemensamma milstolpar:** 10/25/50/100 besökta ställen, årsdagar och
+  ”Första besöket med hela gänget” (aktiva medlemmar som referensmängd,
+  se README).
+
+### Domänmodell
+- **Delade besök respekteras överallt:** gruppinställningen
+  `sharedVisitsCountForProgression` styr både nivåer, badges och
+  topplistor via `countsForProgression`.
+- **Defensiv deduplicering** på `Visit.id` innan all progressions-,
+  topplista- och milstolpsberäkning. En oväntad dubblettpost räknas
+  aldrig två gånger.
+- `live-repository` normaliserar `group_places.origin='shared_visit'`
+  (och okända värden) till `Place.origin='shared'` så att Fullträff inte
+  utlöses för importerade eller delade platser.
+
+### UI
+- Medlemslistan visar ”{Nivå} · {N} besök” som underrad; senaste besök
+  som diskret tredje rad; högerkolumnen visar bara favoritantal.
+- MemberProfileSheet: badgekort bryter beskrivningar och intjänandedatum
+  på flera rader utan horisontell overflow.
+- Höjdpunktssektionen ligger efter Gänget och håller 360 px utan
+  horisontell scroll även med alla kategori-/periodknappar.
+
+
 
 ### Nytt
 - **Ny återanvändbar Plats-komponent** (`GeoapifyLocationInput`) med

@@ -9,12 +9,7 @@
  * `sharedVisitsCountForProgression` och besökets `countsForProgression`
  * tillåter det).
  */
-import type {
-  Activity,
-  AppState,
-  Place,
-  Visit,
-} from "./types";
+import type { AppState, Place, Visit } from "./types";
 
 /* ---------- Nivåer ---------- */
 
@@ -62,12 +57,7 @@ export function levelForCount(count: number): LevelInfo {
 
 /* ---------- Badges ---------- */
 
-export type BadgeId =
-  | "first-round"
-  | "world-taster"
-  | "broad-register"
-  | "regular"
-  | "bullseye";
+export type BadgeId = "first-round" | "world-taster" | "broad-register" | "regular" | "bullseye";
 
 export interface BadgeDef {
   id: BadgeId;
@@ -105,8 +95,7 @@ export const BADGES: Record<BadgeId, BadgeDef> = {
     id: "bullseye",
     name: "Fullträff",
     emoji: "🎯",
-    description:
-      "Ett matställe du föreslog i gruppen har besökts av gänget.",
+    description: "Ett matställe du föreslog i gruppen har besökts av gänget.",
   },
 };
 
@@ -167,7 +156,26 @@ export function countsForProgression(state: AppState, v: Visit): boolean {
 /** Stabil kronologisk sortering med visit-id som tiebreaker. */
 function chronologically(a: Visit, b: Visit): number {
   if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  if (a.id === b.id) return 0;
   return a.id < b.id ? -1 : 1;
+}
+
+/**
+ * Deduplicera besök på `Visit.id`. Read-modelen ska garantera en post per
+ * canonical besök i gruppen, men vi dedupliserar defensivt så att en
+ * oväntad dubbelpost aldrig kan räknas två gånger i progression,
+ * topplistor eller milstolpar. Första förekomsten (i iterationsordning)
+ * vinner för att bevara stabil ordning.
+ */
+export function dedupeVisits(visits: readonly Visit[]): Visit[] {
+  const seen = new Set<string>();
+  const out: Visit[] = [];
+  for (const v of visits) {
+    if (seen.has(v.id)) continue;
+    seen.add(v.id);
+    out.push(v);
+  }
+  return out;
 }
 
 function inYear(iso: string, year: number): boolean {
@@ -190,13 +198,11 @@ export function currentStockholmYear(now: Date = new Date()): number {
  * Läser bara AppState – ingen extern data. Duplicerade besök kan aldrig
  * uppstå här eftersom Visit.id är unikt per canonical visit i gruppen.
  */
-export function computeMemberProgression(
-  state: AppState,
-  memberId: string,
-): MemberProgression {
+export function computeMemberProgression(state: AppState, memberId: string): MemberProgression {
   const placeById = new Map<string, Place>(state.places.map((p) => [p.id, p]));
+  const allVisits = dedupeVisits(state.visits);
 
-  const participated = state.visits
+  const participated = allVisits
     .filter((v) => v.participantIds.includes(memberId))
     .slice()
     .sort(chronologically);
@@ -273,6 +279,11 @@ export function computeMemberProgression(
   // Fullträff – medlemmen är added_by för stället (icke-shared) och besöket
   // är ett originalbesök där minst en annan medlem deltar. Endast första
   // kvalificerande besöket räknas.
+  //
+  // Not: `Visit.participantIds` innehåller endast användare som är eller
+  // varit medlemmar i gruppen (aktiva/lämnade) – externa deltagare
+  // representeras enbart av `externalParticipantCount`. Kravet "annan
+  // gruppmedlem" är därmed uppfyllt av `some(id => id !== memberId)`.
   {
     const proposedIds = new Set(
       state.places
@@ -280,7 +291,7 @@ export function computeMemberProgression(
         .map((p) => p.id),
     );
     let earliest: Visit | null = null;
-    for (const v of state.visits) {
+    for (const v of allVisits) {
       if (!proposedIds.has(v.placeId)) continue;
       if ((v.linkType ?? "original") !== "original") continue;
       if (!v.participantIds.some((id) => id !== memberId)) continue;
@@ -336,15 +347,14 @@ export function computeLeaderboard(
 ): LeaderboardRow[] {
   const year = currentStockholmYear(now);
   const placeById = new Map<string, Place>(state.places.map((p) => [p.id, p]));
+  const allVisits = dedupeVisits(state.visits);
 
   const rows = state.members.map((m) => {
-    const memberParticipated = state.visits
+    const memberParticipated = allVisits
       .filter((v) => v.participantIds.includes(m.id))
       .slice()
       .sort(chronologically);
-    const memberScoring = memberParticipated.filter((v) =>
-      countsForProgression(state, v),
-    );
+    const memberScoring = memberParticipated.filter((v) => countsForProgression(state, v));
     const inPeriod = (v: Visit) => period === "all" || inYear(v.date, year);
 
     let value = 0;
@@ -384,17 +394,15 @@ export function computeLeaderboard(
  * "Hela gänget" använder nu aktiva medlemmar som fallback eftersom
  * historiska medlemsperioder inte lagras i nuvarande schema; se README.
  */
-export function computeGroupMilestones(
-  state: AppState,
-  now: Date = new Date(),
-): GroupMilestone[] {
+export function computeGroupMilestones(state: AppState, now: Date = new Date()): GroupMilestone[] {
   const out: GroupMilestone[] = [];
   const thresholds = [10, 25, 50, 100] as const;
+  const allVisits = dedupeVisits(state.visits);
 
-  const visitedIds = new Set(state.visits.map((v) => v.placeId));
+  const visitedIds = new Set(allVisits.map((v) => v.placeId));
   const firstVisitByPlace: { id: string; at: string }[] = [];
   for (const pid of visitedIds) {
-    const first = state.visits
+    const first = allVisits
       .filter((v) => v.placeId === pid)
       .slice()
       .sort(chronologically)[0];
@@ -434,7 +442,7 @@ export function computeGroupMilestones(
 
   const activeIds = state.members.map((m) => m.id);
   if (activeIds.length >= 2) {
-    const full = state.visits
+    const full = allVisits
       .filter((v) => activeIds.every((id) => v.participantIds.includes(id)))
       .slice()
       .sort(chronologically)[0];
@@ -449,9 +457,4 @@ export function computeGroupMilestones(
   }
 
   return out.sort((a, b) => (a.at < b.at ? 1 : -1));
-}
-
-/* Hjälp för aktivitetsfilter – 3D lägger inte till nya activity-typer. */
-export function isGamificationActivity(_a: Activity): boolean {
-  return false;
 }

@@ -174,10 +174,11 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     addedAt: pl.addedAt,
     notes: pl.notes ?? undefined,
     photo: pl.photo ?? undefined,
-    origin:
-      pl.origin === "manual" || pl.origin === "provider" || pl.origin === "shared"
-        ? pl.origin
-        : "manual",
+    // group_places.origin i DB använder värdena 'manual', 'provider' och
+    // 'shared_visit' (delning via visits). Vi normaliserar till Place.origin
+    // och behandlar okända värden som "shared" så att Fullträff-badgen inte
+    // felaktigt utlöses av importerade eller delade platser.
+    origin: pl.origin === "manual" || pl.origin === "provider" ? pl.origin : "shared",
   }));
 
   const visits: Visit[] = p.visits.map((v) => {

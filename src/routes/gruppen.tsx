@@ -166,10 +166,6 @@ function GroupPage() {
         </section>
       ) : null}
 
-      <GroupHighlights />
-
-
-
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
@@ -202,14 +198,15 @@ function GroupPage() {
                       ) : null}
                     </div>
                     <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {place
-                        ? `Senast på ${place.name} · ${formatDate(lastVisit!.date)}`
-                        : "Inga besök än"}
+                      {progression.level.name} · {progression.visits} besök
                     </div>
+                    {place ? (
+                      <div className="mt-0.5 truncate text-[11px] text-muted-foreground/80">
+                        Senast på {place.name} · {formatDate(lastVisit!.date)}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="shrink-0 text-right text-[11px] leading-tight text-muted-foreground">
-                    <div className="truncate max-w-[110px]">{progression.level.name}</div>
-                    <div>{progression.visits} besök</div>
                     <div className="flex items-center justify-end gap-1">
                       <Heart className="h-3 w-3" /> {favCount}
                     </div>
@@ -221,6 +218,8 @@ function GroupPage() {
           })}
         </div>
       </section>
+
+      <GroupHighlights />
 
       <MemberProfileSheet
         member={activeMember}

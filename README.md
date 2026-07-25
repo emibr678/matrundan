@@ -27,16 +27,26 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som enda externa länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.8.1
+## Status – v0.9.0
 
-Paket 3C.1 härdar v0.8.0. Gruppens ”Förvalt sökområde” kräver ett verifierat
-Geoapify-val (label + koordinater + provider) och sparas som ett strukturerat
-värde i databasen; ett DB-checkvillkor tillåter bara tre tillstånd (tomt,
-äldre fritext, verifierat). Skapa- och ändra-flöden blockerar
-icke-verifierad fritext. Dialoger klarar 360 px utan horisontell scroll och
-standardsökradien i Lägg till matställe är 1 km. Demo-läget är oförändrat.
+Paket 3D lägger till privat, gruppcentrerad gamification ovanpå v0.8.1. Alla
+värden härleds deterministiskt ur gruppens besök, deltagare, kanoniska
+platser och gruppinställningar – inget poängsaldo eller aktivitetshändelser
+lagras. Nivåserien är 0 Nyfiken → 1 Provsmakaren → 4 Krogspanaren →
+10 Matupptäckaren → 20 Smakjägaren → 40 Matkonnässören → 75 Matrundemästaren.
+Fem badges finns: Första rundan, Världsvan (5 kökstyper), Brett register
+(4 kategorier), Stammis (3:e besöket på samma ställe) och Fullträff
+(ett ställe du föreslagit besöktes med minst en annan gruppmedlem).
+Sektionen ”Gruppens höjdpunkter” på Gruppen-sidan visar tre topplistor
+(Deltagna besök, Nya ställen, Köksbredd) i två perioder (I år / Totalt) med
+competition-ranking (1, 1, 3) och gemensamma milstolpar. Progression syns
+bara på egen profil. Inbjudningar, delade besök, Geoapify-sökning,
+360 px-layout och alla säkerhetsgrants från v0.8.1 är oförändrade.
 
-
+> Milstolpen ”Första besöket med hela gänget” använder gruppens nu aktiva
+> medlemmar som referensmängd eftersom historiska medlemsperioder inte
+> lagras i schemat. Den kommer att förändras retroaktivt om gruppens
+> aktiva medlemmar ändras.
 
 ### Två lägen sida vid sida
 
@@ -63,7 +73,10 @@ standardsökradien i Lägg till matställe är 1 km. Demo-läget är oförändra
   Ta bort ett delat besök från en grupp utan att röra originalet.
 - **Egen kommentarssynlighet** per grupp: betyget syns alltid, kommentaren
   kan du dölja i valfri grupp.
-- **Gruppinställning:** räkna delade besök i progression (av/på).
+- **Gruppinställning:** räkna delade besök i progression (av/på) – påverkar
+  både nivåer, badges och topplistor.
+- **Privat gamification:** nivåer, fem badges, tre topplistor och gemensamma
+  milstolpar per grupp. Ingen offentlig ranking eller profil.
 - **Geoapify-platssökning:** autocomplete för ort/område, matställessökning
   med radier 1/3/5/10/25/50 km, listresultat, tydlig attribution och
   server-skyddad API-nyckel.
@@ -73,9 +86,9 @@ standardsökradien i Lägg till matställe är 1 km. Demo-läget är oförändra
 
 ### Vad som inte är med ännu
 
-Gamification/nivåer/badges och en riktig kartvy. Se
-[CHANGELOG.md](./CHANGELOG.md) och "Om Matrundan" i appen för fullständig
-versionshistorik.
+En riktig kartvy. Se [CHANGELOG.md](./CHANGELOG.md) och "Om Matrundan" i
+appen för fullständig versionshistorik.
+
 
 
 ## Teknik
