@@ -495,10 +495,15 @@ function GroupSettingsSection({
             Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
             enskild sökning.
           </p>
-          {legacyOnly && !verified ? (
+          {legacyOnly && !verified && isLegacyUnchanged ? (
             <p className="text-xs text-amber-700 dark:text-amber-400">
               Gruppen har ett äldre område ({initialHome?.label}). Välj området från listan för att
               aktivera det som förvalt sökområde.
+            </p>
+          ) : null}
+          {isInvalidText ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Välj sökområdet från listan eller rensa fältet.
             </p>
           ) : null}
         </div>
