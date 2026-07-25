@@ -41,6 +41,16 @@ interface StoreContextValue {
   /** true medan en live-mutation pågår – används för att inaktivera CTA:er. */
   submitting: boolean;
   addPlace: (input: Omit<Place, "id" | "addedAt">) => Promise<Place>;
+  /**
+   * Lägg till ett matställe från en extern provider (Geoapify).
+   * Fungerar bara i live-läge – i demo-läge kastas ett fel.
+   */
+  addProviderPlace: (input: {
+    provider: string;
+    providerPlaceId: string;
+    place: Omit<Place, "id" | "addedAt">;
+    raw: unknown;
+  }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
   addVisit: (visit: Omit<Visit, "id">) => Promise<Visit>;
   setNext: (placeId: string | null) => Promise<void>;
