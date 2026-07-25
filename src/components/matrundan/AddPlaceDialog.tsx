@@ -782,6 +782,14 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (v: string)
   );
 }
 
+function safeParse(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 function emojiForCategory(c: PlaceCategory) {
   switch (c) {
     case "restaurang":
