@@ -196,24 +196,32 @@ export function PlaceMap({
       aria-label={ariaLabel}
     >
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        {tiles.map((tile) => {
-          const left = tile.displayX * TILE_SIZE - frame.center.x + size.width / 2;
-          const top = tile.y * TILE_SIZE - frame.center.y + size.height / 2;
-          const src = geoapifyKey
-            ? `https://maps.geoapify.com/v1/tile/osm-bright/${frame.zoom}/${tile.x}/${tile.y}.png?apiKey=${encodeURIComponent(geoapifyKey)}`
-            : `https://tile.openstreetmap.org/${frame.zoom}/${tile.x}/${tile.y}.png`;
-          return (
-            <img
-              key={tile.key}
-              src={src}
-              alt=""
-              draggable={false}
-              className="pointer-events-none absolute h-64 w-64 max-w-none select-none"
-              style={{ left, top }}
-            />
-          );
-        })}
+        {geoapifyKey ? (
+          tiles.map((tile) => {
+            const left = tile.displayX * TILE_SIZE - frame.center.x + size.width / 2;
+            const top = tile.y * TILE_SIZE - frame.center.y + size.height / 2;
+            const src = `https://maps.geoapify.com/v1/tile/osm-bright/${frame.zoom}/${tile.x}/${tile.y}.png?apiKey=${encodeURIComponent(geoapifyKey)}`;
+            return (
+              <img
+                key={tile.key}
+                src={src}
+                alt=""
+                draggable={false}
+                className="pointer-events-none absolute h-64 w-64 max-w-none select-none"
+                style={{ left, top }}
+              />
+            );
+          })
+        ) : (
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,hsl(var(--border))_1px,transparent_0)] bg-[size:24px_24px] opacity-70" />
+        )}
       </div>
+
+      {!geoapifyKey ? (
+        <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-[calc(100%-5.5rem)] rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-xs text-muted-foreground shadow-sm backdrop-blur">
+          Kartbakgrunden visas när en domänbegränsad Geoapify-nyckel är konfigurerad.
+        </div>
+      ) : null}
 
       {center && radiusPixels > 0 ? (
         <div
@@ -330,7 +338,7 @@ export function PlaceMap({
       <div className="absolute inset-x-0 bottom-0 z-20 bg-background/85 px-2 py-1 text-center text-[10px] text-muted-foreground backdrop-blur-sm">
         {geoapifyKey
           ? "Kartbilder © Geoapify · Kartdata © OpenStreetMap-bidragsgivare"
-          : "Kartdata och kartbilder © OpenStreetMap-bidragsgivare"}
+          : "Kartpositioner visas utan extern kartbakgrund"}
       </div>
     </div>
   );
