@@ -29,10 +29,7 @@ import {
 } from "@/lib/matrundan/types";
 import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
-import {
-  getPlacesProvider,
-  type PlaceSuggestion,
-} from "@/lib/matrundan/places-provider";
+import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import {
   geoapifyAutocompleteLocation,
   geoapifySearchPlaces,
@@ -97,7 +94,8 @@ function classifyError(e: unknown): ProviderError {
   }
   if (/GEOAPIFY_CONFIG_ERROR/i.test(msg)) {
     return {
-      message: "Platssökningen är felkonfigurerad på servern. Testa manuellt tills det är åtgärdat.",
+      message:
+        "Platssökningen är felkonfigurerad på servern. Testa manuellt tills det är åtgärdat.",
       code: "config_error",
       retryable: false,
     };
@@ -163,9 +161,7 @@ export function AddPlaceDialog({
   // Bekräftelsesteget: användaren har valt ett förslag, väljer occasions
   // och anteckning innan riktig save körs.
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
-  const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>([
-    "avslappnat",
-  ]);
+  const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>(["avslappnat"]);
   const [pendingNotes, setPendingNotes] = React.useState("");
 
   const parsed = React.useMemo(
@@ -445,9 +441,7 @@ export function AddPlaceDialog({
       setLocationActiveIx((ix) => (ix + 1) % locationSuggestions.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setLocationActiveIx((ix) =>
-        ix <= 0 ? locationSuggestions.length - 1 : ix - 1,
-      );
+      setLocationActiveIx((ix) => (ix <= 0 ? locationSuggestions.length - 1 : ix - 1));
     } else if (e.key === "Enter") {
       if (locationActiveIx >= 0) {
         e.preventDefault();
@@ -510,9 +504,7 @@ export function AddPlaceDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">
-              Lägg till i gruppen
-            </DialogTitle>
+            <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
             <DialogDescription>
               Kontrollera detaljerna innan du lägger till stället.
             </DialogDescription>
@@ -527,9 +519,7 @@ export function AddPlaceDialog({
                 <div className="truncate font-medium">{pending.name}</div>
                 <div className="truncate text-xs text-muted-foreground">
                   {CATEGORY_LABEL[pending.category]}
-                  {pending.cuisines?.length
-                    ? ` · ${pending.cuisines.join(", ")}`
-                    : ""}
+                  {pending.cuisines?.length ? ` · ${pending.cuisines.join(", ")}` : ""}
                 </div>
                 {pending.address ? (
                   <div className="truncate text-[11px] text-muted-foreground">
@@ -615,12 +605,10 @@ export function AddPlaceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">
-            Lägg till matställe
-          </DialogTitle>
+          <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
           <DialogDescription>
-            Utforska ett område eller lägg till manuellt. Ett ställe får ligga var
-            som helst – området är bara ett sökförslag.
+            Utforska ett område eller lägg till manuellt. Ett ställe får ligga var som helst –
+            området är bara ett sökförslag.
           </DialogDescription>
         </DialogHeader>
 
@@ -632,9 +620,7 @@ export function AddPlaceDialog({
               aria-pressed={tab === t}
               className={[
                 "min-h-11 rounded-full py-1.5 text-sm font-medium transition-colors",
-                tab === t
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground",
+                tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
               ].join(" ")}
             >
               {t === "sok" ? "Sök & utforska" : "Lägg till manuellt"}
@@ -669,9 +655,7 @@ export function AddPlaceDialog({
                     setShowLocationSuggest(true);
                   }}
                   onFocus={() => setShowLocationSuggest(true)}
-                  onBlur={() =>
-                    setTimeout(() => setShowLocationSuggest(false), 150)
-                  }
+                  onBlur={() => setTimeout(() => setShowLocationSuggest(false), 150)}
                   onKeyDown={onLocationKeyDown}
                   placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
                   aria-invalid={!cityValid}
@@ -682,23 +666,17 @@ export function AddPlaceDialog({
                     isLive &&
                     showLocationSuggest &&
                     location.trim().length >= 2 &&
-                    (locationLoading ||
-                      locationSuggestions.length > 0 ||
-                      locationRequestDone)
+                    (locationLoading || locationSuggestions.length > 0 || locationRequestDone)
                   }
                   aria-controls="location-listbox"
                   aria-activedescendant={
-                    locationActiveIx >= 0
-                      ? `location-opt-${locationActiveIx}`
-                      : undefined
+                    locationActiveIx >= 0 ? `location-opt-${locationActiveIx}` : undefined
                   }
                 />
                 {isLive &&
                 showLocationSuggest &&
                 location.trim().length >= 2 &&
-                (locationLoading ||
-                  locationSuggestions.length > 0 ||
-                  locationRequestDone) ? (
+                (locationLoading || locationSuggestions.length > 0 || locationRequestDone) ? (
                   <ul
                     id="location-listbox"
                     role="listbox"
@@ -707,9 +685,7 @@ export function AddPlaceDialog({
                     {locationLoading && locationSuggestions.length === 0 ? (
                       <li className="px-2 py-2 text-muted-foreground">Söker…</li>
                     ) : locationSuggestions.length === 0 ? (
-                      <li className="px-2 py-2 text-muted-foreground">
-                        Inga träffar
-                      </li>
+                      <li className="px-2 py-2 text-muted-foreground">Inga träffar</li>
                     ) : (
                       locationSuggestions.map((s, i) => (
                         <li
@@ -738,17 +714,13 @@ export function AddPlaceDialog({
                 ) : null}
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Söker i {formatLocation(parsed)}. Skriv med komma för att peka
-                ut ett område.
+                Söker i {formatLocation(parsed)}. Skriv med komma för att peka ut ett område.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label>Sökradie</Label>
-              <Select
-                value={String(radiusKm)}
-                onValueChange={(v) => setRadiusKm(Number(v))}
-              >
+              <Select value={String(radiusKm)} onValueChange={(v) => setRadiusKm(Number(v))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -763,9 +735,7 @@ export function AddPlaceDialog({
             </div>
 
             <div className="rounded-xl bg-secondary/60 px-3 py-2 text-xs">
-              <span className="truncate text-muted-foreground">
-                {filterSummary}
-              </span>
+              <span className="truncate text-muted-foreground">{filterSummary}</span>
             </div>
 
             {providerError ? (
@@ -855,9 +825,7 @@ export function AddPlaceDialog({
             ) : null}
 
             <p className="text-[11px] text-muted-foreground">
-              {isLive
-                ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
-                : "Demodata"}
+              {isLive ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare." : "Demodata"}
             </p>
           </div>
         ) : (
@@ -878,10 +846,7 @@ export function AddPlaceDialog({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Kategori</Label>
-                <Select
-                  value={category}
-                  onValueChange={(v) => setCategory(v as PlaceCategory)}
-                >
+                <Select value={category} onValueChange={(v) => setCategory(v as PlaceCategory)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -908,19 +873,11 @@ export function AddPlaceDialog({
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="address">Adress</Label>
-                <Input
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
+                <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="city">Stad</Label>
-                <Input
-                  id="city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
+                <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} />
               </div>
             </div>
 
@@ -948,9 +905,7 @@ export function AddPlaceDialog({
                       type="button"
                       aria-pressed={active}
                       onClick={() =>
-                        setOccasions((cur) =>
-                          active ? cur.filter((x) => x !== o) : [...cur, o],
-                        )
+                        setOccasions((cur) => (active ? cur.filter((x) => x !== o) : [...cur, o]))
                       }
                       className="min-h-11"
                     >

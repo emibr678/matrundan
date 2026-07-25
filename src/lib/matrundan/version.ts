@@ -11,8 +11,6 @@ export const APP_NAME = "Matrundan";
 export const APP_VERSION = "0.8.0";
 export const APP_VERSION_DATE = "2026-07-25";
 
-
-
 export interface ChangelogEntry {
   version: string;
   date: string;
@@ -106,8 +104,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "0.6.1",
     date: "2026-07-25",
-    summary:
-      "Mobilfixar och renare utloggning – ingen live-data blir kvar när du loggar ut.",
+    summary: "Mobilfixar och renare utloggning – ingen live-data blir kvar när du loggar ut.",
     sections: [
       {
         kind: "Rättat",
@@ -201,8 +198,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "0.3.0",
     date: "2026-07-24",
-    summary:
-      "Medlemsprofiler, geografisk utforskning, tydligare betyg och navigerbar aktivitet.",
+    summary: "Medlemsprofiler, geografisk utforskning, tydligare betyg och navigerbar aktivitet.",
     sections: [
       {
         kind: "Nytt",
@@ -253,10 +249,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     sections: [
       {
         kind: "Nytt",
-        items: [
-          "Lokal demodata i localStorage.",
-          "Provider-arkitektur för framtida platssökning.",
-        ],
+        items: ["Lokal demodata i localStorage.", "Provider-arkitektur för framtida platssökning."],
       },
     ],
   },
