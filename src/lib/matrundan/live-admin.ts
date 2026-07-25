@@ -106,21 +106,47 @@ export async function updateProfile(
   if (error) throw toErr(error);
 }
 
+export interface VerifiedHomeLocation {
+  label: string;
+  lat: number;
+  lng: number;
+  provider: "geoapify";
+  placeId: string;
+}
+
+export interface GroupSettingsInput {
+  name: string;
+  emoji: string | null;
+  /**
+   * Antingen ett verifierat sökområde (label + koordinater + provider/place_id),
+   * `null` för att inte röra sökområdet, eller `"clear"` för att nolla allt.
+   */
+  homeLocation: VerifiedHomeLocation | null | "clear";
+  sharedVisitsCountForProgression?: boolean;
+}
+
 export async function updateGroupSettings(
   groupId: string,
-  name: string,
-  emoji: string | null,
-  homeLabel: string | null,
-  sharedVisitsCountForProgression?: boolean,
+  input: GroupSettingsInput,
 ): Promise<void> {
-  const { error } = await supabase.rpc("update_group_settings", {
+  const home = input.homeLocation;
+  const rpcArgs: Record<string, unknown> = {
     _group_id: groupId,
-    _name: name,
-    _emoji: emoji ?? undefined,
-    _home_label: homeLabel ?? undefined,
+    _name: input.name,
+    _emoji: input.emoji ?? undefined,
     _shared_visits_count_for_progression:
-      sharedVisitsCountForProgression ?? undefined,
-  });
+      input.sharedVisitsCountForProgression ?? undefined,
+  };
+  if (home === "clear") {
+    rpcArgs._clear_home = true;
+  } else if (home && typeof home === "object") {
+    rpcArgs._home_label = home.label;
+    rpcArgs._home_lat = home.lat;
+    rpcArgs._home_lng = home.lng;
+    rpcArgs._home_provider = home.provider;
+    rpcArgs._home_place_id = home.placeId;
+  }
+  const { error } = await supabase.rpc("update_group_settings", rpcArgs);
   if (error) throw toErr(error);
 }
 
@@ -167,13 +193,20 @@ export async function transferGroupOwnership(
 export async function createGroupWithOwner(
   name: string,
   emoji: string | null,
-  homeLabel: string | null,
+  homeLocation: VerifiedHomeLocation | null,
 ): Promise<string> {
-  const { data, error } = await supabase.rpc("create_group_with_owner", {
+  const rpcArgs: Record<string, unknown> = {
     _name: name,
     _emoji: emoji ?? undefined,
-    _home_label: homeLabel ?? undefined,
-  });
+  };
+  if (homeLocation) {
+    rpcArgs._home_label = homeLocation.label;
+    rpcArgs._home_lat = homeLocation.lat;
+    rpcArgs._home_lng = homeLocation.lng;
+    rpcArgs._home_provider = homeLocation.provider;
+    rpcArgs._home_place_id = homeLocation.placeId;
+  }
+  const { data, error } = await supabase.rpc("create_group_with_owner", rpcArgs);
   if (error) throw toErr(error);
   return data as unknown as string;
 }
