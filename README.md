@@ -113,6 +113,7 @@ src/
   components/matrundan/       Feature-komponenter (dialogs, sheets, kort)
     AuthMenu.tsx              Google-inloggning och gruppväxlare
     OnboardingScreen.tsx      Skapa första gruppen i live-läge
+    GeoapifyLocationInput.tsx Återanvändbart Plats-fält med verifierat val
     AppShell.tsx              Navigation + val mellan demo/live/onboarding
   lib/matrundan/
     types.ts                  Domänmodell
