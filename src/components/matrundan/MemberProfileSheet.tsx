@@ -109,8 +109,13 @@ export function MemberProfileSheet({
 }) {
   const { state } = useStore();
   const profile = useMemberProfile(member?.id ?? null);
+  const progression = React.useMemo(
+    () => (member ? computeMemberProgression(state, member.id) : null),
+    [state, member],
+  );
 
   const close = () => onOpenChange(false);
+  const isSelf = member?.id === state.currentUserId;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -128,7 +133,7 @@ export function MemberProfileSheet({
                 <div className="min-w-0 flex-1">
                   <SheetTitle className="font-display text-2xl leading-tight">
                     {member.name}
-                    {member.id === state.currentUserId ? (
+                    {isSelf ? (
                       <Badge
                         variant="secondary"
                         className="ml-2 rounded-full align-middle text-[10px]"
@@ -139,6 +144,7 @@ export function MemberProfileSheet({
                   </SheetTitle>
                   <SheetDescription className="mt-0.5 capitalize">
                     {member.role}
+                    {progression ? ` · ${progression.levelName}` : ""}
                   </SheetDescription>
                 </div>
               </div>
@@ -151,6 +157,51 @@ export function MemberProfileSheet({
                 <Stat label="Provade" value={profile.triedPlaces.length} />
                 <Stat label="Föreslagna" value={profile.proposedCount} />
               </div>
+
+              {/* Progression + badges */}
+              {progression ? (
+                <section className="rounded-2xl border border-border/70 bg-card p-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="text-sm font-medium">{progression.levelName}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {progression.visits} räknade besök
+                    </div>
+                  </div>
+                  {isSelf && progression.nextThreshold !== null ? (
+                    <ProgressBar
+                      current={progression.visits}
+                      base={LEVELS[progression.levelIndex].threshold}
+                      next={progression.nextThreshold}
+                      nextName={LEVELS[progression.levelIndex + 1]?.name ?? ""}
+                    />
+                  ) : null}
+                  {progression.badges.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {progression.badges.map((b) => {
+                        const meta = BADGES[b.id];
+                        return (
+                          <Badge
+                            key={b.id}
+                            variant="outline"
+                            className="rounded-full border-border/70 bg-secondary/60 text-xs font-normal"
+                            title={`${meta.description} (${formatDate(b.earnedAt)})`}
+                          >
+                            <span className="mr-1" aria-hidden>
+                              {meta.emoji}
+                            </span>
+                            {meta.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-xs italic text-muted-foreground">
+                      Inga märken än – kom med på fler besök så dyker de upp.
+                    </div>
+                  )}
+                </section>
+              ) : null}
+
 
               {/* Senaste besök */}
               <section>
