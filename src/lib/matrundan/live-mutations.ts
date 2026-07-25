@@ -82,9 +82,11 @@ export async function liveSetNextPlace(
   groupId: string,
   placeId: string | null,
 ): Promise<void> {
+  // set_next_place tar emot NULL för att rensa – Supabase-typgenereringen
+  // markerar dock _place_id som required, så vi castar bort undefined här.
   const { error } = await supabase.rpc("set_next_place", {
     _group_id: groupId,
-    _place_id: placeId ?? undefined,
+    _place_id: placeId as unknown as string,
   });
   if (error) throw toRpcError(error);
 }
