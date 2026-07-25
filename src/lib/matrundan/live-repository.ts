@@ -201,6 +201,13 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       externalParticipantCount: v.externalParticipantCount ?? 0,
       countsForProgression: v.countsForProgression,
       visibleReviews,
+      participants: (v.participants ?? []).map((pp) => ({
+        id: pp.id,
+        name: pp.name,
+        avatar: pp.avatar ?? undefined,
+        avatarImage: pp.avatarImage ?? undefined,
+        status: pp.status,
+      })),
     };
   });
 
