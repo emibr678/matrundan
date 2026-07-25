@@ -145,7 +145,9 @@ export function ShareVisitDialog({
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{t.name}</div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
-                        {t.alreadyLinked ? "Redan tillagt" : `${t.visibleParticipants.length} synliga deltagare`}
+                        {t.alreadyLinked
+                          ? "Redan tillagt"
+                          : `${t.visibleParticipants.length} deltagare från gruppen`}
                       </div>
                     </div>
                     {t.alreadyLinked ? (
