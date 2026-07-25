@@ -755,7 +755,7 @@ function InvitationsSection({ groupId }: { groupId: string }) {
             onClick={() => createInvite(true)}
             disabled={creating || !email.trim()}
           >
-            <Mail className="mr-1 h-4 w-4" /> Skapa & öppna e-post
+            <Mail className="mr-1 h-4 w-4" /> Skapa för e-post
           </Button>
         </div>
 

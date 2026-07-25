@@ -33,6 +33,8 @@ function ShellBody() {
   const { loading, mode, needsOnboarding, activeGroupId, user, signInWithGoogle } =
     useSession();
   const router = useRouter();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isInvitationRoute = pathname.startsWith("/inbjudan/");
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
 
@@ -85,6 +87,19 @@ function ShellBody() {
     );
   }
 
+  // Inbjudningsrouten är alltid tillgänglig, oavsett auth/grupp-status.
+  // Ingen StoreProvider behövs — sidan använder endast SessionProvider + RPC:er.
+  if (isInvitationRoute) {
+    return (
+      <div className="paper-grain min-h-dvh">
+        <Header showAuth />
+        <main id="innehall" className="mx-auto max-w-6xl px-4 md:px-6">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   if (mode === "live" && needsOnboarding) {
     return (
       <div className="paper-grain min-h-dvh">
@@ -104,6 +119,7 @@ function ShellBody() {
       </div>
     );
   }
+
 
   return (
     <StoreProvider
