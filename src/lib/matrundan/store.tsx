@@ -70,6 +70,7 @@ export function StoreProvider({
   }, [mode, initialState]);
 
   React.useEffect(() => {
+    if (mode !== "demo") return;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -81,18 +82,23 @@ export function StoreProvider({
       /* ignore */
     }
     setHydrated(true);
-  }, []);
+  }, [mode]);
 
   React.useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || mode !== "demo") return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       /* ignore */
     }
-  }, [state, hydrated]);
+  }, [state, hydrated, mode]);
 
   const value = React.useMemo<StoreContextValue>(() => {
+    const liveBlock = () => {
+      const message = "Skrivningar kommer i nästa paket. Kör ?demo=1 för att prova.";
+      // Lazy toast för att undvika krasch om sonner inte laddats.
+      import("sonner").then(({ toast }) => toast.info(message)).catch(() => {});
+    };
     const pushActivity = (s: AppState, a: Activity): AppState => ({
       ...s,
       activity: [a, ...s.activity].slice(0, 50),
@@ -100,6 +106,7 @@ export function StoreProvider({
 
     return {
       state,
+      mode,
 
       addPlace: (input) => {
         const place: Place = {
