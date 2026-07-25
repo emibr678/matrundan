@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
+import { BADGES, computeMemberProgression, LEVELS } from "@/lib/matrundan/gamification";
 import { RatingStars } from "./Rating";
 import { ActivityRow } from "./ActivityRow";
 
