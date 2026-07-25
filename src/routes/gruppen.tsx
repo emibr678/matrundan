@@ -40,11 +40,7 @@ import {
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import { APP_VERSION, APP_NAME } from "@/lib/matrundan/version";
 import { formatRating } from "@/lib/matrundan/version";
-import {
-  levelFor,
-  monthlyChampion,
-  triedPlacesCount,
-} from "@/lib/matrundan/gamification";
+import { monthSummary } from "@/lib/matrundan/gamification";
 
 const GROUP_SEARCH_DEFAULTS = { member: "" };
 
@@ -96,14 +92,10 @@ function GroupPage() {
       v.participantIds.includes(m.id),
     ).length;
     const favCount = state.favorites.filter((f) => f.memberId === m.id).length;
-    const level = levelFor(triedPlacesCount(state, m.id)).level;
-    return { m, lastVisit, visitCount, favCount, level };
+    return { m, lastVisit, visitCount, favCount };
   });
 
-  const champion = React.useMemo(() => monthlyChampion(state), [state]);
-  const championMember = champion
-    ? state.members.find((mm) => mm.id === champion.memberId) ?? null
-    : null;
+  const month = React.useMemo(() => monthSummary(state), [state]);
 
   const favByPlace = new Map<string, number>();
   state.favorites.forEach((f) => {
@@ -158,36 +150,38 @@ function GroupPage() {
         </section>
       ) : null}
 
-      {championMember && champion ? (
+      {month.visitCount > 0 ? (
         <section
           aria-label="Denna månad"
-          className="flex items-center gap-3 rounded-2xl border border-mustard/40 bg-mustard/15 p-3"
+          className="rounded-2xl border border-mustard/40 bg-mustard/15 p-3"
         >
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-background text-2xl shadow-sm">
-            {championMember.avatar}
+          <div className="text-[11px] font-medium uppercase tracking-wide text-mustard-foreground">
+            Denna månad
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-mustard-foreground">
-              Denna månad · 🏅 Månadens matvän
-            </div>
-            <div className="truncate font-medium">
-              {championMember.name} har varit med på {champion.count} besök
-            </div>
+          <div className="mt-0.5 text-sm">
+            {month.visitCount} besök på {month.uniquePlaceCount}{" "}
+            {month.uniquePlaceCount === 1 ? "ställe" : "ställen"}
+            {month.topPlace ? (
+              <>
+                {" · Högst betyg: "}
+                <Link
+                  to="/matstallen/$placeId"
+                  params={{ placeId: month.topPlace.id }}
+                  className="font-medium underline-offset-2 hover:underline"
+                >
+                  {month.topPlace.name}
+                </Link>{" "}
+                {formatRating(month.topRating)}
+              </>
+            ) : null}
           </div>
-          <button
-            type="button"
-            onClick={() => navigate({ search: { member: championMember.id } })}
-            className="shrink-0 rounded-full border border-mustard/50 bg-background px-3 py-1 text-xs font-medium hover:bg-accent"
-          >
-            Öppna profil
-          </button>
         </section>
       ) : null}
 
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
-          {memberActivity.map(({ m, lastVisit, visitCount, favCount, level }) => {
+          {memberActivity.map(({ m, lastVisit, visitCount, favCount }) => {
             const place = lastVisit ? getPlace(lastVisit.placeId) : undefined;
             return (
               <Card
@@ -211,13 +205,6 @@ function GroupPage() {
                           Du
                         </Badge>
                       ) : null}
-                      <span
-                        title={`Nivå: ${level.name}`}
-                        className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                      >
-                        <span aria-hidden>{level.emoji}</span>
-                        <span>{level.name}</span>
-                      </span>
                     </div>
                     <div className="mt-0.5 truncate text-xs text-muted-foreground">
                       {place
