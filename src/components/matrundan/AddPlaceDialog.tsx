@@ -680,7 +680,12 @@ export function AddPlaceDialog({
                   role="combobox"
                   aria-autocomplete="list"
                   aria-expanded={
-                    isLive && showLocationSuggest && locationSuggestions.length > 0
+                    isLive &&
+                    showLocationSuggest &&
+                    location.trim().length >= 2 &&
+                    (locationLoading ||
+                      locationSuggestions.length > 0 ||
+                      locationRequestDone)
                   }
                   aria-controls="location-listbox"
                   aria-activedescendant={
@@ -691,7 +696,10 @@ export function AddPlaceDialog({
                 />
                 {isLive &&
                 showLocationSuggest &&
-                (locationSuggestions.length > 0 || locationLoading) ? (
+                location.trim().length >= 2 &&
+                (locationLoading ||
+                  locationSuggestions.length > 0 ||
+                  locationRequestDone) ? (
                   <ul
                     id="location-listbox"
                     role="listbox"
