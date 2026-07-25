@@ -566,76 +566,58 @@ export function AddPlaceDialog({
 
             <div className="space-y-1.5">
               <Label htmlFor="s-location">Plats</Label>
-              <div className="relative">
-                <Input
-                  id="s-location"
-                  value={location}
-                  onChange={(e) => {
-                    setLocation(e.target.value);
-                    setShowLocationSuggest(true);
-                  }}
-                  onFocus={() => setShowLocationSuggest(true)}
-                  onBlur={() => setTimeout(() => setShowLocationSuggest(false), 150)}
-                  onKeyDown={onLocationKeyDown}
-                  placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
-                  aria-invalid={!cityValid}
-                  autoComplete="off"
-                  role="combobox"
-                  aria-autocomplete="list"
-                  aria-expanded={
-                    isLive &&
-                    showLocationSuggest &&
-                    location.trim().length >= 2 &&
-                    (locationLoading || locationSuggestions.length > 0 || locationRequestDone)
-                  }
-                  aria-controls="location-listbox"
-                  aria-activedescendant={
-                    locationActiveIx >= 0 ? `location-opt-${locationActiveIx}` : undefined
-                  }
-                />
-                {isLive &&
-                showLocationSuggest &&
-                location.trim().length >= 2 &&
-                (locationLoading || locationSuggestions.length > 0 || locationRequestDone) ? (
-                  <ul
-                    id="location-listbox"
-                    role="listbox"
-                    className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
-                  >
-                    {locationLoading && locationSuggestions.length === 0 ? (
-                      <li className="px-2 py-2 text-muted-foreground">Söker…</li>
-                    ) : locationSuggestions.length === 0 ? (
-                      <li className="px-2 py-2 text-muted-foreground">Inga träffar</li>
+              {isLive ? (
+                <>
+                  <GeoapifyLocationInput
+                    id="s-location"
+                    value={location}
+                    onChange={(text) => {
+                      setLocation(text);
+                    }}
+                    onSelect={(v) => {
+                      setLocation(v.label);
+                      setCenter({ lat: v.lat, lng: v.lng });
+                      setCenterLabel(v.label);
+                    }}
+                    onClearVerified={() => {
+                      setCenter(null);
+                      setCenterLabel("");
+                      setResults([]);
+                    }}
+                    placeholder="Sök stad eller område"
+                    ariaInvalid={!cityValid}
+                  />
+                  {!center ? (
+                    state.group.homeLocation && !state.group.homeLocation.verified ? (
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                        Gruppen har ett äldre område ({state.group.homeLocation.label}). Välj det från listan för att söka omkring.
+                      </p>
                     ) : (
-                      locationSuggestions.map((s, i) => (
-                        <li
-                          key={`${s.label}-${i}`}
-                          id={`location-opt-${i}`}
-                          role="option"
-                          aria-selected={i === locationActiveIx}
-                        >
-                          <button
-                            type="button"
-                            className={[
-                              "w-full rounded px-2 py-1.5 text-left hover:bg-accent",
-                              i === locationActiveIx ? "bg-accent" : "",
-                            ].join(" ")}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              applyLocationSuggestion(s);
-                            }}
-                          >
-                            {s.label}
-                          </button>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                ) : null}
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Söker i {formatLocation(parsed)}. Skriv med komma för att peka ut ett område.
-              </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Välj ett förslag från listan för att söka i det området.
+                      </p>
+                    )
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Söker runt {centerLabel}.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Input
+                    id="s-location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
+                    aria-invalid={!cityValid}
+                    autoComplete="off"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Söker i {formatLocation(parsed)}. Skriv med komma för att peka ut ett område.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="space-y-1.5">
