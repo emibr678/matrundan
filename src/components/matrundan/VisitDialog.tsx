@@ -46,10 +46,18 @@ export function VisitDialog({
   onOpenChange: (v: boolean) => void;
   placeId: string | null;
 }) {
-  const { addVisit, state, getPlace, submitting } = useStore();
+  const { addVisit, state, getPlace, submitting, mode } = useStore();
+  const { userGroups, activeGroupId } = useSession();
+  const canShare =
+    mode === "live" && !!activeGroupId && userGroups.length >= 2;
   const [busy, setBusy] = React.useState(false);
+  const [sharePayload, setSharePayload] = React.useState<{
+    visitId: string;
+    groupId: string;
+  } | null>(null);
   const isBusy = busy || submitting;
   const place = placeId ? getPlace(placeId) : undefined;
+
 
   const [meal, setMeal] = React.useState<(typeof MEALS)[number]>("middag");
   const [date, setDate] = React.useState<string>(new Date().toISOString().slice(0, 10));
