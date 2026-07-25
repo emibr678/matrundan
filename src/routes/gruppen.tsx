@@ -132,23 +132,26 @@ function GroupPage() {
     <div className="mx-auto max-w-2xl space-y-5 pt-2 pb-4 md:max-w-4xl">
       <section>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
-          <div className="flex items-center gap-4 bg-gradient-to-br from-sage/50 to-secondary p-5">
-            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-background text-4xl shadow-sm">
+          <div className="flex items-center gap-3 bg-gradient-to-br from-sage/50 to-secondary p-4 sm:gap-4 sm:p-5">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background text-3xl shadow-sm sm:h-16 sm:w-16 sm:text-4xl">
               {state.group.emoji}
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
+              <h1 className="truncate font-display text-xl font-semibold leading-tight sm:text-2xl md:text-3xl">
                 {state.group.name}
               </h1>
-              <div className="mt-0.5 text-sm text-muted-foreground">
+              <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
                 {state.members.length} medlemmar
                 {state.group.city ? ` · ${state.group.city}` : ""}
               </div>
             </div>
-            <SettingsSheet />
+            <div className="shrink-0">
+              <SettingsSheet />
+            </div>
           </div>
         </Card>
       </section>
+
 
       {next ? (
         <section>
@@ -185,20 +188,20 @@ function GroupPage() {
                 <button
                   type="button"
                   onClick={() => navigate({ search: { member: m.id } })}
-                  className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none"
+                  className="flex w-full items-center gap-2.5 rounded-2xl p-3 text-left outline-none sm:gap-3"
                   aria-label={`Öppna profil för ${m.name}`}
                 >
-                  <MemberAvatar member={m} size={44} />
+                  <MemberAvatar member={m} size={40} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{m.name}</span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="min-w-0 max-w-full truncate font-medium">{m.name}</span>
                       {m.id === state.currentUserId ? (
-                        <Badge variant="secondary" className="rounded-full text-[10px]">
+                        <Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">
                           Du
                         </Badge>
                       ) : null}
                       {m.role !== "medlem" ? (
-                        <Badge variant="outline" className="rounded-full text-[10px]">
+                        <Badge variant="outline" className="shrink-0 rounded-full text-[10px]">
                           {m.role}
                         </Badge>
                       ) : null}
@@ -209,15 +212,16 @@ function GroupPage() {
                         : "Inga besök än"}
                     </div>
                   </div>
-                  <div className="shrink-0 text-right text-[11px] text-muted-foreground">
+                  <div className="shrink-0 text-right text-[11px] leading-tight text-muted-foreground">
                     <div>{visitCount} besök</div>
                     <div className="flex items-center justify-end gap-1">
                       <Heart className="h-3 w-3" /> {favCount}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
                 </button>
               </Card>
+
             );
           })}
         </div>

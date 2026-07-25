@@ -4,7 +4,27 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.6.1] – 2026-07-25
+
+### Fixat
+- Mobil layout: globala skydd mot horisontell overflow (`overflow-x: clip`,
+  `text-size-adjust: 100%`, `max-width: 100%` på media) samt kompaktare
+  grupphero och medlemsrader så att långa namn trunceras och badges wrappar
+  utan att kort tvingas bredare än viewport.
+- Utloggning lämnade tidigare gruppens live-state kvar i store: `StoreProvider`
+  remountas nu deterministiskt via `key` när läget växlar mellan
+  `demo` / `live:<groupId>`. `signOut` rensar även `userGroups`, aktiv grupp
+  och navigerar tillbaka till `/`.
+
+### Auth-konfiguration
+- Google är aktiverad som managed OAuth-provider i Lovable Cloud för detta
+  projekt. Om inloggning ändå visar Lovables egen inloggning beror det på att
+  förhandsvisnings-URL:en (`id-preview--…lovable.app`) kräver Lovable-session –
+  publicera appen eller använd published/custom domain för att testa slutanvändar-flödet.
+
 ## [0.6.0] – 2026-07-25
+
+
 
 ### Nytt
 - Riktiga engångsinbjudningar: `create_group_invitation` genererar en 256-bitars

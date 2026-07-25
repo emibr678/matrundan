@@ -8,8 +8,9 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.6.0";
+export const APP_VERSION = "0.6.1";
 export const APP_VERSION_DATE = "2026-07-25";
+
 
 export interface ChangelogEntry {
   version: string;
@@ -27,7 +28,24 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: APP_VERSION,
     date: APP_VERSION_DATE,
     summary:
+      "Mobilfixar och renare utloggning – ingen live-data blir kvar när du loggar ut.",
+    sections: [
+      {
+        kind: "Rättat",
+        items: [
+          "Långa gruppnamn och medlemsnamn tvingar inte längre horisontell scroll på små telefoner.",
+          "Grupphero och medlemsrader är kompaktare på mobil så innehållet ryms utan att kapas.",
+          "Efter utloggning laddas demo-läget rent – tidigare gruppens data ligger inte kvar.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.6.0",
+    date: "2026-07-25",
+    summary:
       "Riktiga inbjudningar, medlemshantering och profil i live-läget – utan att någon historik försvinner.",
+
     sections: [
       {
         kind: "Nytt",

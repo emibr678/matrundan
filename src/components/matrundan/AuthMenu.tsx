@@ -1,5 +1,6 @@
 import * as React from "react";
 import { LogIn, LogOut, User as UserIcon, Plus, UserCog } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 
+
 export function AuthMenu() {
   const {
     user,
@@ -25,8 +27,10 @@ export function AuthMenu() {
     signOut,
     refreshGroups,
   } = useSession();
+  const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
+
 
   if (!user) {
     return (
@@ -103,10 +107,22 @@ export function AuthMenu() {
             Skapa ny grupp
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => void signOut()}>
+          <DropdownMenuItem
+            onSelect={() =>
+              void (async () => {
+                try {
+                  await signOut();
+                  navigate({ to: "/" });
+                } catch {
+                  toast.error("Kunde inte logga ut.");
+                }
+              })()
+            }
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Logga ut
           </DropdownMenuItem>
+
         </DropdownMenuContent>
       </DropdownMenu>
       <ProfileDialog
