@@ -88,9 +88,7 @@ export function GroupHighlights() {
                 onClick={() => setPeriod(pp)}
                 className={
                   "min-h-8 rounded-full px-2.5 transition " +
-                  (period === pp
-                    ? "bg-background font-medium shadow-sm"
-                    : "text-muted-foreground")
+                  (period === pp ? "bg-background font-medium shadow-sm" : "text-muted-foreground")
                 }
               >
                 {pp === "year" ? "I år" : "Totalt"}

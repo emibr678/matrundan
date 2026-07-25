@@ -165,9 +165,7 @@ describe("progression och kredit", () => {
     });
     const prog = computeMemberProgression(s, "m1");
     expect(prog.uniqueCuisines).toBe(5);
-    expect(prog.badges.find((b) => b.id === "world-taster")?.earnedAt).toBe(
-      "2026-01-06",
-    );
+    expect(prog.badges.find((b) => b.id === "world-taster")?.earnedAt).toBe("2026-01-06");
   });
 
   test("Brett register utlöses på fjärde kategori (ej occasions)", () => {
@@ -188,9 +186,7 @@ describe("progression och kredit", () => {
     });
     const prog = computeMemberProgression(s, "m1");
     expect(prog.breadthCategories).toBe(4);
-    expect(prog.badges.find((b) => b.id === "broad-register")?.earnedAt).toBe(
-      "2026-01-04",
-    );
+    expect(prog.badges.find((b) => b.id === "broad-register")?.earnedAt).toBe("2026-01-04");
   });
 
   test("Fullträff kräver annan gruppmedlem och icke-shared origin", () => {
@@ -207,8 +203,7 @@ describe("progression och kredit", () => {
 
     const s2 = { ...s1, visits: [visit("v2", "p1", "2026-02-01", ["m1", "m2"])] };
     expect(
-      computeMemberProgression(s2, "m1").badges.find((b) => b.id === "bullseye")
-        ?.earnedAt,
+      computeMemberProgression(s2, "m1").badges.find((b) => b.id === "bullseye")?.earnedAt,
     ).toBe("2026-02-01");
 
     // shared origin: förslagsställaren är importör, ska ej belönas
@@ -227,9 +222,7 @@ describe("progression och kredit", () => {
       currentUserId: "m1",
       members: [member("m1"), member("m2")],
       places: [place({ id: "p1", addedBy: "m1", origin: "manual" })],
-      visits: [
-        visit("v1", "p1", "2026-02-01", ["m1", "m2"], { linkType: "shared" }),
-      ],
+      visits: [visit("v1", "p1", "2026-02-01", ["m1", "m2"], { linkType: "shared" })],
     });
     expect(
       computeMemberProgression(s4, "m1").badges.find((b) => b.id === "bullseye"),
@@ -262,17 +255,12 @@ describe("progression och kredit", () => {
     const off = computeMemberProgression(offGroup, "m1");
     expect(off.visits).toBe(1);
     expect(off.uniqueCuisines).toBe(1);
-    expect(
-      countsForProgression(offGroup, offGroup.visits[1]),
-    ).toBe(false);
+    expect(countsForProgression(offGroup, offGroup.visits[1])).toBe(false);
 
     // Även när gruppen tillåter delat, respekteras enskilt besöks flagga.
     const perVisitOff: AppState = {
       ...base,
-      visits: [
-        base.visits[0],
-        { ...base.visits[1], countsForProgression: false },
-      ],
+      visits: [base.visits[0], { ...base.visits[1], countsForProgression: false }],
     };
     expect(computeMemberProgression(perVisitOff, "m1").visits).toBe(1);
   });
@@ -336,10 +324,7 @@ describe("progression och kredit", () => {
     const s1 = state({
       members: [member("m1")],
       places: [place({ id: "p1" })],
-      visits: [
-        visit("v1", "p1", "2026-01-01", ["m1"]),
-        visit("v2", "p1", "2026-01-02", ["m1"]),
-      ],
+      visits: [visit("v1", "p1", "2026-01-01", ["m1"]), visit("v2", "p1", "2026-01-02", ["m1"])],
     });
     expect(computeMemberProgression(s1, "m1").visits).toBe(2);
     const s2 = { ...s1, visits: [s1.visits[0]] };
@@ -376,9 +361,7 @@ describe("topplistor", () => {
 
 describe("gruppmilstolpar", () => {
   test("10 unika platser ger milstolpe med korrekt datum", () => {
-    const places: Place[] = Array.from({ length: 10 }, (_, i) =>
-      place({ id: `p${i + 1}` }),
-    );
+    const places: Place[] = Array.from({ length: 10 }, (_, i) => place({ id: `p${i + 1}` }));
     const visits: Visit[] = places.map((p, i) =>
       visit(`v${i + 1}`, p.id, `2026-01-${String(i + 1).padStart(2, "0")}`, ["m1"]),
     );

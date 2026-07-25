@@ -41,9 +41,7 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
       .sort((a, b) => (a.date < b.date ? 1 : -1));
 
     const triedPlaceIds = Array.from(new Set(visits.map((v) => v.placeId)));
-    const triedPlaces = triedPlaceIds
-      .map((id) => getPlace(id))
-      .filter((p): p is Place => !!p);
+    const triedPlaces = triedPlaceIds.map((id) => getPlace(id)).filter((p): p is Place => !!p);
 
     const proposedCount = state.places.filter((p) => p.addedBy === memberId).length;
 
@@ -55,9 +53,7 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
     const favoriteIds = state.favorites
       .filter((f) => f.memberId === memberId)
       .map((f) => f.placeId);
-    const favoritePlaces = favoriteIds
-      .map((id) => getPlace(id))
-      .filter((p): p is Place => !!p);
+    const favoritePlaces = favoriteIds.map((id) => getPlace(id)).filter((p): p is Place => !!p);
 
     let currentFavorite: Place | null = null;
     if (favoritePlaces.length > 0) {
@@ -67,28 +63,20 @@ function useMemberProfile(memberId: string | null): MemberProfileData | null {
           return { p, date: lv?.date };
         })
         .sort((a, b) => (a.date && b.date ? (a.date < b.date ? 1 : -1) : b.date ? 1 : -1));
-      currentFavorite = withLastVisit[0].date
-        ? withLastVisit[0].p
-        : favoritePlaces[0];
+      currentFavorite = withLastVisit[0].date ? withLastVisit[0].p : favoritePlaces[0];
     }
-    const otherFavorites = favoritePlaces.filter(
-      (p) => p.id !== currentFavorite?.id,
-    );
+    const otherFavorites = favoritePlaces.filter((p) => p.id !== currentFavorite?.id);
 
     const cuisineCounts = new Map<string, number>();
     triedPlaces.forEach((p) =>
-      p.cuisines.forEach((c) =>
-        cuisineCounts.set(c, (cuisineCounts.get(c) ?? 0) + 1),
-      ),
+      p.cuisines.forEach((c) => cuisineCounts.set(c, (cuisineCounts.get(c) ?? 0) + 1)),
     );
     const topCuisines = [...cuisineCounts.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([c]) => c);
 
-    const recentActivity = state.activity
-      .filter((a) => a.memberId === memberId)
-      .slice(0, 4);
+    const recentActivity = state.activity.filter((a) => a.memberId === memberId).slice(0, 4);
 
     return {
       visitCount: visits.length,
@@ -120,10 +108,7 @@ export function MemberProfileSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full overflow-y-auto p-0 sm:max-w-md"
-      >
+      <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md">
         {member && profile ? (
           <div className="flex flex-col">
             <SheetHeader className="space-y-0 border-b border-border/60 bg-gradient-to-br from-sage/40 to-secondary p-5 text-left">
@@ -215,13 +200,9 @@ export function MemberProfileSheet({
                       {profile.lastVisit.place.photo ?? "🍽️"}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">
-                        {profile.lastVisit.place.name}
-                      </div>
+                      <div className="truncate font-medium">{profile.lastVisit.place.name}</div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="capitalize">
-                          {profile.lastVisit.meal}
-                        </span>
+                        <span className="capitalize">{profile.lastVisit.meal}</span>
                         <span>· {formatDate(profile.lastVisit.date)}</span>
                       </div>
                     </div>
@@ -249,14 +230,10 @@ export function MemberProfileSheet({
                       {profile.currentFavorite.photo ?? "🍽️"}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">
-                        {profile.currentFavorite.name}
-                      </div>
+                      <div className="truncate font-medium">{profile.currentFavorite.name}</div>
                       <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                         <MapPin className="h-3 w-3" />
-                        <span className="truncate">
-                          {profile.currentFavorite.address}
-                        </span>
+                        <span className="truncate">{profile.currentFavorite.address}</span>
                       </div>
                     </div>
                   </Link>
@@ -359,9 +336,7 @@ function LevelProgress({ progression }: { progression: MemberProgression }) {
         <Card className="rounded-2xl border-border/70 p-3 text-sm">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium">{level.name}</span>
-            <span className="text-xs text-muted-foreground">
-              Högsta nivån är nådd
-            </span>
+            <span className="text-xs text-muted-foreground">Högsta nivån är nådd</span>
           </div>
         </Card>
       </section>

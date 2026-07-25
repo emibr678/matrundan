@@ -57,12 +57,7 @@ export function levelForCount(count: number): LevelInfo {
 
 /* ---------- Badges ---------- */
 
-export type BadgeId =
-  | "first-round"
-  | "world-taster"
-  | "broad-register"
-  | "regular"
-  | "bullseye";
+export type BadgeId = "first-round" | "world-taster" | "broad-register" | "regular" | "bullseye";
 
 export interface BadgeDef {
   id: BadgeId;
@@ -100,8 +95,7 @@ export const BADGES: Record<BadgeId, BadgeDef> = {
     id: "bullseye",
     name: "Fullträff",
     emoji: "🎯",
-    description:
-      "Ett matställe du föreslog i gruppen har besökts av gänget.",
+    description: "Ett matställe du föreslog i gruppen har besökts av gänget.",
   },
 };
 
@@ -204,10 +198,7 @@ export function currentStockholmYear(now: Date = new Date()): number {
  * Läser bara AppState – ingen extern data. Duplicerade besök kan aldrig
  * uppstå här eftersom Visit.id är unikt per canonical visit i gruppen.
  */
-export function computeMemberProgression(
-  state: AppState,
-  memberId: string,
-): MemberProgression {
+export function computeMemberProgression(state: AppState, memberId: string): MemberProgression {
   const placeById = new Map<string, Place>(state.places.map((p) => [p.id, p]));
   const allVisits = dedupeVisits(state.visits);
 
@@ -363,9 +354,7 @@ export function computeLeaderboard(
       .filter((v) => v.participantIds.includes(m.id))
       .slice()
       .sort(chronologically);
-    const memberScoring = memberParticipated.filter((v) =>
-      countsForProgression(state, v),
-    );
+    const memberScoring = memberParticipated.filter((v) => countsForProgression(state, v));
     const inPeriod = (v: Visit) => period === "all" || inYear(v.date, year);
 
     let value = 0;
@@ -405,10 +394,7 @@ export function computeLeaderboard(
  * "Hela gänget" använder nu aktiva medlemmar som fallback eftersom
  * historiska medlemsperioder inte lagras i nuvarande schema; se README.
  */
-export function computeGroupMilestones(
-  state: AppState,
-  now: Date = new Date(),
-): GroupMilestone[] {
+export function computeGroupMilestones(state: AppState, now: Date = new Date()): GroupMilestone[] {
   const out: GroupMilestone[] = [];
   const thresholds = [10, 25, 50, 100] as const;
   const allVisits = dedupeVisits(state.visits);
