@@ -50,7 +50,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: "0.8.0",
-    date: APP_VERSION_DATE,
+    date: "2026-07-25",
     summary:
       "Riktig platssök via Geoapify i live-läget – med skyddad servernyckel, bekräftelsesteg och avgränsade sökområden.",
     sections: [
