@@ -278,17 +278,59 @@ describe("progression och kredit", () => {
     expect(computeMemberProgression(perVisitOff, "m1").visits).toBe(1);
   });
 
-  test("canonical visit räknas inte dubbelt (samma visit-id, en post per grupp)", () => {
+  test("dubblett med samma Visit.id räknas bara en gång i progression, topplista och milstolpar", () => {
+    const dup = visit("v1", "p1", "2026-01-01", ["m1"]);
     const s = state({
       members: [member("m1")],
       places: [place({ id: "p1" })],
-      visits: [visit("v1", "p1", "2026-01-01", ["m1"])],
+      // Två poster med samma id och samma deltagare – defensiv dedup ska hålla.
+      visits: [dup, { ...dup }],
     });
-    // AppState har alltid högst en post per canonical visit-id i gruppen.
-    // Verifiera via distinkt uniquePlaces=1 och visits=1.
     const prog = computeMemberProgression(s, "m1");
     expect(prog.visits).toBe(1);
     expect(prog.uniquePlaces).toBe(1);
+
+    const rows = computeLeaderboard(s, "visits", "all");
+    expect(rows.find((r) => r.memberId === "m1")?.value).toBe(1);
+
+    // Även milstolpar dedupliserar (första-besöks-datum stabilt).
+    const s10 = state({
+      members: [member("m1")],
+      places: Array.from({ length: 10 }, (_, i) => place({ id: `p${i + 1}` })),
+      visits: [
+        // p1-besöket dubblerat; övriga p2..p10 unika.
+        visit("v1", "p1", "2026-01-01", ["m1"]),
+        visit("v1", "p1", "2026-01-01", ["m1"]),
+        ...Array.from({ length: 9 }, (_, i) =>
+          visit(`v${i + 2}`, `p${i + 2}`, `2026-01-${String(i + 2).padStart(2, "0")}`, ["m1"]),
+        ),
+      ],
+    });
+    const ms = computeGroupMilestones(s10);
+    expect(ms.find((x) => x.id === "places-10")?.at).toBe("2026-01-10");
+  });
+
+  test("shared-toggle på gruppnivå tar bort delade besök från topplistan", () => {
+    const s = state({
+      members: [member("m1", "Alva"), member("m2", "Bea")],
+      places: [place({ id: "p1" }), place({ id: "p2" })],
+      visits: [
+        visit("v1", "p1", "2026-01-01", ["m1"], { linkType: "original" }),
+        visit("v2", "p2", "2026-02-01", ["m1"], {
+          linkType: "shared",
+          countsForProgression: true,
+        }),
+      ],
+    });
+    const on = computeLeaderboard(s, "visits", "all");
+    expect(on.find((r) => r.memberId === "m1")?.value).toBe(2);
+
+    const off: AppState = {
+      ...s,
+      group: { ...s.group, sharedVisitsCountForProgression: false },
+    };
+    const rows = computeLeaderboard(off, "visits", "all");
+    expect(rows.find((r) => r.memberId === "m1")?.value).toBe(1);
   });
 
   test("borttaget/unlinkat besök omräknas vid nästa läsning", () => {
