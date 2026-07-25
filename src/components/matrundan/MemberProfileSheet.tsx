@@ -14,6 +14,11 @@ import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
 import { RatingStars } from "./Rating";
 import { ActivityRow } from "./ActivityRow";
+import {
+  BADGES,
+  computeMemberProgression,
+  type MemberProgression,
+} from "@/lib/matrundan/gamification";
 
 interface MemberProfileData {
   visitCount: number;
