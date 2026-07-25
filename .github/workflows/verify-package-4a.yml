@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -39,18 +39,30 @@ jobs:
           src/lib/matrundan/places-provider.ts
           src/routes/matstallen.tsx
 
-      - name: Upload formatted sources
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-4a-formatted
-          path: |
-            src/components/matrundan/AddPlaceDialog.tsx
-            src/components/matrundan/AddPlaceDialogImpl.tsx
-            src/components/matrundan/PlaceMap.tsx
-            src/lib/matrundan/demo-data.ts
-            src/lib/matrundan/places-provider.ts
+      - name: Commit formatting to feature branch
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          if git diff --quiet -- \
+            src/components/matrundan/AddPlaceDialog.tsx \
+            src/components/matrundan/AddPlaceDialogImpl.tsx \
+            src/components/matrundan/PlaceMap.tsx \
+            src/lib/matrundan/demo-data.ts \
+            src/lib/matrundan/places-provider.ts \
+            src/routes/matstallen.tsx; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/matrundan/AddPlaceDialog.tsx \
+            src/components/matrundan/AddPlaceDialogImpl.tsx \
+            src/components/matrundan/PlaceMap.tsx \
+            src/lib/matrundan/demo-data.ts \
+            src/lib/matrundan/places-provider.ts \
             src/routes/matstallen.tsx
-          if-no-files-found: error
+          git commit -m "Format package 4A sources"
+          git push
 
       - name: TypeScript
         run: bunx tsc --noEmit
