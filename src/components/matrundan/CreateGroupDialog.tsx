@@ -121,6 +121,11 @@ export function CreateGroupDialog({
               onClearVerified={() => setVerified(null)}
               placeholder="t.ex. Gamla Enskede, Stockholm"
             />
+            {locInvalid ? (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Välj sökområdet från listan eller lämna fältet tomt.
+              </p>
+            ) : null}
             <p className="text-xs text-muted-foreground">
               Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
               enskild sökning.
