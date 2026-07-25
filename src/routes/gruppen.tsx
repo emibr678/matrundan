@@ -132,23 +132,26 @@ function GroupPage() {
     <div className="mx-auto max-w-2xl space-y-5 pt-2 pb-4 md:max-w-4xl">
       <section>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
-          <div className="flex items-center gap-4 bg-gradient-to-br from-sage/50 to-secondary p-5">
-            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-background text-4xl shadow-sm">
+          <div className="flex items-center gap-3 bg-gradient-to-br from-sage/50 to-secondary p-4 sm:gap-4 sm:p-5">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-background text-3xl shadow-sm sm:h-16 sm:w-16 sm:text-4xl">
               {state.group.emoji}
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
+              <h1 className="truncate font-display text-xl font-semibold leading-tight sm:text-2xl md:text-3xl">
                 {state.group.name}
               </h1>
-              <div className="mt-0.5 text-sm text-muted-foreground">
+              <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
                 {state.members.length} medlemmar
                 {state.group.city ? ` · ${state.group.city}` : ""}
               </div>
             </div>
-            <SettingsSheet />
+            <div className="shrink-0">
+              <SettingsSheet />
+            </div>
           </div>
         </Card>
       </section>
+
 
       {next ? (
         <section>
