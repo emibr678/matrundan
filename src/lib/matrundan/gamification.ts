@@ -288,6 +288,11 @@ export function computeMemberProgression(
   // Fullträff – medlemmen är added_by för stället (icke-shared) och besöket
   // är ett originalbesök där minst en annan medlem deltar. Endast första
   // kvalificerande besöket räknas.
+  //
+  // Not: `Visit.participantIds` innehåller endast användare som är eller
+  // varit medlemmar i gruppen (aktiva/lämnade) – externa deltagare
+  // representeras enbart av `externalParticipantCount`. Kravet "annan
+  // gruppmedlem" är därmed uppfyllt av `some(id => id !== memberId)`.
   {
     const proposedIds = new Set(
       state.places
@@ -295,7 +300,7 @@ export function computeMemberProgression(
         .map((p) => p.id),
     );
     let earliest: Visit | null = null;
-    for (const v of state.visits) {
+    for (const v of allVisits) {
       if (!proposedIds.has(v.placeId)) continue;
       if ((v.linkType ?? "original") !== "original") continue;
       if (!v.participantIds.some((id) => id !== memberId)) continue;
