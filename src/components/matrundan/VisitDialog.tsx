@@ -24,6 +24,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { RatingInput } from "./Rating";
 import { useStore } from "@/lib/matrundan/store";
+import { useSession } from "@/lib/matrundan/session";
+import { ShareVisitDialog } from "./ShareVisitDialog";
+
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
@@ -43,10 +46,18 @@ export function VisitDialog({
   onOpenChange: (v: boolean) => void;
   placeId: string | null;
 }) {
-  const { addVisit, state, getPlace, submitting } = useStore();
+  const { addVisit, state, getPlace, submitting, mode } = useStore();
+  const { userGroups, activeGroupId } = useSession();
+  const canShare =
+    mode === "live" && !!activeGroupId && userGroups.length >= 2;
   const [busy, setBusy] = React.useState(false);
+  const [sharePayload, setSharePayload] = React.useState<{
+    visitId: string;
+    groupId: string;
+  } | null>(null);
   const isBusy = busy || submitting;
   const place = placeId ? getPlace(placeId) : undefined;
+
 
   const [meal, setMeal] = React.useState<(typeof MEALS)[number]>("middag");
   const [date, setDate] = React.useState<string>(new Date().toISOString().slice(0, 10));
@@ -79,7 +90,7 @@ export function VisitDialog({
       cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
     );
 
-  const submit = async () => {
+  const submit = async (thenShare = false) => {
     if (isBusy) return;
     if (participants.length === 0) {
       toast.error("Välj minst en deltagare");
@@ -91,7 +102,7 @@ export function VisitDialog({
     }
     setBusy(true);
     try {
-      await addVisit({
+      const created = await addVisit({
         placeId: place.id,
         date: new Date(date).toISOString(),
         meal,
@@ -105,12 +116,16 @@ export function VisitDialog({
       });
       toast.success("Besök registrerat", { description: place.name });
       onOpenChange(false);
+      if (thenShare && activeGroupId && created?.id) {
+        setSharePayload({ visitId: created.id, groupId: activeGroupId });
+      }
     } catch (e) {
       toast.error((e as Error).message || "Kunde inte spara besöket.");
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,16 +223,60 @@ export function VisitDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isBusy}>
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            disabled={isBusy}
+            className="w-full sm:w-auto"
+          >
             Avbryt
           </Button>
-          <Button onClick={submit} disabled={isBusy}>
+          {canShare ? (
+            <>
+              <div className="text-[11px] text-muted-foreground sm:hidden">
+                Besöket sparas en gång och kopplas sedan till vald grupp.
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => submit(true)}
+                disabled={isBusy}
+                className="w-full sm:w-auto"
+              >
+                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Spara och lägg till i annan grupp
+              </Button>
+            </>
+          ) : null}
+          <Button
+            onClick={() => submit(false)}
+            disabled={isBusy}
+            className="w-full sm:w-auto"
+          >
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara besök
           </Button>
         </DialogFooter>
+        {canShare ? (
+          <p className="hidden text-[11px] text-muted-foreground sm:block">
+            Besöket sparas en gång och kopplas sedan till vald grupp.
+          </p>
+        ) : null}
       </DialogContent>
+      <ShareVisitDialog
+        visitId={sharePayload?.visitId ?? null}
+        currentGroupId={sharePayload?.groupId ?? ""}
+        open={sharePayload !== null}
+        onOpenChange={(o) => {
+          if (!o) setSharePayload(null);
+        }}
+        onShared={() => {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("matrundan:reload"));
+          }
+        }}
+      />
     </Dialog>
   );
 }
+

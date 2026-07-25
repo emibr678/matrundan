@@ -27,11 +27,15 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som enda externa länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.7.0
+## Status – v0.7.1
 
 Med Paket 3B kan samma besök finnas i flera grupper utan att data
-dupliceras, och delade besök har tydlig integritetskontroll. Paket 1–3A
-(inbjudningar, roller, profiler) ligger kvar oförändrat.
+dupliceras, och delade besök har tydlig integritetskontroll. v0.7.1
+återställer besöksregistreringen efter kanonisk migration och lägger till
+knappen ”Spara och lägg till i annan grupp” i registreringsdialogen (bara i
+live-läget när användaren är medlem i minst två grupper). Paket 1–3A ligger
+kvar oförändrat.
+
 
 ### Två lägen sida vid sida
 

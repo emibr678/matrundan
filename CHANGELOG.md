@@ -4,7 +4,24 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.7.1] – 2026-07-25
+
+### Rättat
+- Registrering av besök fungerar igen efter kanonisk migration:
+  `validate_visit_participant()` slår upp originalgruppen via
+  `visit_group_links` (`link_type='original'`) istället för den borttagna
+  kolumnen `visits.group_id`, och kräver aktivt medlemskap i den gruppen.
+- Städade bort en dubblerad valideringstrigger (`trg_activity_validate_refs`)
+  på `activity`; kvar finns endast `trg_activity_validate`.
+
+### Nytt
+- **Spara och lägg till i annan grupp:** ny sekundär knapp i
+  `VisitDialog` (live-läget, ≥2 aktiva grupper). Besöket sparas en gång i
+  aktuell grupp; därefter öppnas befintliga `ShareVisitDialog` med det
+  kanoniska visit-id:t, som använder de säkra delnings-RPC:erna.
+
 ## [0.7.0] – 2026-07-25
+
 
 ### Nytt
 - **Dela besök mellan grupper utan duplicering.** Ny kanonisk datamodell:
