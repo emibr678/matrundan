@@ -107,10 +107,22 @@ export function AuthMenu() {
             Skapa ny grupp
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => void signOut()}>
+          <DropdownMenuItem
+            onSelect={() =>
+              void (async () => {
+                try {
+                  await signOut();
+                  navigate({ to: "/" });
+                } catch {
+                  toast.error("Kunde inte logga ut.");
+                }
+              })()
+            }
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Logga ut
           </DropdownMenuItem>
+
         </DropdownMenuContent>
       </DropdownMenu>
       <ProfileDialog
