@@ -48,6 +48,13 @@ type VisitRow = {
   externalParticipantCount: number;
   countsForProgression: boolean;
   participantIds: string[];
+  participants: {
+    id: string;
+    name: string;
+    avatar: string | null;
+    avatarImage: string | null;
+    status: "active" | "left";
+  }[];
   reviews: ReviewRow[];
 };
 
