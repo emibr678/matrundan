@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.4.0";
+export const APP_VERSION = "0.5.0";
 export const APP_VERSION_DATE = "2026-07-25";
 
 export interface ChangelogEntry {
@@ -26,6 +26,31 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Skrivflödena är live: lägg till, besök, betyg, favoriter och nästa stopp sparas i Supabase.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Lägg till matställe direkt i gruppen i live-läge.",
+          "Registrera besök atomärt tillsammans med helhetsbetyg, deltagare och valfria detaljbetyg.",
+          "Markera personliga favoriter och sätt/byt/rensa gruppens nästa stopp.",
+          "Aktivitetsflödet uppdateras automatiskt vid varje skrivning.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Alla skrivningar går genom SECURITY DEFINER-RPC:er med serverside-validering.",
+          "Vyerna laddas om automatiskt efter en lyckad mutation – ingen manuell refresh.",
+          "Tydliga laddnings- och feltillstånd på ”Lägg till” och ”Spara besök”.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.4.0",
+    date: "2026-07-25",
     summary:
       "Supabase-grund: Google-inloggning, riktiga grupper och live-läge sida vid sida med demot.",
     sections: [

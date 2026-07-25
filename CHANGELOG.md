@@ -4,6 +4,35 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.5.0] – 2026-07-25
+
+### Nytt
+- Lägg till matställe direkt mot Supabase i live-läge via ny
+  `create_place`-RPC (med dubblettskydd på namn + adress per grupp).
+- Registrera besök atomärt via `create_visit_with_review`-RPC: besök,
+  deltagare, författarens omdöme, aktivitetspost och automatisk rensning
+  av gruppens ”nästa stopp” sker i samma transaktion.
+- Favoritmarkera matställen via `toggle_favorite`-RPC.
+- Sätt, byt och rensa gruppens nästa stopp via `set_next_place`-RPC.
+- Aktivitetsflödet uppdateras automatiskt av RPC:erna – klienten skapar
+  inte längre aktivitetsposter direkt (INSERT på `activity` är
+  återkallad från `authenticated`).
+
+### Förbättrat
+- Alla skrivningar går genom SECURITY DEFINER-funktioner som validerar
+  gruppmedlemskap, kategorier, tillfälle och betygsintervall på servern.
+- Vy och store laddas om automatiskt efter en lyckad live-mutation utan
+  sidladdning.
+- Tydliga laddnings- och feltillstånd på ”Lägg till matställe” och
+  ”Spara besök”, med disable av CTA:er under pågående skrivning.
+- Repository-lagret är utökat med `live-mutations.ts` som håller RPC-anrop
+  åtskilda från läslogiken i `live-repository.ts`.
+
+### Känt
+- Inbjudningar av nya medlemmar och profilredigering landar i Supabase
+  först i ett senare paket.
+- Geoapify/OSM-platssökning och gamification är fortfarande inte med.
+
 ## [0.4.0] – 2026-07-25
 
 ### Nytt
@@ -29,14 +58,6 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   och triggers, identitetsfält (`group_id`, skapare, författare) är
   immutabla efter insert, och `anon`-rollen har ingen åtkomst till
   gruppens tabeller.
-
-### Känt
-- Skrivflöden (nya matställen, besök, betyg, favoriter, inbjudningar) landar
-  i Supabase först i Paket 2. Live-läget är read-only i denna version.
-- Ingen data från tidigare Matbingo-versioner har migrerats.
-- Geoapify/OSM-platssökning och gamification är ännu inte med.
-
-
 
 ## [0.3.0] – 2026-07-24
 
