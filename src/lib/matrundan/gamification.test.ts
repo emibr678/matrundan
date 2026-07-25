@@ -21,10 +21,11 @@ function member(id: string, name: string = id): Member {
   return { id, name, avatar: "🙂", role: "medlem" };
 }
 
-function place(overrides: Partial<Place> & { id: string; name?: string }): Place {
+function place(overrides: Partial<Place> & { id: string }): Place {
+  const { id, ...rest } = overrides;
   return {
-    id: overrides.id,
-    name: overrides.name ?? overrides.id,
+    id,
+    name: id,
     category: "restaurang",
     cuisines: [],
     occasions: [],
@@ -33,7 +34,7 @@ function place(overrides: Partial<Place> & { id: string; name?: string }): Place
     addedBy: "m1",
     addedAt: "2026-01-01",
     origin: "manual",
-    ...overrides,
+    ...rest,
   };
 }
 
