@@ -1,16 +1,6 @@
 /**
- * Server-side proxy för Geoapifys API.
- *
- * Nyckeln `GEOAPIFY_API_KEY` läses ENDAST inuti `.handler()`, aldrig på
- * modulnivå, och exponeras aldrig till klienten. Klienten anropar dessa
- * server-funktioner via TanStacks RPC och får redan normaliserade förslag
- * tillbaka.
- *
- * Autentisering: alla anrop kräver inloggad Supabase-användare (via
- * `requireSupabaseAuth`). Anonyma prospects får aldrig bränna Emils quota.
- *
- * Om nyckeln saknas kastas ett tydligt "server not configured"-fel; UI:t
- * visar då ett hint om att admin behöver lägga in nyckeln i Cloud/Secrets.
+ * Autentiserad serveradapter för Geoapify.
+ * GEOAPIFY_API_KEY läses endast på servern och skickas aldrig till klienten.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -23,138 +13,184 @@ import {
   type NormalizedPlaceSuggestion,
 } from "./geoapify-normalize";
 
-const PROVIDER_ID = "geoapify" as const;
-
-const GEOAPIFY_CATEGORIES = [
+const CATEGORIES = [
   "catering.restaurant",
-  "catering.cafe",
   "catering.fast_food",
   "catering.food_court",
+  "catering.cafe",
   "catering.pub",
   "catering.bar",
   "catering.biergarten",
+  "catering.taproom",
   "catering.ice_cream",
   "commercial.food_and_drink.bakery",
 ].join(",");
 
-class GeoapifyConfigError extends Error {
-  code = "geoapify_not_configured" as const;
-  constructor() {
-    super(
-      "Geoapify är inte konfigurerat. Be en administratör lägga in GEOAPIFY_API_KEY i Lovable Cloud → Secrets.",
-    );
-  }
-}
+const REQUEST_TIMEOUT_MS = 10_000;
+const WIDE_AREA_RADIUS_KM = 50;
 
 function readKey(): string {
   const key = process.env.GEOAPIFY_API_KEY?.trim();
-  if (!key) throw new GeoapifyConfigError();
+  if (!key) {
+    throw new Error(
+      "GEOAPIFY_NOT_CONFIGURED: Platssökningen är ännu inte aktiverad. Lägg till GEOAPIFY_API_KEY som serverhemlighet.",
+    );
+  }
   return key;
 }
 
 async function callGeoapify(url: URL): Promise<{ features?: unknown[] }> {
-  const res = await fetch(url.toString(), {
-    headers: { accept: "application/json" },
-  });
-  if (!res.ok) {
-    let body = "";
-    try {
-      body = (await res.text()).slice(0, 300);
-    } catch {
-      /* ignore */
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (response.status === 429) {
+      throw new Error("GEOAPIFY_RATE_LIMIT: Platssökningen används mycket just nu. Försök igen om en stund.");
     }
-    throw new Error(
-      `Geoapify svarade ${res.status}${body ? `: ${body}` : ""}`,
-    );
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("GEOAPIFY_CONFIG_ERROR: Geoapify-nyckeln kunde inte användas.");
+    }
+    if (!response.ok) {
+      throw new Error(`GEOAPIFY_UNAVAILABLE: Geoapify svarade med status ${response.status}.`);
+    }
+    const json = (await response.json()) as unknown;
+    if (!json || typeof json !== "object" || !("features" in json)) {
+      throw new Error("GEOAPIFY_MALFORMED: Geoapify returnerade ett oväntat svar.");
+    }
+    return json as { features?: unknown[] };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("GEOAPIFY_TIMEOUT: Platssökningen tog för lång tid. Försök igen.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-  return (await res.json()) as { features?: unknown[] };
 }
 
-/**
- * Autocomplete för Plats-fältet: föreslår orter/områden i Sverige.
- */
+function likelyPlaceName(text: string): boolean {
+  const value = text.trim();
+  if (!value || value.length < 3 || value.length > 80) return false;
+  const generic = new Set([
+    "restaurang", "café", "cafe", "fika", "pizza", "pizzeria", "sushi",
+    "burgare", "burger", "pub", "bar", "bageri", "snabbmat", "thai",
+    "indiskt", "italienskt", "japanskt", "kinesiskt", "vegetariskt",
+  ]);
+  return !generic.has(value.toLowerCase());
+}
+
+function searchableText(place: NormalizedPlaceSuggestion): string {
+  return [
+    place.name,
+    place.category,
+    ...place.cuisines,
+    place.address,
+    place.area,
+    place.city,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase("sv-SE");
+}
+
+function matchesQuery(place: NormalizedPlaceSuggestion, query: string): boolean {
+  const terms = query
+    .trim()
+    .toLocaleLowerCase("sv-SE")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!terms.length) return true;
+  const haystack = searchableText(place);
+  return terms.every((term) => haystack.includes(term));
+}
+
 export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z
-      .object({
-        text: z.string().min(1).max(120),
-        limit: z.number().int().min(1).max(10).optional(),
-      })
-      .parse(input),
+    z.object({
+      text: z.string().trim().min(2).max(120),
+      limit: z.number().int().min(1).max(8).optional(),
+      biasLat: z.number().min(-90).max(90).optional(),
+      biasLng: z.number().min(-180).max(180).optional(),
+    }).parse(input),
   )
   .handler(async ({ data }): Promise<NormalizedLocationSuggestion[]> => {
-    const key = readKey();
     const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
     url.searchParams.set("text", data.text);
-    url.searchParams.set("type", "city");
     url.searchParams.set("filter", "countrycode:se");
     url.searchParams.set("lang", "sv");
+    url.searchParams.set("format", "geojson");
     url.searchParams.set("limit", String(data.limit ?? 6));
-    url.searchParams.set("apiKey", key);
+    if (data.biasLat != null && data.biasLng != null) {
+      url.searchParams.set("bias", `proximity:${data.biasLng},${data.biasLat}`);
+    } else {
+      url.searchParams.set("bias", "countrycode:se");
+    }
+    url.searchParams.set("apiKey", readKey());
 
     const json = await callGeoapify(url);
-    const out: NormalizedLocationSuggestion[] = [];
-    for (const f of json.features ?? []) {
-      const n = normalizeLocationFeature(f as Parameters<typeof normalizeLocationFeature>[0]);
-      if (n) out.push(n);
-    }
-    // Deduplicate på label
     const seen = new Set<string>();
-    return out.filter((x) => {
-      const key = x.label.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    const result: NormalizedLocationSuggestion[] = [];
+    for (const feature of json.features ?? []) {
+      const normalized = normalizeLocationFeature(
+        feature as Parameters<typeof normalizeLocationFeature>[0],
+      );
+      if (!normalized || seen.has(normalized.placeId)) continue;
+      seen.add(normalized.placeId);
+      result.push(normalized);
+    }
+    return result.slice(0, data.limit ?? 6);
   });
 
-/**
- * Sök matställen i ett område via Geoapifys Places API.
- * Textparametern är valfri; utan text returneras platser inom radien.
- */
 export const geoapifySearchPlaces = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z
-      .object({
-        text: z.string().max(120).optional(),
-        lat: z.number(),
-        lng: z.number(),
-        /** null = hela landet; annars radie i km, 0.5–200. */
-        radiusKm: z.number().min(0.5).max(200).nullable(),
-        limit: z.number().int().min(1).max(40).optional(),
-      })
-      .parse(input),
+    z.object({
+      text: z.string().trim().max(120).optional(),
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      radiusKm: z.union([
+        z.literal(1), z.literal(3), z.literal(5), z.literal(10), z.literal(25), z.null(),
+      ]),
+      limit: z.number().int().min(1).max(50).optional(),
+    }).parse(input),
   )
   .handler(async ({ data }): Promise<NormalizedPlaceSuggestion[]> => {
-    const key = readKey();
+    const requestedLimit = Math.min(data.limit ?? 30, 30);
+    const radiusKm = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
+    const query = data.text?.trim() ?? "";
+
     const url = new URL("https://api.geoapify.com/v2/places");
-    url.searchParams.set("categories", GEOAPIFY_CATEGORIES);
-    if (data.radiusKm != null) {
-      const meters = Math.round(data.radiusKm * 1000);
-      url.searchParams.set(
-        "filter",
-        `circle:${data.lng},${data.lat},${meters}`,
-      );
-    } else {
-      url.searchParams.set("filter", "countrycode:se");
-    }
+    url.searchParams.set("categories", CATEGORIES);
+    url.searchParams.set(
+      "filter",
+      `circle:${data.lng},${data.lat},${Math.round(radiusKm * 1000)}`,
+    );
     url.searchParams.set("bias", `proximity:${data.lng},${data.lat}`);
-    if (data.text && data.text.trim()) {
-      url.searchParams.set("text", data.text.trim());
-    }
     url.searchParams.set("lang", "sv");
-    url.searchParams.set("limit", String(data.limit ?? 20));
-    url.searchParams.set("apiKey", key);
+    // Hämta lite fler för robust lokal filtrering, men aldrig mer än servermax.
+    url.searchParams.set("limit", String(Math.min(Math.max(requestedLimit * 2, 30), 50)));
+    if (query && likelyPlaceName(query)) url.searchParams.set("name", query);
+    url.searchParams.set("apiKey", readKey());
 
     const json = await callGeoapify(url);
-    const out: NormalizedPlaceSuggestion[] = [];
-    for (const f of json.features ?? []) {
-      const n = normalizePlaceFeature(f as Parameters<typeof normalizePlaceFeature>[0]);
-      if (n) out.push(n);
+    const seen = new Set<string>();
+    const normalized: NormalizedPlaceSuggestion[] = [];
+    for (const feature of json.features ?? []) {
+      const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
+      if (!place || seen.has(place.externalId)) continue;
+      seen.add(place.externalId);
+      if (query && !matchesQuery(place, query)) continue;
+      normalized.push(place);
     }
-    return out;
-  });
 
-export { PROVIDER_ID as GEOAPIFY_PROVIDER_ID };
+    normalized.sort((a, b) => {
+      const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
+      const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
+      return da - db || a.name.localeCompare(b.name, "sv-SE");
+    });
+    return normalized.slice(0, requestedLimit);
+  });
