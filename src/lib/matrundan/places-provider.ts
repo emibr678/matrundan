@@ -3,15 +3,18 @@
  *
  * Demo-providern returnerar lokala förslag utan externa anrop.
  * Byt till Geoapify/OSM/MapLibre senare genom att implementera samma
- * kontrakt (search({ query, city, area, radiusKm }) → PlaceSuggestion[])
+ * kontrakt (search({ query, near, mode }) → PlaceSuggestion[])
  * och registrera i `getPlacesProvider()`. Lägg INTE hemligheter här –
  * de ska läsas via server-funktion när backend kopplas på.
  *
- * `radiusKm` kan vara `null` (eller `Infinity`) för att söka utan
- * geografisk begränsning ("hela landet").
+ * Sökmodellen är autocomplete-orienterad: användaren väljer en plats
+ * (`near`) från förslag, och kan sedan filtrera resultat till "nära"
+ * (mjuk radie ~5 km) eller "överallt" (hela Sverige, sorterat efter
+ * avstånd om en plats är vald).
  */
 
 import type { PlaceCategory } from "./types";
+import type { LocationBias } from "./location";
 
 export interface PlaceSuggestion {
   externalId: string;
@@ -26,12 +29,14 @@ export interface PlaceSuggestion {
   distanceKm?: number;
 }
 
+export type SearchMode = "near" | "everywhere";
+
 export interface PlacesSearchOpts {
   query?: string;
-  city: string;
-  area?: string;
-  /** null = ingen radiebegränsning (hela landet). */
-  radiusKm: number | null;
+  /** Vald plats att söka nära. Om null: söker i hela Sverige. */
+  near: LocationBias | null;
+  /** "near" begränsar geografiskt, "everywhere" tar bort begränsningen. */
+  mode: SearchMode;
 }
 
 export interface PlacesProvider {
@@ -39,32 +44,8 @@ export interface PlacesProvider {
   search(opts: PlacesSearchOpts): Promise<PlaceSuggestion[]>;
 }
 
-const AREA_CENTERS: Record<string, { lat: number; lng: number }> = {
-  centrum: { lat: 57.7072, lng: 11.9668 },
-  nordstan: { lat: 57.7089, lng: 11.9686 },
-  haga: { lat: 57.6994, lng: 11.9556 },
-  vasastan: { lat: 57.6975, lng: 11.9598 },
-  majorna: { lat: 57.6969, lng: 11.9138 },
-  linné: { lat: 57.6963, lng: 11.9464 },
-  avenyn: { lat: 57.6994, lng: 11.9797 },
-  södermalm: { lat: 59.3149, lng: 18.0721 },
-  östermalm: { lat: 59.3374, lng: 18.0839 },
-};
-
-const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
-  göteborg: { lat: 57.7089, lng: 11.9746 },
-  stockholm: { lat: 59.3293, lng: 18.0686 },
-  malmö: { lat: 55.6049, lng: 13.0038 },
-  uppsala: { lat: 59.8586, lng: 17.6389 },
-};
-
-function centerFor(city: string, area?: string) {
-  if (area) {
-    const c = AREA_CENTERS[area.trim().toLowerCase()];
-    if (c) return c;
-  }
-  return CITY_CENTERS[city.trim().toLowerCase()] ?? CITY_CENTERS.göteborg;
-}
+/** Mjuk radie kring en vald plats när mode === "near". */
+export const NEAR_RADIUS_KM = 5;
 
 function haversineKm(
   a: { lat: number; lng: number },
@@ -92,28 +73,17 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
   { externalId: "demo-9", name: "Falafelvagnen", category: "matvagn", address: "Järntorget", area: "Linné", city: "Göteborg", cuisines: ["falafel", "vegetariskt"], lat: 57.698, lng: 11.949 },
   { externalId: "demo-10", name: "Pizzeria Napoli", category: "restaurang", address: "Götgatan 22", area: "Södermalm", city: "Stockholm", cuisines: ["italienskt", "pizza"], lat: 59.3155, lng: 18.0715 },
   { externalId: "demo-11", name: "Malmö Saluhall", category: "restaurang", address: "Gibraltargatan 6", city: "Malmö", cuisines: ["street food"], lat: 55.6117, lng: 12.9989 },
+  { externalId: "demo-12", name: "Enskede Konditori", category: "bageri", address: "Enskedevägen 100", area: "Gamla Enskede", city: "Stockholm", cuisines: ["konditori", "kaffe"], lat: 59.282, lng: 18.085 },
+  { externalId: "demo-13", name: "Möllans Ost", category: "café", address: "Möllevångstorget 3", area: "Möllevången", city: "Malmö", cuisines: ["ost", "vin"], lat: 55.5921, lng: 13.014 },
 ];
 
 const demoProvider: PlacesProvider = {
   id: "demo",
-  async search({ query, city, area, radiusKm }) {
+  async search({ query, near, mode }) {
     await new Promise((r) => setTimeout(r, 220));
-    if (!city.trim()) return [];
     const q = (query ?? "").trim().toLowerCase();
-    const a = (area ?? "").trim().toLowerCase();
-    const center = centerFor(city, area);
 
-    let items = DEMO_SUGGESTIONS.filter(
-      (s) => s.city.toLowerCase() === city.trim().toLowerCase(),
-    );
-
-    if (a) {
-      items = items.filter(
-        (s) =>
-          s.area?.toLowerCase().includes(a) ||
-          s.address.toLowerCase().includes(a),
-      );
-    }
+    let items = DEMO_SUGGESTIONS.slice();
 
     if (q) {
       items = items.filter(
@@ -122,26 +92,30 @@ const demoProvider: PlacesProvider = {
           s.category.toLowerCase().includes(q) ||
           s.cuisines?.some((c) => c.toLowerCase().includes(q)) ||
           s.address.toLowerCase().includes(q) ||
-          s.area?.toLowerCase().includes(q),
+          s.area?.toLowerCase().includes(q) ||
+          s.city.toLowerCase().includes(q),
       );
     }
 
     const withDistance = items.map((s) => ({
       ...s,
       distanceKm:
-        s.lat != null && s.lng != null
-          ? Math.round(haversineKm(center, { lat: s.lat, lng: s.lng }) * 10) / 10
+        near && s.lat != null && s.lng != null
+          ? Math.round(haversineKm(near, { lat: s.lat, lng: s.lng }) * 10) / 10
           : undefined,
     }));
 
     const filtered =
-      radiusKm == null || !Number.isFinite(radiusKm)
-        ? withDistance
-        : withDistance.filter(
-            (s) => s.distanceKm == null || s.distanceKm <= radiusKm,
-          );
+      near && mode === "near"
+        ? withDistance.filter(
+            (s) => s.distanceKm != null && s.distanceKm <= NEAR_RADIUS_KM,
+          )
+        : withDistance;
 
-    filtered.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+    filtered.sort((a, b) => {
+      if (near) return (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999);
+      return a.name.localeCompare(b.name);
+    });
     return filtered;
   },
 };
