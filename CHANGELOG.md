@@ -4,6 +4,51 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.7.0] – 2026-07-25
+
+### Nytt
+- **Dela besök mellan grupper utan duplicering.** Ny kanonisk datamodell:
+  `places` (globala matställen), `group_places` (grupprelation),
+  `visits` (globala besök), `visit_group_links` (kopplingar per grupp,
+  `original` eller `shared`) och `review_group_visibility`
+  (per-grupp-synlighet av rating/kommentar).
+- **`share_visit_to_group`** kopplar in matstället i målgruppen om det
+  saknas, skapar en `shared` länk och sätter synlighet för de recensioner
+  vars författare är medlemmar i målgruppen (rating synligt, kommentar
+  dolt som default; egen kommentar kan följa med via en checkbox).
+- **`remove_shared_visit_from_group`** tar bort en shared-koppling utan
+  att röra canonical visit/place, deltagare eller recensioner.
+- **`set_review_group_visibility`** låter recensionens författare styra
+  synligheten av rating/kommentar per grupp.
+- **`list_visit_share_targets`** returnerar bara användarens aktiva
+  grupper med synliga deltagares namn, `+N` för externa och antal
+  relevanta betyg – aldrig andra gruppers namn eller `source_group_id`.
+- **Gruppinställning:** "Räkna delade besök i progression" (av/på) via
+  `update_group_settings`.
+- **`get_group_app_state`** returnerar `linkType`, `linkedBy`, `linkedAt`,
+  `externalParticipantCount`, `countsForProgression` per besök, plus
+  reviews med `id`, `userId`, `ratingVisible`, `commentVisible` för
+  synlighetskontrollen.
+
+### Säkerhet
+- `authenticated` har inga direkta rättigheter på `visits`,
+  `visit_participants`, `reviews`, `group_places`, `visit_group_links`
+  eller `review_group_visibility`. All läsning går via
+  `get_group_app_state`; skrivningar går via SECURITY DEFINER-RPC:er med
+  låst `search_path`. `anon` kan inte EXECUTE någon av RPC:erna.
+- `source_group_id` finns i databasen men lämnar aldrig servern.
+- Aggregat (snitt, detaljbetyg) räknas bara på recensioner som är
+  synliga i gruppen; externa deltagare räknas anonymt.
+- Unikt index säkrar exakt en `original`-koppling per besök.
+
+### Förbättrat
+- `VisitDetailSheet` har delnings- och unlink-åtgärder, badge för delat
+  besök, neutral `+N`-visning och en switch för att dölja/visa egen
+  kommentar per grupp.
+- Live-mutationer utanför `StoreProvider` (delning, unlink, synlighet,
+  progression-inställning) triggar en global `matrundan:reload` som
+  laddar om gruppens tillstånd utan sidladdning.
+
 ## [0.6.1] – 2026-07-25
 
 ### Fixat
