@@ -18,15 +18,27 @@ export function OnboardingScreen() {
   const [verified, setVerified] = React.useState<VerifiedHomeLocation | null>(null);
   const [busy, setBusy] = React.useState(false);
 
+  const locHasText = locationText.trim().length > 0;
+  const locMatchesVerified = !!verified && locationText.trim() === verified.label.trim();
+  const locInvalid = locHasText && !locMatchesVerified;
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
       toast.error("Ge din grupp ett namn.");
       return;
     }
+    if (locInvalid) {
+      toast.error("Välj sökområdet från listan eller lämna fältet tomt.");
+      return;
+    }
     setBusy(true);
     try {
-      const groupId = await createGroupWithOwner(name.trim(), emoji, verified);
+      const groupId = await createGroupWithOwner(
+        name.trim(),
+        emoji,
+        locMatchesVerified ? verified : null,
+      );
       await refreshGroups();
       if (groupId) selectGroup(groupId);
       toast.success("Din grupp är skapad!");
