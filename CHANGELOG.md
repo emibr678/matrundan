@@ -46,7 +46,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 - Höjdpunktssektionen ligger efter Gänget och håller 360 px utan
   horisontell scroll även med alla kategori-/periodknappar.
 
-
+## [0.8.1] – 2026-07-25
 
 ### Nytt
 - **Ny återanvändbar Plats-komponent** (`GeoapifyLocationInput`) med
