@@ -89,15 +89,31 @@ export interface Favorite {
   placeId: string;
 }
 
+/**
+ * Gruppens förvalda sökområde. Endast `verified=true` (dvs. ett val från
+ * Geoapify med både koordinater och place_id) får användas som sökcentrum.
+ */
+export interface HomeLocation {
+  label: string;
+  verified: boolean;
+  lat?: number;
+  lng?: number;
+  provider?: "geoapify";
+  placeId?: string;
+}
+
 export interface Group {
   id: string;
   name: string;
   emoji: string;
+  /** Legacy: används fortfarande av demo-läget för fallback-stad. */
   city: string;
   createdAt: string;
   ownerId: string;
   /** Om delade besök räknas mot progression. */
   sharedVisitsCountForProgression?: boolean;
+  /** Förvalt sökområde (valfritt). Null om ingen text finns sparad. */
+  homeLocation?: HomeLocation | null;
 }
 
 export type ActivityKind =
