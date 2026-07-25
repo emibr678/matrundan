@@ -35,6 +35,7 @@ import {
   geoapifySearchPlaces,
 } from "@/lib/matrundan/geoapify.functions";
 import { parseLocation, formatLocation } from "@/lib/matrundan/location";
+import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
 const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
 
