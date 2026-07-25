@@ -846,6 +846,7 @@ export function AddPlaceDialog({
                       onClick={() => openConfirm(r)}
                       className="min-h-11 shrink-0"
                       disabled={isBusy}
+                      data-suggestion-add={r.externalId}
                     >
                       <Plus className="h-4 w-4" /> Lägg till
                     </Button>
