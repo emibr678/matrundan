@@ -31,6 +31,18 @@ function ShellBody() {
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
 
+  const reloadLive = React.useCallback(async () => {
+    if (mode !== "live" || !activeGroupId) return;
+    try {
+      const s = await loadLiveState(activeGroupId);
+      setLiveState(s);
+      setLiveError(null);
+    } catch (e) {
+      console.error(e);
+      setLiveError("Kunde inte läsa gruppens data.");
+    }
+  }, [mode, activeGroupId]);
+
   React.useEffect(() => {
     let cancelled = false;
     if (mode !== "live" || !activeGroupId) {
@@ -83,6 +95,8 @@ function ShellBody() {
     <StoreProvider
       mode={mode}
       initialState={mode === "live" ? liveState ?? undefined : undefined}
+      onLiveMutation={mode === "live" ? reloadLive : undefined}
+      activeGroupId={mode === "live" ? activeGroupId : null}
     >
       <ShellChrome user={!!user} signIn={signInWithGoogle} />
     </StoreProvider>
