@@ -27,14 +27,13 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som enda externa länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.7.1
+## Status – v0.8.0
 
-Med Paket 3B kan samma besök finnas i flera grupper utan att data
-dupliceras, och delade besök har tydlig integritetskontroll. v0.7.1
-återställer besöksregistreringen efter kanonisk migration och lägger till
-knappen ”Spara och lägg till i annan grupp” i registreringsdialogen (bara i
-live-läget när användaren är medlem i minst två grupper). Paket 1–3A ligger
-kvar oförändrat.
+Paket 3C ger riktig Geoapify-baserad plats- och matställessökning i
+live-läget. Sökningen har ett bekräftelsesteg före tillägg, där användaren
+kan välja ”Passar för”/anteckningar, och dubblerade matställen skyddas av
+kanonisk datamodell. Demo-läget är oförändrat och helt separerat. Paket
+1–3A och 3B ligger kvar oförändrat.
 
 
 ### Två lägen sida vid sida
@@ -63,15 +62,18 @@ kvar oförändrat.
 - **Egen kommentarssynlighet** per grupp: betyget syns alltid, kommentaren
   kan du dölja i valfri grupp.
 - **Gruppinställning:** räkna delade besök i progression (av/på).
+- **Geoapify-platssökning:** autocomplete för ort/område, matställessökning
+  med radier 1/3/5/10/25/50 km, listresultat, tydlig attribution och
+  server-skyddad API-nyckel.
 - **Säker läsmodell:** all känslig läsning går via `get_group_app_state`
   (SECURITY DEFINER); kopplingstabellernas rader är inte direkt läsbara från
   klienten, och `source_group_id` lämnar aldrig servern.
 
 ### Vad som inte är med ännu
 
-Geoapify/OSM-platssökning (providern är fortfarande demo-only) och
-gamification/nivåer/badges. Se [CHANGELOG.md](./CHANGELOG.md) och
-"Om Matrundan" i appen för fullständig versionshistorik.
+Gamification/nivåer/badges och en riktig kartvy. Se
+[CHANGELOG.md](./CHANGELOG.md) och "Om Matrundan" i appen för fullständig
+versionshistorik.
 
 
 ## Teknik
@@ -117,6 +119,8 @@ src/
     live-repository.ts        Läser gruppens data från Supabase → AppState
     demo-data.ts              Svensk demodata för preview
     places-provider.ts        Provider-gränssnitt för platssökning
+    geoapify.functions.ts     Serverfunktioner för Geoapify (authkrav)
+    geoapify-normalize.ts     Mappning av Geoapify-taxonomi till appmodellen
     location.ts               Enkel plats-tolkning för utforskning
     version.ts                Version och strukturerad changelog
   integrations/supabase/      Auto-genererad Supabase-klient och typer
@@ -138,8 +142,11 @@ Ingen service-role-nyckel finns i klientkoden eller i några `VITE_`-variabler.
 Klienten använder enbart publishable key + användarens JWT; all känslig
 åtkomst ligger bakom RLS.
 
-Geoapify konfigureras **inte** i Paket 1 – lägg inga API-nycklar i miljön
-ännu.
+Geoapify API-nyckeln (`GEOAPIFY_API_KEY`) läggs i Lovable Project
+Settings → Secrets, aldrig som en `VITE_`-variabel eller i repot. Servern
+anropar Geoapify, så nyckeln exponeras aldrig för klienten. Om nyckeln
+saknas visas ett tydligt konfigurationsfel i live-sökningen, medan
+fliken för manuellt tillägg fortsätter fungera.
 
 ## Lovable
 
