@@ -416,18 +416,28 @@ function GroupSettingsSection({
   const [busy, setBusy] = React.useState(false);
   const { refreshGroups } = useSession();
 
+  const trimmedLoc = locText.trim();
+  const legacyLabel = (initialHome?.label ?? "").trim();
+  const isVerifiedMatch = !!verified && trimmedLoc === verified.label.trim();
+  const isLegacyUnchanged = legacyOnly && trimmedLoc === legacyLabel;
+  const isInvalidText = trimmedLoc !== "" && !isVerifiedMatch && !isLegacyUnchanged;
+
   async function save() {
+    if (isInvalidText) {
+      toast.error("Välj sökområdet från listan eller rensa fältet.");
+      return;
+    }
     setBusy(true);
     try {
       // Bestäm home-payload:
       // - Tomt fält och gruppen har något sparat sedan tidigare → rensa allt.
       // - Verifierat val (från listan) → spara komplett.
-      // - Fritext utan val → rör inte hemområdet (undviker att skapa falsk precision).
+      // - Legacy oförändrat → rör inte hemområdet.
       let homePayload: import("@/lib/matrundan/live-admin").VerifiedHomeLocation | null | "clear" =
         null;
-      if (locText.trim() === "" && initialHome) {
+      if (trimmedLoc === "" && initialHome) {
         homePayload = "clear";
-      } else if (verified && locText.trim() === verified.label.trim()) {
+      } else if (isVerifiedMatch) {
         homePayload = verified;
       }
       await updateGroupSettings(groupId, {
