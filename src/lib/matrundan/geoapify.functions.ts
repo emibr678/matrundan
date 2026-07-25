@@ -96,7 +96,7 @@ export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
     const json = await callGeoapify(url);
     const out: NormalizedLocationSuggestion[] = [];
     for (const f of json.features ?? []) {
-      const n = normalizeLocationFeature(f as { properties?: unknown });
+      const n = normalizeLocationFeature(f as Parameters<typeof normalizeLocationFeature>[0]);
       if (n) out.push(n);
     }
     // Deduplicate på label
@@ -151,7 +151,7 @@ export const geoapifySearchPlaces = createServerFn({ method: "POST" })
     const json = await callGeoapify(url);
     const out: NormalizedPlaceSuggestion[] = [];
     for (const f of json.features ?? []) {
-      const n = normalizePlaceFeature(f as { properties?: unknown });
+      const n = normalizePlaceFeature(f as Parameters<typeof normalizePlaceFeature>[0]);
       if (n) out.push(n);
     }
     return out;
