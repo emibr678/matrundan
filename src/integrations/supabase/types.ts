@@ -228,6 +228,8 @@ export type Database = {
           home_lat: number | null
           home_lng: number | null
           home_location_label: string | null
+          home_location_place_id: string | null
+          home_location_provider: string | null
           id: string
           name: string
           shared_visits_count_for_progression: boolean
@@ -240,6 +242,8 @@ export type Database = {
           home_lat?: number | null
           home_lng?: number | null
           home_location_label?: string | null
+          home_location_place_id?: string | null
+          home_location_provider?: string | null
           id?: string
           name: string
           shared_visits_count_for_progression?: boolean
@@ -252,6 +256,8 @@ export type Database = {
           home_lat?: number | null
           home_lng?: number | null
           home_location_label?: string | null
+          home_location_place_id?: string | null
+          home_location_provider?: string | null
           id?: string
           name?: string
           shared_visits_count_for_progression?: boolean
@@ -726,6 +732,8 @@ export type Database = {
           _home_label?: string
           _home_lat?: number
           _home_lng?: number
+          _home_place_id?: string
+          _home_provider?: string
           _name: string
         }
         Returns: string
@@ -860,9 +868,14 @@ export type Database = {
       }
       update_group_settings: {
         Args: {
+          _clear_home?: boolean
           _emoji?: string
           _group_id: string
           _home_label?: string
+          _home_lat?: number
+          _home_lng?: number
+          _home_place_id?: string
+          _home_provider?: string
           _name: string
           _shared_visits_count_for_progression?: boolean
         }
