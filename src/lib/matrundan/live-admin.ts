@@ -206,7 +206,15 @@ export async function createGroupWithOwner(
   emoji: string | null,
   homeLocation: VerifiedHomeLocation | null,
 ): Promise<string> {
-  const rpcArgs: Record<string, unknown> = {
+  const rpcArgs: {
+    _name: string;
+    _emoji?: string;
+    _home_label?: string;
+    _home_lat?: number;
+    _home_lng?: number;
+    _home_provider?: string;
+    _home_place_id?: string;
+  } = {
     _name: name,
     _emoji: emoji ?? undefined,
   };
