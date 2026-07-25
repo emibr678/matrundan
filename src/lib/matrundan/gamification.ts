@@ -162,7 +162,26 @@ export function countsForProgression(state: AppState, v: Visit): boolean {
 /** Stabil kronologisk sortering med visit-id som tiebreaker. */
 function chronologically(a: Visit, b: Visit): number {
   if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+  if (a.id === b.id) return 0;
   return a.id < b.id ? -1 : 1;
+}
+
+/**
+ * Deduplicera besök på `Visit.id`. Read-modelen ska garantera en post per
+ * canonical besök i gruppen, men vi dedupliserar defensivt så att en
+ * oväntad dubbelpost aldrig kan räknas två gånger i progression,
+ * topplistor eller milstolpar. Första förekomsten (i iterationsordning)
+ * vinner för att bevara stabil ordning.
+ */
+export function dedupeVisits(visits: readonly Visit[]): Visit[] {
+  const seen = new Set<string>();
+  const out: Visit[] = [];
+  for (const v of visits) {
+    if (seen.has(v.id)) continue;
+    seen.add(v.id);
+    out.push(v);
+  }
+  return out;
 }
 
 function inYear(iso: string, year: number): boolean {
