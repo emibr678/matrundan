@@ -1,5 +1,6 @@
 import * as React from "react";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +43,9 @@ export function VisitDialog({
   onOpenChange: (v: boolean) => void;
   placeId: string | null;
 }) {
-  const { addVisit, state, getPlace } = useStore();
+  const { addVisit, state, getPlace, submitting } = useStore();
+  const [busy, setBusy] = React.useState(false);
+  const isBusy = busy || submitting;
   const place = placeId ? getPlace(placeId) : undefined;
 
   const [meal, setMeal] = React.useState<(typeof MEALS)[number]>("middag");
@@ -76,7 +79,8 @@ export function VisitDialog({
       cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
     );
 
-  const submit = () => {
+  const submit = async () => {
+    if (isBusy) return;
     if (participants.length === 0) {
       toast.error("Välj minst en deltagare");
       return;
@@ -85,20 +89,27 @@ export function VisitDialog({
       toast.error("Ge ett helhetsbetyg");
       return;
     }
-    addVisit({
-      placeId: place.id,
-      date: new Date(date).toISOString(),
-      meal,
-      participantIds: participants,
-      overall,
-      taste: taste || undefined,
-      value: value || undefined,
-      service: service || undefined,
-      comment: comment.trim() || undefined,
-      createdBy: state.currentUserId,
-    });
-    toast.success("Besök registrerat", { description: place.name });
-    onOpenChange(false);
+    setBusy(true);
+    try {
+      await addVisit({
+        placeId: place.id,
+        date: new Date(date).toISOString(),
+        meal,
+        participantIds: participants,
+        overall,
+        taste: taste || undefined,
+        value: value || undefined,
+        service: service || undefined,
+        comment: comment.trim() || undefined,
+        createdBy: state.currentUserId,
+      });
+      toast.success("Besök registrerat", { description: place.name });
+      onOpenChange(false);
+    } catch (e) {
+      toast.error((e as Error).message || "Kunde inte spara besöket.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
