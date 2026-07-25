@@ -6,6 +6,9 @@
  * kontrakt (search({ query, city, area, radiusKm }) → PlaceSuggestion[])
  * och registrera i `getPlacesProvider()`. Lägg INTE hemligheter här –
  * de ska läsas via server-funktion när backend kopplas på.
+ *
+ * `radiusKm` kan vara `null` (eller `Infinity`) för att söka utan
+ * geografisk begränsning ("hela landet").
  */
 
 import type { PlaceCategory } from "./types";
@@ -27,7 +30,8 @@ export interface PlacesSearchOpts {
   query?: string;
   city: string;
   area?: string;
-  radiusKm: number;
+  /** null = ingen radiebegränsning (hela landet). */
+  radiusKm: number | null;
 }
 
 export interface PlacesProvider {
@@ -35,7 +39,6 @@ export interface PlacesProvider {
   search(opts: PlacesSearchOpts): Promise<PlaceSuggestion[]>;
 }
 
-// Ungefärliga centrum för några Göteborgs-områden (demo).
 const AREA_CENTERS: Record<string, { lat: number; lng: number }> = {
   centrum: { lat: 57.7072, lng: 11.9668 },
   nordstan: { lat: 57.7089, lng: 11.9686 },
@@ -44,12 +47,15 @@ const AREA_CENTERS: Record<string, { lat: number; lng: number }> = {
   majorna: { lat: 57.6969, lng: 11.9138 },
   linné: { lat: 57.6963, lng: 11.9464 },
   avenyn: { lat: 57.6994, lng: 11.9797 },
+  södermalm: { lat: 59.3149, lng: 18.0721 },
+  östermalm: { lat: 59.3374, lng: 18.0839 },
 };
 
 const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
   göteborg: { lat: 57.7089, lng: 11.9746 },
   stockholm: { lat: 59.3293, lng: 18.0686 },
   malmö: { lat: 55.6049, lng: 13.0038 },
+  uppsala: { lat: 59.8586, lng: 17.6389 },
 };
 
 function centerFor(city: string, area?: string) {
@@ -75,105 +81,17 @@ function haversineKm(
 }
 
 const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
-  {
-    externalId: "demo-1",
-    name: "Trattoria La Strada",
-    category: "restaurang",
-    address: "Södra Vägen 20",
-    area: "Vasastan",
-    city: "Göteborg",
-    cuisines: ["italienskt"],
-    lat: 57.6982,
-    lng: 11.9782,
-  },
-  {
-    externalId: "demo-2",
-    name: "Café Husaren",
-    category: "café",
-    address: "Haga Nygata 24",
-    area: "Haga",
-    city: "Göteborg",
-    cuisines: ["fika", "kanelbulle"],
-    lat: 57.6994,
-    lng: 11.9536,
-  },
-  {
-    externalId: "demo-3",
-    name: "Sushi Sho",
-    category: "restaurang",
-    address: "Vasagatan 33",
-    area: "Vasastan",
-    city: "Göteborg",
-    cuisines: ["japanskt", "sushi"],
-    lat: 57.6989,
-    lng: 11.9612,
-  },
-  {
-    externalId: "demo-4",
-    name: "Kebab Express",
-    category: "snabbmat",
-    address: "Järntorget 5",
-    area: "Linné",
-    city: "Göteborg",
-    cuisines: ["kebab"],
-    lat: 57.6979,
-    lng: 11.9497,
-  },
-  {
-    externalId: "demo-5",
-    name: "Steampunk Bar",
-    category: "pub",
-    address: "Kyrkogatan 11",
-    area: "Centrum",
-    city: "Göteborg",
-    cuisines: ["öl", "cocktails"],
-    lat: 57.7069,
-    lng: 11.9682,
-  },
-  {
-    externalId: "demo-6",
-    name: "Alvar & Ivar",
-    category: "café",
-    address: "Vasagatan 41",
-    area: "Vasastan",
-    city: "Göteborg",
-    cuisines: ["kaffe", "bakverk"],
-    lat: 57.6987,
-    lng: 11.9625,
-  },
-  {
-    externalId: "demo-7",
-    name: "Kajutan",
-    category: "restaurang",
-    address: "Klippan 1",
-    area: "Majorna",
-    city: "Göteborg",
-    cuisines: ["fisk", "husmanskost"],
-    lat: 57.6941,
-    lng: 11.9089,
-  },
-  {
-    externalId: "demo-8",
-    name: "Bakverket",
-    category: "bageri",
-    address: "Andra Långgatan 8",
-    area: "Linné",
-    city: "Göteborg",
-    cuisines: ["surdeg", "wienerbröd"],
-    lat: 57.6975,
-    lng: 11.9503,
-  },
-  {
-    externalId: "demo-9",
-    name: "Falafelvagnen",
-    category: "matvagn",
-    address: "Järntorget",
-    area: "Linné",
-    city: "Göteborg",
-    cuisines: ["falafel", "vegetariskt"],
-    lat: 57.698,
-    lng: 11.949,
-  },
+  { externalId: "demo-1", name: "Trattoria La Strada", category: "restaurang", address: "Södra Vägen 20", area: "Vasastan", city: "Göteborg", cuisines: ["italienskt"], lat: 57.6982, lng: 11.9782 },
+  { externalId: "demo-2", name: "Café Husaren", category: "café", address: "Haga Nygata 24", area: "Haga", city: "Göteborg", cuisines: ["fika", "kanelbulle"], lat: 57.6994, lng: 11.9536 },
+  { externalId: "demo-3", name: "Sushi Sho", category: "restaurang", address: "Vasagatan 33", area: "Vasastan", city: "Göteborg", cuisines: ["japanskt", "sushi"], lat: 57.6989, lng: 11.9612 },
+  { externalId: "demo-4", name: "Kebab Express", category: "snabbmat", address: "Järntorget 5", area: "Linné", city: "Göteborg", cuisines: ["kebab"], lat: 57.6979, lng: 11.9497 },
+  { externalId: "demo-5", name: "Steampunk Bar", category: "pub", address: "Kyrkogatan 11", area: "Centrum", city: "Göteborg", cuisines: ["öl", "cocktails"], lat: 57.7069, lng: 11.9682 },
+  { externalId: "demo-6", name: "Alvar & Ivar", category: "café", address: "Vasagatan 41", area: "Vasastan", city: "Göteborg", cuisines: ["kaffe", "bakverk"], lat: 57.6987, lng: 11.9625 },
+  { externalId: "demo-7", name: "Kajutan", category: "restaurang", address: "Klippan 1", area: "Majorna", city: "Göteborg", cuisines: ["fisk", "husmanskost"], lat: 57.6941, lng: 11.9089 },
+  { externalId: "demo-8", name: "Bakverket", category: "bageri", address: "Andra Långgatan 8", area: "Linné", city: "Göteborg", cuisines: ["surdeg", "wienerbröd"], lat: 57.6975, lng: 11.9503 },
+  { externalId: "demo-9", name: "Falafelvagnen", category: "matvagn", address: "Järntorget", area: "Linné", city: "Göteborg", cuisines: ["falafel", "vegetariskt"], lat: 57.698, lng: 11.949 },
+  { externalId: "demo-10", name: "Pizzeria Napoli", category: "restaurang", address: "Götgatan 22", area: "Södermalm", city: "Stockholm", cuisines: ["italienskt", "pizza"], lat: 59.3155, lng: 18.0715 },
+  { externalId: "demo-11", name: "Malmö Saluhall", category: "restaurang", address: "Gibraltargatan 6", city: "Malmö", cuisines: ["street food"], lat: 55.6117, lng: 12.9989 },
 ];
 
 const demoProvider: PlacesProvider = {
@@ -216,9 +134,12 @@ const demoProvider: PlacesProvider = {
           : undefined,
     }));
 
-    const filtered = withDistance.filter(
-      (s) => s.distanceKm == null || s.distanceKm <= radiusKm,
-    );
+    const filtered =
+      radiusKm == null || !Number.isFinite(radiusKm)
+        ? withDistance
+        : withDistance.filter(
+            (s) => s.distanceKm == null || s.distanceKm <= radiusKm,
+          );
 
     filtered.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
     return filtered;
