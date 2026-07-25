@@ -130,7 +130,18 @@ export async function updateGroupSettings(
   input: GroupSettingsInput,
 ): Promise<void> {
   const home = input.homeLocation;
-  const rpcArgs: Record<string, unknown> = {
+  const rpcArgs: {
+    _group_id: string;
+    _name: string;
+    _emoji?: string;
+    _home_label?: string;
+    _home_lat?: number;
+    _home_lng?: number;
+    _home_provider?: string;
+    _home_place_id?: string;
+    _clear_home?: boolean;
+    _shared_visits_count_for_progression?: boolean;
+  } = {
     _group_id: groupId,
     _name: input.name,
     _emoji: input.emoji ?? undefined,
