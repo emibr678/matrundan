@@ -87,6 +87,20 @@ function ShellBody() {
     );
   }
 
+  // Inbjudningsrouten är alltid tillgänglig, oavsett auth/grupp-status.
+  // Ingen StoreProvider behövs — sidan använder endast SessionProvider + RPC:er.
+  if (isInvitationRoute) {
+    return (
+      <div className="paper-grain min-h-dvh">
+        <Header showAuth />
+        <main id="innehall" className="mx-auto max-w-6xl px-4 md:px-6">
+          <Outlet />
+        </main>
+        <Toaster position="top-center" richColors />
+      </div>
+    );
+  }
+
   if (mode === "live" && needsOnboarding) {
     return (
       <div className="paper-grain min-h-dvh">
@@ -106,6 +120,7 @@ function ShellBody() {
       </div>
     );
   }
+
 
   return (
     <StoreProvider
