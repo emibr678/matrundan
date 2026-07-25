@@ -109,6 +109,10 @@ export function StoreProvider({
       mode,
 
       addPlace: (input) => {
+        if (mode === "live") {
+          liveBlock();
+          return { ...input, id: "noop", addedAt: new Date().toISOString() } as Place;
+        }
         const place: Place = {
           ...input,
           id: `p-${Date.now()}`,
