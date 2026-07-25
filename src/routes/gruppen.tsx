@@ -96,8 +96,14 @@ function GroupPage() {
       v.participantIds.includes(m.id),
     ).length;
     const favCount = state.favorites.filter((f) => f.memberId === m.id).length;
-    return { m, lastVisit, visitCount, favCount };
+    const level = levelFor(triedPlacesCount(state, m.id)).level;
+    return { m, lastVisit, visitCount, favCount, level };
   });
+
+  const champion = React.useMemo(() => monthlyChampion(state), [state]);
+  const championMember = champion
+    ? state.members.find((mm) => mm.id === champion.memberId) ?? null
+    : null;
 
   const favByPlace = new Map<string, number>();
   state.favorites.forEach((f) => {
