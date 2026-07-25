@@ -28,10 +28,15 @@ import {
   type PlaceCategory,
 } from "@/lib/matrundan/types";
 import { useStore } from "@/lib/matrundan/store";
+import { useSession } from "@/lib/matrundan/session";
 import {
   getPlacesProvider,
   type PlaceSuggestion,
 } from "@/lib/matrundan/places-provider";
+import {
+  geoapifyAutocompleteLocation,
+  geoapifySearchPlaces,
+} from "@/lib/matrundan/geoapify.functions";
 import { parseLocation, formatLocation } from "@/lib/matrundan/location";
 
 const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
