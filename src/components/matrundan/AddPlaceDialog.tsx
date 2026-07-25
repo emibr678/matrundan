@@ -223,26 +223,19 @@ export function AddPlaceDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="s-city">Stad</Label>
-                <Input
-                  id="s-city"
-                  value={searchCity}
-                  onChange={(e) => setSearchCity(e.target.value)}
-                  placeholder="Göteborg"
-                  aria-invalid={!cityValid}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="s-area">Område (valfritt)</Label>
-                <Input
-                  id="s-area"
-                  value={searchArea}
-                  onChange={(e) => setSearchArea(e.target.value)}
-                  placeholder="Haga, Södermalm…"
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="s-location">Plats</Label>
+              <Input
+                id="s-location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Stad, eller ”Område, Stad” (t.ex. Haga, Göteborg)"
+                aria-invalid={!cityValid}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Söker i {formatLocation(parsed)}. Skriv med komma för att peka
+                ut ett område.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -256,8 +249,8 @@ export function AddPlaceDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {RADIUS_OPTIONS.map((r) => (
-                    <SelectItem key={r} value={String(r)}>
-                      Inom {r} km
+                    <SelectItem key={r.value} value={String(r.value)}>
+                      {r.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -295,8 +288,8 @@ export function AddPlaceDialog({
             ) : results.length === 0 ? (
               <EmptyBlock
                 text={
-                  searchArea.trim()
-                    ? `Inga träffar i ${searchArea.trim()} inom ${radiusKm} km. Prova ett bredare område eller lägg till manuellt.`
+                  parsed.area
+                    ? `Inga träffar i ${parsed.area} (${parsed.city}) inom ${radiusKm >= 9999 ? "hela landet" : radiusKm + " km"}. Prova ett bredare område eller lägg till manuellt.`
                     : "Inga träffar i området. Prova en annan sökterm eller större radie."
                 }
               />
