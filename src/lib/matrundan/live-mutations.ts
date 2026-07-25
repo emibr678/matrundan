@@ -16,6 +16,11 @@ function toRpcError(error: unknown): Error {
   return new Error(message);
 }
 
+/** Utelämna null-fält så Supabase-typerna (som förväntar undefined) blir nöjda. */
+function nn<T>(v: T | null | undefined): T | undefined {
+  return v === null ? undefined : v;
+}
+
 export async function liveCreatePlace(
   groupId: string,
   input: Omit<Place, "id" | "addedAt">,
@@ -27,14 +32,15 @@ export async function liveCreatePlace(
     _cuisines: input.cuisines ?? [],
     _occasions: input.occasions ?? [],
     _address: input.address ?? "",
-    _area: input.area ?? null,
+    _area: nn(input.area),
     _city: input.city ?? "",
-    _lat: input.lat ?? null,
-    _lng: input.lng ?? null,
-    _notes: input.notes ?? null,
-    _photo_url: input.photo ?? null,
+    _lat: nn(input.lat),
+    _lng: nn(input.lng),
+    _notes: nn(input.notes),
+    _photo_url: nn(input.photo),
   });
   if (error) throw toRpcError(error);
+  if (!data) throw new Error("Kunde inte skapa matstället.");
   return data as string;
 }
 
@@ -50,12 +56,13 @@ export async function liveCreateVisitWithReview(
     _meal_type: input.meal,
     _participant_ids: input.participantIds ?? [],
     _overall: input.overall,
-    _taste: input.taste ?? null,
-    _value: input.value ?? null,
-    _service: input.service ?? null,
-    _comment: input.comment ?? null,
+    _taste: nn(input.taste),
+    _value: nn(input.value),
+    _service: nn(input.service),
+    _comment: nn(input.comment),
   });
   if (error) throw toRpcError(error);
+  if (!data) throw new Error("Kunde inte registrera besöket.");
   return data as string;
 }
 
@@ -68,7 +75,7 @@ export async function liveToggleFavorite(
     _place_id: placeId,
   });
   if (error) throw toRpcError(error);
-  return data as boolean;
+  return Boolean(data);
 }
 
 export async function liveSetNextPlace(
@@ -77,7 +84,7 @@ export async function liveSetNextPlace(
 ): Promise<void> {
   const { error } = await supabase.rpc("set_next_place", {
     _group_id: groupId,
-    _place_id: placeId,
+    _place_id: placeId ?? undefined,
   });
   if (error) throw toRpcError(error);
 }
