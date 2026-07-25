@@ -31,6 +31,8 @@ interface MemberProfileData {
   otherFavorites: Place[];
   topCuisines: string[];
   recentActivity: ReturnType<typeof useStore>["state"]["activity"];
+  levelInfo: LevelInfo;
+  badges: GameBadge[];
 }
 
 function useMemberProfile(memberId: string | null): MemberProfileData | null {
