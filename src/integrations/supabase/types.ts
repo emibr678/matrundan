@@ -841,26 +841,16 @@ export type Database = {
         Args: { _group_id: string; _new_owner_id: string }
         Returns: undefined
       }
-      update_group_settings:
-        | {
-            Args: {
-              _emoji?: string
-              _group_id: string
-              _home_label?: string
-              _name: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              _emoji?: string
-              _group_id: string
-              _home_label?: string
-              _name: string
-              _shared_visits_count_for_progression?: boolean
-            }
-            Returns: undefined
-          }
+      update_group_settings: {
+        Args: {
+          _emoji?: string
+          _group_id: string
+          _home_label?: string
+          _name: string
+          _shared_visits_count_for_progression?: boolean
+        }
+        Returns: undefined
+      }
       update_profile: {
         Args: { _avatar_emoji?: string; _display_name: string }
         Returns: undefined
