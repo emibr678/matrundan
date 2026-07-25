@@ -711,10 +711,7 @@ export type Database = {
     Functions: {
       _token_hash: { Args: { _token: string }; Returns: string }
       accept_group_invitation: { Args: { _token: string }; Returns: Json }
-      can_see_place: {
-        Args: { _place_id: string; _user_id: string }
-        Returns: boolean
-      }
+      can_see_place: { Args: { _place_id: string }; Returns: boolean }
       create_group_invitation: {
         Args: {
           _expires_in_days?: number
