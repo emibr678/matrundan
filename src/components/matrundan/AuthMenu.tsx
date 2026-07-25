@@ -27,8 +27,10 @@ export function AuthMenu() {
     signOut,
     refreshGroups,
   } = useSession();
+  const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
+
 
   if (!user) {
     return (
