@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { DEMO_STATE } from "./demo-data";
 import { APP_VERSION } from "./version";
 import {
+  liveCreateOrLinkProviderPlace,
   liveCreatePlace,
   liveCreateVisitWithReview,
   liveSetNextPlace,
@@ -40,6 +41,16 @@ interface StoreContextValue {
   /** true medan en live-mutation pågår – används för att inaktivera CTA:er. */
   submitting: boolean;
   addPlace: (input: Omit<Place, "id" | "addedAt">) => Promise<Place>;
+  /**
+   * Lägg till ett matställe från en extern provider (Geoapify).
+   * Fungerar bara i live-läge – i demo-läge kastas ett fel.
+   */
+  addProviderPlace: (input: {
+    provider: string;
+    providerPlaceId: string;
+    place: Omit<Place, "id" | "addedAt">;
+    raw: unknown;
+  }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
   addVisit: (visit: Omit<Visit, "id">) => Promise<Visit>;
   setNext: (placeId: string | null) => Promise<void>;
@@ -172,6 +183,34 @@ export function StoreProvider({
         );
         return place;
       },
+
+      addProviderPlace: async ({ provider, providerPlaceId, place, raw }) => {
+        if (mode !== "live") {
+          throw new Error(
+            "Extern platssök är bara tillgänglig i live-läge (inloggad).",
+          );
+        }
+        const id = await runLive((gid) =>
+          liveCreateOrLinkProviderPlace(gid, {
+            provider,
+            providerPlaceId,
+            name: place.name,
+            category: place.category,
+            cuisines: place.cuisines ?? [],
+            occasions: place.occasions ?? [],
+            address: place.address ?? "",
+            area: place.area,
+            city: place.city ?? "",
+            lat: place.lat,
+            lng: place.lng,
+            notes: place.notes,
+            photo: place.photo,
+            raw,
+          }),
+        );
+        return { ...place, id, addedAt: new Date().toISOString() } as Place;
+      },
+
 
       toggleFavorite: async (placeId) => {
         if (mode === "live") {

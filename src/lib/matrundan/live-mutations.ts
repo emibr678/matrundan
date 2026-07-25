@@ -90,3 +90,48 @@ export async function liveSetNextPlace(
   });
   if (error) throw toRpcError(error);
 }
+
+/**
+ * Skapa eller länka in ett externt (Geoapify-)matställe i gruppen.
+ * Dubbletter förhindras i databasen via unikt index på (provider, provider_place_id).
+ */
+export async function liveCreateOrLinkProviderPlace(
+  groupId: string,
+  input: {
+    provider: string;
+    providerPlaceId: string;
+    name: string;
+    category: string;
+    cuisines: string[];
+    occasions: string[];
+    address: string;
+    area?: string;
+    city: string;
+    lat?: number;
+    lng?: number;
+    notes?: string;
+    photo?: string;
+    raw: unknown;
+  },
+): Promise<string> {
+  const { data, error } = await supabase.rpc("create_or_link_provider_place", {
+    _group_id: groupId,
+    _provider: input.provider,
+    _provider_place_id: input.providerPlaceId,
+    _name: input.name,
+    _category: input.category,
+    _cuisines: input.cuisines ?? [],
+    _occasions: input.occasions ?? [],
+    _address: input.address ?? "",
+    _area: nn(input.area),
+    _city: input.city ?? "",
+    _lat: nn(input.lat),
+    _lng: nn(input.lng),
+    _notes: nn(input.notes),
+    _photo_url: nn(input.photo),
+    _raw: (input.raw ?? {}) as never,
+  });
+  if (error) throw toRpcError(error);
+  if (!data) throw new Error("Kunde inte lägga till matstället.");
+  return data as string;
+}

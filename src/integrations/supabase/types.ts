@@ -730,6 +730,26 @@ export type Database = {
         }
         Returns: string
       }
+      create_or_link_provider_place: {
+        Args: {
+          _address?: string
+          _area?: string
+          _category: string
+          _city?: string
+          _cuisines?: string[]
+          _group_id: string
+          _lat?: number
+          _lng?: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _photo_url?: string
+          _provider: string
+          _provider_place_id: string
+          _raw?: Json
+        }
+        Returns: string
+      }
       create_place: {
         Args: {
           _address?: string

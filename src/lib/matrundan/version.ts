@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.7.1";
+export const APP_VERSION = "0.8.0";
 export const APP_VERSION_DATE = "2026-07-25";
 
 
@@ -28,6 +28,29 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Riktig platssök via Geoapify i live-läget – med skyddad servernyckel och automatiskt dubblettskydd.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Live-läget söker matställen och områden via Geoapify. Nyckeln lever bara på servern och exponeras aldrig i klienten.",
+          "Autocomplete för Plats-fältet: välj stad/område direkt ur en lista när du är inloggad.",
+          "Kategori och kökstyp fylls i automatiskt från Geoapifys taxonomi (justerbart i manuellt läge).",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Samma matställe skapas aldrig två gånger: dubblettskydd via unikt index på (leverantör, externt-id) och atomär RPC.",
+          "Demo-läget använder fortfarande den lokala provider-datan – helt oförändrat och isolerat från live-flödet.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.7.1",
+    date: "2026-07-25",
     summary:
       "Fixad besöksregistrering efter kanonisk migration – och ny knapp för att direkt lägga till besöket i en annan grupp.",
     sections: [
