@@ -27,6 +27,31 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: APP_VERSION,
     date: APP_VERSION_DATE,
     summary:
+      "Gruppcentrerad gamification – diskreta nivåer, utmärkelser och topplistor som räknas ur besöken.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Nivåer från Nyfiken till Matrundemästaren baseras på faktiska deltagna besök i gruppen (återbesök räknas).",
+          "Fem utmärkelser: Första rundan, Världsvan, Brett register, Stammis och Fullträff – helt härledda ur besökshistoriken.",
+          "”Gruppens höjdpunkter”: liten topplista med Deltagna besök, Nya ställen och Köksbredd (I år / Totalt) samt gemensamma milstolpar.",
+          "Egen profil visar nivå-progression mot nästa steg; alla profiler visar utmärkelser och nyckeltal.",
+          "Medlemslistan i Gänget visar diskret nuvarande nivå bredvid antalet besök.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Ingen poäng lagras: allt räknas om deterministiskt från gruppens synliga besök, så delade besök följer gruppinställningen.",
+          "Tidigare medlemmars historik påverkar inte aktuella topplistor (endast aktiva medlemmar rankas), medan gemensamma milstolpar bevaras.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.8.1",
+    date: "2026-07-25",
+    summary:
       "Verifierade sökområden i live-läget – Plats-fältet kräver ett riktigt Geoapify-val och dialogerna sitter fint på 360 px.",
     sections: [
       {
