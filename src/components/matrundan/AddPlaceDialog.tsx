@@ -779,11 +779,9 @@ export function AddPlaceDialog({
                       variant="secondary"
                       onClick={() => {
                         setProviderError(null);
-                        // Trigga om-sök genom att bumpa en dummy-effekt via query-state.
-                        setQuery((q) => q);
-                        searchReqRef.current++;
-                        setLoading(true);
-                        setTimeout(() => setLoading(false), 0);
+                        // Bump av retryNonce triggar sökeffekten på riktigt;
+                        // race-skyddet i searchReqRef är intakt.
+                        setRetryNonce((n) => n + 1);
                       }}
                       className="min-h-11"
                     >
