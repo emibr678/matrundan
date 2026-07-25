@@ -643,6 +643,38 @@ export type Database = {
         }
         Returns: string
       }
+      create_place: {
+        Args: {
+          _address?: string
+          _area?: string
+          _category: string
+          _city?: string
+          _cuisines?: string[]
+          _group_id: string
+          _lat?: number
+          _lng?: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _photo_url?: string
+        }
+        Returns: string
+      }
+      create_visit_with_review: {
+        Args: {
+          _comment?: string
+          _group_id: string
+          _meal_type: string
+          _overall: number
+          _participant_ids: string[]
+          _place_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visited_on: string
+        }
+        Returns: string
+      }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
@@ -651,8 +683,16 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      set_next_place: {
+        Args: { _group_id: string; _place_id: string }
+        Returns: undefined
+      }
       shares_group: {
         Args: { _user_a: string; _user_b: string }
+        Returns: boolean
+      }
+      toggle_favorite: {
+        Args: { _group_id: string; _place_id: string }
         Returns: boolean
       }
     }
