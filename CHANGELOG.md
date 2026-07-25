@@ -4,6 +4,34 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.8.1] – 2026-07-25
+
+### Nytt
+- **Ny återanvändbar Plats-komponent** (`GeoapifyLocationInput`) med
+  Geoapify-autocomplete. Endast verifierade val (label + koordinater +
+  provider + place_id) sparas som gruppens förvalda sökområde.
+- **Gruppinställningen ”Förvalt sökområde”** ersätter fritext-”Hemområde”
+  och används automatiskt som sökcentrum i Lägg till matställe.
+
+### Förbättrat
+- Alla dialoger klarar 360 px utan horisontell scroll (`w-[calc(100vw-1rem)]`).
+- Standardsökradien i Lägg till matställe startar på 1 km för mer relevanta
+  träffar.
+- Resultatkort staplar innehåll och knapp på mobil – ingen text kapas.
+- Äldre fritext-hemområden visas som ”obekräftade” tills ägaren väljer ett
+  nytt verifierat område. Sparning påverkar dem inte automatiskt.
+- I live-läge gissar Lägg till matställe aldrig koordinater från fritext –
+  ett val från listan krävs.
+
+### Säkerhet
+- DB-check på `groups` tillåter bara tre tillstånd för sökområdet: tomt,
+  legacy-label eller komplett verifierat Geoapify-val med giltiga koordinater.
+- `create_group_with_owner` kräver antingen alla eller inga
+  home-parametrar och validerar leverantör + koordinatintervall.
+- `create_group_with_owner`, `update_group_settings` och
+  `get_group_app_state` har `EXECUTE` återkallat från `PUBLIC`/`anon`;
+  endast `authenticated` kan anropa dem.
+
 ## [0.8.0] – 2026-07-25
 
 ### Nytt
