@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.8.0";
+export const APP_VERSION = "0.8.1";
 export const APP_VERSION_DATE = "2026-07-25";
 
 
@@ -28,6 +28,31 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Färdigslipad Geoapify-UX: bekräftelsesteg, snabb autocomplete med tangentbord och avgränsade sökområden.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Sökresultat sparas inte längre direkt – ett bekräftelsesteg låter dig välja Passar för och lägga till en anteckning innan matstället läggs till i gruppen.",
+          "Autocomplete för Plats-fältet stöder piltangenter, Enter och Escape, med ARIA-combobox för skärmläsare.",
+          "Tydlig attribution: “Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.”",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Sökradien ersätter det missvisande “Hela landet” med ett avgränsat större område inom 50 km.",
+          "Race-skydd: bara det senaste sökresultatet visas, inga blinkande gamla träffar.",
+          "Kartprototypen är borttagen i sökflödet – enhetlig listvy på mobil (fungerar på 360 px) och tydligare felmeddelanden med Försök igen / Lägg till manuellt.",
+          "Servernyckeln för Geoapify läses fortfarande bara i serverfunktionerna – aldrig i klientbundeln.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.8.0",
+    date: "2026-07-25",
     summary:
       "Riktig platssök via Geoapify i live-läget – med skyddad servernyckel och automatiskt dubblettskydd.",
     sections: [
