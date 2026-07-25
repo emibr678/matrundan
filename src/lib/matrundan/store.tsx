@@ -295,7 +295,7 @@ export function StoreProvider({
         return acc;
       },
     };
-  }, [state]);
+  }, [state, mode]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
