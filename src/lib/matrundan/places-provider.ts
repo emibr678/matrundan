@@ -24,6 +24,10 @@ export interface PlaceSuggestion {
   lat?: number;
   lng?: number;
   distanceKm?: number;
+  /** Provider-id ("demo" | "geoapify"). Sätts på live-förslag. */
+  provider?: string;
+  /** Rå leverantörsdata (JSON-serialiserad) för `place_sources.raw`. */
+  raw?: string;
 }
 
 export interface PlacesSearchOpts {
