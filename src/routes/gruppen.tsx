@@ -416,18 +416,28 @@ function GroupSettingsSection({
   const [busy, setBusy] = React.useState(false);
   const { refreshGroups } = useSession();
 
+  const trimmedLoc = locText.trim();
+  const legacyLabel = (initialHome?.label ?? "").trim();
+  const isVerifiedMatch = !!verified && trimmedLoc === verified.label.trim();
+  const isLegacyUnchanged = legacyOnly && trimmedLoc === legacyLabel;
+  const isInvalidText = trimmedLoc !== "" && !isVerifiedMatch && !isLegacyUnchanged;
+
   async function save() {
+    if (isInvalidText) {
+      toast.error("Välj sökområdet från listan eller rensa fältet.");
+      return;
+    }
     setBusy(true);
     try {
       // Bestäm home-payload:
       // - Tomt fält och gruppen har något sparat sedan tidigare → rensa allt.
       // - Verifierat val (från listan) → spara komplett.
-      // - Fritext utan val → rör inte hemområdet (undviker att skapa falsk precision).
+      // - Legacy oförändrat → rör inte hemområdet.
       let homePayload: import("@/lib/matrundan/live-admin").VerifiedHomeLocation | null | "clear" =
         null;
-      if (locText.trim() === "" && initialHome) {
+      if (trimmedLoc === "" && initialHome) {
         homePayload = "clear";
-      } else if (verified && locText.trim() === verified.label.trim()) {
+      } else if (isVerifiedMatch) {
         homePayload = verified;
       }
       await updateGroupSettings(groupId, {
@@ -485,10 +495,15 @@ function GroupSettingsSection({
             Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
             enskild sökning.
           </p>
-          {legacyOnly && !verified ? (
+          {legacyOnly && !verified && isLegacyUnchanged ? (
             <p className="text-xs text-amber-700 dark:text-amber-400">
               Gruppen har ett äldre område ({initialHome?.label}). Välj området från listan för att
               aktivera det som förvalt sökområde.
+            </p>
+          ) : null}
+          {isInvalidText ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Välj sökområdet från listan eller rensa fältet.
             </p>
           ) : null}
         </div>

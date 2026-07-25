@@ -27,13 +27,15 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som enda externa länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.8.0
+## Status – v0.8.1
 
-Paket 3C ger riktig Geoapify-baserad plats- och matställessökning i
-live-läget. Sökningen har ett bekräftelsesteg före tillägg, där användaren
-kan välja ”Passar för”/anteckningar, och dubblerade matställen skyddas av
-kanonisk datamodell. Demo-läget är oförändrat och helt separerat. Paket
-1–3A och 3B ligger kvar oförändrat.
+Paket 3C.1 härdar v0.8.0. Gruppens ”Förvalt sökområde” kräver ett verifierat
+Geoapify-val (label + koordinater + provider) och sparas som ett strukturerat
+värde i databasen; ett DB-checkvillkor tillåter bara tre tillstånd (tomt,
+äldre fritext, verifierat). Skapa- och ändra-flöden blockerar
+icke-verifierad fritext. Dialoger klarar 360 px utan horisontell scroll och
+standardsökradien i Lägg till matställe är 1 km. Demo-läget är oförändrat.
+
 
 
 ### Två lägen sida vid sida
@@ -111,6 +113,7 @@ src/
   components/matrundan/       Feature-komponenter (dialogs, sheets, kort)
     AuthMenu.tsx              Google-inloggning och gruppväxlare
     OnboardingScreen.tsx      Skapa första gruppen i live-läge
+    GeoapifyLocationInput.tsx Återanvändbart Plats-fält med verifierat val
     AppShell.tsx              Navigation + val mellan demo/live/onboarding
   lib/matrundan/
     types.ts                  Domänmodell
@@ -142,8 +145,8 @@ Ingen service-role-nyckel finns i klientkoden eller i några `VITE_`-variabler.
 Klienten använder enbart publishable key + användarens JWT; all känslig
 åtkomst ligger bakom RLS.
 
-Geoapify API-nyckeln (`GEOAPIFY_API_KEY`) läggs i Lovable Project
-Settings → Secrets, aldrig som en `VITE_`-variabel eller i repot. Servern
+Geoapify API-nyckeln (`GEOAPIFY_API_KEY`) läggs i Lovable Cloud → Secrets,
+aldrig som en `VITE_`-variabel eller i repot. Servern
 anropar Geoapify, så nyckeln exponeras aldrig för klienten. Om nyckeln
 saknas visas ett tydligt konfigurationsfel i live-sökningen, medan
 fliken för manuellt tillägg fortsätter fungera.
