@@ -32,15 +32,18 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
   const mapSurface = mapRegion.getByLabel(
     "Interaktiv karta. Dra för att flytta och nyp för att zooma.",
   );
+  await mapSurface.evaluate((element) => {
+    element.scrollIntoView({ block: "center", inline: "nearest" });
+  });
   const box = await mapSurface.boundingBox();
   expect(box).not.toBeNull();
   if (!box) return;
 
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const startX = box.x + box.width * 0.25;
+  const startY = box.y + box.height * 0.45;
+  await page.mouse.move(startX, startY);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2 + 70, box.y + box.height / 2 + 30, {
-    steps: 8,
-  });
+  await page.mouse.move(startX + 70, startY + 30, { steps: 8 });
   await page.mouse.up();
 
   await expect
