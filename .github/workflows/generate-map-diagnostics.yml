@@ -1,6 +1,9 @@
 name: Generate map diagnostics patch
 
 on:
+  push:
+    branches:
+      - fix/package-4a5a-start-diagnostics
   workflow_dispatch:
 
 permissions:
