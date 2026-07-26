@@ -37,7 +37,9 @@ function collectSnapshot(): Snapshot {
   const region = document.querySelector<HTMLElement>(
     '[data-place-map-diagnostic] [data-map-renderer="maplibre-vector"]',
   );
-  const mapElement = region?.querySelector<HTMLElement>('[aria-label^="Interaktiv karta"]');
+  const mapElement = region?.querySelector<HTMLElement>(
+    '[aria-label^="Interaktiv karta"]',
+  );
   const canvas = region?.querySelector<HTMLCanvasElement>("canvas.maplibregl-canvas");
   const regionRect = region?.getBoundingClientRect();
   const mapRect = mapElement?.getBoundingClientRect();
@@ -68,7 +70,9 @@ function collectSnapshot(): Snapshot {
     },
     mapElement: {
       present: Boolean(mapElement),
-      rect: mapRect ? { width: Math.round(mapRect.width), height: Math.round(mapRect.height) } : null,
+      rect: mapRect
+        ? { width: Math.round(mapRect.width), height: Math.round(mapRect.height) }
+        : null,
       css: mapStyle
         ? {
             width: mapStyle.width,
@@ -111,7 +115,9 @@ function PlaceMapDiagnosticsPage() {
   }, []);
 
   React.useEffect(() => {
-    const timers = [250, 1_000, 3_000, 7_000].map((delay) => window.setTimeout(refresh, delay));
+    const timers = [250, 1_000, 3_000, 7_000].map((delay) =>
+      window.setTimeout(refresh, delay),
+    );
     const interval = window.setInterval(refresh, 2_000);
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
@@ -157,7 +163,8 @@ function PlaceMapDiagnosticsPage() {
       <section className="space-y-3" data-place-map-diagnostic>
         <h2 className="font-display text-xl font-semibold">Riktig PlaceMap</h2>
         <p className="text-sm text-muted-foreground">
-          Baskartan, två testställen, sökcentrum och radie ska synas. Zoom och panorering ska fungera.
+          Baskartan, två testställen, sökcentrum och radie ska synas. Zoom och panorering ska
+          fungera.
         </p>
         <PlaceMap
           items={TEST_ITEMS}
