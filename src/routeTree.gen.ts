@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnostik'
 import { Route as MatstallenRouteImport } from './routes/matstallen'
 import { Route as MapdiagnostikRouteImport } from './routes/mapdiagnostik'
 import { Route as GruppenRouteImport } from './routes/gruppen'
@@ -16,6 +17,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
 import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
 
+const PlacemapdiagnostikRoute = PlacemapdiagnostikRouteImport.update({
+  id: '/placemapdiagnostik',
+  path: '/placemapdiagnostik',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MatstallenRoute = MatstallenRouteImport.update({
   id: '/matstallen',
   path: '/matstallen',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/gruppen': typeof GruppenRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/gruppen': typeof GruppenRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/gruppen': typeof GruppenRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/gruppen'
     | '/mapdiagnostik'
     | '/matstallen'
+    | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/gruppen'
     | '/mapdiagnostik'
     | '/matstallen'
+    | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/gruppen'
     | '/mapdiagnostik'
     | '/matstallen'
+    | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
   fileRoutesById: FileRoutesById
@@ -104,11 +116,19 @@ export interface RootRouteChildren {
   GruppenRoute: typeof GruppenRoute
   MapdiagnostikRoute: typeof MapdiagnostikRoute
   MatstallenRoute: typeof MatstallenRouteWithChildren
+  PlacemapdiagnostikRoute: typeof PlacemapdiagnostikRoute
   InbjudanTokenRoute: typeof InbjudanTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/placemapdiagnostik': {
+      id: '/placemapdiagnostik'
+      path: '/placemapdiagnostik'
+      fullPath: '/placemapdiagnostik'
+      preLoaderRoute: typeof PlacemapdiagnostikRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/matstallen': {
       id: '/matstallen'
       path: '/matstallen'
@@ -171,6 +191,7 @@ const rootRouteChildren: RootRouteChildren = {
   GruppenRoute: GruppenRoute,
   MapdiagnostikRoute: MapdiagnostikRoute,
   MatstallenRoute: MatstallenRouteWithChildren,
+  PlacemapdiagnostikRoute: PlacemapdiagnostikRoute,
   InbjudanTokenRoute: InbjudanTokenRoute,
 }
 export const routeTree = rootRouteImport
