@@ -339,6 +339,7 @@ export function PlaceMap({
             });
           };
           let loaded = false;
+          let initialIdleReached = false;
           const loadTimeout = window.setTimeout(() => {
             if (!loaded && !cancelled) {
               setMapFailure("timeout");
@@ -373,20 +374,25 @@ export function PlaceMap({
               }, 10_000);
               map.once("idle", () => {
                 window.clearTimeout(resourceTimeout);
-                if (!cancelled) setTileStatus("ready");
+                if (!cancelled) {
+                  initialIdleReached = true;
+                  setTileStatus("ready");
+                }
               });
-            } else setTileStatus("missing");
+            } else {
+              initialIdleReached = true;
+              setTileStatus("missing");
+            }
             updateViewState();
             map.resize();
           };
           const handleError = (event: { error?: Error }) => {
             const failure = classifyMapFailure(event.error ?? event);
             console.error("[Matrundan] MapLibre-fel:", event.error ?? event);
-            if (!cancelled) {
-              setMapFailure(failure);
-              setMapStatus("error");
-              if (geoapifyKey) setTileStatus("error");
-            }
+            if (cancelled || initialIdleReached) return;
+            setMapFailure(failure);
+            setMapStatus("error");
+            if (geoapifyKey) setTileStatus("error");
           };
 
           map.on("load", handleLoad);
@@ -750,7 +756,7 @@ export function PlaceMap({
       ) : null}
       <div
         ref={mapElementRef}
-        className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"
+        className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing [&_.maplibregl-canvas]:!h-full [&_.maplibregl-canvas]:!w-full [&_.maplibregl-canvas]:!max-w-none"
         aria-label="Interaktiv karta. Dra för att flytta och nyp för att zooma."
       />
 
