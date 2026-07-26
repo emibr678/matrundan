@@ -1,7 +1,7 @@
 import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Search, Plus, SlidersHorizontal, ChevronRight, X } from "lucide-react";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +16,8 @@ import {
 import { useStore } from "@/lib/matrundan/store";
 import { PlaceCard, PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
+import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { RatingStars } from "@/components/matrundan/Rating";
-import { StatusBadge } from "@/components/matrundan/StatusBadge";
 import {
   CATEGORY_LABEL,
   OCCASION_LABEL,
@@ -31,8 +31,7 @@ export const Route = createFileRoute("/matstallen")({
       { title: "Matställen · Matrundan" },
       {
         name: "description",
-        content:
-          "Sök, filtrera och sortera gruppens matställeslista. Se status och favoriter.",
+        content: "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
       },
       { property: "og:title", content: "Matställen · Matrundan" },
       { property: "og:description", content: "Gruppens gemensamma matställeslista." },
@@ -42,13 +41,14 @@ export const Route = createFileRoute("/matstallen")({
 });
 
 function PlacesLayout() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   if (pathname !== "/matstallen") return <Outlet />;
   return <PlacesIndex />;
 }
 
 type Sort = "senaste" | "betyg" | "namn";
 type Filter = "alla" | "favoriter" | "nytt-for-gruppen" | "nytt-for-mig";
+type View = "lista" | "karta";
 
 const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "alla", label: "Alla" },
@@ -59,43 +59,44 @@ const QUICK_FILTERS: { key: Filter; label: string }[] = [
 
 function PlacesIndex() {
   const { state, avgRating, isFavorite, statusOf } = useStore();
+  const navigate = useNavigate({ from: "/matstallen" });
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
   const [sort, setSort] = React.useState<Sort>("senaste");
   const [filter, setFilter] = React.useState<Filter>("alla");
+  const [view, setView] = React.useState<View>("lista");
+  const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
   const [addOpen, setAddOpen] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);
 
   const activeAdvancedCount =
-    (category !== "alla" ? 1 : 0) +
-    (occasion !== "alla" ? 1 : 0) +
-    (sort !== "senaste" ? 1 : 0);
+    (category !== "alla" ? 1 : 0) + (occasion !== "alla" ? 1 : 0) + (sort !== "senaste" ? 1 : 0);
 
   const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let list = state.places.filter((p) => {
-      if (category !== "alla" && p.category !== category) return false;
-      if (occasion !== "alla" && !p.occasions.includes(occasion)) return false;
-      if (filter === "favoriter" && !isFavorite(p.id)) return false;
-      if (filter === "nytt-for-gruppen" && statusOf(p.id) !== "nytt-for-gruppen")
-        return false;
+    const normalizedQuery = query.trim().toLowerCase();
+    let list = state.places.filter((place) => {
+      if (category !== "alla" && place.category !== category) return false;
+      if (occasion !== "alla" && !place.occasions.includes(occasion)) return false;
+      if (filter === "favoriter" && !isFavorite(place.id)) return false;
+      if (filter === "nytt-for-gruppen" && statusOf(place.id) !== "nytt-for-gruppen") return false;
       if (filter === "nytt-for-mig") {
-        const s = statusOf(p.id);
-        if (s !== "nytt-for-mig" && s !== "nytt-for-gruppen") return false;
+        const status = statusOf(place.id);
+        if (status !== "nytt-for-mig" && status !== "nytt-for-gruppen") return false;
       }
-      if (!q) return true;
+      if (!normalizedQuery) return true;
       return (
-        p.name.toLowerCase().includes(q) ||
-        p.address.toLowerCase().includes(q) ||
-        p.cuisines.some((c) => c.toLowerCase().includes(q))
+        place.name.toLowerCase().includes(normalizedQuery) ||
+        place.address.toLowerCase().includes(normalizedQuery) ||
+        place.city.toLowerCase().includes(normalizedQuery) ||
+        place.area?.toLowerCase().includes(normalizedQuery) ||
+        place.cuisines.some((cuisine) => cuisine.toLowerCase().includes(normalizedQuery))
       );
     });
 
     list = [...list];
     if (sort === "betyg") {
-      // Endast betygsatta/besökta rankas när sortering är "betyg"
-      list = list.filter((p) => avgRating(p.id).count > 0);
+      list = list.filter((place) => avgRating(place.id).count > 0);
       list.sort((a, b) => avgRating(b.id).overall - avgRating(a.id).overall);
     } else if (sort === "namn") {
       list.sort((a, b) => a.name.localeCompare(b.name, "sv"));
@@ -105,12 +106,19 @@ function PlacesIndex() {
     return list;
   }, [state.places, query, category, occasion, filter, sort, avgRating, isFavorite, statusOf]);
 
+  React.useEffect(() => {
+    if (selectedPlaceId && filtered.some((place) => place.id === selectedPlaceId)) return;
+    setSelectedPlaceId(
+      filtered.find((place) => place.lat != null && place.lng != null)?.id ?? null,
+    );
+  }, [filtered, selectedPlaceId]);
+
   const topRated = React.useMemo(
     () =>
       [...state.places]
-        .map((p) => ({ p, r: avgRating(p.id) }))
-        .filter((x) => x.r.count > 0)
-        .sort((a, b) => b.r.overall - a.r.overall)
+        .map((place) => ({ place, rating: avgRating(place.id) }))
+        .filter(({ rating }) => rating.count > 0)
+        .sort((a, b) => b.rating.overall - a.rating.overall)
         .slice(0, 3),
     [state.places, avgRating],
   );
@@ -121,39 +129,50 @@ function PlacesIndex() {
     setSort("senaste");
   };
 
+  const mappedCount = filtered.filter((place) => place.lat != null && place.lng != null).length;
+  const unmappedCount = filtered.length - mappedCount;
+  const mapItems = filtered.map((place) => ({
+    id: place.id,
+    name: place.name,
+    lat: place.lat,
+    lng: place.lng,
+    eyebrow: CATEGORY_LABEL[place.category],
+    description: [place.address, place.area, place.city].filter(Boolean).join(" · "),
+    markerLabel: place.photo ?? "🍽️",
+  }));
+
   return (
     <div className="mx-auto max-w-2xl space-y-4 pt-2 md:max-w-4xl">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
-        <Button onClick={() => setAddOpen(true)} size="sm" className="rounded-full">
+        <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">
           <Plus className="h-4 w-4" /> Lägg till
         </Button>
       </div>
 
-      {/* Topp — bara betygsatta */}
       {topRated.length > 0 ? (
         <section>
-          <div className="mb-2 flex items-baseline justify-between">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1">
             <h2 className="font-display text-lg">Topplista</h2>
             <span className="text-[11px] text-muted-foreground">
               Baserat på gruppens medelbetyg
             </span>
           </div>
           <div className="grid gap-2 md:grid-cols-3">
-            {topRated.map(({ p, r }) => (
+            {topRated.map(({ place, rating }) => (
               <Link
-                key={p.id}
+                key={place.id}
                 to="/matstallen/$placeId"
-                params={{ placeId: p.id }}
+                params={{ placeId: place.id }}
                 className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
               >
-                <PlaceThumb place={p} size="sm" />
+                <PlaceThumb place={place} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{p.name}</div>
+                  <div className="truncate font-medium">{place.name}</div>
                   <div className="mt-0.5 flex items-center gap-2">
-                    <RatingStars value={r.overall} size={12} />
+                    <RatingStars value={rating.overall} size={12} />
                     <span className="text-xs text-muted-foreground">
-                      {formatRating(r.overall)} · {r.count}
+                      {formatRating(rating.overall)} · {rating.count}
                     </span>
                   </div>
                 </div>
@@ -168,21 +187,21 @@ function PlacesIndex() {
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Sök namn, kök eller adress…"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Sök namn, kök, område eller adress…"
           className="rounded-2xl bg-card pl-9"
           aria-label="Sök i matställen"
         />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {QUICK_FILTERS.map((f) => {
-          const active = filter === f.key;
+        {QUICK_FILTERS.map((item) => {
+          const active = filter === item.key;
           return (
             <button
-              key={f.key}
+              key={item.key}
               type="button"
-              onClick={() => setFilter(f.key)}
+              onClick={() => setFilter(item.key)}
               aria-pressed={active}
               className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -190,7 +209,7 @@ function PlacesIndex() {
                 variant={active ? "default" : "outline"}
                 className="min-h-8 cursor-pointer rounded-full px-3 py-1"
               >
-                {f.label}
+                {item.label}
               </Badge>
             </button>
           );
@@ -216,36 +235,27 @@ function PlacesIndex() {
           <SheetContent side="bottom" className="max-h-[85vh] rounded-t-3xl">
             <SheetHeader>
               <SheetTitle>Filter & sortering</SheetTitle>
-              <SheetDescription>
-                Sortering efter betyg bygger på gruppens medelbetyg och visar
-                bara besökta ställen.
-              </SheetDescription>
+              <SheetDescription>Samma urval används i både listan och kartan.</SheetDescription>
             </SheetHeader>
             <div className="space-y-5 py-4">
               <FilterGroup label="Kategori">
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
-                    ...Object.entries(CATEGORY_LABEL).map(([k, v]) => ({
-                      key: k,
-                      label: v,
-                    })),
+                    ...Object.entries(CATEGORY_LABEL).map(([key, label]) => ({ key, label })),
                   ]}
                   value={category}
-                  onChange={(v) => setCategory(v as PlaceCategory | "alla")}
+                  onChange={(value) => setCategory(value as PlaceCategory | "alla")}
                 />
               </FilterGroup>
               <FilterGroup label="Tillfälle">
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
-                    ...Object.entries(OCCASION_LABEL).map(([k, v]) => ({
-                      key: k,
-                      label: v,
-                    })),
+                    ...Object.entries(OCCASION_LABEL).map(([key, label]) => ({ key, label })),
                   ]}
                   value={occasion}
-                  onChange={(v) => setOccasion(v as Occasion | "alla")}
+                  onChange={(value) => setOccasion(value as Occasion | "alla")}
                 />
               </FilterGroup>
               <FilterGroup label="Sortera">
@@ -256,7 +266,7 @@ function PlacesIndex() {
                     { key: "namn", label: "Namn A–Ö" },
                   ]}
                   value={sort}
-                  onChange={(v) => setSort(v as Sort)}
+                  onChange={(value) => setSort(value as Sort)}
                 />
               </FilterGroup>
             </div>
@@ -270,40 +280,79 @@ function PlacesIndex() {
         </Sheet>
       </div>
 
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" aria-label="Välj vy">
+        <button
+          type="button"
+          onClick={() => setView("lista")}
+          aria-pressed={view === "lista"}
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
+            view === "lista" ? "bg-background shadow-sm" : "text-muted-foreground"
+          }`}
+        >
+          <List className="h-4 w-4" /> Lista
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("karta")}
+          aria-pressed={view === "karta"}
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
+            view === "karta" ? "bg-background shadow-sm" : "text-muted-foreground"
+          }`}
+        >
+          <Map className="h-4 w-4" /> Karta
+        </button>
+      </div>
+
       {sort === "betyg" ? (
         <p className="text-xs text-muted-foreground">
           Sorterat på gruppens medelbetyg. Bara ställen med minst ett besök visas.
         </p>
       ) : null}
 
-      <div className="space-y-3 pb-4 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border p-8 text-center md:col-span-2">
-            <div className="text-4xl">🍽️</div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Inga ställen matchar. Testa att rensa filter eller lägg till ett nytt.
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+          <div className="text-4xl">🍽️</div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Inga ställen matchar. Testa att rensa filter eller lägg till ett nytt.
+          </p>
+          <Button className="mt-4" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" /> Lägg till matställe
+          </Button>
+        </div>
+      ) : view === "lista" ? (
+        <div className="space-y-3 pb-4 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
+          {filtered.map((place) => (
+            <PlaceCard key={place.id} place={place} />
+          ))}
+        </div>
+      ) : (
+        <section className="space-y-2 pb-4">
+          <PlaceMap
+            items={mapItems}
+            selectedId={selectedPlaceId}
+            onSelect={setSelectedPlaceId}
+            onAction={(item) =>
+              navigate({ to: "/matstallen/$placeId", params: { placeId: item.id } })
+            }
+            actionLabel="Visa ställe"
+            className="h-[62vh] min-h-[420px] max-h-[680px]"
+            ariaLabel={`Karta med ${mappedCount} av ${filtered.length} matställen`}
+          />
+          {unmappedCount > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {unmappedCount} {unmappedCount === 1 ? "ställe saknar" : "ställen saknar"}{" "}
+              kartposition och visas bara i listan.
             </p>
-            <Button className="mt-4" onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4" /> Lägg till matställe
-            </Button>
-          </div>
-        ) : (
-          filtered.map((p) => <PlaceCard key={p.id} place={p} />)
-        )}
-      </div>
+          ) : null}
+        </section>
+      )}
 
       <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }
 
-function FilterGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
@@ -319,17 +368,17 @@ function ChipRow({
 }: {
   options: { key: string; label: string }[];
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {options.map((o) => {
-        const active = value === o.key;
+      {options.map((option) => {
+        const active = value === option.key;
         return (
           <button
-            key={o.key}
+            key={option.key}
             type="button"
-            onClick={() => onChange(o.key)}
+            onClick={() => onChange(option.key)}
             aria-pressed={active}
             className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -337,7 +386,7 @@ function ChipRow({
               variant={active ? "default" : "outline"}
               className="min-h-8 cursor-pointer rounded-full px-3 py-1"
             >
-              {o.label}
+              {option.label}
             </Badge>
           </button>
         );
@@ -345,6 +394,3 @@ function ChipRow({
     </div>
   );
 }
-
-// Keep import referenced for the status token used inside children implicitly
-void StatusBadge;
