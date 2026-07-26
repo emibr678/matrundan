@@ -1,0 +1,77 @@
+name: Apply direct Geoapify style URL
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/package-4a5a-direct-style-url
+      - uses: oven-sh/setup-bun@v2
+      - name: Apply official MapLibre style integration
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("src/components/matrundan/PlaceMap.tsx")
+          text = path.read_text()
+
+          text = text.replace(
+              '    void waitForMapLibre()\n      .then(async (mapLibre) => {',
+              '    void waitForMapLibre()\n      .then((mapLibre) => {',
+          )
+
+          old = '''        try {
+          let style: StyleSpecification;
+          if (geoapifyKey) {
+            const styleUrl = `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`;
+            const response = await fetch(styleUrl, {
+              mode: "cors",
+              credentials: "omit",
+              cache: "no-store",
+            });
+            if (!response.ok) throw new Error(`Geoapify style HTTP ${response.status}`);
+            style = (await response.json()) as StyleSpecification;
+            if (
+              (style.layers?.length ?? 0) === 0 ||
+              Object.keys(style.sources ?? {}).length === 0
+            ) {
+              throw new Error("STYLE_RESOURCES_EMPTY: no base map sources or layers");
+            }
+          } else {
+            style = makeFallbackStyle(muted);
+          }
+          const map = new mapLibre.Map({'''
+
+          new = '''        const style = geoapifyKey
+          ? `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`
+          : makeFallbackStyle(muted);
+
+        try {
+          const map = new mapLibre.Map({'''
+
+          if old not in text:
+              raise SystemExit("Expected Geoapify prefetch block was not found")
+
+          path.write_text(text.replace(old, new))
+      - name: Format, verify and commit
+        run: |
+          bun install --frozen-lockfile
+          bunx prettier --write src/components/matrundan/PlaceMap.tsx
+          bunx tsc --noEmit
+          bunx eslint src/components/matrundan/PlaceMap.tsx
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/PlaceMap.tsx
+          git commit -m "Använd Geoapifys style-URL direkt i MapLibre"
+          git rm .github/workflows/apply-direct-style-url.yml
+          git commit -m "Remove one-time direct style workflow"
+          git push origin HEAD:fix/package-4a5a-direct-style-url
