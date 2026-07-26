@@ -305,32 +305,16 @@ export function PlaceMap({
     }
 
     void waitForMapLibre()
-      .then(async (mapLibre) => {
+      .then((mapLibre) => {
         if (cancelled || !element.isConnected) return;
 
         const fallback = { lat: 57.7089, lng: 11.9746 };
         const muted = readThemeColor("--muted", "#ece7df");
 
         try {
-          let style: StyleSpecification;
-          if (geoapifyKey) {
-            const styleUrl = `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`;
-            const response = await fetch(styleUrl, {
-              mode: "cors",
-              credentials: "omit",
-              cache: "no-store",
-            });
-            if (!response.ok) throw new Error(`Geoapify style HTTP ${response.status}`);
-            style = (await response.json()) as StyleSpecification;
-            if (
-              (style.layers?.length ?? 0) === 0 ||
-              Object.keys(style.sources ?? {}).length === 0
-            ) {
-              throw new Error("STYLE_RESOURCES_EMPTY: no base map sources or layers");
-            }
-          } else {
-            style = makeFallbackStyle(muted);
-          }
+          const style: string | StyleSpecification = geoapifyKey
+            ? `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`
+            : makeFallbackStyle(muted);
           const map = new mapLibre.Map({
             container: element,
             style,
