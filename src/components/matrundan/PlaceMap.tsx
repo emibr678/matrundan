@@ -374,7 +374,7 @@ export function PlaceMap({
             if (geoapifyKey) {
               setTileStatus("loading");
               const resourceTimeout = window.setTimeout(() => {
-                if (!cancelled && !map.areTilesLoaded()) {
+                if (!cancelled) {
                   setMapFailure("resources");
                   setMapStatus("error");
                   setTileStatus("error");
@@ -382,12 +382,7 @@ export function PlaceMap({
               }, 10_000);
               map.once("idle", () => {
                 window.clearTimeout(resourceTimeout);
-                if (!cancelled && map.areTilesLoaded()) setTileStatus("ready");
-                else if (!cancelled) {
-                  setMapFailure("resources");
-                  setMapStatus("error");
-                  setTileStatus("error");
-                }
+                if (!cancelled) setTileStatus("ready");
               });
             } else setTileStatus("missing");
             updateViewState();
