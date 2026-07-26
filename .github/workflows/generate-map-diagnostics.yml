@@ -1,19 +1,16 @@
-name: Generate map diagnostics patch
+name: Apply map diagnostics patch
 
 on:
-  push:
-    branches:
-      - fix/package-4a5a-start-diagnostics
   pull_request:
     branches:
       - main
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  generate:
+  apply:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +24,9 @@ jobs:
           from pathlib import Path
           path = Path('src/components/matrundan/PlaceMap.tsx')
           text = path.read_text()
+          if 'type MapFailureCode =' in text:
+              print('Diagnostics already applied')
+              raise SystemExit(0)
           text = text.replace(
               'interface ClusterMarkerEntry {\n  marker: MapLibreMarker;\n  element: HTMLButtonElement;\n}\n',
               'interface ClusterMarkerEntry {\n  marker: MapLibreMarker;\n  element: HTMLButtonElement;\n}\n\ntype MapFailureCode = "webgl" | "style-auth" | "style-network" | "worker" | "timeout" | "runtime";\n\nfunction supportsWebGl() {\n  const canvas = document.createElement("canvas");\n  try {\n    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));\n  } catch {\n    return false;\n  }\n}\n\nfunction classifyMapFailure(error: unknown): MapFailureCode {\n  const message = error instanceof Error ? error.message : String(error);\n  if (/webgl|gpu|graphics context|context lost/i.test(message)) return "webgl";\n  if (/401|403|unauthori[sz]ed|forbidden|api.?key/i.test(message)) return "style-auth";\n  if (/worker|securityerror|content security|csp/i.test(message)) return "worker";\n  if (/network|fetch|load failed|failed to load|http/i.test(message)) return "style-network";\n  return "runtime";\n}\n\nfunction failureNotice(code: MapFailureCode | null) {\n  switch (code) {\n    case "webgl": return "Enheten kunde inte starta WebGL för kartan. Felkod: WEBGL.";\n    case "style-auth": return "Geoapify nekade kartstilen. Kontrollera nyckelns tillåtna preview-domän. Felkod: STYLE-AUTH.";\n    case "style-network": return "Kartstilen kunde inte hämtas från Geoapify. Felkod: STYLE-NETWORK.";\n    case "worker": return "Kartmotorns worker blockerades av previewmiljön. Felkod: WORKER.";\n    case "timeout": return "Kartmotorn svarade inte inom 15 sekunder. Felkod: TIMEOUT.";\n    default: return "Kartan kunde inte startas. Felkod: RUNTIME.";\n  }\n}\n',
@@ -65,11 +65,15 @@ jobs:
               '      data-map-tile-status={tileStatus}\n      data-map-error-code={mapFailure ?? ""}\n',
           )
           path.write_text(text)
-      - name: Format
+      - name: Format and commit
         run: |
           bun install --frozen-lockfile
           bunx prettier --write src/components/matrundan/PlaceMap.tsx
-      - uses: actions/upload-artifact@v4
-        with:
-          name: map-diagnostics-patch
-          path: src/components/matrundan/PlaceMap.tsx
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/PlaceMap.tsx
+          git commit -m "Diagnostisera kartstart i verklig preview"
+          git push origin HEAD:fix/package-4a5a-start-diagnostics
