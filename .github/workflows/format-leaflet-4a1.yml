@@ -1,0 +1,41 @@
+name: Format Package 4A.1 files
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Format Package 4A.1 files
+        run: |
+          bunx prettier --write src/components/matrundan/PlaceMap.tsx
+          bunx prettier --write src/lib/matrundan/leaflet-global.ts
+          bunx prettier --write src/routes/__root.tsx
+
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-package-4a1-files
+          path: |
+            src/components/matrundan/PlaceMap.tsx
+            src/lib/matrundan/leaflet-global.ts
+            src/routes/__root.tsx
