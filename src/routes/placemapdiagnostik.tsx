@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { Button } from "@/components/ui/button";
 
+// Tillfällig intern route som isolerar PlaceMap från dialogens responsiva livscykel.
 export const Route = createFileRoute("/placemapdiagnostik")({
   head: () => ({
     meta: [{ title: "PlaceMap-diagnostik · Matrundan" }],
