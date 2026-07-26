@@ -32,8 +32,15 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
 
   const initialLat = Number(await mapRegion.getAttribute("data-map-lat"));
   const initialLng = Number(await mapRegion.getAttribute("data-map-lng"));
+  const mapElement = mapRegion.getByLabel(/^Interaktiv karta/);
   const canvas = mapRegion.locator("canvas.maplibregl-canvas");
   await expect(canvas).toBeVisible();
+  await expect
+    .poll(() => mapElement.evaluate((element) => element.getBoundingClientRect().height))
+    .toBeGreaterThan(100);
+  await expect
+    .poll(() => canvas.evaluate((element) => element.getBoundingClientRect().height))
+    .toBeGreaterThan(100);
   await canvas.focus();
   await page.keyboard.press("ArrowRight");
 
@@ -169,4 +176,10 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
   await expect(searchMap).toHaveAttribute("data-map-tile-status", "ready");
   await expect(searchMap.getByText("Laddar kartan…")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");
+
+  await page.goto("/placemapdiagnostik");
+  const diagnosticMap = page.getByRole("region", { name: "Diagnostisk PlaceMap" });
+  await expect(diagnosticMap).toBeVisible();
+  await expectInteractiveMap(page, diagnosticMap);
+  await expectNoHorizontalOverflow(page, "Isolerad PlaceMap-diagnostik");
 });
