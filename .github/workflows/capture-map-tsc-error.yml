@@ -1,0 +1,25 @@
+name: Capture map TypeScript error
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/package-4a5a-resource-verification
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Capture TypeScript output
+        run: bunx tsc --noEmit > tsc-output.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: map-tsc-output
+          path: tsc-output.txt
