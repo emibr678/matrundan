@@ -10,13 +10,38 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  format-placemap-css:
+    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Format and commit CSS
+        run: |
+          bun install --frozen-lockfile
+          bunx prettier --write src/styles.css
+          if git diff --quiet -- src/styles.css; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/styles.css
+          git commit -m "Formatera PlaceMap-layoutfixen"
+          git push origin HEAD:${{ github.head_ref }}
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
