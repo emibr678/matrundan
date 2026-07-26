@@ -19,7 +19,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -69,6 +69,12 @@ jobs:
             echo "has_ui=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if printf '%s\n' "${format_files[@]}" | grep -Eq '^(src/components/matrundan/PlaceMap\.tsx|src/lib/matrundan/maplibre-client\.ts|playwright\.config\.ts|tests/e2e/mobile-matstallen\.spec\.ts)$'; then
+            echo "has_map=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_map=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Prettier changed files
         if: steps.changes.outputs.has_format == 'true'
         shell: bash
@@ -93,9 +99,20 @@ jobs:
         if: steps.changes.outputs.has_ui == 'true'
         run: bunx playwright install --with-deps chromium
 
-      - name: Mobile browser smoke test
+      - name: Mobile Chromium smoke test
         if: steps.changes.outputs.has_ui == 'true'
         run: bunx playwright test --project=mobile-chromium
+
+      - name: Install WebKit for map compatibility
+        if: steps.changes.outputs.has_map == 'true'
+        run: bunx playwright install --with-deps webkit
+
+      - name: iPhone and desktop map compatibility
+        if: steps.changes.outputs.has_map == 'true'
+        run: >-
+          bunx playwright test tests/e2e/mobile-matstallen.spec.ts
+          --project=mobile-webkit
+          --project=desktop-chromium
 
       - name: Upload browser report on failure
         if: failure() && steps.changes.outputs.has_ui == 'true'

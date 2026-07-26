@@ -77,8 +77,11 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
     .toBeGreaterThan(0);
 }
 
-test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
+test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ page }) => {
   let mapStyleRequests = 0;
+  const workerUrls: string[] = [];
+  page.on("worker", (worker) => workerUrls.push(worker.url()));
+
   await page.route("https://maps.geoapify.com/v1/styles/**", async (route) => {
     mapStyleRequests += 1;
     await route.fulfill({
@@ -111,6 +114,16 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
   });
   await expect(placesMap).toBeVisible();
   await expect.poll(() => mapStyleRequests).toBeGreaterThan(0);
+  await expect
+    .poll(() =>
+      workerUrls.some((url) => {
+        const parsed = new URL(url);
+        return parsed.origin === "http://127.0.0.1:4173" && !url.startsWith("blob:");
+      }),
+    )
+    .toBe(true);
+  expect(workerUrls.some((url) => url.startsWith("blob:"))).toBe(false);
+
   await expectInteractiveMap(page, placesMap);
   await expectMarkerClustering(placesMap);
   await expectNoHorizontalOverflow(page, "Matställen i kartvy");
@@ -121,7 +134,14 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
   await expect(dialog.getByText("Fiktiv demodata för utveckling.")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Lägg till-dialog i listvy");
 
-  await dialog.getByRole("button", { name: "Karta", exact: true }).click();
+  const viewportWidth = page.viewportSize()?.width ?? 360;
+  if (viewportWidth < 1024) {
+    const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
+    await expect(mapToggle).toBeVisible();
+    await mapToggle.click();
+    await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
+  }
+
   const searchMap = dialog.getByRole("region", { name: "Karta över sökresultat" });
   await expect(searchMap).toBeVisible();
   await expect(searchMap).toHaveAttribute("data-map-ready", "true");
