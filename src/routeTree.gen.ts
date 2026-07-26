@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MatstallenRouteImport } from './routes/matstallen'
+import { Route as MapdiagnostikRouteImport } from './routes/mapdiagnostik'
 import { Route as GruppenRouteImport } from './routes/gruppen'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
@@ -18,6 +19,11 @@ import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
 const MatstallenRoute = MatstallenRouteImport.update({
   id: '/matstallen',
   path: '/matstallen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapdiagnostikRoute = MapdiagnostikRouteImport.update({
+  id: '/mapdiagnostik',
+  path: '/mapdiagnostik',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GruppenRoute = GruppenRouteImport.update({
@@ -44,6 +50,7 @@ const InbjudanTokenRoute = InbjudanTokenRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/gruppen': typeof GruppenRoute
+  '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/gruppen': typeof GruppenRoute
+  '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/gruppen': typeof GruppenRoute
+  '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/gruppen'
+    | '/mapdiagnostik'
     | '/matstallen'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/gruppen'
+    | '/mapdiagnostik'
     | '/matstallen'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/gruppen'
+    | '/mapdiagnostik'
     | '/matstallen'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GruppenRoute: typeof GruppenRoute
+  MapdiagnostikRoute: typeof MapdiagnostikRoute
   MatstallenRoute: typeof MatstallenRouteWithChildren
   InbjudanTokenRoute: typeof InbjudanTokenRoute
 }
@@ -101,6 +114,13 @@ declare module '@tanstack/react-router' {
       path: '/matstallen'
       fullPath: '/matstallen'
       preLoaderRoute: typeof MatstallenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mapdiagnostik': {
+      id: '/mapdiagnostik'
+      path: '/mapdiagnostik'
+      fullPath: '/mapdiagnostik'
+      preLoaderRoute: typeof MapdiagnostikRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gruppen': {
@@ -149,9 +169,20 @@ const MatstallenRouteWithChildren = MatstallenRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GruppenRoute: GruppenRoute,
+  MapdiagnostikRoute: MapdiagnostikRoute,
   MatstallenRoute: MatstallenRouteWithChildren,
   InbjudanTokenRoute: InbjudanTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
