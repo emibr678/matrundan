@@ -1,0 +1,156 @@
+name: Apply visible place markers
+
+on:
+  push:
+    branches:
+      - fix/placemap-visible-pins-labels
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/placemap-visible-pins-labels
+          fetch-depth: 0
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Apply marker and label fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          place_map = Path("src/components/matrundan/PlaceMap.tsx")
+          text = place_map.read_text()
+
+          replacements = [
+              (
+                  'const POINT_LAYER_ID = "matrundan-points";\n',
+                  'const POINT_LAYER_ID = "matrundan-points";\nconst LABEL_LAYER_ID = "matrundan-place-labels";\n',
+              ),
+              (
+                  '    const card = readThemeColor("--card", "#fffdf8");\n',
+                  '    const ink = readThemeColor("--foreground", "#3d2d27");\n',
+              ),
+              (
+                  '''      map.addLayer({
+        id: POINT_LAYER_ID,
+        type: "circle",
+        source: PLACE_SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-radius": 7,
+          "circle-color": card,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 3,
+        },
+      });
+''',
+                  '''      map.addLayer({
+        id: POINT_LAYER_ID,
+        type: "circle",
+        source: PLACE_SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-radius": 8,
+          "circle-color": primary,
+          "circle-opacity": 1,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 3,
+        },
+      });
+      map.addLayer({
+        id: LABEL_LAYER_ID,
+        type: "symbol",
+        source: PLACE_SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        minzoom: 15,
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": 12,
+          "text-variable-anchor": ["left", "right", "top", "bottom"],
+          "text-radial-offset": 1.1,
+          "text-justify": "auto",
+          "text-allow-overlap": false,
+          "text-ignore-placement": false,
+        },
+        paint: {
+          "text-color": ink,
+          "text-halo-color": background,
+          "text-halo-width": 2,
+          "text-halo-blur": 0.5,
+        },
+      });
+''',
+              ),
+              (
+                  '''        paint: {
+          "circle-radius": 9,
+          "circle-color": primary,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 3,
+        },
+''',
+                  '''        paint: {
+          "circle-radius": 11,
+          "circle-color": primary,
+          "circle-opacity": 1,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 5,
+        },
+''',
+              ),
+              (
+                  '''    const syncClusters = () => {
+''',
+                  '''    mapElementRef.current.parentElement?.setAttribute(
+      "data-map-point-visual",
+      "primary-pin",
+    );
+    mapElementRef.current.parentElement?.setAttribute(
+      "data-map-label-layer",
+      map.getLayer(LABEL_LAYER_ID) ? "ready" : "missing",
+    );
+
+    const syncClusters = () => {
+''',
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f"PlaceMap replacement not found: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+          place_map.write_text(text)
+
+          test_file = Path("tests/e2e/mobile-matstallen.spec.ts")
+          test = test_file.read_text()
+          old = '''  await expect(canvas).toBeVisible();
+'''
+          new = '''  await expect(canvas).toBeVisible();
+  await expect(mapRegion).toHaveAttribute("data-map-point-visual", "primary-pin");
+  await expect(mapRegion).toHaveAttribute("data-map-label-layer", "ready");
+'''
+          if old not in test:
+              raise SystemExit("Test insertion point not found")
+          test_file.write_text(test.replace(old, new, 1))
+          PY
+
+          bun install --frozen-lockfile
+          bunx prettier --write src/components/matrundan/PlaceMap.tsx tests/e2e/mobile-matstallen.spec.ts
+          git checkout origin/main -- .github/workflows/ci.yml
+          rm .github/workflows/apply-visible-place-markers.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/matrundan/PlaceMap.tsx tests/e2e/mobile-matstallen.spec.ts .github/workflows/ci.yml .github/workflows/apply-visible-place-markers.yml
+          git commit -m "Visa tydliga individuella kartmarkörer och namn"
+          git push origin HEAD:fix/placemap-visible-pins-labels
