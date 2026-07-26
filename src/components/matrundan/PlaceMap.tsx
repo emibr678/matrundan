@@ -36,8 +36,7 @@ interface PlaceMapProps {
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 20;
 const DEFAULT_ZOOM = 14;
-const TRANSPARENT_TILE =
-  "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+const TRANSPARENT_TILE = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
 function escapeHtml(value: string) {
   return value.replace(
@@ -55,9 +54,7 @@ function escapeHtml(value: string) {
 
 function markerHtml(label: string, active: boolean) {
   const background = active ? "hsl(var(--primary))" : "hsl(var(--card))";
-  const foreground = active
-    ? "hsl(var(--primary-foreground))"
-    : "hsl(var(--foreground))";
+  const foreground = active ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))";
   const scale = active ? "scale(1.1)" : "scale(1)";
 
   return `<span style="display:grid;min-width:36px;height:36px;padding:0 10px;place-items:center;border:2px solid hsl(var(--background));border-radius:9999px;background:${background};color:${foreground};font:600 12px/1 ui-sans-serif,system-ui,sans-serif;box-shadow:0 4px 12px rgb(0 0 0 / .24);transform:${scale};transform-origin:center bottom;transition:transform 150ms ease">${escapeHtml(label)}</span>`;
@@ -83,23 +80,22 @@ export function PlaceMap({
     () => items.filter((item) => item.lat != null && item.lng != null),
     [items],
   );
-  const selected =
-    mappedItems.find((item) => item.id === selectedId) ?? mappedItems[0] ?? null;
-  const geoapifyKey = (import.meta as ImportMeta & {
-    env?: { VITE_GEOAPIFY_MAPS_KEY?: string };
-  }).env?.VITE_GEOAPIFY_MAPS_KEY;
+  const selected = mappedItems.find((item) => item.id === selectedId) ?? mappedItems[0] ?? null;
+  const geoapifyKey = (
+    import.meta as ImportMeta & {
+      env?: { VITE_GEOAPIFY_MAPS_KEY?: string };
+    }
+  ).env?.VITE_GEOAPIFY_MAPS_KEY;
   const mapElementRef = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<LeafletMap | null>(null);
   const leafletRef = React.useRef<LeafletApi | null>(null);
   const contentLayerRef = React.useRef<LeafletLayerGroup | null>(null);
   const tileLayerRef = React.useRef<LeafletLayer | null>(null);
   const tileHasLoadedRef = React.useRef(false);
-  const [mapStatus, setMapStatus] = React.useState<
-    "loading" | "ready" | "error"
-  >("loading");
-  const [tileStatus, setTileStatus] = React.useState<
-    "missing" | "loading" | "ready" | "error"
-  >(geoapifyKey ? "loading" : "missing");
+  const [mapStatus, setMapStatus] = React.useState<"loading" | "ready" | "error">("loading");
+  const [tileStatus, setTileStatus] = React.useState<"missing" | "loading" | "ready" | "error">(
+    geoapifyKey ? "loading" : "missing",
+  );
   const [viewState, setViewState] = React.useState<{
     lat: number;
     lng: number;
@@ -123,11 +119,7 @@ export function PlaceMap({
     void waitForLeaflet()
       .then((leaflet) => {
         if (cancelled || !mapElementRef.current) return;
-        const fallback =
-          center ??
-          (mappedItems[0]?.lat != null && mappedItems[0]?.lng != null
-            ? { lat: mappedItems[0].lat, lng: mappedItems[0].lng }
-            : { lat: 57.7089, lng: 11.9746 });
+        const fallback = { lat: 57.7089, lng: 11.9746 };
         const map = leaflet.map(mapElementRef.current, {
           attributionControl: false,
           zoomControl: false,
@@ -248,10 +240,7 @@ export function PlaceMap({
     }
     const map = mapRef.current;
     const leaflet = leafletRef.current;
-    const points: LatLngTuple[] = mappedItems.map((item) => [
-      item.lat!,
-      item.lng!,
-    ]);
+    const points: LatLngTuple[] = mappedItems.map((item) => [item.lat!, item.lng!]);
     if (center) points.push([center.lat, center.lng]);
     if (points.length === 0) return;
 
@@ -265,13 +254,13 @@ export function PlaceMap({
       if (bounds.isValid()) {
         map.fitBounds(bounds, {
           paddingTopLeft: [48, 48],
-          paddingBottomRight: [48, selected ? 164 : 72],
+          paddingBottomRight: [48, mappedItems.length > 0 ? 164 : 72],
           maxZoom: 15,
           animate: false,
         });
       }
     });
-  }, [fitSignature, mapStatus, selected]);
+  }, [fitSignature, mapStatus, mappedItems.length]);
 
   React.useEffect(() => {
     if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
@@ -421,9 +410,7 @@ export function PlaceMap({
               ) : null}
               <div className="truncate font-medium">{selected.name}</div>
               {selected.description ? (
-                <div className="truncate text-xs text-muted-foreground">
-                  {selected.description}
-                </div>
+                <div className="truncate text-xs text-muted-foreground">{selected.description}</div>
               ) : null}
             </div>
             {onAction ? (
