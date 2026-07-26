@@ -1,0 +1,147 @@
+name: Apply PlaceMap layout fix
+
+on:
+  push:
+    branches: [fix/placemap-layout-container]
+    paths:
+      - .github/workflows/apply-placemap-layout-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/placemap-layout-container
+      - uses: oven-sh/setup-bun@v2
+      - name: Apply focused layout fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          place_map = Path('src/components/matrundan/PlaceMap.tsx')
+          text = place_map.read_text()
+
+          old = '  const mapElementRef = React.useRef<HTMLDivElement>(null);\n'
+          new = '  const mapFrameRef = React.useRef<HTMLDivElement>(null);\n  const mapElementRef = React.useRef<HTMLDivElement>(null);\n'
+          if old not in text:
+              raise SystemExit('mapElementRef anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = '''  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapElementRef.current || !mapRef.current) return;
+    if (typeof ResizeObserver === "undefined") return;
+
+    const map = mapRef.current;
+    const observer = new ResizeObserver(() => map.resize());
+    observer.observe(mapElementRef.current);
+    return () => observer.disconnect();
+  }, [mapStatus]);
+'''
+          new = '''  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapFrameRef.current || !mapRef.current) return;
+
+    const frame = mapFrameRef.current;
+    const map = mapRef.current;
+    let resizeFrame = 0;
+    const resizeMap = () => {
+      window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = window.requestAnimationFrame(() => map.resize());
+    };
+
+    resizeMap();
+    window.addEventListener("resize", resizeMap);
+
+    if (typeof ResizeObserver === "undefined") {
+      return () => {
+        window.removeEventListener("resize", resizeMap);
+        window.cancelAnimationFrame(resizeFrame);
+      };
+    }
+
+    const observer = new ResizeObserver(resizeMap);
+    observer.observe(frame);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", resizeMap);
+      window.cancelAnimationFrame(resizeFrame);
+    };
+  }, [mapStatus]);
+'''
+          if old not in text:
+              raise SystemExit('ResizeObserver block not found')
+          text = text.replace(old, new, 1)
+
+          old = '''      <div
+        ref={mapElementRef}
+        className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"
+        aria-label="Interaktiv karta. Dra för att flytta och nyp för att zooma."
+      />
+'''
+          new = '''      <div ref={mapFrameRef} className="absolute inset-0 z-0">
+        <div
+          ref={mapElementRef}
+          className="h-full w-full cursor-grab active:cursor-grabbing [&_.maplibregl-canvas]:max-w-none"
+          aria-label="Interaktiv karta. Dra för att flytta och nyp för att zooma."
+        />
+      </div>
+'''
+          if old not in text:
+              raise SystemExit('Map container JSX not found')
+          place_map.write_text(text.replace(old, new, 1))
+
+          test_file = Path('tests/e2e/mobile-matstallen.spec.ts')
+          text = test_file.read_text()
+          old = '''  const canvas = mapRegion.locator("canvas.maplibregl-canvas");
+  await expect(canvas).toBeVisible();
+  await canvas.focus();
+'''
+          new = '''  const mapElement = mapRegion.getByLabel(/^Interaktiv karta/);
+  const canvas = mapRegion.locator("canvas.maplibregl-canvas");
+  await expect(canvas).toBeVisible();
+  await expect
+    .poll(() => mapElement.evaluate((element) => element.getBoundingClientRect().height))
+    .toBeGreaterThan(100);
+  await expect
+    .poll(() => canvas.evaluate((element) => element.getBoundingClientRect().height))
+    .toBeGreaterThan(100);
+  await canvas.focus();
+'''
+          if old not in text:
+              raise SystemExit('Interactive map canvas anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = '''  await expect(searchMap.getByText("Laddar kartan…")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");
+});
+'''
+          new = '''  await expect(searchMap.getByText("Laddar kartan…")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");
+
+  await page.goto("/placemapdiagnostik");
+  const diagnosticMap = page.getByRole("region", { name: "Diagnostisk PlaceMap" });
+  await expect(diagnosticMap).toBeVisible();
+  await expectInteractiveMap(page, diagnosticMap);
+  await expectNoHorizontalOverflow(page, "Isolerad PlaceMap-diagnostik");
+});
+'''
+          if old not in text:
+              raise SystemExit('End-of-test anchor not found')
+          test_file.write_text(text.replace(old, new, 1))
+          PY
+
+          bun install --frozen-lockfile
+          bunx prettier --write src/components/matrundan/PlaceMap.tsx tests/e2e/mobile-matstallen.spec.ts
+          bunx eslint src/components/matrundan/PlaceMap.tsx tests/e2e/mobile-matstallen.spec.ts
+          bunx tsc --noEmit
+          bun run build
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/matrundan/PlaceMap.tsx tests/e2e/mobile-matstallen.spec.ts
+          git rm .github/workflows/apply-placemap-layout-fix.yml
+          git commit -m "Rätta PlaceMap-containerns höjd och resize-livscykel"
+          git push
