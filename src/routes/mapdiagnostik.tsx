@@ -233,7 +233,6 @@ function DiagnosticMap({
           dragRotate: false,
           pitchWithRotate: false,
           fadeDuration: 0,
-          preserveDrawingBuffer: true,
           collectResourceTiming: true,
         });
         map.touchZoomRotate.disableRotation();
@@ -363,6 +362,7 @@ function MapDiagnosticsPage() {
 
   React.useEffect(() => {
     if (!key) return;
+    const activeKey = key;
     let cancelled = false;
 
     async function runResourceProbes() {
@@ -373,7 +373,7 @@ function MapDiagnosticsPage() {
       });
       setResourceResults([]);
       const tile = tileCoordinates(TEST_CENTER.lng, TEST_CENTER.lat, 14);
-      const rasterUrl = `https://maps.geoapify.com/v1/tile/osm-bright-grey/${tile.z}/${tile.x}/${tile.y}.png?apiKey=${encodeURIComponent(key)}`;
+      const rasterUrl = `https://maps.geoapify.com/v1/tile/osm-bright-grey/${tile.z}/${tile.x}/${tile.y}.png?apiKey=${encodeURIComponent(activeKey)}`;
       const raster = await fetchProbe("Geoapify rastertile", rasterUrl, key);
       if (!cancelled) setRasterResult(raster);
 
