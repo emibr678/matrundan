@@ -1,0 +1,50 @@
+name: Apply map resource verification v2
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/package-4a5a-resource-verification
+      - uses: oven-sh/setup-bun@v2
+      - name: Patch and commit
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/components/matrundan/PlaceMap.tsx')
+          t=p.read_text()
+          t=t.replace('  | "style-network"\n  | "worker";', '  | "style-network"\n  | "resources"\n  | "worker";')
+          t=t.replace('  if (/worker|securityerror|content security|csp/i.test(message)) return "worker";', '  if (/style_resources_empty|no base map sources|tiles were not rendered/i.test(message)) return "resources";\n  if (/worker|securityerror|content security|csp/i.test(message)) return "worker";')
+          t=t.replace('    case "worker":\n      return "Kartmotorns worker blockerades av previewmiljön. Felkod: WORKER.";', '    case "resources":\n      return "Kartstilen laddades men dess kartresurser kunde inte renderas. Felkod: RESOURCES.";\n    case "worker":\n      return "Kartmotorns worker blockerades av previewmiljön. Felkod: WORKER.";')
+          t=t.replace('    void waitForMapLibre()\n      .then((mapLibre) => {', '    void waitForMapLibre()\n      .then(async (mapLibre) => {')
+          old='''        const fallback = { lat: 57.7089, lng: 11.9746 };\n        const muted = readThemeColor("--muted", "#ece7df");\n        const style = geoapifyKey\n          ? `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`\n          : makeFallbackStyle(muted);\n\n        try {'''
+          new='''        const fallback = { lat: 57.7089, lng: 11.9746 };\n        const muted = readThemeColor("--muted", "#ece7df");\n\n        try {\n          let style: StyleSpecification;\n          if (geoapifyKey) {\n            const styleUrl = `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`;\n            const response = await fetch(styleUrl, { mode: "cors", credentials: "omit", cache: "no-store" });\n            if (!response.ok) throw new Error(`Geoapify style HTTP ${response.status}`);\n            style = (await response.json()) as StyleSpecification;\n            if ((style.layers?.length ?? 0) === 0 || Object.keys(style.sources ?? {}).length === 0) {\n              throw new Error("STYLE_RESOURCES_EMPTY: no base map sources or layers");\n            }\n          } else {\n            style = makeFallbackStyle(muted);\n          }'''
+          if old not in t: raise SystemExit('style pattern missing')
+          t=t.replace(old,new)
+          old='''          const handleLoad = () => {\n            loaded = true;\n            window.clearTimeout(loadTimeout);\n            setMapStatus("ready");\n            if (geoapifyKey) {\n              setTileStatus("loading");\n              map.once("idle", () => {\n                if (!cancelled) setTileStatus("ready");\n              });\n            } else {\n              setTileStatus("missing");\n            }\n            updateViewState();\n            map.resize();\n          };'''
+          new='''          const handleLoad = () => {\n            const renderedStyle = map.getStyle();\n            if (geoapifyKey && ((renderedStyle.layers?.length ?? 0) === 0 || Object.keys(renderedStyle.sources ?? {}).length === 0)) {\n              setMapFailure("resources");\n              setMapStatus("error");\n              setTileStatus("error");\n              return;\n            }\n            loaded = true;\n            window.clearTimeout(loadTimeout);\n            setMapStatus("ready");\n            if (geoapifyKey) {\n              setTileStatus("loading");\n              const resourceTimeout = window.setTimeout(() => {\n                if (!cancelled && !map.areTilesLoaded()) {\n                  setMapFailure("resources");\n                  setMapStatus("error");\n                  setTileStatus("error");\n                }\n              }, 10_000);\n              map.once("idle", () => {\n                window.clearTimeout(resourceTimeout);\n                if (!cancelled && map.areTilesLoaded()) setTileStatus("ready");\n                else if (!cancelled) {\n                  setMapFailure("resources");\n                  setMapStatus("error");\n                  setTileStatus("error");\n                }\n              });\n            } else setTileStatus("missing");\n            updateViewState();\n            map.resize();\n          };'''
+          if old not in t: raise SystemExit('load pattern missing')
+          t=t.replace(old,new)
+          t=t.replace('            if (!loaded && !cancelled) {\n              setMapFailure(failure);', '            if (!cancelled) {\n              setMapFailure(failure);')
+          t=t.replace('      data-map-error-code={mapFailure ?? ""}\n', '      data-map-error-code={mapFailure ?? ""}\n      data-map-style-layer-count={mapRef.current?.getStyle().layers?.length ?? 0}\n      data-map-style-source-count={Object.keys(mapRef.current?.getStyle().sources ?? {}).length}\n')
+          p.write_text(t)
+          PY
+          bun install --frozen-lockfile
+          bunx prettier --write src/components/matrundan/PlaceMap.tsx
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/PlaceMap.tsx
+          git commit -m "Verifiera Geoapify-stil och kartresurser"
+          git rm .github/workflows/apply-map-resource-verification.yml .github/workflows/apply-map-resource-verification-v2.yml
+          git commit -m "Remove one-time map resource workflows"
+          git push origin HEAD:fix/package-4a5a-resource-verification
