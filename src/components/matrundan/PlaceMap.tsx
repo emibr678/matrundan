@@ -44,7 +44,14 @@ interface ClusterMarkerEntry {
   element: HTMLButtonElement;
 }
 
-type MapFailureCode = "webgl" | "style-auth" | "style-network" | "worker" | "timeout" | "runtime";
+type MapFailureCode =
+  | "webgl"
+  | "style-auth"
+  | "style-network"
+  | "resources"
+  | "worker"
+  | "timeout"
+  | "runtime";
 
 function supportsWebGl() {
   const canvas = document.createElement("canvas");
