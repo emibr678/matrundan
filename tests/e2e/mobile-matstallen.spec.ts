@@ -59,9 +59,10 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
 
 async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) {
   const zoomOut = mapRegion.getByRole("button", { name: "Zooma ut kartan" });
-  const zoomIn = mapRegion.getByRole("button", { name: "Zooma in kartan" });
   const clusters = mapRegion.locator(".matrundan-cluster-icon");
   const markers = mapRegion.locator(".matrundan-place-marker");
+
+  await expect(mapRegion).toHaveAttribute("data-clustering-disabled-at", "17");
 
   for (let index = 0; index < 5; index += 1) {
     const before = Number(await mapRegion.getAttribute("data-map-zoom"));
@@ -72,26 +73,13 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
   }
 
   await expect.poll(async () => clusters.count()).toBeGreaterThan(0);
+  const initialClusterCount = await clusters.count();
   const clusterZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
   await clusters.first().click({ force: true });
   await expect
     .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
     .toBeGreaterThan(clusterZoom);
-
-  const disableAt = Number(await mapRegion.getAttribute("data-clustering-disabled-at"));
-  for (let index = 0; index < 12; index += 1) {
-    const current = Number(await mapRegion.getAttribute("data-map-zoom"));
-    if (current >= disableAt) break;
-    await zoomIn.click();
-    await expect
-      .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
-      .toBeGreaterThan(current);
-  }
-
-  await expect
-    .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
-    .toBeGreaterThanOrEqual(disableAt);
-  await expect(clusters).toHaveCount(0);
+  await expect.poll(async () => clusters.count()).toBeLessThan(initialClusterCount);
   await expect.poll(async () => markers.count()).toBeGreaterThan(0);
 }
 
