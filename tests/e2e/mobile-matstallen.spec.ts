@@ -90,12 +90,32 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
       body: JSON.stringify({
         version: 8,
         name: "CI map style",
-        sources: {},
+        sources: {
+          "ci-base": {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  properties: {},
+                  geometry: { type: "Point", coordinates: [11.9746, 57.7089] },
+                },
+              ],
+            },
+          },
+        },
         layers: [
           {
             id: "background",
             type: "background",
             paint: { "background-color": "#eee9df" },
+          },
+          {
+            id: "ci-base-point",
+            type: "circle",
+            source: "ci-base",
+            paint: { "circle-radius": 2, "circle-color": "#c96342" },
           },
         ],
       }),

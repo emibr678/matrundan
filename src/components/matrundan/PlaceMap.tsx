@@ -44,7 +44,14 @@ interface ClusterMarkerEntry {
   element: HTMLButtonElement;
 }
 
-type MapFailureCode = "webgl" | "style-auth" | "style-network" | "worker" | "timeout" | "runtime";
+type MapFailureCode =
+  | "webgl"
+  | "style-auth"
+  | "style-network"
+  | "resources"
+  | "worker"
+  | "timeout"
+  | "runtime";
 
 function supportsWebGl() {
   const canvas = document.createElement("canvas");
@@ -59,6 +66,8 @@ function classifyMapFailure(error: unknown): MapFailureCode {
   const message = error instanceof Error ? error.message : String(error);
   if (/webgl|gpu|graphics context|context lost/i.test(message)) return "webgl";
   if (/401|403|unauthori[sz]ed|forbidden|api.?key/i.test(message)) return "style-auth";
+  if (/style_resources_empty|no base map sources|tiles were not rendered/i.test(message))
+    return "resources";
   if (/worker|securityerror|content security|csp/i.test(message)) return "worker";
   if (/network|fetch|load failed|failed to load|http/i.test(message)) return "style-network";
   return "runtime";
@@ -72,6 +81,8 @@ function failureNotice(code: MapFailureCode | null) {
       return "Geoapify nekade kartstilen. Kontrollera nyckelns tillåtna preview-domän. Felkod: STYLE-AUTH.";
     case "style-network":
       return "Kartstilen kunde inte hämtas från Geoapify. Felkod: STYLE-NETWORK.";
+    case "resources":
+      return "Kartstilen laddades men dess kartresurser kunde inte renderas. Felkod: RESOURCES.";
     case "worker":
       return "Kartmotorns worker blockerades av previewmiljön. Felkod: WORKER.";
     case "timeout":
@@ -294,16 +305,32 @@ export function PlaceMap({
     }
 
     void waitForMapLibre()
-      .then((mapLibre) => {
+      .then(async (mapLibre) => {
         if (cancelled || !element.isConnected) return;
 
         const fallback = { lat: 57.7089, lng: 11.9746 };
         const muted = readThemeColor("--muted", "#ece7df");
-        const style = geoapifyKey
-          ? `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`
-          : makeFallbackStyle(muted);
 
         try {
+          let style: StyleSpecification;
+          if (geoapifyKey) {
+            const styleUrl = `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`;
+            const response = await fetch(styleUrl, {
+              mode: "cors",
+              credentials: "omit",
+              cache: "no-store",
+            });
+            if (!response.ok) throw new Error(`Geoapify style HTTP ${response.status}`);
+            style = (await response.json()) as StyleSpecification;
+            if (
+              (style.layers?.length ?? 0) === 0 ||
+              Object.keys(style.sources ?? {}).length === 0
+            ) {
+              throw new Error("STYLE_RESOURCES_EMPTY: no base map sources or layers");
+            }
+          } else {
+            style = makeFallbackStyle(muted);
+          }
           const map = new mapLibre.Map({
             container: element,
             style,
@@ -337,24 +364,41 @@ export function PlaceMap({
           }, 15_000);
 
           const handleLoad = () => {
+            const renderedStyle = map.getStyle();
+            if (
+              geoapifyKey &&
+              ((renderedStyle.layers?.length ?? 0) === 0 ||
+                Object.keys(renderedStyle.sources ?? {}).length === 0)
+            ) {
+              setMapFailure("resources");
+              setMapStatus("error");
+              setTileStatus("error");
+              return;
+            }
             loaded = true;
             window.clearTimeout(loadTimeout);
             setMapStatus("ready");
             if (geoapifyKey) {
               setTileStatus("loading");
+              const resourceTimeout = window.setTimeout(() => {
+                if (!cancelled) {
+                  setMapFailure("resources");
+                  setMapStatus("error");
+                  setTileStatus("error");
+                }
+              }, 10_000);
               map.once("idle", () => {
+                window.clearTimeout(resourceTimeout);
                 if (!cancelled) setTileStatus("ready");
               });
-            } else {
-              setTileStatus("missing");
-            }
+            } else setTileStatus("missing");
             updateViewState();
             map.resize();
           };
           const handleError = (event: { error?: Error }) => {
             const failure = classifyMapFailure(event.error ?? event);
             console.error("[Matrundan] MapLibre-fel:", event.error ?? event);
-            if (!loaded && !cancelled) {
+            if (!cancelled) {
               setMapFailure(failure);
               setMapStatus("error");
               if (geoapifyKey) setTileStatus("error");
@@ -710,6 +754,8 @@ export function PlaceMap({
       data-map-lng={viewState?.lng ?? ""}
       data-map-tile-status={tileStatus}
       data-map-error-code={mapFailure ?? ""}
+      data-map-style-layer-count={mapRef.current?.getStyle().layers?.length ?? 0}
+      data-map-style-source-count={Object.keys(mapRef.current?.getStyle().sources ?? {}).length}
       data-clustering-disabled-at={CLUSTER_MAX_ZOOM + 1}
     >
       {tileStatus !== "ready" ? (
