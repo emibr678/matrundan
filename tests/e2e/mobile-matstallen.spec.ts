@@ -20,6 +20,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 
 async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getByRole"]>) {
   await expect(mapRegion).toHaveAttribute("data-map-ready", "true");
+  await expect(mapRegion.getByText("Laddar kartan...")).toBeHidden();
 
   const initialZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
   await mapRegion.getByRole("button", { name: "Zooma in kartan" }).click();
@@ -79,5 +80,6 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
   const searchMap = dialog.getByRole("region", { name: "Karta över sökresultat" });
   await expect(searchMap).toBeVisible();
   await expect(searchMap).toHaveAttribute("data-map-ready", "true");
+  await expect(searchMap.getByText("Laddar kartan...")).toBeHidden();
   await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");
 });
