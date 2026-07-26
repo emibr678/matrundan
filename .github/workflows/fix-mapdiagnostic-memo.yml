@@ -1,0 +1,43 @@
+name: Fix map diagnostic style identity
+
+on:
+  push:
+    paths:
+      - .github/workflows/fix-mapdiagnostic-memo.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Patch, verify and commit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/routes/mapdiagnostik.tsx')
+          text = path.read_text()
+          old = '  const [run, setRun] = React.useState(0);'
+          new = '  const localDiagnosticStyle = React.useMemo(() => localStyle(), []);\n  const [run, setRun] = React.useState(0);'
+          if old not in text:
+              raise SystemExit('run state anchor missing')
+          text = text.replace(old, new, 1)
+          old_style = '          style={localStyle()}'
+          if old_style not in text:
+              raise SystemExit('local style call missing')
+          text = text.replace(old_style, '          style={localDiagnosticStyle}', 1)
+          path.write_text(text)
+          PY
+          bun install --frozen-lockfile
+          bunx prettier --write src/routes/mapdiagnostik.tsx
+          bunx tsc --noEmit
+          bun run build
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/routes/mapdiagnostik.tsx src/routeTree.gen.ts
+          git rm .github/workflows/fix-mapdiagnostic-memo.yml
+          git commit -m "Stabilisera kartdiagnostikens lokala testkarta"
+          git push
