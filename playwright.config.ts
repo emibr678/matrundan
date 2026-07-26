@@ -6,10 +6,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI
-    ? [
-        ["line"],
-        ["html", { open: "never", outputFolder: "playwright-report" }],
-      ]
+    ? [["line"], ["html", { open: "never", outputFolder: "playwright-report" }]]
     : "list",
   use: {
     baseURL: "http://127.0.0.1:4173",
