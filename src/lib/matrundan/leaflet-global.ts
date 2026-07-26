@@ -3,7 +3,7 @@ import "leaflet/dist/leaflet.css";
 export type LatLngTuple = [number, number];
 export type LeafletHandler = () => void;
 
-type LeafletTarget = LeafletMap | LeafletLayerGroup;
+type LeafletTarget = LeafletMap | LeafletLayerGroup | LeafletMarkerClusterGroup;
 
 export interface LeafletLayer {
   addTo(target: LeafletTarget): this;
@@ -15,6 +15,12 @@ export interface LeafletLayer {
 export interface LeafletLayerGroup extends LeafletLayer {
   addLayer(layer: LeafletLayer): this;
 }
+
+export interface LeafletMarkerCluster {
+  getChildCount(): number;
+}
+
+export type LeafletMarkerClusterGroup = LeafletLayerGroup;
 
 export interface LeafletMap {
   setView(center: LatLngTuple, zoom: number, options?: Record<string, unknown>): this;
@@ -38,6 +44,7 @@ export interface LeafletApi {
   map(element: HTMLElement, options?: Record<string, unknown>): LeafletMap;
   tileLayer(url: string, options?: Record<string, unknown>): LeafletLayer;
   layerGroup(): LeafletLayerGroup;
+  markerClusterGroup(options?: Record<string, unknown>): LeafletMarkerClusterGroup;
   marker(position: LatLngTuple, options?: Record<string, unknown>): LeafletLayer;
   circle(position: LatLngTuple, options?: Record<string, unknown>): LeafletLayer;
   divIcon(options?: Record<string, unknown>): unknown;
@@ -51,8 +58,10 @@ export function waitForLeaflet(): Promise<LeafletApi> {
     return Promise.reject(new Error("Leaflet kan bara laddas i webbläsaren."));
   }
 
-  leafletPromise ??= import("leaflet").then(
-    (module) => (module.default ?? module) as unknown as LeafletApi,
-  );
+  leafletPromise ??= (async () => {
+    const module = await import("leaflet");
+    await import("leaflet.markercluster");
+    return (module.default ?? module) as unknown as LeafletApi;
+  })();
   return leafletPromise;
 }

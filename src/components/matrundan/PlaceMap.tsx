@@ -8,6 +8,8 @@ import {
   type LeafletLayer,
   type LeafletLayerGroup,
   type LeafletMap,
+  type LeafletMarkerCluster,
+  type LeafletMarkerClusterGroup,
 } from "@/lib/matrundan/leaflet-global";
 
 export interface PlaceMapItem {
@@ -34,30 +36,23 @@ interface PlaceMapProps {
 }
 
 const MIN_ZOOM = 3;
-const MAX_ZOOM = 20;
+const MAX_ZOOM = 18;
 const DEFAULT_ZOOM = 14;
+const DISABLE_CLUSTERING_AT_ZOOM = 17;
 const TRANSPARENT_TILE = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
-function escapeHtml(value: string) {
-  return value.replace(
-    /[&<>'"]/g,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        "'": "&#39;",
-        '"': "&quot;",
-      })[character] ?? character,
-  );
+function markerHtml(active: boolean) {
+  const size = active ? 34 : 30;
+  const dotSize = active ? 10 : 8;
+  const background = active ? "hsl(var(--primary))" : "hsl(var(--card))";
+  const foreground = active ? "hsl(var(--primary-foreground))" : "hsl(var(--primary))";
+
+  return `<span style="display:grid;width:${size}px;height:${size}px;place-items:center;border:2px solid hsl(var(--background));border-radius:9999px;background:${background};color:${foreground};box-shadow:0 4px 14px rgb(0 0 0 / .25);transition:width 120ms ease,height 120ms ease,background 120ms ease"><span style="display:block;width:${dotSize}px;height:${dotSize}px;border-radius:9999px;background:currentColor"></span></span>`;
 }
 
-function markerHtml(label: string, active: boolean) {
-  const background = active ? "hsl(var(--primary))" : "hsl(var(--card))";
-  const foreground = active ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))";
-  const scale = active ? "scale(1.1)" : "scale(1)";
-
-  return `<span style="display:grid;min-width:36px;height:36px;padding:0 10px;place-items:center;border:2px solid hsl(var(--background));border-radius:9999px;background:${background};color:${foreground};font:600 12px/1 ui-sans-serif,system-ui,sans-serif;box-shadow:0 4px 12px rgb(0 0 0 / .24);transform:${scale};transform-origin:center bottom;transition:transform 150ms ease">${escapeHtml(label)}</span>`;
+function clusterHtml(count: number) {
+  const size = count >= 100 ? 52 : count >= 10 ? 48 : 44;
+  return `<span data-cluster-count="${count}" style="display:grid;width:${size}px;height:${size}px;place-items:center;border:3px solid hsl(var(--background));border-radius:9999px;background:hsl(var(--primary));color:hsl(var(--primary-foreground));font:700 13px/1 ui-sans-serif,system-ui,sans-serif;box-shadow:0 5px 16px rgb(0 0 0 / .28)">${count}</span>`;
 }
 
 function centerMarkerHtml() {
@@ -89,9 +84,11 @@ export function PlaceMap({
   const mapElementRef = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<LeafletMap | null>(null);
   const leafletRef = React.useRef<LeafletApi | null>(null);
-  const contentLayerRef = React.useRef<LeafletLayerGroup | null>(null);
+  const overlayLayerRef = React.useRef<LeafletLayerGroup | null>(null);
+  const markerLayerRef = React.useRef<LeafletMarkerClusterGroup | null>(null);
   const tileLayerRef = React.useRef<LeafletLayer | null>(null);
   const tileHasLoadedRef = React.useRef(false);
+  const onSelectRef = React.useRef(onSelect);
   const [mapStatus, setMapStatus] = React.useState<"loading" | "ready" | "error">("loading");
   const [tileStatus, setTileStatus] = React.useState<"missing" | "loading" | "ready" | "error">(
     geoapifyKey ? "loading" : "missing",
@@ -101,6 +98,10 @@ export function PlaceMap({
     lng: number;
     zoom: number;
   } | null>(null);
+
+  React.useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
 
   const fitSignature = React.useMemo(
     () =>
@@ -134,6 +135,9 @@ export function PlaceMap({
           zoomSnap: 1,
           zoomDelta: 1,
           bounceAtZoomLimits: false,
+          zoomAnimation: false,
+          fadeAnimation: false,
+          markerZoomAnimation: false,
         });
         const updateViewState = () => {
           const mapCenter = map.getCenter();
@@ -162,10 +166,12 @@ export function PlaceMap({
 
     return () => {
       cancelled = true;
-      contentLayerRef.current?.remove();
+      overlayLayerRef.current?.remove();
+      markerLayerRef.current?.remove();
       tileLayerRef.current?.remove();
       mapRef.current?.remove();
-      contentLayerRef.current = null;
+      overlayLayerRef.current = null;
+      markerLayerRef.current = null;
       tileLayerRef.current = null;
       mapRef.current = null;
       leafletRef.current = null;
@@ -208,10 +214,10 @@ export function PlaceMap({
       apiKey: geoapifyKey,
       minZoom: MIN_ZOOM,
       maxZoom: MAX_ZOOM,
-      tileSize: 256,
-      keepBuffer: 4,
-      updateWhenIdle: false,
-      updateWhenZooming: true,
+      keepBuffer: 2,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      updateInterval: 250,
       errorTileUrl: TRANSPARENT_TILE,
     });
     const loadTimeout = window.setTimeout(() => {
@@ -274,7 +280,7 @@ export function PlaceMap({
     }
     const map = mapRef.current;
     const leaflet = leafletRef.current;
-    contentLayerRef.current?.remove();
+    overlayLayerRef.current?.remove();
     const group = leaflet.layerGroup().addTo(map);
 
     if (center && radiusKm) {
@@ -307,14 +313,49 @@ export function PlaceMap({
       );
     }
 
-    mappedItems.forEach((item, index) => {
+    overlayLayerRef.current = group;
+    return () => {
+      group.remove();
+      if (overlayLayerRef.current === group) overlayLayerRef.current = null;
+    };
+  }, [center, mapStatus, radiusKm]);
+
+  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
+      return;
+    }
+    const map = mapRef.current;
+    const leaflet = leafletRef.current;
+    markerLayerRef.current?.remove();
+    const clusterGroup = leaflet
+      .markerClusterGroup({
+        animate: false,
+        animateAddingMarkers: false,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        spiderfyOnMaxZoom: true,
+        spiderfyDistanceMultiplier: 1.3,
+        removeOutsideVisibleBounds: true,
+        disableClusteringAtZoom: DISABLE_CLUSTERING_AT_ZOOM,
+        maxClusterRadius: (zoom: number) => (zoom >= 15 ? 36 : zoom >= 13 ? 48 : 60),
+        iconCreateFunction: (cluster: LeafletMarkerCluster) =>
+          leaflet.divIcon({
+            html: clusterHtml(cluster.getChildCount()),
+            className: "matrundan-cluster-icon",
+            iconSize: [52, 52],
+            iconAnchor: [26, 26],
+          }),
+      })
+      .addTo(map);
+
+    mappedItems.forEach((item) => {
       const active = selected?.id === item.id;
       const marker = leaflet.marker([item.lat!, item.lng!], {
         icon: leaflet.divIcon({
-          html: markerHtml(String(item.markerLabel ?? index + 1), active),
-          className: "",
-          iconSize: [48, 46],
-          iconAnchor: [24, 42],
+          html: markerHtml(active),
+          className: "matrundan-place-marker",
+          iconSize: [38, 38],
+          iconAnchor: [19, 19],
         }),
         title: item.name,
         keyboard: true,
@@ -322,16 +363,16 @@ export function PlaceMap({
         riseOnHover: true,
         zIndexOffset: active ? 1000 : 0,
       });
-      marker.on("click", () => onSelect?.(item.id));
-      group.addLayer(marker);
+      marker.on("click", () => onSelectRef.current?.(item.id));
+      clusterGroup.addLayer(marker);
     });
 
-    contentLayerRef.current = group;
+    markerLayerRef.current = clusterGroup;
     return () => {
-      group.remove();
-      if (contentLayerRef.current === group) contentLayerRef.current = null;
+      clusterGroup.remove();
+      if (markerLayerRef.current === clusterGroup) markerLayerRef.current = null;
     };
-  }, [center, mappedItems, mapStatus, onSelect, radiusKm, selected]);
+  }, [mappedItems, mapStatus, selected]);
 
   if (mappedItems.length === 0 && !center) {
     return (
@@ -363,6 +404,8 @@ export function PlaceMap({
       data-map-zoom={viewState?.zoom ?? ""}
       data-map-lat={viewState?.lat ?? ""}
       data-map-lng={viewState?.lng ?? ""}
+      data-map-tile-status={tileStatus}
+      data-clustering-disabled-at={DISABLE_CLUSTERING_AT_ZOOM}
     >
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,hsl(var(--border))_1px,transparent_0)] bg-[size:24px_24px] opacity-70"

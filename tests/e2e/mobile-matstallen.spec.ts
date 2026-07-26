@@ -20,7 +20,8 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 
 async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getByRole"]>) {
   await expect(mapRegion).toHaveAttribute("data-map-ready", "true");
-  await expect(mapRegion.getByText("Laddar kartan...")).toBeHidden();
+  await expect(mapRegion).toHaveAttribute("data-map-tile-status", "ready");
+  await expect(mapRegion.getByText("Laddar kartan…")).toHaveCount(0);
 
   const initialZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
   await mapRegion.getByRole("button", { name: "Zooma in kartan" }).click();
@@ -56,6 +57,44 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
     .toBeGreaterThan(0.00001);
 }
 
+async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) {
+  const zoomOut = mapRegion.getByRole("button", { name: "Zooma ut kartan" });
+  const clusters = mapRegion.locator(".matrundan-cluster-icon");
+  const clusterCounts = clusters.locator("[data-cluster-count]");
+  const markers = mapRegion.locator(".matrundan-place-marker");
+
+  await expect(mapRegion).toHaveAttribute("data-clustering-disabled-at", "17");
+
+  for (let index = 0; index < 5; index += 1) {
+    const before = Number(await mapRegion.getAttribute("data-map-zoom"));
+    await zoomOut.click();
+    await expect
+      .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
+      .toBeLessThan(before);
+  }
+
+  await expect.poll(async () => clusters.count()).toBeGreaterThan(0);
+  const initialMembers = Number(
+    await clusters.first().locator("[data-cluster-count]").getAttribute("data-cluster-count"),
+  );
+  expect(initialMembers).toBeGreaterThan(1);
+
+  const clusterZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
+  await clusters.first().click({ force: true });
+  await expect
+    .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
+    .toBeGreaterThan(clusterZoom);
+  await expect.poll(async () => markers.count()).toBeGreaterThan(0);
+  await expect
+    .poll(async () => {
+      const counts = await clusterCounts.evaluateAll((elements) =>
+        elements.map((element) => Number(element.getAttribute("data-cluster-count") ?? 0)),
+      );
+      return counts.length > 0 ? Math.max(...counts) : 0;
+    })
+    .toBeLessThan(initialMembers);
+}
+
 test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
   let mapTileRequests = 0;
   await page.route("https://maps.geoapify.com/**", async (route) => {
@@ -87,6 +126,7 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
   await expect(firstTile).toBeVisible();
   await expect.poll(() => firstTile.getAttribute("crossorigin")).toBeNull();
   await expectInteractiveMap(page, placesMap);
+  await expectMarkerClustering(placesMap);
   await expectNoHorizontalOverflow(page, "Matställen i kartvy");
 
   await page.getByRole("button", { name: "Lägg till", exact: true }).click();
@@ -99,6 +139,7 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
   const searchMap = dialog.getByRole("region", { name: "Karta över sökresultat" });
   await expect(searchMap).toBeVisible();
   await expect(searchMap).toHaveAttribute("data-map-ready", "true");
-  await expect(searchMap.getByText("Laddar kartan...")).toBeHidden();
+  await expect(searchMap).toHaveAttribute("data-map-tile-status", "ready");
+  await expect(searchMap.getByText("Laddar kartan…")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");
 });
