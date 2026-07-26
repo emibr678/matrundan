@@ -42,28 +42,33 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
   expect(box).not.toBeNull();
   if (!box) return;
 
-  const startX = box.x + box.width * 0.25;
-  const startY = box.y + box.height * 0.45;
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [{ x: startX, y: startY }],
-  });
-  for (let step = 1; step <= 8; step += 1) {
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchMove",
-      touchPoints: [
-        {
-          x: startX + (70 * step) / 8,
-          y: startY + (30 * step) / 8,
-        },
-      ],
-    });
-  }
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchEnd",
-    touchPoints: [],
-  });
+  const dragPoint = await page.evaluate(
+    ({ x, y, width, height }) => {
+      const candidates = [
+        [0.15, 0.2],
+        [0.45, 0.2],
+        [0.15, 0.55],
+        [0.75, 0.55],
+      ];
+      for (const [xRatio, yRatio] of candidates) {
+        const candidateX = x + width * xRatio;
+        const candidateY = y + height * yRatio;
+        const target = document.elementFromPoint(candidateX, candidateY);
+        if (target?.classList.contains("maplibregl-canvas")) {
+          return { x: candidateX, y: candidateY };
+        }
+      }
+      return null;
+    },
+    box,
+  );
+  expect(dragPoint).not.toBeNull();
+  if (!dragPoint) return;
+
+  await page.mouse.move(dragPoint.x, dragPoint.y);
+  await page.mouse.down();
+  await page.mouse.move(dragPoint.x + 70, dragPoint.y + 30, { steps: 8 });
+  await page.mouse.up();
 
   await expect
     .poll(async () => {
