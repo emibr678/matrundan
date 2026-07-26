@@ -44,10 +44,26 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
 
   const startX = box.x + box.width * 0.25;
   const startY = box.y + box.height * 0.45;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.mouse.move(startX + 70, startY + 30, { steps: 8 });
-  await page.mouse.up();
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: startX, y: startY }],
+  });
+  for (let step = 1; step <= 8; step += 1) {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [
+        {
+          x: startX + (70 * step) / 8,
+          y: startY + (30 * step) / 8,
+        },
+      ],
+    });
+  }
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
 
   await expect
     .poll(async () => {
