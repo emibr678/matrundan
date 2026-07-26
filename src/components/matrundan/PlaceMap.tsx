@@ -1,6 +1,14 @@
 import * as React from "react";
-import { ArrowRight, LocateFixed, Minus, Plus } from "lucide-react";
+import { ArrowRight, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  waitForLeaflet,
+  type LatLngTuple,
+  type LeafletApi,
+  type LeafletLayer,
+  type LeafletLayerGroup,
+  type LeafletMap,
+} from "@/lib/matrundan/leaflet-global";
 
 export interface PlaceMapItem {
   id: string;
@@ -25,86 +33,35 @@ interface PlaceMapProps {
   ariaLabel?: string;
 }
 
-const TILE_SIZE = 256;
 const MIN_ZOOM = 3;
-const MAX_ZOOM = 17;
+const MAX_ZOOM = 20;
+const DEFAULT_ZOOM = 14;
+const TRANSPARENT_TILE = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
 
-type Point = { x: number; y: number };
-
-type MapFrame = {
-  center: Point;
-  centerLatLng: { lat: number; lng: number };
-  zoom: number;
-};
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
+function escapeHtml(value: string) {
+  return value.replace(
+    /[&<>'"]/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;",
+      })[character] ?? character,
+  );
 }
 
-function project(lat: number, lng: number, zoom: number): Point {
-  const scale = TILE_SIZE * 2 ** zoom;
-  const safeLat = clamp(lat, -85.05112878, 85.05112878);
-  const sin = Math.sin((safeLat * Math.PI) / 180);
-  return {
-    x: ((lng + 180) / 360) * scale,
-    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale,
-  };
+function markerHtml(label: string, active: boolean) {
+  const background = active ? "hsl(var(--primary))" : "hsl(var(--card))";
+  const foreground = active ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))";
+  const scale = active ? "scale(1.1)" : "scale(1)";
+
+  return `<span style="display:grid;min-width:36px;height:36px;padding:0 10px;place-items:center;border:2px solid hsl(var(--background));border-radius:9999px;background:${background};color:${foreground};font:600 12px/1 ui-sans-serif,system-ui,sans-serif;box-shadow:0 4px 12px rgb(0 0 0 / .24);transform:${scale};transform-origin:center bottom;transition:transform 150ms ease">${escapeHtml(label)}</span>`;
 }
 
-function unproject(point: Point, zoom: number) {
-  const scale = TILE_SIZE * 2 ** zoom;
-  const lng = (point.x / scale) * 360 - 180;
-  const y = 0.5 - point.y / scale;
-  const lat = 90 - (360 * Math.atan(Math.exp(-y * 2 * Math.PI))) / Math.PI;
-  return { lat, lng };
-}
-
-function fitFrame(
-  points: { lat: number; lng: number }[],
-  width: number,
-  height: number,
-  zoomOffset: number,
-): MapFrame {
-  const fallback = points[0] ?? { lat: 57.7089, lng: 11.9746 };
-  const usableWidth = Math.max(180, width - 96);
-  const usableHeight = Math.max(160, height - 150);
-  let fittedZoom = 13;
-
-  if (points.length > 1) {
-    for (let zoom = MAX_ZOOM; zoom >= MIN_ZOOM; zoom -= 1) {
-      const projected = points.map((point) => project(point.lat, point.lng, zoom));
-      const xs = projected.map((point) => point.x);
-      const ys = projected.map((point) => point.y);
-      if (
-        Math.max(...xs) - Math.min(...xs) <= usableWidth &&
-        Math.max(...ys) - Math.min(...ys) <= usableHeight
-      ) {
-        fittedZoom = zoom;
-        break;
-      }
-    }
-  }
-
-  const zoom = clamp(fittedZoom + zoomOffset, MIN_ZOOM, MAX_ZOOM);
-  const projected = points.map((point) => project(point.lat, point.lng, zoom));
-  const center = projected.length
-    ? {
-        x:
-          (Math.min(...projected.map((point) => point.x)) +
-            Math.max(...projected.map((point) => point.x))) /
-          2,
-        y:
-          (Math.min(...projected.map((point) => point.y)) +
-            Math.max(...projected.map((point) => point.y))) /
-          2,
-      }
-    : project(fallback.lat, fallback.lng, zoom);
-
-  return { center, centerLatLng: unproject(center, zoom), zoom };
-}
-
-function metersPerPixel(lat: number, zoom: number) {
-  return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom;
+function centerMarkerHtml() {
+  return `<span style="display:grid;width:28px;height:28px;place-items:center;border:2px solid hsl(var(--background));border-radius:9999px;background:hsl(var(--primary));color:hsl(var(--primary-foreground));box-shadow:0 3px 10px rgb(0 0 0 / .22)" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="m4.93 4.93 2.12 2.12"></path><path d="m16.95 16.95 2.12 2.12"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m6.34 17.66-2.12 2.12"></path><path d="m19.78 4.22-2.12 2.12"></path></svg></span>`;
 }
 
 export function PlaceMap({
@@ -123,60 +80,252 @@ export function PlaceMap({
     () => items.filter((item) => item.lat != null && item.lng != null),
     [items],
   );
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [size, setSize] = React.useState({ width: 720, height: 420 });
-  const [zoomOffset, setZoomOffset] = React.useState(0);
+  const selected = mappedItems.find((item) => item.id === selectedId) ?? mappedItems[0] ?? null;
+  const geoapifyKey = (
+    import.meta as ImportMeta & {
+      env?: { VITE_GEOAPIFY_MAPS_KEY?: string };
+    }
+  ).env?.VITE_GEOAPIFY_MAPS_KEY;
+  const mapElementRef = React.useRef<HTMLDivElement>(null);
+  const mapRef = React.useRef<LeafletMap | null>(null);
+  const leafletRef = React.useRef<LeafletApi | null>(null);
+  const contentLayerRef = React.useRef<LeafletLayerGroup | null>(null);
+  const tileLayerRef = React.useRef<LeafletLayer | null>(null);
+  const tileHasLoadedRef = React.useRef(false);
+  const [mapStatus, setMapStatus] = React.useState<"loading" | "ready" | "error">("loading");
+  const [tileStatus, setTileStatus] = React.useState<"missing" | "loading" | "ready" | "error">(
+    geoapifyKey ? "loading" : "missing",
+  );
+  const [viewState, setViewState] = React.useState<{
+    lat: number;
+    lng: number;
+    zoom: number;
+  } | null>(null);
+
+  const fitSignature = React.useMemo(
+    () =>
+      [
+        ...mappedItems.map((item) => `${item.id}:${item.lat}:${item.lng}`),
+        center ? `center:${center.lat}:${center.lng}` : "",
+      ].join("|"),
+    [mappedItems, center],
+  );
 
   React.useEffect(() => {
-    const element = containerRef.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (!entry) return;
-      setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
+    let cancelled = false;
+    const element = mapElementRef.current;
+    if (!element) return;
+
+    void waitForLeaflet()
+      .then((leaflet) => {
+        if (cancelled || !mapElementRef.current) return;
+        const fallback = { lat: 57.7089, lng: 11.9746 };
+        const map = leaflet.map(mapElementRef.current, {
+          attributionControl: false,
+          zoomControl: false,
+          dragging: true,
+          touchZoom: true,
+          scrollWheelZoom: true,
+          doubleClickZoom: true,
+          keyboard: true,
+          boxZoom: false,
+          minZoom: MIN_ZOOM,
+          maxZoom: MAX_ZOOM,
+          zoomSnap: 1,
+          zoomDelta: 1,
+          bounceAtZoomLimits: false,
+        });
+        const updateViewState = () => {
+          const mapCenter = map.getCenter();
+          setViewState({
+            lat: mapCenter.lat,
+            lng: mapCenter.lng,
+            zoom: map.getZoom(),
+          });
+        };
+
+        map.setView([fallback.lat, fallback.lng], DEFAULT_ZOOM, {
+          animate: false,
+        });
+        map.on("moveend", updateViewState);
+        map.on("zoomend", updateViewState);
+        updateViewState();
+        mapRef.current = map;
+        leafletRef.current = leaflet;
+        setMapStatus("ready");
+        requestAnimationFrame(() => map.invalidateSize({ animate: false }));
+      })
+      .catch((error) => {
+        console.error("[Matrundan] Leaflet kunde inte startas:", error);
+        if (!cancelled) setMapStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+      contentLayerRef.current?.remove();
+      tileLayerRef.current?.remove();
+      mapRef.current?.remove();
+      contentLayerRef.current = null;
+      tileLayerRef.current = null;
+      mapRef.current = null;
+      leafletRef.current = null;
+    };
   }, []);
 
-  React.useEffect(() => setZoomOffset(0), [items]);
-
-  const fitPoints = React.useMemo(() => {
-    const points = mappedItems.map((item) => ({ lat: item.lat!, lng: item.lng! }));
-    if (center) points.push(center);
-    return points;
-  }, [mappedItems, center]);
-
-  const frame = React.useMemo(
-    () => fitFrame(fitPoints, size.width, size.height, zoomOffset),
-    [fitPoints, size.width, size.height, zoomOffset],
-  );
-
-  const selected = mappedItems.find((item) => item.id === selectedId) ?? mappedItems[0] ?? null;
-  const geoapifyKey = (import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } })
-    .env?.VITE_GEOAPIFY_MAPS_KEY;
-  const tileCount = 2 ** frame.zoom;
-  const minTileX = Math.floor((frame.center.x - size.width / 2) / TILE_SIZE) - 1;
-  const maxTileX = Math.floor((frame.center.x + size.width / 2) / TILE_SIZE) + 1;
-  const minTileY = Math.max(0, Math.floor((frame.center.y - size.height / 2) / TILE_SIZE) - 1);
-  const maxTileY = Math.min(
-    tileCount - 1,
-    Math.floor((frame.center.y + size.height / 2) / TILE_SIZE) + 1,
-  );
-  const tiles: { x: number; y: number; displayX: number; key: string }[] = [];
-  for (let x = minTileX; x <= maxTileX; x += 1) {
-    for (let y = minTileY; y <= maxTileY; y += 1) {
-      const wrappedX = ((x % tileCount) + tileCount) % tileCount;
-      tiles.push({ x: wrappedX, y, displayX: x, key: `${x}:${y}` });
+  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapElementRef.current || !mapRef.current) {
+      return;
     }
-  }
+    if (typeof ResizeObserver === "undefined") return;
+    const map = mapRef.current;
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize({ animate: false });
+    });
+    observer.observe(mapElementRef.current);
+    return () => observer.disconnect();
+  }, [mapStatus]);
 
-  const radiusPixels =
-    center && radiusKm
-      ? Math.min(
-          Math.max((radiusKm * 1000) / metersPerPixel(center.lat, frame.zoom), 8),
-          Math.max(size.width, size.height) * 1.5,
-        )
-      : 0;
+  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
+      return;
+    }
+    const map = mapRef.current;
+    const leaflet = leafletRef.current;
+    tileLayerRef.current?.remove();
+    tileLayerRef.current = null;
+    tileHasLoadedRef.current = false;
+
+    if (!geoapifyKey) {
+      setTileStatus("missing");
+      return;
+    }
+
+    setTileStatus("loading");
+    const suffix = leaflet.Browser.retina ? "@2x" : "";
+    const tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}${suffix}.png?apiKey=${encodeURIComponent(geoapifyKey)}`;
+    const tileLayer = leaflet.tileLayer(tileUrl, {
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+      tileSize: 256,
+      keepBuffer: 4,
+      updateWhenIdle: false,
+      updateWhenZooming: true,
+      crossOrigin: true,
+      errorTileUrl: TRANSPARENT_TILE,
+    });
+    const handleTileLoad = () => {
+      tileHasLoadedRef.current = true;
+      setTileStatus("ready");
+    };
+    const handleTileError = () => {
+      if (!tileHasLoadedRef.current) setTileStatus("error");
+    };
+
+    tileLayer.on("tileload", handleTileLoad);
+    tileLayer.on("tileerror", handleTileError);
+    tileLayer.addTo(map);
+    tileLayerRef.current = tileLayer;
+
+    return () => {
+      tileLayer.off("tileload", handleTileLoad);
+      tileLayer.off("tileerror", handleTileError);
+      tileLayer.remove();
+      if (tileLayerRef.current === tileLayer) tileLayerRef.current = null;
+    };
+  }, [geoapifyKey, mapStatus]);
+
+  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
+      return;
+    }
+    const map = mapRef.current;
+    const leaflet = leafletRef.current;
+    const points: LatLngTuple[] = mappedItems.map((item) => [item.lat!, item.lng!]);
+    if (center) points.push([center.lat, center.lng]);
+    if (points.length === 0) return;
+
+    requestAnimationFrame(() => {
+      map.invalidateSize({ animate: false });
+      if (points.length === 1) {
+        map.setView(points[0], DEFAULT_ZOOM, { animate: false });
+        return;
+      }
+      const bounds = leaflet.latLngBounds(points);
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, {
+          paddingTopLeft: [48, 48],
+          paddingBottomRight: [48, mappedItems.length > 0 ? 164 : 72],
+          maxZoom: 15,
+          animate: false,
+        });
+      }
+    });
+  }, [fitSignature, mapStatus, mappedItems.length]);
+
+  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
+      return;
+    }
+    const map = mapRef.current;
+    const leaflet = leafletRef.current;
+    contentLayerRef.current?.remove();
+    const group = leaflet.layerGroup().addTo(map);
+
+    if (center && radiusKm) {
+      group.addLayer(
+        leaflet.circle([center.lat, center.lng], {
+          radius: radiusKm * 1000,
+          color: "hsl(var(--primary))",
+          weight: 2,
+          opacity: 0.65,
+          fillColor: "hsl(var(--primary))",
+          fillOpacity: 0.1,
+          interactive: false,
+        }),
+      );
+    }
+
+    if (center) {
+      group.addLayer(
+        leaflet.marker([center.lat, center.lng], {
+          icon: leaflet.divIcon({
+            html: centerMarkerHtml(),
+            className: "",
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          }),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: 500,
+        }),
+      );
+    }
+
+    mappedItems.forEach((item, index) => {
+      const active = selected?.id === item.id;
+      const marker = leaflet.marker([item.lat!, item.lng!], {
+        icon: leaflet.divIcon({
+          html: markerHtml(String(item.markerLabel ?? index + 1), active),
+          className: "",
+          iconSize: [48, 46],
+          iconAnchor: [24, 42],
+        }),
+        title: item.name,
+        keyboard: true,
+        interactive: true,
+        riseOnHover: true,
+        zIndexOffset: active ? 1000 : 0,
+      });
+      marker.on("click", () => onSelect?.(item.id));
+      group.addLayer(marker);
+    });
+
+    contentLayerRef.current = group;
+    return () => {
+      group.remove();
+      if (contentLayerRef.current === group) contentLayerRef.current = null;
+    };
+  }, [center, mappedItems, mapStatus, onSelect, radiusKm, selected]);
 
   if (mappedItems.length === 0 && !center) {
     return (
@@ -188,108 +337,51 @@ export function PlaceMap({
     );
   }
 
+  const notice =
+    mapStatus === "error"
+      ? "Kartan kunde inte startas. Ladda om sidan och försök igen."
+      : tileStatus === "missing"
+        ? "Kartbakgrunden visas när en domänbegränsad Geoapify-nyckel är konfigurerad."
+        : tileStatus === "error"
+          ? "Kartbakgrunden kunde inte laddas. Kontrollera Geoapify-nyckelns domänregler."
+          : tileStatus === "loading"
+            ? "Laddar kartan…"
+            : null;
+
   return (
     <div
-      ref={containerRef}
       className={`relative min-h-[320px] overflow-hidden rounded-2xl border border-border/70 bg-muted ${className ?? ""}`}
       role="region"
       aria-label={ariaLabel}
+      data-map-ready={mapStatus === "ready"}
+      data-map-zoom={viewState?.zoom ?? ""}
+      data-map-lat={viewState?.lat ?? ""}
+      data-map-lng={viewState?.lng ?? ""}
     >
-      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        {geoapifyKey ? (
-          tiles.map((tile) => {
-            const left = tile.displayX * TILE_SIZE - frame.center.x + size.width / 2;
-            const top = tile.y * TILE_SIZE - frame.center.y + size.height / 2;
-            const src = `https://maps.geoapify.com/v1/tile/osm-bright/${frame.zoom}/${tile.x}/${tile.y}.png?apiKey=${encodeURIComponent(geoapifyKey)}`;
-            return (
-              <img
-                key={tile.key}
-                src={src}
-                alt=""
-                draggable={false}
-                className="pointer-events-none absolute h-64 w-64 max-w-none select-none"
-                style={{ left, top }}
-              />
-            );
-          })
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,hsl(var(--border))_1px,transparent_0)] bg-[size:24px_24px] opacity-70" />
-        )}
-      </div>
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,hsl(var(--border))_1px,transparent_0)] bg-[size:24px_24px] opacity-70"
+        aria-hidden="true"
+      />
+      <div
+        ref={mapElementRef}
+        className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"
+        aria-label="Interaktiv karta. Dra för att flytta och nyp för att zooma."
+      />
 
-      {!geoapifyKey ? (
-        <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-[calc(100%-5.5rem)] rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-xs text-muted-foreground shadow-sm backdrop-blur">
-          Kartbakgrunden visas när en domänbegränsad Geoapify-nyckel är konfigurerad.
+      {notice ? (
+        <div className="pointer-events-none absolute left-3 top-3 z-[1000] max-w-[calc(100%-5.5rem)] rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-xs text-muted-foreground shadow-sm backdrop-blur">
+          {notice}
         </div>
       ) : null}
 
-      {center && radiusPixels > 0 ? (
-        <div
-          className="pointer-events-none absolute rounded-full border-2 border-primary/60 bg-primary/10"
-          style={{
-            width: radiusPixels * 2,
-            height: radiusPixels * 2,
-            left:
-              project(center.lat, center.lng, frame.zoom).x -
-              frame.center.x +
-              size.width / 2 -
-              radiusPixels,
-            top:
-              project(center.lat, center.lng, frame.zoom).y -
-              frame.center.y +
-              size.height / 2 -
-              radiusPixels,
-          }}
-          aria-hidden="true"
-        />
-      ) : null}
-
-      {center ? (
-        <div
-          className="pointer-events-none absolute grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow"
-          style={{
-            left: project(center.lat, center.lng, frame.zoom).x - frame.center.x + size.width / 2,
-            top: project(center.lat, center.lng, frame.zoom).y - frame.center.y + size.height / 2,
-          }}
-          title="Sökcentrum"
-        >
-          <LocateFixed className="h-4 w-4" />
-        </div>
-      ) : null}
-
-      {mappedItems.map((item, index) => {
-        const point = project(item.lat!, item.lng!, frame.zoom);
-        const active = selected?.id === item.id;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onSelect?.(item.id)}
-            className={[
-              "absolute grid h-9 min-w-9 -translate-x-1/2 -translate-y-full place-items-center rounded-full border-2 px-2 text-xs font-semibold shadow-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              active
-                ? "z-20 scale-110 border-background bg-primary text-primary-foreground"
-                : "z-10 border-background bg-card text-foreground hover:scale-105",
-            ].join(" ")}
-            style={{
-              left: point.x - frame.center.x + size.width / 2,
-              top: point.y - frame.center.y + size.height / 2,
-            }}
-            aria-label={`Visa ${item.name}`}
-            aria-pressed={active}
-          >
-            {item.markerLabel ?? index + 1}
-          </button>
-        );
-      })}
-
-      <div className="absolute right-3 top-3 z-30 flex flex-col gap-1 rounded-xl border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur">
+      <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-1 rounded-xl border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur">
         <Button
           type="button"
           size="icon"
           variant="ghost"
           className="h-9 w-9"
-          onClick={() => setZoomOffset((value) => clamp(value + 1, -4, 4))}
+          onClick={() => mapRef.current?.zoomIn(1)}
+          disabled={mapStatus !== "ready"}
           aria-label="Zooma in kartan"
         >
           <Plus className="h-4 w-4" />
@@ -299,7 +391,8 @@ export function PlaceMap({
           size="icon"
           variant="ghost"
           className="h-9 w-9"
-          onClick={() => setZoomOffset((value) => clamp(value - 1, -4, 4))}
+          onClick={() => mapRef.current?.zoomOut(1)}
+          disabled={mapStatus !== "ready"}
           aria-label="Zooma ut kartan"
         >
           <Minus className="h-4 w-4" />
@@ -307,7 +400,7 @@ export function PlaceMap({
       </div>
 
       {selected ? (
-        <div className="absolute inset-x-3 bottom-8 z-30 rounded-2xl border border-border/70 bg-background/95 p-3 shadow-lg backdrop-blur">
+        <div className="absolute inset-x-3 bottom-8 z-[1000] rounded-2xl border border-border/70 bg-background/95 p-3 shadow-lg backdrop-blur">
           <div className="flex min-w-0 items-center gap-3">
             <div className="min-w-0 flex-1">
               {selected.eyebrow ? (
@@ -335,7 +428,7 @@ export function PlaceMap({
         </div>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 z-20 bg-background/85 px-2 py-1 text-center text-[10px] text-muted-foreground backdrop-blur-sm">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] bg-background/85 px-2 py-1 text-center text-[10px] text-muted-foreground backdrop-blur-sm">
         {geoapifyKey
           ? "Kartbilder © Geoapify · Kartdata © OpenStreetMap-bidragsgivare"
           : "Kartpositioner visas utan extern kartbakgrund"}

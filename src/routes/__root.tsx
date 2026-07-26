@@ -10,6 +10,14 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "@/components/matrundan/AppShell";
+import {
+  LEAFLET_CSS_ID,
+  LEAFLET_CSS_INTEGRITY,
+  LEAFLET_CSS_URL,
+  LEAFLET_SCRIPT_ID,
+  LEAFLET_SCRIPT_INTEGRITY,
+  LEAFLET_SCRIPT_URL,
+} from "@/lib/matrundan/leaflet-global";
 
 function NotFoundComponent() {
   return (
@@ -98,6 +106,20 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="sv">
       <head>
         <HeadContent />
+        <link
+          id={LEAFLET_CSS_ID}
+          rel="stylesheet"
+          href={LEAFLET_CSS_URL}
+          integrity={LEAFLET_CSS_INTEGRITY}
+          crossOrigin="anonymous"
+        />
+        <script
+          id={LEAFLET_SCRIPT_ID}
+          src={LEAFLET_SCRIPT_URL}
+          integrity={LEAFLET_SCRIPT_INTEGRITY}
+          crossOrigin="anonymous"
+          defer
+        />
       </head>
       <body>
         <RootProviders>{children}</RootProviders>
