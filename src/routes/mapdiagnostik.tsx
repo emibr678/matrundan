@@ -314,22 +314,22 @@ function DiagnosticMap({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-muted">
-      <div ref={elementRef} className="h-[260px] w-full [&_.maplibregl-canvas]:!h-full [&_.maplibregl-canvas]:!w-full [&_.maplibregl-canvas]:!max-w-none" />
+      <div
+        ref={elementRef}
+        className="h-[260px] w-full [&_.maplibregl-canvas]:!h-full [&_.maplibregl-canvas]:!w-full [&_.maplibregl-canvas]:!max-w-none"
+      />
     </div>
   );
 }
 
 function MapDiagnosticsPage() {
-  const key = (
-    import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } }
-  ).env?.VITE_GEOAPIFY_MAPS_KEY;
+  const key = (import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } }).env
+    ?.VITE_GEOAPIFY_MAPS_KEY;
   const styleUrl = React.useMemo(
-    () =>
-      key
-        ? `https://maps.geoapify.com${STYLE_PATH}?apiKey=${encodeURIComponent(key)}`
-        : "",
+    () => (key ? `https://maps.geoapify.com${STYLE_PATH}?apiKey=${encodeURIComponent(key)}` : ""),
     [key],
   );
+  const localDiagnosticStyle = React.useMemo(() => localStyle(), []);
   const [run, setRun] = React.useState(0);
   const [localMap, setLocalMap] = React.useState<MapLibreMap | null>(null);
   const [geoMap, setGeoMap] = React.useState<MapLibreMap | null>(null);
@@ -400,7 +400,11 @@ function MapDiagnosticsPage() {
           const tileJsonUrl = sourceUrl(source);
           if (tileJsonUrl) {
             const absoluteTileJsonUrl = new URL(tileJsonUrl, styleUrl).toString();
-            const tileJsonProbe = await fetchProbe(`TileJSON: ${sourceId}`, absoluteTileJsonUrl, key);
+            const tileJsonProbe = await fetchProbe(
+              `TileJSON: ${sourceId}`,
+              absoluteTileJsonUrl,
+              key,
+            );
             results.push(tileJsonProbe);
             if (tileJsonProbe.state === "success") {
               const tileJsonResponse = await fetch(absoluteTileJsonUrl, {
@@ -476,9 +480,10 @@ function MapDiagnosticsPage() {
       ? (canvas.getContext("webgl2") as WebGL2RenderingContext | null) ||
         (canvas.getContext("webgl") as WebGLRenderingContext | null)
       : null;
-    const debugInfo = gl?.getExtension("WEBGL_debug_renderer_info") as
-      | { UNMASKED_VENDOR_WEBGL: number; UNMASKED_RENDERER_WEBGL: number }
-      | null;
+    const debugInfo = gl?.getExtension("WEBGL_debug_renderer_info") as {
+      UNMASKED_VENDOR_WEBGL: number;
+      UNMASKED_RENDERER_WEBGL: number;
+    } | null;
     const style = map?.getStyle();
     const sources = Object.keys(style?.sources ?? {});
     const resourceEntries = performance
@@ -590,7 +595,8 @@ function MapDiagnosticsPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold">Kartdiagnostik</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Tillfällig intern sida. Den jämför lokal MapLibre-rendering med Geoapifys vektor- och rasterresurser. API-nyckeln visas aldrig i rapporten.
+          Tillfällig intern sida. Den jämför lokal MapLibre-rendering med Geoapifys vektor- och
+          rasterresurser. API-nyckeln visas aldrig i rapporten.
         </p>
       </div>
 
@@ -613,7 +619,7 @@ function MapDiagnosticsPage() {
         <DiagnosticMap
           key={`local-${run}`}
           kind="local"
-          style={localStyle()}
+          style={localDiagnosticStyle}
           onMap={handleLocalMap}
           onResult={handleLocalResult}
           onError={addError}
