@@ -99,6 +99,7 @@ const CLUSTER_MAX_ZOOM = 16;
 const PLACE_SOURCE_ID = "matrundan-places";
 const CLUSTER_LAYER_ID = "matrundan-clusters";
 const POINT_LAYER_ID = "matrundan-points";
+const LABEL_LAYER_ID = "matrundan-place-labels";
 const SELECTED_SOURCE_ID = "matrundan-selected-place";
 const SELECTED_LAYER_ID = "matrundan-selected-place-point";
 const RADIUS_SOURCE_ID = "matrundan-radius";
@@ -444,7 +445,7 @@ export function PlaceMap({
     const map = mapRef.current;
     const mapLibre = mapLibreRef.current;
     const primary = readThemeColor("--primary", "#c96342");
-    const card = readThemeColor("--card", "#fffdf8");
+    const ink = readThemeColor("--foreground", "#3d2d27");
     const background = readThemeColor("--background", "#fbf5e8");
 
     if (!map.getSource(RADIUS_SOURCE_ID)) {
@@ -503,10 +504,34 @@ export function PlaceMap({
         source: PLACE_SOURCE_ID,
         filter: ["!", ["has", "point_count"]],
         paint: {
-          "circle-radius": 7,
-          "circle-color": card,
+          "circle-radius": 8,
+          "circle-color": primary,
+          "circle-opacity": 1,
           "circle-stroke-color": background,
           "circle-stroke-width": 3,
+        },
+      });
+      map.addLayer({
+        id: LABEL_LAYER_ID,
+        type: "symbol",
+        source: PLACE_SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        minzoom: 15,
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": ["Noto Sans Regular"],
+          "text-size": 12,
+          "text-variable-anchor": ["left", "right", "top", "bottom"],
+          "text-radial-offset": 1.1,
+          "text-justify": "auto",
+          "text-allow-overlap": false,
+          "text-ignore-placement": false,
+        },
+        paint: {
+          "text-color": ink,
+          "text-halo-color": background,
+          "text-halo-width": 2,
+          "text-halo-blur": 0.5,
         },
       });
     }
@@ -518,13 +543,23 @@ export function PlaceMap({
         type: "circle",
         source: SELECTED_SOURCE_ID,
         paint: {
-          "circle-radius": 9,
+          "circle-radius": 11,
           "circle-color": primary,
+          "circle-opacity": 1,
           "circle-stroke-color": background,
-          "circle-stroke-width": 3,
+          "circle-stroke-width": 5,
         },
       });
     }
+
+    mapElementRef.current.parentElement?.setAttribute(
+      "data-map-point-visual",
+      "primary-pin",
+    );
+    mapElementRef.current.parentElement?.setAttribute(
+      "data-map-label-layer",
+      map.getLayer(LABEL_LAYER_ID) ? "ready" : "missing",
+    );
 
     const syncClusters = () => {
       if (!map.getLayer(CLUSTER_LAYER_ID)) return;
