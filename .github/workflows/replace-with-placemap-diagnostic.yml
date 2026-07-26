@@ -1,0 +1,162 @@
+name: Replace failed canvas hypothesis with PlaceMap diagnostic
+
+on:
+  push:
+    branches: [fix/placemap-canvas-rendering]
+    paths:
+      - .github/workflows/replace-with-placemap-diagnostic.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/placemap-canvas-rendering
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+      - name: Restore PlaceMap and add isolated component diagnostic
+        run: |
+          git fetch origin main
+          git checkout origin/main -- src/components/matrundan/PlaceMap.tsx
+          git rm -f tests/e2e/placemap-canvas-regression.spec.ts
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/routes/mapdiagnostik.tsx')
+          text = path.read_text()
+
+          import_anchor = 'import { Button } from "@/components/ui/button";\n'
+          if 'import { PlaceMap }' not in text:
+              if import_anchor not in text:
+                  raise SystemExit('PlaceMap import anchor missing')
+              text = text.replace(
+                  import_anchor,
+                  import_anchor + 'import { PlaceMap } from "@/components/matrundan/PlaceMap";\n',
+                  1,
+              )
+
+          constants_anchor = 'const GEO_PROBE_LAYER_ID = "diagnostic-geo-probe-layer";\n'
+          place_items = '''const PLACE_MAP_PROBE_ITEMS = [
+            {
+              id: "diagnostic-place-1",
+              name: "Sockenplans testställe",
+              lat: TEST_CENTER.lat,
+              lng: TEST_CENTER.lng,
+              eyebrow: "Diagnostik",
+              description: "Matrundans riktiga PlaceMap-komponent",
+            },
+            {
+              id: "diagnostic-place-2",
+              name: "Enskede testkök",
+              lat: 59.2921,
+              lng: 18.0962,
+              eyebrow: "Diagnostik",
+              description: "Andra punkten verifierar lager och kameran",
+            },
+          ];
+'''
+          if 'const PLACE_MAP_PROBE_ITEMS' not in text:
+              if constants_anchor not in text:
+                  raise SystemExit('PlaceMap constants anchor missing')
+              text = text.replace(constants_anchor, constants_anchor + place_items, 1)
+
+          copy_anchor = '  async function copyReport() {\n    const text = JSON.stringify(report, null, 2);\n'
+          copy_replacement = '''  async function copyReport() {
+            const placeMapRegion = document.querySelector<HTMLElement>(
+              '[data-diagnostic-place-map] [data-map-renderer="maplibre-vector"]',
+            );
+            const placeMapCanvas = placeMapRegion?.querySelector<HTMLCanvasElement>(
+              "canvas.maplibregl-canvas",
+            );
+            const placeMapRect = placeMapRegion?.getBoundingClientRect();
+            const placeMapCanvasRect = placeMapCanvas?.getBoundingClientRect();
+            const placeMapCanvasStyle = placeMapCanvas ? window.getComputedStyle(placeMapCanvas) : null;
+            const text = JSON.stringify(
+              {
+                ...report,
+                placeMap: {
+                  present: Boolean(placeMapRegion),
+                  ready: placeMapRegion?.dataset.mapReady ?? null,
+                  tileStatus: placeMapRegion?.dataset.mapTileStatus ?? null,
+                  errorCode: placeMapRegion?.dataset.mapErrorCode ?? null,
+                  layerCount: placeMapRegion?.dataset.mapStyleLayerCount ?? null,
+                  sourceCount: placeMapRegion?.dataset.mapStyleSourceCount ?? null,
+                  zoom: placeMapRegion?.dataset.mapZoom ?? null,
+                  regionRect: placeMapRect
+                    ? { width: Math.round(placeMapRect.width), height: Math.round(placeMapRect.height) }
+                    : null,
+                  canvasRect: placeMapCanvasRect
+                    ? {
+                        width: Math.round(placeMapCanvasRect.width),
+                        height: Math.round(placeMapCanvasRect.height),
+                      }
+                    : null,
+                  canvasAttributeSize: placeMapCanvas
+                    ? { width: placeMapCanvas.width, height: placeMapCanvas.height }
+                    : null,
+                  canvasCss: placeMapCanvasStyle
+                    ? {
+                        width: placeMapCanvasStyle.width,
+                        height: placeMapCanvasStyle.height,
+                        display: placeMapCanvasStyle.display,
+                        visibility: placeMapCanvasStyle.visibility,
+                        opacity: placeMapCanvasStyle.opacity,
+                      }
+                    : null,
+                },
+              },
+              null,
+              2,
+            );
+'''
+          if 'data-diagnostic-place-map' not in text:
+              if copy_anchor not in text:
+                  raise SystemExit('copyReport anchor missing')
+              text = text.replace(copy_anchor, copy_replacement, 1)
+
+          summary_anchor = '''      <section className="space-y-3">
+                <h2 className="font-display text-xl font-semibold">4. Sammanfattning</h2>
+'''
+          diagnostic_section = '''      <section className="space-y-3" data-diagnostic-place-map>
+                <h2 className="font-display text-xl font-semibold">4. Matrundans PlaceMap</h2>
+                <p className="text-sm text-muted-foreground">
+                  Samma komponent som används i Matställen och Lägg till, men monterad i en stabil sida utan dialog eller vyväxling.
+                </p>
+                <PlaceMap
+                  items={PLACE_MAP_PROBE_ITEMS}
+                  selectedId="diagnostic-place-1"
+                  center={TEST_CENTER}
+                  radiusKm={1}
+                  className="h-[360px]"
+                  ariaLabel="Diagnostisk PlaceMap"
+                />
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="font-display text-xl font-semibold">5. Sammanfattning</h2>
+'''
+          if '4. Matrundans PlaceMap' not in text:
+              if summary_anchor not in text:
+                  raise SystemExit('summary section anchor missing')
+              text = text.replace(summary_anchor, diagnostic_section, 1)
+
+          path.write_text(text)
+          PY
+
+          bun install --frozen-lockfile
+          bunx prettier --write src/routes/mapdiagnostik.tsx
+          bunx tsc --noEmit
+          bunx eslint src/routes/mapdiagnostik.tsx
+          bun run build
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/matrundan/PlaceMap.tsx src/routes/mapdiagnostik.tsx
+          git rm .github/workflows/replace-with-placemap-diagnostic.yml
+          git commit -m "Isolera PlaceMap i kartdiagnostiken"
+          git push
