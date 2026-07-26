@@ -1,0 +1,159 @@
+name: Apply Package 4A.3 tile hotfix
+
+on:
+  push:
+    branches:
+      - fix/package-4a3-geoapify-tiles
+    paths:
+      - .github/workflows/apply-package-4a3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/package-4a3-geoapify-tiles
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Apply Geoapify tile hotfix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          place_map = Path("src/components/matrundan/PlaceMap.tsx")
+          text = place_map.read_text()
+          old = '''    setTileStatus("loading");
+              const suffix = leaflet.Browser.retina ? "@2x" : "";
+              const tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}${suffix}.png?apiKey=${encodeURIComponent(geoapifyKey)}`;
+              const tileLayer = leaflet.tileLayer(tileUrl, {
+                minZoom: MIN_ZOOM,
+                maxZoom: MAX_ZOOM,
+                tileSize: 256,
+                keepBuffer: 4,
+                updateWhenIdle: false,
+                updateWhenZooming: true,
+                crossOrigin: true,
+                errorTileUrl: TRANSPARENT_TILE,
+              });
+              const handleTileLoad = () => {
+                tileHasLoadedRef.current = true;
+                setTileStatus("ready");
+              };
+              const handleTileError = () => {
+                if (!tileHasLoadedRef.current) setTileStatus("error");
+              };
+
+              tileLayer.on("tileload", handleTileLoad);
+              tileLayer.on("tileerror", handleTileError);
+              tileLayer.addTo(map);
+              tileLayerRef.current = tileLayer;
+
+              return () => {
+                tileLayer.off("tileload", handleTileLoad);
+                tileLayer.off("tileerror", handleTileError);
+                tileLayer.remove();
+                if (tileLayerRef.current === tileLayer) tileLayerRef.current = null;
+              };'''
+          new = '''    setTileStatus("loading");
+              const baseUrl =
+                "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey={apiKey}";
+              const retinaUrl =
+                "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}@2x.png?apiKey={apiKey}";
+              const tileLayer = leaflet.tileLayer(leaflet.Browser.retina ? retinaUrl : baseUrl, {
+                apiKey: geoapifyKey,
+                minZoom: MIN_ZOOM,
+                maxZoom: MAX_ZOOM,
+                tileSize: 256,
+                keepBuffer: 4,
+                updateWhenIdle: false,
+                updateWhenZooming: true,
+                errorTileUrl: TRANSPARENT_TILE,
+              });
+              const loadTimeout = window.setTimeout(() => {
+                if (!tileHasLoadedRef.current) setTileStatus("error");
+              }, 10_000);
+              const handleTileLoad = () => {
+                tileHasLoadedRef.current = true;
+                window.clearTimeout(loadTimeout);
+                setTileStatus("ready");
+              };
+              const handleTileError = () => {
+                if (!tileHasLoadedRef.current) setTileStatus("error");
+              };
+
+              tileLayer.on("tileload", handleTileLoad);
+              tileLayer.on("tileerror", handleTileError);
+              tileLayer.addTo(map);
+              tileLayerRef.current = tileLayer;
+
+              return () => {
+                window.clearTimeout(loadTimeout);
+                tileLayer.off("tileload", handleTileLoad);
+                tileLayer.off("tileerror", handleTileError);
+                tileLayer.remove();
+                if (tileLayerRef.current === tileLayer) tileLayerRef.current = null;
+              };'''
+          if old not in text:
+              raise SystemExit("PlaceMap tile block not found")
+          place_map.write_text(text.replace(old, new))
+
+          test_file = Path("tests/e2e/mobile-matstallen.spec.ts")
+          test = test_file.read_text()
+          test = test.replace(
+              'test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {\n  await page.goto("/matstallen?demo=1");',
+              '''test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
+                let mapTileRequests = 0;
+                await page.route("https://maps.geoapify.com/**", async (route) => {
+                  mapTileRequests += 1;
+                  await route.fulfill({
+                    status: 200,
+                    contentType: "image/png",
+                    body: Buffer.from(
+                      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=",
+                      "base64",
+                    ),
+                    headers: { "cache-control": "no-store" },
+                  });
+                });
+
+                await page.goto("/matstallen?demo=1");''',
+          )
+          test = test.replace(
+              '  await expect(placesMap).toBeVisible();\n  await expectInteractiveMap(page, placesMap);',
+              '''  await expect(placesMap).toBeVisible();
+                await expect(placesMap.getByText("Laddar kartan…")).toHaveCount(0);
+                await expect.poll(() => mapTileRequests).toBeGreaterThan(0);
+                const firstTile = placesMap.locator("img.leaflet-tile").first();
+                await expect(firstTile).toBeVisible();
+                await expect.poll(() => firstTile.getAttribute("crossorigin")).toBeNull();
+                await expectInteractiveMap(page, placesMap);''',
+          )
+          test = test.replace(
+              '  await expect(searchMap).toHaveAttribute("data-map-ready", "true");\n  await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");',
+              '''  await expect(searchMap).toHaveAttribute("data-map-ready", "true");
+                await expect(searchMap.getByText("Laddar kartan…")).toHaveCount(0);
+                await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");''',
+          )
+          test_file.write_text(test)
+          PY
+
+          bunx prettier --write src/components/matrundan/PlaceMap.tsx tests/e2e/mobile-matstallen.spec.ts
+
+      - name: Remove one-time workflow and commit
+        run: |
+          git rm .github/workflows/apply-package-4a3.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/PlaceMap.tsx tests/e2e/mobile-matstallen.spec.ts
+          git commit -m "Fix Geoapify tiles in Leaflet"
+          git push origin HEAD:fix/package-4a3-geoapify-tiles
