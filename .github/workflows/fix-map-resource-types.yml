@@ -1,0 +1,40 @@
+name: Fix map resource types
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/package-4a5a-resource-verification
+      - uses: oven-sh/setup-bun@v2
+      - name: Patch, verify and commit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/components/matrundan/PlaceMap.tsx')
+          t=p.read_text()
+          old='''              const resourceTimeout = window.setTimeout(() => {\n                if (!cancelled && !map.areTilesLoaded()) {\n                  setMapFailure("resources");\n                  setMapStatus("error");\n                  setTileStatus("error");\n                }\n              }, 10_000);\n              map.once("idle", () => {\n                window.clearTimeout(resourceTimeout);\n                if (!cancelled && map.areTilesLoaded()) setTileStatus("ready");\n                else if (!cancelled) {\n                  setMapFailure("resources");\n                  setMapStatus("error");\n                  setTileStatus("error");\n                }\n              });'''
+          new='''              const resourceTimeout = window.setTimeout(() => {\n                if (!cancelled) {\n                  setMapFailure("resources");\n                  setMapStatus("error");\n                  setTileStatus("error");\n                }\n              }, 10_000);\n              map.once("idle", () => {\n                window.clearTimeout(resourceTimeout);\n                if (!cancelled) setTileStatus("ready");\n              });'''
+          if old not in t: raise SystemExit('resource pattern missing')
+          p.write_text(t.replace(old,new))
+          PY
+          bun install --frozen-lockfile
+          bunx prettier --write src/components/matrundan/PlaceMap.tsx
+          bunx tsc --noEmit
+          bunx eslint src/components/matrundan/PlaceMap.tsx
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/PlaceMap.tsx
+          git commit -m "Använd MapLibres idle-kontrakt för kartresurser"
+          git rm .github/workflows/fix-map-resource-types.yml
+          git commit -m "Remove one-time resource type workflow"
+          git push origin HEAD:fix/package-4a5a-resource-verification
