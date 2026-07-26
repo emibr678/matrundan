@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   fix:
+    # Engångsjobb som ersätter klusterzoom och därefter tar bort sig självt.
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
