@@ -29,5 +29,18 @@ export default defineConfig({
         isMobile: true,
       },
     },
+    {
+      name: "mobile-webkit",
+      use: {
+        ...devices["iPhone 13"],
+      },
+    },
+    {
+      name: "desktop-chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+      },
+    },
   ],
 });
