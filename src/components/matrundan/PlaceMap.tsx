@@ -44,6 +44,43 @@ interface ClusterMarkerEntry {
   element: HTMLButtonElement;
 }
 
+type MapFailureCode = "webgl" | "style-auth" | "style-network" | "worker" | "timeout" | "runtime";
+
+function supportsWebGl() {
+  const canvas = document.createElement("canvas");
+  try {
+    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
+
+function classifyMapFailure(error: unknown): MapFailureCode {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/webgl|gpu|graphics context|context lost/i.test(message)) return "webgl";
+  if (/401|403|unauthori[sz]ed|forbidden|api.?key/i.test(message)) return "style-auth";
+  if (/worker|securityerror|content security|csp/i.test(message)) return "worker";
+  if (/network|fetch|load failed|failed to load|http/i.test(message)) return "style-network";
+  return "runtime";
+}
+
+function failureNotice(code: MapFailureCode | null) {
+  switch (code) {
+    case "webgl":
+      return "Enheten kunde inte starta WebGL för kartan. Felkod: WEBGL.";
+    case "style-auth":
+      return "Geoapify nekade kartstilen. Kontrollera nyckelns tillåtna preview-domän. Felkod: STYLE-AUTH.";
+    case "style-network":
+      return "Kartstilen kunde inte hämtas från Geoapify. Felkod: STYLE-NETWORK.";
+    case "worker":
+      return "Kartmotorns worker blockerades av previewmiljön. Felkod: WORKER.";
+    case "timeout":
+      return "Kartmotorn svarade inte inom 15 sekunder. Felkod: TIMEOUT.";
+    default:
+      return "Kartan kunde inte startas. Felkod: RUNTIME.";
+  }
+}
+
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 18;
 const DEFAULT_ZOOM = 14;
@@ -220,6 +257,7 @@ export function PlaceMap({
   const syncClustersRef = React.useRef<(() => void) | null>(null);
   const onSelectRef = React.useRef(onSelect);
   const [mapStatus, setMapStatus] = React.useState<"loading" | "ready" | "error">("loading");
+  const [mapFailure, setMapFailure] = React.useState<MapFailureCode | null>(null);
   const [tileStatus, setTileStatus] = React.useState<"missing" | "loading" | "ready" | "error">(
     geoapifyKey ? "loading" : "missing",
   );
@@ -246,6 +284,14 @@ export function PlaceMap({
     let cancelled = false;
     const element = mapElementRef.current;
     if (!element) return;
+
+    setMapFailure(null);
+    if (!supportsWebGl()) {
+      setMapFailure("webgl");
+      setMapStatus("error");
+      if (geoapifyKey) setTileStatus("error");
+      return;
+    }
 
     void waitForMapLibre()
       .then((mapLibre) => {
@@ -284,6 +330,7 @@ export function PlaceMap({
           let loaded = false;
           const loadTimeout = window.setTimeout(() => {
             if (!loaded && !cancelled) {
+              setMapFailure("timeout");
               setMapStatus("error");
               if (geoapifyKey) setTileStatus("error");
             }
@@ -305,8 +352,10 @@ export function PlaceMap({
             map.resize();
           };
           const handleError = (event: { error?: Error }) => {
+            const failure = classifyMapFailure(event.error ?? event);
             console.error("[Matrundan] MapLibre-fel:", event.error ?? event);
             if (!loaded && !cancelled) {
+              setMapFailure(failure);
               setMapStatus("error");
               if (geoapifyKey) setTileStatus("error");
             }
@@ -320,6 +369,7 @@ export function PlaceMap({
           mapLibreRef.current = mapLibre;
         } catch (error) {
           console.error("[Matrundan] MapLibre kunde inte startas:", error);
+          setMapFailure(classifyMapFailure(error));
           setMapStatus("error");
           if (geoapifyKey) setTileStatus("error");
         }
@@ -327,6 +377,7 @@ export function PlaceMap({
       .catch((error) => {
         console.error("[Matrundan] MapLibre kunde inte laddas:", error);
         if (!cancelled) {
+          setMapFailure(classifyMapFailure(error));
           setMapStatus("error");
           if (geoapifyKey) setTileStatus("error");
         }
@@ -638,7 +689,7 @@ export function PlaceMap({
 
   const notice =
     mapStatus === "error"
-      ? "Kartan kunde inte startas på den här enheten. Använd listvyn och försök igen senare."
+      ? failureNotice(mapFailure)
       : tileStatus === "missing"
         ? "Kartbakgrunden visas när en domänbegränsad Geoapify-nyckel är konfigurerad."
         : tileStatus === "error"
@@ -658,6 +709,7 @@ export function PlaceMap({
       data-map-lat={viewState?.lat ?? ""}
       data-map-lng={viewState?.lng ?? ""}
       data-map-tile-status={tileStatus}
+      data-map-error-code={mapFailure ?? ""}
       data-clustering-disabled-at={CLUSTER_MAX_ZOOM + 1}
     >
       {tileStatus !== "ready" ? (
