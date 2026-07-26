@@ -60,6 +60,7 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
 async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) {
   const zoomOut = mapRegion.getByRole("button", { name: "Zooma ut kartan" });
   const clusters = mapRegion.locator(".matrundan-cluster-icon");
+  const clusterCounts = clusters.locator("[data-cluster-count]");
   const markers = mapRegion.locator(".matrundan-place-marker");
 
   await expect(mapRegion).toHaveAttribute("data-clustering-disabled-at", "17");
@@ -73,14 +74,25 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
   }
 
   await expect.poll(async () => clusters.count()).toBeGreaterThan(0);
-  const initialClusterCount = await clusters.count();
+  const initialMembers = Number(
+    await clusters.first().locator("[data-cluster-count]").getAttribute("data-cluster-count"),
+  );
+  expect(initialMembers).toBeGreaterThan(1);
+
   const clusterZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
   await clusters.first().click({ force: true });
   await expect
     .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
     .toBeGreaterThan(clusterZoom);
-  await expect.poll(async () => clusters.count()).toBeLessThan(initialClusterCount);
   await expect.poll(async () => markers.count()).toBeGreaterThan(0);
+  await expect
+    .poll(async () => {
+      const counts = await clusterCounts.evaluateAll((elements) =>
+        elements.map((element) => Number(element.getAttribute("data-cluster-count") ?? 0)),
+      );
+      return counts.length > 0 ? Math.max(...counts) : 0;
+    })
+    .toBeLessThan(initialMembers);
 }
 
 test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
