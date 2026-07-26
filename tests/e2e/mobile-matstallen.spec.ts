@@ -66,7 +66,7 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
   expect(initialMembers).toBeGreaterThan(1);
 
   const clusterZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
-  await clusters.first().click({ force: true });
+  await clusters.first().evaluate((element) => (element as HTMLButtonElement).click());
   await expect
     .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
     .toBeGreaterThan(clusterZoom);
