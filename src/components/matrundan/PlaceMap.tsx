@@ -353,7 +353,12 @@ export function PlaceMap({
   }, [mapStatus]);
 
   React.useEffect(() => {
-    if (mapStatus !== "ready" || !mapRef.current || !mapLibreRef.current || !mapElementRef.current) {
+    if (
+      mapStatus !== "ready" ||
+      !mapRef.current ||
+      !mapLibreRef.current ||
+      !mapElementRef.current
+    ) {
       return;
     }
 
@@ -497,7 +502,10 @@ export function PlaceMap({
         "data-map-largest-cluster",
         String(largestCluster),
       );
-      mapElementRef.current?.parentElement?.setAttribute("data-map-marker-count", String(markerCount));
+      mapElementRef.current?.parentElement?.setAttribute(
+        "data-map-marker-count",
+        String(markerCount),
+      );
     };
 
     syncClustersRef.current = syncClusters;
@@ -539,7 +547,9 @@ export function PlaceMap({
 
   React.useEffect(() => {
     if (mapStatus !== "ready" || !mapRef.current) return;
-    const source = mapRef.current.getSource(SELECTED_SOURCE_ID) as MapLibreGeoJSONSource | undefined;
+    const source = mapRef.current.getSource(SELECTED_SOURCE_ID) as
+      | MapLibreGeoJSONSource
+      | undefined;
     source?.setData(selectedCollection(selected));
   }, [mapStatus, selected]);
 
@@ -571,7 +581,7 @@ export function PlaceMap({
 
       const bounds = points.reduce(
         (current, point) => current.extend(point),
-        new (mapLibreRef.current!.LngLatBounds)(points[0], points[0]),
+        new mapLibreRef.current!.LngLatBounds(points[0], points[0]),
       );
       map.fitBounds(bounds, {
         padding: { top: 48, right: 48, bottom: mappedItems.length > 0 ? 164 : 72, left: 48 },
