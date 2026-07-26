@@ -552,10 +552,7 @@ export function PlaceMap({
       });
     }
 
-    mapElementRef.current.parentElement?.setAttribute(
-      "data-map-point-visual",
-      "primary-pin",
-    );
+    mapElementRef.current.parentElement?.setAttribute("data-map-point-visual", "primary-pin");
     mapElementRef.current.parentElement?.setAttribute(
       "data-map-label-layer",
       map.getLayer(LABEL_LAYER_ID) ? "ready" : "missing",
