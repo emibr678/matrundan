@@ -77,8 +77,11 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
     .toBeGreaterThan(0);
 }
 
-test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
+test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ page }) => {
   let mapStyleRequests = 0;
+  const workerUrls: string[] = [];
+  page.on("worker", (worker) => workerUrls.push(worker.url()));
+
   await page.route("https://maps.geoapify.com/v1/styles/**", async (route) => {
     mapStyleRequests += 1;
     await route.fulfill({
@@ -111,6 +114,16 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
   });
   await expect(placesMap).toBeVisible();
   await expect.poll(() => mapStyleRequests).toBeGreaterThan(0);
+  await expect
+    .poll(() =>
+      workerUrls.some((url) => {
+        const parsed = new URL(url);
+        return parsed.origin === "http://127.0.0.1:4173" && !url.startsWith("blob:");
+      }),
+    )
+    .toBe(true);
+  expect(workerUrls.some((url) => url.startsWith("blob:"))).toBe(false);
+
   await expectInteractiveMap(page, placesMap);
   await expectMarkerClustering(placesMap);
   await expectNoHorizontalOverflow(page, "Matställen i kartvy");
