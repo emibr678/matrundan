@@ -42,26 +42,23 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
   expect(box).not.toBeNull();
   if (!box) return;
 
-  const dragPoint = await page.evaluate(
-    ({ x, y, width, height }) => {
-      const candidates = [
-        [0.15, 0.2],
-        [0.45, 0.2],
-        [0.15, 0.55],
-        [0.75, 0.55],
-      ];
-      for (const [xRatio, yRatio] of candidates) {
-        const candidateX = x + width * xRatio;
-        const candidateY = y + height * yRatio;
-        const target = document.elementFromPoint(candidateX, candidateY);
-        if (target?.classList.contains("maplibregl-canvas")) {
-          return { x: candidateX, y: candidateY };
-        }
+  const dragPoint = await page.evaluate(({ x, y, width, height }) => {
+    const candidates = [
+      [0.15, 0.2],
+      [0.45, 0.2],
+      [0.15, 0.55],
+      [0.75, 0.55],
+    ];
+    for (const [xRatio, yRatio] of candidates) {
+      const candidateX = x + width * xRatio;
+      const candidateY = y + height * yRatio;
+      const target = document.elementFromPoint(candidateX, candidateY);
+      if (target?.classList.contains("maplibregl-canvas")) {
+        return { x: candidateX, y: candidateY };
       }
-      return null;
-    },
-    box,
-  );
+    }
+    return null;
+  }, box);
   expect(dragPoint).not.toBeNull();
   if (!dragPoint) return;
 
