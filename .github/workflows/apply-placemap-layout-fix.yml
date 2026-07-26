@@ -145,3 +145,5 @@ jobs:
           git rm .github/workflows/apply-placemap-layout-fix.yml
           git commit -m "Rätta PlaceMap-containerns höjd och resize-livscykel"
           git push
+
+# Triggered after branch creation so GitHub registers the workflow.
