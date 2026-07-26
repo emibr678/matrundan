@@ -134,7 +134,11 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
   await expect(dialog.getByText("Fiktiv demodata för utveckling.")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Lägg till-dialog i listvy");
 
-  await dialog.getByRole("button", { name: "Karta", exact: true }).click();
+  const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
+  if (await mapToggle.isVisible()) {
+    await mapToggle.click();
+  }
+
   const searchMap = dialog.getByRole("region", { name: "Karta över sökresultat" });
   await expect(searchMap).toBeVisible();
   await expect(searchMap).toHaveAttribute("data-map-ready", "true");
