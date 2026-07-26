@@ -1,0 +1,23 @@
+name: Capture map diagnostics TypeScript error
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/routes/mapdiagnostik.tsx
+      - src/routeTree.gen.ts
+      - .github/workflows/capture-mapdiagnostik-tsc.yml
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Capture TypeScript output
+        run: bunx tsc --noEmit > mapdiagnostik-tsc.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mapdiagnostik-tsc-output
+          path: mapdiagnostik-tsc.txt
