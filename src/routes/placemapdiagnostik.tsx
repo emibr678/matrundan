@@ -37,9 +37,7 @@ function collectSnapshot(): Snapshot {
   const region = document.querySelector<HTMLElement>(
     '[data-place-map-diagnostic] [data-map-renderer="maplibre-vector"]',
   );
-  const mapElement = region?.querySelector<HTMLElement>(
-    '[aria-label^="Interaktiv karta"]',
-  );
+  const mapElement = region?.querySelector<HTMLElement>('[aria-label^="Interaktiv karta"]');
   const canvas = region?.querySelector<HTMLCanvasElement>("canvas.maplibregl-canvas");
   const regionRect = region?.getBoundingClientRect();
   const mapRect = mapElement?.getBoundingClientRect();
@@ -115,9 +113,7 @@ function PlaceMapDiagnosticsPage() {
   }, []);
 
   React.useEffect(() => {
-    const timers = [250, 1_000, 3_000, 7_000].map((delay) =>
-      window.setTimeout(refresh, delay),
-    );
+    const timers = [250, 1_000, 3_000, 7_000].map((delay) => window.setTimeout(refresh, delay));
     const interval = window.setInterval(refresh, 2_000);
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
