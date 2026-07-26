@@ -1,0 +1,31 @@
+name: Package 4A.5 format
+
+on:
+  push:
+    branches:
+      - feature/package-4a5-maplibre-vector
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/package-4a5-maplibre-vector
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx prettier --write src/components/matrundan/PlaceMap.tsx src/lib/matrundan/maplibre-client.ts tests/e2e/mobile-matstallen.spec.ts package.json
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/package-4a5-format.yml
+          git add src/components/matrundan/PlaceMap.tsx src/lib/matrundan/maplibre-client.ts tests/e2e/mobile-matstallen.spec.ts package.json
+          git commit -m "Format MapLibre migration"
+          git push origin HEAD:feature/package-4a5-maplibre-vector
