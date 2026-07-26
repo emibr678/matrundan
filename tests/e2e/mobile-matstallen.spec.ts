@@ -57,6 +57,20 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
 }
 
 test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
+  let mapTileRequests = 0;
+  await page.route("https://maps.geoapify.com/**", async (route) => {
+    mapTileRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=",
+        "base64",
+      ),
+      headers: { "cache-control": "no-store" },
+    });
+  });
+
   await page.goto("/matstallen?demo=1");
 
   await expect(page.getByRole("heading", { name: "Matställen" })).toBeVisible();
@@ -67,6 +81,11 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
     name: /Karta med \d+ av \d+ matställen/,
   });
   await expect(placesMap).toBeVisible();
+  await expect(placesMap.getByText("Laddar kartan…")).toHaveCount(0);
+  await expect.poll(() => mapTileRequests).toBeGreaterThan(0);
+  const firstTile = placesMap.locator("img.leaflet-tile").first();
+  await expect(firstTile).toBeVisible();
+  await expect.poll(() => firstTile.getAttribute("crossorigin")).toBeNull();
   await expectInteractiveMap(page, placesMap);
   await expectNoHorizontalOverflow(page, "Matställen i kartvy");
 

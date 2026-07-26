@@ -201,20 +201,25 @@ export function PlaceMap({
     }
 
     setTileStatus("loading");
-    const suffix = leaflet.Browser.retina ? "@2x" : "";
-    const tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}${suffix}.png?apiKey=${encodeURIComponent(geoapifyKey)}`;
-    const tileLayer = leaflet.tileLayer(tileUrl, {
+    const baseUrl = "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey={apiKey}";
+    const retinaUrl =
+      "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}@2x.png?apiKey={apiKey}";
+    const tileLayer = leaflet.tileLayer(leaflet.Browser.retina ? retinaUrl : baseUrl, {
+      apiKey: geoapifyKey,
       minZoom: MIN_ZOOM,
       maxZoom: MAX_ZOOM,
       tileSize: 256,
       keepBuffer: 4,
       updateWhenIdle: false,
       updateWhenZooming: true,
-      crossOrigin: true,
       errorTileUrl: TRANSPARENT_TILE,
     });
+    const loadTimeout = window.setTimeout(() => {
+      if (!tileHasLoadedRef.current) setTileStatus("error");
+    }, 10_000);
     const handleTileLoad = () => {
       tileHasLoadedRef.current = true;
+      window.clearTimeout(loadTimeout);
       setTileStatus("ready");
     };
     const handleTileError = () => {
@@ -227,6 +232,7 @@ export function PlaceMap({
     tileLayerRef.current = tileLayer;
 
     return () => {
+      window.clearTimeout(loadTimeout);
       tileLayer.off("tileload", handleTileLoad);
       tileLayer.off("tileerror", handleTileError);
       tileLayer.remove();
