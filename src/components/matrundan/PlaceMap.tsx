@@ -1,16 +1,15 @@
 import * as React from "react";
+import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
+import type { MapLayerMouseEvent, StyleSpecification } from "maplibre-gl";
 import { ArrowRight, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  waitForLeaflet,
-  type LatLngTuple,
-  type LeafletApi,
-  type LeafletLayer,
-  type LeafletLayerGroup,
-  type LeafletMap,
-  type LeafletMarkerCluster,
-  type LeafletMarkerClusterGroup,
-} from "@/lib/matrundan/leaflet-global";
+  waitForMapLibre,
+  type MapLibreApi,
+  type MapLibreGeoJSONSource,
+  type MapLibreMap,
+  type MapLibreMarker,
+} from "@/lib/matrundan/maplibre-client";
 
 export interface PlaceMapItem {
   id: string;
@@ -35,28 +34,161 @@ interface PlaceMapProps {
   ariaLabel?: string;
 }
 
+interface PlaceProperties {
+  id: string;
+  name: string;
+}
+
+interface ClusterMarkerEntry {
+  marker: MapLibreMarker;
+  element: HTMLButtonElement;
+}
+
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 18;
 const DEFAULT_ZOOM = 14;
-const DISABLE_CLUSTERING_AT_ZOOM = 17;
-const TRANSPARENT_TILE = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+const CLUSTER_MAX_ZOOM = 16;
+const PLACE_SOURCE_ID = "matrundan-places";
+const CLUSTER_LAYER_ID = "matrundan-clusters";
+const POINT_LAYER_ID = "matrundan-points";
+const SELECTED_SOURCE_ID = "matrundan-selected-place";
+const SELECTED_LAYER_ID = "matrundan-selected-place-point";
+const RADIUS_SOURCE_ID = "matrundan-radius";
+const RADIUS_FILL_LAYER_ID = "matrundan-radius-fill";
+const RADIUS_LINE_LAYER_ID = "matrundan-radius-line";
+const CENTER_SOURCE_ID = "matrundan-center";
+const CENTER_LAYER_ID = "matrundan-center-point";
 
-function markerHtml(active: boolean) {
-  const size = active ? 34 : 30;
-  const dotSize = active ? 10 : 8;
-  const background = active ? "hsl(var(--primary))" : "hsl(var(--card))";
-  const foreground = active ? "hsl(var(--primary-foreground))" : "hsl(var(--primary))";
+const EMPTY_POINTS: FeatureCollection<Point, PlaceProperties> = {
+  type: "FeatureCollection",
+  features: [],
+};
 
-  return `<span style="display:grid;width:${size}px;height:${size}px;place-items:center;border:2px solid hsl(var(--background));border-radius:9999px;background:${background};color:${foreground};box-shadow:0 4px 14px rgb(0 0 0 / .25);transition:width 120ms ease,height 120ms ease,background 120ms ease"><span style="display:block;width:${dotSize}px;height:${dotSize}px;border-radius:9999px;background:currentColor"></span></span>`;
+const EMPTY_POLYGONS: FeatureCollection<Polygon> = {
+  type: "FeatureCollection",
+  features: [],
+};
+
+const EMPTY_CENTER: FeatureCollection<Point> = {
+  type: "FeatureCollection",
+  features: [],
+};
+
+function readThemeColor(variable: string, fallback: string) {
+  const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+  if (!value) return fallback;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return fallback;
+
+  try {
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = value;
+    context.fillRect(0, 0, 1, 1);
+    const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+    return `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
+  } catch {
+    return fallback;
+  }
 }
 
-function clusterHtml(count: number) {
-  const size = count >= 100 ? 52 : count >= 10 ? 48 : 44;
-  return `<span data-cluster-count="${count}" style="display:grid;width:${size}px;height:${size}px;place-items:center;border:3px solid hsl(var(--background));border-radius:9999px;background:hsl(var(--primary));color:hsl(var(--primary-foreground));font:700 13px/1 ui-sans-serif,system-ui,sans-serif;box-shadow:0 5px 16px rgb(0 0 0 / .28)">${count}</span>`;
+function makeFallbackStyle(backgroundColor: string): StyleSpecification {
+  return {
+    version: 8,
+    name: "Matrundan fallback",
+    sources: {},
+    layers: [
+      {
+        id: "matrundan-fallback-background",
+        type: "background",
+        paint: { "background-color": backgroundColor },
+      },
+    ],
+  };
 }
 
-function centerMarkerHtml() {
-  return `<span style="display:grid;width:28px;height:28px;place-items:center;border:2px solid hsl(var(--background));border-radius:9999px;background:hsl(var(--primary));color:hsl(var(--primary-foreground));box-shadow:0 3px 10px rgb(0 0 0 / .22)" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="m4.93 4.93 2.12 2.12"></path><path d="m16.95 16.95 2.12 2.12"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m6.34 17.66-2.12 2.12"></path><path d="m19.78 4.22-2.12 2.12"></path></svg></span>`;
+function placeCollection(items: PlaceMapItem[]) {
+  return {
+    type: "FeatureCollection",
+    features: items.map<Feature<Point, PlaceProperties>>((item) => ({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [item.lng!, item.lat!],
+      },
+      properties: {
+        id: item.id,
+        name: item.name,
+      },
+    })),
+  } satisfies FeatureCollection<Point, PlaceProperties>;
+}
+
+function selectedCollection(item: PlaceMapItem | null) {
+  if (item?.lat == null || item.lng == null) return EMPTY_POINTS;
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [item.lng, item.lat] },
+        properties: { id: item.id, name: item.name },
+      },
+    ],
+  } satisfies FeatureCollection<Point, PlaceProperties>;
+}
+
+function radiusCollection(
+  center: { lat: number; lng: number } | null | undefined,
+  radiusKm?: number | null,
+) {
+  if (!center || !radiusKm || radiusKm <= 0) return EMPTY_POLYGONS;
+
+  const latitudeRadius = radiusKm / 111.32;
+  const longitudeRadius =
+    radiusKm / (111.32 * Math.max(Math.cos((center.lat * Math.PI) / 180), 0.1));
+  const coordinates: [number, number][] = [];
+
+  for (let step = 0; step <= 64; step += 1) {
+    const angle = (step / 64) * Math.PI * 2;
+    coordinates.push([
+      center.lng + Math.cos(angle) * longitudeRadius,
+      center.lat + Math.sin(angle) * latitudeRadius,
+    ]);
+  }
+
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: {},
+        geometry: { type: "Polygon", coordinates: [coordinates] },
+      },
+    ],
+  } satisfies FeatureCollection<Polygon>;
+}
+
+function centerCollection(center: { lat: number; lng: number } | null | undefined) {
+  if (!center) return EMPTY_CENTER;
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: {},
+        geometry: { type: "Point", coordinates: [center.lng, center.lat] },
+      },
+    ],
+  } satisfies FeatureCollection<Point>;
+}
+
+function clearClusterMarkers(entries: Map<number, ClusterMarkerEntry>) {
+  entries.forEach(({ marker }) => marker.remove());
+  entries.clear();
 }
 
 export function PlaceMap({
@@ -82,12 +214,10 @@ export function PlaceMap({
     }
   ).env?.VITE_GEOAPIFY_MAPS_KEY;
   const mapElementRef = React.useRef<HTMLDivElement>(null);
-  const mapRef = React.useRef<LeafletMap | null>(null);
-  const leafletRef = React.useRef<LeafletApi | null>(null);
-  const overlayLayerRef = React.useRef<LeafletLayerGroup | null>(null);
-  const markerLayerRef = React.useRef<LeafletMarkerClusterGroup | null>(null);
-  const tileLayerRef = React.useRef<LeafletLayer | null>(null);
-  const tileHasLoadedRef = React.useRef(false);
+  const mapRef = React.useRef<MapLibreMap | null>(null);
+  const mapLibreRef = React.useRef<MapLibreApi | null>(null);
+  const clusterMarkersRef = React.useRef(new Map<number, ClusterMarkerEntry>());
+  const syncClustersRef = React.useRef<(() => void) | null>(null);
   const onSelectRef = React.useRef(onSelect);
   const [mapStatus, setMapStatus] = React.useState<"loading" | "ready" | "error">("loading");
   const [tileStatus, setTileStatus] = React.useState<"missing" | "loading" | "ready" | "error">(
@@ -117,262 +247,339 @@ export function PlaceMap({
     const element = mapElementRef.current;
     if (!element) return;
 
-    void waitForLeaflet()
-      .then((leaflet) => {
-        if (cancelled || !mapElementRef.current) return;
-        const fallback = { lat: 57.7089, lng: 11.9746 };
-        const map = leaflet.map(mapElementRef.current, {
-          attributionControl: false,
-          zoomControl: false,
-          dragging: true,
-          touchZoom: true,
-          scrollWheelZoom: true,
-          doubleClickZoom: true,
-          keyboard: true,
-          boxZoom: false,
-          minZoom: MIN_ZOOM,
-          maxZoom: MAX_ZOOM,
-          zoomSnap: 1,
-          zoomDelta: 1,
-          bounceAtZoomLimits: false,
-          zoomAnimation: false,
-          fadeAnimation: false,
-          markerZoomAnimation: false,
-        });
-        const updateViewState = () => {
-          const mapCenter = map.getCenter();
-          setViewState({
-            lat: mapCenter.lat,
-            lng: mapCenter.lng,
-            zoom: map.getZoom(),
-          });
-        };
+    void waitForMapLibre()
+      .then((mapLibre) => {
+        if (cancelled || !element.isConnected) return;
 
-        map.setView([fallback.lat, fallback.lng], DEFAULT_ZOOM, {
-          animate: false,
-        });
-        map.on("moveend", updateViewState);
-        map.on("zoomend", updateViewState);
-        updateViewState();
-        mapRef.current = map;
-        leafletRef.current = leaflet;
-        setMapStatus("ready");
-        requestAnimationFrame(() => map.invalidateSize({ animate: false }));
+        const fallback = { lat: 57.7089, lng: 11.9746 };
+        const muted = readThemeColor("--muted", "#ece7df");
+        const style = geoapifyKey
+          ? `https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json?apiKey=${encodeURIComponent(geoapifyKey)}`
+          : makeFallbackStyle(muted);
+
+        try {
+          const map = new mapLibre.Map({
+            container: element,
+            style,
+            center: [fallback.lng, fallback.lat],
+            zoom: DEFAULT_ZOOM,
+            minZoom: MIN_ZOOM,
+            maxZoom: MAX_ZOOM,
+            attributionControl: false,
+            dragRotate: false,
+            pitchWithRotate: false,
+            fadeDuration: 0,
+            renderWorldCopies: false,
+          });
+          map.touchZoomRotate.disableRotation();
+
+          const updateViewState = () => {
+            const mapCenter = map.getCenter();
+            setViewState({
+              lat: mapCenter.lat,
+              lng: mapCenter.lng,
+              zoom: map.getZoom(),
+            });
+          };
+          let loaded = false;
+          const loadTimeout = window.setTimeout(() => {
+            if (!loaded && !cancelled) {
+              setMapStatus("error");
+              if (geoapifyKey) setTileStatus("error");
+            }
+          }, 15_000);
+
+          const handleLoad = () => {
+            loaded = true;
+            window.clearTimeout(loadTimeout);
+            setMapStatus("ready");
+            if (geoapifyKey) {
+              setTileStatus("loading");
+              map.once("idle", () => {
+                if (!cancelled) setTileStatus("ready");
+              });
+            } else {
+              setTileStatus("missing");
+            }
+            updateViewState();
+            map.resize();
+          };
+          const handleError = (event: { error?: Error }) => {
+            console.error("[Matrundan] MapLibre-fel:", event.error ?? event);
+            if (!loaded && !cancelled) {
+              setMapStatus("error");
+              if (geoapifyKey) setTileStatus("error");
+            }
+          };
+
+          map.on("load", handleLoad);
+          map.on("error", handleError);
+          map.on("moveend", updateViewState);
+          map.on("zoomend", updateViewState);
+          mapRef.current = map;
+          mapLibreRef.current = mapLibre;
+        } catch (error) {
+          console.error("[Matrundan] MapLibre kunde inte startas:", error);
+          setMapStatus("error");
+          if (geoapifyKey) setTileStatus("error");
+        }
       })
       .catch((error) => {
-        console.error("[Matrundan] Leaflet kunde inte startas:", error);
-        if (!cancelled) setMapStatus("error");
+        console.error("[Matrundan] MapLibre kunde inte laddas:", error);
+        if (!cancelled) {
+          setMapStatus("error");
+          if (geoapifyKey) setTileStatus("error");
+        }
       });
 
     return () => {
       cancelled = true;
-      overlayLayerRef.current?.remove();
-      markerLayerRef.current?.remove();
-      tileLayerRef.current?.remove();
+      clearClusterMarkers(clusterMarkersRef.current);
+      syncClustersRef.current = null;
       mapRef.current?.remove();
-      overlayLayerRef.current = null;
-      markerLayerRef.current = null;
-      tileLayerRef.current = null;
       mapRef.current = null;
-      leafletRef.current = null;
+      mapLibreRef.current = null;
     };
-  }, []);
+  }, [geoapifyKey]);
 
   React.useEffect(() => {
-    if (mapStatus !== "ready" || !mapElementRef.current || !mapRef.current) {
-      return;
-    }
+    if (mapStatus !== "ready" || !mapElementRef.current || !mapRef.current) return;
     if (typeof ResizeObserver === "undefined") return;
+
     const map = mapRef.current;
-    const observer = new ResizeObserver(() => {
-      map.invalidateSize({ animate: false });
-    });
+    const observer = new ResizeObserver(() => map.resize());
     observer.observe(mapElementRef.current);
     return () => observer.disconnect();
   }, [mapStatus]);
 
   React.useEffect(() => {
-    if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
+    if (mapStatus !== "ready" || !mapRef.current || !mapLibreRef.current || !mapElementRef.current) {
       return;
     }
+
     const map = mapRef.current;
-    const leaflet = leafletRef.current;
-    tileLayerRef.current?.remove();
-    tileLayerRef.current = null;
-    tileHasLoadedRef.current = false;
+    const mapLibre = mapLibreRef.current;
+    const primary = readThemeColor("--primary", "#c96342");
+    const card = readThemeColor("--card", "#fffdf8");
+    const background = readThemeColor("--background", "#fbf5e8");
 
-    if (!geoapifyKey) {
-      setTileStatus("missing");
-      return;
+    if (!map.getSource(RADIUS_SOURCE_ID)) {
+      map.addSource(RADIUS_SOURCE_ID, { type: "geojson", data: EMPTY_POLYGONS });
+      map.addLayer({
+        id: RADIUS_FILL_LAYER_ID,
+        type: "fill",
+        source: RADIUS_SOURCE_ID,
+        paint: { "fill-color": primary, "fill-opacity": 0.1 },
+      });
+      map.addLayer({
+        id: RADIUS_LINE_LAYER_ID,
+        type: "line",
+        source: RADIUS_SOURCE_ID,
+        paint: { "line-color": primary, "line-opacity": 0.65, "line-width": 2 },
+      });
     }
 
-    setTileStatus("loading");
-    const baseUrl = "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey={apiKey}";
-    const retinaUrl =
-      "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}@2x.png?apiKey={apiKey}";
-    const tileLayer = leaflet.tileLayer(leaflet.Browser.retina ? retinaUrl : baseUrl, {
-      apiKey: geoapifyKey,
-      minZoom: MIN_ZOOM,
-      maxZoom: MAX_ZOOM,
-      keepBuffer: 2,
-      updateWhenIdle: true,
-      updateWhenZooming: false,
-      updateInterval: 250,
-      errorTileUrl: TRANSPARENT_TILE,
-    });
-    const loadTimeout = window.setTimeout(() => {
-      if (!tileHasLoadedRef.current) setTileStatus("error");
-    }, 10_000);
-    const handleTileLoad = () => {
-      tileHasLoadedRef.current = true;
-      window.clearTimeout(loadTimeout);
-      setTileStatus("ready");
-    };
-    const handleTileError = () => {
-      if (!tileHasLoadedRef.current) setTileStatus("error");
-    };
-
-    tileLayer.on("tileload", handleTileLoad);
-    tileLayer.on("tileerror", handleTileError);
-    tileLayer.addTo(map);
-    tileLayerRef.current = tileLayer;
-
-    return () => {
-      window.clearTimeout(loadTimeout);
-      tileLayer.off("tileload", handleTileLoad);
-      tileLayer.off("tileerror", handleTileError);
-      tileLayer.remove();
-      if (tileLayerRef.current === tileLayer) tileLayerRef.current = null;
-    };
-  }, [geoapifyKey, mapStatus]);
-
-  React.useEffect(() => {
-    if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
-      return;
+    if (!map.getSource(CENTER_SOURCE_ID)) {
+      map.addSource(CENTER_SOURCE_ID, { type: "geojson", data: EMPTY_CENTER });
+      map.addLayer({
+        id: CENTER_LAYER_ID,
+        type: "circle",
+        source: CENTER_SOURCE_ID,
+        paint: {
+          "circle-radius": 7,
+          "circle-color": primary,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 3,
+        },
+      });
     }
-    const map = mapRef.current;
-    const leaflet = leafletRef.current;
-    const points: LatLngTuple[] = mappedItems.map((item) => [item.lat!, item.lng!]);
-    if (center) points.push([center.lat, center.lng]);
-    if (points.length === 0) return;
 
-    requestAnimationFrame(() => {
-      map.invalidateSize({ animate: false });
-      if (points.length === 1) {
-        map.setView(points[0], DEFAULT_ZOOM, { animate: false });
-        return;
-      }
-      const bounds = leaflet.latLngBounds(points);
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, {
-          paddingTopLeft: [48, 48],
-          paddingBottomRight: [48, mappedItems.length > 0 ? 164 : 72],
-          maxZoom: 15,
-          animate: false,
+    if (!map.getSource(PLACE_SOURCE_ID)) {
+      map.addSource(PLACE_SOURCE_ID, {
+        type: "geojson",
+        data: EMPTY_POINTS,
+        cluster: true,
+        clusterMaxZoom: CLUSTER_MAX_ZOOM,
+        clusterRadius: 52,
+      });
+      map.addLayer({
+        id: CLUSTER_LAYER_ID,
+        type: "circle",
+        source: PLACE_SOURCE_ID,
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": primary,
+          "circle-opacity": 0.01,
+          "circle-radius": ["step", ["get", "point_count"], 22, 10, 24, 30, 28],
+        },
+      });
+      map.addLayer({
+        id: POINT_LAYER_ID,
+        type: "circle",
+        source: PLACE_SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-radius": 7,
+          "circle-color": card,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 3,
+        },
+      });
+    }
+
+    if (!map.getSource(SELECTED_SOURCE_ID)) {
+      map.addSource(SELECTED_SOURCE_ID, { type: "geojson", data: EMPTY_POINTS });
+      map.addLayer({
+        id: SELECTED_LAYER_ID,
+        type: "circle",
+        source: SELECTED_SOURCE_ID,
+        paint: {
+          "circle-radius": 9,
+          "circle-color": primary,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 3,
+        },
+      });
+    }
+
+    const syncClusters = () => {
+      if (!map.getLayer(CLUSTER_LAYER_ID)) return;
+      clearClusterMarkers(clusterMarkersRef.current);
+
+      const features = map.queryRenderedFeatures({ layers: [CLUSTER_LAYER_ID] });
+      const seen = new Set<number>();
+      let largestCluster = 0;
+
+      features.forEach((feature) => {
+        if (feature.geometry.type !== "Point") return;
+        const clusterId = Number(feature.properties?.cluster_id);
+        const count = Number(feature.properties?.point_count);
+        if (!Number.isFinite(clusterId) || !Number.isFinite(count) || seen.has(clusterId)) return;
+        seen.add(clusterId);
+        largestCluster = Math.max(largestCluster, count);
+
+        const coordinates = feature.geometry.coordinates as [number, number];
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className =
+          "matrundan-cluster-icon grid h-11 min-w-11 place-items-center rounded-full border-[3px] border-background bg-primary px-2 text-sm font-bold text-primary-foreground shadow-lg";
+        element.dataset.clusterCount = String(count);
+        element.textContent = String(count);
+        element.setAttribute("aria-label", `Visa ${count} matställen`);
+        element.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const source = map.getSource(PLACE_SOURCE_ID) as MapLibreGeoJSONSource | undefined;
+          if (!source) return;
+          void source.getClusterExpansionZoom(clusterId).then((zoom) => {
+            map.easeTo({
+              center: coordinates,
+              zoom: Math.min(zoom, MAX_ZOOM),
+              duration: 250,
+            });
+          });
         });
-      }
-    });
-  }, [fitSignature, mapStatus, mappedItems.length]);
+
+        const marker = new mapLibre.Marker({ element, anchor: "center" })
+          .setLngLat(coordinates)
+          .addTo(map);
+        clusterMarkersRef.current.set(clusterId, { marker, element });
+      });
+
+      const markerCount = map.getLayer(POINT_LAYER_ID)
+        ? map.queryRenderedFeatures({ layers: [POINT_LAYER_ID] }).length
+        : 0;
+      mapElementRef.current?.parentElement?.setAttribute(
+        "data-map-cluster-count",
+        String(clusterMarkersRef.current.size),
+      );
+      mapElementRef.current?.parentElement?.setAttribute(
+        "data-map-largest-cluster",
+        String(largestCluster),
+      );
+      mapElementRef.current?.parentElement?.setAttribute("data-map-marker-count", String(markerCount));
+    };
+
+    syncClustersRef.current = syncClusters;
+
+    const handlePointClick = (event: MapLayerMouseEvent) => {
+      const id = event.features?.[0]?.properties?.id;
+      if (typeof id === "string") onSelectRef.current?.(id);
+    };
+    const handleEnter = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const handleLeave = () => {
+      map.getCanvas().style.cursor = "";
+    };
+
+    map.on("click", POINT_LAYER_ID, handlePointClick);
+    map.on("mouseenter", POINT_LAYER_ID, handleEnter);
+    map.on("mouseleave", POINT_LAYER_ID, handleLeave);
+    map.on("idle", syncClusters);
+    syncClusters();
+
+    return () => {
+      map.off("click", POINT_LAYER_ID, handlePointClick);
+      map.off("mouseenter", POINT_LAYER_ID, handleEnter);
+      map.off("mouseleave", POINT_LAYER_ID, handleLeave);
+      map.off("idle", syncClusters);
+      if (syncClustersRef.current === syncClusters) syncClustersRef.current = null;
+      clearClusterMarkers(clusterMarkersRef.current);
+    };
+  }, [mapStatus]);
 
   React.useEffect(() => {
-    if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
-      return;
-    }
-    const map = mapRef.current;
-    const leaflet = leafletRef.current;
-    overlayLayerRef.current?.remove();
-    const group = leaflet.layerGroup().addTo(map);
+    if (mapStatus !== "ready" || !mapRef.current) return;
+    const source = mapRef.current.getSource(PLACE_SOURCE_ID) as MapLibreGeoJSONSource | undefined;
+    if (!source) return;
+    source.setData(placeCollection(mappedItems));
+    mapRef.current.once("idle", () => syncClustersRef.current?.());
+  }, [mappedItems, mapStatus]);
 
-    if (center && radiusKm) {
-      group.addLayer(
-        leaflet.circle([center.lat, center.lng], {
-          radius: radiusKm * 1000,
-          color: "hsl(var(--primary))",
-          weight: 2,
-          opacity: 0.65,
-          fillColor: "hsl(var(--primary))",
-          fillOpacity: 0.1,
-          interactive: false,
-        }),
-      );
-    }
+  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapRef.current) return;
+    const source = mapRef.current.getSource(SELECTED_SOURCE_ID) as MapLibreGeoJSONSource | undefined;
+    source?.setData(selectedCollection(selected));
+  }, [mapStatus, selected]);
 
-    if (center) {
-      group.addLayer(
-        leaflet.marker([center.lat, center.lng], {
-          icon: leaflet.divIcon({
-            html: centerMarkerHtml(),
-            className: "",
-            iconSize: [28, 28],
-            iconAnchor: [14, 14],
-          }),
-          interactive: false,
-          keyboard: false,
-          zIndexOffset: 500,
-        }),
-      );
-    }
-
-    overlayLayerRef.current = group;
-    return () => {
-      group.remove();
-      if (overlayLayerRef.current === group) overlayLayerRef.current = null;
-    };
+  React.useEffect(() => {
+    if (mapStatus !== "ready" || !mapRef.current) return;
+    const radiusSource = mapRef.current.getSource(RADIUS_SOURCE_ID) as
+      | MapLibreGeoJSONSource
+      | undefined;
+    const centerSource = mapRef.current.getSource(CENTER_SOURCE_ID) as
+      | MapLibreGeoJSONSource
+      | undefined;
+    radiusSource?.setData(radiusCollection(center, radiusKm));
+    centerSource?.setData(centerCollection(center));
   }, [center, mapStatus, radiusKm]);
 
   React.useEffect(() => {
-    if (mapStatus !== "ready" || !mapRef.current || !leafletRef.current) {
-      return;
-    }
+    if (mapStatus !== "ready" || !mapRef.current) return;
     const map = mapRef.current;
-    const leaflet = leafletRef.current;
-    markerLayerRef.current?.remove();
-    const clusterGroup = leaflet
-      .markerClusterGroup({
-        animate: false,
-        animateAddingMarkers: false,
-        showCoverageOnHover: false,
-        zoomToBoundsOnClick: true,
-        spiderfyOnMaxZoom: true,
-        spiderfyDistanceMultiplier: 1.3,
-        removeOutsideVisibleBounds: true,
-        disableClusteringAtZoom: DISABLE_CLUSTERING_AT_ZOOM,
-        maxClusterRadius: (zoom: number) => (zoom >= 15 ? 36 : zoom >= 13 ? 48 : 60),
-        iconCreateFunction: (cluster: LeafletMarkerCluster) =>
-          leaflet.divIcon({
-            html: clusterHtml(cluster.getChildCount()),
-            className: "matrundan-cluster-icon",
-            iconSize: [52, 52],
-            iconAnchor: [26, 26],
-          }),
-      })
-      .addTo(map);
+    const points = mappedItems.map((item) => [item.lng!, item.lat!] as [number, number]);
+    if (center) points.push([center.lng, center.lat]);
+    if (points.length === 0) return;
 
-    mappedItems.forEach((item) => {
-      const active = selected?.id === item.id;
-      const marker = leaflet.marker([item.lat!, item.lng!], {
-        icon: leaflet.divIcon({
-          html: markerHtml(active),
-          className: "matrundan-place-marker",
-          iconSize: [38, 38],
-          iconAnchor: [19, 19],
-        }),
-        title: item.name,
-        keyboard: true,
-        interactive: true,
-        riseOnHover: true,
-        zIndexOffset: active ? 1000 : 0,
+    requestAnimationFrame(() => {
+      map.resize();
+      if (points.length === 1) {
+        map.jumpTo({ center: points[0], zoom: DEFAULT_ZOOM });
+        return;
+      }
+
+      const bounds = points.reduce(
+        (current, point) => current.extend(point),
+        new (mapLibreRef.current!.LngLatBounds)(points[0], points[0]),
+      );
+      map.fitBounds(bounds, {
+        padding: { top: 48, right: 48, bottom: mappedItems.length > 0 ? 164 : 72, left: 48 },
+        maxZoom: 15,
+        duration: 0,
       });
-      marker.on("click", () => onSelectRef.current?.(item.id));
-      clusterGroup.addLayer(marker);
     });
-
-    markerLayerRef.current = clusterGroup;
-    return () => {
-      clusterGroup.remove();
-      if (markerLayerRef.current === clusterGroup) markerLayerRef.current = null;
-    };
-  }, [mappedItems, mapStatus, selected]);
+  }, [fitSignature, mapStatus, mappedItems.length]);
 
   if (mappedItems.length === 0 && !center) {
     return (
@@ -386,7 +593,7 @@ export function PlaceMap({
 
   const notice =
     mapStatus === "error"
-      ? "Kartan kunde inte startas. Ladda om sidan och försök igen."
+      ? "Kartan kunde inte startas på den här enheten. Använd listvyn och försök igen senare."
       : tileStatus === "missing"
         ? "Kartbakgrunden visas när en domänbegränsad Geoapify-nyckel är konfigurerad."
         : tileStatus === "error"
@@ -401,16 +608,19 @@ export function PlaceMap({
       role="region"
       aria-label={ariaLabel}
       data-map-ready={mapStatus === "ready"}
+      data-map-renderer="maplibre-vector"
       data-map-zoom={viewState?.zoom ?? ""}
       data-map-lat={viewState?.lat ?? ""}
       data-map-lng={viewState?.lng ?? ""}
       data-map-tile-status={tileStatus}
-      data-clustering-disabled-at={DISABLE_CLUSTERING_AT_ZOOM}
+      data-clustering-disabled-at={CLUSTER_MAX_ZOOM + 1}
     >
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,hsl(var(--border))_1px,transparent_0)] bg-[size:24px_24px] opacity-70"
-        aria-hidden="true"
-      />
+      {tileStatus !== "ready" ? (
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,var(--color-border)_1px,transparent_0)] bg-[size:24px_24px] opacity-70"
+          aria-hidden="true"
+        />
+      ) : null}
       <div
         ref={mapElementRef}
         className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"
@@ -418,18 +628,18 @@ export function PlaceMap({
       />
 
       {notice ? (
-        <div className="pointer-events-none absolute left-3 top-3 z-[1000] max-w-[calc(100%-5.5rem)] rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-xs text-muted-foreground shadow-sm backdrop-blur">
+        <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-[calc(100%-5.5rem)] rounded-xl border border-border/70 bg-background/90 px-3 py-2 text-xs text-muted-foreground shadow-sm backdrop-blur">
           {notice}
         </div>
       ) : null}
 
-      <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-1 rounded-xl border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur">
+      <div className="absolute right-3 top-3 z-20 flex flex-col gap-1 rounded-xl border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur">
         <Button
           type="button"
           size="icon"
           variant="ghost"
           className="h-9 w-9"
-          onClick={() => mapRef.current?.zoomIn(1)}
+          onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
           disabled={mapStatus !== "ready"}
           aria-label="Zooma in kartan"
         >
@@ -440,7 +650,7 @@ export function PlaceMap({
           size="icon"
           variant="ghost"
           className="h-9 w-9"
-          onClick={() => mapRef.current?.zoomOut(1)}
+          onClick={() => mapRef.current?.zoomOut({ duration: 200 })}
           disabled={mapStatus !== "ready"}
           aria-label="Zooma ut kartan"
         >
@@ -449,7 +659,7 @@ export function PlaceMap({
       </div>
 
       {selected ? (
-        <div className="absolute inset-x-3 bottom-8 z-[1000] rounded-2xl border border-border/70 bg-background/95 p-3 shadow-lg backdrop-blur">
+        <div className="absolute inset-x-3 bottom-8 z-20 rounded-2xl border border-border/70 bg-background/95 p-3 shadow-lg backdrop-blur">
           <div className="flex min-w-0 items-center gap-3">
             <div className="min-w-0 flex-1">
               {selected.eyebrow ? (
@@ -477,7 +687,7 @@ export function PlaceMap({
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] bg-background/85 px-2 py-1 text-center text-[10px] text-muted-foreground backdrop-blur-sm">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-background/85 px-2 py-1 text-center text-[10px] text-muted-foreground backdrop-blur-sm">
         {geoapifyKey
           ? "Kartbilder © Geoapify · Kartdata © OpenStreetMap-bidragsgivare"
           : "Kartpositioner visas utan extern kartbakgrund"}
