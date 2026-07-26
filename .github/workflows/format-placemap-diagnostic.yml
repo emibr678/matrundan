@@ -1,0 +1,32 @@
+name: Format PlaceMap diagnostic
+
+on:
+  push:
+    branches: [diagnostic/placemap-isolation]
+    paths:
+      - .github/workflows/format-placemap-diagnostic.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: diagnostic/placemap-isolation
+      - uses: oven-sh/setup-bun@v2
+      - name: Format, verify and commit
+        run: |
+          bun install --frozen-lockfile
+          bunx prettier --write src/routes/placemapdiagnostik.tsx
+          bunx tsc --noEmit
+          bunx eslint src/routes/placemapdiagnostik.tsx
+          bun run build
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/routes/placemapdiagnostik.tsx src/routeTree.gen.ts
+          git rm .github/workflows/format-placemap-diagnostic.yml
+          git commit -m "Formatera och registrera PlaceMap-diagnostiken"
+          git push
