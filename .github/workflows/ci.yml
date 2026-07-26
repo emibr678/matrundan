@@ -1,6 +1,9 @@
 name: Sync v0.10.0 release candidate
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - feature/package-4a-map-demo
@@ -14,8 +17,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Check out repository
+      - name: Check out feature branch
         uses: actions/checkout@v4
+        with:
+          ref: feature/package-4a-map-demo
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
