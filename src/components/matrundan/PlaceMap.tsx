@@ -476,13 +476,48 @@ export function PlaceMap({
           event.stopPropagation();
           const source = map.getSource(PLACE_SOURCE_ID) as MapLibreGeoJSONSource | undefined;
           if (!source) return;
-          void source.getClusterExpansionZoom(clusterId).then((zoom) => {
-            map.easeTo({
-              center: coordinates,
-              zoom: Math.min(zoom, MAX_ZOOM),
-              duration: 250,
+          void source
+            .getClusterLeaves(clusterId, Math.max(Math.ceil(count), 1), 0)
+            .then((leaves) => {
+              const points = leaves.flatMap((leaf) =>
+                leaf.geometry.type === "Point"
+                  ? [leaf.geometry.coordinates as [number, number]]
+                  : [],
+              );
+              if (points.length === 0) {
+                map.easeTo({
+                  center: coordinates,
+                  zoom: Math.min(map.getZoom() + 2, MAX_ZOOM),
+                  duration: 250,
+                });
+                return;
+              }
+
+              const bounds = points.reduce(
+                (current, point) => current.extend(point),
+                new mapLibre.LngLatBounds(points[0], points[0]),
+              );
+              const camera = map.cameraForBounds(bounds, {
+                padding: 56,
+                maxZoom: MAX_ZOOM,
+              });
+              map.easeTo({
+                center: camera?.center ?? coordinates,
+                zoom: Math.min(
+                  Math.max(camera?.zoom ?? map.getZoom() + 2, map.getZoom() + 1),
+                  MAX_ZOOM,
+                ),
+                duration: 250,
+              });
+            })
+            .catch((error) => {
+              console.error("[Matrundan] Klustret kunde inte öppnas:", error);
+              map.easeTo({
+                center: coordinates,
+                zoom: Math.min(map.getZoom() + 2, MAX_ZOOM),
+                duration: 250,
+              });
             });
-          });
         });
 
         const marker = new mapLibre.Marker({ element, anchor: "center" })
