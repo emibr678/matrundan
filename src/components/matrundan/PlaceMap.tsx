@@ -1,6 +1,14 @@
 import * as React from "react";
 import { ArrowRight, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  waitForLeaflet,
+  type LatLngTuple,
+  type LeafletApi,
+  type LeafletLayer,
+  type LeafletLayerGroup,
+  type LeafletMap,
+} from "@/lib/matrundan/leaflet-global";
 
 export interface PlaceMapItem {
   id: string;
@@ -25,123 +33,11 @@ interface PlaceMapProps {
   ariaLabel?: string;
 }
 
-type LatLngTuple = [number, number];
-type LeafletTarget = LeafletMap | LeafletLayerGroup;
-type LeafletHandler = () => void;
-
-interface LeafletLayer {
-  addTo(target: LeafletTarget): this;
-  remove(): this;
-  on(event: string, handler: LeafletHandler): this;
-  off(event: string, handler: LeafletHandler): this;
-}
-
-interface LeafletLayerGroup extends LeafletLayer {
-  addLayer(layer: LeafletLayer): this;
-}
-
-interface LeafletMap {
-  setView(center: LatLngTuple, zoom: number, options?: Record<string, unknown>): this;
-  fitBounds(bounds: LeafletBounds, options?: Record<string, unknown>): this;
-  zoomIn(delta?: number): this;
-  zoomOut(delta?: number): this;
-  getZoom(): number;
-  getCenter(): { lat: number; lng: number };
-  invalidateSize(options?: Record<string, unknown>): this;
-  on(event: string, handler: LeafletHandler): this;
-  off(event: string, handler: LeafletHandler): this;
-  remove(): void;
-}
-
-interface LeafletBounds {
-  isValid(): boolean;
-}
-
-interface LeafletApi {
-  Browser: { retina: boolean };
-  map(element: HTMLElement, options?: Record<string, unknown>): LeafletMap;
-  tileLayer(url: string, options?: Record<string, unknown>): LeafletLayer;
-  layerGroup(): LeafletLayerGroup;
-  marker(position: LatLngTuple, options?: Record<string, unknown>): LeafletLayer;
-  circle(position: LatLngTuple, options?: Record<string, unknown>): LeafletLayer;
-  divIcon(options?: Record<string, unknown>): unknown;
-  latLngBounds(points: LatLngTuple[]): LeafletBounds;
-}
-
-declare global {
-  interface Window {
-    L?: LeafletApi;
-    __matrundanLeafletPromise?: Promise<LeafletApi>;
-  }
-}
-
-const LEAFLET_VERSION = "1.9.4";
-const LEAFLET_CSS_ID = "matrundan-leaflet-css";
-const LEAFLET_SCRIPT_ID = "matrundan-leaflet-script";
-const LEAFLET_CSS_URL = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.css`;
-const LEAFLET_SCRIPT_URL = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.js`;
-const LEAFLET_CSS_INTEGRITY =
-  "sha256-p4NxAoJBhIINfQ3ynhMZqbrPDUqjMZVJpJkzY1uZ4X4=";
-const LEAFLET_SCRIPT_INTEGRITY =
-  "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 20;
 const DEFAULT_ZOOM = 14;
 const TRANSPARENT_TILE =
   "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-
-function loadLeaflet(): Promise<LeafletApi> {
-  if (typeof window === "undefined") {
-    return Promise.reject(new Error("Leaflet kan bara laddas i webbläsaren."));
-  }
-  if (window.L) return Promise.resolve(window.L);
-  if (window.__matrundanLeafletPromise) {
-    return window.__matrundanLeafletPromise;
-  }
-
-  if (!document.getElementById(LEAFLET_CSS_ID)) {
-    const link = document.createElement("link");
-    link.id = LEAFLET_CSS_ID;
-    link.rel = "stylesheet";
-    link.href = LEAFLET_CSS_URL;
-    link.integrity = LEAFLET_CSS_INTEGRITY;
-    link.crossOrigin = "anonymous";
-    document.head.appendChild(link);
-  }
-
-  const promise = new Promise<LeafletApi>((resolve, reject) => {
-    const finish = () => {
-      if (window.L) resolve(window.L);
-      else reject(new Error("Leaflet laddades utan att kart-API:t blev tillgängligt."));
-    };
-    const fail = () => reject(new Error("Leaflet kunde inte laddas."));
-    const existing = document.getElementById(
-      LEAFLET_SCRIPT_ID,
-    ) as HTMLScriptElement | null;
-
-    if (existing) {
-      existing.addEventListener("load", finish, { once: true });
-      existing.addEventListener("error", fail, { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = LEAFLET_SCRIPT_ID;
-    script.src = LEAFLET_SCRIPT_URL;
-    script.integrity = LEAFLET_SCRIPT_INTEGRITY;
-    script.crossOrigin = "anonymous";
-    script.async = true;
-    script.addEventListener("load", finish, { once: true });
-    script.addEventListener("error", fail, { once: true });
-    document.head.appendChild(script);
-  }).catch((error) => {
-    delete window.__matrundanLeafletPromise;
-    throw error;
-  });
-
-  window.__matrundanLeafletPromise = promise;
-  return promise;
-}
 
 function escapeHtml(value: string) {
   return value.replace(
@@ -224,10 +120,11 @@ export function PlaceMap({
     const element = mapElementRef.current;
     if (!element) return;
 
-    void loadLeaflet()
+    void waitForLeaflet()
       .then((leaflet) => {
         if (cancelled || !mapElementRef.current) return;
-        const fallback = center ??
+        const fallback =
+          center ??
           (mappedItems[0]?.lat != null && mappedItems[0]?.lng != null
             ? { lat: mappedItems[0].lat, lng: mappedItems[0].lng }
             : { lat: 57.7089, lng: 11.9746 });
