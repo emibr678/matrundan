@@ -136,7 +136,8 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
 
   const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
   if ((await mapToggle.count()) > 0) {
-    await mapToggle.click();
+    await mapToggle.evaluate((element) => (element as HTMLButtonElement).click());
+    await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
   }
 
   const searchMap = dialog.getByRole("region", { name: "Karta över sökresultat" });
