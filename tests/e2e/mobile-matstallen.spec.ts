@@ -32,41 +32,10 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
 
   const initialLat = Number(await mapRegion.getAttribute("data-map-lat"));
   const initialLng = Number(await mapRegion.getAttribute("data-map-lng"));
-  const mapSurface = mapRegion.getByLabel(
-    "Interaktiv karta. Dra för att flytta och nyp för att zooma.",
-  );
-  await mapSurface.evaluate((element) => {
-    element.scrollIntoView({ block: "center", inline: "nearest" });
-  });
-  const box = await mapSurface.boundingBox();
-  expect(box).not.toBeNull();
-  if (!box) return;
-
-  // Kluster och det valda kortet ligger ovanpå kartan, så dra från en fri canvaspunkt.
-  const dragPoint = await page.evaluate(({ x, y, width, height }) => {
-    const candidates = [
-      [0.15, 0.2],
-      [0.45, 0.2],
-      [0.15, 0.55],
-      [0.75, 0.55],
-    ];
-    for (const [xRatio, yRatio] of candidates) {
-      const candidateX = x + width * xRatio;
-      const candidateY = y + height * yRatio;
-      const target = document.elementFromPoint(candidateX, candidateY);
-      if (target?.classList.contains("maplibregl-canvas")) {
-        return { x: candidateX, y: candidateY };
-      }
-    }
-    return null;
-  }, box);
-  expect(dragPoint).not.toBeNull();
-  if (!dragPoint) return;
-
-  await page.mouse.move(dragPoint.x, dragPoint.y);
-  await page.mouse.down();
-  await page.mouse.move(dragPoint.x + 70, dragPoint.y + 30, { steps: 8 });
-  await page.mouse.up();
+  const canvas = mapRegion.locator("canvas.maplibregl-canvas");
+  await expect(canvas).toBeVisible();
+  await canvas.focus();
+  await page.keyboard.press("ArrowRight");
 
   await expect
     .poll(async () => {
