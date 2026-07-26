@@ -20,7 +20,7 @@ export interface LeafletMarkerCluster {
   getChildCount(): number;
 }
 
-export interface LeafletMarkerClusterGroup extends LeafletLayerGroup {}
+export type LeafletMarkerClusterGroup = LeafletLayerGroup;
 
 export interface LeafletMap {
   setView(center: LatLngTuple, zoom: number, options?: Record<string, unknown>): this;
