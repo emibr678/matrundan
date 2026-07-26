@@ -13,7 +13,7 @@ export function waitForMapLibre(): Promise<MapLibreApi> {
     return Promise.reject(new Error("MapLibre kan bara laddas i webbläsaren."));
   }
 
-  // Externa kartresurser verifieras av PlaceMap innan kartan markeras som klar.
+  // PlaceMap verifierar Geoapify-stil och externa kartresurser innan vyn blir klar.
   mapLibrePromise ??= import("maplibre-gl").then((mapLibre) => {
     mapLibre.setWorkerUrl(mapLibreWorkerUrl);
     mapLibre.setWorkerCount(1);
