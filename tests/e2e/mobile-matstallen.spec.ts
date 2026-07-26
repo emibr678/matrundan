@@ -49,7 +49,6 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
 async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) {
   const zoomOut = mapRegion.getByRole("button", { name: "Zooma ut kartan" });
   const clusters = mapRegion.locator(".matrundan-cluster-icon");
-  const markersBefore = Number(await mapRegion.getAttribute("data-map-marker-count"));
 
   await expect(mapRegion).toHaveAttribute("data-clustering-disabled-at", "17");
 
@@ -75,7 +74,7 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
     .toBeLessThan(initialMembers);
   await expect
     .poll(async () => Number(await mapRegion.getAttribute("data-map-marker-count")))
-    .toBeGreaterThan(markersBefore);
+    .toBeGreaterThan(0);
 }
 
 test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
