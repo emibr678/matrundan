@@ -42,6 +42,7 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
   expect(box).not.toBeNull();
   if (!box) return;
 
+  // Kluster och det valda kortet ligger ovanpå kartan, så dra från en fri canvaspunkt.
   const dragPoint = await page.evaluate(({ x, y, width, height }) => {
     const candidates = [
       [0.15, 0.2],
