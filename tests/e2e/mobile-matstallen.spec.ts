@@ -20,6 +20,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 
 async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getByRole"]>) {
   await expect(mapRegion).toHaveAttribute("data-map-ready", "true");
+  await expect(mapRegion).toHaveAttribute("data-map-renderer", "maplibre-vector");
   await expect(mapRegion).toHaveAttribute("data-map-tile-status", "ready");
   await expect(mapRegion.getByText("Laddar kartan…")).toHaveCount(0);
 
@@ -60,8 +61,7 @@ async function expectInteractiveMap(page: Page, mapRegion: ReturnType<Page["getB
 async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) {
   const zoomOut = mapRegion.getByRole("button", { name: "Zooma ut kartan" });
   const clusters = mapRegion.locator(".matrundan-cluster-icon");
-  const clusterCounts = clusters.locator("[data-cluster-count]");
-  const markers = mapRegion.locator(".matrundan-place-marker");
+  const markersBefore = Number(await mapRegion.getAttribute("data-map-marker-count"));
 
   await expect(mapRegion).toHaveAttribute("data-clustering-disabled-at", "17");
 
@@ -74,9 +74,7 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
   }
 
   await expect.poll(async () => clusters.count()).toBeGreaterThan(0);
-  const initialMembers = Number(
-    await clusters.first().locator("[data-cluster-count]").getAttribute("data-cluster-count"),
-  );
+  const initialMembers = Number(await clusters.first().getAttribute("data-cluster-count"));
   expect(initialMembers).toBeGreaterThan(1);
 
   const clusterZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
@@ -84,28 +82,33 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
   await expect
     .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
     .toBeGreaterThan(clusterZoom);
-  await expect.poll(async () => markers.count()).toBeGreaterThan(0);
   await expect
-    .poll(async () => {
-      const counts = await clusterCounts.evaluateAll((elements) =>
-        elements.map((element) => Number(element.getAttribute("data-cluster-count") ?? 0)),
-      );
-      return counts.length > 0 ? Math.max(...counts) : 0;
-    })
+    .poll(async () => Number(await mapRegion.getAttribute("data-map-largest-cluster")))
     .toBeLessThan(initialMembers);
+  await expect
+    .poll(async () => Number(await mapRegion.getAttribute("data-map-marker-count")))
+    .toBeGreaterThan(markersBefore);
 }
 
 test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
-  let mapTileRequests = 0;
-  await page.route("https://maps.geoapify.com/**", async (route) => {
-    mapTileRequests += 1;
+  let mapStyleRequests = 0;
+  await page.route("https://maps.geoapify.com/v1/styles/**", async (route) => {
+    mapStyleRequests += 1;
     await route.fulfill({
       status: 200,
-      contentType: "image/png",
-      body: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=",
-        "base64",
-      ),
+      contentType: "application/json",
+      body: JSON.stringify({
+        version: 8,
+        name: "CI map style",
+        sources: {},
+        layers: [
+          {
+            id: "background",
+            type: "background",
+            paint: { "background-color": "#eee9df" },
+          },
+        ],
+      }),
       headers: { "cache-control": "no-store" },
     });
   });
@@ -120,11 +123,7 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
     name: /Karta med \d+ av \d+ matställen/,
   });
   await expect(placesMap).toBeVisible();
-  await expect(placesMap.getByText("Laddar kartan…")).toHaveCount(0);
-  await expect.poll(() => mapTileRequests).toBeGreaterThan(0);
-  const firstTile = placesMap.locator("img.leaflet-tile").first();
-  await expect(firstTile).toBeVisible();
-  await expect.poll(() => firstTile.getAttribute("crossorigin")).toBeNull();
+  await expect.poll(() => mapStyleRequests).toBeGreaterThan(0);
   await expectInteractiveMap(page, placesMap);
   await expectMarkerClustering(placesMap);
   await expectNoHorizontalOverflow(page, "Matställen i kartvy");
@@ -139,6 +138,7 @@ test("Matställen och sökdialogen fungerar vid 360 px", async ({ page }) => {
   const searchMap = dialog.getByRole("region", { name: "Karta över sökresultat" });
   await expect(searchMap).toBeVisible();
   await expect(searchMap).toHaveAttribute("data-map-ready", "true");
+  await expect(searchMap).toHaveAttribute("data-map-renderer", "maplibre-vector");
   await expect(searchMap).toHaveAttribute("data-map-tile-status", "ready");
   await expect(searchMap.getByText("Laddar kartan…")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");
