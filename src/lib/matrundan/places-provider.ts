@@ -60,7 +60,10 @@ function centerFor(city: string, area?: string) {
   return CITY_CENTERS[city.trim().toLowerCase()] ?? CITY_CENTERS.göteborg;
 }
 
-function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+function haversineKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+) {
   const radius = 6371;
   const toRad = (degrees: number) => (degrees * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
@@ -214,10 +217,13 @@ const demoProvider: PlacesProvider = {
     const normalizedQuery = (query ?? "").trim().toLowerCase();
     const normalizedArea = (area ?? "").trim().toLowerCase();
     const center = centerFor(city, area);
-    let items = DEMO_SUGGESTIONS.map((suggestion) => ({
+    const normalizedSuggestions = DEMO_SUGGESTIONS.map((suggestion) => ({
       ...suggestion,
       cuisines: normalizeFoodTags(suggestion.cuisines ?? []),
-    })).filter((suggestion) => suggestion.city.toLowerCase() === city.trim().toLowerCase());
+    }));
+    let items = normalizedSuggestions.filter(
+      (suggestion) => suggestion.city.toLowerCase() === city.trim().toLowerCase(),
+    );
 
     if (normalizedArea) {
       items = items.filter(
@@ -232,7 +238,9 @@ const demoProvider: PlacesProvider = {
         (suggestion) =>
           suggestion.name.toLowerCase().includes(normalizedQuery) ||
           suggestion.category.toLowerCase().includes(normalizedQuery) ||
-          suggestion.cuisines?.some((cuisine) => cuisine.toLowerCase().includes(normalizedQuery)) ||
+          suggestion.cuisines?.some((cuisine) =>
+            cuisine.toLowerCase().includes(normalizedQuery),
+          ) ||
           suggestion.address.toLowerCase().includes(normalizedQuery) ||
           suggestion.area?.toLowerCase().includes(normalizedQuery),
       );
@@ -242,7 +250,9 @@ const demoProvider: PlacesProvider = {
       ...suggestion,
       distanceKm:
         suggestion.lat != null && suggestion.lng != null
-          ? Math.round(haversineKm(center, { lat: suggestion.lat, lng: suggestion.lng }) * 10) / 10
+          ? Math.round(
+              haversineKm(center, { lat: suggestion.lat, lng: suggestion.lng }) * 10,
+            ) / 10
           : undefined,
     }));
 
@@ -250,7 +260,8 @@ const demoProvider: PlacesProvider = {
       radiusKm == null || !Number.isFinite(radiusKm)
         ? withDistance
         : withDistance.filter(
-            (suggestion) => suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
+            (suggestion) =>
+              suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
           );
 
     filtered.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
