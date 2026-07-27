@@ -8,122 +8,145 @@ on:
       - opened
       - synchronize
       - reopened
+      - ready_for_review
+      - converted_to_draft
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: pr18-format-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  apply-verified-formatting:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/map-search-clustering-category-icons'
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
-      - name: Check out PR branch
+      - name: Check out repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
           show-progress: false
+
+      - name: Set verification level
+        id: verification
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.pull_request.draft }}" != "true" ]]; then
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            echo "Full verification: browser checks run when relevant." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "full=false" >> "$GITHUB_OUTPUT"
+            echo "Fast verification for draft PR: browser checks are deferred until ready for review." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
+      - name: Cache Bun downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Apply exact MapLibre type correction
+      - name: Find changed files
+        id: changes
         shell: bash
         run: |
-          python - <<'PY'
-          import re
-          from pathlib import Path
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+          elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            base_sha="${{ github.event.before }}"
+          else
+            base_sha="$(git rev-parse HEAD^)"
+          fi
 
-          path = Path("src/components/matrundan/PlaceMap.tsx")
-          text = path.read_text()
-          updated, count = re.subn(r"(?m)^\s*retainPadding: false,\n", "", text)
-          if count != 3:
-              raise SystemExit(f"Expected exactly 3 retainPadding lines, found {count}")
-          path.write_text(updated)
-          PY
+          mapfile -t format_files < <(
+            git diff --name-only --diff-filter=ACMR "$base_sha" HEAD -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' \
+              '*.json' '*.css'
+          )
+          mapfile -t code_files < <(
+            git diff --name-only --diff-filter=ACMR "$base_sha" HEAD -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs'
+          )
 
-      - name: Format exact PR files
+          printf '%s\n' "${format_files[@]}" > changed-format-files.txt
+          printf '%s\n' "${code_files[@]}" > changed-code-files.txt
+
+          [[ ${#format_files[@]} -gt 0 ]] && echo "has_format=true" >> "$GITHUB_OUTPUT" || echo "has_format=false" >> "$GITHUB_OUTPUT"
+          [[ ${#code_files[@]} -gt 0 ]] && echo "has_code=true" >> "$GITHUB_OUTPUT" || echo "has_code=false" >> "$GITHUB_OUTPUT"
+
+          if printf '%s\n' "${format_files[@]}" | grep -Eq '^(src/components/|src/routes/|src/.*\.(css|tsx)$|playwright\.config\.ts$|tests/e2e/)'; then
+            echo "has_ui=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_ui=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if printf '%s\n' "${format_files[@]}" | grep -Eq '^(src/components/matrundan/PlaceMap\.tsx|src/lib/matrundan/maplibre-client\.ts|playwright\.config\.ts|tests/e2e/mobile-matstallen\.spec\.ts)$'; then
+            echo "has_map=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_map=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prettier changed code and configuration
+        if: steps.changes.outputs.has_format == 'true'
+        shell: bash
+        run: |
+          mapfile -t files < changed-format-files.txt
+          bunx prettier --check "${files[@]}"
+
+      - name: ESLint changed code
+        if: steps.changes.outputs.has_code == 'true'
+        shell: bash
+        run: |
+          mapfile -t files < changed-code-files.txt
+          bunx eslint "${files[@]}"
+
+      - name: TypeScript
+        run: bun run typecheck
+
+      - name: Production build
+        run: bun run build
+
+      - name: Install Chromium
+        if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_ui == 'true'
+        run: bunx playwright install --with-deps chromium
+
+      - name: Mobile Chromium smoke test
+        if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_ui == 'true'
+        run: bun run test:mobile
+
+      - name: Install WebKit for map compatibility
+        if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_map == 'true'
+        run: bunx playwright install --with-deps webkit
+
+      - name: iPhone and desktop map compatibility
+        if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_map == 'true'
         run: >-
-          bunx prettier --write
-          src/components/matrundan/PlaceMap.tsx
-          src/lib/matrundan/geoapify.functions.ts
-          tests/e2e/mobile-matstallen.spec.ts
+          bunx playwright test tests/e2e/mobile-matstallen.spec.ts
+          --project=mobile-webkit
+          --project=desktop-chromium
 
-      - name: Capture verification result
-        id: verification
-        continue-on-error: true
-        shell: bash
-        run: |
-          set +e
-          {
-            echo '--- git diff --check ---'
-            git diff --check
-            echo '--- eslint ---'
-            bunx eslint \
-              src/components/matrundan/PlaceMap.tsx \
-              src/lib/matrundan/geoapify.functions.ts \
-              tests/e2e/mobile-matstallen.spec.ts
-            echo '--- typecheck ---'
-            bun run typecheck
-            echo '--- build ---'
-            bun run build
-            echo '--- changed files ---'
-            git diff --name-only
-
-            mapfile -t changed < <(git diff --name-only)
-            expected=(
-              "src/components/matrundan/PlaceMap.tsx"
-              "tests/e2e/mobile-matstallen.spec.ts"
-            )
-            if [[ ${#changed[@]} -ne ${#expected[@]} ]]; then
-              printf 'Unexpected changed files:\n%s\n' "${changed[*]}"
-              exit 1
-            fi
-            for index in "${!expected[@]}"; do
-              [[ "${changed[$index]}" == "${expected[$index]}" ]] || {
-                printf 'Unexpected changed files:\n%s\n' "${changed[*]}"
-                exit 1
-              }
-            done
-          } > verification.log 2>&1
-          status=$?
-          cat verification.log
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit "$status"
-
-      - name: Upload verification log
-        if: always()
+      - name: Upload browser report on failure
+        if: failure() && steps.verification.outputs.full == 'true' && steps.changes.outputs.has_ui == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: pr18-verification-log
-          path: verification.log
-          if-no-files-found: error
-
-      - name: Enforce verification result
-        if: steps.verification.outputs.status != '0'
-        run: exit 1
-
-      - name: Commit verified formatting
-        if: steps.verification.outputs.status == '0'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            src/components/matrundan/PlaceMap.tsx \
-            src/lib/matrundan/geoapify.functions.ts \
-            tests/e2e/mobile-matstallen.spec.ts
-          git commit -m "Formatera kartfix och rätta MapLibre-typer"
-          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
