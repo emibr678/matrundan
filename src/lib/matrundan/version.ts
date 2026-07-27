@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.10.0";
+export const APP_VERSION = "0.11.0";
 export const APP_VERSION_DATE = "2026-07-27";
 
 export interface ChangelogEntry {
@@ -26,6 +26,36 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Ta bort och lägg tillbaka matställen utan tappad historik, välj tydligare kök och inriktning och använd väljaren smidigt på mobil.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Ägare och admin kan ta bort ett matställe från gruppens aktiva lista utan att tidigare besök, omdömen eller gruppens egna platsuppgifter försvinner.",
+          "Ett borttaget ställe läggs tillbaka genom det vanliga Lägg till-flödet. Den tidigare gruppkopplingen återaktiveras och ingen dubblett skapas.",
+          "Kök och inriktning väljs från en gemensam sökbar lista som normaliserar Geoapify-data och gruppens egna val utan fri text.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Borttagna ställen försvinner från aktiv lista, karta, nästa stopp, slumpning och progression men är fortsatt läsbara via gruppens besökshistorik.",
+          "Platsadministrationen använder naturlig svenska som Ta bort från gruppen och Lägg tillbaka i gruppen, utan tekniska begrepp i gränssnittet.",
+          "Demo- och live-läge följer samma livscykel och bevarar tidigare gruppmetadata vid återinläggning.",
+        ],
+      },
+      {
+        kind: "Rättat",
+        items: [
+          "På mobil öppnas köksväljaren som en drawer som följer den synliga viewporten när tangentbordet visas. Sökfältet ligger kvar och alternativlistan kan scrollas utan horisontell overflow.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.10.0",
+    date: "2026-07-27",
     summary:
       "Arkivera grupper och matställen utan att förlora historik, korrigera gruppens platsuppgifter och redigera ditt eget omdöme.",
     sections: [
@@ -176,7 +206,6 @@ export const CHANGELOG: ChangelogEntry[] = [
       },
     ],
   },
-
   {
     version: "0.6.1",
     date: "2026-07-25",
@@ -197,7 +226,6 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-25",
     summary:
       "Riktiga inbjudningar, medlemshantering och profil i live-läget – utan att någon historik försvinner.",
-
     sections: [
       {
         kind: "Nytt",
