@@ -127,10 +127,32 @@ jobs:
           mapfile -t files < changed-code-files.txt
           bunx eslint "${files[@]}"
 
-      - name: TypeScript
-        run: bun run typecheck
+      - name: Capture TypeScript diagnostics
+        id: typescript
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          bun run typecheck > typecheck.log 2>&1
+          status=$?
+          cat typecheck.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Upload TypeScript diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr18-typecheck-log
+          path: typecheck.log
+          if-no-files-found: error
+
+      - name: Enforce TypeScript result
+        if: steps.typescript.outputs.status != '0'
+        run: exit 1
 
       - name: Production build
+        if: steps.typescript.outputs.status == '0'
         run: bun run build
 
       - name: Install Chromium
