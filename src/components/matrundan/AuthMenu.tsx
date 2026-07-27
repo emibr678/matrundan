@@ -67,12 +67,16 @@ function GroupMenuItem({
 function GroupLifecycleActions() {
   const { state, archiveGroup, reactivateGroup, submitting } = useStore();
   const {
+    mode,
     activeGroupRole,
     activeGroupLifecycleStatus,
     refreshGroups,
   } = useSession();
   const [confirmArchive, setConfirmArchive] = React.useState(false);
-  const owner = activeGroupRole === "owner";
+  const ownRole = state.members.find(
+    (member) => member.id === state.currentUserId,
+  )?.role;
+  const owner = activeGroupRole === "owner" || ownRole === "ägare";
   const archived =
     state.group.lifecycleStatus === "archived" ||
     activeGroupLifecycleStatus === "archived";
@@ -83,7 +87,7 @@ function GroupLifecycleActions() {
     try {
       if (action === "archive") await archiveGroup();
       else await reactivateGroup();
-      await refreshGroups();
+      if (mode === "live") await refreshGroups();
       toast.success(
         action === "archive"
           ? "Gruppen är arkiverad."
@@ -165,23 +169,46 @@ export function AuthMenu({
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
 
-  if (!user) {
+  async function signIn() {
+    try {
+      await signInWithGoogle();
+    } catch {
+      toast.error("Kunde inte starta Google-inloggning.");
+    }
+  }
+
+  if (!user && !showGroupActions) {
     return (
       <Button
         size="sm"
         variant="outline"
         className="rounded-full"
-        onClick={async () => {
-          try {
-            await signInWithGoogle();
-          } catch {
-            toast.error("Kunde inte starta Google-inloggning.");
-          }
-        }}
+        onClick={() => void signIn()}
       >
         <LogIn className="mr-1.5 h-4 w-4" />
         Logga in
       </Button>
+    );
+  }
+
+  if (!user) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="outline" className="rounded-full">
+            <UserIcon className="mr-1.5 h-4 w-4" />
+            Demo
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-72">
+          <DropdownMenuLabel>Demo-läge</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={() => void signIn()}>
+            <LogIn className="mr-2 h-4 w-4" />
+            Logga in med Google
+          </DropdownMenuItem>
+          <GroupLifecycleActions />
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
@@ -190,9 +217,11 @@ export function AuthMenu({
     (user.user_metadata?.name as string | undefined) ??
     user.email ??
     "Inloggad";
-  const activeGroups = userGroups.filter((g) => g.lifecycleStatus === "active");
+  const activeGroups = userGroups.filter(
+    (group) => group.lifecycleStatus === "active",
+  );
   const archivedGroups = userGroups.filter(
-    (g) => g.lifecycleStatus === "archived",
+    (group) => group.lifecycleStatus === "archived",
   );
 
   return (
@@ -221,10 +250,10 @@ export function AuthMenu({
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
                 Aktiva grupper
               </DropdownMenuLabel>
-              {activeGroups.map((g) => (
+              {activeGroups.map((group) => (
                 <GroupMenuItem
-                  key={g.id}
-                  group={g}
+                  key={group.id}
+                  group={group}
                   activeGroupId={activeGroupId}
                   onSelect={selectGroup}
                 />
@@ -237,10 +266,10 @@ export function AuthMenu({
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
                 Arkiverade grupper
               </DropdownMenuLabel>
-              {archivedGroups.map((g) => (
+              {archivedGroups.map((group) => (
                 <GroupMenuItem
-                  key={g.id}
-                  group={g}
+                  key={group.id}
+                  group={group}
                   activeGroupId={activeGroupId}
                   onSelect={selectGroup}
                 />
