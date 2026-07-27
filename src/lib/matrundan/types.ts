@@ -3,6 +3,8 @@ export type PlaceCategory = "restaurang" | "café" | "bageri" | "snabbmat" | "pu
 export type Occasion = "snabbt" | "avslappnat" | "middag";
 
 export type Role = "ägare" | "admin" | "medlem";
+export type GroupLifecycleStatus = "active" | "archived";
+export type PlaceCollectionStatus = "active" | "archived";
 
 export interface Member {
   id: string;
@@ -17,8 +19,18 @@ export interface Member {
 export interface Place {
   id: string;
   name: string;
+  /** Resolverad kategori för den aktiva gruppen. */
   category: PlaceCategory;
+  /** Kanonisk kategori innan eventuell gruppspecifik korrigering. */
+  canonicalCategory?: PlaceCategory;
+  /** Null/undefined betyder att gruppen använder kanonisk kategori. */
+  categoryOverride?: PlaceCategory | null;
+  /** Resolverade kökstyper för den aktiva gruppen. */
   cuisines: string[];
+  /** Kanoniska kökstyper innan eventuell gruppspecifik korrigering. */
+  canonicalCuisines?: string[];
+  /** Null/undefined betyder att gruppen använder kanoniska kökstyper. */
+  cuisinesOverride?: string[] | null;
   occasions: Occasion[];
   address: string;
   city: string;
@@ -29,6 +41,9 @@ export interface Place {
   addedAt: string;
   notes?: string;
   photo?: string;
+  collectionStatus?: PlaceCollectionStatus;
+  archivedAt?: string | null;
+  archivedBy?: string | null;
   /**
    * Ursprung för gruppens koppling till stället (`group_places.origin`):
    * - `manual`: skapat i denna grupp
@@ -112,6 +127,9 @@ export interface Group {
   city: string;
   createdAt: string;
   ownerId: string;
+  lifecycleStatus?: GroupLifecycleStatus;
+  archivedAt?: string | null;
+  archivedBy?: string | null;
   /** Om delade besök räknas mot progression. */
   sharedVisitsCountForProgression?: boolean;
   /** Förvalt sökområde (valfritt). Null om ingen text finns sparad. */
