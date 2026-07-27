@@ -1,5 +1,12 @@
 import * as React from "react";
-import { LogIn, LogOut, User as UserIcon, Plus, UserCog } from "lucide-react";
+import {
+  Archive,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+  Plus,
+  UserCog,
+} from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,11 +17,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSession } from "@/lib/matrundan/session";
+import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 
+function GroupMenuItem({
+  group,
+  activeGroupId,
+  onSelect,
+}: {
+  group: UserGroupSummary;
+  activeGroupId: string | null;
+  onSelect: (groupId: string) => void;
+}) {
+  const archived = group.lifecycleStatus === "archived";
+  return (
+    <DropdownMenuItem
+      onSelect={() => onSelect(group.id)}
+      className={group.id === activeGroupId ? "font-semibold" : undefined}
+    >
+      <span className="mr-2">{group.emoji ?? "🍽️"}</span>
+      <span className="min-w-0 flex-1 truncate">{group.name}</span>
+      {archived ? (
+        <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+          <Archive className="h-3 w-3" /> arkiverad
+        </span>
+      ) : group.role !== "member" ? (
+        <span className="ml-2 text-[10px] uppercase text-muted-foreground">
+          {group.role === "owner" ? "ägare" : "admin"}
+        </span>
+      ) : null}
+    </DropdownMenuItem>
+  );
+}
 
 export function AuthMenu() {
   const {
@@ -30,7 +66,6 @@ export function AuthMenu() {
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
-
 
   if (!user) {
     return (
@@ -57,6 +92,10 @@ export function AuthMenu() {
     (user.user_metadata?.name as string | undefined) ??
     user.email ??
     "Inloggad";
+  const activeGroups = userGroups.filter((g) => g.lifecycleStatus === "active");
+  const archivedGroups = userGroups.filter(
+    (g) => g.lifecycleStatus === "archived",
+  );
 
   return (
     <>
@@ -72,32 +111,41 @@ export function AuthMenu() {
             ) : null}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
           <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
             <UserCog className="mr-2 h-4 w-4" />
             Min profil
           </DropdownMenuItem>
-          {userGroups.length > 0 ? (
+          {activeGroups.length > 0 ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Byt grupp
+                Aktiva grupper
               </DropdownMenuLabel>
-              {userGroups.map((g) => (
-                <DropdownMenuItem
+              {activeGroups.map((g) => (
+                <GroupMenuItem
                   key={g.id}
-                  onSelect={() => selectGroup(g.id)}
-                  className={g.id === activeGroupId ? "font-semibold" : undefined}
-                >
-                  <span className="mr-2">{g.emoji ?? "🍽️"}</span>
-                  <span className="flex-1 truncate">{g.name}</span>
-                  {g.role !== "member" ? (
-                    <span className="ml-2 text-[10px] uppercase text-muted-foreground">
-                      {g.role === "owner" ? "ägare" : "admin"}
-                    </span>
-                  ) : null}
-                </DropdownMenuItem>
+                  group={g}
+                  activeGroupId={activeGroupId}
+                  onSelect={selectGroup}
+                />
+              ))}
+            </>
+          ) : null}
+          {archivedGroups.length > 0 ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                Arkiverade grupper
+              </DropdownMenuLabel>
+              {archivedGroups.map((g) => (
+                <GroupMenuItem
+                  key={g.id}
+                  group={g}
+                  activeGroupId={activeGroupId}
+                  onSelect={selectGroup}
+                />
               ))}
             </>
           ) : null}
@@ -122,7 +170,6 @@ export function AuthMenu() {
             <LogOut className="mr-2 h-4 w-4" />
             Logga ut
           </DropdownMenuItem>
-
         </DropdownMenuContent>
       </DropdownMenu>
       <ProfileDialog
