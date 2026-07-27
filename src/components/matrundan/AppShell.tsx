@@ -1,9 +1,9 @@
 import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
-import { Home, MapPin, Users, LogIn } from "lucide-react";
+import { Archive, Home, MapPin, Users, LogIn } from "lucide-react";
 import * as React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
-import { StoreProvider } from "@/lib/matrundan/store";
+import { StoreProvider, useStore } from "@/lib/matrundan/store";
 import {
   SessionProvider,
   useSession,
@@ -129,7 +129,6 @@ function ShellBody() {
     );
   }
 
-
   return (
     <StoreProvider
       key={mode === "live" ? `live:${activeGroupId ?? ""}` : "demo"}
@@ -141,7 +140,6 @@ function ShellBody() {
       <ShellChrome user={!!user} signIn={signInWithGoogle} />
     </StoreProvider>
   );
-
 }
 
 function Header({ showAuth }: { showAuth: boolean }) {
@@ -165,9 +163,11 @@ function ShellChrome({
   user: boolean;
   signIn: () => Promise<void>;
 }) {
+  const { state } = useStore();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (to: string) =>
     to === "/" ? pathname === "/" : pathname.startsWith(to);
+  const archived = state.group.lifecycleStatus === "archived";
 
   return (
     <div className="paper-grain min-h-dvh text-foreground">
@@ -225,6 +225,21 @@ function ShellChrome({
         </header>
 
         <main id="innehall" className="flex-1 px-4 md:px-6">
+          {archived ? (
+            <div
+              role="status"
+              className="mx-auto mb-4 flex max-w-4xl items-start gap-3 rounded-2xl border border-border/70 bg-muted/55 p-3 text-sm"
+            >
+              <Archive className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <div className="font-medium">Gruppen är arkiverad</div>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  Historiken är bevarad och kan läsas. Återaktivera gruppen i
+                  gruppinställningarna för att lägga till eller ändra något.
+                </p>
+              </div>
+            </div>
+          ) : null}
           <Outlet />
         </main>
       </div>
