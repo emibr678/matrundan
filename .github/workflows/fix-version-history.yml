@@ -25,21 +25,18 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+
           path = Path("src/lib/matrundan/version.ts")
           text = path.read_text()
-          old = '''  {
-            version: APP_VERSION,
-            date: APP_VERSION_DATE,
-            summary:
-              "Gruppcentrerad gamification'''
-          new = '''  {
-            version: "0.9.0",
-            date: "2026-07-25",
-            summary:
-              "Gruppcentrerad gamification'''
-          if old not in text:
-              raise SystemExit("Kunde inte hitta 0.9.0-posten")
-          path.write_text(text.replace(old, new, 1))
+          needle = 'summary:\n      "Gruppcentrerad gamification'
+          summary_index = text.index(needle)
+          entry_start = text.rfind("  {\n", 0, summary_index)
+          prefix = text[entry_start:summary_index]
+          if "version: APP_VERSION" not in prefix or "date: APP_VERSION_DATE" not in prefix:
+              raise SystemExit("0.9.0-posten hade inte förväntade dynamiska värden")
+          corrected = prefix.replace('version: APP_VERSION', 'version: "0.9.0"', 1)
+          corrected = corrected.replace('date: APP_VERSION_DATE', 'date: "2026-07-25"', 1)
+          path.write_text(text[:entry_start] + corrected + text[summary_index:])
           PY
       - name: Commit correction
         shell: bash
