@@ -1,6 +1,11 @@
 import * as React from "react";
 import { ArrowLeft, List, Loader2, Map, Plus, RefreshCcw, Search } from "lucide-react";
 import { toast } from "sonner";
+import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
+import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
+import { PlaceMap } from "@/components/matrundan/PlaceMap";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,10 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,20 +23,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { PlaceMap } from "@/components/matrundan/PlaceMap";
-import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
+import { Textarea } from "@/components/ui/textarea";
+import { geoapifySearchPlaces } from "@/lib/matrundan/geoapify.functions";
+import { formatLocation, parseLocation } from "@/lib/matrundan/location";
+import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { useSession } from "@/lib/matrundan/session";
+import { useStore } from "@/lib/matrundan/store";
 import {
   CATEGORY_LABEL,
   OCCASION_LABEL,
   type Occasion,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
-import { useStore } from "@/lib/matrundan/store";
-import { useSession } from "@/lib/matrundan/session";
-import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
-import { geoapifySearchPlaces } from "@/lib/matrundan/geoapify.functions";
-import { formatLocation, parseLocation } from "@/lib/matrundan/location";
 
 const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
 const RADIUS_OPTIONS = [1, 3, 5, 10, 25, 50] as const;
@@ -44,7 +45,7 @@ type Tab = "sok" | "manuell";
 type ManualDraft = {
   name: string;
   category: PlaceCategory;
-  cuisines: string;
+  cuisines: string[];
   address: string;
   area: string;
   city: string;
@@ -54,7 +55,9 @@ type ManualDraft = {
 };
 
 function toServerRadius(value: number): 1 | 3 | 5 | 10 | 25 | null {
-  return value === 1 || value === 3 || value === 5 || value === 10 || value === 25 ? value : null;
+  return value === 1 || value === 3 || value === 5 || value === 10 || value === 25
+    ? value
+    : null;
 }
 
 function providerMessage(error: unknown) {
@@ -76,7 +79,7 @@ function emptyManual(city: string): ManualDraft {
   return {
     name: "",
     category: "restaurang",
-    cuisines: "",
+    cuisines: [],
     address: "",
     area: "",
     city,
@@ -116,6 +119,7 @@ export function AddPlaceDialog({
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [resultView, setResultView] = React.useState<ResultView>("lista");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
+  const [pendingCuisines, setPendingCuisines] = React.useState<string[]>([]);
   const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>(["avslappnat"]);
   const [pendingNotes, setPendingNotes] = React.useState("");
   const [manual, setManual] = React.useState<ManualDraft>(() => emptyManual(state.group.city));
@@ -145,6 +149,7 @@ export function AddPlaceDialog({
     setSelectedId(null);
     setResultView("lista");
     setPending(null);
+    setPendingCuisines([]);
     setPendingOccasions(["avslappnat"]);
     setPendingNotes("");
     setManual(emptyManual(state.group.city));
@@ -233,6 +238,7 @@ export function AddPlaceDialog({
 
   const beginAdd = (suggestion: PlaceSuggestion) => {
     setPending(suggestion);
+    setPendingCuisines(suggestion.cuisines ?? []);
     setPendingOccasions(["avslappnat"]);
     setPendingNotes("");
   };
@@ -244,7 +250,7 @@ export function AddPlaceDialog({
       const place = {
         name: pending.name,
         category: pending.category,
-        cuisines: pending.cuisines ?? [],
+        cuisines: pendingCuisines,
         occasions: pendingOccasions,
         address: pending.address,
         area: pending.area,
@@ -264,14 +270,16 @@ export function AddPlaceDialog({
               raw: safeParse(pending.raw),
             })
           : await addPlace(place);
-      toast.success(`${added.name} tillagd`);
+      toast.success(`${added.name} tillagd i gruppen`);
       onOpenChange(false);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Kunde inte lägga till stället.";
       if (/redan|already|duplicate|unique/i.test(message)) {
         toast.info("Det här stället finns redan i gruppen.");
         onOpenChange(false);
-      } else toast.error(message);
+      } else {
+        toast.error(message);
+      }
     } finally {
       setBusy(false);
     }
@@ -287,10 +295,7 @@ export function AddPlaceDialog({
       const added = await addPlace({
         name: manual.name.trim(),
         category: manual.category,
-        cuisines: manual.cuisines
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean),
+        cuisines: manual.cuisines,
         occasions: manual.occasions,
         address: manual.address.trim(),
         area: manual.area.trim() || undefined,
@@ -299,7 +304,7 @@ export function AddPlaceDialog({
         notes: manual.notes.trim() || undefined,
         photo: manual.photo,
       });
-      toast.success(`${added.name} tillagd`);
+      toast.success(`${added.name} tillagd i gruppen`);
       onOpenChange(false);
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Kunde inte lägga till stället.");
@@ -315,10 +320,16 @@ export function AddPlaceDialog({
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
             <DialogDescription>
-              Kontrollera detaljerna innan du lägger till stället.
+              Kontrollera detaljerna och justera gruppens etiketter innan du lägger till stället.
             </DialogDescription>
           </DialogHeader>
           <PlaceSummary suggestion={pending} />
+          <FoodTagMultiSelect
+            id="pending-food-tags"
+            value={pendingCuisines}
+            onChange={setPendingCuisines}
+            description="Förifyllt från platsinformationen. Du kan korrigera valen för gruppen."
+          />
           <OccasionPicker value={pendingOccasions} onChange={setPendingOccasions} />
           <div className="space-y-1.5">
             <Label htmlFor="pending-notes">Anteckning till gruppen (frivilligt)</Label>
@@ -666,7 +677,7 @@ function ManualForm({
   const set = <K extends keyof ManualDraft>(key: K, next: ManualDraft[K]) =>
     onChange((current) => ({ ...current, [key]: next }));
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <div className="flex items-end gap-3">
         <div className="min-w-0 flex-1 space-y-1.5">
           <Label htmlFor="manual-name">Namn</Label>
@@ -678,34 +689,30 @@ function ManualForm({
         </div>
         <EmojiPicker value={value.photo} onChange={(next) => set("photo", next)} />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label>Kategori</Label>
-          <Select
-            value={value.category}
-            onValueChange={(next) => set("category", next as PlaceCategory)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(CATEGORY_LABEL).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="manual-cuisines">Kök (komma-separerat)</Label>
-          <Input
-            id="manual-cuisines"
-            value={value.cuisines}
-            onChange={(event) => set("cuisines", event.target.value)}
-          />
-        </div>
+      <div className="space-y-1.5">
+        <Label>Kategori</Label>
+        <Select
+          value={value.category}
+          onValueChange={(next) => set("category", next as PlaceCategory)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(CATEGORY_LABEL).map(([key, label]) => (
+              <SelectItem key={key} value={key}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+      <FoodTagMultiSelect
+        id="manual-food-tags"
+        value={value.cuisines}
+        onChange={(next) => set("cuisines", next)}
+        description="Välj från Matrundans gemensamma lista för att undvika dubletter."
+      />
       <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-1.5">
           <Label htmlFor="manual-address">Adress</Label>
@@ -737,7 +744,8 @@ function ManualForm({
         onChange={(updater) =>
           onChange((current) => ({
             ...current,
-            occasions: typeof updater === "function" ? updater(current.occasions) : updater,
+            occasions:
+              typeof updater === "function" ? updater(current.occasions) : updater,
           }))
         }
       />
@@ -868,7 +876,23 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-const EMOJIS = ["🍽️", "🍕", "🍣", "🍜", "🍔", "🌮", "☕", "🥐", "🍺", "🍦", "🥗", "🍷", "🥟", "🐟"];
+const EMOJIS = [
+  "🍽️",
+  "🍕",
+  "🍣",
+  "🍜",
+  "🍔",
+  "🌮",
+  "☕",
+  "🥐",
+  "🍺",
+  "🍦",
+  "🥗",
+  "🍷",
+  "🥟",
+  "🐟",
+];
+
 function EmojiPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [open, setOpen] = React.useState(false);
   return (
@@ -912,7 +936,12 @@ function safeParse(raw?: string): unknown {
 }
 
 function emojiForCategory(category: PlaceCategory) {
-  return { restaurang: "🍽️", café: "☕", bageri: "🥐", snabbmat: "🍔", pub: "🍺", matvagn: "🌭" }[
-    category
-  ];
+  return {
+    restaurang: "🍽️",
+    café: "☕",
+    bageri: "🥐",
+    snabbmat: "🍔",
+    pub: "🍺",
+    matvagn: "🌭",
+  }[category];
 }
