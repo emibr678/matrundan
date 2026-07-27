@@ -10,8 +10,18 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   FOOD_TAG_GROUP_LABEL,
   FOOD_TAGS,
@@ -31,7 +41,77 @@ interface FoodTagMultiSelectProps {
   description?: string;
 }
 
+interface FoodTagOptionsProps {
+  knownLabels: Set<string>;
+  onToggle: (label: string) => void;
+  mobile?: boolean;
+}
+
 const GROUPS: FoodTagGroup[] = ["cuisine", "specialty"];
+
+function useVisualViewportHeight(active: boolean) {
+  const [height, setHeight] = React.useState<number>();
+
+  React.useEffect(() => {
+    if (!active) {
+      setHeight(undefined);
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    const updateHeight = () => {
+      setHeight(Math.floor(viewport?.height ?? window.innerHeight));
+    };
+
+    updateHeight();
+    viewport?.addEventListener("resize", updateHeight);
+    viewport?.addEventListener("scroll", updateHeight);
+    window.addEventListener("resize", updateHeight);
+
+    return () => {
+      viewport?.removeEventListener("resize", updateHeight);
+      viewport?.removeEventListener("scroll", updateHeight);
+      window.removeEventListener("resize", updateHeight);
+    };
+  }, [active]);
+
+  return height;
+}
+
+function FoodTagOptions({ knownLabels, onToggle, mobile = false }: FoodTagOptionsProps) {
+  return (
+    <Command className={cn(mobile && "min-h-0 flex-1 rounded-none")}>
+      <CommandInput placeholder="Sök kök eller inriktning…" />
+      <CommandList
+        className={cn(
+          mobile
+            ? "min-h-0 flex-1 max-h-none overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))]"
+            : "max-h-[min(22rem,60vh)]",
+        )}
+      >
+        <CommandEmpty>Ingen matchande etikett.</CommandEmpty>
+        {GROUPS.map((group) => (
+          <CommandGroup key={group} heading={FOOD_TAG_GROUP_LABEL[group]}>
+            {FOOD_TAGS.filter((tag) => tag.group === group).map((tag) => {
+              const active = knownLabels.has(tag.label);
+              return (
+                <CommandItem
+                  key={tag.id}
+                  value={foodTagSearchValue(tag)}
+                  onSelect={() => onToggle(tag.label)}
+                  className={cn(mobile && "min-h-11 py-2.5")}
+                >
+                  <Check className={cn("h-4 w-4", active ? "opacity-100" : "opacity-0")} />
+                  <span>{tag.label}</span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ))}
+      </CommandList>
+    </Command>
+  );
+}
 
 export function FoodTagMultiSelect({
   value,
@@ -42,12 +122,15 @@ export function FoodTagMultiSelect({
   description,
 }: FoodTagMultiSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const isMobile = useIsMobile();
+  const viewportHeight = useVisualViewportHeight(isMobile && open);
   const selected = React.useMemo(() => normalizeFoodTags(value), [value]);
   const knownLabels = React.useMemo(
     () =>
       new Set(selected.filter((item) => findFoodTag(item)).map((item) => findFoodTag(item)!.label)),
     [selected],
   );
+  const mobilePanelHeight = viewportHeight ? Math.max(240, viewportHeight - 8) : undefined;
 
   function toggle(labelValue: string) {
     const tag = findFoodTag(labelValue);
@@ -64,6 +147,25 @@ export function FoodTagMultiSelect({
     onChange(selected.filter((candidate) => candidate !== item));
   }
 
+  const trigger = (
+    <Button
+      id={id}
+      type="button"
+      variant="outline"
+      role="combobox"
+      aria-expanded={open}
+      disabled={disabled}
+      className="min-h-11 w-full min-w-0 justify-between gap-2 overflow-hidden px-3 text-left font-normal"
+    >
+      <span className="min-w-0 flex-1 truncate">
+        {selected.length > 0
+          ? `${selected.length} ${selected.length === 1 ? "val" : "valda"}`
+          : "Välj kök och inriktning"}
+      </span>
+      <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+    </Button>
+  );
+
   return (
     <div className="min-w-0 space-y-2">
       <div className="space-y-1">
@@ -73,54 +175,45 @@ export function FoodTagMultiSelect({
         ) : null}
       </div>
 
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            disabled={disabled}
-            className="min-h-11 w-full min-w-0 justify-between gap-2 overflow-hidden px-3 text-left font-normal"
+      {isMobile ? (
+        <Drawer open={open} onOpenChange={setOpen} repositionInputs>
+          <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+          <DrawerContent
+            data-testid="food-tag-mobile-drawer"
+            className="max-h-[calc(100dvh-0.5rem)] overflow-hidden rounded-t-2xl"
+            style={
+              mobilePanelHeight
+                ? { height: mobilePanelHeight, maxHeight: mobilePanelHeight }
+                : undefined
+            }
           >
-            <span className="min-w-0 flex-1 truncate">
-              {selected.length > 0
-                ? `${selected.length} ${selected.length === 1 ? "val" : "valda"}`
-                : "Välj kök och inriktning"}
-            </span>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-[min(22rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] p-0"
-        >
-          <Command>
-            <CommandInput placeholder="Sök kök eller inriktning…" />
-            <CommandList className="max-h-[min(22rem,60vh)]">
-              <CommandEmpty>Ingen matchande etikett.</CommandEmpty>
-              {GROUPS.map((group) => (
-                <CommandGroup key={group} heading={FOOD_TAG_GROUP_LABEL[group]}>
-                  {FOOD_TAGS.filter((tag) => tag.group === group).map((tag) => {
-                    const active = knownLabels.has(tag.label);
-                    return (
-                      <CommandItem
-                        key={tag.id}
-                        value={foodTagSearchValue(tag)}
-                        onSelect={() => toggle(tag.label)}
-                      >
-                        <Check className={cn("h-4 w-4", active ? "opacity-100" : "opacity-0")} />
-                        <span>{tag.label}</span>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              ))}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+            <DrawerHeader className="flex shrink-0 flex-row items-start justify-between gap-3 border-b px-4 pb-3 pt-4 text-left">
+              <div className="min-w-0 space-y-1">
+                <DrawerTitle>{label}</DrawerTitle>
+                <DrawerDescription>
+                  Sök eller bläddra. Du kan välja flera alternativ.
+                </DrawerDescription>
+              </div>
+              <DrawerClose asChild>
+                <Button type="button" variant="ghost" className="min-h-11 shrink-0 px-3">
+                  Klar
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+            <FoodTagOptions knownLabels={knownLabels} onToggle={toggle} mobile />
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-[min(22rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] p-0"
+          >
+            <FoodTagOptions knownLabels={knownLabels} onToggle={toggle} />
+          </PopoverContent>
+        </Popover>
+      )}
 
       {selected.length > 0 ? (
         <div className="flex min-w-0 flex-wrap gap-1.5" aria-label="Valda kök och inriktningar">
