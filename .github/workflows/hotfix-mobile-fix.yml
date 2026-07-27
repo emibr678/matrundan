@@ -1,0 +1,65 @@
+name: Hotfix mobile fix
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event.pull_request.head.ref == 'hotfix/paket-4b-ci-cleanup'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Apply focused fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          auth = Path("src/components/matrundan/AuthMenu.tsx")
+          text = auth.read_text()
+          old = '          onSelect={() => setConfirmArchive(true)}\n'
+          new = '''          onSelect={(event) => {
+            event.preventDefault();
+            setConfirmArchive(true);
+          }}
+'''
+          if old not in text:
+              raise SystemExit("archive menu selector not found")
+          auth.write_text(text.replace(old, new, 1))
+
+          test = Path("tests/e2e/package-4b.spec.ts")
+          text = test.read_text()
+          old = '  await expect(page.getByText("Arkiverat i gruppen")).toBeVisible();\n'
+          new = '  await expect(page.getByText("Arkiverat i gruppen", { exact: true })).toBeVisible();\n'
+          if old not in text:
+              raise SystemExit("archive assertion not found")
+          test.write_text(text.replace(old, new, 1))
+          PY
+          bunx prettier --write src/components/matrundan/AuthMenu.tsx tests/e2e/package-4b.spec.ts
+      - name: Commit focused fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/AuthMenu.tsx tests/e2e/package-4b.spec.ts
+          if git diff --cached --quiet; then
+            echo "Redan rättat."
+            exit 0
+          fi
+          git commit -m "Stabilisera Paket 4B:s arkivflöden"
+          git push origin HEAD:"${{ github.event.pull_request.head.ref }}"
