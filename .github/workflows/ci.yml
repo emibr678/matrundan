@@ -43,15 +43,15 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
+          import re
           from pathlib import Path
 
           path = Path("src/components/matrundan/PlaceMap.tsx")
           text = path.read_text()
-          needle = "                  retainPadding: false,\n"
-          count = text.count(needle)
+          updated, count = re.subn(r"(?m)^\s*retainPadding: false,\n", "", text)
           if count != 3:
               raise SystemExit(f"Expected exactly 3 retainPadding lines, found {count}")
-          path.write_text(text.replace(needle, ""))
+          path.write_text(updated)
           PY
 
       - name: Format exact PR files
