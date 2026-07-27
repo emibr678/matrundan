@@ -11,8 +11,7 @@ import type { Place, Visit } from "./types";
 
 function toRpcError(error: unknown): Error {
   const message =
-    (error as { message?: string } | null)?.message ??
-    "Något gick fel mot servern. Försök igen.";
+    (error as { message?: string } | null)?.message ?? "Något gick fel mot servern. Försök igen.";
   return new Error(message);
 }
 
@@ -25,7 +24,7 @@ export async function liveCreatePlace(
   groupId: string,
   input: Omit<Place, "id" | "addedAt">,
 ): Promise<string> {
-  const { data, error } = await supabase.rpc("create_place", {
+  const { data, error } = await supabase.rpc("create_place_v4b" as "create_place", {
     _group_id: groupId,
     _name: input.name,
     _category: input.category,
@@ -66,10 +65,7 @@ export async function liveCreateVisitWithReview(
   return data as string;
 }
 
-export async function liveToggleFavorite(
-  groupId: string,
-  placeId: string,
-): Promise<boolean> {
+export async function liveToggleFavorite(groupId: string, placeId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc("toggle_favorite", {
     _group_id: groupId,
     _place_id: placeId,
@@ -78,10 +74,7 @@ export async function liveToggleFavorite(
   return Boolean(data);
 }
 
-export async function liveSetNextPlace(
-  groupId: string,
-  placeId: string | null,
-): Promise<void> {
+export async function liveSetNextPlace(groupId: string, placeId: string | null): Promise<void> {
   // set_next_place tar emot NULL för att rensa – Supabase-typgenereringen
   // markerar dock _place_id som required, så vi castar bort undefined här.
   const { error } = await supabase.rpc("set_next_place", {
@@ -114,23 +107,26 @@ export async function liveCreateOrLinkProviderPlace(
     raw: unknown;
   },
 ): Promise<string> {
-  const { data, error } = await supabase.rpc("create_or_link_provider_place", {
-    _group_id: groupId,
-    _provider: input.provider,
-    _provider_place_id: input.providerPlaceId,
-    _name: input.name,
-    _category: input.category,
-    _cuisines: input.cuisines ?? [],
-    _occasions: input.occasions ?? [],
-    _address: input.address ?? "",
-    _area: nn(input.area),
-    _city: input.city ?? "",
-    _lat: nn(input.lat),
-    _lng: nn(input.lng),
-    _notes: nn(input.notes),
-    _photo_url: nn(input.photo),
-    _raw: (input.raw ?? {}) as never,
-  });
+  const { data, error } = await supabase.rpc(
+    "create_or_link_provider_place_v4b" as "create_or_link_provider_place",
+    {
+      _group_id: groupId,
+      _provider: input.provider,
+      _provider_place_id: input.providerPlaceId,
+      _name: input.name,
+      _category: input.category,
+      _cuisines: input.cuisines ?? [],
+      _occasions: input.occasions ?? [],
+      _address: input.address ?? "",
+      _area: nn(input.area),
+      _city: input.city ?? "",
+      _lat: nn(input.lat),
+      _lng: nn(input.lng),
+      _notes: nn(input.notes),
+      _photo_url: nn(input.photo),
+      _raw: (input.raw ?? {}) as never,
+    },
+  );
   if (error) throw toRpcError(error);
   if (!data) throw new Error("Kunde inte lägga till matstället.");
   return data as string;

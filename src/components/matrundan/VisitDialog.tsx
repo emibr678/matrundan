@@ -27,7 +27,6 @@ import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 
-
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
   frukost: "Frukost",
@@ -48,8 +47,12 @@ export function VisitDialog({
 }) {
   const { addVisit, state, getPlace, submitting, mode } = useStore();
   const { userGroups, activeGroupId } = useSession();
+  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
   const canShare =
-    mode === "live" && !!activeGroupId && userGroups.length >= 2;
+    mode === "live" &&
+    state.group.lifecycleStatus !== "archived" &&
+    !!activeGroupId &&
+    activeGroupCount >= 2;
   const [busy, setBusy] = React.useState(false);
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
@@ -57,7 +60,6 @@ export function VisitDialog({
   } | null>(null);
   const isBusy = busy || submitting;
   const place = placeId ? getPlace(placeId) : undefined;
-
 
   const [meal, setMeal] = React.useState<(typeof MEALS)[number]>("middag");
   const [date, setDate] = React.useState<string>(new Date().toISOString().slice(0, 10));
@@ -86,9 +88,7 @@ export function VisitDialog({
   if (!place) return null;
 
   const toggleParticipant = (id: string) =>
-    setParticipants((cur) =>
-      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
-    );
+    setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   const submit = async (thenShare = false) => {
     if (isBusy) return;
@@ -125,7 +125,6 @@ export function VisitDialog({
       setBusy(false);
     }
   };
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,7 +171,13 @@ export function VisitDialog({
               {state.members.map((m) => {
                 const active = participants.includes(m.id);
                 return (
-                  <button key={m.id} type="button" onClick={() => toggleParticipant(m.id)} aria-pressed={active} aria-label={`${active ? "Ta bort" : "Lägg till"} ${m.name} som deltagare`}>
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => toggleParticipant(m.id)}
+                    aria-pressed={active}
+                    aria-label={`${active ? "Ta bort" : "Lägg till"} ${m.name} som deltagare`}
+                  >
                     <Badge
                       variant={active ? "default" : "outline"}
                       className="cursor-pointer gap-1 rounded-full px-3 py-1"
@@ -248,11 +253,7 @@ export function VisitDialog({
               </Button>
             </>
           ) : null}
-          <Button
-            onClick={() => submit(false)}
-            disabled={isBusy}
-            className="w-full sm:w-auto"
-          >
+          <Button onClick={() => submit(false)} disabled={isBusy} className="w-full sm:w-auto">
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara besök
           </Button>
@@ -279,4 +280,3 @@ export function VisitDialog({
     </Dialog>
   );
 }
-

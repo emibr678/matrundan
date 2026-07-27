@@ -1,14 +1,9 @@
 import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
-import { Home, MapPin, Users, LogIn } from "lucide-react";
+import { Archive, Home, MapPin, Users } from "lucide-react";
 import * as React from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { Button } from "@/components/ui/button";
-import { StoreProvider } from "@/lib/matrundan/store";
-import {
-  SessionProvider,
-  useSession,
-  consumePendingInvitePath,
-} from "@/lib/matrundan/session";
+import { StoreProvider, useStore } from "@/lib/matrundan/store";
+import { SessionProvider, useSession, consumePendingInvitePath } from "@/lib/matrundan/session";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
@@ -30,15 +25,13 @@ export function AppShell() {
 }
 
 function ShellBody() {
-  const { loading, mode, needsOnboarding, activeGroupId, user, signInWithGoogle } =
-    useSession();
+  const { loading, mode, needsOnboarding, activeGroupId, user } = useSession();
   const router = useRouter();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isInvitationRoute = pathname.startsWith("/inbjudan/");
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
 
-  // Efter Google-inloggning: navigera till ev. sparad invite-URL.
   React.useEffect(() => {
     if (!user) return;
     const pending = consumePendingInvitePath();
@@ -50,11 +43,11 @@ function ShellBody() {
   const reloadLive = React.useCallback(async () => {
     if (mode !== "live" || !activeGroupId) return;
     try {
-      const s = await loadLiveState(activeGroupId);
-      setLiveState(s);
+      const nextState = await loadLiveState(activeGroupId);
+      setLiveState(nextState);
       setLiveError(null);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       setLiveError("Kunde inte läsa gruppens data.");
     }
   }, [mode, activeGroupId]);
@@ -67,11 +60,11 @@ function ShellBody() {
     }
     setLiveError(null);
     loadLiveState(activeGroupId)
-      .then((s) => {
-        if (!cancelled) setLiveState(s);
+      .then((nextState) => {
+        if (!cancelled) setLiveState(nextState);
       })
-      .catch((e) => {
-        console.error(e);
+      .catch((error) => {
+        console.error(error);
         if (!cancelled) setLiveError("Kunde inte läsa gruppens data.");
       });
     return () => {
@@ -79,8 +72,6 @@ function ShellBody() {
     };
   }, [mode, activeGroupId]);
 
-  // Global reload-hook för live-mutationer som sker utanför StoreProvider
-  // (t.ex. delnings-/unlink-/synlighets-actions).
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = () => void reloadLive();
@@ -96,8 +87,6 @@ function ShellBody() {
     );
   }
 
-  // Inbjudningsrouten är alltid tillgänglig, oavsett auth/grupp-status.
-  // Ingen StoreProvider behövs — sidan använder endast SessionProvider + RPC:er.
   if (isInvitationRoute) {
     return (
       <div className="paper-grain min-h-dvh">
@@ -129,19 +118,17 @@ function ShellBody() {
     );
   }
 
-
   return (
     <StoreProvider
       key={mode === "live" ? `live:${activeGroupId ?? ""}` : "demo"}
       mode={mode}
-      initialState={mode === "live" ? liveState ?? undefined : undefined}
+      initialState={mode === "live" ? (liveState ?? undefined) : undefined}
       onLiveMutation={mode === "live" ? reloadLive : undefined}
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
-      <ShellChrome user={!!user} signIn={signInWithGoogle} />
+      <ShellChrome />
     </StoreProvider>
   );
-
 }
 
 function Header({ showAuth }: { showAuth: boolean }) {
@@ -149,25 +136,18 @@ function Header({ showAuth }: { showAuth: boolean }) {
     <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 pt-6 pb-3 md:pt-8">
       <Link to="/" className="flex items-center gap-2">
         <span className="text-2xl">🍽️</span>
-        <span className="font-display text-xl font-semibold tracking-tight">
-          Matrundan
-        </span>
+        <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
       </Link>
       {showAuth ? <AuthMenu /> : null}
     </header>
   );
 }
 
-function ShellChrome({
-  user,
-  signIn,
-}: {
-  user: boolean;
-  signIn: () => Promise<void>;
-}) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (to: string) =>
-    to === "/" ? pathname === "/" : pathname.startsWith(to);
+function ShellChrome() {
+  const { state } = useStore();
+  const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
+  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const archived = state.group.lifecycleStatus === "archived";
 
   return (
     <div className="paper-grain min-h-dvh text-foreground">
@@ -175,12 +155,9 @@ function ShellChrome({
         <header className="flex items-center justify-between gap-4 px-5 pt-6 pb-3 md:pt-8">
           <Link to="/" className="flex items-center gap-2">
             <span className="text-2xl">🍽️</span>
-            <span className="font-display text-xl font-semibold tracking-tight">
-              Matrundan
-            </span>
+            <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
           </Link>
 
-          {/* Desktop top nav */}
           <nav className="hidden items-center gap-1 md:flex" aria-label="Huvudmeny">
             {NAV.map((item) => {
               const active = isActive(item.to);
@@ -205,31 +182,30 @@ function ShellChrome({
           </nav>
 
           <div className="flex items-center gap-2">
-            {user ? (
-              <AuthMenu />
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-full"
-                onClick={() => {
-                  void signIn().catch(() => {});
-                }}
-                title="Logga in med Google för att spara riktiga grupper"
-              >
-                <LogIn className="mr-1.5 h-4 w-4" />
-                Logga in
-              </Button>
-            )}
+            <AuthMenu showGroupActions />
           </div>
         </header>
 
         <main id="innehall" className="flex-1 px-4 md:px-6">
+          {archived ? (
+            <div
+              role="status"
+              className="mx-auto mb-4 flex max-w-4xl items-start gap-3 rounded-2xl border border-border/70 bg-muted/55 p-3 text-sm"
+            >
+              <Archive className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <div className="font-medium">Gruppen är arkiverad</div>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  Historiken är bevarad och kan läsas. Återaktivera gruppen i gruppmenyn för att
+                  lägga till eller ändra något.
+                </p>
+              </div>
+            </div>
+          ) : null}
           <Outlet />
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
       <nav
         aria-label="Huvudmeny"
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/85 backdrop-blur-md md:hidden"
@@ -245,17 +221,10 @@ function ShellChrome({
                 aria-current={active ? "page" : undefined}
                 className={[
                   "flex min-h-11 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors",
-                  active
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 ].join(" ")}
               >
-                <Icon
-                  className={[
-                    "h-5 w-5",
-                    active ? "stroke-[2.4]" : "stroke-[1.8]",
-                  ].join(" ")}
-                />
+                <Icon className={["h-5 w-5", active ? "stroke-[2.4]" : "stroke-[1.8]"].join(" ")} />
                 <span>{item.label}</span>
               </Link>
             );

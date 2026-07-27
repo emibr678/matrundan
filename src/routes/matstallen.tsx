@@ -1,7 +1,7 @@
 import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Archive, ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,10 @@ export const Route = createFileRoute("/matstallen")({
         content: "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
       },
       { property: "og:title", content: "Matställen · Matrundan" },
-      { property: "og:description", content: "Gruppens gemensamma matställeslista." },
+      {
+        property: "og:description",
+        content: "Gruppens gemensamma matställeslista.",
+      },
     ],
   }),
   component: PlacesLayout,
@@ -70,19 +73,33 @@ function PlacesIndex() {
   const [addOpen, setAddOpen] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);
 
+  const groupArchived = state.group.lifecycleStatus === "archived";
+  const currentMember = state.members.find((member) => member.id === state.currentUserId);
+  const canAdmin = currentMember?.role === "ägare" || currentMember?.role === "admin";
+  const activePlaces = React.useMemo(
+    () => state.places.filter((place) => place.collectionStatus !== "archived"),
+    [state.places],
+  );
+  const archivedPlaces = React.useMemo(
+    () => state.places.filter((place) => place.collectionStatus === "archived"),
+    [state.places],
+  );
+
   const activeAdvancedCount =
     (category !== "alla" ? 1 : 0) + (occasion !== "alla" ? 1 : 0) + (sort !== "senaste" ? 1 : 0);
 
   const filtered = React.useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    let list = state.places.filter((place) => {
+    let list = activePlaces.filter((place) => {
       if (category !== "alla" && place.category !== category) return false;
       if (occasion !== "alla" && !place.occasions.includes(occasion)) return false;
       if (filter === "favoriter" && !isFavorite(place.id)) return false;
       if (filter === "nytt-for-gruppen" && statusOf(place.id) !== "nytt-for-gruppen") return false;
       if (filter === "nytt-for-mig") {
         const status = statusOf(place.id);
-        if (status !== "nytt-for-mig" && status !== "nytt-for-gruppen") return false;
+        if (status !== "nytt-for-mig" && status !== "nytt-for-gruppen") {
+          return false;
+        }
       }
       if (!normalizedQuery) return true;
       return (
@@ -104,7 +121,7 @@ function PlacesIndex() {
       list.sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1));
     }
     return list;
-  }, [state.places, query, category, occasion, filter, sort, avgRating, isFavorite, statusOf]);
+  }, [activePlaces, query, category, occasion, filter, sort, avgRating, isFavorite, statusOf]);
 
   React.useEffect(() => {
     if (selectedPlaceId && filtered.some((place) => place.id === selectedPlaceId)) return;
@@ -115,12 +132,12 @@ function PlacesIndex() {
 
   const topRated = React.useMemo(
     () =>
-      [...state.places]
+      [...activePlaces]
         .map((place) => ({ place, rating: avgRating(place.id) }))
         .filter(({ rating }) => rating.count > 0)
         .sort((a, b) => b.rating.overall - a.rating.overall)
         .slice(0, 3),
-    [state.places, avgRating],
+    [activePlaces, avgRating],
   );
 
   const clearAdvanced = () => {
@@ -145,9 +162,11 @@ function PlacesIndex() {
     <div className="mx-auto max-w-2xl space-y-4 pt-2 md:max-w-4xl">
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
-        <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">
-          <Plus className="h-4 w-4" /> Lägg till
-        </Button>
+        {!groupArchived ? (
+          <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">
+            <Plus className="h-4 w-4" /> Lägg till
+          </Button>
+        ) : null}
       </div>
 
       {topRated.length > 0 ? (
@@ -242,7 +261,10 @@ function PlacesIndex() {
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
-                    ...Object.entries(CATEGORY_LABEL).map(([key, label]) => ({ key, label })),
+                    ...Object.entries(CATEGORY_LABEL).map(([key, label]) => ({
+                      key,
+                      label,
+                    })),
                   ]}
                   value={category}
                   onChange={(value) => setCategory(value as PlaceCategory | "alla")}
@@ -252,7 +274,10 @@ function PlacesIndex() {
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
-                    ...Object.entries(OCCASION_LABEL).map(([key, label]) => ({ key, label })),
+                    ...Object.entries(OCCASION_LABEL).map(([key, label]) => ({
+                      key,
+                      label,
+                    })),
                   ]}
                   value={occasion}
                   onChange={(value) => setOccasion(value as Occasion | "alla")}
@@ -313,11 +338,14 @@ function PlacesIndex() {
         <div className="rounded-2xl border border-dashed border-border p-8 text-center">
           <div className="text-4xl">🍽️</div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Inga ställen matchar. Testa att rensa filter eller lägg till ett nytt.
+            Inga aktiva ställen matchar. Testa att rensa filtren
+            {!groupArchived ? " eller lägg till ett nytt" : ""}.
           </p>
-          <Button className="mt-4" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" /> Lägg till matställe
-          </Button>
+          {!groupArchived ? (
+            <Button className="mt-4" onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4" /> Lägg till matställe
+            </Button>
+          ) : null}
         </div>
       ) : view === "lista" ? (
         <div className="space-y-3 pb-4 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
@@ -332,7 +360,10 @@ function PlacesIndex() {
             selectedId={selectedPlaceId}
             onSelect={setSelectedPlaceId}
             onAction={(item) =>
-              navigate({ to: "/matstallen/$placeId", params: { placeId: item.id } })
+              navigate({
+                to: "/matstallen/$placeId",
+                params: { placeId: item.id },
+              })
             }
             actionLabel="Visa ställe"
             className="h-[62vh] min-h-[420px] max-h-[680px]"
@@ -347,7 +378,39 @@ function PlacesIndex() {
         </section>
       )}
 
-      <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
+      {canAdmin && archivedPlaces.length > 0 ? (
+        <details className="group rounded-2xl border border-border/70 bg-card">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-2xl p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Archive className="h-4 w-4 text-muted-foreground" />
+            <span className="min-w-0 flex-1 font-medium">Arkiverade ställen</span>
+            <Badge variant="outline" className="rounded-full">
+              {archivedPlaces.length}
+            </Badge>
+            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="border-t border-border/60 p-2">
+            {archivedPlaces.map((place) => (
+              <Link
+                key={place.id}
+                to="/matstallen/$placeId"
+                params={{ placeId: place.id }}
+                className="flex min-h-11 items-center gap-3 rounded-xl p-2 transition-colors hover:bg-accent"
+              >
+                <PlaceThumb place={place} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{place.name}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {place.address || place.city}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
+          </div>
+        </details>
+      ) : null}
+
+      {!groupArchived ? <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} /> : null}
     </div>
   );
 }

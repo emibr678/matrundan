@@ -6,8 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 function toErr(e: unknown): Error {
   const msg =
-    (e as { message?: string } | null)?.message ??
-    "Något gick fel mot servern. Försök igen.";
+    (e as { message?: string } | null)?.message ?? "Något gick fel mot servern. Försök igen.";
   return new Error(msg);
 }
 
@@ -32,12 +31,11 @@ export interface VisitShareTarget {
   sharedVisitsCountForProgression: boolean;
 }
 
-export async function listVisitShareTargets(
-  visitId: string,
-): Promise<VisitShareTarget[]> {
-  const { data, error } = await supabase.rpc("list_visit_share_targets", {
-    _visit_id: visitId,
-  });
+export async function listVisitShareTargets(visitId: string): Promise<VisitShareTarget[]> {
+  const { data, error } = await supabase.rpc(
+    "list_visit_share_targets_v4b" as "list_visit_share_targets",
+    { _visit_id: visitId },
+  );
   if (error) throw toErr(error);
   return (data ?? []) as unknown as VisitShareTarget[];
 }
@@ -56,10 +54,7 @@ export async function shareVisitToGroup(
   return data as unknown as string;
 }
 
-export async function removeSharedVisitFromGroup(
-  visitId: string,
-  groupId: string,
-): Promise<void> {
+export async function removeSharedVisitFromGroup(visitId: string, groupId: string): Promise<void> {
   const { error } = await supabase.rpc("remove_shared_visit_from_group", {
     _visit_id: visitId,
     _group_id: groupId,

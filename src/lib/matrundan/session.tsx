@@ -1,8 +1,8 @@
 /**
  * Sessions- och läges-hantering för Matrundan.
  *
- * Filtrerar grupper på aktivt medlemskap och hanterar pending invite path
- * genom OAuth-flödet via sessionStorage.
+ * Filtrerar på aktivt medlemskap, men behåller både aktiva och arkiverade
+ * grupper så att historiken kan öppnas utan att medlemskapets livscykel ändras.
  */
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
@@ -11,13 +11,24 @@ import { lovable } from "@/integrations/lovable";
 
 export type AppMode = "demo" | "live";
 export type GroupRole = "owner" | "admin" | "member";
+export type GroupLifecycleStatus = "active" | "archived";
 
 export interface UserGroupSummary {
   id: string;
   name: string;
   emoji: string | null;
   role: GroupRole;
+  lifecycleStatus: GroupLifecycleStatus;
 }
+
+type RpcResponse = {
+  data: unknown;
+  error: { message?: string } | null;
+};
+
+type RpcCall = (fn: string, args?: Record<string, unknown>) => Promise<RpcResponse>;
+
+const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
 
 interface SessionState {
   loading: boolean;
@@ -27,6 +38,7 @@ interface SessionState {
   needsOnboarding: boolean;
   activeGroupId: string | null;
   activeGroupRole: GroupRole | null;
+  activeGroupLifecycleStatus: GroupLifecycleStatus | null;
   userGroups: UserGroupSummary[];
   signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
   signOut: () => Promise<void>;
@@ -57,9 +69,9 @@ export function setPendingInvitePath(path: string) {
 export function consumePendingInvitePath(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    const v = window.sessionStorage.getItem(PENDING_INVITE_KEY);
-    if (v) window.sessionStorage.removeItem(PENDING_INVITE_KEY);
-    return v;
+    const value = window.sessionStorage.getItem(PENDING_INVITE_KEY);
+    if (value) window.sessionStorage.removeItem(PENDING_INVITE_KEY);
+    return value;
   } catch {
     return null;
   }
@@ -80,47 +92,60 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setUserGroups([]);
       return;
     }
-    const { data, error } = await supabase
-      .from("memberships")
-      .select("group_id, role, status, groups(id, name, emoji)")
-      .eq("user_id", uid)
-      .eq("status", "active");
+
+    const { data, error } = await rpc("list_user_groups_v4b");
     if (error) {
       console.error("[Matrundan] kunde inte läsa medlemskap:", error);
       setUserGroups([]);
       return;
     }
-    const groups: UserGroupSummary[] = (data ?? [])
-      .map((row) => {
-        const g = (row as { groups: { id: string; name: string; emoji: string | null } | null }).groups;
-        const role = (row as { role: string }).role as GroupRole;
-        return g ? { id: g.id, name: g.name, emoji: g.emoji, role } : null;
-      })
-      .filter((g): g is UserGroupSummary => g !== null);
+
+    const groups: UserGroupSummary[] = ((data ?? []) as UserGroupSummary[])
+      .map(
+        (group): UserGroupSummary => ({
+          id: group.id,
+          name: group.name,
+          emoji: group.emoji,
+          role: group.role,
+          lifecycleStatus:
+            group.lifecycleStatus === "archived" ? "archived" : "active",
+        }),
+      )
+      .sort((a, b) => {
+        if (a.lifecycleStatus !== b.lifecycleStatus) {
+          return a.lifecycleStatus === "active" ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name, "sv");
+      });
+
     setUserGroups(groups);
     setActiveGroupId((current) => {
-      if (current && groups.some((g) => g.id === current)) return current;
-      const first = groups[0]?.id ?? null;
-      if (first && typeof window !== "undefined") {
-        window.localStorage.setItem(ACTIVE_GROUP_KEY, first);
-      } else if (!first && typeof window !== "undefined") {
+      if (current && groups.some((group) => group.id === current)) return current;
+      const first =
+        groups.find((group) => group.lifecycleStatus === "active") ?? groups[0];
+      const firstId = first?.id ?? null;
+      if (firstId && typeof window !== "undefined") {
+        window.localStorage.setItem(ACTIVE_GROUP_KEY, firstId);
+      } else if (!firstId && typeof window !== "undefined") {
         window.localStorage.removeItem(ACTIVE_GROUP_KEY);
       }
-      return first;
+      return firstId;
     });
   }, []);
 
   React.useEffect(() => {
     let cancelled = false;
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (cancelled) return;
-      setSession(s);
-      if (s?.user) {
-        void loadGroups(s.user.id);
-      } else {
-        setUserGroups([]);
-      }
-    });
+    const { data: subscription } = supabase.auth.onAuthStateChange(
+      (_event, nextSession) => {
+        if (cancelled) return;
+        setSession(nextSession);
+        if (nextSession?.user) {
+          void loadGroups(nextSession.user.id);
+        } else {
+          setUserGroups([]);
+        }
+      },
+    );
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       setSession(data.session);
@@ -131,7 +156,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     });
     return () => {
       cancelled = true;
-      sub.subscription.unsubscribe();
+      subscription.subscription.unsubscribe();
     };
   }, [loadGroups]);
 
@@ -146,13 +171,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     async (opts?: { redirectPath?: string }) => {
       const origin =
         typeof window !== "undefined" ? window.location.origin : undefined;
-      // Bevara ev. pending invite via sessionStorage-fallback.
       if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: origin,
       });
       if (result.error) {
-        console.error("[Matrundan] Google-inloggning misslyckades:", result.error);
+        console.error(
+          "[Matrundan] Google-inloggning misslyckades:",
+          result.error,
+        );
         throw result.error;
       }
     },
@@ -168,7 +195,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setUserGroups([]);
   }, []);
 
-
   const refreshGroups = React.useCallback(async () => {
     await loadGroups(session?.user?.id);
   }, [loadGroups, session?.user?.id]);
@@ -176,8 +202,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo<SessionState>(() => {
     const user = session?.user ?? null;
     const isLive = !forceDemo && !!user;
-    const activeRole =
-      userGroups.find((g) => g.id === activeGroupId)?.role ?? null;
+    const activeGroup =
+      userGroups.find((group) => group.id === activeGroupId) ?? null;
     return {
       loading,
       user,
@@ -185,7 +211,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       mode: isLive ? "live" : "demo",
       needsOnboarding: isLive && userGroups.length === 0,
       activeGroupId: isLive ? activeGroupId : null,
-      activeGroupRole: isLive ? activeRole : null,
+      activeGroupRole:
+        isLive && activeGroup?.lifecycleStatus === "active"
+          ? activeGroup.role
+          : null,
+      activeGroupLifecycleStatus: isLive
+        ? (activeGroup?.lifecycleStatus ?? null)
+        : null,
       userGroups,
       signInWithGoogle,
       signOut,
@@ -210,8 +242,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useSession() {
-  const ctx = React.useContext(SessionContext);
-  if (!ctx)
+  const context = React.useContext(SessionContext);
+  if (!context) {
     throw new Error("useSession måste användas inuti <SessionProvider>");
-  return ctx;
+  }
+  return context;
 }
