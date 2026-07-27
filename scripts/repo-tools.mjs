@@ -194,7 +194,9 @@ function doctor() {
   }
 
   if (!existsSync(resolve(root, ".git"))) warnings.push("Ingen lokal .git-katalog hittades.");
-  if (status.length > 0) warnings.push(`Arbetsytan har ${status.length} ändrad eller otrackad fil.`);
+  if (status.length > 0) {
+    warnings.push(`Arbetsytan har ${status.length} ändrad eller otrackad fil.`);
+  }
 
   console.log("Matrundan doctor");
   console.log(`- repo: ${root}`);
