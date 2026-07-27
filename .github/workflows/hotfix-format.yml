@@ -1,0 +1,39 @@
+name: Hotfix format
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.ref == 'hotfix/paket-4b-ci-cleanup'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx prettier --write src/lib/matrundan/session.tsx
+      - name: Commit formatting
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/matrundan/session.tsx
+          if git diff --cached --quiet; then
+            echo "Redan formaterad."
+            exit 0
+          fi
+          git commit -m "Formatera demo-behörighet"
+          git push origin HEAD:"${{ github.event.pull_request.head.ref }}"
