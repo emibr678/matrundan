@@ -79,7 +79,9 @@ interface GeoapifyFeature {
 }
 
 function hasCategory(categories: string[], prefix: string): boolean {
-  return categories.some((category) => category === prefix || category.startsWith(`${prefix}.`));
+  return categories.some(
+    (category) => category === prefix || category.startsWith(`${prefix}.`),
+  );
 }
 
 export function categoryFromGeoapify(
@@ -93,11 +95,17 @@ export function categoryFromGeoapify(
   ) {
     return "bageri";
   }
-  if (hasCategory(cats, "catering.cafe") || hasCategory(cats, "catering.ice_cream")) {
+  if (
+    hasCategory(cats, "catering.cafe") ||
+    hasCategory(cats, "catering.ice_cream")
+  ) {
     return "café";
   }
   if (hasCategory(cats, "catering.food_truck")) return "matvagn";
-  if (hasCategory(cats, "catering.fast_food") || hasCategory(cats, "catering.food_court")) {
+  if (
+    hasCategory(cats, "catering.fast_food") ||
+    hasCategory(cats, "catering.food_court")
+  ) {
     return "snabbmat";
   }
   if (
@@ -125,7 +133,9 @@ export function categoryFromGeoapify(
   }
 }
 
-export function cuisinesFromGeoapify(props: GeoapifyProperties | undefined): string[] {
+export function cuisinesFromGeoapify(
+  props: GeoapifyProperties | undefined,
+): string[] {
   if (!props) return [];
   const values: string[] = [];
   const rawCuisine = props.datasource?.raw?.cuisine;
@@ -143,22 +153,42 @@ export function cuisinesFromGeoapify(props: GeoapifyProperties | undefined): str
   return normalizeFoodTags(values, false).slice(0, 8);
 }
 
-export function areaFromGeoapify(props: GeoapifyProperties): string | undefined {
-  return props.suburb || props.neighbourhood || props.quarter || props.district || undefined;
+export function areaFromGeoapify(
+  props: GeoapifyProperties,
+): string | undefined {
+  return (
+    props.suburb ||
+    props.neighbourhood ||
+    props.quarter ||
+    props.district ||
+    undefined
+  );
 }
 
 export function cityFromGeoapify(props: GeoapifyProperties): string {
-  return props.city || props.town || props.village || props.municipality || props.county || "";
+  return (
+    props.city ||
+    props.town ||
+    props.village ||
+    props.municipality ||
+    props.county ||
+    ""
+  );
 }
 
 export function addressFromGeoapify(props: GeoapifyProperties): string {
   if (props.address_line1?.trim()) return props.address_line1.trim();
-  const street = [props.street, props.housenumber].filter(Boolean).join(" ").trim();
+  const street = [props.street, props.housenumber]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
   if (street) return street;
   return props.formatted?.split(",")[0]?.trim() ?? "";
 }
 
-export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlaceSuggestion | null {
+export function normalizePlaceFeature(
+  feature: GeoapifyFeature,
+): NormalizedPlaceSuggestion | null {
   const properties = feature.properties;
   const externalId = properties?.place_id?.trim();
   const name = properties?.name?.trim();
@@ -171,7 +201,8 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
   const metadata = {
     provider: "geoapify",
     providerPlaceId: externalId,
-    cuisine: typeof providerRaw?.cuisine === "string" ? providerRaw.cuisine : undefined,
+    cuisine:
+      typeof providerRaw?.cuisine === "string" ? providerRaw.cuisine : undefined,
     categories,
     website: typeof website === "string" ? website : undefined,
     phone: typeof phone === "string" ? phone : undefined,
@@ -192,11 +223,14 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
     area: areaFromGeoapify(properties),
     lat: properties.lat,
     lng: properties.lon,
-    distanceKm: typeof properties.distance === "number" ? properties.distance / 1000 : undefined,
+    distanceKm:
+      typeof properties.distance === "number" ? properties.distance / 1000 : undefined,
     website: typeof website === "string" ? website : undefined,
     phone: typeof phone === "string" ? phone : undefined,
     externalUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      [name, addressFromGeoapify(properties), cityFromGeoapify(properties)].filter(Boolean).join(" "),
+      [name, addressFromGeoapify(properties), cityFromGeoapify(properties)]
+        .filter(Boolean)
+        .join(" "),
     )}`,
     attribution: GEOAPIFY_ATTRIBUTION,
     raw: JSON.stringify(metadata),
