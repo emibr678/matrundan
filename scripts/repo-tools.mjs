@@ -4,16 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { extname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
-const FORMAT_EXTENSIONS = new Set([
-  ".ts",
-  ".tsx",
-  ".js",
-  ".jsx",
-  ".mjs",
-  ".cjs",
-  ".json",
-  ".css",
-]);
+const FORMAT_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".css"]);
 const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const ALTERNATE_LOCKFILES = [
   "package-lock.json",
@@ -101,16 +92,16 @@ function collectChangedFiles(explicitBase) {
   const base = resolveBase(explicitBase);
 
   if (base) {
-    lines(git(["diff", "--name-only", "--diff-filter=ACMR", base, "HEAD"], true)).forEach(
-      (file) => files.add(file),
+    lines(git(["diff", "--name-only", "--diff-filter=ACMR", base, "HEAD"], true)).forEach((file) =>
+      files.add(file),
     );
   }
 
   lines(git(["diff", "--name-only", "--diff-filter=ACMR"], true)).forEach((file) =>
     files.add(file),
   );
-  lines(git(["diff", "--cached", "--name-only", "--diff-filter=ACMR"], true)).forEach(
-    (file) => files.add(file),
+  lines(git(["diff", "--cached", "--name-only", "--diff-filter=ACMR"], true)).forEach((file) =>
+    files.add(file),
   );
   lines(git(["ls-files", "--others", "--exclude-standard"], true)).forEach((file) =>
     files.add(file),
@@ -328,8 +319,7 @@ switch (command) {
     doctor();
     break;
   case "changed-files": {
-    const group =
-      args.find((arg) => ["all", "format", "code", "ui", "map"].includes(arg)) ?? "all";
+    const group = args.find((arg) => ["all", "format", "code", "ui", "map"].includes(arg)) ?? "all";
     printFiles(classify(collectChangedFiles(explicitBase))[group]);
     break;
   }
@@ -352,6 +342,8 @@ switch (command) {
     ciFlags(explicitBase);
     break;
   default:
-    console.log(`Användning: bun scripts/repo-tools.mjs <kommando>\n\nKommandon:\n  doctor\n  changed-files [all|format|code|ui|map]\n  format-changed [--check]\n  lint-changed\n  guard-tooling\n  verify-changed\n  verify-agent\n  ci-flags`);
+    console.log(
+      `Användning: bun scripts/repo-tools.mjs <kommando>\n\nKommandon:\n  doctor\n  changed-files [all|format|code|ui|map]\n  format-changed [--check]\n  lint-changed\n  guard-tooling\n  verify-changed\n  verify-agent\n  ci-flags`,
+    );
     if (command !== "help") process.exit(1);
 }
