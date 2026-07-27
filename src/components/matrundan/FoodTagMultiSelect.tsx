@@ -195,11 +195,7 @@ export function FoodTagMultiSelect({
                 </DrawerDescription>
               </div>
               <DrawerClose asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-11 shrink-0 px-3"
-                >
+                <Button type="button" variant="ghost" className="min-h-11 shrink-0 px-3">
                   Klar
                 </Button>
               </DrawerClose>
