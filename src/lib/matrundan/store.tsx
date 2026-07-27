@@ -531,9 +531,7 @@ export function StoreProvider({
           places: current.places.map((place) => {
             if (place.id !== placeId) return place;
             const canonicalCategory = place.canonicalCategory ?? place.category;
-            const canonicalCuisines = normalizeFoodTags(
-              place.canonicalCuisines ?? place.cuisines,
-            );
+            const canonicalCuisines = normalizeFoodTags(place.canonicalCuisines ?? place.cuisines);
             return {
               ...place,
               canonicalCategory,

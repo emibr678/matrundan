@@ -55,9 +55,7 @@ type ManualDraft = {
 };
 
 function toServerRadius(value: number): 1 | 3 | 5 | 10 | 25 | null {
-  return value === 1 || value === 3 || value === 5 || value === 10 || value === 25
-    ? value
-    : null;
+  return value === 1 || value === 3 || value === 5 || value === 10 || value === 25 ? value : null;
 }
 
 function providerMessage(error: unknown) {
@@ -744,8 +742,7 @@ function ManualForm({
         onChange={(updater) =>
           onChange((current) => ({
             ...current,
-            occasions:
-              typeof updater === "function" ? updater(current.occasions) : updater,
+            occasions: typeof updater === "function" ? updater(current.occasions) : updater,
           }))
         }
       />
@@ -876,22 +873,7 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-const EMOJIS = [
-  "🍽️",
-  "🍕",
-  "🍣",
-  "🍜",
-  "🍔",
-  "🌮",
-  "☕",
-  "🥐",
-  "🍺",
-  "🍦",
-  "🥗",
-  "🍷",
-  "🥟",
-  "🐟",
-];
+const EMOJIS = ["🍽️", "🍕", "🍣", "🍜", "🍔", "🌮", "☕", "🥐", "🍺", "🍦", "🥗", "🍷", "🥟", "🐟"];
 
 function EmojiPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [open, setOpen] = React.useState(false);

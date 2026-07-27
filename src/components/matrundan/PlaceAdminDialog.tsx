@@ -48,14 +48,8 @@ const OCCASIONS = Object.keys(OCCASION_LABEL) as Occasion[];
 
 export function PlaceAdminDialog({ place }: { place: Place }) {
   const { activeGroupRole } = useSession();
-  const {
-    state,
-    submitting,
-    archivePlace,
-    restorePlace,
-    updatePlaceMetadata,
-    visitsFor,
-  } = useStore();
+  const { state, submitting, archivePlace, restorePlace, updatePlaceMetadata, visitsFor } =
+    useStore();
   const canAdmin = activeGroupRole === "owner" || activeGroupRole === "admin";
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
@@ -69,9 +63,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
   const [useCuisineOverride, setUseCuisineOverride] = React.useState(
     place.cuisinesOverride != null,
   );
-  const [cuisines, setCuisines] = React.useState<string[]>(
-    place.cuisinesOverride ?? baseCuisines,
-  );
+  const [cuisines, setCuisines] = React.useState<string[]>(place.cuisinesOverride ?? baseCuisines);
   const [occasions, setOccasions] = React.useState<Occasion[]>(place.occasions);
   const [notes, setNotes] = React.useState(place.notes ?? "");
 
@@ -79,9 +71,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     if (!open) return;
     setCategory(place.categoryOverride ?? "inherit");
     setUseCuisineOverride(place.cuisinesOverride != null);
-    setCuisines(
-      place.cuisinesOverride ?? place.canonicalCuisines ?? place.cuisines,
-    );
+    setCuisines(place.cuisinesOverride ?? place.canonicalCuisines ?? place.cuisines);
     setOccasions(place.occasions);
     setNotes(place.notes ?? "");
   }, [open, place]);
@@ -123,9 +113,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
       setConfirmRemove(false);
       setOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte uppdatera stället.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera stället.");
     }
   }
 
@@ -150,9 +138,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
               <Label>Kategori i gruppen</Label>
               <Select
                 value={category}
-                onValueChange={(value) =>
-                  setCategory(value as PlaceCategory | "inherit")
-                }
+                onValueChange={(value) => setCategory(value as PlaceCategory | "inherit")}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -173,10 +159,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
 
             <div className="min-w-0 space-y-3 rounded-2xl border border-border/70 p-3">
               <div className="flex items-center justify-between gap-3">
-                <Label
-                  htmlFor="place-cuisine-override"
-                  className="min-w-0 font-normal"
-                >
+                <Label htmlFor="place-cuisine-override" className="min-w-0 font-normal">
                   Anpassa kök och inriktning för {state.group.name}
                 </Label>
                 <Switch

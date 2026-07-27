@@ -11,11 +11,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   FOOD_TAG_GROUP_LABEL,
   FOOD_TAGS,
@@ -49,11 +45,7 @@ export function FoodTagMultiSelect({
   const selected = React.useMemo(() => normalizeFoodTags(value), [value]);
   const knownLabels = React.useMemo(
     () =>
-      new Set(
-        selected
-          .filter((item) => findFoodTag(item))
-          .map((item) => findFoodTag(item)!.label),
-      ),
+      new Set(selected.filter((item) => findFoodTag(item)).map((item) => findFoodTag(item)!.label)),
     [selected],
   );
 
@@ -77,9 +69,7 @@ export function FoodTagMultiSelect({
       <div className="space-y-1">
         <Label htmlFor={id}>{label}</Label>
         {description ? (
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {description}
-          </p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
         ) : null}
       </div>
 
@@ -120,12 +110,7 @@ export function FoodTagMultiSelect({
                         value={foodTagSearchValue(tag)}
                         onSelect={() => toggle(tag.label)}
                       >
-                        <Check
-                          className={cn(
-                            "h-4 w-4",
-                            active ? "opacity-100" : "opacity-0",
-                          )}
-                        />
+                        <Check className={cn("h-4 w-4", active ? "opacity-100" : "opacity-0")} />
                         <span>{tag.label}</span>
                       </CommandItem>
                     );
@@ -138,10 +123,7 @@ export function FoodTagMultiSelect({
       </Popover>
 
       {selected.length > 0 ? (
-        <div
-          className="flex min-w-0 flex-wrap gap-1.5"
-          aria-label="Valda kök och inriktningar"
-        >
+        <div className="flex min-w-0 flex-wrap gap-1.5" aria-label="Valda kök och inriktningar">
           {selected.map((item) => {
             const known = Boolean(findFoodTag(item));
             return (
