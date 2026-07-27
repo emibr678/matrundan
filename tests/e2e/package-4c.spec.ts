@@ -114,10 +114,12 @@ test("kök och inriktning fungerar med mobilt tangentbord och utan fri text", as
 
   // Efterliknar den minskade visuella viewporten när ett mobilt tangentbord öppnas.
   await page.setViewportSize({ width: 360, height: 480 });
-  await expect.poll(async () => {
-    const box = await drawer.boundingBox();
-    return box ? Math.ceil(box.y + box.height) : Number.POSITIVE_INFINITY;
-  }).toBeLessThanOrEqual(481);
+  await expect
+    .poll(async () => {
+      const box = await drawer.boundingBox();
+      return box ? Math.ceil(box.y + box.height) : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThanOrEqual(481);
   await expect(search).toBeVisible();
   await expectNoHorizontalOverflow(page, "Öppen köksväljare med reducerad mobilhöjd");
 
