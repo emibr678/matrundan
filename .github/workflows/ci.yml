@@ -39,84 +39,138 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Correct detail route hook order
+      - name: Apply final Paket 4B fixes
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-          path = Path('src/routes/matstallen.$placeId.tsx')
-          text = path.read_text()
-          old = '''  if (!place) return <NotFound />;
 
-            const rating = avgRating(place.id);
-            const visits = visitsFor(place.id);
-          '''
-          new = '''  const visits = place ? visitsFor(place.id) : [];
-          '''
-          if old in text:
-              text = text.replace(old, new)
-              marker = '''  const detail = React.useMemo(() => {'''
-              end = '''  }, [visits]);
+          session = Path("src/lib/matrundan/session.tsx")
+          text = session.read_text()
+          text = text.replace(
+              '    const groups = ((data ?? []) as UserGroupSummary[])\n      .map((group) => ({',
+              '    const groups: UserGroupSummary[] = ((data ?? []) as UserGroupSummary[])\n      .map((group): UserGroupSummary => ({',
+          )
+          session.write_text(text)
 
-            const goBack = () => {'''
-              replacement = '''  }, [visits]);
+          detail = Path('src/routes/matstallen.$placeId.tsx')
+          text = detail.read_text()
+          text = text.replace(
+              '  const visits = place ? visitsFor(place.id) : [];\n',
+              '  const visits = React.useMemo(\n    () => (place ? visitsFor(place.id) : []),\n    [place, visitsFor],\n  );\n',
+          )
+          detail.write_text(text)
 
-            if (!place) return <NotFound />;
+          admin = Path("src/components/matrundan/PlaceAdminDialog.tsx")
+          text = admin.read_text()
+          text = text.replace(
+              '  const canAdmin = activeGroupRole === "owner" || activeGroupRole === "admin";\n',
+              '  const ownRole = state.members.find((member) => member.id === state.currentUserId)?.role;\n  const canAdmin =\n    activeGroupRole === "owner" ||\n    activeGroupRole === "admin" ||\n    ownRole === "ägare" ||\n    ownRole === "admin";\n',
+          )
+          admin.write_text(text)
 
-            const rating = avgRating(place.id);
-            const fav = isFavorite(place.id);
-            const isNext = state.nextPlaceId === place.id;
-            const groupArchived = state.group.lifecycleStatus === "archived";
-            const placeArchived = place.collectionStatus === "archived";
-            const writable = !groupArchived && !placeArchived;
+          version = Path("src/lib/matrundan/version.ts")
+          text = version.read_text()
+          text = text.replace('export const APP_VERSION = "0.9.0";', 'export const APP_VERSION = "0.10.0";')
+          text = text.replace('export const APP_VERSION_DATE = "2026-07-25";', 'export const APP_VERSION_DATE = "2026-07-27";')
+          marker = 'export const CHANGELOG: ChangelogEntry[] = [\n'
+          entry = '''export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: APP_VERSION,
+    date: APP_VERSION_DATE,
+    summary:
+      "Arkivera grupper och matställen utan att förlora historik, korrigera gruppens platsuppgifter och redigera ditt eget omdöme.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Gruppens ägare kan arkivera och återaktivera gruppen. Historik, medlemskap, besök, betyg och kommentarer bevaras i ett skrivskyddat läge.",
+          "Ägare och admin kan arkivera eller återställa ett ställe i gruppens samling utan att den kanoniska platsen eller tidigare besök raderas.",
+          "Kategori, kökstyper, Passar för och gruppens anteckning kan korrigeras för den egna gruppen utan att påverka andra grupper.",
+          "Varje medlem kan redigera sitt eget betyg och sin egen kommentar, men aldrig någon annans omdöme.",
+          "Samma arkiv- och omdömesflöden fungerar i både demo- och live-läge.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Gruppväljaren skiljer tydligt mellan aktiva och arkiverade grupper, och matställeslistan visar arkiverade ställen i en separat administrationssektion.",
+          "Arkivering återkallar öppna inbjudningar, rensar nästa stopp och blockerar nya skrivningar medan all historik förblir läsbar.",
+          "Planering, karta, topplista och aktiv samlingsstatistik använder endast aktiva matställen.",
+        ],
+      },
+    ],
+  },
+'''
+          if 'summary:\n      "Arkivera grupper och matställen' not in text:
+              text = text.replace(marker, entry, 1)
+          version.write_text(text)
 
-            const goBack = () => {'''
-              if end not in text:
-                  raise SystemExit('could not locate post-memo block')
-              text = text.replace(end, replacement)
-              duplicate = '''  const fav = isFavorite(place.id);
-            const isNext = state.nextPlaceId === place.id;
-            const groupArchived = state.group.lifecycleStatus === "archived";
-            const placeArchived = place.collectionStatus === "archived";
-            const writable = !groupArchived && !placeArchived;
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text()
+          entry = '''## [0.10.0] – 2026-07-27
 
-          '''
-              text = text.replace(duplicate, '', 1)
-              path.write_text(text)
+### Nytt
+- **Arkivera och återaktivera grupper.** Historik, medlemskap, besök, ställen,
+  betyg och kommentarer bevaras i ett skrivskyddat läge. Endast ägaren kan
+  ändra gruppens livscykel.
+- **Administrera gruppens matställen.** Ägare och admin kan arkivera eller
+  återställa gruppens koppling till ett ställe utan att den kanoniska platsen
+  eller tidigare besök raderas.
+- **Gruppspecifika platskorrigeringar.** Kategori, kökstyper, Passar för och
+  gruppens anteckning kan ändras för den egna gruppen utan att påverka andra
+  grupper.
+- **Redigera eget omdöme.** En medlem kan ändra sitt eget betyg och sin egen
+  kommentar, men aldrig någon annans omdöme.
+- Demo- och live-läge använder samma produktmodell för arkiv och egna omdömen.
+
+### Förbättrat
+- Gruppväljaren skiljer mellan aktiva och arkiverade grupper. Arkiverade grupper
+  behåller läsåtkomst men saknar skrivbara huvudflöden.
+- Matställeslistan, kartan, topplistan och nästa-stopp-flödet använder endast
+  aktiva matställen; arkiverade ställen finns i en separat administrationsdel.
+- Grupparkivering återkallar öppna inbjudningar, rensar nästa stopp och blockerar
+  gruppspecifika skrivningar på serversidan.
+- Kanoniska namn, adresser, koordinater, provideridentiteter, besök och omdömen
+  bevaras och dupliceras inte.
+
+'''
+          if '## [0.10.0] – 2026-07-27' not in text:
+              text = text.replace('## [0.9.0] – 2026-07-25', entry + '## [0.9.0] – 2026-07-25', 1)
+          changelog.write_text(text)
           PY
-          bunx prettier --write 'src/routes/matstallen.$placeId.tsx'
 
-      - name: Export lint and type reports
+      - name: Format, lint, typecheck and build
         shell: bash
         run: |
-          base_sha="${{ github.event.pull_request.base.sha }}"
-          git diff --name-only --diff-filter=ACMR "$base_sha" HEAD -- \
-            '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' > changed-code-files.txt
-          mapfile -t files < changed-code-files.txt
-          bunx eslint --format json --output-file eslint-report.json "${files[@]}" || true
-          bun run typecheck > typecheck-report.txt 2>&1 || true
-          bun run build > build-report.txt 2>&1 || true
+          bunx prettier --write \
+            src/lib/matrundan/session.tsx \
+            'src/routes/matstallen.$placeId.tsx' \
+            src/components/matrundan/PlaceAdminDialog.tsx \
+            src/lib/matrundan/version.ts \
+            CHANGELOG.md
+          bunx eslint \
+            src/lib/matrundan/session.tsx \
+            'src/routes/matstallen.$placeId.tsx' \
+            src/components/matrundan/PlaceAdminDialog.tsx \
+            src/lib/matrundan/version.ts
+          bun run typecheck
+          bun run build
 
-      - name: Upload diagnostics
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-4b-diagnostics
-          path: |
-            eslint-report.json
-            typecheck-report.txt
-            build-report.txt
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Commit hook correction
+      - name: Commit final fixes
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add 'src/routes/matstallen.$placeId.tsx'
+          git add \
+            src/lib/matrundan/session.tsx \
+            'src/routes/matstallen.$placeId.tsx' \
+            src/components/matrundan/PlaceAdminDialog.tsx \
+            src/lib/matrundan/version.ts \
+            CHANGELOG.md
           if git diff --cached --quiet; then
-            echo "Hookordningen är redan rättad."
+            echo "Slutförandefixarna är redan committade."
             exit 0
           fi
-          git commit -m "Rätta hookordning i matställets detaljvy"
+          git commit -m "Slutför Paket 4B och version 0.10.0"
           git push origin HEAD:"${{ github.event.pull_request.head.ref }}"
