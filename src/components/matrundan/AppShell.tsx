@@ -206,7 +206,7 @@ function ShellChrome({
 
           <div className="flex items-center gap-2">
             {user ? (
-              <AuthMenu />
+              <AuthMenu showGroupActions />
             ) : (
               <Button
                 size="sm"
