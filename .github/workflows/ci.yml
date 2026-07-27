@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -33,7 +33,6 @@ jobs:
         with:
           fetch-depth: 0
           show-progress: false
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
 
       - name: Set verification level
         id: verification
@@ -191,30 +190,33 @@ jobs:
               visit.write_text(text.replace(old, new))
           PY
 
+          for file in src/components/matrundan/VisitDialog.tsx; do
+            grep -qxF "$file" changed-format-files.txt || echo "$file" >> changed-format-files.txt
+            grep -qxF "$file" changed-code-files.txt || echo "$file" >> changed-code-files.txt
+          done
+
       - name: Format and auto-fix changed code
         if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
         shell: bash
         run: |
           mapfile -t format_files < changed-format-files.txt
           mapfile -t code_files < changed-code-files.txt
-          if [[ ${#format_files[@]} -gt 0 ]]; then
-            bunx prettier --write "${format_files[@]}"
-          fi
-          if [[ ${#code_files[@]} -gt 0 ]]; then
-            bunx eslint --fix "${code_files[@]}" || true
-          fi
+          bunx prettier --write "${format_files[@]}"
+          bunx eslint --fix "${code_files[@]}" || true
 
-      - name: Commit automatic draft fixes
+      - name: Package fixed changed files
         if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
         shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.json' '*.css'
-          if ! git diff --cached --quiet; then
-            git commit -m "Formatera och rätta Paket 4B"
-            git push origin HEAD:"${{ github.event.pull_request.head.ref }}"
-          fi
+        run: tar -czf fixed-files.tar.gz -T changed-format-files.txt
+
+      - name: Upload fixed changed files
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixed-files
+          path: fixed-files.tar.gz
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Prettier changed code and configuration
         if: steps.changes.outputs.has_format == 'true'
