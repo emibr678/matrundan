@@ -96,7 +96,9 @@ test("ställe med besök behåller historiken när det tas bort", async ({ page 
   await expectNoHorizontalOverflow(page, "Historik för borttaget matställe");
 });
 
-test("kök och inriktning väljs sökbart utan fri text", async ({ page }) => {
+test("kök och inriktning fungerar med mobilt tangentbord och utan fri text", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
@@ -105,14 +107,27 @@ test("kök och inriktning väljs sökbart utan fri text", async ({ page }) => {
   await dialog.getByRole("button", { name: "Lägg till manuellt" }).click();
   await dialog.getByRole("combobox", { name: "Kök och inriktning" }).click();
 
-  const search = page.getByPlaceholder("Sök kök eller inriktning…");
+  const drawer = page.getByRole("dialog", { name: "Kök och inriktning" });
+  const search = drawer.getByPlaceholder("Sök kök eller inriktning…");
+  await expect(drawer).toBeVisible();
+  await search.focus();
+
+  // Efterliknar den minskade visuella viewporten när ett mobilt tangentbord öppnas.
+  await page.setViewportSize({ width: 360, height: 480 });
+  await expect.poll(async () => {
+    const box = await drawer.boundingBox();
+    return box ? Math.ceil(box.y + box.height) : Number.POSITIVE_INFINITY;
+  }).toBeLessThanOrEqual(481);
+  await expect(search).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Öppen köksväljare med reducerad mobilhöjd");
+
   await search.fill("japan");
-  await page.getByRole("option", { name: "Japanskt" }).click();
+  await drawer.getByRole("option", { name: "Japanskt" }).click();
   await search.fill("sushi");
-  await page.getByRole("option", { name: "Sushi" }).click();
+  await drawer.getByRole("option", { name: "Sushi" }).click();
   await search.fill("egen påhittad etikett");
-  await expect(page.getByText("Ingen matchande etikett.")).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(drawer.getByText("Ingen matchande etikett.")).toBeVisible();
+  await drawer.getByRole("button", { name: "Klar" }).click();
 
   await expect(dialog.getByText("Japanskt", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Sushi", { exact: true })).toBeVisible();
