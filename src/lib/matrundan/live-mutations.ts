@@ -25,20 +25,23 @@ export async function liveCreatePlace(
   groupId: string,
   input: Omit<Place, "id" | "addedAt">,
 ): Promise<string> {
-  const { data, error } = await supabase.rpc("create_place", {
-    _group_id: groupId,
-    _name: input.name,
-    _category: input.category,
-    _cuisines: input.cuisines ?? [],
-    _occasions: input.occasions ?? [],
-    _address: input.address ?? "",
-    _area: nn(input.area),
-    _city: input.city ?? "",
-    _lat: nn(input.lat),
-    _lng: nn(input.lng),
-    _notes: nn(input.notes),
-    _photo_url: nn(input.photo),
-  });
+  const { data, error } = await supabase.rpc(
+    "create_place_v4b" as "create_place",
+    {
+      _group_id: groupId,
+      _name: input.name,
+      _category: input.category,
+      _cuisines: input.cuisines ?? [],
+      _occasions: input.occasions ?? [],
+      _address: input.address ?? "",
+      _area: nn(input.area),
+      _city: input.city ?? "",
+      _lat: nn(input.lat),
+      _lng: nn(input.lng),
+      _notes: nn(input.notes),
+      _photo_url: nn(input.photo),
+    },
+  );
   if (error) throw toRpcError(error);
   if (!data) throw new Error("Kunde inte skapa matstället.");
   return data as string;
@@ -114,23 +117,26 @@ export async function liveCreateOrLinkProviderPlace(
     raw: unknown;
   },
 ): Promise<string> {
-  const { data, error } = await supabase.rpc("create_or_link_provider_place", {
-    _group_id: groupId,
-    _provider: input.provider,
-    _provider_place_id: input.providerPlaceId,
-    _name: input.name,
-    _category: input.category,
-    _cuisines: input.cuisines ?? [],
-    _occasions: input.occasions ?? [],
-    _address: input.address ?? "",
-    _area: nn(input.area),
-    _city: input.city ?? "",
-    _lat: nn(input.lat),
-    _lng: nn(input.lng),
-    _notes: nn(input.notes),
-    _photo_url: nn(input.photo),
-    _raw: (input.raw ?? {}) as never,
-  });
+  const { data, error } = await supabase.rpc(
+    "create_or_link_provider_place_v4b" as "create_or_link_provider_place",
+    {
+      _group_id: groupId,
+      _provider: input.provider,
+      _provider_place_id: input.providerPlaceId,
+      _name: input.name,
+      _category: input.category,
+      _cuisines: input.cuisines ?? [],
+      _occasions: input.occasions ?? [],
+      _address: input.address ?? "",
+      _area: nn(input.area),
+      _city: input.city ?? "",
+      _lat: nn(input.lat),
+      _lng: nn(input.lng),
+      _notes: nn(input.notes),
+      _photo_url: nn(input.photo),
+      _raw: (input.raw ?? {}) as never,
+    },
+  );
   if (error) throw toRpcError(error);
   if (!data) throw new Error("Kunde inte lägga till matstället.");
   return data as string;
