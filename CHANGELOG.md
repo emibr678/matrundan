@@ -4,6 +4,40 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.11.0] – 2026-07-27
+
+### Nytt
+
+- **Ta bort från gruppens lista utan att tappa historik.** Ägare och admin kan
+  ta bort ett matställe från gruppens aktiva lista. Tidigare besök, omdömen och
+  gruppspecifika platsuppgifter bevaras och kan fortfarande öppnas via historiken.
+- **Lägg tillbaka genom vanliga Lägg till.** En match mot ett tidigare borttaget
+  ställe återaktiverar den befintliga `group_places`-kopplingen, bevarar metadata
+  och skapar ingen dubblett av platsen.
+- **Gemensam taxonomi för kök och inriktning.** Sökbar flerväljare med stabila
+  svenska etiketter, grupperna Kök/Inriktning och aliasnormalisering för
+  Geoapify-data. Godtycklig fri text sparas inte.
+
+### Förbättrat
+
+- Aktiv lista, karta, nästa stopp, slumpning och progression använder endast
+  ställen som finns i gruppens aktiva lista. Borttagna ställen visas inte i en
+  separat arkivsektion.
+- Användarcopy säger ”Ta bort från gruppen”, ”Lägg tillbaka i gruppen” och ”Inte
+  längre i gruppens lista” i stället för tekniska begrepp om kanonisk identitet
+  eller arkivering.
+- Demo- och live-läge följer samma livscykel. Återinläggning bevarar tidigare
+  anteckning, Passar för och kök/inriktning.
+- Appversion, inbyggd versionshistorik, README och arkitekturdokumentation är
+  synkade för Paket 4C.
+
+### Rättat
+
+- Köksväljaren öppnas som en mobil drawer under 768 px. Den följer
+  `visualViewport`/dynamisk viewport när tangentbordet visas, håller sökfältet
+  synligt och låter alternativlistan scrolla utan horisontell overflow vid
+  360 px.
+
 ## [0.10.0] – 2026-07-27
 
 ### Nytt
