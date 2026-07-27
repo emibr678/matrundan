@@ -11,7 +11,11 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   FOOD_TAG_GROUP_LABEL,
   FOOD_TAGS,
@@ -73,7 +77,9 @@ export function FoodTagMultiSelect({
       <div className="space-y-1">
         <Label htmlFor={id}>{label}</Label>
         {description ? (
-          <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         ) : null}
       </div>
 
@@ -115,7 +121,10 @@ export function FoodTagMultiSelect({
                         onSelect={() => toggle(tag.label)}
                       >
                         <Check
-                          className={cn("h-4 w-4", active ? "opacity-100" : "opacity-0")}
+                          className={cn(
+                            "h-4 w-4",
+                            active ? "opacity-100" : "opacity-0",
+                          )}
                         />
                         <span>{tag.label}</span>
                       </CommandItem>
