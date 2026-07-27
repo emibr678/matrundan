@@ -9,7 +9,13 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "verify:fast": "bun run typecheck && bun run build",
+    "verify:full": "bun run format:check && bun run lint && bun run typecheck && bun run build",
+    "test:mobile": "playwright test --project=mobile-chromium",
+    "test:map": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -52,7 +58,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
-    "input-otp": "^1.4.2",
+    "input-otp": "^2.0.7",
     "lucide-react": "^0.575.0",
     "maplibre-gl": "5.24.0",
     "react": "^19.2.0",

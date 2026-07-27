@@ -14,6 +14,8 @@
 These instructions apply to the entire repository. Read
 [`docs/architecture.md`](docs/architecture.md) before changing the data model,
 sharing, authentication, Geoapify integration, group privacy, or gamification.
+Read [`docs/development-workflow.md`](docs/development-workflow.md) before
+debugging, implementing, verifying, merging, or reporting Lovable sync.
 
 ## Product guardrails
 
@@ -53,6 +55,29 @@ not interpret them as permission to create a draft implementation.
 For approved implementation, make the smallest coherent change that satisfies
 the agreed specification. Do not silently broaden scope.
 
+When an approved scope is implemented, reviewed, and has green relevant CI, the
+assistant may mark the PR ready and merge it to `main`. Publishing still
+requires a separate, explicit user approval.
+
+## Diagnostic and implementation workflow
+
+- Reuse a valid checkout. Clone only when the environment is new, the checkout
+  is missing, or its state cannot be verified safely.
+- Use one branch per coherent approved task. Do not create a PR for every
+  debugging hypothesis.
+- Start non-trivial bugs with reproduction and runtime evidence. Classify the
+  failure and identify a supported root cause before repeated code changes.
+- Keep exploratory iterations local. Push only a coherent candidate fix, a
+  necessary preview checkpoint, or a reviewable diagnostic checkpoint.
+- Do not create commits solely to trigger a workflow.
+- GitHub Actions verify code. Do not add workflows that patch, commit, or push
+  product code back to the branch.
+- Use fast targeted checks during iteration. Run the full relevant browser
+  matrix when a PR is ready for review, before merge, or when the changed
+  behaviour specifically requires it.
+- Report the exact branch, commit, PR, CI result, Lovable sync status, preview
+  link, manual test steps, and anything not verified.
+
 ## Repository map
 
 - `src/routes/` — routed pages such as Hem, Matställen and Gruppen.
@@ -68,6 +93,7 @@ the agreed specification. Do not silently broaden scope.
 - `src/server/` — server-only integrations, including Geoapify.
 - `supabase/migrations/` — schema, RPC, RLS and database changes.
 - `docs/architecture.md` — canonical architecture and security decisions.
+- `docs/development-workflow.md` — canonical debugging and delivery workflow.
 - `README.md` — current human-facing project overview.
 - `CHANGELOG.md` — release history.
 
@@ -135,18 +161,29 @@ Inspect the current tree before assuming these paths or APIs are unchanged.
 
 ## Validation before completion
 
-Run the checks relevant to the change. For a normal release candidate, run:
+During iteration, run the narrowest checks that can falsify the current
+hypothesis. Before pushing a normal candidate, run:
 
 ```bash
-bunx tsgo --noEmit
+bunx prettier --check <all changed format-supported files>
 bunx eslint <all changed source files>
-bun run build
+bun run verify:fast
+```
+
+Use the canonical TypeScript command `bun run typecheck`; do not switch between
+`tsgo` and `tsc` ad hoc.
+
+For a completed release candidate, run:
+
+```bash
+bun run verify:full
 ```
 
 Also run focused tests, for example:
 
 ```bash
 bun test src/lib/matrundan/gamification.test.ts
+bun run test:map
 ```
 
 For changed mobile flows, use a real browser/Playwright check at 360 px and
@@ -185,5 +222,7 @@ published application itself reads the changed file.
 - Do not amend, rebase or squash commits already synced to Lovable.
 - Keep `main` buildable and coherent after each commit.
 - Prefer focused commits with descriptive messages.
+- Do not push every exploratory edit or create commits only to trigger CI.
+- Do not use self-modifying workflows to write or push product code.
 - Inspect the current branch and latest commit before modifying files because
   Lovable and GitHub can both advance the connected branch.
