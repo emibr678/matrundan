@@ -28,7 +28,11 @@ import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
+import {
+  formatDate,
+  googleMapsUrl,
+  useStore,
+} from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -70,7 +74,10 @@ function NotFound() {
   return (
     <div className="p-8 text-center">
       <p className="text-sm text-muted-foreground">Stället hittades inte.</p>
-      <Link to="/matstallen" className="mt-4 inline-block text-primary underline">
+      <Link
+        to="/matstallen"
+        className="mt-4 inline-block text-primary underline"
+      >
         Till matställen
       </Link>
     </div>
@@ -82,12 +89,21 @@ function PlaceDetail() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/matstallen/$placeId" });
   const router = useRouter();
-  const { getPlace, visitsFor, avgRating, isFavorite, toggleFavorite, setNext, state, memberById } =
-    useStore();
+  const {
+    getPlace,
+    visitsFor,
+    avgRating,
+    isFavorite,
+    toggleFavorite,
+    setNext,
+    state,
+    memberById,
+  } = useStore();
   const place = getPlace(placeId);
   const [visitOpen, setVisitOpen] = React.useState(false);
   const openVisitId = search.visit || null;
-  const closeVisitSheet = () => navigate({ params: { placeId }, search: { visit: "" } });
+  const closeVisitSheet = () =>
+    navigate({ params: { placeId }, search: { visit: "" } });
 
   const visits = place ? visitsFor(place.id) : [];
   const detail = React.useMemo(() => {
@@ -100,7 +116,9 @@ function PlaceDetail() {
       if (visit.service) service.push(visit.service);
     });
     const avg = (values: number[]) =>
-      values.length ? values.reduce((sum, item) => sum + item, 0) / values.length : 0;
+      values.length
+        ? values.reduce((sum, item) => sum + item, 0) / values.length
+        : 0;
     return {
       taste: avg(taste),
       value: avg(value),
@@ -173,7 +191,11 @@ function PlaceDetail() {
               <div className="text-xs font-medium tracking-wide text-muted-foreground">
                 Gruppens helhetsbetyg
               </div>
-              <RatingStars value={rating.overall} size={16} className="mt-0.5" />
+              <RatingStars
+                value={rating.overall}
+                size={16}
+                className="mt-0.5"
+              />
               <div className="mt-0.5 text-xs text-muted-foreground">
                 {rating.count} betyg från gänget
               </div>
@@ -199,7 +221,9 @@ function PlaceDetail() {
                   className="min-h-11"
                 >
                   <Sparkles className="h-4 w-4" />
-                  <span className="hidden sm:inline">{isNext ? "Är nästa" : "Nästa stopp"}</span>
+                  <span className="hidden sm:inline">
+                    {isNext ? "Är nästa" : "Nästa stopp"}
+                  </span>
                   <span className="sm:hidden">Nästa</span>
                 </Button>
                 <Button
@@ -208,11 +232,21 @@ function PlaceDetail() {
                   aria-pressed={fav}
                   className="min-h-11"
                 >
-                  <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
+                  <Heart
+                    className={
+                      fav
+                        ? "h-4 w-4 fill-primary stroke-primary"
+                        : "h-4 w-4"
+                    }
+                  />
                   {fav ? "Sparad" : "Spara"}
                 </Button>
                 <Button asChild variant="outline" className="min-h-11">
-                  <a href={googleMapsUrl(place)} target="_blank" rel="noreferrer">
+                  <a
+                    href={googleMapsUrl(place)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <ExternalLink className="h-4 w-4" /> Maps
                   </a>
                 </Button>
@@ -221,7 +255,9 @@ function PlaceDetail() {
           ) : (
             <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm">
               <div className="font-medium">
-                {placeRemoved ? "Inte längre i gruppens lista" : "Gruppen är arkiverad"}
+                {placeRemoved
+                  ? "Inte längre i gruppens lista"
+                  : "Gruppen är arkiverad"}
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 Tidigare besök, betyg, kommentarer och favoriter finns kvar.
@@ -234,7 +270,11 @@ function PlaceDetail() {
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             {!writable ? (
               <Button asChild variant="outline" className="min-h-11 sm:w-auto">
-                <a href={googleMapsUrl(place)} target="_blank" rel="noreferrer">
+                <a
+                  href={googleMapsUrl(place)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <ExternalLink className="h-4 w-4" /> Öppna i Maps
                 </a>
               </Button>
@@ -249,7 +289,11 @@ function PlaceDetail() {
         <Card className="space-y-3 rounded-2xl border-border/70 p-4">
           <div className="flex flex-wrap gap-1.5">
             {place.cuisines.map((cuisine) => (
-              <Badge key={cuisine} variant="secondary" className="rounded-full">
+              <Badge
+                key={cuisine}
+                variant="secondary"
+                className="rounded-full"
+              >
                 {cuisine}
               </Badge>
             ))}
@@ -263,15 +307,18 @@ function PlaceDetail() {
               </Badge>
             ))}
           </div>
-          {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
+          {place.notes ? (
+            <p className="text-sm text-muted-foreground">{place.notes}</p>
+          ) : null}
           {(place.categoryOverride != null || place.cuisinesOverride != null) && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Kategori eller kök och inriktning har anpassats för den här gruppen. Matställets namn
-              och adress är oförändrade.
+              Kategori eller kök och inriktning har anpassats för den här gruppen.
+              Matställets namn och adress är oförändrade.
             </p>
           )}
           <div className="text-xs text-muted-foreground">
-            Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
+            Tillagt av {memberById(place.addedBy)?.name ?? "någon"} ·{" "}
+            {formatDate(place.addedAt)}
           </div>
         </Card>
       </section>
@@ -321,7 +368,9 @@ function PlaceDetail() {
                     })
                   }
                   className="w-full rounded-2xl border border-border/70 bg-card p-3 text-left transition-colors hover:bg-accent focus:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label={`Öppna besök av ${author?.name ?? "medlem"} ${formatDate(visit.date)}`}
+                  aria-label={`Öppna besök av ${
+                    author?.name ?? "medlem"
+                  } ${formatDate(visit.date)}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
@@ -332,8 +381,8 @@ function PlaceDetail() {
                         <div className="text-sm">
                           <span className="font-medium">{author?.name}</span>
                           <span className="text-muted-foreground">
-                            {" "}
-                            · {MEAL_LABEL[visit.meal] ?? visit.meal} · {formatDate(visit.date)}
+                            {" "}· {MEAL_LABEL[visit.meal] ?? visit.meal} ·{" "}
+                            {formatDate(visit.date)}
                           </span>
                         </div>
                         <RatingStars value={visit.overall} size={12} />
@@ -367,7 +416,11 @@ function PlaceDetail() {
       </section>
 
       {writable ? (
-        <VisitDialog open={visitOpen} onOpenChange={setVisitOpen} placeId={place.id} />
+        <VisitDialog
+          open={visitOpen}
+          onOpenChange={setVisitOpen}
+          placeId={place.id}
+        />
       ) : null}
       <VisitDetailSheet
         visitId={openVisitId}
@@ -381,7 +434,9 @@ function PlaceDetail() {
 function RatingCell({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-center">
-      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="text-[11px] font-medium text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 font-display text-xl font-semibold">
         {value > 0 ? formatRating(value) : "–"}
       </div>
