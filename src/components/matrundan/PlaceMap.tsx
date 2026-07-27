@@ -3,6 +3,7 @@ import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
 import type { MapLayerMouseEvent, StyleSpecification } from "maplibre-gl";
 import { ArrowRight, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CATEGORY_LABEL, type PlaceCategory } from "@/lib/matrundan/types";
 import {
   waitForMapLibre,
   type MapLibreApi,
@@ -16,10 +17,13 @@ export interface PlaceMapItem {
   name: string;
   lat?: number;
   lng?: number;
+  category?: PlaceCategory;
   eyebrow?: string;
   description?: string;
   markerLabel?: string;
 }
+
+type ClusterProfile = "group" | "discovery";
 
 interface PlaceMapProps {
   items: PlaceMapItem[];
@@ -29,6 +33,7 @@ interface PlaceMapProps {
   actionLabel?: string;
   center?: { lat: number; lng: number } | null;
   radiusKm?: number | null;
+  clusterProfile?: ClusterProfile;
   className?: string;
   emptyText?: string;
   ariaLabel?: string;
@@ -37,6 +42,8 @@ interface PlaceMapProps {
 interface PlaceProperties {
   id: string;
   name: string;
+  category: PlaceCategory;
+  icon: string;
 }
 
 interface ClusterMarkerEntry {
@@ -53,6 +60,55 @@ type MapFailureCode =
   | "timeout"
   | "runtime";
 
+const MIN_ZOOM = 3;
+const MAX_ZOOM = 18;
+const DEFAULT_ZOOM = 14;
+const PLACE_SOURCE_ID = "matrundan-places";
+const CLUSTER_LAYER_ID = "matrundan-clusters";
+const POINT_LAYER_ID = "matrundan-points";
+const POINT_ICON_LAYER_ID = "matrundan-point-icons";
+const LABEL_LAYER_ID = "matrundan-place-labels";
+const SELECTED_SOURCE_ID = "matrundan-selected-place";
+const SELECTED_LAYER_ID = "matrundan-selected-place-point";
+const SELECTED_ICON_LAYER_ID = "matrundan-selected-place-icon";
+const RADIUS_SOURCE_ID = "matrundan-radius";
+const RADIUS_FILL_LAYER_ID = "matrundan-radius-fill";
+const RADIUS_LINE_LAYER_ID = "matrundan-radius-line";
+const CENTER_SOURCE_ID = "matrundan-center";
+const CENTER_LAYER_ID = "matrundan-center-point";
+const CATEGORY_IMAGE_PREFIX = "matrundan-category-";
+const PLACE_CATEGORIES = [
+  "restaurang",
+  "café",
+  "bageri",
+  "snabbmat",
+  "pub",
+  "matvagn",
+] as const satisfies readonly PlaceCategory[];
+
+const CLUSTER_CONFIG: Record<
+  ClusterProfile,
+  { maxZoom: number; radius: number; labelMinZoom: number }
+> = {
+  group: { maxZoom: 15, radius: 44, labelMinZoom: 15 },
+  discovery: { maxZoom: 14, radius: 38, labelMinZoom: 14 },
+};
+
+const EMPTY_POINTS: FeatureCollection<Point, PlaceProperties> = {
+  type: "FeatureCollection",
+  features: [],
+};
+
+const EMPTY_POLYGONS: FeatureCollection<Polygon> = {
+  type: "FeatureCollection",
+  features: [],
+};
+
+const EMPTY_CENTER: FeatureCollection<Point> = {
+  type: "FeatureCollection",
+  features: [],
+};
+
 function supportsWebGl() {
   const canvas = document.createElement("canvas");
   try {
@@ -66,8 +122,9 @@ function classifyMapFailure(error: unknown): MapFailureCode {
   const message = error instanceof Error ? error.message : String(error);
   if (/webgl|gpu|graphics context|context lost/i.test(message)) return "webgl";
   if (/401|403|unauthori[sz]ed|forbidden|api.?key/i.test(message)) return "style-auth";
-  if (/style_resources_empty|no base map sources|tiles were not rendered/i.test(message))
+  if (/style_resources_empty|no base map sources|tiles were not rendered/i.test(message)) {
     return "resources";
+  }
   if (/worker|securityerror|content security|csp/i.test(message)) return "worker";
   if (/network|fetch|load failed|failed to load|http/i.test(message)) return "style-network";
   return "runtime";
@@ -91,37 +148,6 @@ function failureNotice(code: MapFailureCode | null) {
       return "Kartan kunde inte startas. Felkod: RUNTIME.";
   }
 }
-
-const MIN_ZOOM = 3;
-const MAX_ZOOM = 18;
-const DEFAULT_ZOOM = 14;
-const CLUSTER_MAX_ZOOM = 16;
-const PLACE_SOURCE_ID = "matrundan-places";
-const CLUSTER_LAYER_ID = "matrundan-clusters";
-const POINT_LAYER_ID = "matrundan-points";
-const LABEL_LAYER_ID = "matrundan-place-labels";
-const SELECTED_SOURCE_ID = "matrundan-selected-place";
-const SELECTED_LAYER_ID = "matrundan-selected-place-point";
-const RADIUS_SOURCE_ID = "matrundan-radius";
-const RADIUS_FILL_LAYER_ID = "matrundan-radius-fill";
-const RADIUS_LINE_LAYER_ID = "matrundan-radius-line";
-const CENTER_SOURCE_ID = "matrundan-center";
-const CENTER_LAYER_ID = "matrundan-center-point";
-
-const EMPTY_POINTS: FeatureCollection<Point, PlaceProperties> = {
-  type: "FeatureCollection",
-  features: [],
-};
-
-const EMPTY_POLYGONS: FeatureCollection<Polygon> = {
-  type: "FeatureCollection",
-  features: [],
-};
-
-const EMPTY_CENTER: FeatureCollection<Point> = {
-  type: "FeatureCollection",
-  features: [],
-};
 
 function readThemeColor(variable: string, fallback: string) {
   const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -159,32 +185,168 @@ function makeFallbackStyle(backgroundColor: string): StyleSpecification {
   };
 }
 
+function inferCategory(item: PlaceMapItem): PlaceCategory {
+  if (item.category) return item.category;
+
+  const marker = item.markerLabel ?? "";
+  if (marker.includes("☕")) return "café";
+  if (marker.includes("🥐")) return "bageri";
+  if (marker.includes("🍔")) return "snabbmat";
+  if (marker.includes("🍺") || marker.includes("🍷")) return "pub";
+  if (marker.includes("🌭")) return "matvagn";
+
+  const eyebrow = item.eyebrow?.toLocaleLowerCase("sv-SE") ?? "";
+  for (const category of PLACE_CATEGORIES) {
+    if (eyebrow.startsWith(CATEGORY_LABEL[category].toLocaleLowerCase("sv-SE"))) {
+      return category;
+    }
+  }
+  return "restaurang";
+}
+
+function iconName(category: PlaceCategory) {
+  return `${CATEGORY_IMAGE_PREFIX}${category}`;
+}
+
+function drawCategoryIcon(category: PlaceCategory, color: string): ImageData {
+  const canvas = document.createElement("canvas");
+  canvas.width = 56;
+  canvas.height = 56;
+  const context = canvas.getContext("2d");
+  if (!context) return new ImageData(56, 56);
+
+  context.strokeStyle = color;
+  context.fillStyle = color;
+  context.lineWidth = 4;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  const line = (x1: number, y1: number, x2: number, y2: number) => {
+    context.beginPath();
+    context.moveTo(x1, y1);
+    context.lineTo(x2, y2);
+    context.stroke();
+  };
+
+  switch (category) {
+    case "café":
+      context.strokeRect(14, 23, 25, 16);
+      context.beginPath();
+      context.arc(40, 30, 7, -Math.PI / 2, Math.PI / 2);
+      context.stroke();
+      line(18, 17, 18, 11);
+      line(27, 17, 27, 9);
+      line(36, 17, 36, 11);
+      line(12, 44, 43, 44);
+      break;
+    case "bageri":
+      context.beginPath();
+      context.moveTo(12, 35);
+      context.bezierCurveTo(13, 19, 23, 13, 28, 13);
+      context.bezierCurveTo(39, 13, 45, 22, 44, 35);
+      context.bezierCurveTo(40, 42, 17, 42, 12, 35);
+      context.closePath();
+      context.stroke();
+      line(22, 19, 18, 29);
+      line(31, 18, 27, 29);
+      line(39, 22, 35, 31);
+      break;
+    case "snabbmat":
+      context.beginPath();
+      context.arc(28, 25, 15, Math.PI, 0);
+      context.stroke();
+      line(12, 27, 44, 27);
+      line(14, 34, 42, 34);
+      context.beginPath();
+      context.arc(28, 34, 14, 0, Math.PI);
+      context.stroke();
+      break;
+    case "pub":
+      context.strokeRect(14, 18, 24, 25);
+      context.beginPath();
+      context.arc(39, 29, 8, -Math.PI / 2, Math.PI / 2);
+      context.stroke();
+      context.beginPath();
+      context.arc(21, 18, 5, Math.PI, 0);
+      context.arc(30, 18, 5, Math.PI, 0);
+      context.stroke();
+      break;
+    case "matvagn":
+      context.strokeRect(10, 18, 30, 20);
+      line(40, 25, 47, 25);
+      line(47, 25, 47, 38);
+      line(40, 38, 47, 38);
+      line(14, 24, 36, 24);
+      line(15, 18, 15, 24);
+      line(22, 18, 22, 24);
+      line(29, 18, 29, 24);
+      line(36, 18, 36, 24);
+      context.beginPath();
+      context.arc(18, 43, 4, 0, Math.PI * 2);
+      context.arc(40, 43, 4, 0, Math.PI * 2);
+      context.fill();
+      break;
+    case "restaurang":
+    default:
+      line(17, 11, 17, 45);
+      line(12, 11, 12, 23);
+      line(22, 11, 22, 23);
+      context.beginPath();
+      context.moveTo(12, 23);
+      context.quadraticCurveTo(17, 28, 22, 23);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(36, 11);
+      context.quadraticCurveTo(45, 19, 38, 29);
+      context.lineTo(38, 45);
+      context.stroke();
+      break;
+  }
+
+  return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function registerCategoryIcons(map: MapLibreMap, color: string) {
+  for (const category of PLACE_CATEGORIES) {
+    const name = iconName(category);
+    if (!map.hasImage(name)) {
+      map.addImage(name, drawCategoryIcon(category, color), { pixelRatio: 2 });
+    }
+  }
+}
+
 function placeCollection(items: PlaceMapItem[]) {
   return {
     type: "FeatureCollection",
-    features: items.map<Feature<Point, PlaceProperties>>((item) => ({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: [item.lng!, item.lat!],
-      },
-      properties: {
-        id: item.id,
-        name: item.name,
-      },
-    })),
+    features: items.map<Feature<Point, PlaceProperties>>((item) => {
+      const category = inferCategory(item);
+      return {
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [item.lng!, item.lat!],
+        },
+        properties: {
+          id: item.id,
+          name: item.name,
+          category,
+          icon: iconName(category),
+        },
+      };
+    }),
   } satisfies FeatureCollection<Point, PlaceProperties>;
 }
 
 function selectedCollection(item: PlaceMapItem | null) {
   if (item?.lat == null || item.lng == null) return EMPTY_POINTS;
+  const category = inferCategory(item);
   return {
     type: "FeatureCollection",
     features: [
       {
         type: "Feature",
         geometry: { type: "Point", coordinates: [item.lng, item.lat] },
-        properties: { id: item.id, name: item.name },
+        properties: { id: item.id, name: item.name, category, icon: iconName(category) },
       },
     ],
   } satisfies FeatureCollection<Point, PlaceProperties>;
@@ -248,10 +410,14 @@ export function PlaceMap({
   actionLabel = "Öppna",
   center,
   radiusKm,
+  clusterProfile,
   className,
   emptyText = "Inga platser med kartposition i den här vyn.",
   ariaLabel = "Karta över matställen",
 }: PlaceMapProps) {
+  const profile: ClusterProfile =
+    clusterProfile ?? (actionLabel === "Lägg till" ? "discovery" : "group");
+  const clusterConfig = CLUSTER_CONFIG[profile];
   const mappedItems = React.useMemo(
     () => items.filter((item) => item.lat != null && item.lng != null),
     [items],
@@ -376,7 +542,9 @@ export function PlaceMap({
                 window.clearTimeout(resourceTimeout);
                 if (!cancelled) setTileStatus("ready");
               });
-            } else setTileStatus("missing");
+            } else {
+              setTileStatus("missing");
+            }
             updateViewState();
             map.resize();
           };
@@ -447,6 +615,7 @@ export function PlaceMap({
     const primary = readThemeColor("--primary", "#c96342");
     const ink = readThemeColor("--foreground", "#3d2d27");
     const background = readThemeColor("--background", "#fbf5e8");
+    registerCategoryIcons(map, primary);
 
     if (!map.getSource(RADIUS_SOURCE_ID)) {
       map.addSource(RADIUS_SOURCE_ID, { type: "geojson", data: EMPTY_POLYGONS });
@@ -484,8 +653,8 @@ export function PlaceMap({
         type: "geojson",
         data: EMPTY_POINTS,
         cluster: true,
-        clusterMaxZoom: CLUSTER_MAX_ZOOM,
-        clusterRadius: 52,
+        clusterMaxZoom: clusterConfig.maxZoom,
+        clusterRadius: clusterConfig.radius,
       });
       map.addLayer({
         id: CLUSTER_LAYER_ID,
@@ -504,11 +673,23 @@ export function PlaceMap({
         source: PLACE_SOURCE_ID,
         filter: ["!", ["has", "point_count"]],
         paint: {
-          "circle-radius": 8,
-          "circle-color": primary,
-          "circle-opacity": 1,
-          "circle-stroke-color": background,
-          "circle-stroke-width": 3,
+          "circle-radius": 14,
+          "circle-color": background,
+          "circle-opacity": 0.96,
+          "circle-stroke-color": primary,
+          "circle-stroke-width": 2,
+        },
+      });
+      map.addLayer({
+        id: POINT_ICON_LAYER_ID,
+        type: "symbol",
+        source: PLACE_SOURCE_ID,
+        filter: ["!", ["has", "point_count"]],
+        layout: {
+          "icon-image": ["get", "icon"],
+          "icon-size": 1,
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
         },
       });
       map.addLayer({
@@ -516,16 +697,17 @@ export function PlaceMap({
         type: "symbol",
         source: PLACE_SOURCE_ID,
         filter: ["!", ["has", "point_count"]],
-        minzoom: 15,
+        minzoom: clusterConfig.labelMinZoom,
         layout: {
           "text-field": ["get", "name"],
           "text-font": ["Noto Sans Regular"],
           "text-size": 12,
           "text-variable-anchor": ["left", "right", "top", "bottom"],
-          "text-radial-offset": 1.1,
+          "text-radial-offset": 1.45,
           "text-justify": "auto",
           "text-allow-overlap": false,
           "text-ignore-placement": false,
+          "text-optional": true,
         },
         paint: {
           "text-color": ink,
@@ -543,20 +725,38 @@ export function PlaceMap({
         type: "circle",
         source: SELECTED_SOURCE_ID,
         paint: {
-          "circle-radius": 11,
-          "circle-color": primary,
+          "circle-radius": 18,
+          "circle-color": background,
           "circle-opacity": 1,
-          "circle-stroke-color": background,
-          "circle-stroke-width": 5,
+          "circle-stroke-color": primary,
+          "circle-stroke-width": 4,
+        },
+      });
+      map.addLayer({
+        id: SELECTED_ICON_LAYER_ID,
+        type: "symbol",
+        source: SELECTED_SOURCE_ID,
+        layout: {
+          "icon-image": ["get", "icon"],
+          "icon-size": 1.25,
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
         },
       });
     }
 
-    mapElementRef.current.parentElement?.setAttribute("data-map-point-visual", "primary-pin");
-    mapElementRef.current.parentElement?.setAttribute(
-      "data-map-label-layer",
-      map.getLayer(LABEL_LAYER_ID) ? "ready" : "missing",
+    const host = mapElementRef.current.parentElement;
+    host?.setAttribute("data-map-point-visual", "category-icon");
+    host?.setAttribute("data-map-label-layer", map.getLayer(LABEL_LAYER_ID) ? "ready" : "missing");
+    host?.setAttribute(
+      "data-map-icon-layer",
+      map.getLayer(POINT_ICON_LAYER_ID) && map.getLayer(SELECTED_ICON_LAYER_ID)
+        ? "ready"
+        : "missing",
     );
+    host?.setAttribute("data-map-category-icon-count", String(PLACE_CATEGORIES.length));
+
+    const safePadding = { top: 64, right: 48, bottom: selected ? 190 : 80, left: 48 };
 
     const syncClusters = () => {
       if (!map.getLayer(CLUSTER_LAYER_ID)) return;
@@ -587,47 +787,61 @@ export function PlaceMap({
           event.stopPropagation();
           const source = map.getSource(PLACE_SOURCE_ID) as MapLibreGeoJSONSource | undefined;
           if (!source) return;
-          void source
-            .getClusterLeaves(clusterId, Math.max(Math.ceil(count), 1), 0)
-            .then((leaves) => {
-              const points = leaves.flatMap((leaf) =>
-                leaf.geometry.type === "Point"
-                  ? [leaf.geometry.coordinates as [number, number]]
-                  : [],
-              );
-              if (points.length === 0) {
-                map.easeTo({
-                  center: coordinates,
-                  zoom: Math.min(map.getZoom() + 2, MAX_ZOOM),
-                  duration: 250,
-                });
-                return;
-              }
 
-              const bounds = points.reduce(
-                (current, point) => current.extend(point),
-                new mapLibre.LngLatBounds(points[0], points[0]),
-              );
-              const camera = map.cameraForBounds(bounds, {
-                padding: 56,
-                maxZoom: MAX_ZOOM,
-              });
-              map.easeTo({
-                center: camera?.center ?? coordinates,
-                zoom: Math.min(
-                  Math.max(camera?.zoom ?? map.getZoom() + 2, map.getZoom() + 1),
-                  MAX_ZOOM,
-                ),
-                duration: 250,
-              });
-            })
-            .catch((error) => {
-              console.error("[Matrundan] Klustret kunde inte öppnas:", error);
+          host?.setAttribute("data-map-last-cluster-padding", "safe");
+          void source
+            .getClusterExpansionZoom(clusterId)
+            .then((expansionZoom) => {
               map.easeTo({
                 center: coordinates,
-                zoom: Math.min(map.getZoom() + 2, MAX_ZOOM),
+                zoom: Math.min(Math.max(expansionZoom, map.getZoom() + 0.75), MAX_ZOOM),
+                padding: safePadding,
                 duration: 250,
+                retainPadding: false,
               });
+            })
+            .catch(async (error) => {
+              console.error("[Matrundan] Kunde inte läsa klustrets expansionszoom:", error);
+              try {
+                const leaves = await source.getClusterLeaves(
+                  clusterId,
+                  Math.max(Math.ceil(count), 1),
+                  0,
+                );
+                const points = leaves.flatMap((leaf) =>
+                  leaf.geometry.type === "Point"
+                    ? [leaf.geometry.coordinates as [number, number]]
+                    : [],
+                );
+                if (points.length === 0) throw new Error("Klustret saknar koordinater.");
+                const bounds = points.reduce(
+                  (current, point) => current.extend(point),
+                  new mapLibre.LngLatBounds(points[0], points[0]),
+                );
+                const camera = map.cameraForBounds(bounds, {
+                  padding: safePadding,
+                  maxZoom: MAX_ZOOM,
+                });
+                map.easeTo({
+                  center: camera?.center ?? coordinates,
+                  zoom: Math.min(
+                    Math.max(camera?.zoom ?? map.getZoom() + 1, map.getZoom() + 0.75),
+                    MAX_ZOOM,
+                  ),
+                  padding: safePadding,
+                  duration: 250,
+                  retainPadding: false,
+                });
+              } catch (fallbackError) {
+                console.error("[Matrundan] Klustret kunde inte öppnas:", fallbackError);
+                map.easeTo({
+                  center: coordinates,
+                  zoom: Math.min(map.getZoom() + 1.5, MAX_ZOOM),
+                  padding: safePadding,
+                  duration: 250,
+                  retainPadding: false,
+                });
+              }
             });
         });
 
@@ -640,18 +854,9 @@ export function PlaceMap({
       const markerCount = map.getLayer(POINT_LAYER_ID)
         ? map.queryRenderedFeatures({ layers: [POINT_LAYER_ID] }).length
         : 0;
-      mapElementRef.current?.parentElement?.setAttribute(
-        "data-map-cluster-count",
-        String(clusterMarkersRef.current.size),
-      );
-      mapElementRef.current?.parentElement?.setAttribute(
-        "data-map-largest-cluster",
-        String(largestCluster),
-      );
-      mapElementRef.current?.parentElement?.setAttribute(
-        "data-map-marker-count",
-        String(markerCount),
-      );
+      host?.setAttribute("data-map-cluster-count", String(clusterMarkersRef.current.size));
+      host?.setAttribute("data-map-largest-cluster", String(largestCluster));
+      host?.setAttribute("data-map-marker-count", String(markerCount));
     };
 
     syncClustersRef.current = syncClusters;
@@ -666,28 +871,36 @@ export function PlaceMap({
     const handleLeave = () => {
       map.getCanvas().style.cursor = "";
     };
-
-    map.on("click", POINT_LAYER_ID, handlePointClick);
-    map.on("mouseenter", POINT_LAYER_ID, handleEnter);
-    map.on("mouseleave", POINT_LAYER_ID, handleLeave);
+    const interactiveLayers = [POINT_LAYER_ID, POINT_ICON_LAYER_ID, LABEL_LAYER_ID];
+    interactiveLayers.forEach((layerId) => {
+      map.on("click", layerId, handlePointClick);
+      map.on("mouseenter", layerId, handleEnter);
+      map.on("mouseleave", layerId, handleLeave);
+    });
     map.on("idle", syncClusters);
     syncClusters();
 
     return () => {
-      map.off("click", POINT_LAYER_ID, handlePointClick);
-      map.off("mouseenter", POINT_LAYER_ID, handleEnter);
-      map.off("mouseleave", POINT_LAYER_ID, handleLeave);
+      interactiveLayers.forEach((layerId) => {
+        map.off("click", layerId, handlePointClick);
+        map.off("mouseenter", layerId, handleEnter);
+        map.off("mouseleave", layerId, handleLeave);
+      });
       map.off("idle", syncClusters);
       if (syncClustersRef.current === syncClusters) syncClustersRef.current = null;
       clearClusterMarkers(clusterMarkersRef.current);
     };
-  }, [mapStatus]);
+  }, [clusterConfig.labelMinZoom, clusterConfig.maxZoom, clusterConfig.radius, mapStatus, selected]);
 
   React.useEffect(() => {
     if (mapStatus !== "ready" || !mapRef.current) return;
     const source = mapRef.current.getSource(PLACE_SOURCE_ID) as MapLibreGeoJSONSource | undefined;
     if (!source) return;
     source.setData(placeCollection(mappedItems));
+    mapElementRef.current?.parentElement?.setAttribute(
+      "data-map-source-count",
+      String(mappedItems.length),
+    );
     mapRef.current.once("idle", () => syncClustersRef.current?.());
   }, [mappedItems, mapStatus]);
 
@@ -730,12 +943,12 @@ export function PlaceMap({
         new mapLibreRef.current!.LngLatBounds(points[0], points[0]),
       );
       map.fitBounds(bounds, {
-        padding: { top: 48, right: 48, bottom: mappedItems.length > 0 ? 164 : 72, left: 48 },
-        maxZoom: 15,
+        padding: { top: 48, right: 48, bottom: mappedItems.length > 0 ? 180 : 72, left: 48 },
+        maxZoom: profile === "discovery" ? 14 : 15,
         duration: 0,
       });
     });
-  }, [fitSignature, mapStatus, mappedItems.length]);
+  }, [fitSignature, mapStatus, mappedItems.length, profile]);
 
   if (mappedItems.length === 0 && !center) {
     return (
@@ -756,7 +969,9 @@ export function PlaceMap({
           ? "Kartbakgrunden kunde inte laddas. Kontrollera Geoapify-nyckelns domänregler."
           : tileStatus === "loading"
             ? "Laddar kartan…"
-            : null;
+            : profile === "discovery" && items.length >= 50
+              ? "Visar de 50 närmaste träffarna. Sök på namn eller minska området för ett mer specifikt urval."
+              : null;
 
   return (
     <div
@@ -772,7 +987,9 @@ export function PlaceMap({
       data-map-error-code={mapFailure ?? ""}
       data-map-style-layer-count={mapRef.current?.getStyle().layers?.length ?? 0}
       data-map-style-source-count={Object.keys(mapRef.current?.getStyle().sources ?? {}).length}
-      data-clustering-disabled-at={CLUSTER_MAX_ZOOM + 1}
+      data-map-cluster-profile={profile}
+      data-map-cluster-radius={clusterConfig.radius}
+      data-clustering-disabled-at={clusterConfig.maxZoom + 1}
     >
       {tileStatus !== "ready" ? (
         <div
