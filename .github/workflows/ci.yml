@@ -32,6 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          show-progress: false
 
       - name: Set verification level
         id: verification
@@ -74,10 +75,13 @@ jobs:
           fi
 
           mapfile -t format_files < <(
-            git diff --name-only --diff-filter=ACMR "$base_sha" HEAD --               '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs'               '*.json' '*.css' '*.md' '*.yml' '*.yaml'
+            git diff --name-only --diff-filter=ACMR "$base_sha" HEAD -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' \
+              '*.json' '*.css'
           )
           mapfile -t code_files < <(
-            git diff --name-only --diff-filter=ACMR "$base_sha" HEAD --               '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs'
+            git diff --name-only --diff-filter=ACMR "$base_sha" HEAD -- \
+              '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs'
           )
 
           printf '%s\n' "${format_files[@]}" > changed-format-files.txt
@@ -98,7 +102,7 @@ jobs:
             echo "has_map=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Prettier changed files
+      - name: Prettier changed code and configuration
         if: steps.changes.outputs.has_format == 'true'
         shell: bash
         run: |
