@@ -55,7 +55,7 @@ test("adminflödet arkiverar och återställer bara gruppens platskoppling", asy
     .getByRole("dialog", { name: /Hantera Glöd & Grönska/ })
     .getByRole("button", { name: "Återställ stället" })
     .click();
-  await expect(page.getByRole("button", { name: "Registrera besök" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Återställt matställe");
 });
 
