@@ -4,9 +4,33 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.10.0] – 2026-07-27
+
+### Nytt
+
+- **Arkivera och återaktivera grupper.** Historik, medlemskap, besök,
+  ställen, betyg och kommentarer bevaras i ett skrivskyddat läge.
+- **Administrera gruppens matställen.** Ägare och admin kan arkivera,
+  återställa och korrigera gruppspecifika platsuppgifter utan att den
+  kanoniska platsen eller tidigare besök raderas.
+- **Redigera eget omdöme.** En medlem kan ändra sitt eget betyg och sin
+  egen kommentar, men aldrig någon annans omdöme.
+- Demo- och live-läge använder samma produktmodell för arkiv och omdömen.
+
+### Förbättrat
+
+- Aktiva och arkiverade grupper skiljs åt i gruppväljaren.
+- Lista, karta, topplista och nästa stopp använder bara aktiva ställen;
+  arkiverade ställen finns kvar med full historik och kan återställas.
+- Grupparkivering återkallar öppna inbjudningar, rensar nästa stopp och
+  blockerar skrivningar på serversidan.
+- Ordinarie CI är åter skrivskyddad och verifierar format, lint,
+  TypeScript, bygge och relevanta mobilflöden.
+
 ## [0.9.0] – 2026-07-25
 
 ### Nytt
+
 - **Privat, gruppcentrerad gamification (Paket 3D).** Nivåer, badges och
   topplistor är helt härledda från gruppens besök, deltagare, kanoniska
   platser och gruppinställningar. Inga poängsaldon eller nya
@@ -28,6 +52,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   se README).
 
 ### Domänmodell
+
 - **Delade besök respekteras överallt:** gruppinställningen
   `sharedVisitsCountForProgression` styr både nivåer, badges och
   topplistor via `countsForProgression`.
@@ -39,6 +64,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   utlöses för importerade eller delade platser.
 
 ### UI
+
 - Medlemslistan visar ”{Nivå} · {N} besök” som underrad; senaste besök
   som diskret tredje rad; högerkolumnen visar bara favoritantal.
 - MemberProfileSheet: badgekort bryter beskrivningar och intjänandedatum
@@ -49,6 +75,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 ## [0.8.1] – 2026-07-25
 
 ### Nytt
+
 - **Ny återanvändbar Plats-komponent** (`GeoapifyLocationInput`) med
   Geoapify-autocomplete. Endast verifierade val (label + koordinater +
   provider + place_id) sparas som gruppens förvalda sökområde.
@@ -56,6 +83,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   och används automatiskt som sökcentrum i Lägg till matställe.
 
 ### Förbättrat
+
 - Alla dialoger klarar 360 px utan horisontell scroll (`w-[calc(100vw-1rem)]`).
 - Standardsökradien i Lägg till matställe startar på 1 km för mer relevanta
   träffar.
@@ -66,6 +94,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   ett val från listan krävs.
 
 ### Säkerhet
+
 - DB-check på `groups` tillåter bara tre tillstånd för sökområdet: tomt,
   legacy-label eller komplett verifierat Geoapify-val med giltiga koordinater.
 - `create_group_with_owner` kräver antingen alla eller inga
@@ -77,6 +106,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 ## [0.8.0] – 2026-07-25
 
 ### Nytt
+
 - **Riktig platssök via Geoapify i live-läget.** Autentiserad serveradapter
   (`geoapifyAutocompleteLocation`, `geoapifySearchPlaces`) läser
   `GEOAPIFY_API_KEY` enbart på servern – nyckeln finns aldrig i klientbundeln.
@@ -94,6 +124,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   atomär RPC `create_or_link_provider_place`.
 
 ### Förbättrat
+
 - Avgränsade sökradier 1/3/5/10/25 km samt “Större område · inom 50 km”.
   Servervalidatorn accepterar `1|3|5|10|25|null` – 50 skickas som `null`
   och tolkas som en 50 km-cirkel runt centrum. Inga påståenden om
@@ -110,6 +141,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 ## [0.7.1] – 2026-07-25
 
 ### Rättat
+
 - Registrering av besök fungerar igen efter kanonisk migration:
   `validate_visit_participant()` slår upp originalgruppen via
   `visit_group_links` (`link_type='original'`) istället för den borttagna
@@ -118,6 +150,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   på `activity`; kvar finns endast `trg_activity_validate`.
 
 ### Nytt
+
 - **Spara och lägg till i annan grupp:** ny sekundär knapp i
   `VisitDialog` (live-läget, ≥2 aktiva grupper). Besöket sparas en gång i
   aktuell grupp; därefter öppnas befintliga `ShareVisitDialog` med det
@@ -125,8 +158,8 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
 ## [0.7.0] – 2026-07-25
 
-
 ### Nytt
+
 - **Dela besök mellan grupper utan duplicering.** Ny kanonisk datamodell:
   `places` (globala matställen), `group_places` (grupprelation),
   `visits` (globala besök), `visit_group_links` (kopplingar per grupp,
@@ -151,6 +184,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   synlighetskontrollen.
 
 ### Säkerhet
+
 - `authenticated` har inga direkta rättigheter på `visits`,
   `visit_participants`, `reviews`, `group_places`, `visit_group_links`
   eller `review_group_visibility`. All läsning går via
@@ -162,6 +196,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 - Unikt index säkrar exakt en `original`-koppling per besök.
 
 ### Förbättrat
+
 - `VisitDetailSheet` har delnings- och unlink-åtgärder, badge för delat
   besök, neutral `+N`-visning och en switch för att dölja/visa egen
   kommentar per grupp.
@@ -172,6 +207,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 ## [0.6.1] – 2026-07-25
 
 ### Fixat
+
 - Mobil layout: globala skydd mot horisontell overflow (`overflow-x: clip`,
   `text-size-adjust: 100%`, `max-width: 100%` på media) samt kompaktare
   grupphero och medlemsrader så att långa namn trunceras och badges wrappar
@@ -182,6 +218,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   och navigerar tillbaka till `/`.
 
 ### Auth-konfiguration
+
 - Google är aktiverad som managed OAuth-provider i Lovable Cloud för detta
   projekt. Om inloggning ändå visar Lovables egen inloggning beror det på att
   förhandsvisnings-URL:en (`id-preview--…lovable.app`) kräver Lovable-session –
@@ -189,9 +226,8 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
 ## [0.6.0] – 2026-07-25
 
-
-
 ### Nytt
+
 - Riktiga engångsinbjudningar: `create_group_invitation` genererar en 256-bitars
   token; endast SHA-256-hash lagras. Länken visas bara en gång.
 - `/inbjudan/$token`-route med förhandsvisning (`get_invitation_preview`) och
@@ -204,6 +240,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 - Skapa ytterligare grupp direkt från kontomenyn.
 
 ### Förbättrat
+
 - Historiska medlemskap: `memberships.status` + `left_at`; bara aktiva medlemmar
   får åtkomst via `has_membership`/`has_group_role`/`shares_group`.
 - Direktskrivning mot `memberships` och `invitations` från klienten är stängd;
@@ -216,6 +253,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   färdig svensk text.
 
 ### Säkerhet
+
 - `invitations`-tabellen är inte längre direkt läsbar från klienten;
   `token_hash` kan inte längre exponeras. Inbjudningar hämtas endast via
   `list_group_invitations`/`get_invitation_preview`.
@@ -227,12 +265,14 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   diskret i historisk data utan att ge dem åtkomst tillbaka.
 
 ### Känt
+
 - Delade besök mellan grupper, Geoapify och gamification är fortfarande utanför scope.
 - Gruppborttagning ingår inte i detta paket.
 
 ## [0.5.0] – 2026-07-25
 
 ### Nytt
+
 - Lägg till matställe direkt mot Supabase i live-läge via ny
   `create_place`-RPC (med dubblettskydd på namn + adress per grupp).
 - Registrera besök atomärt via `create_visit_with_review`-RPC: besök,
@@ -245,6 +285,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   återkallad från `authenticated`).
 
 ### Förbättrat
+
 - Alla skrivningar går genom SECURITY DEFINER-funktioner som validerar
   gruppmedlemskap, kategorier, tillfälle och betygsintervall på servern.
 - Vy och store laddas om automatiskt efter en lyckad live-mutation utan
@@ -255,6 +296,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   åtskilda från läslogiken i `live-repository.ts`.
 
 ### Känt
+
 - Inbjudningar av nya medlemmar och profilredigering landar i Supabase
   först i ett senare paket.
 - Geoapify/OSM-platssökning och gamification är fortfarande inte med.
@@ -262,6 +304,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 ## [0.4.0] – 2026-07-25
 
 ### Nytt
+
 - Google-inloggning via Lovable Cloud (Supabase Auth) med hanterad
   OAuth-broker – ingen egen Google Cloud-konfiguration behövs.
 - Nytt Supabase-schema för profiles, groups, memberships, invitations,
@@ -276,6 +319,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 - Gruppväxlare i headern när man är med i flera grupper.
 
 ### Förbättrat
+
 - Repository-lager (`live-repository.ts`) separerar demo- och live-källa så
   att vykomponenterna är oförändrade.
 - Explicit sandlåde-läge via `?demo=1` i URL:en, oberoende av inloggning.
@@ -288,6 +332,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 ## [0.3.0] – 2026-07-24
 
 ### Nytt
+
 - Klickbara medlemsprofiler med besök, favoriter, smakprofil och
   medlemsspecifikt aktivitetsflöde.
 - Geografisk sökning i utforskningen med gemensamt platsfält, valbar
@@ -300,6 +345,7 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
   fullständig versionshistorik.
 
 ### Förbättrat
+
 - Tydligare informationshierarki för betyg: gruppens helhetsbetyg lyfts
   fram med snitt och antal betyg, medan smak, prisvärdhet och service
   samlas under ”Betygsdetaljer”.
@@ -315,17 +361,20 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 ## [0.2.0] – 2026-07-23
 
 ### Nytt
+
 - Registrering av besök med deltagare, tillfälle och valfria detaljbetyg.
 - Gruppvyn med gänget, delade favoriter och aktivitet.
 - Filter och sortering av matställeslistan bakom en tydlig filterpanel.
 
 ### Förbättrat
+
 - Responsiva layouter: bottennavigation på mobil, topmeny på desktop.
 - Tillgänglighet: aria-pressed på val, större träffytor och tydligare fokus.
 
 ## [0.1.0] – 2026-07-23
 
 ### Nytt
+
 - Första Lovable-prototypen av Matrundan.
 - Lokal demodata i `localStorage`.
 - Grundläggande provider-arkitektur för framtida platssökning.
