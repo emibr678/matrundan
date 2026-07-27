@@ -988,8 +988,8 @@ export function PlaceMap({
       data-map-lng={viewState?.lng ?? ""}
       data-map-tile-status={tileStatus}
       data-map-error-code={mapFailure ?? ""}
-      data-map-style-layer-count={mapRef.current?.getStyle().layers?.length ?? 0}
-      data-map-style-source-count={Object.keys(mapRef.current?.getStyle().sources ?? {}).length}
+      data-map-style-layer-count={mapRef.current?.getStyle()?.layers?.length ?? 0}
+      data-map-style-source-count={Object.keys(mapRef.current?.getStyle()?.sources ?? {}).length}
       data-map-cluster-profile={profile}
       data-map-cluster-radius={clusterConfig.radius}
       data-clustering-disabled-at={clusterConfig.maxZoom + 1}
