@@ -1,8 +1,8 @@
 /**
  * Sessions- och läges-hantering för Matrundan.
  *
- * Filtrerar grupper på aktivt medlemskap och hanterar pending invite path
- * genom OAuth-flödet via sessionStorage.
+ * Filtrerar på aktivt medlemskap, men behåller både aktiva och arkiverade
+ * grupper så att historiken kan öppnas utan att medlemskapets livscykel ändras.
  */
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
@@ -11,12 +11,14 @@ import { lovable } from "@/integrations/lovable";
 
 export type AppMode = "demo" | "live";
 export type GroupRole = "owner" | "admin" | "member";
+export type GroupLifecycleStatus = "active" | "archived";
 
 export interface UserGroupSummary {
   id: string;
   name: string;
   emoji: string | null;
   role: GroupRole;
+  lifecycleStatus: GroupLifecycleStatus;
 }
 
 interface SessionState {
@@ -27,6 +29,7 @@ interface SessionState {
   needsOnboarding: boolean;
   activeGroupId: string | null;
   activeGroupRole: GroupRole | null;
+  activeGroupLifecycleStatus: GroupLifecycleStatus | null;
   userGroups: UserGroupSummary[];
   signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
   signOut: () => Promise<void>;
@@ -82,7 +85,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
     const { data, error } = await supabase
       .from("memberships")
-      .select("group_id, role, status, groups(id, name, emoji)")
+      .select("group_id, role, status, groups(id, name, emoji, lifecycle_status)")
       .eq("user_id", uid)
       .eq("status", "active");
     if (error) {
@@ -92,21 +95,45 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
     const groups: UserGroupSummary[] = (data ?? [])
       .map((row) => {
-        const g = (row as { groups: { id: string; name: string; emoji: string | null } | null }).groups;
+        const g = (
+          row as {
+            groups: {
+              id: string;
+              name: string;
+              emoji: string | null;
+              lifecycle_status?: string | null;
+            } | null;
+          }
+        ).groups;
         const role = (row as { role: string }).role as GroupRole;
-        return g ? { id: g.id, name: g.name, emoji: g.emoji, role } : null;
+        if (!g) return null;
+        return {
+          id: g.id,
+          name: g.name,
+          emoji: g.emoji,
+          role,
+          lifecycleStatus:
+            g.lifecycle_status === "archived" ? "archived" : "active",
+        } satisfies UserGroupSummary;
       })
-      .filter((g): g is UserGroupSummary => g !== null);
+      .filter((g): g is UserGroupSummary => g !== null)
+      .sort((a, b) => {
+        if (a.lifecycleStatus !== b.lifecycleStatus) {
+          return a.lifecycleStatus === "active" ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name, "sv");
+      });
     setUserGroups(groups);
     setActiveGroupId((current) => {
       if (current && groups.some((g) => g.id === current)) return current;
-      const first = groups[0]?.id ?? null;
-      if (first && typeof window !== "undefined") {
-        window.localStorage.setItem(ACTIVE_GROUP_KEY, first);
-      } else if (!first && typeof window !== "undefined") {
+      const first = groups.find((g) => g.lifecycleStatus === "active") ?? groups[0];
+      const firstId = first?.id ?? null;
+      if (firstId && typeof window !== "undefined") {
+        window.localStorage.setItem(ACTIVE_GROUP_KEY, firstId);
+      } else if (!firstId && typeof window !== "undefined") {
         window.localStorage.removeItem(ACTIVE_GROUP_KEY);
       }
-      return first;
+      return firstId;
     });
   }, []);
 
@@ -144,8 +171,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = React.useCallback(
     async (opts?: { redirectPath?: string }) => {
-      const origin =
-        typeof window !== "undefined" ? window.location.origin : undefined;
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
       // Bevara ev. pending invite via sessionStorage-fallback.
       if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
       const result = await lovable.auth.signInWithOAuth("google", {
@@ -168,7 +194,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setUserGroups([]);
   }, []);
 
-
   const refreshGroups = React.useCallback(async () => {
     await loadGroups(session?.user?.id);
   }, [loadGroups, session?.user?.id]);
@@ -176,8 +201,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo<SessionState>(() => {
     const user = session?.user ?? null;
     const isLive = !forceDemo && !!user;
-    const activeRole =
-      userGroups.find((g) => g.id === activeGroupId)?.role ?? null;
+    const activeGroup = userGroups.find((g) => g.id === activeGroupId) ?? null;
     return {
       loading,
       user,
@@ -185,7 +209,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       mode: isLive ? "live" : "demo",
       needsOnboarding: isLive && userGroups.length === 0,
       activeGroupId: isLive ? activeGroupId : null,
-      activeGroupRole: isLive ? activeRole : null,
+      activeGroupRole: isLive ? activeGroup?.role ?? null : null,
+      activeGroupLifecycleStatus: isLive
+        ? activeGroup?.lifecycleStatus ?? null
+        : null,
       userGroups,
       signInWithGoogle,
       signOut,
@@ -204,14 +231,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     userGroups,
   ]);
 
-  return (
-    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
-  );
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
 export function useSession() {
   const ctx = React.useContext(SessionContext);
-  if (!ctx)
-    throw new Error("useSession måste användas inuti <SessionProvider>");
+  if (!ctx) throw new Error("useSession måste användas inuti <SessionProvider>");
   return ctx;
 }
