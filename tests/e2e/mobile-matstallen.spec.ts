@@ -37,6 +37,8 @@ async function expectInteractiveMap(
   const mapElement = mapRegion.getByLabel(/^Interaktiv karta/);
   const canvas = mapRegion.locator("canvas.maplibregl-canvas");
   await expect(canvas).toBeVisible();
+  await expect(mapRegion).toHaveAttribute("data-map-point-visual", "primary-pin");
+  await expect(mapRegion).toHaveAttribute("data-map-label-layer", "ready");
   await expect
     .poll(() => mapElement.evaluate((element) => element.getBoundingClientRect().height))
     .toBeGreaterThan(100);
