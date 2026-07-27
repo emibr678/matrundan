@@ -17,9 +17,7 @@ describe("rpc-client", () => {
     });
     const client = createRpcClient(execute);
 
-    await expect(client.callVoid("archive_group", {})).rejects.toThrow(
-      "Du saknar behörighet.",
-    );
+    await expect(client.callVoid("archive_group", {})).rejects.toThrow("Du saknar behörighet.");
   });
 
   test("stoppar oväntade returvärden vid integrationsgränsen", async () => {
