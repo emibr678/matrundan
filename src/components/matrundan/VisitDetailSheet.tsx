@@ -2,14 +2,7 @@ import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import {
-  MapPin,
-  MessageCircle,
-  ExternalLink,
-  Share2,
-  Trash2,
-  Users2,
-} from "lucide-react";
+import { MapPin, MessageCircle, ExternalLink, Share2, Trash2, Users2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -34,10 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
-import {
-  removeSharedVisitFromGroup,
-  setReviewGroupVisibility,
-} from "@/lib/matrundan/live-sharing";
+import { removeSharedVisitFromGroup, setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
 import { RatingStars } from "./Rating";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { EditReviewDialog } from "./EditReviewDialog";
@@ -62,8 +52,7 @@ export function VisitDetailSheet({
   const { state, getPlace, memberById } = useStore();
   const { mode, activeGroupId, activeGroupRole, userGroups } = useSession();
   const visit = React.useMemo(
-    () =>
-      visitId ? state.visits.find((item) => item.id === visitId) : undefined,
+    () => (visitId ? state.visits.find((item) => item.id === visitId) : undefined),
     [visitId, state.visits],
   );
   const place = visit ? getPlace(visit.placeId) : undefined;
@@ -71,12 +60,9 @@ export function VisitDetailSheet({
 
   const isLive = mode === "live" && !!activeGroupId;
   const groupArchived = state.group.lifecycleStatus === "archived";
-  const isParticipant =
-    !!visit && visit.participantIds.includes(state.currentUserId);
+  const isParticipant = !!visit && visit.participantIds.includes(state.currentUserId);
   const isShared = visit?.linkType === "shared";
-  const activeGroupCount = userGroups.filter(
-    (group) => group.lifecycleStatus === "active",
-  ).length;
+  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
   const canUnlink =
     !groupArchived &&
     isLive &&
@@ -85,18 +71,10 @@ export function VisitDetailSheet({
     (visit.linkedBy === state.currentUserId ||
       activeGroupRole === "owner" ||
       activeGroupRole === "admin");
-  const canShare =
-    !groupArchived &&
-    isLive &&
-    !!visit &&
-    isParticipant &&
-    activeGroupCount >= 2;
+  const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
 
   const myReview = React.useMemo(
-    () =>
-      visit?.visibleReviews?.find(
-        (review) => review.userId === state.currentUserId,
-      ),
+    () => visit?.visibleReviews?.find((review) => review.userId === state.currentUserId),
     [visit, state.currentUserId],
   );
 
@@ -121,9 +99,7 @@ export function VisitDetailSheet({
       onOpenChange(false);
       await reload();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte ta bort.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte ta bort.");
     } finally {
       setUnlinking(false);
     }
@@ -135,9 +111,7 @@ export function VisitDetailSheet({
     try {
       await setReviewGroupVisibility(myReview.id, activeGroupId, true, next);
       toast.success(
-        next
-          ? "Din kommentar är synlig i gruppen."
-          : "Din kommentar är dold i gruppen.",
+        next ? "Din kommentar är synlig i gruppen." : "Din kommentar är dold i gruppen.",
       );
       await reload();
     } catch (error) {
@@ -150,10 +124,7 @@ export function VisitDetailSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="right"
-          className="w-full overflow-y-auto p-0 sm:max-w-md"
-        >
+        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md">
           {visit && place ? (
             <div className="flex flex-col">
               <SheetHeader className="space-y-0 border-b border-border/60 bg-gradient-to-br from-sage/40 to-secondary p-5 text-left">
@@ -203,25 +174,17 @@ export function VisitDetailSheet({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm">
-                        <span className="font-medium">
-                          {author?.name ?? "Någon"}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {" "}
-                          registrerade
-                        </span>
+                        <span className="font-medium">{author?.name ?? "Någon"}</span>
+                        <span className="text-muted-foreground"> registrerade</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {MEAL_LABEL[visit.meal] ?? visit.meal} ·{" "}
-                        {formatDate(visit.date)}
+                        {MEAL_LABEL[visit.meal] ?? visit.meal} · {formatDate(visit.date)}
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
                     <RatingStars value={visit.overall} size={18} />
-                    <span className="text-sm font-medium">
-                      {formatRating(visit.overall)} / 5
-                    </span>
+                    <span className="text-sm font-medium">{formatRating(visit.overall)} / 5</span>
                   </div>
                 </Card>
 
@@ -245,11 +208,7 @@ export function VisitDetailSheet({
                         key={participant.id}
                         variant="outline"
                         className="max-w-full rounded-full border-border/70 bg-secondary/60 px-2.5 py-1 text-xs font-normal"
-                        title={
-                          participant.status === "left"
-                            ? "Tidigare medlem"
-                            : undefined
-                        }
+                        title={participant.status === "left" ? "Tidigare medlem" : undefined}
                       >
                         <span className="mr-1">{participant.avatar ?? "🙂"}</span>
                         <span className="truncate">{participant.name}</span>
@@ -266,8 +225,8 @@ export function VisitDetailSheet({
                         className="rounded-full border-border/70 bg-muted px-2.5 py-1 text-xs font-normal text-muted-foreground"
                         title="Personer utanför den här gruppen visas anonymt."
                       >
-                        <Users2 className="mr-1 h-3 w-3" />+
-                        {visit.externalParticipantCount} utanför gruppen
+                        <Users2 className="mr-1 h-3 w-3" />+{visit.externalParticipantCount} utanför
+                        gruppen
                       </Badge>
                     ) : null}
                   </div>
@@ -314,10 +273,7 @@ export function VisitDetailSheet({
                         </p>
                       )}
                       {isParticipant ? (
-                        <EditReviewDialog
-                          review={myReview}
-                          placeName={place.name}
-                        />
+                        <EditReviewDialog review={myReview} placeName={place.name} />
                       ) : null}
                     </Card>
                   </section>
@@ -338,14 +294,12 @@ export function VisitDetailSheet({
                         id={`my-comment-visible-${myReview.id}`}
                         checked={myReview.commentVisible}
                         disabled={savingVisibility}
-                        onCheckedChange={(value) =>
-                          void toggleCommentVisibility(value)
-                        }
+                        onCheckedChange={(value) => void toggleCommentVisibility(value)}
                       />
                     </Card>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      Betyget visas alltid för gruppen. Kommentaren kan du dölja
-                      utan att ta bort besöket.
+                      Betyget visas alltid för gruppen. Kommentaren kan du dölja utan att ta bort
+                      besöket.
                     </p>
                   </section>
                 ) : null}
@@ -368,11 +322,7 @@ export function VisitDetailSheet({
                 </div>
 
                 {canShare ? (
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => setShareOpen(true)}
-                  >
+                  <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}>
                     <Share2 className="h-4 w-4" />
                     Lägg till i annan grupp
                   </Button>
@@ -409,8 +359,8 @@ export function VisitDetailSheet({
           <AlertDialogHeader>
             <AlertDialogTitle>Ta bort besöket från gruppen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Besöket försvinner från denna grupps historik. Originalbesöket och
-              matstället ligger kvar där de skapades.
+              Besöket försvinner från denna grupps historik. Originalbesöket och matstället ligger
+              kvar där de skapades.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

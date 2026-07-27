@@ -13,11 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RatingInput } from "./Rating";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisibleReview } from "@/lib/matrundan/types";
@@ -48,9 +44,7 @@ export function EditReviewDialog({
     setValue(review.value ?? 0);
     setService(review.service ?? 0);
     setComment(review.comment ?? "");
-    setShowDetails(
-      review.taste != null || review.value != null || review.service != null,
-    );
+    setShowDetails(review.taste != null || review.value != null || review.service != null);
   }, [open, review]);
 
   async function save() {
@@ -69,9 +63,7 @@ export function EditReviewDialog({
       toast.success("Ditt omdöme är uppdaterat.");
       setOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte uppdatera omdömet.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera omdömet.");
     }
   }
 
@@ -88,19 +80,14 @@ export function EditReviewDialog({
         <DialogHeader>
           <DialogTitle>Redigera ditt omdöme</DialogTitle>
           <DialogDescription>
-            {placeName}. Omdömet är ditt och ändringen gäller överallt där
-            samma besök och omdöme är synligt.
+            {placeName}. Omdömet är ditt och ändringen gäller överallt där samma besök och omdöme är
+            synligt.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="rounded-2xl bg-secondary/60 p-4">
-            <RatingInput
-              value={overall}
-              onChange={setOverall}
-              label="Helhetsbetyg"
-              size={32}
-            />
+            <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
           </div>
 
           <Collapsible open={showDetails} onOpenChange={setShowDetails}>
@@ -117,23 +104,13 @@ export function EditReviewDialog({
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-3 pt-3">
               <RatingInput value={taste} onChange={setTaste} label="Smak" />
-              <RatingInput
-                value={value}
-                onChange={setValue}
-                label="Prisvärdhet"
-              />
-              <RatingInput
-                value={service}
-                onChange={setService}
-                label="Service"
-              />
+              <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
+              <RatingInput value={service} onChange={setService} label="Service" />
             </CollapsibleContent>
           </Collapsible>
 
           <div className="space-y-1.5">
-            <Label htmlFor={`edit-review-comment-${review.id}`}>
-              Kommentar (frivilligt)
-            </Label>
+            <Label htmlFor={`edit-review-comment-${review.id}`}>Kommentar (frivilligt)</Label>
             <Textarea
               id={`edit-review-comment-${review.id}`}
               value={comment}
@@ -145,11 +122,7 @@ export function EditReviewDialog({
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
-          <Button
-            variant="ghost"
-            disabled={submitting}
-            onClick={() => setOpen(false)}
-          >
+          <Button variant="ghost" disabled={submitting} onClick={() => setOpen(false)}>
             Avbryt
           </Button>
           <Button disabled={submitting} onClick={() => void save()}>

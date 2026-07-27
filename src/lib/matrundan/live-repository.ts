@@ -134,10 +134,9 @@ function avg(xs: number[]): number | undefined {
 }
 
 export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const { data, error } = await supabase.rpc(
-    "get_group_app_state_v4b" as "get_group_app_state",
-    { _group_id: groupId },
-  );
+  const { data, error } = await supabase.rpc("get_group_app_state_v4b" as "get_group_app_state", {
+    _group_id: groupId,
+  });
   if (error || !data) {
     console.error("[Matrundan] get_group_app_state_v4b:", error);
     return null;
@@ -181,9 +180,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     name: pl.name,
     category: pl.category as PlaceCategory,
     canonicalCategory: (pl.canonicalCategory ?? pl.category) as PlaceCategory,
-    categoryOverride: pl.categoryOverride
-      ? (pl.categoryOverride as PlaceCategory)
-      : null,
+    categoryOverride: pl.categoryOverride ? (pl.categoryOverride as PlaceCategory) : null,
     cuisines: pl.cuisines ?? [],
     canonicalCuisines: pl.canonicalCuisines ?? pl.cuisines ?? [],
     cuisinesOverride: pl.cuisinesOverride ?? null,

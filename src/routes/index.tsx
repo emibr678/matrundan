@@ -16,8 +16,7 @@ export const Route = createFileRoute("/")({
       { title: "Hem · Matrundan" },
       {
         name: "description",
-        content:
-          "Se gruppens nästa stopp, snabba framsteg och senaste aktivitet på ett ställe.",
+        content: "Se gruppens nästa stopp, snabba framsteg och senaste aktivitet på ett ställe.",
       },
       { property: "og:title", content: "Hem · Matrundan" },
       {
@@ -44,17 +43,13 @@ function Home() {
   const proposer = proposerId ? memberById(proposerId) : undefined;
 
   const untried = React.useMemo(
-    () =>
-      activePlaces.filter(
-        (place) => !state.visits.some((visit) => visit.placeId === place.id),
-      ),
+    () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
     [activePlaces, state.visits],
   );
 
   const totalPlaces = activePlaces.length;
   const tried = totalPlaces - untried.length;
-  const progressPct =
-    totalPlaces === 0 ? 0 : Math.round((tried / totalPlaces) * 100);
+  const progressPct = totalPlaces === 0 ? 0 : Math.round((tried / totalPlaces) * 100);
 
   const shuffle = () => {
     if (groupArchived) return;
@@ -98,9 +93,7 @@ function Home() {
                 <div className="text-xs tracking-wide opacity-80">
                   {CATEGORY_LABEL[next.category]}
                 </div>
-                <h1 className="font-display text-3xl font-semibold leading-tight">
-                  {next.name}
-                </h1>
+                <h1 className="font-display text-3xl font-semibold leading-tight">{next.name}</h1>
                 <div className="mt-1 flex items-center gap-1 text-sm opacity-90">
                   <MapPin className="h-3.5 w-3.5" />
                   {next.address}, {next.city}
@@ -127,9 +120,7 @@ function Home() {
         ) : (
           <Card className="rounded-3xl border-dashed border-border bg-card p-6 text-center shadow-sm">
             <div className="text-5xl">🎯</div>
-            <h2 className="mt-3 font-display text-xl">
-              Inget nästa stopp valt
-            </h2>
+            <h2 className="mt-3 font-display text-xl">Inget nästa stopp valt</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {groupArchived
                 ? "Gruppen är arkiverad. Historiken finns kvar att utforska."
@@ -163,18 +154,12 @@ function Home() {
           <div className="mt-4 grid grid-cols-3 gap-2">
             <StatTile label="Aktiva ställen" value={totalPlaces} />
             <StatTile label="Besök" value={state.visits.length} />
-            <StatTile
-              label="Kvar att prova"
-              value={untried.length}
-              tone="mustard"
-            />
+            <StatTile label="Kvar att prova" value={untried.length} tone="mustard" />
           </div>
         </Card>
       </section>
 
-      <section
-        className={groupArchived ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}
-      >
+      <section className={groupArchived ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}>
         {!groupArchived ? (
           <Button
             variant="outline"
@@ -185,12 +170,7 @@ function Home() {
             <Plus className="h-4 w-4" /> Lägg till ställe
           </Button>
         ) : null}
-        <Button
-          asChild
-          variant="outline"
-          size="lg"
-          className="h-14 rounded-2xl"
-        >
+        <Button asChild variant="outline" size="lg" className="h-14 rounded-2xl">
           <Link to="/matstallen">
             <Star className="h-4 w-4" /> Bläddra listan
           </Link>
@@ -236,12 +216,8 @@ function StatTile({
         tone === "mustard" ? "bg-mustard/25" : "bg-card",
       ].join(" ")}
     >
-      <div className="font-display text-2xl font-semibold leading-none">
-        {value}
-      </div>
-      <div className="mt-1 text-[11px] font-medium text-muted-foreground">
-        {label}
-      </div>
+      <div className="font-display text-2xl font-semibold leading-none">{value}</div>
+      <div className="mt-1 text-[11px] font-medium text-muted-foreground">{label}</div>
     </div>
   );
 }

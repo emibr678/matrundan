@@ -47,21 +47,19 @@ const CATEGORIES = Object.keys(CATEGORY_LABEL) as PlaceCategory[];
 const OCCASIONS = Object.keys(OCCASION_LABEL) as Occasion[];
 
 function splitCuisines(value: string): string[] {
-  return [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))].slice(
-    0,
-    20,
-  );
+  return [
+    ...new Set(
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ].slice(0, 20);
 }
 
 export function PlaceAdminDialog({ place }: { place: Place }) {
   const { activeGroupRole } = useSession();
-  const {
-    state,
-    submitting,
-    archivePlace,
-    restorePlace,
-    updatePlaceMetadata,
-  } = useStore();
+  const { state, submitting, archivePlace, restorePlace, updatePlaceMetadata } = useStore();
   const canAdmin = activeGroupRole === "owner" || activeGroupRole === "admin";
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeArchived = place.collectionStatus === "archived";
@@ -83,11 +81,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     if (!open) return;
     setCategory(place.categoryOverride ?? "inherit");
     setUseCuisineOverride(place.cuisinesOverride != null);
-    setCuisines(
-      (place.cuisinesOverride ?? place.canonicalCuisines ?? place.cuisines).join(
-        ", ",
-      ),
-    );
+    setCuisines((place.cuisinesOverride ?? place.canonicalCuisines ?? place.cuisines).join(", "));
     setOccasions(place.occasions);
     setNotes(place.notes ?? "");
   }, [open, place]);
@@ -129,9 +123,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
       setConfirmArchive(false);
       setOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte uppdatera stället.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera stället.");
     }
   }
 
@@ -147,8 +139,8 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
           <DialogHeader>
             <DialogTitle>Hantera {place.name}</DialogTitle>
             <DialogDescription>
-              Korrigeringarna gäller bara i {state.group.name}. Namn, adress,
-              koordinater och extern platsidentitet förblir kanoniska.
+              Korrigeringarna gäller bara i {state.group.name}. Namn, adress, koordinater och extern
+              platsidentitet förblir kanoniska.
             </DialogDescription>
           </DialogHeader>
 
@@ -157,9 +149,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
               <Label>Kategori i gruppen</Label>
               <Select
                 value={category}
-                onValueChange={(value) =>
-                  setCategory(value as PlaceCategory | "inherit")
-                }
+                onValueChange={(value) => setCategory(value as PlaceCategory | "inherit")}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -195,8 +185,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
                 placeholder="t.ex. italienskt, pizza, vegetariskt"
               />
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Separera med kommatecken. Avstängt använder kanoniska kökstyper:
-                {" "}
+                Separera med kommatecken. Avstängt använder kanoniska kökstyper:{" "}
                 {(place.canonicalCuisines ?? place.cuisines).join(", ") || "inga"}.
               </p>
             </div>
@@ -285,9 +274,8 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Arkivera {place.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Stället försvinner från gruppens aktiva samling. Tidigare besök,
-              betyg, kommentarer och favoriter bevaras. Om det är nästa stopp
-              rensas det samtidigt.
+              Stället försvinner från gruppens aktiva samling. Tidigare besök, betyg, kommentarer
+              och favoriter bevaras. Om det är nästa stopp rensas det samtidigt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

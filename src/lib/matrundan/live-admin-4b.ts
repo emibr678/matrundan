@@ -6,10 +6,7 @@ type RpcResponse = {
   error: { message?: string } | null;
 };
 
-type RpcCall = (
-  fn: string,
-  args?: Record<string, unknown>,
-) => Promise<RpcResponse>;
+type RpcCall = (fn: string, args?: Record<string, unknown>) => Promise<RpcResponse>;
 
 const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
 
@@ -31,20 +28,14 @@ export async function reactivateGroup(groupId: string): Promise<void> {
   await run("reactivate_group", { _group_id: groupId });
 }
 
-export async function archiveGroupPlace(
-  groupId: string,
-  placeId: string,
-): Promise<void> {
+export async function archiveGroupPlace(groupId: string, placeId: string): Promise<void> {
   await run("archive_group_place", {
     _group_id: groupId,
     _place_id: placeId,
   });
 }
 
-export async function restoreGroupPlace(
-  groupId: string,
-  placeId: string,
-): Promise<void> {
+export async function restoreGroupPlace(groupId: string, placeId: string): Promise<void> {
   await run("restore_group_place", {
     _group_id: groupId,
     _place_id: placeId,

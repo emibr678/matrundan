@@ -18,9 +18,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("ägaren kan arkivera och återaktivera en grupp i demo-läget", async ({
-  page,
-}) => {
+test("ägaren kan arkivera och återaktivera en grupp i demo-läget", async ({ page }) => {
   await page.goto("/?demo=1");
 
   await page.getByRole("button", { name: "Demo" }).click();
@@ -39,9 +37,7 @@ test("ägaren kan arkivera och återaktivera en grupp i demo-läget", async ({
   await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
 });
 
-test("adminflödet arkiverar och återställer bara gruppens platskoppling", async ({
-  page,
-}) => {
+test("adminflödet arkiverar och återställer bara gruppens platskoppling", async ({ page }) => {
   await page.goto("/matstallen/p5?demo=1");
 
   await page.getByRole("button", { name: "Hantera ställe" }).click();

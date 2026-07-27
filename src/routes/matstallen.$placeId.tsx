@@ -70,10 +70,7 @@ function NotFound() {
   return (
     <div className="p-8 text-center">
       <p className="text-sm text-muted-foreground">Stället hittades inte.</p>
-      <Link
-        to="/matstallen"
-        className="mt-4 inline-block text-primary underline"
-      >
+      <Link to="/matstallen" className="mt-4 inline-block text-primary underline">
         Till matställen
       </Link>
     </div>
@@ -85,21 +82,12 @@ function PlaceDetail() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/matstallen/$placeId" });
   const router = useRouter();
-  const {
-    getPlace,
-    visitsFor,
-    avgRating,
-    isFavorite,
-    toggleFavorite,
-    setNext,
-    state,
-    memberById,
-  } = useStore();
+  const { getPlace, visitsFor, avgRating, isFavorite, toggleFavorite, setNext, state, memberById } =
+    useStore();
   const place = getPlace(placeId);
   const [visitOpen, setVisitOpen] = React.useState(false);
   const openVisitId = search.visit || null;
-  const closeVisitSheet = () =>
-    navigate({ params: { placeId }, search: { visit: "" } });
+  const closeVisitSheet = () => navigate({ params: { placeId }, search: { visit: "" } });
 
   if (!place) return <NotFound />;
 
@@ -121,9 +109,7 @@ function PlaceDetail() {
       if (visit.service) service.push(visit.service);
     });
     const avg = (values: number[]) =>
-      values.length
-        ? values.reduce((sum, item) => sum + item, 0) / values.length
-        : 0;
+      values.length ? values.reduce((sum, item) => sum + item, 0) / values.length : 0;
     return {
       taste: avg(taste),
       value: avg(value),
@@ -187,11 +173,7 @@ function PlaceDetail() {
               <div className="text-xs font-medium tracking-wide text-muted-foreground">
                 Gruppens helhetsbetyg
               </div>
-              <RatingStars
-                value={rating.overall}
-                size={16}
-                className="mt-0.5"
-              />
+              <RatingStars value={rating.overall} size={16} className="mt-0.5" />
               <div className="mt-0.5 text-xs text-muted-foreground">
                 {rating.count} betyg från gänget
               </div>
@@ -217,9 +199,7 @@ function PlaceDetail() {
                   className="min-h-11"
                 >
                   <Sparkles className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {isNext ? "Är nästa" : "Nästa stopp"}
-                  </span>
+                  <span className="hidden sm:inline">{isNext ? "Är nästa" : "Nästa stopp"}</span>
                   <span className="sm:hidden">Nästa</span>
                 </Button>
                 <Button
@@ -228,13 +208,7 @@ function PlaceDetail() {
                   aria-pressed={fav}
                   className="min-h-11"
                 >
-                  <Heart
-                    className={
-                      fav
-                        ? "h-4 w-4 fill-primary stroke-primary"
-                        : "h-4 w-4"
-                    }
-                  />
+                  <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
                   {fav ? "Sparad" : "Spara"}
                 </Button>
                 <Button asChild variant="outline" className="min-h-11">
@@ -247,9 +221,7 @@ function PlaceDetail() {
           ) : (
             <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm">
               <div className="font-medium">
-                {placeArchived
-                  ? "Stället är arkiverat i gruppen"
-                  : "Gruppen är arkiverad"}
+                {placeArchived ? "Stället är arkiverat i gruppen" : "Gruppen är arkiverad"}
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 Tidigare besök, betyg, kommentarer och favoriter är bevarade.
@@ -291,19 +263,15 @@ function PlaceDetail() {
               </Badge>
             ))}
           </div>
-          {place.notes ? (
-            <p className="text-sm text-muted-foreground">{place.notes}</p>
-          ) : null}
+          {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
           {(place.categoryOverride != null || place.cuisinesOverride != null) && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Kategori eller kökstyper har korrigerats för den här gruppen.
-              Kanoniska platsuppgifter som namn, adress och koordinater är
-              oförändrade.
+              Kategori eller kökstyper har korrigerats för den här gruppen. Kanoniska platsuppgifter
+              som namn, adress och koordinater är oförändrade.
             </p>
           )}
           <div className="text-xs text-muted-foreground">
-            Tillagt av {memberById(place.addedBy)?.name ?? "någon"} ·{" "}
-            {formatDate(place.addedAt)}
+            Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
           </div>
         </Card>
       </section>
@@ -365,8 +333,7 @@ function PlaceDetail() {
                           <span className="font-medium">{author?.name}</span>
                           <span className="text-muted-foreground">
                             {" "}
-                            · {MEAL_LABEL[visit.meal] ?? visit.meal} ·{" "}
-                            {formatDate(visit.date)}
+                            · {MEAL_LABEL[visit.meal] ?? visit.meal} · {formatDate(visit.date)}
                           </span>
                         </div>
                         <RatingStars value={visit.overall} size={12} />
@@ -400,11 +367,7 @@ function PlaceDetail() {
       </section>
 
       {writable ? (
-        <VisitDialog
-          open={visitOpen}
-          onOpenChange={setVisitOpen}
-          placeId={place.id}
-        />
+        <VisitDialog open={visitOpen} onOpenChange={setVisitOpen} placeId={place.id} />
       ) : null}
       <VisitDetailSheet
         visitId={openVisitId}
@@ -422,11 +385,7 @@ function RatingCell({ label, value }: { label: string; value: number }) {
       <div className="mt-1 font-display text-xl font-semibold">
         {value > 0 ? formatRating(value) : "–"}
       </div>
-      <RatingStars
-        value={value}
-        size={11}
-        className="mt-1 justify-center"
-      />
+      <RatingStars value={value} size={11} className="mt-1 justify-center" />
     </div>
   );
 }

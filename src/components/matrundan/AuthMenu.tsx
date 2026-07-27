@@ -66,20 +66,12 @@ function GroupMenuItem({
 
 function GroupLifecycleActions() {
   const { state, archiveGroup, reactivateGroup, submitting } = useStore();
-  const {
-    mode,
-    activeGroupRole,
-    activeGroupLifecycleStatus,
-    refreshGroups,
-  } = useSession();
+  const { mode, activeGroupRole, activeGroupLifecycleStatus, refreshGroups } = useSession();
   const [confirmArchive, setConfirmArchive] = React.useState(false);
-  const ownRole = state.members.find(
-    (member) => member.id === state.currentUserId,
-  )?.role;
+  const ownRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const owner = activeGroupRole === "owner" || ownRole === "ägare";
   const archived =
-    state.group.lifecycleStatus === "archived" ||
-    activeGroupLifecycleStatus === "archived";
+    state.group.lifecycleStatus === "archived" || activeGroupLifecycleStatus === "archived";
 
   if (!owner) return null;
 
@@ -88,15 +80,9 @@ function GroupLifecycleActions() {
       if (action === "archive") await archiveGroup();
       else await reactivateGroup();
       if (mode === "live") await refreshGroups();
-      toast.success(
-        action === "archive"
-          ? "Gruppen är arkiverad."
-          : "Gruppen är återaktiverad.",
-      );
+      toast.success(action === "archive" ? "Gruppen är arkiverad." : "Gruppen är återaktiverad.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte uppdatera gruppen.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera gruppen.");
     }
   }
 
@@ -107,10 +93,7 @@ function GroupLifecycleActions() {
         Gruppadministration
       </DropdownMenuLabel>
       {archived ? (
-        <DropdownMenuItem
-          disabled={submitting}
-          onSelect={() => void run("reactivate")}
-        >
+        <DropdownMenuItem disabled={submitting} onSelect={() => void run("reactivate")}>
           <ArchiveRestore className="mr-2 h-4 w-4" />
           Återaktivera gruppen
         </DropdownMenuItem>
@@ -130,9 +113,9 @@ function GroupLifecycleActions() {
           <AlertDialogHeader>
             <AlertDialogTitle>Arkivera {state.group.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Historik, besök, ställen, betyg och kommentarer bevaras. Gruppen
-              blir skrivskyddad, nästa stopp rensas och aktiva inbjudningar
-              återkallas. Du kan återaktivera gruppen senare.
+              Historik, besök, ställen, betyg och kommentarer bevaras. Gruppen blir skrivskyddad,
+              nästa stopp rensas och aktiva inbjudningar återkallas. Du kan återaktivera gruppen
+              senare.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -150,11 +133,7 @@ function GroupLifecycleActions() {
   );
 }
 
-export function AuthMenu({
-  showGroupActions = false,
-}: {
-  showGroupActions?: boolean;
-}) {
+export function AuthMenu({ showGroupActions = false }: { showGroupActions?: boolean }) {
   const {
     user,
     mode,
@@ -179,12 +158,7 @@ export function AuthMenu({
 
   if (!user && !showGroupActions) {
     return (
-      <Button
-        size="sm"
-        variant="outline"
-        className="rounded-full"
-        onClick={() => void signIn()}
-      >
+      <Button size="sm" variant="outline" className="rounded-full" onClick={() => void signIn()}>
         <LogIn className="mr-1.5 h-4 w-4" />
         Logga in
       </Button>
@@ -217,12 +191,8 @@ export function AuthMenu({
     (user.user_metadata?.name as string | undefined) ??
     user.email ??
     "Inloggad";
-  const activeGroups = userGroups.filter(
-    (group) => group.lifecycleStatus === "active",
-  );
-  const archivedGroups = userGroups.filter(
-    (group) => group.lifecycleStatus === "archived",
-  );
+  const activeGroups = userGroups.filter((group) => group.lifecycleStatus === "active");
+  const archivedGroups = userGroups.filter((group) => group.lifecycleStatus === "archived");
 
   return (
     <>

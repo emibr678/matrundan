@@ -3,11 +3,7 @@ import { Archive, Home, MapPin, Users } from "lucide-react";
 import * as React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { StoreProvider, useStore } from "@/lib/matrundan/store";
-import {
-  SessionProvider,
-  useSession,
-  consumePendingInvitePath,
-} from "@/lib/matrundan/session";
+import { SessionProvider, useSession, consumePendingInvitePath } from "@/lib/matrundan/session";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
@@ -126,7 +122,7 @@ function ShellBody() {
     <StoreProvider
       key={mode === "live" ? `live:${activeGroupId ?? ""}` : "demo"}
       mode={mode}
-      initialState={mode === "live" ? liveState ?? undefined : undefined}
+      initialState={mode === "live" ? (liveState ?? undefined) : undefined}
       onLiveMutation={mode === "live" ? reloadLive : undefined}
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
@@ -140,9 +136,7 @@ function Header({ showAuth }: { showAuth: boolean }) {
     <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 pt-6 pb-3 md:pt-8">
       <Link to="/" className="flex items-center gap-2">
         <span className="text-2xl">🍽️</span>
-        <span className="font-display text-xl font-semibold tracking-tight">
-          Matrundan
-        </span>
+        <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
       </Link>
       {showAuth ? <AuthMenu /> : null}
     </header>
@@ -152,8 +146,7 @@ function Header({ showAuth }: { showAuth: boolean }) {
 function ShellChrome() {
   const { state } = useStore();
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
-  const isActive = (to: string) =>
-    to === "/" ? pathname === "/" : pathname.startsWith(to);
+  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   const archived = state.group.lifecycleStatus === "archived";
 
   return (
@@ -162,9 +155,7 @@ function ShellChrome() {
         <header className="flex items-center justify-between gap-4 px-5 pt-6 pb-3 md:pt-8">
           <Link to="/" className="flex items-center gap-2">
             <span className="text-2xl">🍽️</span>
-            <span className="font-display text-xl font-semibold tracking-tight">
-              Matrundan
-            </span>
+            <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Huvudmeny">
@@ -205,8 +196,8 @@ function ShellChrome() {
               <div className="min-w-0">
                 <div className="font-medium">Gruppen är arkiverad</div>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Historiken är bevarad och kan läsas. Återaktivera gruppen i
-                  gruppmenyn för att lägga till eller ändra något.
+                  Historiken är bevarad och kan läsas. Återaktivera gruppen i gruppmenyn för att
+                  lägga till eller ändra något.
                 </p>
               </div>
             </div>
@@ -230,17 +221,10 @@ function ShellChrome() {
                 aria-current={active ? "page" : undefined}
                 className={[
                   "flex min-h-11 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors",
-                  active
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 ].join(" ")}
               >
-                <Icon
-                  className={[
-                    "h-5 w-5",
-                    active ? "stroke-[2.4]" : "stroke-[1.8]",
-                  ].join(" ")}
-                />
+                <Icon className={["h-5 w-5", active ? "stroke-[2.4]" : "stroke-[1.8]"].join(" ")} />
                 <span>{item.label}</span>
               </Link>
             );

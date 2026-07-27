@@ -1,22 +1,7 @@
 import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
-import {
-  createFileRoute,
-  Link,
-  Outlet,
-  useNavigate,
-  useRouterState,
-} from "@tanstack/react-router";
-import {
-  Archive,
-  ChevronRight,
-  List,
-  Map,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Archive, ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,8 +31,7 @@ export const Route = createFileRoute("/matstallen")({
       { title: "Matställen · Matrundan" },
       {
         name: "description",
-        content:
-          "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
+        content: "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
       },
       { property: "og:title", content: "Matställen · Matrundan" },
       {
@@ -90,11 +74,8 @@ function PlacesIndex() {
   const [filterOpen, setFilterOpen] = React.useState(false);
 
   const groupArchived = state.group.lifecycleStatus === "archived";
-  const currentMember = state.members.find(
-    (member) => member.id === state.currentUserId,
-  );
-  const canAdmin =
-    currentMember?.role === "ägare" || currentMember?.role === "admin";
+  const currentMember = state.members.find((member) => member.id === state.currentUserId);
+  const canAdmin = currentMember?.role === "ägare" || currentMember?.role === "admin";
   const activePlaces = React.useMemo(
     () => state.places.filter((place) => place.collectionStatus !== "archived"),
     [state.places],
@@ -105,9 +86,7 @@ function PlacesIndex() {
   );
 
   const activeAdvancedCount =
-    (category !== "alla" ? 1 : 0) +
-    (occasion !== "alla" ? 1 : 0) +
-    (sort !== "senaste" ? 1 : 0);
+    (category !== "alla" ? 1 : 0) + (occasion !== "alla" ? 1 : 0) + (sort !== "senaste" ? 1 : 0);
 
   const filtered = React.useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -115,11 +94,7 @@ function PlacesIndex() {
       if (category !== "alla" && place.category !== category) return false;
       if (occasion !== "alla" && !place.occasions.includes(occasion)) return false;
       if (filter === "favoriter" && !isFavorite(place.id)) return false;
-      if (
-        filter === "nytt-for-gruppen" &&
-        statusOf(place.id) !== "nytt-for-gruppen"
-      )
-        return false;
+      if (filter === "nytt-for-gruppen" && statusOf(place.id) !== "nytt-for-gruppen") return false;
       if (filter === "nytt-for-mig") {
         const status = statusOf(place.id);
         if (status !== "nytt-for-mig" && status !== "nytt-for-gruppen") {
@@ -132,45 +107,26 @@ function PlacesIndex() {
         place.address.toLowerCase().includes(normalizedQuery) ||
         place.city.toLowerCase().includes(normalizedQuery) ||
         place.area?.toLowerCase().includes(normalizedQuery) ||
-        place.cuisines.some((cuisine) =>
-          cuisine.toLowerCase().includes(normalizedQuery),
-        )
+        place.cuisines.some((cuisine) => cuisine.toLowerCase().includes(normalizedQuery))
       );
     });
 
     list = [...list];
     if (sort === "betyg") {
       list = list.filter((place) => avgRating(place.id).count > 0);
-      list.sort(
-        (a, b) => avgRating(b.id).overall - avgRating(a.id).overall,
-      );
+      list.sort((a, b) => avgRating(b.id).overall - avgRating(a.id).overall);
     } else if (sort === "namn") {
       list.sort((a, b) => a.name.localeCompare(b.name, "sv"));
     } else {
       list.sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1));
     }
     return list;
-  }, [
-    activePlaces,
-    query,
-    category,
-    occasion,
-    filter,
-    sort,
-    avgRating,
-    isFavorite,
-    statusOf,
-  ]);
+  }, [activePlaces, query, category, occasion, filter, sort, avgRating, isFavorite, statusOf]);
 
   React.useEffect(() => {
-    if (
-      selectedPlaceId &&
-      filtered.some((place) => place.id === selectedPlaceId)
-    )
-      return;
+    if (selectedPlaceId && filtered.some((place) => place.id === selectedPlaceId)) return;
     setSelectedPlaceId(
-      filtered.find((place) => place.lat != null && place.lng != null)?.id ??
-        null,
+      filtered.find((place) => place.lat != null && place.lng != null)?.id ?? null,
     );
   }, [filtered, selectedPlaceId]);
 
@@ -190,9 +146,7 @@ function PlacesIndex() {
     setSort("senaste");
   };
 
-  const mappedCount = filtered.filter(
-    (place) => place.lat != null && place.lng != null,
-  ).length;
+  const mappedCount = filtered.filter((place) => place.lat != null && place.lng != null).length;
   const unmappedCount = filtered.length - mappedCount;
   const mapItems = filtered.map((place) => ({
     id: place.id,
@@ -200,24 +154,16 @@ function PlacesIndex() {
     lat: place.lat,
     lng: place.lng,
     eyebrow: CATEGORY_LABEL[place.category],
-    description: [place.address, place.area, place.city]
-      .filter(Boolean)
-      .join(" · "),
+    description: [place.address, place.area, place.city].filter(Boolean).join(" · "),
     markerLabel: place.photo ?? "🍽️",
   }));
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 pt-2 md:max-w-4xl">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-semibold md:text-3xl">
-          Matställen
-        </h1>
+        <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
         {!groupArchived ? (
-          <Button
-            onClick={() => setAddOpen(true)}
-            size="sm"
-            className="shrink-0 rounded-full"
-          >
+          <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">
             <Plus className="h-4 w-4" /> Lägg till
           </Button>
         ) : null}
@@ -308,9 +254,7 @@ function PlacesIndex() {
           <SheetContent side="bottom" className="max-h-[85vh] rounded-t-3xl">
             <SheetHeader>
               <SheetTitle>Filter & sortering</SheetTitle>
-              <SheetDescription>
-                Samma urval används i både listan och kartan.
-              </SheetDescription>
+              <SheetDescription>Samma urval används i både listan och kartan.</SheetDescription>
             </SheetHeader>
             <div className="space-y-5 py-4">
               <FilterGroup label="Kategori">
@@ -323,9 +267,7 @@ function PlacesIndex() {
                     })),
                   ]}
                   value={category}
-                  onChange={(value) =>
-                    setCategory(value as PlaceCategory | "alla")
-                  }
+                  onChange={(value) => setCategory(value as PlaceCategory | "alla")}
                 />
               </FilterGroup>
               <FilterGroup label="Tillfälle">
@@ -338,9 +280,7 @@ function PlacesIndex() {
                     })),
                   ]}
                   value={occasion}
-                  onChange={(value) =>
-                    setOccasion(value as Occasion | "alla")
-                  }
+                  onChange={(value) => setOccasion(value as Occasion | "alla")}
                 />
               </FilterGroup>
               <FilterGroup label="Sortera">
@@ -359,26 +299,19 @@ function PlacesIndex() {
               <Button variant="ghost" onClick={clearAdvanced}>
                 <X className="h-4 w-4" /> Rensa
               </Button>
-              <Button onClick={() => setFilterOpen(false)}>
-                Visa {filtered.length}
-              </Button>
+              <Button onClick={() => setFilterOpen(false)}>Visa {filtered.length}</Button>
             </div>
           </SheetContent>
         </Sheet>
       </div>
 
-      <div
-        className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1"
-        aria-label="Välj vy"
-      >
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" aria-label="Välj vy">
         <button
           type="button"
           onClick={() => setView("lista")}
           aria-pressed={view === "lista"}
           className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
-            view === "lista"
-              ? "bg-background shadow-sm"
-              : "text-muted-foreground"
+            view === "lista" ? "bg-background shadow-sm" : "text-muted-foreground"
           }`}
         >
           <List className="h-4 w-4" /> Lista
@@ -388,9 +321,7 @@ function PlacesIndex() {
           onClick={() => setView("karta")}
           aria-pressed={view === "karta"}
           className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
-            view === "karta"
-              ? "bg-background shadow-sm"
-              : "text-muted-foreground"
+            view === "karta" ? "bg-background shadow-sm" : "text-muted-foreground"
           }`}
         >
           <Map className="h-4 w-4" /> Karta
@@ -399,8 +330,7 @@ function PlacesIndex() {
 
       {sort === "betyg" ? (
         <p className="text-xs text-muted-foreground">
-          Sorterat på gruppens medelbetyg. Bara ställen med minst ett besök
-          visas.
+          Sorterat på gruppens medelbetyg. Bara ställen med minst ett besök visas.
         </p>
       ) : null}
 
@@ -441,8 +371,7 @@ function PlacesIndex() {
           />
           {unmappedCount > 0 ? (
             <p className="text-xs text-muted-foreground">
-              {unmappedCount}{" "}
-              {unmappedCount === 1 ? "ställe saknar" : "ställen saknar"}{" "}
+              {unmappedCount} {unmappedCount === 1 ? "ställe saknar" : "ställen saknar"}{" "}
               kartposition och visas bara i listan.
             </p>
           ) : null}
@@ -453,9 +382,7 @@ function PlacesIndex() {
         <details className="group rounded-2xl border border-border/70 bg-card">
           <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-2xl p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Archive className="h-4 w-4 text-muted-foreground" />
-            <span className="min-w-0 flex-1 font-medium">
-              Arkiverade ställen
-            </span>
+            <span className="min-w-0 flex-1 font-medium">Arkiverade ställen</span>
             <Badge variant="outline" className="rounded-full">
               {archivedPlaces.length}
             </Badge>
@@ -483,20 +410,12 @@ function PlacesIndex() {
         </details>
       ) : null}
 
-      {!groupArchived ? (
-        <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
-      ) : null}
+      {!groupArchived ? <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} /> : null}
     </div>
   );
 }
 
-function FilterGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>

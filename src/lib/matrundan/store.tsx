@@ -55,26 +55,18 @@ function aggregateVisit(visit: Visit): Visit {
   const reviews = visit.visibleReviews ?? [];
   const rated = reviews.filter((review) => review.ratingVisible);
   if (!rated.length) return { ...visit, overall: 0, comment: undefined };
-  const comments = rated.find(
-    (review) => review.commentVisible && review.comment?.trim(),
-  );
+  const comments = rated.find((review) => review.commentVisible && review.comment?.trim());
   return {
     ...visit,
     overall: avg(rated.map((review) => review.overall)) ?? 0,
     taste: avg(
-      rated
-        .map((review) => review.taste)
-        .filter((value): value is number => value != null),
+      rated.map((review) => review.taste).filter((value): value is number => value != null),
     ),
     value: avg(
-      rated
-        .map((review) => review.value)
-        .filter((value): value is number => value != null),
+      rated.map((review) => review.value).filter((value): value is number => value != null),
     ),
     service: avg(
-      rated
-        .map((review) => review.service)
-        .filter((value): value is number => value != null),
+      rated.map((review) => review.service).filter((value): value is number => value != null),
     ),
     comment: comments?.comment ?? undefined,
   };
@@ -153,14 +145,8 @@ interface StoreContextValue {
   reactivateGroup: () => Promise<void>;
   archivePlace: (placeId: string) => Promise<void>;
   restorePlace: (placeId: string) => Promise<void>;
-  updatePlaceMetadata: (
-    placeId: string,
-    input: GroupPlaceMetadataInput,
-  ) => Promise<void>;
-  updateOwnReview: (
-    reviewId: string,
-    input: ReviewEditInput,
-  ) => Promise<void>;
+  updatePlaceMetadata: (placeId: string, input: GroupPlaceMetadataInput) => Promise<void>;
+  updateOwnReview: (reviewId: string, input: ReviewEditInput) => Promise<void>;
   resetDemo: () => void;
   // selectors
   getPlace: (id: string) => Place | undefined;
@@ -169,11 +155,7 @@ interface StoreContextValue {
   avgRating: (placeId: string) => { overall: number; count: number };
   isFavorite: (placeId: string) => boolean;
   hasVisited: (placeId: string, memberId?: string) => boolean;
-  statusOf: (placeId: string) =>
-    | "nytt-for-mig"
-    | "nytt-for-gruppen"
-    | "alla-provat"
-    | "delvis";
+  statusOf: (placeId: string) => "nytt-for-mig" | "nytt-for-gruppen" | "alla-provat" | "delvis";
   visitedCounts: (placeId: string) => { visited: number; total: number };
   proposerOfNext: () => string | undefined;
   categoryCounts: () => Record<PlaceCategory, number>;
@@ -198,9 +180,7 @@ export function StoreProvider({
   activeGroupId?: string | null;
 }) {
   const [state, setState] = React.useState<AppState>(() =>
-    mode === "demo"
-      ? normalizeDemoState(initialState ?? DEMO_STATE)
-      : (initialState ?? DEMO_STATE),
+    mode === "demo" ? normalizeDemoState(initialState ?? DEMO_STATE) : (initialState ?? DEMO_STATE),
   );
   const [hydrated, setHydrated] = React.useState(mode === "live");
   const [submitting, setSubmitting] = React.useState(false);
@@ -244,21 +224,18 @@ export function StoreProvider({
     activeGroupIdRef.current = activeGroupId;
   }, [activeGroupId]);
 
-  const runLive = React.useCallback(
-    async <T,>(op: (groupId: string) => Promise<T>): Promise<T> => {
-      const gid = activeGroupIdRef.current;
-      if (!gid) throw new Error("Ingen aktiv grupp.");
-      setSubmitting(true);
-      try {
-        const result = await op(gid);
-        await Promise.resolve(onLiveMutationRef.current?.());
-        return result;
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [],
-  );
+  const runLive = React.useCallback(async <T,>(op: (groupId: string) => Promise<T>): Promise<T> => {
+    const gid = activeGroupIdRef.current;
+    if (!gid) throw new Error("Ingen aktiv grupp.");
+    setSubmitting(true);
+    try {
+      const result = await op(gid);
+      await Promise.resolve(onLiveMutationRef.current?.());
+      return result;
+    } finally {
+      setSubmitting(false);
+    }
+  }, []);
 
   const value = React.useMemo<StoreContextValue>(() => {
     const pushActivity = (s: AppState, a: Activity): AppState => ({
@@ -298,9 +275,7 @@ export function StoreProvider({
           };
           setState((current) => ({
             ...current,
-            places: current.places.map((place) =>
-              place.id === existing.id ? restored : place,
-            ),
+            places: current.places.map((place) => (place.id === existing.id ? restored : place)),
           }));
           return restored;
         }
@@ -335,9 +310,7 @@ export function StoreProvider({
 
       addProviderPlace: async ({ provider, providerPlaceId, place, raw }) => {
         if (mode !== "live") {
-          throw new Error(
-            "Extern platssök är bara tillgänglig i live-läge (inloggad).",
-          );
+          throw new Error("Extern platssök är bara tillgänglig i live-läge (inloggad).");
         }
         const id = await runLive((gid) =>
           liveCreateOrLinkProviderPlace(gid, {
@@ -372,38 +345,29 @@ export function StoreProvider({
         setState((current) => {
           const exists = current.favorites.find(
             (favorite) =>
-              favorite.memberId === current.currentUserId &&
-              favorite.placeId === placeId,
+              favorite.memberId === current.currentUserId && favorite.placeId === placeId,
           );
           return {
             ...current,
             favorites: exists
               ? current.favorites.filter(
                   (favorite) =>
-                    !(
-                      favorite.memberId === current.currentUserId &&
-                      favorite.placeId === placeId
-                    ),
+                    !(favorite.memberId === current.currentUserId && favorite.placeId === placeId),
                 )
-              : [
-                  ...current.favorites,
-                  { memberId: current.currentUserId, placeId },
-                ],
+              : [...current.favorites, { memberId: current.currentUserId, placeId }],
           };
         });
       },
 
       addVisit: async (visitInput) => {
         if (mode === "live") {
-          const id = await runLive((gid) =>
-            liveCreateVisitWithReview(gid, visitInput),
-          );
+          const id = await runLive((gid) => liveCreateVisitWithReview(gid, visitInput));
           return { ...visitInput, id } as Visit;
         }
         assertDemoWritable(state);
         if (
-          state.places.find((place) => place.id === visitInput.placeId)
-            ?.collectionStatus === "archived"
+          state.places.find((place) => place.id === visitInput.placeId)?.collectionStatus ===
+          "archived"
         ) {
           throw new Error("Återställ matstället innan ett nytt besök registreras.");
         }
@@ -430,10 +394,7 @@ export function StoreProvider({
             {
               ...current,
               visits: [visit, ...current.visits],
-              nextPlaceId:
-                current.nextPlaceId === visit.placeId
-                  ? null
-                  : current.nextPlaceId,
+              nextPlaceId: current.nextPlaceId === visit.placeId ? null : current.nextPlaceId,
             },
             {
               id: `a-${timestamp}`,
@@ -464,8 +425,7 @@ export function StoreProvider({
         assertDemoWritable(state);
         if (
           placeId &&
-          state.places.find((place) => place.id === placeId)?.collectionStatus ===
-            "archived"
+          state.places.find((place) => place.id === placeId)?.collectionStatus === "archived"
         ) {
           throw new Error("Återställ matstället innan det väljs som nästa stopp.");
         }
@@ -567,9 +527,7 @@ export function StoreProvider({
 
       updatePlaceMetadata: async (placeId, input) => {
         if (mode === "live") {
-          await runLive((gid) =>
-            liveUpdateGroupPlaceMetadata(gid, placeId, input),
-          );
+          await runLive((gid) => liveUpdateGroupPlaceMetadata(gid, placeId, input));
           return;
         }
         assertDemoWritable(state);
@@ -600,7 +558,12 @@ export function StoreProvider({
           return;
         }
         assertDemoWritable(state);
-        let found = false;
+        const exists = state.visits.some((visit) =>
+          visit.visibleReviews?.some(
+            (review) => review.id === reviewId && review.userId === state.currentUserId,
+          ),
+        );
+        if (!exists) throw new Error("Ditt omdöme hittades inte.");
         setState((current) => ({
           ...current,
           visits: current.visits.map((visit) => {
@@ -608,7 +571,6 @@ export function StoreProvider({
               if (review.id !== reviewId || review.userId !== current.currentUserId) {
                 return review;
               }
-              found = true;
               return {
                 ...review,
                 overall: input.overall,
@@ -621,7 +583,6 @@ export function StoreProvider({
             return aggregateVisit({ ...visit, visibleReviews: reviews });
           }),
         }));
-        if (!found) throw new Error("Ditt omdöme hittades inte.");
       },
 
       resetDemo: () => {
@@ -654,16 +615,13 @@ export function StoreProvider({
 
       isFavorite: (placeId) =>
         state.favorites.some(
-          (favorite) =>
-            favorite.memberId === state.currentUserId &&
-            favorite.placeId === placeId,
+          (favorite) => favorite.memberId === state.currentUserId && favorite.placeId === placeId,
         ),
 
       hasVisited: (placeId, memberId) => {
         const uid = memberId ?? state.currentUserId;
         return state.visits.some(
-          (visit) =>
-            visit.placeId === placeId && visit.participantIds.includes(uid),
+          (visit) => visit.placeId === placeId && visit.participantIds.includes(uid),
         );
       },
 
@@ -671,9 +629,7 @@ export function StoreProvider({
         const memberIds = state.members.map((member) => member.id);
         const visited = memberIds.filter((memberId) =>
           state.visits.some(
-            (visit) =>
-              visit.placeId === placeId &&
-              visit.participantIds.includes(memberId),
+            (visit) => visit.placeId === placeId && visit.participantIds.includes(memberId),
           ),
         );
         if (visited.length === 0) return "nytt-for-gruppen";
@@ -686,9 +642,7 @@ export function StoreProvider({
         const memberIds = state.members.map((member) => member.id);
         const visited = memberIds.filter((memberId) =>
           state.visits.some(
-            (visit) =>
-              visit.placeId === placeId &&
-              visit.participantIds.includes(memberId),
+            (visit) => visit.placeId === placeId && visit.participantIds.includes(memberId),
           ),
         );
         return { visited: visited.length, total: memberIds.length };
@@ -697,8 +651,7 @@ export function StoreProvider({
       proposerOfNext: () => {
         if (!state.nextPlaceId) return undefined;
         const activity = state.activity.find(
-          (item) =>
-            item.kind === "next-picked" && item.placeId === state.nextPlaceId,
+          (item) => item.kind === "next-picked" && item.placeId === state.nextPlaceId,
         );
         return activity?.memberId;
       },
@@ -726,9 +679,7 @@ export function StoreProvider({
         };
         state.places
           .filter((place) => place.collectionStatus !== "archived")
-          .forEach((place) =>
-            place.occasions.forEach((occasion) => (counts[occasion] += 1)),
-          );
+          .forEach((place) => place.occasions.forEach((occasion) => (counts[occasion] += 1)));
         return counts;
       },
     };
@@ -746,9 +697,7 @@ export function useStore() {
 export function formatDate(iso: string) {
   const date = new Date(iso);
   const now = new Date();
-  const days = Math.round(
-    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const days = Math.round((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   if (days <= 0) return "idag";
   if (days === 1) return "igår";
   if (days < 7) return `${days} dgr sedan`;
@@ -761,8 +710,6 @@ export function formatDate(iso: string) {
 }
 
 export function googleMapsUrl(place: Place) {
-  const query = encodeURIComponent(
-    `${place.name} ${place.address} ${place.city}`,
-  );
+  const query = encodeURIComponent(`${place.name} ${place.address} ${place.city}`);
   return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
