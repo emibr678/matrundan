@@ -26,6 +26,7 @@ async function removeCurrentPlace(page: Page) {
 test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka utan tappad metadata", async ({
   page,
 }) => {
+  const note = "Nästa stopp? Menyn ser ut att passa hela gänget.";
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen/p5?demo=1");
 
@@ -39,7 +40,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   await expect(
     page.getByText("Inte längre i gruppens lista", { exact: true }).first(),
   ).toBeVisible();
-  await expect(page.getByText("Nästa stopp? Menyn ser ut att passa hela gänget.")).toBeVisible();
+  await expect(page.locator("p").filter({ hasText: note })).toHaveText(note);
   await expect(page.getByText(/kanonisk/i)).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Borttaget matställe utan besök");
 
@@ -62,7 +63,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   const restoredLink = page.getByRole("link", { name: /Glöd & Grönska/ });
   await expect(restoredLink).toHaveCount(1);
   await restoredLink.click();
-  await expect(page.getByText("Nästa stopp? Menyn ser ut att passa hela gänget.")).toBeVisible();
+  await expect(page.locator("p").filter({ hasText: note })).toHaveText(note);
   await expect(page.getByText("Vegetariskt/veganskt", { exact: true })).toBeVisible();
   await expect(page.getByText("Grillat", { exact: true })).toBeVisible();
   await expect(page.getByText("Trevlig middag", { exact: true })).toBeVisible();
