@@ -1,7 +1,22 @@
 import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
+import {
+  Archive,
+  ChevronRight,
+  List,
+  Map,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,10 +46,14 @@ export const Route = createFileRoute("/matstallen")({
       { title: "Matställen · Matrundan" },
       {
         name: "description",
-        content: "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
+        content:
+          "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
       },
       { property: "og:title", content: "Matställen · Matrundan" },
-      { property: "og:description", content: "Gruppens gemensamma matställeslista." },
+      {
+        property: "og:description",
+        content: "Gruppens gemensamma matställeslista.",
+      },
     ],
   }),
   component: PlacesLayout,
@@ -70,19 +89,42 @@ function PlacesIndex() {
   const [addOpen, setAddOpen] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);
 
+  const groupArchived = state.group.lifecycleStatus === "archived";
+  const currentMember = state.members.find(
+    (member) => member.id === state.currentUserId,
+  );
+  const canAdmin =
+    currentMember?.role === "ägare" || currentMember?.role === "admin";
+  const activePlaces = React.useMemo(
+    () => state.places.filter((place) => place.collectionStatus !== "archived"),
+    [state.places],
+  );
+  const archivedPlaces = React.useMemo(
+    () => state.places.filter((place) => place.collectionStatus === "archived"),
+    [state.places],
+  );
+
   const activeAdvancedCount =
-    (category !== "alla" ? 1 : 0) + (occasion !== "alla" ? 1 : 0) + (sort !== "senaste" ? 1 : 0);
+    (category !== "alla" ? 1 : 0) +
+    (occasion !== "alla" ? 1 : 0) +
+    (sort !== "senaste" ? 1 : 0);
 
   const filtered = React.useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    let list = state.places.filter((place) => {
+    let list = activePlaces.filter((place) => {
       if (category !== "alla" && place.category !== category) return false;
       if (occasion !== "alla" && !place.occasions.includes(occasion)) return false;
       if (filter === "favoriter" && !isFavorite(place.id)) return false;
-      if (filter === "nytt-for-gruppen" && statusOf(place.id) !== "nytt-for-gruppen") return false;
+      if (
+        filter === "nytt-for-gruppen" &&
+        statusOf(place.id) !== "nytt-for-gruppen"
+      )
+        return false;
       if (filter === "nytt-for-mig") {
         const status = statusOf(place.id);
-        if (status !== "nytt-for-mig" && status !== "nytt-for-gruppen") return false;
+        if (status !== "nytt-for-mig" && status !== "nytt-for-gruppen") {
+          return false;
+        }
       }
       if (!normalizedQuery) return true;
       return (
@@ -90,37 +132,56 @@ function PlacesIndex() {
         place.address.toLowerCase().includes(normalizedQuery) ||
         place.city.toLowerCase().includes(normalizedQuery) ||
         place.area?.toLowerCase().includes(normalizedQuery) ||
-        place.cuisines.some((cuisine) => cuisine.toLowerCase().includes(normalizedQuery))
+        place.cuisines.some((cuisine) =>
+          cuisine.toLowerCase().includes(normalizedQuery),
+        )
       );
     });
 
     list = [...list];
     if (sort === "betyg") {
       list = list.filter((place) => avgRating(place.id).count > 0);
-      list.sort((a, b) => avgRating(b.id).overall - avgRating(a.id).overall);
+      list.sort(
+        (a, b) => avgRating(b.id).overall - avgRating(a.id).overall,
+      );
     } else if (sort === "namn") {
       list.sort((a, b) => a.name.localeCompare(b.name, "sv"));
     } else {
       list.sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1));
     }
     return list;
-  }, [state.places, query, category, occasion, filter, sort, avgRating, isFavorite, statusOf]);
+  }, [
+    activePlaces,
+    query,
+    category,
+    occasion,
+    filter,
+    sort,
+    avgRating,
+    isFavorite,
+    statusOf,
+  ]);
 
   React.useEffect(() => {
-    if (selectedPlaceId && filtered.some((place) => place.id === selectedPlaceId)) return;
+    if (
+      selectedPlaceId &&
+      filtered.some((place) => place.id === selectedPlaceId)
+    )
+      return;
     setSelectedPlaceId(
-      filtered.find((place) => place.lat != null && place.lng != null)?.id ?? null,
+      filtered.find((place) => place.lat != null && place.lng != null)?.id ??
+        null,
     );
   }, [filtered, selectedPlaceId]);
 
   const topRated = React.useMemo(
     () =>
-      [...state.places]
+      [...activePlaces]
         .map((place) => ({ place, rating: avgRating(place.id) }))
         .filter(({ rating }) => rating.count > 0)
         .sort((a, b) => b.rating.overall - a.rating.overall)
         .slice(0, 3),
-    [state.places, avgRating],
+    [activePlaces, avgRating],
   );
 
   const clearAdvanced = () => {
@@ -129,7 +190,9 @@ function PlacesIndex() {
     setSort("senaste");
   };
 
-  const mappedCount = filtered.filter((place) => place.lat != null && place.lng != null).length;
+  const mappedCount = filtered.filter(
+    (place) => place.lat != null && place.lng != null,
+  ).length;
   const unmappedCount = filtered.length - mappedCount;
   const mapItems = filtered.map((place) => ({
     id: place.id,
@@ -137,17 +200,27 @@ function PlacesIndex() {
     lat: place.lat,
     lng: place.lng,
     eyebrow: CATEGORY_LABEL[place.category],
-    description: [place.address, place.area, place.city].filter(Boolean).join(" · "),
+    description: [place.address, place.area, place.city]
+      .filter(Boolean)
+      .join(" · "),
     markerLabel: place.photo ?? "🍽️",
   }));
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 pt-2 md:max-w-4xl">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
-        <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">
-          <Plus className="h-4 w-4" /> Lägg till
-        </Button>
+        <h1 className="font-display text-2xl font-semibold md:text-3xl">
+          Matställen
+        </h1>
+        {!groupArchived ? (
+          <Button
+            onClick={() => setAddOpen(true)}
+            size="sm"
+            className="shrink-0 rounded-full"
+          >
+            <Plus className="h-4 w-4" /> Lägg till
+          </Button>
+        ) : null}
       </div>
 
       {topRated.length > 0 ? (
@@ -235,27 +308,39 @@ function PlacesIndex() {
           <SheetContent side="bottom" className="max-h-[85vh] rounded-t-3xl">
             <SheetHeader>
               <SheetTitle>Filter & sortering</SheetTitle>
-              <SheetDescription>Samma urval används i både listan och kartan.</SheetDescription>
+              <SheetDescription>
+                Samma urval används i både listan och kartan.
+              </SheetDescription>
             </SheetHeader>
             <div className="space-y-5 py-4">
               <FilterGroup label="Kategori">
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
-                    ...Object.entries(CATEGORY_LABEL).map(([key, label]) => ({ key, label })),
+                    ...Object.entries(CATEGORY_LABEL).map(([key, label]) => ({
+                      key,
+                      label,
+                    })),
                   ]}
                   value={category}
-                  onChange={(value) => setCategory(value as PlaceCategory | "alla")}
+                  onChange={(value) =>
+                    setCategory(value as PlaceCategory | "alla")
+                  }
                 />
               </FilterGroup>
               <FilterGroup label="Tillfälle">
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
-                    ...Object.entries(OCCASION_LABEL).map(([key, label]) => ({ key, label })),
+                    ...Object.entries(OCCASION_LABEL).map(([key, label]) => ({
+                      key,
+                      label,
+                    })),
                   ]}
                   value={occasion}
-                  onChange={(value) => setOccasion(value as Occasion | "alla")}
+                  onChange={(value) =>
+                    setOccasion(value as Occasion | "alla")
+                  }
                 />
               </FilterGroup>
               <FilterGroup label="Sortera">
@@ -274,19 +359,26 @@ function PlacesIndex() {
               <Button variant="ghost" onClick={clearAdvanced}>
                 <X className="h-4 w-4" /> Rensa
               </Button>
-              <Button onClick={() => setFilterOpen(false)}>Visa {filtered.length}</Button>
+              <Button onClick={() => setFilterOpen(false)}>
+                Visa {filtered.length}
+              </Button>
             </div>
           </SheetContent>
         </Sheet>
       </div>
 
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" aria-label="Välj vy">
+      <div
+        className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1"
+        aria-label="Välj vy"
+      >
         <button
           type="button"
           onClick={() => setView("lista")}
           aria-pressed={view === "lista"}
           className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
-            view === "lista" ? "bg-background shadow-sm" : "text-muted-foreground"
+            view === "lista"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground"
           }`}
         >
           <List className="h-4 w-4" /> Lista
@@ -296,7 +388,9 @@ function PlacesIndex() {
           onClick={() => setView("karta")}
           aria-pressed={view === "karta"}
           className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
-            view === "karta" ? "bg-background shadow-sm" : "text-muted-foreground"
+            view === "karta"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground"
           }`}
         >
           <Map className="h-4 w-4" /> Karta
@@ -305,7 +399,8 @@ function PlacesIndex() {
 
       {sort === "betyg" ? (
         <p className="text-xs text-muted-foreground">
-          Sorterat på gruppens medelbetyg. Bara ställen med minst ett besök visas.
+          Sorterat på gruppens medelbetyg. Bara ställen med minst ett besök
+          visas.
         </p>
       ) : null}
 
@@ -313,11 +408,14 @@ function PlacesIndex() {
         <div className="rounded-2xl border border-dashed border-border p-8 text-center">
           <div className="text-4xl">🍽️</div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Inga ställen matchar. Testa att rensa filter eller lägg till ett nytt.
+            Inga aktiva ställen matchar. Testa att rensa filtren
+            {!groupArchived ? " eller lägg till ett nytt" : ""}.
           </p>
-          <Button className="mt-4" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" /> Lägg till matställe
-          </Button>
+          {!groupArchived ? (
+            <Button className="mt-4" onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4" /> Lägg till matställe
+            </Button>
+          ) : null}
         </div>
       ) : view === "lista" ? (
         <div className="space-y-3 pb-4 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
@@ -332,7 +430,10 @@ function PlacesIndex() {
             selectedId={selectedPlaceId}
             onSelect={setSelectedPlaceId}
             onAction={(item) =>
-              navigate({ to: "/matstallen/$placeId", params: { placeId: item.id } })
+              navigate({
+                to: "/matstallen/$placeId",
+                params: { placeId: item.id },
+              })
             }
             actionLabel="Visa ställe"
             className="h-[62vh] min-h-[420px] max-h-[680px]"
@@ -340,19 +441,62 @@ function PlacesIndex() {
           />
           {unmappedCount > 0 ? (
             <p className="text-xs text-muted-foreground">
-              {unmappedCount} {unmappedCount === 1 ? "ställe saknar" : "ställen saknar"}{" "}
+              {unmappedCount}{" "}
+              {unmappedCount === 1 ? "ställe saknar" : "ställen saknar"}{" "}
               kartposition och visas bara i listan.
             </p>
           ) : null}
         </section>
       )}
 
-      <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
+      {canAdmin && archivedPlaces.length > 0 ? (
+        <details className="group rounded-2xl border border-border/70 bg-card">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-2xl p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Archive className="h-4 w-4 text-muted-foreground" />
+            <span className="min-w-0 flex-1 font-medium">
+              Arkiverade ställen
+            </span>
+            <Badge variant="outline" className="rounded-full">
+              {archivedPlaces.length}
+            </Badge>
+            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="border-t border-border/60 p-2">
+            {archivedPlaces.map((place) => (
+              <Link
+                key={place.id}
+                to="/matstallen/$placeId"
+                params={{ placeId: place.id }}
+                className="flex min-h-11 items-center gap-3 rounded-xl p-2 transition-colors hover:bg-accent"
+              >
+                <PlaceThumb place={place} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{place.name}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {place.address || place.city}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
+          </div>
+        </details>
+      ) : null}
+
+      {!groupArchived ? (
+        <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
+      ) : null}
     </div>
   );
 }
 
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function FilterGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
