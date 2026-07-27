@@ -302,7 +302,9 @@ export function AuthMenu({ showGroupActions = false }: { showGroupActions?: bool
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <GroupArchiveDialog open={archiveOpen} onOpenChange={setArchiveOpen} />
+      {showGroupActions ? (
+        <GroupArchiveDialog open={archiveOpen} onOpenChange={setArchiveOpen} />
+      ) : null}
       <ProfileDialog
         open={profileOpen}
         onOpenChange={setProfileOpen}
