@@ -214,10 +214,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       activeGroupRole:
         isLive && activeGroup?.lifecycleStatus === "active"
           ? activeGroup.role
-          : null,
+          : isLive
+            ? null
+            : "owner",
       activeGroupLifecycleStatus: isLive
         ? (activeGroup?.lifecycleStatus ?? null)
-        : null,
+        : "active",
       userGroups,
       signInWithGoogle,
       signOut,
