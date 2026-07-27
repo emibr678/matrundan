@@ -174,3 +174,5 @@ jobs:
           fi
           git commit -m "Slutför Paket 4B och version 0.10.0"
           git push origin HEAD:"${{ github.event.pull_request.head.ref }}"
+
+# draft verification trigger
