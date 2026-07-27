@@ -96,9 +96,7 @@ test("ställe med besök behåller historiken när det tas bort", async ({ page 
   await expectNoHorizontalOverflow(page, "Historik för borttaget matställe");
 });
 
-test("kök och inriktning fungerar med mobilt tangentbord och utan fri text", async ({
-  page,
-}) => {
+test("kök och inriktning fungerar med mobilt tangentbord och utan fri text", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
