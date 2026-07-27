@@ -27,26 +27,19 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som enda externa länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.9.0
+## Status – v0.10.0
 
-Paket 3D lägger till privat, gruppcentrerad gamification ovanpå v0.8.1. Alla
-värden härleds deterministiskt ur gruppens besök, deltagare, kanoniska
-platser och gruppinställningar – inget poängsaldo eller aktivitetshändelser
-lagras. Nivåserien är 0 Nyfiken → 1 Provsmakaren → 4 Krogspanaren →
-10 Matupptäckaren → 20 Smakjägaren → 40 Matkonnässören → 75 Matrundemästaren.
-Fem badges finns: Första rundan, Världsvan (5 kökstyper), Brett register
-(4 kategorier), Stammis (3:e besöket på samma ställe) och Fullträff
-(ett ställe du föreslagit besöktes med minst en annan gruppmedlem).
-Sektionen ”Gruppens höjdpunkter” på Gruppen-sidan visar tre topplistor
-(Deltagna besök, Nya ställen, Köksbredd) i två perioder (I år / Totalt) med
-competition-ranking (1, 1, 3) och gemensamma milstolpar. Progression syns
-bara på egen profil. Inbjudningar, delade besök, Geoapify-sökning,
-360 px-layout och alla säkerhetsgrants från v0.8.1 är oförändrade.
+Paket 4B lägger till säker administration utan att bryta gruppens
+gemensamma mathistorik. Gruppens ägare kan arkivera och återaktivera
+gruppen; historik, medlemskap, besök, betyg och kommentarer bevaras i
+ett skrivskyddat läge. Ägare och admin kan arkivera eller återställa
+gruppens koppling till ett matställe och korrigera kategori, kökstyper,
+Passar för och gruppens anteckning utan att ändra den kanoniska platsen.
+Varje medlem kan redigera sitt eget omdöme, men aldrig någon annans.
+Demo- och live-läge följer samma produktmodell.
 
-> Milstolpen ”Första besöket med hela gänget” använder gruppens nu aktiva
-> medlemmar som referensmängd eftersom historiska medlemsperioder inte
-> lagras i schemat. Den kommer att förändras retroaktivt om gruppens
-> aktiva medlemmar ändras.
+Paket 3D:s privata nivåer, badges, topplistor och milstolpar är kvar och
+räknas fortsatt deterministiskt från faktiska deltagna besök.
 
 ### Två lägen sida vid sida
 
@@ -88,8 +81,6 @@ bara på egen profil. Inbjudningar, delade besök, Geoapify-sökning,
 
 En riktig kartvy. Se [CHANGELOG.md](./CHANGELOG.md) och "Om Matrundan" i
 appen för fullständig versionshistorik.
-
-
 
 ## Teknik
 

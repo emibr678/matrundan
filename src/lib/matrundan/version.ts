@@ -8,8 +8,8 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.9.0";
-export const APP_VERSION_DATE = "2026-07-25";
+export const APP_VERSION = "0.10.0";
+export const APP_VERSION_DATE = "2026-07-27";
 
 export interface ChangelogEntry {
   version: string;
@@ -23,6 +23,32 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: APP_VERSION,
+    date: APP_VERSION_DATE,
+    summary:
+      "Arkivera grupper och matställen utan att förlora historik, korrigera gruppens platsuppgifter och redigera ditt eget omdöme.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Gruppens ägare kan arkivera och återaktivera gruppen. Historik, medlemskap, besök, betyg och kommentarer bevaras i ett skrivskyddat läge.",
+          "Ägare och admin kan arkivera eller återställa ett ställe i gruppens samling utan att den kanoniska platsen eller tidigare besök raderas.",
+          "Kategori, kökstyper, Passar för och gruppens anteckning kan korrigeras för den egna gruppen utan att påverka andra grupper.",
+          "Varje medlem kan redigera sitt eget betyg och sin egen kommentar, men aldrig någon annans omdöme.",
+          "Samma arkiv- och omdömesflöden fungerar i både demo- och live-läge.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Gruppväljaren skiljer tydligt mellan aktiva och arkiverade grupper, och matställeslistan visar arkiverade ställen i en separat administrationssektion.",
+          "Arkivering återkallar öppna inbjudningar, rensar nästa stopp och blockerar nya skrivningar medan all historik förblir läsbar.",
+          "Planering, karta, topplista och aktiv samlingsstatistik använder endast aktiva matställen.",
+        ],
+      },
+    ],
+  },
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,

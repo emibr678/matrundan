@@ -107,8 +107,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           name: group.name,
           emoji: group.emoji,
           role: group.role,
-          lifecycleStatus:
-            group.lifecycleStatus === "archived" ? "archived" : "active",
+          lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
         }),
       )
       .sort((a, b) => {
@@ -121,8 +120,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setUserGroups(groups);
     setActiveGroupId((current) => {
       if (current && groups.some((group) => group.id === current)) return current;
-      const first =
-        groups.find((group) => group.lifecycleStatus === "active") ?? groups[0];
+      const first = groups.find((group) => group.lifecycleStatus === "active") ?? groups[0];
       const firstId = first?.id ?? null;
       if (firstId && typeof window !== "undefined") {
         window.localStorage.setItem(ACTIVE_GROUP_KEY, firstId);
@@ -135,17 +133,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     let cancelled = false;
-    const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
-        if (cancelled) return;
-        setSession(nextSession);
-        if (nextSession?.user) {
-          void loadGroups(nextSession.user.id);
-        } else {
-          setUserGroups([]);
-        }
-      },
-    );
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (cancelled) return;
+      setSession(nextSession);
+      if (nextSession?.user) {
+        void loadGroups(nextSession.user.id);
+      } else {
+        setUserGroups([]);
+      }
+    });
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       setSession(data.session);
@@ -167,24 +163,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const signInWithGoogle = React.useCallback(
-    async (opts?: { redirectPath?: string }) => {
-      const origin =
-        typeof window !== "undefined" ? window.location.origin : undefined;
-      if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: origin,
-      });
-      if (result.error) {
-        console.error(
-          "[Matrundan] Google-inloggning misslyckades:",
-          result.error,
-        );
-        throw result.error;
-      }
-    },
-    [],
-  );
+  const signInWithGoogle = React.useCallback(async (opts?: { redirectPath?: string }) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+    if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: origin,
+    });
+    if (result.error) {
+      console.error("[Matrundan] Google-inloggning misslyckades:", result.error);
+      throw result.error;
+    }
+  }, []);
 
   const signOut = React.useCallback(async () => {
     await supabase.auth.signOut();
@@ -202,8 +191,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo<SessionState>(() => {
     const user = session?.user ?? null;
     const isLive = !forceDemo && !!user;
-    const activeGroup =
-      userGroups.find((group) => group.id === activeGroupId) ?? null;
+    const activeGroup = userGroups.find((group) => group.id === activeGroupId) ?? null;
     return {
       loading,
       user,
@@ -214,10 +202,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       activeGroupRole:
         isLive && activeGroup?.lifecycleStatus === "active"
           ? activeGroup.role
-          : null,
-      activeGroupLifecycleStatus: isLive
-        ? (activeGroup?.lifecycleStatus ?? null)
-        : null,
+          : isLive
+            ? null
+            : "owner",
+      activeGroupLifecycleStatus: isLive ? (activeGroup?.lifecycleStatus ?? null) : "active",
       userGroups,
       signInWithGoogle,
       signOut,
@@ -236,9 +224,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     userGroups,
   ]);
 
-  return (
-    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
-  );
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
 export function useSession() {
