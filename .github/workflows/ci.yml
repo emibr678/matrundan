@@ -123,6 +123,22 @@ jobs:
         if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_map == 'true'
         run: bun run test:map:cross-browser
 
+      - name: Create formatting patch on failure
+        if: failure() && steps.changes.outputs.has_format == 'true'
+        env:
+          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+        run: |
+          bun run format:changed
+          git diff --binary > prettier.patch
+
+      - name: Upload formatting patch on failure
+        if: failure() && steps.changes.outputs.has_format == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prettier-patch
+          path: prettier.patch
+          if-no-files-found: error
+
       - name: Upload browser report on failure
         if: failure() && steps.verification.outputs.full == 'true' && steps.changes.outputs.has_ui == 'true'
         uses: actions/upload-artifact@v4
