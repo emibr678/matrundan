@@ -5,6 +5,7 @@
  * Live-läget använder Geoapify via serverfunktioner och delar samma kontrakt.
  */
 
+import { normalizeFoodTags } from "./food-tags";
 import type { PlaceCategory } from "./types";
 
 export interface PlaceSuggestion {
@@ -213,9 +214,10 @@ const demoProvider: PlacesProvider = {
     const normalizedQuery = (query ?? "").trim().toLowerCase();
     const normalizedArea = (area ?? "").trim().toLowerCase();
     const center = centerFor(city, area);
-    let items = DEMO_SUGGESTIONS.filter(
-      (suggestion) => suggestion.city.toLowerCase() === city.trim().toLowerCase(),
-    );
+    let items = DEMO_SUGGESTIONS.map((suggestion) => ({
+      ...suggestion,
+      cuisines: normalizeFoodTags(suggestion.cuisines ?? []),
+    })).filter((suggestion) => suggestion.city.toLowerCase() === city.trim().toLowerCase());
 
     if (normalizedArea) {
       items = items.filter(
