@@ -47,7 +47,7 @@ test("adminflödet arkiverar och återställer bara gruppens platskoppling", asy
 
   const confirm = page.getByRole("alertdialog");
   await confirm.getByRole("button", { name: "Arkivera stället" }).click();
-  await expect(page.getByText("Arkiverat i gruppen")).toBeVisible();
+  await expect(page.getByText("Arkiverat i gruppen", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Hantera ställe" }).click();
