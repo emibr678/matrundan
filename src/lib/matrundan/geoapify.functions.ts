@@ -102,25 +102,14 @@ function likelyPlaceName(text: string): boolean {
 }
 
 function searchableText(place: NormalizedPlaceSuggestion): string {
-  return [
-    place.name,
-    place.category,
-    ...place.cuisines,
-    place.address,
-    place.area,
-    place.city,
-  ]
+  return [place.name, place.category, ...place.cuisines, place.address, place.area, place.city]
     .filter(Boolean)
     .join(" ")
     .toLocaleLowerCase("sv-SE");
 }
 
 function matchesQuery(place: NormalizedPlaceSuggestion, query: string): boolean {
-  const terms = query
-    .trim()
-    .toLocaleLowerCase("sv-SE")
-    .split(/\s+/)
-    .filter(Boolean);
+  const terms = query.trim().toLocaleLowerCase("sv-SE").split(/\s+/).filter(Boolean);
   if (!terms.length) return true;
   const haystack = searchableText(place);
   return terms.every((term) => haystack.includes(term));
@@ -195,10 +184,7 @@ export const geoapifySearchPlaces = createServerFn({ method: "POST" })
 
     const url = new URL("https://api.geoapify.com/v2/places");
     url.searchParams.set("categories", CATEGORIES);
-    url.searchParams.set(
-      "filter",
-      `circle:${data.lng},${data.lat},${Math.round(radiusKm * 1000)}`,
-    );
+    url.searchParams.set("filter", `circle:${data.lng},${data.lat},${Math.round(radiusKm * 1000)}`);
     url.searchParams.set("bias", `proximity:${data.lng},${data.lat}`);
     url.searchParams.set("lang", "sv");
     url.searchParams.set("limit", String(DISCOVERY_RESULT_LIMIT));
@@ -209,9 +195,7 @@ export const geoapifySearchPlaces = createServerFn({ method: "POST" })
     const seen = new Set<string>();
     const normalized: NormalizedPlaceSuggestion[] = [];
     for (const feature of json.features ?? []) {
-      const place = normalizePlaceFeature(
-        feature as Parameters<typeof normalizePlaceFeature>[0],
-      );
+      const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
       if (!place || seen.has(place.externalId)) continue;
       seen.add(place.externalId);
       if (query && !matchesQuery(place, query)) continue;
