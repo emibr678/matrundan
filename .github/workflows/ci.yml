@@ -61,34 +61,62 @@ jobs:
           src/lib/matrundan/geoapify.functions.ts
           tests/e2e/mobile-matstallen.spec.ts
 
-      - name: Verify exact PR files
+      - name: Capture verification result
+        id: verification
+        continue-on-error: true
         shell: bash
         run: |
-          git diff --check
-          bunx eslint \
-            src/components/matrundan/PlaceMap.tsx \
-            src/lib/matrundan/geoapify.functions.ts \
-            tests/e2e/mobile-matstallen.spec.ts
-          bun run typecheck
-          bun run build
+          set +e
+          {
+            echo '--- git diff --check ---'
+            git diff --check
+            echo '--- eslint ---'
+            bunx eslint \
+              src/components/matrundan/PlaceMap.tsx \
+              src/lib/matrundan/geoapify.functions.ts \
+              tests/e2e/mobile-matstallen.spec.ts
+            echo '--- typecheck ---'
+            bun run typecheck
+            echo '--- build ---'
+            bun run build
+            echo '--- changed files ---'
+            git diff --name-only
 
-          mapfile -t changed < <(git diff --name-only)
-          expected=(
-            "src/components/matrundan/PlaceMap.tsx"
-            "tests/e2e/mobile-matstallen.spec.ts"
-          )
-          if [[ ${#changed[@]} -ne ${#expected[@]} ]]; then
-            printf 'Unexpected changed files:\n%s\n' "${changed[*]}"
-            exit 1
-          fi
-          for index in "${!expected[@]}"; do
-            [[ "${changed[$index]}" == "${expected[$index]}" ]] || {
+            mapfile -t changed < <(git diff --name-only)
+            expected=(
+              "src/components/matrundan/PlaceMap.tsx"
+              "tests/e2e/mobile-matstallen.spec.ts"
+            )
+            if [[ ${#changed[@]} -ne ${#expected[@]} ]]; then
               printf 'Unexpected changed files:\n%s\n' "${changed[*]}"
               exit 1
-            }
-          done
+            fi
+            for index in "${!expected[@]}"; do
+              [[ "${changed[$index]}" == "${expected[$index]}" ]] || {
+                printf 'Unexpected changed files:\n%s\n' "${changed[*]}"
+                exit 1
+              }
+            done
+          } > verification.log 2>&1
+          status=$?
+          cat verification.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Upload verification log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr18-verification-log
+          path: verification.log
+          if-no-files-found: error
+
+      - name: Enforce verification result
+        if: steps.verification.outputs.status != '0'
+        run: exit 1
 
       - name: Commit verified formatting
+        if: steps.verification.outputs.status == '0'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
