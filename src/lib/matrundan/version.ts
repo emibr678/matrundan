@@ -50,8 +50,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
-    version: APP_VERSION,
-    date: APP_VERSION_DATE,
+    version: "0.9.0",
+    date: "2026-07-25",
     summary:
       "Gruppcentrerad gamification – diskreta nivåer, utmärkelser och topplistor som räknas ur besöken.",
     sections: [
