@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+test.setTimeout(60_000);
+
 async function expectNoHorizontalOverflow(page: Page, context: string) {
   const metrics = await page.evaluate(() => ({
     documentClientWidth: document.documentElement.clientWidth,
@@ -37,8 +39,13 @@ async function expectInteractiveMap(
   const mapElement = mapRegion.getByLabel(/^Interaktiv karta/);
   const canvas = mapRegion.locator("canvas.maplibregl-canvas");
   await expect(canvas).toBeVisible();
-  await expect(mapRegion).toHaveAttribute("data-map-point-visual", "primary-pin");
+  await expect(mapRegion).toHaveAttribute("data-map-point-visual", "category-icon");
   await expect(mapRegion).toHaveAttribute("data-map-label-layer", "ready");
+  await expect(mapRegion).toHaveAttribute("data-map-icon-layer", "ready");
+  await expect(mapRegion).toHaveAttribute("data-map-category-icon-count", "6");
+  await expect
+    .poll(async () => Number(await mapRegion.getAttribute("data-map-source-count")))
+    .toBeGreaterThan(0);
   await expect
     .poll(() => mapElement.evaluate((element) => element.getBoundingClientRect().height))
     .toBeGreaterThan(100);
@@ -66,7 +73,9 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
   const zoomOut = mapRegion.getByRole("button", { name: "Zooma ut kartan" });
   const clusters = mapRegion.locator(".matrundan-cluster-icon");
 
-  await expect(mapRegion).toHaveAttribute("data-clustering-disabled-at", "17");
+  await expect(mapRegion).toHaveAttribute("data-map-cluster-profile", "group");
+  await expect(mapRegion).toHaveAttribute("data-map-cluster-radius", "44");
+  await expect(mapRegion).toHaveAttribute("data-clustering-disabled-at", "16");
 
   for (let index = 0; index < 5; index += 1) {
     const before = Number(await mapRegion.getAttribute("data-map-zoom"));
@@ -82,6 +91,7 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
 
   const clusterZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
   await clusters.first().evaluate((element) => (element as HTMLButtonElement).click());
+  await expect(mapRegion).toHaveAttribute("data-map-last-cluster-padding", "safe");
   await expect
     .poll(async () => Number(await mapRegion.getAttribute("data-map-zoom")))
     .toBeGreaterThan(clusterZoom);
@@ -183,6 +193,10 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
   await expect(searchMap).toHaveAttribute("data-map-ready", "true");
   await expect(searchMap).toHaveAttribute("data-map-renderer", "maplibre-vector");
   await expect(searchMap).toHaveAttribute("data-map-tile-status", "ready");
+  await expect(searchMap).toHaveAttribute("data-map-cluster-profile", "discovery");
+  await expect(searchMap).toHaveAttribute("data-map-cluster-radius", "38");
+  await expect(searchMap).toHaveAttribute("data-clustering-disabled-at", "15");
+  await expect(searchMap).toHaveAttribute("data-map-icon-layer", "ready");
   await expect(searchMap.getByText("Laddar kartan…")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Lägg till-dialog i kartvy");
 

@@ -28,6 +28,7 @@ const CATEGORIES = [
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const WIDE_AREA_RADIUS_KM = 50;
+const DISCOVERY_RESULT_LIMIT = 50;
 
 function readKey(): string {
   const key = process.env.GEOAPIFY_API_KEY?.trim();
@@ -48,7 +49,9 @@ async function callGeoapify(url: URL): Promise<{ features?: unknown[] }> {
       signal: controller.signal,
     });
     if (response.status === 429) {
-      throw new Error("GEOAPIFY_RATE_LIMIT: Platssökningen används mycket just nu. Försök igen om en stund.");
+      throw new Error(
+        "GEOAPIFY_RATE_LIMIT: Platssökningen används mycket just nu. Försök igen om en stund.",
+      );
     }
     if (response.status === 401 || response.status === 403) {
       throw new Error("GEOAPIFY_CONFIG_ERROR: Geoapify-nyckeln kunde inte användas.");
@@ -75,33 +78,38 @@ function likelyPlaceName(text: string): boolean {
   const value = text.trim();
   if (!value || value.length < 3 || value.length > 80) return false;
   const generic = new Set([
-    "restaurang", "café", "cafe", "fika", "pizza", "pizzeria", "sushi",
-    "burgare", "burger", "pub", "bar", "bageri", "snabbmat", "thai",
-    "indiskt", "italienskt", "japanskt", "kinesiskt", "vegetariskt",
+    "restaurang",
+    "café",
+    "cafe",
+    "fika",
+    "pizza",
+    "pizzeria",
+    "sushi",
+    "burgare",
+    "burger",
+    "pub",
+    "bar",
+    "bageri",
+    "snabbmat",
+    "thai",
+    "indiskt",
+    "italienskt",
+    "japanskt",
+    "kinesiskt",
+    "vegetariskt",
   ]);
   return !generic.has(value.toLowerCase());
 }
 
 function searchableText(place: NormalizedPlaceSuggestion): string {
-  return [
-    place.name,
-    place.category,
-    ...place.cuisines,
-    place.address,
-    place.area,
-    place.city,
-  ]
+  return [place.name, place.category, ...place.cuisines, place.address, place.area, place.city]
     .filter(Boolean)
     .join(" ")
     .toLocaleLowerCase("sv-SE");
 }
 
 function matchesQuery(place: NormalizedPlaceSuggestion, query: string): boolean {
-  const terms = query
-    .trim()
-    .toLocaleLowerCase("sv-SE")
-    .split(/\s+/)
-    .filter(Boolean);
+  const terms = query.trim().toLocaleLowerCase("sv-SE").split(/\s+/).filter(Boolean);
   if (!terms.length) return true;
   const haystack = searchableText(place);
   return terms.every((term) => haystack.includes(term));
@@ -110,12 +118,14 @@ function matchesQuery(place: NormalizedPlaceSuggestion, query: string): boolean 
 export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({
-      text: z.string().trim().min(2).max(120),
-      limit: z.number().int().min(1).max(8).optional(),
-      biasLat: z.number().min(-90).max(90).optional(),
-      biasLng: z.number().min(-180).max(180).optional(),
-    }).parse(input),
+    z
+      .object({
+        text: z.string().trim().min(2).max(120),
+        limit: z.number().int().min(1).max(8).optional(),
+        biasLat: z.number().min(-90).max(90).optional(),
+        biasLng: z.number().min(-180).max(180).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data }): Promise<NormalizedLocationSuggestion[]> => {
     const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
@@ -148,31 +158,36 @@ export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
 export const geoapifySearchPlaces = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({
-      text: z.string().trim().max(120).optional(),
-      lat: z.number().min(-90).max(90),
-      lng: z.number().min(-180).max(180),
-      radiusKm: z.union([
-        z.literal(1), z.literal(3), z.literal(5), z.literal(10), z.literal(25), z.null(),
-      ]),
-      limit: z.number().int().min(1).max(50).optional(),
-    }).parse(input),
+    z
+      .object({
+        text: z.string().trim().max(120).optional(),
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        radiusKm: z.union([
+          z.literal(1),
+          z.literal(3),
+          z.literal(5),
+          z.literal(10),
+          z.literal(25),
+          z.null(),
+        ]),
+        limit: z.number().int().min(1).max(50).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data }): Promise<NormalizedPlaceSuggestion[]> => {
-    const requestedLimit = Math.min(data.limit ?? 30, 30);
     const radiusKm = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
     const query = data.text?.trim() ?? "";
+    const requestedLimit = query
+      ? Math.min(data.limit ?? 30, DISCOVERY_RESULT_LIMIT)
+      : DISCOVERY_RESULT_LIMIT;
 
     const url = new URL("https://api.geoapify.com/v2/places");
     url.searchParams.set("categories", CATEGORIES);
-    url.searchParams.set(
-      "filter",
-      `circle:${data.lng},${data.lat},${Math.round(radiusKm * 1000)}`,
-    );
+    url.searchParams.set("filter", `circle:${data.lng},${data.lat},${Math.round(radiusKm * 1000)}`);
     url.searchParams.set("bias", `proximity:${data.lng},${data.lat}`);
     url.searchParams.set("lang", "sv");
-    // Hämta lite fler för robust lokal filtrering, men aldrig mer än servermax.
-    url.searchParams.set("limit", String(Math.min(Math.max(requestedLimit * 2, 30), 50)));
+    url.searchParams.set("limit", String(DISCOVERY_RESULT_LIMIT));
     if (query && likelyPlaceName(query)) url.searchParams.set("name", query);
     url.searchParams.set("apiKey", readKey());
 
