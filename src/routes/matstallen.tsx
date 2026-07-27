@@ -1,10 +1,14 @@
 import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Archive, ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
+import { PlaceCard, PlaceThumb } from "@/components/matrundan/PlaceCard";
+import { PlaceMap } from "@/components/matrundan/PlaceMap";
+import { RatingStars } from "@/components/matrundan/Rating";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -14,10 +18,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useStore } from "@/lib/matrundan/store";
-import { PlaceCard, PlaceThumb } from "@/components/matrundan/PlaceCard";
-import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
-import { PlaceMap } from "@/components/matrundan/PlaceMap";
-import { RatingStars } from "@/components/matrundan/Rating";
 import {
   CATEGORY_LABEL,
   OCCASION_LABEL,
@@ -74,14 +74,8 @@ function PlacesIndex() {
   const [filterOpen, setFilterOpen] = React.useState(false);
 
   const groupArchived = state.group.lifecycleStatus === "archived";
-  const currentMember = state.members.find((member) => member.id === state.currentUserId);
-  const canAdmin = currentMember?.role === "ägare" || currentMember?.role === "admin";
   const activePlaces = React.useMemo(
     () => state.places.filter((place) => place.collectionStatus !== "archived"),
-    [state.places],
-  );
-  const archivedPlaces = React.useMemo(
-    () => state.places.filter((place) => place.collectionStatus === "archived"),
     [state.places],
   );
 
@@ -97,9 +91,7 @@ function PlacesIndex() {
       if (filter === "nytt-for-gruppen" && statusOf(place.id) !== "nytt-for-gruppen") return false;
       if (filter === "nytt-for-mig") {
         const status = statusOf(place.id);
-        if (status !== "nytt-for-mig" && status !== "nytt-for-gruppen") {
-          return false;
-        }
+        if (status !== "nytt-for-mig" && status !== "nytt-for-gruppen") return false;
       }
       if (!normalizedQuery) return true;
       return (
@@ -261,10 +253,7 @@ function PlacesIndex() {
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
-                    ...Object.entries(CATEGORY_LABEL).map(([key, label]) => ({
-                      key,
-                      label,
-                    })),
+                    ...Object.entries(CATEGORY_LABEL).map(([key, label]) => ({ key, label })),
                   ]}
                   value={category}
                   onChange={(value) => setCategory(value as PlaceCategory | "alla")}
@@ -274,10 +263,7 @@ function PlacesIndex() {
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
-                    ...Object.entries(OCCASION_LABEL).map(([key, label]) => ({
-                      key,
-                      label,
-                    })),
+                    ...Object.entries(OCCASION_LABEL).map(([key, label]) => ({ key, label })),
                   ]}
                   value={occasion}
                   onChange={(value) => setOccasion(value as Occasion | "alla")}
@@ -377,38 +363,6 @@ function PlacesIndex() {
           ) : null}
         </section>
       )}
-
-      {canAdmin && archivedPlaces.length > 0 ? (
-        <details className="group rounded-2xl border border-border/70 bg-card">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-2xl p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Archive className="h-4 w-4 text-muted-foreground" />
-            <span className="min-w-0 flex-1 font-medium">Arkiverade ställen</span>
-            <Badge variant="outline" className="rounded-full">
-              {archivedPlaces.length}
-            </Badge>
-            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
-          </summary>
-          <div className="border-t border-border/60 p-2">
-            {archivedPlaces.map((place) => (
-              <Link
-                key={place.id}
-                to="/matstallen/$placeId"
-                params={{ placeId: place.id }}
-                className="flex min-h-11 items-center gap-3 rounded-xl p-2 transition-colors hover:bg-accent"
-              >
-                <PlaceThumb place={place} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{place.name}</div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {place.address || place.city}
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </Link>
-            ))}
-          </div>
-        </details>
-      ) : null}
 
       {!groupArchived ? <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} /> : null}
     </div>
