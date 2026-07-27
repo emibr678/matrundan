@@ -89,16 +89,7 @@ function PlaceDetail() {
   const openVisitId = search.visit || null;
   const closeVisitSheet = () => navigate({ params: { placeId }, search: { visit: "" } });
 
-  if (!place) return <NotFound />;
-
-  const rating = avgRating(place.id);
-  const visits = visitsFor(place.id);
-  const fav = isFavorite(place.id);
-  const isNext = state.nextPlaceId === place.id;
-  const groupArchived = state.group.lifecycleStatus === "archived";
-  const placeArchived = place.collectionStatus === "archived";
-  const writable = !groupArchived && !placeArchived;
-
+  const visits = place ? visitsFor(place.id) : [];
   const detail = React.useMemo(() => {
     const taste: number[] = [];
     const value: number[] = [];
@@ -116,6 +107,15 @@ function PlaceDetail() {
       service: avg(service),
     };
   }, [visits]);
+
+  if (!place) return <NotFound />;
+
+  const rating = avgRating(place.id);
+  const fav = isFavorite(place.id);
+  const isNext = state.nextPlaceId === place.id;
+  const groupArchived = state.group.lifecycleStatus === "archived";
+  const placeArchived = place.collectionStatus === "archived";
+  const writable = !groupArchived && !placeArchived;
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
