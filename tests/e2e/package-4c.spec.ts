@@ -20,7 +20,10 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 
 async function removeCurrentPlace(page: Page) {
   await page.getByRole("button", { name: "Hantera ställe" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Ta bort från gruppen" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Ta bort från gruppen" })
+    .click();
 }
 
 test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka utan tappad metadata", async ({
@@ -36,13 +39,19 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   );
   await confirm.getByRole("button", { name: "Ta bort från gruppen" }).click();
 
-  await expect(page.getByText("Inte längre i gruppens lista", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Nästa stopp? Menyn ser ut att passa hela gänget.")).toBeVisible();
+  await expect(
+    page.getByText("Inte längre i gruppens lista", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Nästa stopp? Menyn ser ut att passa hela gänget."),
+  ).toBeVisible();
   await expect(page.getByText(/kanonisk/i)).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Borttaget matställe utan besök");
 
   await page.goto("/?demo=1");
-  await expect(page.getByRole("heading", { name: "Inget nästa stopp valt" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Inget nästa stopp valt" }),
+  ).toBeVisible();
   const activeTile = page.getByText("Aktiva ställen", { exact: true }).locator("..");
   await expect(activeTile.getByText("8", { exact: true })).toBeVisible();
 
@@ -60,11 +69,15 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   const restoredLink = page.getByRole("link", { name: /Glöd & Grönska/ });
   await expect(restoredLink).toHaveCount(1);
   await restoredLink.click();
-  await expect(page.getByText("Nästa stopp? Menyn ser ut att passa hela gänget.")).toBeVisible();
+  await expect(
+    page.getByText("Nästa stopp? Menyn ser ut att passa hela gänget."),
+  ).toBeVisible();
   await expect(page.getByText("Vegetariskt/veganskt", { exact: true })).toBeVisible();
   await expect(page.getByText("Grillat", { exact: true })).toBeVisible();
   await expect(page.getByText("Trevlig middag", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Registrera besök" }).first(),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Återlagt matställe via vanliga Lägg till");
 });
 
@@ -79,10 +92,16 @@ test("ställe med besök behåller historiken när det tas bort", async ({ page 
   );
   await confirm.getByRole("button", { name: "Ta bort från gruppen" }).click();
 
-  await expect(page.getByText("Inte längre i gruppens lista", { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText("Inte längre i gruppens lista", { exact: true }).first(),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Besök (3)" })).toBeVisible();
   await page.getByRole("button", { name: /Öppna besök av/ }).first().click();
-  await expect(page.getByRole("dialog").getByRole("heading", { name: "Kvarterets Kardemumma" })).toBeVisible();
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("heading", { name: "Kvarterets Kardemumma" }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Historik för borttaget matställe");
 });
 
@@ -106,6 +125,8 @@ test("kök och inriktning väljs sökbart utan fri text", async ({ page }) => {
 
   await expect(dialog.getByText("Japanskt", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Sushi", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("egen påhittad etikett", { exact: true })).toHaveCount(0);
+  await expect(
+    dialog.getByText("egen påhittad etikett", { exact: true }),
+  ).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Sökbar multiväljare");
 });
