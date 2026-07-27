@@ -44,7 +44,12 @@ export function FoodTagMultiSelect({
   const [open, setOpen] = React.useState(false);
   const selected = React.useMemo(() => normalizeFoodTags(value), [value]);
   const knownLabels = React.useMemo(
-    () => new Set(selected.filter((item) => findFoodTag(item)).map((item) => findFoodTag(item)!.label)),
+    () =>
+      new Set(
+        selected
+          .filter((item) => findFoodTag(item))
+          .map((item) => findFoodTag(item)!.label),
+      ),
     [selected],
   );
 
@@ -52,7 +57,11 @@ export function FoodTagMultiSelect({
     const tag = findFoodTag(labelValue);
     if (!tag) return;
     const exists = knownLabels.has(tag.label);
-    onChange(exists ? selected.filter((item) => findFoodTag(item)?.label !== tag.label) : [...selected, tag.label]);
+    onChange(
+      exists
+        ? selected.filter((item) => findFoodTag(item)?.label !== tag.label)
+        : [...selected, tag.label],
+    );
   }
 
   function remove(item: string) {
@@ -63,7 +72,9 @@ export function FoodTagMultiSelect({
     <div className="min-w-0 space-y-2">
       <div className="space-y-1">
         <Label htmlFor={id}>{label}</Label>
-        {description ? <p className="text-xs leading-relaxed text-muted-foreground">{description}</p> : null}
+        {description ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
+        ) : null}
       </div>
 
       <Popover open={open} onOpenChange={setOpen}>
@@ -103,7 +114,9 @@ export function FoodTagMultiSelect({
                         value={foodTagSearchValue(tag)}
                         onSelect={() => toggle(tag.label)}
                       >
-                        <Check className={cn("h-4 w-4", active ? "opacity-100" : "opacity-0")} />
+                        <Check
+                          className={cn("h-4 w-4", active ? "opacity-100" : "opacity-0")}
+                        />
                         <span>{tag.label}</span>
                       </CommandItem>
                     );
@@ -116,11 +129,18 @@ export function FoodTagMultiSelect({
       </Popover>
 
       {selected.length > 0 ? (
-        <div className="flex min-w-0 flex-wrap gap-1.5" aria-label="Valda kök och inriktningar">
+        <div
+          className="flex min-w-0 flex-wrap gap-1.5"
+          aria-label="Valda kök och inriktningar"
+        >
           {selected.map((item) => {
             const known = Boolean(findFoodTag(item));
             return (
-              <Badge key={item} variant={known ? "secondary" : "outline"} className="max-w-full gap-1 rounded-full pr-1">
+              <Badge
+                key={item}
+                variant={known ? "secondary" : "outline"}
+                className="max-w-full gap-1 rounded-full pr-1"
+              >
                 <span className="truncate">{item}</span>
                 {!disabled ? (
                   <button
