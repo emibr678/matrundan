@@ -20,7 +20,10 @@ export const Route = createFileRoute("/")({
           "Se gruppens nästa stopp, snabba framsteg och senaste aktivitet på ett ställe.",
       },
       { property: "og:title", content: "Hem · Matrundan" },
-      { property: "og:description", content: "Nästa stopp och senaste aktivitet." },
+      {
+        property: "og:description",
+        content: "Nästa stopp och senaste aktivitet.",
+      },
     ],
   }),
   component: Home,
@@ -30,6 +33,11 @@ function Home() {
   const { state, getPlace, setNext, memberById, proposerOfNext } = useStore();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitPlace, setVisitPlace] = React.useState<string | null>(null);
+  const groupArchived = state.group.lifecycleStatus === "archived";
+  const activePlaces = React.useMemo(
+    () => state.places.filter((place) => place.collectionStatus !== "archived"),
+    [state.places],
+  );
 
   const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
   const proposerId = proposerOfNext();
@@ -37,40 +45,44 @@ function Home() {
 
   const untried = React.useMemo(
     () =>
-      state.places.filter(
-        (p) => !state.visits.some((v) => v.placeId === p.id),
+      activePlaces.filter(
+        (place) => !state.visits.some((visit) => visit.placeId === place.id),
       ),
-    [state.places, state.visits],
+    [activePlaces, state.visits],
   );
 
-  const totalPlaces = state.places.length;
+  const totalPlaces = activePlaces.length;
   const tried = totalPlaces - untried.length;
-  const progressPct = totalPlaces === 0 ? 0 : Math.round((tried / totalPlaces) * 100);
+  const progressPct =
+    totalPlaces === 0 ? 0 : Math.round((tried / totalPlaces) * 100);
 
   const shuffle = () => {
-    const pool = untried.length ? untried : state.places;
+    if (groupArchived) return;
+    const pool = untried.length ? untried : activePlaces;
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    setNext(pick.id);
+    if (pick) void setNext(pick.id);
   };
 
   const latest = state.activity.slice(0, 5);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
-      {/* Hero: Nästa stopp */}
       <section>
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" />
             Nästa stopp
           </div>
-          <button
-            onClick={shuffle}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-mustard/50 px-3 py-1.5 text-xs font-medium text-mustard-foreground"
-          >
-            <Shuffle className="h-3.5 w-3.5" />
-            Slumpa
-          </button>
+          {!groupArchived && activePlaces.length > 0 ? (
+            <button
+              type="button"
+              onClick={shuffle}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-mustard/50 px-3 py-1.5 text-xs font-medium text-mustard-foreground"
+            >
+              <Shuffle className="h-3.5 w-3.5" />
+              Slumpa
+            </button>
+          ) : null}
         </div>
 
         {next ? (
@@ -100,27 +112,37 @@ function Home() {
                 ) : null}
               </div>
             </Link>
-            <div className="p-4">
-              <Button
-                onClick={() => setVisitPlace(next.id)}
-                className="h-12 w-full text-base"
-                size="lg"
-              >
-                Registrera besök
-              </Button>
-            </div>
+            {!groupArchived && next.collectionStatus !== "archived" ? (
+              <div className="p-4">
+                <Button
+                  onClick={() => setVisitPlace(next.id)}
+                  className="h-12 w-full text-base"
+                  size="lg"
+                >
+                  Registrera besök
+                </Button>
+              </div>
+            ) : null}
           </Card>
         ) : (
           <Card className="rounded-3xl border-dashed border-border bg-card p-6 text-center shadow-sm">
             <div className="text-5xl">🎯</div>
-            <h2 className="mt-3 font-display text-xl">Inget nästa stopp valt</h2>
+            <h2 className="mt-3 font-display text-xl">
+              Inget nästa stopp valt
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Slumpa fram ett ställe eller välj ett från listan.
+              {groupArchived
+                ? "Gruppen är arkiverad. Historiken finns kvar att utforska."
+                : activePlaces.length > 0
+                  ? "Slumpa fram ett ställe eller välj ett från listan."
+                  : "Lägg till ett ställe för att börja planera nästa stopp."}
             </p>
-            <div className="mt-4 flex justify-center gap-2">
-              <Button onClick={shuffle}>
-                <Shuffle className="h-4 w-4" /> Slumpa
-              </Button>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {!groupArchived && activePlaces.length > 0 ? (
+                <Button onClick={shuffle}>
+                  <Shuffle className="h-4 w-4" /> Slumpa
+                </Button>
+              ) : null}
               <Button asChild variant="outline">
                 <Link to="/matstallen">Bläddra</Link>
               </Button>
@@ -129,57 +151,71 @@ function Home() {
         )}
       </section>
 
-      {/* Framsteg + snabbstats */}
       <section>
         <Card className="rounded-2xl border-border/70 p-4">
           <div className="mb-2 flex items-baseline justify-between text-sm">
             <span className="font-medium">
-              Du och gruppen har provat {tried} av {totalPlaces} tillagda ställen
+              Du och gruppen har provat {tried} av {totalPlaces} aktiva ställen
             </span>
             <span className="text-muted-foreground">{progressPct}%</span>
           </div>
           <Progress value={progressPct} className="h-2" />
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <StatTile label="Ställen" value={totalPlaces} />
+            <StatTile label="Aktiva ställen" value={totalPlaces} />
             <StatTile label="Besök" value={state.visits.length} />
-            <StatTile label="Kvar att prova" value={untried.length} tone="mustard" />
+            <StatTile
+              label="Kvar att prova"
+              value={untried.length}
+              tone="mustard"
+            />
           </div>
         </Card>
       </section>
 
-      {/* Snabbknappar */}
-      <section className="grid grid-cols-2 gap-2">
+      <section
+        className={groupArchived ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}
+      >
+        {!groupArchived ? (
+          <Button
+            variant="outline"
+            size="lg"
+            className="h-14 rounded-2xl"
+            onClick={() => setAddOpen(true)}
+          >
+            <Plus className="h-4 w-4" /> Lägg till ställe
+          </Button>
+        ) : null}
         <Button
+          asChild
           variant="outline"
           size="lg"
           className="h-14 rounded-2xl"
-          onClick={() => setAddOpen(true)}
         >
-          <Plus className="h-4 w-4" /> Lägg till ställe
-        </Button>
-        <Button asChild variant="outline" size="lg" className="h-14 rounded-2xl">
           <Link to="/matstallen">
             <Star className="h-4 w-4" /> Bläddra listan
           </Link>
         </Button>
       </section>
 
-      {/* Aktivitet */}
       <section className="pb-4">
         <h2 className="mb-2 font-display text-lg">Senaste aktivitet</h2>
         <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-          {latest.map((a) => (
-            <ActivityRow key={a.id} activity={a} />
+          {latest.map((activity) => (
+            <ActivityRow key={activity.id} activity={activity} />
           ))}
         </Card>
       </section>
 
-      <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
-      <VisitDialog
-        open={visitPlace !== null}
-        onOpenChange={(v) => !v && setVisitPlace(null)}
-        placeId={visitPlace}
-      />
+      {!groupArchived ? (
+        <>
+          <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
+          <VisitDialog
+            open={visitPlace !== null}
+            onOpenChange={(open) => !open && setVisitPlace(null)}
+            placeId={visitPlace}
+          />
+        </>
+      ) : null}
     </div>
   );
 }
@@ -200,8 +236,12 @@ function StatTile({
         tone === "mustard" ? "bg-mustard/25" : "bg-card",
       ].join(" ")}
     >
-      <div className="font-display text-2xl font-semibold leading-none">{value}</div>
-      <div className="mt-1 text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="font-display text-2xl font-semibold leading-none">
+        {value}
+      </div>
+      <div className="mt-1 text-[11px] font-medium text-muted-foreground">
+        {label}
+      </div>
     </div>
   );
 }
