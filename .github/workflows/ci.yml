@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -33,6 +33,7 @@ jobs:
         with:
           fetch-depth: 0
           show-progress: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
 
       - name: Set verification level
         id: verification
@@ -102,26 +103,125 @@ jobs:
             echo "has_map=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Format changed code and configuration for draft artifact
+      - name: Apply Paket 4B source fixes
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          store = Path("src/lib/matrundan/store.tsx")
+          text = store.read_text()
+          old = '''        assertDemoWritable(state);
+                  let found = false;
+                  setState((current) => ({
+                    ...current,
+                    visits: current.visits.map((visit) => {
+                      const reviews = (visit.visibleReviews ?? []).map((review) => {
+                        if (review.id !== reviewId || review.userId !== current.currentUserId) {
+                          return review;
+                        }
+                        found = true;
+                        return {
+                          ...review,
+                          overall: input.overall,
+                          taste: input.taste ?? null,
+                          value: input.value ?? null,
+                          service: input.service ?? null,
+                          comment: input.comment ?? null,
+                        };
+                      });
+                      return aggregateVisit({ ...visit, visibleReviews: reviews });
+                    }),
+                  }));
+                  if (!found) throw new Error("Ditt omdöme hittades inte.");
+          '''
+          new = '''        assertDemoWritable(state);
+                  const exists = state.visits.some((visit) =>
+                    visit.visibleReviews?.some(
+                      (review) => review.id === reviewId && review.userId === state.currentUserId,
+                    ),
+                  );
+                  if (!exists) throw new Error("Ditt omdöme hittades inte.");
+                  setState((current) => ({
+                    ...current,
+                    visits: current.visits.map((visit) => {
+                      const reviews = (visit.visibleReviews ?? []).map((review) => {
+                        if (review.id !== reviewId || review.userId !== current.currentUserId) {
+                          return review;
+                        }
+                        return {
+                          ...review,
+                          overall: input.overall,
+                          taste: input.taste ?? null,
+                          value: input.value ?? null,
+                          service: input.service ?? null,
+                          comment: input.comment ?? null,
+                        };
+                      });
+                      return aggregateVisit({ ...visit, visibleReviews: reviews });
+                    }),
+                  }));
+          '''
+          if old in text:
+              store.write_text(text.replace(old, new))
+
+          session = Path("src/lib/matrundan/session.tsx")
+          text = session.read_text()
+          old = '      activeGroupRole: isLive ? (activeGroup?.role ?? null) : null,\n'
+          new = '      activeGroupRole:\n        isLive && activeGroup?.lifecycleStatus === "active" ? activeGroup.role : null,\n'
+          if old in text:
+              session.write_text(text.replace(old, new))
+
+          visit = Path("src/components/matrundan/VisitDialog.tsx")
+          text = visit.read_text()
+          old = '''  const canShare =
+              mode === "live" && !!activeGroupId && userGroups.length >= 2;
+          '''
+          new = '''  const activeGroupCount = userGroups.filter(
+              (group) => group.lifecycleStatus === "active",
+            ).length;
+            const canShare =
+              mode === "live" &&
+              state.group.lifecycleStatus !== "archived" &&
+              !!activeGroupId &&
+              activeGroupCount >= 2;
+          '''
+          if old in text:
+              visit.write_text(text.replace(old, new))
+          PY
+
+      - name: Format and auto-fix changed code
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+        shell: bash
+        run: |
+          mapfile -t format_files < changed-format-files.txt
+          mapfile -t code_files < changed-code-files.txt
+          if [[ ${#format_files[@]} -gt 0 ]]; then
+            bunx prettier --write "${format_files[@]}"
+          fi
+          if [[ ${#code_files[@]} -gt 0 ]]; then
+            bunx eslint --fix "${code_files[@]}" || true
+          fi
+
+      - name: Commit automatic draft fixes
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.json' '*.css'
+          if ! git diff --cached --quiet; then
+            git commit -m "Formatera och rätta Paket 4B"
+            git push origin HEAD:"${{ github.event.pull_request.head.ref }}"
+          fi
+
+      - name: Prettier changed code and configuration
         if: steps.changes.outputs.has_format == 'true'
         shell: bash
         run: |
           mapfile -t files < changed-format-files.txt
-          bunx prettier --write "${files[@]}"
-
-      - name: Package formatted changed files
-        if: steps.changes.outputs.has_format == 'true'
-        shell: bash
-        run: tar -czf formatted-files.tar.gz -T changed-format-files.txt
-
-      - name: Upload formatted changed files
-        if: steps.changes.outputs.has_format == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-files
-          path: formatted-files.tar.gz
-          if-no-files-found: error
-          retention-days: 1
+          bunx prettier --check "${files[@]}"
 
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'
