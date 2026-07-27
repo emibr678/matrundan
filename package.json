@@ -9,7 +9,13 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"*.{ts,js,json}\"",
+    "typecheck": "tsc --noEmit",
+    "verify:fast": "bun run typecheck && bun run build",
+    "verify:full": "bun run format:check && bun run lint && bun run typecheck && bun run build",
+    "test:mobile": "playwright test --project=mobile-chromium",
+    "test:map": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
