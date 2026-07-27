@@ -12,14 +12,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { DEMO_STATE } from "./demo-data";
-import { APP_VERSION } from "./version";
-import {
-  liveCreateOrLinkProviderPlace,
-  liveCreatePlace,
-  liveCreateVisitWithReview,
-  liveSetNextPlace,
-  liveToggleFavorite,
-} from "./live-mutations";
+import { normalizeFoodTags } from "./food-tags";
 import {
   archiveGroup as liveArchiveGroup,
   archiveGroupPlace as liveArchiveGroupPlace,
@@ -30,6 +23,13 @@ import {
   type GroupPlaceMetadataInput,
   type ReviewEditInput,
 } from "./live-admin-4b";
+import {
+  liveCreateOrLinkProviderPlace,
+  liveCreatePlace,
+  liveCreateVisitWithReview,
+  liveSetNextPlace,
+  liveToggleFavorite,
+} from "./live-mutations";
 import type {
   Activity,
   AppState,
@@ -39,16 +39,17 @@ import type {
   Visit,
   VisibleReview,
 } from "./types";
+import { APP_VERSION } from "./version";
 
 const STORAGE_KEY = "matrundan.state.v1";
 
 function nameOf(state: AppState, memberId: string) {
-  return state.members.find((m) => m.id === memberId)?.name ?? "Någon";
+  return state.members.find((member) => member.id === memberId)?.name ?? "Någon";
 }
 
-function avg(xs: number[]): number | undefined {
-  if (!xs.length) return undefined;
-  return xs.reduce((sum, value) => sum + value, 0) / xs.length;
+function avg(values: number[]): number | undefined {
+  if (!values.length) return undefined;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function aggregateVisit(visit: Visit): Visit {
@@ -72,17 +73,25 @@ function aggregateVisit(visit: Visit): Visit {
   };
 }
 
-function normalizeDemoState(input: AppState): AppState {
-  const places = input.places.map((place) => ({
+function normalizePlace(place: Place): Place {
+  const canonicalCuisines = normalizeFoodTags(place.canonicalCuisines ?? place.cuisines);
+  const cuisinesOverride =
+    place.cuisinesOverride == null ? null : normalizeFoodTags(place.cuisinesOverride);
+  return {
     ...place,
     canonicalCategory: place.canonicalCategory ?? place.category,
     categoryOverride: place.categoryOverride ?? null,
-    canonicalCuisines: place.canonicalCuisines ?? place.cuisines,
-    cuisinesOverride: place.cuisinesOverride ?? null,
+    canonicalCuisines,
+    cuisinesOverride,
+    cuisines: cuisinesOverride ?? canonicalCuisines,
     collectionStatus: place.collectionStatus ?? "active",
     archivedAt: place.archivedAt ?? null,
     archivedBy: place.archivedBy ?? null,
-  }));
+  };
+}
+
+function normalizeDemoState(input: AppState): AppState {
+  const places = input.places.map(normalizePlace);
   const visits = input.visits.map((visit) => {
     const reviews: VisibleReview[] =
       visit.visibleReviews && visit.visibleReviews.length > 0
@@ -125,13 +134,8 @@ function assertDemoWritable(state: AppState) {
 interface StoreContextValue {
   state: AppState;
   mode: "demo" | "live";
-  /** true medan en live-mutation pågår – används för att inaktivera CTA:er. */
   submitting: boolean;
   addPlace: (input: Omit<Place, "id" | "addedAt">) => Promise<Place>;
-  /**
-   * Lägg till ett matställe från en extern provider (Geoapify).
-   * Fungerar bara i live-läge – i demo-läge kastas ett fel.
-   */
   addProviderPlace: (input: {
     provider: string;
     providerPlaceId: string;
@@ -148,7 +152,6 @@ interface StoreContextValue {
   updatePlaceMetadata: (placeId: string, input: GroupPlaceMetadataInput) => Promise<void>;
   updateOwnReview: (reviewId: string, input: ReviewEditInput) => Promise<void>;
   resetDemo: () => void;
-  // selectors
   getPlace: (id: string) => Place | undefined;
   memberById: (id: string) => AppState["members"][number] | undefined;
   visitsFor: (placeId: string) => Visit[];
@@ -174,9 +177,7 @@ export function StoreProvider({
   children: React.ReactNode;
   mode?: "demo" | "live";
   initialState?: AppState;
-  /** Kallas efter lyckad live-skrivning; AppShell laddar om gruppen. */
   onLiveMutation?: () => Promise<void> | void;
-  /** Aktivt group_id i live-läget; obligatoriskt för live-mutationer. */
   activeGroupId?: string | null;
 }) {
   const [state, setState] = React.useState<AppState>(() =>
@@ -186,18 +187,14 @@ export function StoreProvider({
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    if (mode === "live" && initialState) {
-      setState(initialState);
-    }
+    if (mode === "live" && initialState) setState(initialState);
   }, [mode, initialState]);
 
   React.useEffect(() => {
     if (mode !== "demo") return;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setState(normalizeDemoState(JSON.parse(raw) as AppState));
-      }
+      if (raw) setState(normalizeDemoState(JSON.parse(raw) as AppState));
     } catch {
       /* ignore */
     }
@@ -213,8 +210,6 @@ export function StoreProvider({
     }
   }, [state, hydrated, mode]);
 
-  // Håll senaste callback/grupp-id i refs så att value-memon inte behöver
-  // återskapas för varje omladdning av live-state.
   const onLiveMutationRef = React.useRef(onLiveMutation);
   const activeGroupIdRef = React.useRef(activeGroupId);
   React.useEffect(() => {
@@ -224,12 +219,12 @@ export function StoreProvider({
     activeGroupIdRef.current = activeGroupId;
   }, [activeGroupId]);
 
-  const runLive = React.useCallback(async <T,>(op: (groupId: string) => Promise<T>): Promise<T> => {
-    const gid = activeGroupIdRef.current;
-    if (!gid) throw new Error("Ingen aktiv grupp.");
+  const runLive = React.useCallback(async <T,>(operation: (groupId: string) => Promise<T>) => {
+    const groupId = activeGroupIdRef.current;
+    if (!groupId) throw new Error("Ingen aktiv grupp.");
     setSubmitting(true);
     try {
-      const result = await op(gid);
+      const result = await operation(groupId);
       await Promise.resolve(onLiveMutationRef.current?.());
       return result;
     } finally {
@@ -238,9 +233,9 @@ export function StoreProvider({
   }, []);
 
   const value = React.useMemo<StoreContextValue>(() => {
-    const pushActivity = (s: AppState, a: Activity): AppState => ({
-      ...s,
-      activity: [a, ...s.activity].slice(0, 50),
+    const pushActivity = (current: AppState, activity: Activity): AppState => ({
+      ...current,
+      activity: [activity, ...current.activity].slice(0, 50),
     });
 
     return {
@@ -249,17 +244,19 @@ export function StoreProvider({
       submitting,
 
       addPlace: async (input) => {
+        const normalizedInput = { ...input, cuisines: normalizeFoodTags(input.cuisines ?? []) };
         if (mode === "live") {
-          const id = await runLive((gid) => liveCreatePlace(gid, input));
-          return { ...input, id, addedAt: new Date().toISOString() } as Place;
+          const id = await runLive((groupId) => liveCreatePlace(groupId, normalizedInput));
+          return { ...normalizedInput, id, addedAt: new Date().toISOString() } as Place;
         }
+
         assertDemoWritable(state);
         const existing = state.places.find(
           (place) =>
             place.name.trim().toLocaleLowerCase("sv") ===
-              input.name.trim().toLocaleLowerCase("sv") &&
+              normalizedInput.name.trim().toLocaleLowerCase("sv") &&
             place.address.trim().toLocaleLowerCase("sv") ===
-              input.address.trim().toLocaleLowerCase("sv"),
+              normalizedInput.address.trim().toLocaleLowerCase("sv"),
         );
         if (existing?.collectionStatus === "active") {
           throw new Error("Ett ställe med samma namn och adress finns redan i gruppen.");
@@ -270,8 +267,6 @@ export function StoreProvider({
             collectionStatus: "active",
             archivedAt: null,
             archivedBy: null,
-            occasions: input.occasions,
-            notes: input.notes,
           };
           setState((current) => ({
             ...current,
@@ -279,13 +274,14 @@ export function StoreProvider({
           }));
           return restored;
         }
+
         const place: Place = {
-          ...input,
+          ...normalizedInput,
           id: `p-${Date.now()}`,
           addedAt: new Date().toISOString(),
-          canonicalCategory: input.category,
+          canonicalCategory: normalizedInput.category,
           categoryOverride: null,
-          canonicalCuisines: input.cuisines,
+          canonicalCuisines: normalizedInput.cuisines,
           cuisinesOverride: null,
           collectionStatus: "active",
           archivedAt: null,
@@ -312,35 +308,36 @@ export function StoreProvider({
         if (mode !== "live") {
           throw new Error("Extern platssök är bara tillgänglig i live-läge (inloggad).");
         }
-        const id = await runLive((gid) =>
-          liveCreateOrLinkProviderPlace(gid, {
+        const normalizedPlace = { ...place, cuisines: normalizeFoodTags(place.cuisines ?? []) };
+        const id = await runLive((groupId) =>
+          liveCreateOrLinkProviderPlace(groupId, {
             provider,
             providerPlaceId,
-            name: place.name,
-            category: place.category,
-            cuisines: place.cuisines ?? [],
-            occasions: place.occasions ?? [],
-            address: place.address ?? "",
-            area: place.area,
-            city: place.city ?? "",
-            lat: place.lat,
-            lng: place.lng,
-            notes: place.notes,
-            photo: place.photo,
+            name: normalizedPlace.name,
+            category: normalizedPlace.category,
+            cuisines: normalizedPlace.cuisines,
+            occasions: normalizedPlace.occasions ?? [],
+            address: normalizedPlace.address ?? "",
+            area: normalizedPlace.area,
+            city: normalizedPlace.city ?? "",
+            lat: normalizedPlace.lat,
+            lng: normalizedPlace.lng,
+            notes: normalizedPlace.notes,
+            photo: normalizedPlace.photo,
             raw,
           }),
         );
-        return { ...place, id, addedAt: new Date().toISOString() } as Place;
+        return { ...normalizedPlace, id, addedAt: new Date().toISOString() } as Place;
       },
 
       toggleFavorite: async (placeId) => {
         if (mode === "live") {
-          await runLive((gid) => liveToggleFavorite(gid, placeId));
+          await runLive((groupId) => liveToggleFavorite(groupId, placeId));
           return;
         }
         assertDemoWritable(state);
         if (state.places.find((place) => place.id === placeId)?.collectionStatus === "archived") {
-          throw new Error("Återställ matstället innan du ändrar favoriten.");
+          throw new Error("Lägg tillbaka matstället innan du ändrar favoriten.");
         }
         setState((current) => {
           const exists = current.favorites.find(
@@ -361,7 +358,7 @@ export function StoreProvider({
 
       addVisit: async (visitInput) => {
         if (mode === "live") {
-          const id = await runLive((gid) => liveCreateVisitWithReview(gid, visitInput));
+          const id = await runLive((groupId) => liveCreateVisitWithReview(groupId, visitInput));
           return { ...visitInput, id } as Visit;
         }
         assertDemoWritable(state);
@@ -369,7 +366,7 @@ export function StoreProvider({
           state.places.find((place) => place.id === visitInput.placeId)?.collectionStatus ===
           "archived"
         ) {
-          throw new Error("Återställ matstället innan ett nytt besök registreras.");
+          throw new Error("Lägg tillbaka matstället innan ett nytt besök registreras.");
         }
         const timestamp = Date.now();
         const review: VisibleReview = {
@@ -406,11 +403,7 @@ export function StoreProvider({
               text: `${nameOf(current, current.currentUserId)} registrerade ett besök på ${
                 place?.name ?? "ett ställe"
               }`,
-              target: {
-                kind: "visit",
-                placeId: visit.placeId,
-                visitId: visit.id,
-              },
+              target: { kind: "visit", placeId: visit.placeId, visitId: visit.id },
             },
           );
         });
@@ -419,7 +412,7 @@ export function StoreProvider({
 
       setNext: async (placeId) => {
         if (mode === "live") {
-          await runLive((gid) => liveSetNextPlace(gid, placeId));
+          await runLive((groupId) => liveSetNextPlace(groupId, placeId));
           return;
         }
         assertDemoWritable(state);
@@ -427,7 +420,7 @@ export function StoreProvider({
           placeId &&
           state.places.find((place) => place.id === placeId)?.collectionStatus === "archived"
         ) {
-          throw new Error("Återställ matstället innan det väljs som nästa stopp.");
+          throw new Error("Lägg tillbaka matstället innan det väljs som nästa stopp.");
         }
         setState((current) => {
           if (!placeId) return { ...current, nextPlaceId: null };
@@ -451,7 +444,7 @@ export function StoreProvider({
 
       archiveGroup: async () => {
         if (mode === "live") {
-          await runLive((gid) => liveArchiveGroup(gid));
+          await runLive((groupId) => liveArchiveGroup(groupId));
           return;
         }
         setState((current) => ({
@@ -468,7 +461,7 @@ export function StoreProvider({
 
       reactivateGroup: async () => {
         if (mode === "live") {
-          await runLive((gid) => liveReactivateGroup(gid));
+          await runLive((groupId) => liveReactivateGroup(groupId));
           return;
         }
         setState((current) => ({
@@ -484,7 +477,7 @@ export function StoreProvider({
 
       archivePlace: async (placeId) => {
         if (mode === "live") {
-          await runLive((gid) => liveArchiveGroupPlace(gid, placeId));
+          await runLive((groupId) => liveArchiveGroupPlace(groupId, placeId));
           return;
         }
         assertDemoWritable(state);
@@ -506,7 +499,7 @@ export function StoreProvider({
 
       restorePlace: async (placeId) => {
         if (mode === "live") {
-          await runLive((gid) => liveRestoreGroupPlace(gid, placeId));
+          await runLive((groupId) => liveRestoreGroupPlace(groupId, placeId));
           return;
         }
         assertDemoWritable(state);
@@ -514,20 +507,22 @@ export function StoreProvider({
           ...current,
           places: current.places.map((place) =>
             place.id === placeId
-              ? {
-                  ...place,
-                  collectionStatus: "active",
-                  archivedAt: null,
-                  archivedBy: null,
-                }
+              ? { ...place, collectionStatus: "active", archivedAt: null, archivedBy: null }
               : place,
           ),
         }));
       },
 
       updatePlaceMetadata: async (placeId, input) => {
+        const normalizedInput: GroupPlaceMetadataInput = {
+          ...input,
+          cuisinesOverride:
+            input.cuisinesOverride == null ? null : normalizeFoodTags(input.cuisinesOverride),
+        };
         if (mode === "live") {
-          await runLive((gid) => liveUpdateGroupPlaceMetadata(gid, placeId, input));
+          await runLive((groupId) =>
+            liveUpdateGroupPlaceMetadata(groupId, placeId, normalizedInput),
+          );
           return;
         }
         assertDemoWritable(state);
@@ -536,17 +531,19 @@ export function StoreProvider({
           places: current.places.map((place) => {
             if (place.id !== placeId) return place;
             const canonicalCategory = place.canonicalCategory ?? place.category;
-            const canonicalCuisines = place.canonicalCuisines ?? place.cuisines;
+            const canonicalCuisines = normalizeFoodTags(
+              place.canonicalCuisines ?? place.cuisines,
+            );
             return {
               ...place,
               canonicalCategory,
-              categoryOverride: input.categoryOverride,
-              category: input.categoryOverride ?? canonicalCategory,
+              categoryOverride: normalizedInput.categoryOverride,
+              category: normalizedInput.categoryOverride ?? canonicalCategory,
               canonicalCuisines,
-              cuisinesOverride: input.cuisinesOverride,
-              cuisines: input.cuisinesOverride ?? canonicalCuisines,
-              occasions: input.occasions,
-              notes: input.notes ?? undefined,
+              cuisinesOverride: normalizedInput.cuisinesOverride,
+              cuisines: normalizedInput.cuisinesOverride ?? canonicalCuisines,
+              occasions: normalizedInput.occasions,
+              notes: normalizedInput.notes ?? undefined,
             };
           }),
         }));
@@ -554,7 +551,7 @@ export function StoreProvider({
 
       updateOwnReview: async (reviewId, input) => {
         if (mode === "live") {
-          await runLive((gid) => liveUpdateOwnReview(gid, reviewId, input));
+          await runLive((groupId) => liveUpdateOwnReview(groupId, reviewId, input));
           return;
         }
         assertDemoWritable(state);
@@ -568,9 +565,7 @@ export function StoreProvider({
           ...current,
           visits: current.visits.map((visit) => {
             const reviews = (visit.visibleReviews ?? []).map((review) => {
-              if (review.id !== reviewId || review.userId !== current.currentUserId) {
-                return review;
-              }
+              if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
               return {
                 ...review,
                 overall: input.overall,
@@ -600,31 +595,26 @@ export function StoreProvider({
 
       getPlace: (id) => state.places.find((place) => place.id === id),
       memberById: (id) => state.members.find((member) => member.id === id),
-
       visitsFor: (placeId) =>
         state.visits
           .filter((visit) => visit.placeId === placeId)
           .sort((a, b) => (a.date < b.date ? 1 : -1)),
-
       avgRating: (placeId) => {
         const visits = state.visits.filter((visit) => visit.placeId === placeId);
         if (!visits.length) return { overall: 0, count: 0 };
         const sum = visits.reduce((total, visit) => total + visit.overall, 0);
         return { overall: sum / visits.length, count: visits.length };
       },
-
       isFavorite: (placeId) =>
         state.favorites.some(
           (favorite) => favorite.memberId === state.currentUserId && favorite.placeId === placeId,
         ),
-
       hasVisited: (placeId, memberId) => {
-        const uid = memberId ?? state.currentUserId;
+        const userId = memberId ?? state.currentUserId;
         return state.visits.some(
-          (visit) => visit.placeId === placeId && visit.participantIds.includes(uid),
+          (visit) => visit.placeId === placeId && visit.participantIds.includes(userId),
         );
       },
-
       statusOf: (placeId) => {
         const memberIds = state.members.map((member) => member.id);
         const visited = memberIds.filter((memberId) =>
@@ -637,7 +627,6 @@ export function StoreProvider({
         if (!visited.includes(state.currentUserId)) return "nytt-for-mig";
         return "delvis";
       },
-
       visitedCounts: (placeId) => {
         const memberIds = state.members.map((member) => member.id);
         const visited = memberIds.filter((memberId) =>
@@ -647,15 +636,12 @@ export function StoreProvider({
         );
         return { visited: visited.length, total: memberIds.length };
       },
-
       proposerOfNext: () => {
         if (!state.nextPlaceId) return undefined;
-        const activity = state.activity.find(
+        return state.activity.find(
           (item) => item.kind === "next-picked" && item.placeId === state.nextPlaceId,
-        );
-        return activity?.memberId;
+        )?.memberId;
       },
-
       categoryCounts: () => {
         const counts: Record<PlaceCategory, number> = {
           restaurang: 0,
@@ -670,13 +656,8 @@ export function StoreProvider({
           .forEach((place) => (counts[place.category] += 1));
         return counts;
       },
-
       occasionCounts: () => {
-        const counts: Record<Occasion, number> = {
-          snabbt: 0,
-          avslappnat: 0,
-          middag: 0,
-        };
+        const counts: Record<Occasion, number> = { snabbt: 0, avslappnat: 0, middag: 0 };
         state.places
           .filter((place) => place.collectionStatus !== "archived")
           .forEach((place) => place.occasions.forEach((occasion) => (counts[occasion] += 1)));
@@ -689,9 +670,9 @@ export function StoreProvider({
 }
 
 export function useStore() {
-  const ctx = React.useContext(StoreContext);
-  if (!ctx) throw new Error("useStore måste användas inuti <StoreProvider>");
-  return ctx;
+  const context = React.useContext(StoreContext);
+  if (!context) throw new Error("useStore måste användas inuti <StoreProvider>");
+  return context;
 }
 
 export function formatDate(iso: string) {
