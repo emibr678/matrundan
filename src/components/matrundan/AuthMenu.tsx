@@ -1,6 +1,7 @@
 import * as React from "react";
 import {
   Archive,
+  ArchiveRestore,
   LogIn,
   LogOut,
   User as UserIcon,
@@ -17,7 +18,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
+import { useStore } from "@/lib/matrundan/store";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
@@ -52,7 +64,93 @@ function GroupMenuItem({
   );
 }
 
-export function AuthMenu() {
+function GroupLifecycleActions() {
+  const { state, archiveGroup, reactivateGroup, submitting } = useStore();
+  const {
+    activeGroupRole,
+    activeGroupLifecycleStatus,
+    refreshGroups,
+  } = useSession();
+  const [confirmArchive, setConfirmArchive] = React.useState(false);
+  const owner = activeGroupRole === "owner";
+  const archived =
+    state.group.lifecycleStatus === "archived" ||
+    activeGroupLifecycleStatus === "archived";
+
+  if (!owner) return null;
+
+  async function run(action: "archive" | "reactivate") {
+    try {
+      if (action === "archive") await archiveGroup();
+      else await reactivateGroup();
+      await refreshGroups();
+      toast.success(
+        action === "archive"
+          ? "Gruppen är arkiverad."
+          : "Gruppen är återaktiverad.",
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte uppdatera gruppen.",
+      );
+    }
+  }
+
+  return (
+    <>
+      <DropdownMenuSeparator />
+      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+        Gruppadministration
+      </DropdownMenuLabel>
+      {archived ? (
+        <DropdownMenuItem
+          disabled={submitting}
+          onSelect={() => void run("reactivate")}
+        >
+          <ArchiveRestore className="mr-2 h-4 w-4" />
+          Återaktivera gruppen
+        </DropdownMenuItem>
+      ) : (
+        <DropdownMenuItem
+          disabled={submitting}
+          className="text-destructive focus:text-destructive"
+          onSelect={() => setConfirmArchive(true)}
+        >
+          <Archive className="mr-2 h-4 w-4" />
+          Arkivera gruppen
+        </DropdownMenuItem>
+      )}
+
+      <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arkivera {state.group.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Historik, besök, ställen, betyg och kommentarer bevaras. Gruppen
+              blir skrivskyddad, nästa stopp rensas och aktiva inbjudningar
+              återkallas. Du kan återaktivera gruppen senare.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void run("archive")}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Arkivera gruppen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+export function AuthMenu({
+  showGroupActions = false,
+}: {
+  showGroupActions?: boolean;
+}) {
   const {
     user,
     mode,
@@ -149,6 +247,7 @@ export function AuthMenu() {
               ))}
             </>
           ) : null}
+          {showGroupActions ? <GroupLifecycleActions /> : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
