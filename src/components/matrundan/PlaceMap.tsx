@@ -797,7 +797,6 @@ export function PlaceMap({
                 zoom: Math.min(Math.max(expansionZoom, map.getZoom() + 0.75), MAX_ZOOM),
                 padding: safePadding,
                 duration: 250,
-                retainPadding: false,
               });
             })
             .catch(async (error) => {
@@ -830,7 +829,6 @@ export function PlaceMap({
                   ),
                   padding: safePadding,
                   duration: 250,
-                  retainPadding: false,
                 });
               } catch (fallbackError) {
                 console.error("[Matrundan] Klustret kunde inte öppnas:", fallbackError);
@@ -839,7 +837,6 @@ export function PlaceMap({
                   zoom: Math.min(map.getZoom() + 1.5, MAX_ZOOM),
                   padding: safePadding,
                   duration: 250,
-                  retainPadding: false,
                 });
               }
             });
@@ -890,7 +887,13 @@ export function PlaceMap({
       if (syncClustersRef.current === syncClusters) syncClustersRef.current = null;
       clearClusterMarkers(clusterMarkersRef.current);
     };
-  }, [clusterConfig.labelMinZoom, clusterConfig.maxZoom, clusterConfig.radius, mapStatus, selected]);
+  }, [
+    clusterConfig.labelMinZoom,
+    clusterConfig.maxZoom,
+    clusterConfig.radius,
+    mapStatus,
+    selected,
+  ]);
 
   React.useEffect(() => {
     if (mapStatus !== "ready" || !mapRef.current) return;
