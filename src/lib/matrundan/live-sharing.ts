@@ -35,9 +35,10 @@ export interface VisitShareTarget {
 export async function listVisitShareTargets(
   visitId: string,
 ): Promise<VisitShareTarget[]> {
-  const { data, error } = await supabase.rpc("list_visit_share_targets", {
-    _visit_id: visitId,
-  });
+  const { data, error } = await supabase.rpc(
+    "list_visit_share_targets_v4b" as "list_visit_share_targets",
+    { _visit_id: visitId },
+  );
   if (error) throw toErr(error);
   return (data ?? []) as unknown as VisitShareTarget[];
 }
