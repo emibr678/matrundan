@@ -101,7 +101,10 @@ function GroupLifecycleActions() {
         <DropdownMenuItem
           disabled={submitting}
           className="text-destructive focus:text-destructive"
-          onSelect={() => setConfirmArchive(true)}
+          onSelect={(event) => {
+            event.preventDefault();
+            setConfirmArchive(true);
+          }}
         >
           <Archive className="mr-2 h-4 w-4" />
           Arkivera gruppen
