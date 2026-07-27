@@ -187,7 +187,9 @@ export function FoodTagMultiSelect({
                 : undefined
             }
           >
-            <DrawerHeader className="flex shrink-0 flex-row items-start justify-between gap-3 border-b px-4 pb-3 pt-4 text-left">
+            <DrawerHeader
+              className="flex shrink-0 flex-row items-start justify-between gap-3 border-b px-4 pb-3 pt-4 text-left"
+            >
               <div className="min-w-0 space-y-1">
                 <DrawerTitle>{label}</DrawerTitle>
                 <DrawerDescription>
