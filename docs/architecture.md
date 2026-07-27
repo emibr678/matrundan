@@ -1,7 +1,7 @@
 # Matrundan architecture
 
 This document describes the architectural source of truth for Matrundan as of
-v0.9.0. It focuses on durable decisions and invariants rather than a complete
+v0.11.0. It focuses on durable decisions and invariants rather than a complete
 schema dump. When code, migrations and this document disagree, inspect the
 latest production-compatible migration and fix the documentation in the same
 change.
@@ -128,9 +128,11 @@ is where group-specific information belongs, including:
 
 - notes;
 - occasions or suitability labels;
+- group-specific category and cuisine/speciality overrides;
 - who added the place to the group;
 - when it was added;
-- origin of the group relationship.
+- origin of the group relationship;
+- lifecycle state for whether the place is currently in the group's active list.
 
 Known origin semantics are normalised in the client as:
 
@@ -141,6 +143,28 @@ Known origin semantics are normalised in the client as:
 The database value `shared_visit` maps to client origin `shared`. Unknown origin
 values must fail safe as shared/imported rather than manual, because manual
 fallback could incorrectly award proposal-based gamification.
+
+### Group-place lifecycle
+
+Removing a place from the group is a soft lifecycle change on `group_places`,
+not deletion of the canonical `places` row. The user-facing product language is
+"Ta bort från gruppen", not archive/canonical terminology.
+
+A removed group-place relationship must:
+
+- disappear from the active place list and map;
+- be ineligible for next stop and random selection;
+- not contribute as an active place to planning or progression views;
+- keep canonical visits, participants and reviews intact;
+- remain readable when reached through historical visits;
+- show a neutral status such as "Inte längre i gruppens lista".
+
+There is no ordinary user-facing archive list for removed places. Re-adding is
+performed through the normal Add place flow. Provider-backed matches use the
+provider identity; manual matches use the approved name/address fallback. A
+match must reactivate the existing `group_places` relationship rather than
+create a duplicate and must preserve earlier notes, occasions, cuisine tags and
+other group metadata unless the user explicitly changes them.
 
 ### Default search area
 
@@ -309,6 +333,12 @@ The UI must show Geoapify/OpenStreetMap attribution in live search results.
 A selected provider place is inserted or linked atomically. Concurrent requests
 for the same provider ID must not create duplicate canonical places.
 
+Cuisine and speciality data from providers is mapped through the central
+`food-tags.ts` taxonomy. Known aliases become stable Swedish labels. Bounded raw
+provider metadata may be retained for diagnostics, but arbitrary provider
+categories must not become uncontrolled user-facing tags. Unknown historical
+labels may remain visible until an authorised user saves a corrected selection.
+
 ## 11. Gamification
 
 Gamification is a pure derived domain layer in
@@ -374,9 +404,8 @@ and can therefore change retroactively when membership changes.
 Activity is a user-facing history of meaningful group events. Mutations that
 already create activity should do so atomically on the server.
 
-Gamification does not create stored activity kinds in v0.9.0. Derived levels,
-badges and leaderboards must not be written into activity merely to make them
-persistent.
+Gamification does not create stored activity kinds. Derived levels, badges and
+leaderboards must not be written into activity merely to make them persistent.
 
 When a shared visit is unlinked, target-specific share activity should be
 removed without touching original-group history.
@@ -400,6 +429,11 @@ General rules:
 The Gruppen page places the member list before the compact group-highlights
 section. Member cards show a restrained `{level} · {visits} besök` line.
 
+Long searchable multi-selects use a compact popover on desktop and a bottom
+drawer below 768 px. The mobile drawer must react to `visualViewport`/dynamic
+viewport changes so an opened software keyboard does not hide the search field
+or trap the option list behind the keyboard.
+
 ## 14. Versioning and documentation
 
 The release version and changelog exist in several places:
@@ -416,7 +450,7 @@ A release is incomplete when these disagree.
 A normal release candidate should run:
 
 ```bash
-bunx tsgo --noEmit
+bun run typecheck
 bunx eslint <all changed source files>
 bun run build
 ```
@@ -435,6 +469,10 @@ page and opened dialogs/sheets, including:
 document.documentElement.scrollWidth <=
   document.documentElement.clientWidth
 ```
+
+For software-keyboard-sensitive UI, also verify the component after the visual
+viewport height shrinks and confirm that its bottom edge remains within the
+visible viewport.
 
 Database changes require explicit inspection of function definitions, grants,
 membership checks and preservation of production rows.
