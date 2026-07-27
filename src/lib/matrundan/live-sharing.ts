@@ -2,13 +2,28 @@
  * Live-repository för att dela besök mellan grupper och styra
  * synlighet av egna recensioner per grupp.
  */
-import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+import { rpcClient } from "./rpc-client";
 
-function toErr(e: unknown): Error {
-  const msg =
-    (e as { message?: string } | null)?.message ?? "Något gick fel mot servern. Försök igen.";
-  return new Error(msg);
-}
+const visibleParticipantSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  avatar: z.string().nullable(),
+  avatarImage: z.string().nullable(),
+  status: z.enum(["active", "left"]),
+});
+
+const visitShareTargetSchema = z.object({
+  groupId: z.string().min(1),
+  name: z.string(),
+  emoji: z.string(),
+  alreadyLinked: z.boolean(),
+  externalParticipantCount: z.number().int().nonnegative(),
+  visibleParticipants: z.array(visibleParticipantSchema),
+  relevantReviewCount: z.number().int().nonnegative(),
+  ownHasComment: z.boolean(),
+  sharedVisitsCountForProgression: z.boolean(),
+});
 
 export interface VisibleParticipant {
   id: string;
@@ -32,12 +47,12 @@ export interface VisitShareTarget {
 }
 
 export async function listVisitShareTargets(visitId: string): Promise<VisitShareTarget[]> {
-  const { data, error } = await supabase.rpc(
-    "list_visit_share_targets_v4b" as "list_visit_share_targets",
+  return rpcClient.call(
+    "list_visit_share_targets_v4b",
     { _visit_id: visitId },
+    z.array(visitShareTargetSchema),
+    "Kunde inte läsa vilka grupper besöket kan delas till.",
   );
-  if (error) throw toErr(error);
-  return (data ?? []) as unknown as VisitShareTarget[];
 }
 
 export async function shareVisitToGroup(
@@ -45,21 +60,23 @@ export async function shareVisitToGroup(
   targetGroupId: string,
   shareOwnComment: boolean,
 ): Promise<string> {
-  const { data, error } = await supabase.rpc("share_visit_to_group", {
-    _visit_id: visitId,
-    _target_group_id: targetGroupId,
-    _share_own_comment: shareOwnComment,
-  });
-  if (error) throw toErr(error);
-  return data as unknown as string;
+  return rpcClient.call(
+    "share_visit_to_group",
+    {
+      _visit_id: visitId,
+      _target_group_id: targetGroupId,
+      _share_own_comment: shareOwnComment,
+    },
+    z.string().min(1),
+    "Kunde inte dela besöket.",
+  );
 }
 
 export async function removeSharedVisitFromGroup(visitId: string, groupId: string): Promise<void> {
-  const { error } = await supabase.rpc("remove_shared_visit_from_group", {
+  await rpcClient.callVoid("remove_shared_visit_from_group", {
     _visit_id: visitId,
     _group_id: groupId,
   });
-  if (error) throw toErr(error);
 }
 
 export async function setReviewGroupVisibility(
@@ -68,11 +85,10 @@ export async function setReviewGroupVisibility(
   ratingVisible: boolean,
   commentVisible: boolean,
 ): Promise<void> {
-  const { error } = await supabase.rpc("set_review_group_visibility", {
+  await rpcClient.callVoid("set_review_group_visibility", {
     _review_id: reviewId,
     _group_id: groupId,
     _rating_visible: ratingVisible,
     _comment_visible: commentVisible,
   });
-  if (error) throw toErr(error);
 }
