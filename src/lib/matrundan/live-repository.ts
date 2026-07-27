@@ -1,6 +1,7 @@
 /**
  * Live-repository: läser en grupps state via den säkra RPC:n
- * get_group_app_state, som filtrerar deltagare/omdömen per grupp.
+ * get_group_app_state_v4b, som bygger vidare på den etablerade gruppscopade
+ * läsmodellen med livscykel och gruppspecifik platsmetadata.
  */
 import { supabase } from "@/integrations/supabase/client";
 import type {
@@ -8,10 +9,12 @@ import type {
   AppState,
   Favorite,
   Group,
+  GroupLifecycleStatus,
   Member,
   Occasion,
   Place,
   PlaceCategory,
+  PlaceCollectionStatus,
   Role,
   VisibleReview,
   Visit,
@@ -67,6 +70,9 @@ type Payload = {
     city: string;
     createdAt: string;
     ownerId: string;
+    lifecycleStatus?: string;
+    archivedAt?: string | null;
+    archivedBy?: string | null;
     sharedVisitsCountForProgression: boolean;
     homeLocation: {
       label: string;
@@ -88,7 +94,11 @@ type Payload = {
     id: string;
     name: string;
     category: string;
+    canonicalCategory?: string;
+    categoryOverride?: string | null;
     cuisines: string[];
+    canonicalCuisines?: string[];
+    cuisinesOverride?: string[] | null;
     occasions: string[];
     address: string;
     area: string | null;
@@ -100,6 +110,9 @@ type Payload = {
     addedBy: string;
     addedAt: string;
     origin: string;
+    collectionStatus?: string;
+    archivedAt?: string | null;
+    archivedBy?: string | null;
   }[];
   visits: VisitRow[];
   favorites: { memberId: string; placeId: string }[];
@@ -121,11 +134,12 @@ function avg(xs: number[]): number | undefined {
 }
 
 export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const { data, error } = await supabase.rpc("get_group_app_state", {
-    _group_id: groupId,
-  });
+  const { data, error } = await supabase.rpc(
+    "get_group_app_state_v4b" as "get_group_app_state",
+    { _group_id: groupId },
+  );
   if (error || !data) {
-    console.error("[Matrundan] get_group_app_state:", error);
+    console.error("[Matrundan] get_group_app_state_v4b:", error);
     return null;
   }
   const p = data as unknown as Payload;
@@ -138,6 +152,9 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     city: p.group.city ?? "",
     createdAt: p.group.createdAt,
     ownerId: p.group.ownerId,
+    lifecycleStatus: (p.group.lifecycleStatus ?? "active") as GroupLifecycleStatus,
+    archivedAt: p.group.archivedAt ?? null,
+    archivedBy: p.group.archivedBy ?? null,
     sharedVisitsCountForProgression: p.group.sharedVisitsCountForProgression,
     homeLocation: home
       ? {
@@ -163,7 +180,13 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     id: pl.id,
     name: pl.name,
     category: pl.category as PlaceCategory,
+    canonicalCategory: (pl.canonicalCategory ?? pl.category) as PlaceCategory,
+    categoryOverride: pl.categoryOverride
+      ? (pl.categoryOverride as PlaceCategory)
+      : null,
     cuisines: pl.cuisines ?? [],
+    canonicalCuisines: pl.canonicalCuisines ?? pl.cuisines ?? [],
+    cuisinesOverride: pl.cuisinesOverride ?? null,
     occasions: (pl.occasions ?? []) as Occasion[],
     address: pl.address ?? "",
     city: pl.city ?? "",
@@ -174,6 +197,9 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     addedAt: pl.addedAt,
     notes: pl.notes ?? undefined,
     photo: pl.photo ?? undefined,
+    collectionStatus: (pl.collectionStatus ?? "active") as PlaceCollectionStatus,
+    archivedAt: pl.archivedAt ?? null,
+    archivedBy: pl.archivedBy ?? null,
     // group_places.origin i DB använder värdena 'manual', 'provider' och
     // 'shared_visit' (delning via visits). Vi normaliserar till Place.origin
     // och behandlar okända värden som "shared" så att Fullträff-badgen inte
