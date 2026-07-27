@@ -97,6 +97,8 @@ Draft-PR kör:
 
 När PR:n markeras redo körs dessutom mobil Chromium för UI-ändringar samt WebKit och desktop Chromium för kartrelaterade ändringar.
 
+Vid formatteringsfel skapar CI en `prettier-patch`-artefakt med den exakta formatteringsdiffen. Det gör felet reproducerbart utan tillfälliga workflows eller commits som endast triggar CI.
+
 ## Skyddsräcken
 
 - `bun.lock` får inte ändras utan `package.json`.
