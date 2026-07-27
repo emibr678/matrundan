@@ -102,12 +102,26 @@ jobs:
             echo "has_map=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Prettier changed code and configuration
+      - name: Format changed code and configuration for draft artifact
         if: steps.changes.outputs.has_format == 'true'
         shell: bash
         run: |
           mapfile -t files < changed-format-files.txt
-          bunx prettier --check "${files[@]}"
+          bunx prettier --write "${files[@]}"
+
+      - name: Package formatted changed files
+        if: steps.changes.outputs.has_format == 'true'
+        shell: bash
+        run: tar -czf formatted-files.tar.gz -T changed-format-files.txt
+
+      - name: Upload formatted changed files
+        if: steps.changes.outputs.has_format == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-files
+          path: formatted-files.tar.gz
+          if-no-files-found: error
+          retention-days: 1
 
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'
