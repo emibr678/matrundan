@@ -28,17 +28,28 @@ export const FOOD_TAGS: FoodTagDefinition[] = [
     "nordic",
     "svenskt",
     "nordiskt",
-    "husmanskost",
   ]),
-  defineFoodTag("cuisine:italian", "Italienskt", "cuisine", ["italian", "italienskt"]),
+  defineFoodTag("cuisine:italian", "Italienskt", "cuisine", [
+    "italian",
+    "italienskt",
+  ]),
   defineFoodTag("cuisine:japanese", "Japanskt", "cuisine", [
     "japanese",
     "japanskt",
     "izakaya",
   ]),
-  defineFoodTag("cuisine:korean", "Koreanskt", "cuisine", ["korean", "koreanskt"]),
-  defineFoodTag("cuisine:chinese", "Kinesiskt", "cuisine", ["chinese", "kinesiskt"]),
-  defineFoodTag("cuisine:thai", "Thailändskt", "cuisine", ["thai", "thailändskt"]),
+  defineFoodTag("cuisine:korean", "Koreanskt", "cuisine", [
+    "korean",
+    "koreanskt",
+  ]),
+  defineFoodTag("cuisine:chinese", "Kinesiskt", "cuisine", [
+    "chinese",
+    "kinesiskt",
+  ]),
+  defineFoodTag("cuisine:thai", "Thailändskt", "cuisine", [
+    "thai",
+    "thailändskt",
+  ]),
   defineFoodTag("cuisine:vietnamese", "Vietnamesiskt", "cuisine", [
     "vietnamese",
     "vietnamesiskt",
@@ -55,13 +66,18 @@ export const FOOD_TAGS: FoodTagDefinition[] = [
     "libanesiskt",
     "turkiskt",
   ]),
-  defineFoodTag("cuisine:mexican-latin", "Mexikanskt/latinamerikanskt", "cuisine", [
-    "mexican",
-    "latin_american",
-    "latin american",
-    "mexikanskt",
-    "latinamerikanskt",
-  ]),
+  defineFoodTag(
+    "cuisine:mexican-latin",
+    "Mexikanskt/latinamerikanskt",
+    "cuisine",
+    [
+      "mexican",
+      "latin_american",
+      "latin american",
+      "mexikanskt",
+      "latinamerikanskt",
+    ],
+  ),
   defineFoodTag("cuisine:mediterranean", "Medelhavsmat", "cuisine", [
     "mediterranean",
     "medelhavsmat",
@@ -82,13 +98,12 @@ export const FOOD_TAGS: FoodTagDefinition[] = [
     "international",
     "internationellt",
   ]),
-  defineFoodTag("cuisine:vegetarian-vegan", "Vegetariskt/veganskt", "cuisine", [
-    "vegetarian",
-    "vegan",
-    "vegetariskt",
-    "veganskt",
-    "vegetariskt/veganskt",
-  ]),
+  defineFoodTag(
+    "cuisine:vegetarian-vegan",
+    "Vegetariskt/veganskt",
+    "cuisine",
+    ["vegetarian", "vegan", "vegetariskt", "veganskt", "vegetariskt/veganskt"],
+  ),
   defineFoodTag("specialty:sushi", "Sushi", "specialty", ["sushi"]),
   defineFoodTag("specialty:ramen", "Ramen", "specialty", ["ramen"]),
   defineFoodTag("specialty:pizza", "Pizza", "specialty", ["pizza", "pizzeria"]),
@@ -112,7 +127,11 @@ export const FOOD_TAGS: FoodTagDefinition[] = [
     "skaldjur",
     "fisk och skaldjur",
   ]),
-  defineFoodTag("specialty:bowl", "Bowl", "specialty", ["bowl", "poke", "poke_bowl"]),
+  defineFoodTag("specialty:bowl", "Bowl", "specialty", [
+    "bowl",
+    "poke",
+    "poke_bowl",
+  ]),
   defineFoodTag("specialty:pasta", "Pasta", "specialty", ["pasta"]),
   defineFoodTag("specialty:falafel", "Falafel", "specialty", ["falafel"]),
   defineFoodTag("specialty:street-food", "Street food", "specialty", [
@@ -142,7 +161,10 @@ export const FOOD_TAGS: FoodTagDefinition[] = [
     "pastries",
     "bakverk",
   ]),
-  defineFoodTag("specialty:sourdough", "Surdeg", "specialty", ["sourdough", "surdeg"]),
+  defineFoodTag("specialty:sourdough", "Surdeg", "specialty", [
+    "sourdough",
+    "surdeg",
+  ]),
   defineFoodTag("specialty:danish-pastry", "Wienerbröd", "specialty", [
     "danish",
     "danish_pastry",
@@ -182,7 +204,10 @@ export function findFoodTag(value: string): FoodTagDefinition | undefined {
   return findFoodTags(value)[0];
 }
 
-export function normalizeFoodTags(values: readonly string[], preserveUnknown = true): string[] {
+export function normalizeFoodTags(
+  values: readonly string[],
+  preserveUnknown = true,
+): string[] {
   const result: string[] = [];
   const seen = new Set<string>();
 
