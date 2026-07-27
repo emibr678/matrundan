@@ -102,12 +102,23 @@ jobs:
             echo "has_map=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Prettier changed code and configuration
+      - name: Generate temporary Prettier artifact
         if: steps.changes.outputs.has_format == 'true'
         shell: bash
         run: |
           mapfile -t files < changed-format-files.txt
-          bunx prettier --check "${files[@]}"
+          bunx prettier --write "${files[@]}"
+
+      - name: Upload temporary formatted files
+        if: steps.changes.outputs.has_format == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr18-prettier-files
+          path: |
+            src/components/matrundan/PlaceMap.tsx
+            src/lib/matrundan/geoapify.functions.ts
+            tests/e2e/mobile-matstallen.spec.ts
+          if-no-files-found: error
 
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'
