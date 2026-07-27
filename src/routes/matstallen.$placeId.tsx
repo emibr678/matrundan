@@ -3,32 +3,32 @@ import {
   createFileRoute,
   Link,
   stripSearchParams,
+  useNavigate,
   useParams,
   useRouter,
-  useNavigate,
 } from "@tanstack/react-router";
-import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
-  Archive,
   ArrowLeft,
-  Heart,
-  MapPin,
   ExternalLink,
-  Sparkles,
-  Plus,
+  Heart,
+  ListX,
+  MapPin,
   MessageCircle,
+  Plus,
+  Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useStore, formatDate, googleMapsUrl } from "@/lib/matrundan/store";
+import { z } from "zod";
+import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
+import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { RatingStars } from "@/components/matrundan/Rating";
 import { StatusBadge } from "@/components/matrundan/StatusBadge";
-import { PlaceThumb } from "@/components/matrundan/PlaceCard";
-import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
-import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
+import { VisitDialog } from "@/components/matrundan/VisitDialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -114,8 +114,8 @@ function PlaceDetail() {
   const fav = isFavorite(place.id);
   const isNext = state.nextPlaceId === place.id;
   const groupArchived = state.group.lifecycleStatus === "archived";
-  const placeArchived = place.collectionStatus === "archived";
-  const writable = !groupArchived && !placeArchived;
+  const placeRemoved = place.collectionStatus === "archived";
+  const writable = !groupArchived && !placeRemoved;
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
@@ -150,9 +150,9 @@ function PlaceDetail() {
               </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              {placeArchived ? (
+              {placeRemoved ? (
                 <Badge variant="outline" className="rounded-full">
-                  <Archive className="mr-1 h-3 w-3" /> Arkiverat i gruppen
+                  <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
                 </Badge>
               ) : (
                 <StatusBadge placeId={place.id} />
@@ -221,12 +221,12 @@ function PlaceDetail() {
           ) : (
             <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm">
               <div className="font-medium">
-                {placeArchived ? "Stället är arkiverat i gruppen" : "Gruppen är arkiverad"}
+                {placeRemoved ? "Inte längre i gruppens lista" : "Gruppen är arkiverad"}
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Tidigare besök, betyg, kommentarer och favoriter är bevarade.
-                {placeArchived && !groupArchived
-                  ? " En ägare eller admin kan återställa stället för nya besök och planering."
+                Tidigare besök, betyg, kommentarer och favoriter finns kvar.
+                {placeRemoved && !groupArchived
+                  ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
                   : " Återaktivera gruppen för att göra ändringar."}
               </p>
             </div>
@@ -266,8 +266,8 @@ function PlaceDetail() {
           {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
           {(place.categoryOverride != null || place.cuisinesOverride != null) && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Kategori eller kökstyper har korrigerats för den här gruppen. Kanoniska platsuppgifter
-              som namn, adress och koordinater är oförändrade.
+              Kategori eller kök och inriktning har anpassats för den här gruppen. Matställets namn
+              och adress är oförändrade.
             </p>
           )}
           <div className="text-xs text-muted-foreground">
@@ -321,7 +321,9 @@ function PlaceDetail() {
                     })
                   }
                   className="w-full rounded-2xl border border-border/70 bg-card p-3 text-left transition-colors hover:bg-accent focus:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label={`Öppna besök av ${author?.name ?? "medlem"} ${formatDate(visit.date)}`}
+                  aria-label={`Öppna besök av ${
+                    author?.name ?? "medlem"
+                  } ${formatDate(visit.date)}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">

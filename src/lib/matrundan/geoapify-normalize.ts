@@ -2,10 +2,10 @@
  * Ren normalisering av Geoapify-svar till Matrundans domänmodell.
  * Filen innehåller ingen nätverks- eller secret-hantering.
  */
+import { normalizeFoodTags } from "./food-tags";
 import type { PlaceCategory } from "./types";
 
-export const GEOAPIFY_ATTRIBUTION =
-  "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.";
+export const GEOAPIFY_ATTRIBUTION = "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.";
 
 export interface NormalizedPlaceSuggestion {
   externalId: string;
@@ -78,7 +78,7 @@ interface GeoapifyFeature {
 }
 
 function hasCategory(categories: string[], prefix: string): boolean {
-  return categories.some((c) => c === prefix || c.startsWith(`${prefix}.`));
+  return categories.some((category) => category === prefix || category.startsWith(`${prefix}.`));
 }
 
 export function categoryFromGeoapify(
@@ -89,7 +89,9 @@ export function categoryFromGeoapify(
   if (
     hasCategory(cats, "commercial.food_and_drink.bakery") ||
     hasCategory(cats, "catering.bakery")
-  ) return "bageri";
+  ) {
+    return "bageri";
+  }
   if (hasCategory(cats, "catering.cafe") || hasCategory(cats, "catering.ice_cream")) {
     return "café";
   }
@@ -102,53 +104,24 @@ export function categoryFromGeoapify(
     hasCategory(cats, "catering.bar") ||
     hasCategory(cats, "catering.biergarten") ||
     hasCategory(cats, "catering.taproom")
-  ) return "pub";
+  ) {
+    return "pub";
+  }
 
   switch (amenity) {
-    case "cafe": return "café";
-    case "fast_food": return "snabbmat";
+    case "cafe":
+      return "café";
+    case "fast_food":
+      return "snabbmat";
     case "pub":
     case "bar":
-    case "biergarten": return "pub";
-    case "bakery": return "bageri";
-    default: return "restaurang";
+    case "biergarten":
+      return "pub";
+    case "bakery":
+      return "bageri";
+    default:
+      return "restaurang";
   }
-}
-
-const CUISINE_ALIASES: Record<string, string> = {
-  swedish: "Svenskt/nordiskt",
-  scandinavian: "Svenskt/nordiskt",
-  nordic: "Svenskt/nordiskt",
-  italian: "Italienskt",
-  pizza: "Pizza",
-  burger: "Burgare",
-  american: "Burgare",
-  japanese: "Japanskt",
-  sushi: "Sushi",
-  thai: "Thailändskt",
-  chinese: "Kinesiskt",
-  korean: "Koreanskt",
-  vietnamese: "Vietnamesiskt",
-  indian: "Indiskt",
-  lebanese: "Mellanöstern",
-  arab: "Mellanöstern",
-  middle_eastern: "Mellanöstern",
-  turkish: "Mellanöstern",
-  mexican: "Mexikanskt/latinamerikanskt",
-  latin_american: "Mexikanskt/latinamerikanskt",
-  mediterranean: "Medelhavsmat",
-  greek: "Medelhavsmat",
-  french: "Franskt",
-  seafood: "Fisk och skaldjur",
-  fish: "Fisk och skaldjur",
-  vegetarian: "Vegetariskt/veganskt",
-  vegan: "Vegetariskt/veganskt",
-  international: "Internationellt",
-};
-
-function normalizeCuisineToken(value: string): string | undefined {
-  const token = value.trim().toLowerCase().replace(/[ -]+/g, "_");
-  return CUISINE_ALIASES[token];
 }
 
 export function cuisinesFromGeoapify(props: GeoapifyProperties | undefined): string[] {
@@ -156,15 +129,14 @@ export function cuisinesFromGeoapify(props: GeoapifyProperties | undefined): str
   const values: string[] = [];
   const rawCuisine = props.datasource?.raw?.cuisine;
   if (typeof rawCuisine === "string") values.push(...rawCuisine.split(/[;,]/));
+
   for (const category of props.categories ?? []) {
-    if (
-      category.startsWith("catering.restaurant.") ||
-      category.startsWith("catering.fast_food.")
-    ) values.push(category.split(".").at(-1) ?? "");
+    if (category.startsWith("catering.restaurant.") || category.startsWith("catering.fast_food.")) {
+      values.push(category.split(".").at(-1) ?? "");
+    }
   }
-  return Array.from(
-    new Set(values.map(normalizeCuisineToken).filter((v): v is string => Boolean(v))),
-  ).slice(0, 5);
+
+  return normalizeFoodTags(values, false).slice(0, 8);
 }
 
 export function areaFromGeoapify(props: GeoapifyProperties): string | undefined {
@@ -183,16 +155,19 @@ export function addressFromGeoapify(props: GeoapifyProperties): string {
 }
 
 export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlaceSuggestion | null {
-  const p = feature.properties;
-  const externalId = p?.place_id?.trim();
-  const name = p?.name?.trim();
-  if (!p || !externalId || !name) return null;
+  const properties = feature.properties;
+  const externalId = properties?.place_id?.trim();
+  const name = properties?.name?.trim();
+  if (!properties || !externalId || !name) return null;
 
-  const raw = p.datasource?.raw;
-  const website = p.website || raw?.website;
-  const phone = p.contact?.phone || raw?.phone;
-  const categories = p.categories ?? [];
+  const providerRaw = properties.datasource?.raw;
+  const website = properties.website || providerRaw?.website;
+  const phone = properties.contact?.phone || providerRaw?.phone;
+  const categories = properties.categories ?? [];
   const metadata = {
+    provider: "geoapify",
+    providerPlaceId: externalId,
+    cuisine: typeof providerRaw?.cuisine === "string" ? providerRaw.cuisine : undefined,
     categories,
     website: typeof website === "string" ? website : undefined,
     phone: typeof phone === "string" ? phone : undefined,
@@ -205,19 +180,21 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
     name,
     category: categoryFromGeoapify(
       categories,
-      typeof raw?.amenity === "string" ? raw.amenity : undefined,
+      typeof providerRaw?.amenity === "string" ? providerRaw.amenity : undefined,
     ),
-    cuisines: cuisinesFromGeoapify(p),
-    address: addressFromGeoapify(p),
-    city: cityFromGeoapify(p),
-    area: areaFromGeoapify(p),
-    lat: p.lat,
-    lng: p.lon,
-    distanceKm: typeof p.distance === "number" ? p.distance / 1000 : undefined,
+    cuisines: cuisinesFromGeoapify(properties),
+    address: addressFromGeoapify(properties),
+    city: cityFromGeoapify(properties),
+    area: areaFromGeoapify(properties),
+    lat: properties.lat,
+    lng: properties.lon,
+    distanceKm: typeof properties.distance === "number" ? properties.distance / 1000 : undefined,
     website: typeof website === "string" ? website : undefined,
     phone: typeof phone === "string" ? phone : undefined,
     externalUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      [name, addressFromGeoapify(p), cityFromGeoapify(p)].filter(Boolean).join(" "),
+      [name, addressFromGeoapify(properties), cityFromGeoapify(properties)]
+        .filter(Boolean)
+        .join(" "),
     )}`,
     attribution: GEOAPIFY_ATTRIBUTION,
     raw: JSON.stringify(metadata),
@@ -227,20 +204,26 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
 export function normalizeLocationFeature(
   feature: GeoapifyFeature,
 ): NormalizedLocationSuggestion | null {
-  const p = feature.properties;
-  if (!p?.place_id || typeof p.lat !== "number" || typeof p.lon !== "number") return null;
-  const city = cityFromGeoapify(p);
+  const properties = feature.properties;
+  if (
+    !properties?.place_id ||
+    typeof properties.lat !== "number" ||
+    typeof properties.lon !== "number"
+  ) {
+    return null;
+  }
+  const city = cityFromGeoapify(properties);
   if (!city) return null;
-  const area = areaFromGeoapify(p);
-  const name = p.name || area || city;
+  const area = areaFromGeoapify(properties);
+  const name = properties.name || area || city;
   return {
-    placeId: p.place_id,
-    label: p.formatted || (area ? `${area}, ${city}` : city),
+    placeId: properties.place_id,
+    label: properties.formatted || (area ? `${area}, ${city}` : city),
     name,
     city,
     area,
-    lat: p.lat,
-    lng: p.lon,
-    resultType: p.result_type,
+    lat: properties.lat,
+    lng: properties.lon,
+    resultType: properties.result_type,
   };
 }

@@ -1,16 +1,9 @@
 import * as React from "react";
-import { Archive, ArchiveRestore, Settings2 } from "lucide-react";
+import { RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,10 +14,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -32,7 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
@@ -46,34 +46,24 @@ import {
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as PlaceCategory[];
 const OCCASIONS = Object.keys(OCCASION_LABEL) as Occasion[];
 
-function splitCuisines(value: string): string[] {
-  return [
-    ...new Set(
-      value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    ),
-  ].slice(0, 20);
-}
-
 export function PlaceAdminDialog({ place }: { place: Place }) {
   const { activeGroupRole } = useSession();
-  const { state, submitting, archivePlace, restorePlace, updatePlaceMetadata } = useStore();
+  const { state, submitting, archivePlace, restorePlace, updatePlaceMetadata, visitsFor } =
+    useStore();
   const canAdmin = activeGroupRole === "owner" || activeGroupRole === "admin";
   const groupArchived = state.group.lifecycleStatus === "archived";
-  const placeArchived = place.collectionStatus === "archived";
+  const placeRemoved = place.collectionStatus === "archived";
+  const hasVisits = visitsFor(place.id).length > 0;
+  const baseCuisines = place.canonicalCuisines ?? place.cuisines;
   const [open, setOpen] = React.useState(false);
-  const [confirmArchive, setConfirmArchive] = React.useState(false);
+  const [confirmRemove, setConfirmRemove] = React.useState(false);
   const [category, setCategory] = React.useState<PlaceCategory | "inherit">(
     place.categoryOverride ?? "inherit",
   );
   const [useCuisineOverride, setUseCuisineOverride] = React.useState(
     place.cuisinesOverride != null,
   );
-  const [cuisines, setCuisines] = React.useState(
-    (place.cuisinesOverride ?? place.canonicalCuisines ?? place.cuisines).join(", "),
-  );
+  const [cuisines, setCuisines] = React.useState<string[]>(place.cuisinesOverride ?? baseCuisines);
   const [occasions, setOccasions] = React.useState<Occasion[]>(place.occasions);
   const [notes, setNotes] = React.useState(place.notes ?? "");
 
@@ -81,7 +71,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     if (!open) return;
     setCategory(place.categoryOverride ?? "inherit");
     setUseCuisineOverride(place.cuisinesOverride != null);
-    setCuisines((place.cuisinesOverride ?? place.canonicalCuisines ?? place.cuisines).join(", "));
+    setCuisines(place.cuisinesOverride ?? place.canonicalCuisines ?? place.cuisines);
     setOccasions(place.occasions);
     setNotes(place.notes ?? "");
   }, [open, place]);
@@ -100,7 +90,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     try {
       await updatePlaceMetadata(place.id, {
         categoryOverride: category === "inherit" ? null : category,
-        cuisinesOverride: useCuisineOverride ? splitCuisines(cuisines) : null,
+        cuisinesOverride: useCuisineOverride ? cuisines : null,
         occasions,
         notes: notes.trim() || null,
       });
@@ -111,16 +101,16 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     }
   }
 
-  async function changeArchiveState(action: "archive" | "restore") {
+  async function changeCollectionState(action: "remove" | "restore") {
     try {
-      if (action === "archive") await archivePlace(place.id);
+      if (action === "remove") await archivePlace(place.id);
       else await restorePlace(place.id);
       toast.success(
-        action === "archive"
-          ? "Matstället är arkiverat i gruppen."
-          : "Matstället är tillbaka i gruppens aktiva samling.",
+        action === "remove"
+          ? "Matstället är borttaget från gruppens lista."
+          : "Matstället är tillbaka i gruppens lista.",
       );
-      setConfirmArchive(false);
+      setConfirmRemove(false);
       setOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera stället.");
@@ -135,16 +125,15 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
             <Settings2 className="h-4 w-4" /> Hantera ställe
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Hantera {place.name}</DialogTitle>
             <DialogDescription>
-              Korrigeringarna gäller bara i {state.group.name}. Namn, adress, koordinater och extern
-              platsidentitet förblir kanoniska.
+              Ändringarna gäller bara i {state.group.name}. Namn och adress påverkas inte.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <div className="space-y-1.5">
               <Label>Kategori i gruppen</Label>
               <Select
@@ -156,7 +145,8 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="inherit">
-                    Använd kanonisk: {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
+                    Återställ till grundkategorin:{" "}
+                    {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
                   </SelectItem>
                   {CATEGORIES.map((item) => (
                     <SelectItem key={item} value={item}>
@@ -167,27 +157,32 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
               </Select>
             </div>
 
-            <div className="space-y-2 rounded-2xl border border-border/70 p-3">
+            <div className="min-w-0 space-y-3 rounded-2xl border border-border/70 p-3">
               <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="place-cuisine-override" className="font-normal">
-                  Använd gruppspecifika kökstyper
+                <Label htmlFor="place-cuisine-override" className="min-w-0 font-normal">
+                  Anpassa kök och inriktning för {state.group.name}
                 </Label>
                 <Switch
                   id="place-cuisine-override"
                   checked={useCuisineOverride}
-                  onCheckedChange={setUseCuisineOverride}
+                  onCheckedChange={(checked) => {
+                    setUseCuisineOverride(checked);
+                    if (checked && cuisines.length === 0) setCuisines(baseCuisines);
+                  }}
                 />
               </div>
-              <Input
+              <FoodTagMultiSelect
+                id="place-food-tags"
                 value={cuisines}
-                onChange={(event) => setCuisines(event.target.value)}
+                onChange={setCuisines}
                 disabled={!useCuisineOverride}
-                placeholder="t.ex. italienskt, pizza, vegetariskt"
+                label="Kök och inriktning"
+                description={
+                  useCuisineOverride
+                    ? "Valen gäller bara för den här gruppen."
+                    : `Grunduppgifterna används: ${baseCuisines.join(", ") || "inga val"}.`
+                }
               />
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Separera med kommatecken. Avstängt använder kanoniska kökstyper:{" "}
-                {(place.canonicalCuisines ?? place.cuisines).join(", ") || "inga"}.
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -227,22 +222,22 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
 
             <div className="rounded-2xl border border-border/70 p-3">
               <div className="font-medium">
-                {placeArchived ? "Arkiverat matställe" : "Aktiv samling"}
+                {placeRemoved ? "Inte längre i gruppens lista" : "I gruppens lista"}
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                {placeArchived
-                  ? "Historik och tidigare besök är bevarade. Återställ stället för att planera eller registrera nya besök."
-                  : "Arkivering tar bort stället från den aktiva samlingen men bevarar besök, favoriter, betyg och kommentarer."}
+                {placeRemoved
+                  ? "Tidigare besök och omdömen finns kvar i historiken. Lägg tillbaka stället för nya besök och planering."
+                  : "Du kan ta bort stället från gruppens lista utan att radera tidigare besök eller omdömen."}
               </p>
-              {placeArchived ? (
+              {placeRemoved ? (
                 <Button
                   type="button"
                   variant="outline"
                   className="mt-3 w-full"
                   disabled={submitting}
-                  onClick={() => void changeArchiveState("restore")}
+                  onClick={() => void changeCollectionState("restore")}
                 >
-                  <ArchiveRestore className="h-4 w-4" /> Återställ stället
+                  <RotateCcw className="h-4 w-4" /> Lägg tillbaka i gruppen
                 </Button>
               ) : (
                 <Button
@@ -250,9 +245,9 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
                   variant="ghost"
                   className="mt-3 w-full text-destructive hover:text-destructive"
                   disabled={submitting}
-                  onClick={() => setConfirmArchive(true)}
+                  onClick={() => setConfirmRemove(true)}
                 >
-                  <Archive className="h-4 w-4" /> Arkivera stället
+                  <Trash2 className="h-4 w-4" /> Ta bort från gruppen
                 </Button>
               )}
             </div>
@@ -269,22 +264,23 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
-        <AlertDialogContent>
+      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+        <AlertDialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Arkivera {place.name}?</AlertDialogTitle>
+            <AlertDialogTitle>Ta bort {place.name} från gruppen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Stället försvinner från gruppens aktiva samling. Tidigare besök, betyg, kommentarer
-              och favoriter bevaras. Om det är nästa stopp rensas det samtidigt.
+              {hasVisits
+                ? "Stället tas bort från gruppens lista. Tidigare besök och omdömen finns kvar i historiken, och du kan lägga till stället igen senare."
+                : "Stället tas bort från gruppens lista. Du kan lägga till det igen senare."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Avbryt</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => void changeArchiveState("archive")}
+              onClick={() => void changeCollectionState("remove")}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Arkivera stället
+              Ta bort från gruppen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

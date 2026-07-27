@@ -37,26 +37,28 @@ test("ägaren kan arkivera och återaktivera en grupp i demo-läget", async ({ p
   await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
 });
 
-test("adminflödet arkiverar och återställer bara gruppens platskoppling", async ({ page }) => {
+test("adminflödet tar bort och lägger tillbaka bara gruppens platskoppling", async ({ page }) => {
   await page.goto("/matstallen/p5?demo=1");
 
   await page.getByRole("button", { name: "Hantera ställe" }).click();
   const dialog = page.getByRole("dialog", { name: /Hantera Glöd & Grönska/ });
   await expect(dialog.getByText(/gäller bara i Fredagsgänget/)).toBeVisible();
-  await dialog.getByRole("button", { name: "Arkivera stället" }).click();
+  await dialog.getByRole("button", { name: "Ta bort från gruppen" }).click();
 
   const confirm = page.getByRole("alertdialog");
-  await confirm.getByRole("button", { name: "Arkivera stället" }).click();
-  await expect(page.getByText("Arkiverat i gruppen", { exact: true })).toBeVisible();
+  await confirm.getByRole("button", { name: "Ta bort från gruppen" }).click();
+  await expect(
+    page.getByText("Inte längre i gruppens lista", { exact: true }).first(),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Hantera ställe" }).click();
   await page
     .getByRole("dialog", { name: /Hantera Glöd & Grönska/ })
-    .getByRole("button", { name: "Återställ stället" })
+    .getByRole("button", { name: "Lägg tillbaka i gruppen" })
     .click();
   await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Återställt matställe");
+  await expectNoHorizontalOverflow(page, "Tillbakalagt matställe");
 });
 
 test("en medlem kan redigera endast sitt eget omdöme", async ({ page }) => {
