@@ -70,7 +70,7 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
     });
   });
 
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5c", async (route) => {
+  await page.route("**/rest/v1/rpc/get_group_app_state_v5d", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -103,6 +103,7 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
         favorites: [],
         activity: [],
         nextPlaceId: null,
+        nextStopDateProposal: null,
       }),
     });
   });
