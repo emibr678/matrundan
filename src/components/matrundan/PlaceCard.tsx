@@ -17,13 +17,7 @@ const CATEGORY_GRADIENT: Record<PlaceCategory, string> = {
   matvagn: "from-sage/30 to-mustard/30",
 };
 
-export function PlaceThumb({
-  place,
-  size = "md",
-}: {
-  place: Place;
-  size?: "sm" | "md" | "lg";
-}) {
+export function PlaceThumb({ place, size = "md" }: { place: Place; size?: "sm" | "md" | "lg" }) {
   const dims =
     size === "lg"
       ? "h-20 w-20 text-4xl"
@@ -80,9 +74,7 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
               >
                 <Heart
                   className={
-                    fav
-                      ? "h-4 w-4 fill-primary stroke-primary"
-                      : "h-4 w-4 stroke-muted-foreground"
+                    fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4 stroke-muted-foreground"
                   }
                 />
               </Button>
