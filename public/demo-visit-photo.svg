@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Fiktivt matminne från Fredagsgänget</title>
+  <desc id="desc">Ett varmt illustrerat cafébord med kaffe och kardemummabulle.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4d9b1"/>
+      <stop offset="1" stop-color="#b8684b"/>
+    </linearGradient>
+    <radialGradient id="coffee" cx="45%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#8f573b"/>
+      <stop offset="1" stop-color="#3e241d"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#4a261d" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <circle cx="1060" cy="110" r="180" fill="#f8edcf" opacity=".35"/>
+  <circle cx="110" cy="690" r="230" fill="#7f9b75" opacity=".28"/>
+  <rect x="110" y="150" width="980" height="540" rx="70" fill="#f7edda" opacity=".82" filter="url(#shadow)"/>
+  <ellipse cx="420" cy="455" rx="220" ry="150" fill="#d7b995"/>
+  <ellipse cx="420" cy="440" rx="196" ry="128" fill="#fff8ea"/>
+  <path d="M300 455c36-102 180-135 248-35 48 71-17 145-105 143-91-2-174-39-143-108Z" fill="#bc7948"/>
+  <path d="M330 450c26-63 116-83 165-27 35 41-8 86-70 84-62-1-117-21-95-57Z" fill="#e7a764"/>
+  <path d="M370 408c34 30 62 58 82 99M423 395c28 38 50 73 63 107M478 404c19 31 32 61 38 91" fill="none" stroke="#8e4d30" stroke-width="13" stroke-linecap="round" opacity=".7"/>
+  <g transform="translate(660 260)" filter="url(#shadow)">
+    <ellipse cx="170" cy="255" rx="190" ry="55" fill="#b89172" opacity=".5"/>
+    <rect x="20" y="40" width="275" height="230" rx="35" fill="#f4efe5"/>
+    <ellipse cx="158" cy="60" rx="137" ry="55" fill="#fff"/>
+    <ellipse cx="158" cy="62" rx="110" ry="39" fill="url(#coffee)"/>
+    <path d="M292 95h42c78 0 78 125 0 125h-42" fill="none" stroke="#f4efe5" stroke-width="32" stroke-linecap="round"/>
+    <path d="M106 42c-20-42 28-50 12-92M164 35c-14-43 30-48 19-94M218 44c-12-38 28-48 19-84" fill="none" stroke="#fff5e5" stroke-width="12" stroke-linecap="round" opacity=".75"/>
+  </g>
+  <text x="145" y="110" fill="#51352d" font-family="system-ui, sans-serif" font-size="34" font-weight="700">Fredagsfika i Stockholm</text>
+  <text x="148" y="742" fill="#51352d" font-family="system-ui, sans-serif" font-size="25" opacity=".8">Fiktiv exempelbild · privata minnen stannar i gruppen</text>
+</svg>

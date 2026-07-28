@@ -31,6 +31,8 @@ import { removeSharedVisitFromGroup, setReviewGroupVisibility } from "@/lib/matr
 import { RatingStars } from "./Rating";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { EditReviewDialog } from "./EditReviewDialog";
+import { VisitPhotoManager } from "./VisitPhotoManager";
+import { canManageVisitPhoto } from "@/lib/matrundan/visit-photo";
 
 const MEAL_LABEL: Record<string, string> = {
   frukost: "Frukost",
@@ -72,6 +74,13 @@ export function VisitDetailSheet({
       activeGroupRole === "owner" ||
       activeGroupRole === "admin");
   const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
+  const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
+  const canManagePhoto = !!visit && canManageVisitPhoto(
+    visit,
+    state.currentUserId,
+    currentRole,
+    groupArchived,
+  );
 
   const myReview = React.useMemo(
     () => visit?.visibleReviews?.find((review) => review.userId === state.currentUserId),
@@ -167,6 +176,8 @@ export function VisitDetailSheet({
               </SheetHeader>
 
               <div className="space-y-4 p-5">
+                <VisitPhotoManager visit={visit} canManage={canManagePhoto} />
+
                 <Card className="rounded-2xl border-border/70 p-4">
                   <div className="flex items-center gap-3">
                     <div className="grid h-11 w-11 place-items-center rounded-full bg-secondary text-2xl">

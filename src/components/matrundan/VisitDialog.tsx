@@ -26,6 +26,7 @@ import { RatingInput } from "./Rating";
 import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { ShareVisitDialog } from "./ShareVisitDialog";
+import { VisitPhotoField } from "./VisitPhotoField";
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
@@ -45,7 +46,7 @@ export function VisitDialog({
   onOpenChange: (v: boolean) => void;
   placeId: string | null;
 }) {
-  const { addVisit, state, getPlace, submitting, mode } = useStore();
+  const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
   const { userGroups, activeGroupId } = useSession();
   const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
   const canShare =
@@ -70,6 +71,7 @@ export function VisitDialog({
   const [service, setService] = React.useState(0);
   const [comment, setComment] = React.useState("");
   const [showDetails, setShowDetails] = React.useState(false);
+  const [photoFile, setPhotoFile] = React.useState<File | null>(null);
 
   React.useEffect(() => {
     if (!open) {
@@ -82,6 +84,7 @@ export function VisitDialog({
       setService(0);
       setComment("");
       setShowDetails(false);
+      setPhotoFile(null);
     }
   }, [open, state.currentUserId]);
 
@@ -114,8 +117,19 @@ export function VisitDialog({
         comment: comment.trim() || undefined,
         createdBy: state.currentUserId,
       });
+      let photoError: Error | null = null;
+      if (photoFile && created?.id) {
+        try {
+          await saveVisitPhoto(created.id, photoFile);
+        } catch (error) {
+          photoError = error instanceof Error ? error : new Error("Fotot kunde inte sparas.");
+        }
+      }
       toast.success("Besök registrerat", { description: place.name });
       onOpenChange(false);
+      if (photoError) {
+        toast.warning("Besöket sparades utan foto.", { description: photoError.message });
+      }
       if (thenShare && activeGroupId && created?.id) {
         setSharePayload({ visitId: created.id, groupId: activeGroupId });
       }
@@ -215,6 +229,8 @@ export function VisitDialog({
               </div>
             </CollapsibleContent>
           </Collapsible>
+
+          <VisitPhotoField file={photoFile} onFileChange={setPhotoFile} disabled={isBusy} />
 
           <div className="space-y-1.5">
             <Label htmlFor="comment">Kommentar (frivilligt)</Label>
