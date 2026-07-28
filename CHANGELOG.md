@@ -4,6 +4,35 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.14.0] – 2026-07-28
+
+### Nytt
+
+- **Ett privat foto per besök.** Fotot kan väljas vid registreringen eller
+  läggas till, ersättas och tas bort i efterhand från besöksdetaljen.
+- Historiken visar en diskret miniatyr och besöksdetaljen visar den större
+  bilden som en del av gruppens gemensamma minne.
+
+### Förbättrat
+
+- Bilden omkodas till JPEG, begränsas till högst 1600 px på längsta sidan och
+  komprimeras mot cirka 700 KB. Omkodningen tar bort EXIF- och GPS-metadata.
+- En privat Storage-bucket och `visit_media` kopplar fotot till kombinationen
+  besök + ursprungsgrupp. Signerade URL:er skapas bara för den aktiva gruppens
+  läsmodell.
+- Faktiska deltagare samt gruppens ägare och admin får hantera fotot. Ett delat
+  besök och en arkiverad grupp är skrivskyddade.
+- Fotot följer inte med till mottagargruppen när ett kanoniskt besök delas.
+- Exempelgruppen använder samma UI men lagrar en komprimerad data-URL enbart i
+  sin lokala session och skriver aldrig till Cloud Storage.
+
+### Rättat
+
+- Besöket sparas före bilden. Ett bild- eller uppladdningsfel lämnar därför det
+  registrerade besöket intakt och visar ett tydligt meddelande.
+- Mobilregressionen verifierar val, förhandsvisning, komprimering, persistens,
+  visning och borttagning utan horisontell overflow vid 360 px.
+
 ## [0.13.0] – 2026-07-28
 
 ### Förbättrat

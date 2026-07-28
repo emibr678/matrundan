@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.13.0";
+export const APP_VERSION = "0.14.0";
 export const APP_VERSION_DATE = "2026-07-28";
 
 export interface ChangelogEntry {
@@ -26,6 +26,36 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Spara ett privat foto från besöket och behåll det som en del av gruppens gemensamma mathistorik.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Ett valfritt foto kan läggas till när ett besök registreras eller i efterhand från besöksdetaljen.",
+          "Fotot visas i besökshistoriken och större i besöksdetaljen, men används aldrig automatiskt som matställets huvudbild.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Bilder omkodas till komprimerad JPEG med högst 1600 pixlars längsta sida, vilket tar bort EXIF- och platsmetadata före lagring.",
+          "Endast faktiska deltagare eller gruppens ägare och administratörer kan lägga till, ersätta eller ta bort ett foto.",
+          "Fotot är privat för ursprungsgruppen och följer inte med när det kanoniska besöket delas till en annan grupp.",
+          "Fredagsgänget demonstrerar samma fotoflöde lokalt utan att skriva till databas eller Cloud Storage.",
+        ],
+      },
+      {
+        kind: "Rättat",
+        items: [
+          "Besöket sparas alltid före fotot, så ett uppladdningsfel kan inte rulla tillbaka eller förlora den registrerade rundan.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.13.0",
+    date: "2026-07-28",
     summary:
       "Lägg till flera matställen i samma sökomgång utan att förlora sökning, karta eller position.",
     sections: [
