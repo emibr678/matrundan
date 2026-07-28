@@ -29,7 +29,13 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.12.1
+## Status – v0.13.0
+
+Paket 5B gör det möjligt att lägga till flera sökträffar i samma omgång.
+Sökdialogen, radien, list- eller kartläget, det valda resultatet och positionen
+bevaras efter varje tillägg. Resultat märks Tillagd, Finns redan eller Lägg
+tillbaka, en räknare summerar omgången och Klar avslutar uttryckligt. Manuellt
+tillägg och den kanoniska dubblett- och återaktiveringslogiken är oförändrade.
 
 Paket 5A och 5A.1 skiljer tydligt mellan en publik start, en interaktiv
 exempelgrupp och användarnas riktiga privata grupper. En utloggad användare
