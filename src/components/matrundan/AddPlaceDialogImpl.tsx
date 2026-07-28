@@ -1,5 +1,14 @@
 import * as React from "react";
-import { ArrowLeft, List, Loader2, Map, Plus, RefreshCcw, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  List,
+  Loader2,
+  Map,
+  Plus,
+  RefreshCcw,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
@@ -33,6 +42,7 @@ import {
   CATEGORY_LABEL,
   OCCASION_LABEL,
   type Occasion,
+  type Place,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
 
@@ -41,6 +51,7 @@ const RADIUS_OPTIONS = [1, 3, 5, 10, 25, 50] as const;
 
 type ResultView = "lista" | "karta";
 type Tab = "sok" | "manuell";
+type ResultStatus = "available" | "archived" | "added" | "existing";
 
 type ManualDraft = {
   name: string;
@@ -87,6 +98,33 @@ function emptyManual(city: string): ManualDraft {
   };
 }
 
+function normalizeMatch(value: string | undefined) {
+  return (value ?? "")
+    .trim()
+    .toLocaleLowerCase("sv-SE")
+    .replace(/\s+/g, " ");
+}
+
+function matchingPlace(places: Place[], suggestion: PlaceSuggestion) {
+  const name = normalizeMatch(suggestion.name);
+  const address = normalizeMatch(suggestion.address);
+  const city = normalizeMatch(suggestion.city);
+
+  return places.find((place) => {
+    if (normalizeMatch(place.name) !== name) return false;
+    const placeAddress = normalizeMatch(place.address);
+    if (address && placeAddress) return placeAddress === address;
+    return normalizeMatch(place.city) === city;
+  });
+}
+
+function resultStatusText(status: ResultStatus) {
+  if (status === "added") return "Tillagd";
+  if (status === "existing") return "Finns redan";
+  if (status === "archived") return "Kan läggas tillbaka";
+  return null;
+}
+
 export function AddPlaceDialog({
   open,
   onOpenChange,
@@ -121,6 +159,8 @@ export function AddPlaceDialog({
   const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>(["avslappnat"]);
   const [pendingNotes, setPendingNotes] = React.useState("");
   const [manual, setManual] = React.useState<ManualDraft>(() => emptyManual(state.group.city));
+  const [addedResultIds, setAddedResultIds] = React.useState<Set<string>>(() => new Set());
+  const [existingResultIds, setExistingResultIds] = React.useState<Set<string>>(() => new Set());
   const [loading, setLoading] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -151,6 +191,8 @@ export function AddPlaceDialog({
     setPendingOccasions(["avslappnat"]);
     setPendingNotes("");
     setManual(emptyManual(state.group.city));
+    setAddedResultIds(new Set());
+    setExistingResultIds(new Set());
     setError(null);
     setRetry(0);
   }, [isLive, state.group.city, verifiedHome]);
@@ -168,7 +210,7 @@ export function AddPlaceDialog({
   }, [centerLabel, location]);
 
   React.useEffect(() => {
-    if (!open || tab !== "sok" || !validLocation || pending) return;
+    if (!open || tab !== "sok" || !validLocation) return;
     const requestId = ++requestRef.current;
     const timer = window.setTimeout(async () => {
       setLoading(true);
@@ -226,7 +268,6 @@ export function AddPlaceDialog({
     open,
     parsed.area,
     parsed.city,
-    pending,
     query,
     radiusKm,
     retry,
@@ -234,15 +275,45 @@ export function AddPlaceDialog({
     validLocation,
   ]);
 
+  const statusForResult = React.useCallback(
+    (suggestion: PlaceSuggestion): ResultStatus => {
+      if (addedResultIds.has(suggestion.externalId)) return "added";
+      if (existingResultIds.has(suggestion.externalId)) return "existing";
+      const match = matchingPlace(state.places, suggestion);
+      if (!match) return "available";
+      return match.collectionStatus === "archived" ? "archived" : "existing";
+    },
+    [addedResultIds, existingResultIds, state.places],
+  );
+
   const beginAdd = (suggestion: PlaceSuggestion) => {
+    const status = statusForResult(suggestion);
+    if (status === "added") {
+      toast.info("Stället är redan tillagt i den här omgången.");
+      return;
+    }
+    if (status === "existing") {
+      toast.info("Det här stället finns redan i gruppen.");
+      return;
+    }
+    setSelectedId(suggestion.externalId);
     setPending(suggestion);
     setPendingCuisines(suggestion.cuisines ?? []);
     setPendingOccasions(["avslappnat"]);
     setPendingNotes("");
   };
 
+  const closePending = () => {
+    if (isBusy) return;
+    setPending(null);
+    setPendingCuisines([]);
+    setPendingOccasions(["avslappnat"]);
+    setPendingNotes("");
+  };
+
   const confirmAdd = async () => {
     if (!pending || isBusy) return;
+    const statusBefore = statusForResult(pending);
     setBusy(true);
     try {
       const place = {
@@ -268,13 +339,27 @@ export function AddPlaceDialog({
               raw: safeParse(pending.raw),
             })
           : await addPlace(place);
-      toast.success(`${added.name} tillagd i gruppen`);
-      onOpenChange(false);
+      setAddedResultIds((current) => new Set(current).add(pending.externalId));
+      setExistingResultIds((current) => {
+        const next = new Set(current);
+        next.delete(pending.externalId);
+        return next;
+      });
+      setPending(null);
+      setPendingCuisines([]);
+      setPendingOccasions(["avslappnat"]);
+      setPendingNotes("");
+      toast.success(
+        statusBefore === "archived"
+          ? `${added.name} är tillbaka i gruppens lista`
+          : `${added.name} tillagd i gruppen`,
+      );
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Kunde inte lägga till stället.";
       if (/redan|already|duplicate|unique/i.test(message)) {
+        setExistingResultIds((current) => new Set(current).add(pending.externalId));
+        setPending(null);
         toast.info("Det här stället finns redan i gruppen.");
-        onOpenChange(false);
       } else {
         toast.error(message);
       }
@@ -311,254 +396,292 @@ export function AddPlaceDialog({
     }
   };
 
-  if (pending) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
-            <DialogDescription>
-              Kontrollera detaljerna och justera gruppens etiketter innan du lägger till stället.
-            </DialogDescription>
-          </DialogHeader>
-          <PlaceSummary suggestion={pending} />
-          <FoodTagMultiSelect
-            id="pending-food-tags"
-            value={pendingCuisines}
-            onChange={setPendingCuisines}
-            description="Förifyllt från platsinformationen. Du kan korrigera valen för gruppen."
-          />
-          <OccasionPicker value={pendingOccasions} onChange={setPendingOccasions} />
-          <div className="space-y-1.5">
-            <Label htmlFor="pending-notes">Anteckning till gruppen (frivilligt)</Label>
-            <Textarea
-              id="pending-notes"
-              value={pendingNotes}
-              onChange={(event) => setPendingNotes(event.target.value)}
-              rows={2}
-            />
-          </div>
-          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="ghost" className="min-h-11" onClick={() => setPending(null)}>
-              <ArrowLeft className="h-4 w-4" /> Tillbaka
-            </Button>
-            <Button
-              className="min-h-11"
-              disabled={isBusy || pendingOccasions.length === 0}
-              onClick={confirmAdd}
-            >
-              {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Lägg till i gruppen
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   const locationLabel = isLive ? centerLabel || "Välj område" : formatLocation(parsed);
-  const mapItems = results.map((result) => ({
-    id: result.externalId,
-    name: result.name,
-    lat: result.lat,
-    lng: result.lng,
-    eyebrow: `${CATEGORY_LABEL[result.category]}${result.distanceKm != null ? ` · ~${result.distanceKm} km` : ""}`,
-    description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
-  }));
+  const mapItems = results.map((result) => {
+    const status = statusForResult(result);
+    const statusText = resultStatusText(status);
+    return {
+      id: result.externalId,
+      name: result.name,
+      lat: result.lat,
+      lng: result.lng,
+      eyebrow: [
+        `${CATEGORY_LABEL[result.category]}${result.distanceKm != null ? ` · ~${result.distanceKm} km` : ""}`,
+        statusText,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
+    };
+  });
   const unmappedCount = results.filter((result) => result.lat == null || result.lng == null).length;
+  const addedCount = addedResultIds.size;
+  const pendingStatus = pending ? statusForResult(pending) : "available";
+  const restoringPending = pendingStatus === "archived";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
-          <DialogDescription>
-            Utforska ett område eller lägg till manuellt. Området är bara ett sökförslag.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
+            <DialogDescription>
+              Utforska ett område eller lägg till manuellt. Området är bara ett sökförslag.
+            </DialogDescription>
+          </DialogHeader>
 
-        <TabToggle value={tab} onChange={setTab} />
+          <TabToggle value={tab} onChange={setTab} />
 
-        {tab === "sok" ? (
-          <div className="space-y-3">
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px]">
-              <div className="space-y-1.5">
-                <Label htmlFor="place-query">Vad är du sugen på?</Label>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="place-query"
-                    className="pl-9"
-                    placeholder="Namn, kök eller kategori"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                  />
+          {tab === "sok" ? (
+            <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px]">
+                <div className="space-y-1.5">
+                  <Label htmlFor="place-query">Vad är du sugen på?</Label>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="place-query"
+                      className="pl-9"
+                      placeholder="Namn, kök eller kategori"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="place-location">Plats</Label>
+                  {isLive ? (
+                    <GeoapifyLocationInput
+                      id="place-location"
+                      value={location}
+                      onChange={setLocation}
+                      onSelect={(value) => {
+                        setLocation(value.label);
+                        setCenterLabel(value.label);
+                        setCenter({ lat: value.lat, lng: value.lng });
+                      }}
+                      onClearVerified={() => {
+                        setCenter(null);
+                        setCenterLabel("");
+                        setResults([]);
+                      }}
+                      placeholder="Sök stad eller område"
+                      ariaInvalid={!validLocation}
+                    />
+                  ) : (
+                    <Input
+                      id="place-location"
+                      value={location}
+                      onChange={(event) => setLocation(event.target.value)}
+                      placeholder="Område, stad"
+                    />
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Sökradie</Label>
+                  <Select
+                    value={String(radiusKm)}
+                    onValueChange={(value) => setRadiusKm(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RADIUS_OPTIONS.map((value) => (
+                        <SelectItem key={value} value={String(value)}>
+                          {value === 50 ? "Större område · inom 50 km" : `Inom ${value} km`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="place-location">Plats</Label>
-                {isLive ? (
-                  <GeoapifyLocationInput
-                    id="place-location"
-                    value={location}
-                    onChange={setLocation}
-                    onSelect={(value) => {
-                      setLocation(value.label);
-                      setCenterLabel(value.label);
-                      setCenter({ lat: value.lat, lng: value.lng });
-                    }}
-                    onClearVerified={() => {
-                      setCenter(null);
-                      setCenterLabel("");
-                      setResults([]);
-                    }}
-                    placeholder="Sök stad eller område"
-                    ariaInvalid={!validLocation}
-                  />
-                ) : (
-                  <Input
-                    id="place-location"
-                    value={location}
-                    onChange={(event) => setLocation(event.target.value)}
-                    placeholder="Område, stad"
-                  />
-                )}
+
+              <div className="rounded-xl bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
+                {locationLabel} · inom {radiusKm} km
               </div>
-              <div className="space-y-1.5">
-                <Label>Sökradie</Label>
-                <Select
-                  value={String(radiusKm)}
-                  onValueChange={(value) => setRadiusKm(Number(value))}
+
+              {addedCount > 0 ? (
+                <div
+                  role="status"
+                  className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RADIUS_OPTIONS.map((value) => (
-                      <SelectItem key={value} value={String(value)}>
-                        {value === 50 ? "Större område · inom 50 km" : `Inom ${value} km`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  <Check className="h-4 w-4 shrink-0 text-primary" />
+                  <span>
+                    {addedCount} {addedCount === 1 ? "ställe tillagt" : "ställen tillagda"} i den
+                    här omgången
+                  </span>
+                </div>
+              ) : null}
 
-            <div className="rounded-xl bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-              {locationLabel} · inom {radiusKm} km
-            </div>
+              {error ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                  <p className="min-w-0 flex-1 text-destructive">{error}</p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="min-h-11"
+                    onClick={() => setRetry((value) => value + 1)}
+                  >
+                    <RefreshCcw className="h-4 w-4" /> Försök igen
+                  </Button>
+                </div>
+              ) : null}
 
-            {error ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                <p className="min-w-0 flex-1 text-destructive">{error}</p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="min-h-11"
-                  onClick={() => setRetry((value) => value + 1)}
-                >
-                  <RefreshCcw className="h-4 w-4" /> Försök igen
-                </Button>
-              </div>
-            ) : null}
-
-            {!validLocation ? (
-              <Empty
-                text={
-                  isLive
-                    ? "Välj ett område i listan för att börja utforska."
-                    : "Ange en stad för att börja utforska."
-                }
-              />
-            ) : loading ? (
-              <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
-              </div>
-            ) : results.length === 0 && !error ? (
-              <Empty text="Inga matställen hittades. Prova ett bredare område eller lägg till manuellt." />
-            ) : results.length > 0 ? (
-              <>
-                <div className="lg:hidden">
-                  <ResultToggle value={resultView} onChange={setResultView} />
-                  <div className="mt-3">
-                    {resultView === "lista" ? (
+              {!validLocation ? (
+                <Empty
+                  text={
+                    isLive
+                      ? "Välj ett område i listan för att börja utforska."
+                      : "Ange en stad för att börja utforska."
+                  }
+                />
+              ) : loading ? (
+                <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
+                </div>
+              ) : results.length === 0 && !error ? (
+                <Empty text="Inga matställen hittades. Prova ett bredare område eller lägg till manuellt." />
+              ) : results.length > 0 ? (
+                <>
+                  <div className="lg:hidden">
+                    <ResultToggle value={resultView} onChange={setResultView} />
+                    <div className="mt-3">
+                      {resultView === "lista" ? (
+                        <SuggestionList
+                          results={results}
+                          selectedId={selectedId}
+                          onSelect={setSelectedId}
+                          onAdd={beginAdd}
+                          statusFor={statusForResult}
+                          disabled={isBusy}
+                        />
+                      ) : (
+                        <ResultsMap
+                          results={results}
+                          items={mapItems}
+                          selectedId={selectedId}
+                          onSelect={setSelectedId}
+                          onAdd={beginAdd}
+                          statusFor={statusForResult}
+                          center={isLive ? center : null}
+                          radiusKm={isLive ? radiusKm : null}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <div className="max-h-[52vh] overflow-y-auto pr-1">
                       <SuggestionList
                         results={results}
                         selectedId={selectedId}
                         onSelect={setSelectedId}
                         onAdd={beginAdd}
+                        statusFor={statusForResult}
                         disabled={isBusy}
                       />
-                    ) : (
-                      <ResultsMap
-                        results={results}
-                        items={mapItems}
-                        selectedId={selectedId}
-                        onSelect={setSelectedId}
-                        onAdd={beginAdd}
-                        center={isLive ? center : null}
-                        radiusKm={isLive ? radiusKm : null}
-                      />
-                    )}
-                  </div>
-                </div>
-                <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                  <div className="max-h-[52vh] overflow-y-auto pr-1">
-                    <SuggestionList
+                    </div>
+                    <ResultsMap
                       results={results}
+                      items={mapItems}
                       selectedId={selectedId}
                       onSelect={setSelectedId}
                       onAdd={beginAdd}
-                      disabled={isBusy}
+                      statusFor={statusForResult}
+                      center={isLive ? center : null}
+                      radiusKm={isLive ? radiusKm : null}
                     />
                   </div>
-                  <ResultsMap
-                    results={results}
-                    items={mapItems}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    onAdd={beginAdd}
-                    center={isLive ? center : null}
-                    radiusKm={isLive ? radiusKm : null}
-                  />
-                </div>
-                {unmappedCount > 0 ? (
-                  <p className="text-[11px] text-muted-foreground">
-                    {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
-                    kartposition och visas bara i listan.
-                  </p>
-                ) : null}
-              </>
-            ) : null}
+                  {unmappedCount > 0 ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
+                      kartposition och visas bara i listan.
+                    </p>
+                  ) : null}
+                </>
+              ) : null}
 
-            <p className="text-[11px] text-muted-foreground">
-              {isLive
-                ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
-                : "Fiktiv demodata för utveckling."}
-            </p>
-          </div>
-        ) : (
-          <ManualForm value={manual} onChange={setManual} />
-        )}
+              <p className="text-[11px] text-muted-foreground">
+                {isLive
+                  ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
+                  : "Fiktiv demodata för utveckling."}
+              </p>
+            </div>
+          ) : (
+            <ManualForm value={manual} onChange={setManual} />
+          )}
 
-        <DialogFooter className="gap-2">
-          <Button
-            variant="ghost"
-            className="min-h-11"
-            disabled={isBusy}
-            onClick={() => onOpenChange(false)}
-          >
-            Avbryt
-          </Button>
-          {tab === "manuell" ? (
-            <Button className="min-h-11" disabled={isBusy} onClick={submitManual}>
-              {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Lägg till
+          <DialogFooter className="gap-2">
+            <Button
+              variant={tab === "sok" ? "default" : "ghost"}
+              className="min-h-11"
+              disabled={isBusy}
+              onClick={() => onOpenChange(false)}
+            >
+              {tab === "sok" ? "Klar" : "Avbryt"}
             </Button>
-          ) : null}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {tab === "manuell" ? (
+              <Button className="min-h-11" disabled={isBusy} onClick={submitManual}>
+                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Lägg till
+              </Button>
+            ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={open && pending != null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) closePending();
+        }}
+      >
+        {pending ? (
+          <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="font-display text-2xl">
+                {restoringPending ? "Lägg tillbaka i gruppen" : "Lägg till i gruppen"}
+              </DialogTitle>
+              <DialogDescription>
+                {restoringPending
+                  ? "Stället har funnits i gruppen tidigare. Kontrollera detaljerna innan det läggs tillbaka."
+                  : "Kontrollera detaljerna och justera gruppens etiketter innan du lägger till stället."}
+              </DialogDescription>
+            </DialogHeader>
+            <PlaceSummary suggestion={pending} />
+            <FoodTagMultiSelect
+              id="pending-food-tags"
+              value={pendingCuisines}
+              onChange={setPendingCuisines}
+              description="Förifyllt från platsinformationen. Du kan korrigera valen för gruppen."
+            />
+            <OccasionPicker value={pendingOccasions} onChange={setPendingOccasions} />
+            <div className="space-y-1.5">
+              <Label htmlFor="pending-notes">Anteckning till gruppen (frivilligt)</Label>
+              <Textarea
+                id="pending-notes"
+                value={pendingNotes}
+                onChange={(event) => setPendingNotes(event.target.value)}
+                rows={2}
+              />
+            </div>
+            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={closePending}>
+                <ArrowLeft className="h-4 w-4" /> Tillbaka
+              </Button>
+              <Button
+                className="min-h-11"
+                disabled={isBusy || pendingOccasions.length === 0}
+                onClick={confirmAdd}
+              >
+                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {restoringPending ? "Lägg tillbaka i gruppen" : "Lägg till i gruppen"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        ) : null}
+      </Dialog>
+    </>
   );
 }
 
@@ -568,6 +691,7 @@ function ResultsMap({
   selectedId,
   onSelect,
   onAdd,
+  statusFor,
   center,
   radiusKm,
 }: {
@@ -583,19 +707,29 @@ function ResultsMap({
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAdd: (result: PlaceSuggestion) => void;
+  statusFor: (result: PlaceSuggestion) => ResultStatus;
   center: { lat: number; lng: number } | null;
   radiusKm: number | null;
 }) {
+  const selectedResult =
+    results.find((candidate) => candidate.externalId === selectedId) ?? results[0] ?? null;
+  const selectedStatus = selectedResult ? statusFor(selectedResult) : "available";
+  const actionable = selectedStatus === "available" || selectedStatus === "archived";
+
   return (
     <PlaceMap
       items={items}
       selectedId={selectedId}
       onSelect={onSelect}
-      onAction={(item) => {
-        const result = results.find((candidate) => candidate.externalId === item.id);
-        if (result) onAdd(result);
-      }}
-      actionLabel="Lägg till"
+      onAction={
+        actionable
+          ? (item) => {
+              const result = results.find((candidate) => candidate.externalId === item.id);
+              if (result) onAdd(result);
+            }
+          : undefined
+      }
+      actionLabel={selectedStatus === "archived" ? "Lägg tillbaka" : "Lägg till"}
       center={center}
       radiusKm={radiusKm}
       className="h-[55vh] min-h-[340px] lg:h-[52vh] lg:min-h-[390px]"
@@ -609,58 +743,75 @@ function SuggestionList({
   selectedId,
   onSelect,
   onAdd,
+  statusFor,
   disabled,
 }: {
   results: PlaceSuggestion[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAdd: (result: PlaceSuggestion) => void;
+  statusFor: (result: PlaceSuggestion) => ResultStatus;
   disabled: boolean;
 }) {
   return (
     <div className="space-y-2">
-      {results.map((result) => (
-        <div
-          key={result.externalId}
-          className={`flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center ${selectedId === result.externalId ? "border-primary/60 bg-primary/5" : "border-border/70"}`}
-        >
-          <button
-            type="button"
-            className="flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => onSelect(result.externalId)}
-            aria-pressed={selectedId === result.externalId}
+      {results.map((result) => {
+        const status = statusFor(result);
+        const actionable = status === "available" || status === "archived";
+        const label =
+          status === "added"
+            ? "Tillagd"
+            : status === "existing"
+              ? "Finns redan"
+              : status === "archived"
+                ? "Lägg tillbaka"
+                : "Lägg till";
+        const Icon = status === "added" || status === "existing" ? Check : status === "archived" ? RefreshCcw : Plus;
+
+        return (
+          <div
+            key={result.externalId}
+            className={`flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center ${selectedId === result.externalId ? "border-primary/60 bg-primary/5" : "border-border/70"}`}
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-xl">
-              {emojiForCategory(result.category)}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{result.name}</span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {CATEGORY_LABEL[result.category]}
-                {result.cuisines?.length ? ` · ${result.cuisines.join(", ")}` : ""}
+            <button
+              type="button"
+              className="flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => onSelect(result.externalId)}
+              aria-pressed={selectedId === result.externalId}
+            >
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-xl">
+                {emojiForCategory(result.category)}
               </span>
-              <span className="block truncate text-[11px] text-muted-foreground">
-                {result.area ? `${result.area} · ` : ""}
-                {result.city}
-                {result.distanceKm != null ? ` · ~${result.distanceKm} km` : ""}
-              </span>
-              {result.address ? (
-                <span className="block truncate text-[11px] text-muted-foreground">
-                  {result.address}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{result.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {CATEGORY_LABEL[result.category]}
+                  {result.cuisines?.length ? ` · ${result.cuisines.join(", ")}` : ""}
                 </span>
-              ) : null}
-            </span>
-          </button>
-          <Button
-            size="sm"
-            className="min-h-11 w-full shrink-0 sm:w-auto"
-            disabled={disabled}
-            onClick={() => onAdd(result)}
-          >
-            <Plus className="h-4 w-4" /> Lägg till
-          </Button>
-        </div>
-      ))}
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {result.area ? `${result.area} · ` : ""}
+                  {result.city}
+                  {result.distanceKm != null ? ` · ~${result.distanceKm} km` : ""}
+                </span>
+                {result.address ? (
+                  <span className="block truncate text-[11px] text-muted-foreground">
+                    {result.address}
+                  </span>
+                ) : null}
+              </span>
+            </button>
+            <Button
+              size="sm"
+              variant={actionable ? "default" : "secondary"}
+              className="min-h-11 w-full shrink-0 sm:w-auto"
+              disabled={disabled || !actionable}
+              onClick={() => onAdd(result)}
+            >
+              <Icon className="h-4 w-4" /> {label}
+            </Button>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -873,7 +1024,22 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-const EMOJIS = ["🍽️", "🍕", "🍣", "🍜", "🍔", "🌮", "☕", "🥐", "🍺", "🍦", "🥗", "🍷", "🥟", "🐟"];
+const EMOJIS = [
+  "🍽️",
+  "🍕",
+  "🍣",
+  "🍜",
+  "🍔",
+  "🌮",
+  "☕",
+  "🥐",
+  "🍺",
+  "🍦",
+  "🥗",
+  "🍷",
+  "🥟",
+  "🐟",
+];
 
 function EmojiPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [open, setOpen] = React.useState(false);
