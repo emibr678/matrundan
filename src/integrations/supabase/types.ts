@@ -165,7 +165,12 @@ export type Database = {
       group_places: {
         Row: {
           added_by: string
+          archived_at: string | null
+          archived_by: string | null
+          category_override: string | null
+          collection_status: string
           created_at: string
+          cuisines_override: string[] | null
           group_id: string
           notes: string | null
           occasions: string[]
@@ -176,7 +181,12 @@ export type Database = {
         }
         Insert: {
           added_by: string
+          archived_at?: string | null
+          archived_by?: string | null
+          category_override?: string | null
+          collection_status?: string
           created_at?: string
+          cuisines_override?: string[] | null
           group_id: string
           notes?: string | null
           occasions?: string[]
@@ -187,7 +197,12 @@ export type Database = {
         }
         Update: {
           added_by?: string
+          archived_at?: string | null
+          archived_by?: string | null
+          category_override?: string | null
+          collection_status?: string
           created_at?: string
+          cuisines_override?: string[] | null
           group_id?: string
           notes?: string | null
           occasions?: string[]
@@ -197,6 +212,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "group_places_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "group_places_group_id_fkey"
             columns: ["group_id"]
@@ -222,6 +244,8 @@ export type Database = {
       }
       groups: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           created_at: string
           created_by: string
           emoji: string | null
@@ -231,11 +255,14 @@ export type Database = {
           home_location_place_id: string | null
           home_location_provider: string | null
           id: string
+          lifecycle_status: string
           name: string
           shared_visits_count_for_progression: boolean
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           created_by: string
           emoji?: string | null
@@ -245,11 +272,14 @@ export type Database = {
           home_location_place_id?: string | null
           home_location_provider?: string | null
           id?: string
+          lifecycle_status?: string
           name: string
           shared_visits_count_for_progression?: boolean
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           created_by?: string
           emoji?: string | null
@@ -259,11 +289,19 @@ export type Database = {
           home_location_place_id?: string | null
           home_location_provider?: string | null
           id?: string
+          lifecycle_status?: string
           name?: string
           shared_visits_count_for_progression?: boolean
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "groups_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "groups_created_by_fkey"
             columns: ["created_by"]
@@ -717,6 +755,11 @@ export type Database = {
     Functions: {
       _token_hash: { Args: { _token: string }; Returns: string }
       accept_group_invitation: { Args: { _token: string }; Returns: Json }
+      archive_group: { Args: { _group_id: string }; Returns: undefined }
+      archive_group_place: {
+        Args: { _group_id: string; _place_id: string }
+        Returns: undefined
+      }
       can_see_place: { Args: { _place_id: string }; Returns: boolean }
       create_group_invitation: {
         Args: {
@@ -758,7 +801,44 @@ export type Database = {
         }
         Returns: string
       }
+      create_or_link_provider_place_v4b: {
+        Args: {
+          _address?: string
+          _area?: string
+          _category: string
+          _city?: string
+          _cuisines?: string[]
+          _group_id: string
+          _lat?: number
+          _lng?: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _photo_url?: string
+          _provider: string
+          _provider_place_id: string
+          _raw?: Json
+        }
+        Returns: string
+      }
       create_place: {
+        Args: {
+          _address?: string
+          _area?: string
+          _category: string
+          _city?: string
+          _cuisines?: string[]
+          _group_id: string
+          _lat?: number
+          _lng?: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _photo_url?: string
+        }
+        Returns: string
+      }
+      create_place_v4b: {
         Args: {
           _address?: string
           _area?: string
@@ -791,7 +871,9 @@ export type Database = {
         Returns: string
       }
       get_group_app_state: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v4b: { Args: { _group_id: string }; Returns: Json }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
+      group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
@@ -816,13 +898,23 @@ export type Database = {
           state: string
         }[]
       }
+      list_user_groups_v4b: { Args: never; Returns: Json }
       list_visit_share_targets: { Args: { _visit_id: string }; Returns: Json }
+      list_visit_share_targets_v4b: {
+        Args: { _visit_id: string }
+        Returns: Json
+      }
+      reactivate_group: { Args: { _group_id: string }; Returns: undefined }
       remove_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: undefined
       }
       remove_shared_visit_from_group: {
         Args: { _group_id: string; _visit_id: string }
+        Returns: undefined
+      }
+      restore_group_place: {
+        Args: { _group_id: string; _place_id: string }
         Returns: undefined
       }
       revoke_group_invitation: {
@@ -866,6 +958,17 @@ export type Database = {
         Args: { _group_id: string; _new_owner_id: string }
         Returns: undefined
       }
+      update_group_place_metadata: {
+        Args: {
+          _category_override?: string
+          _cuisines_override?: string[]
+          _group_id: string
+          _notes?: string
+          _occasions?: string[]
+          _place_id: string
+        }
+        Returns: undefined
+      }
       update_group_settings: {
         Args: {
           _clear_home?: boolean
@@ -878,6 +981,18 @@ export type Database = {
           _home_provider?: string
           _name: string
           _shared_visits_count_for_progression?: boolean
+        }
+        Returns: undefined
+      }
+      update_own_review: {
+        Args: {
+          _comment?: string
+          _group_id: string
+          _overall: number
+          _review_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
         }
         Returns: undefined
       }
