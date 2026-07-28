@@ -52,13 +52,19 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   await addSuggestion(page, dialog, "Päronträdets Trattoria");
   await expect(dialog).toBeVisible();
   await expect(radius).toContainText("Inom 10 km");
-  await expect(dialog.getByText("1 ställe tillagt i den här omgången", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText("1 ställe tillagt i den här omgången", { exact: true }),
+  ).toBeVisible();
 
   await addSuggestion(page, dialog, "Hagabackens Kafferum");
-  await expect(dialog.getByText("2 ställen tillagda i den här omgången", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText("2 ställen tillagda i den här omgången", { exact: true }),
+  ).toBeVisible();
 
   await addSuggestion(page, dialog, "Rislyktans Izakaya");
-  await expect(dialog.getByText("3 ställen tillagda i den här omgången", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText("3 ställen tillagda i den här omgången", { exact: true }),
+  ).toBeVisible();
   await expect(radius).toContainText("Inom 10 km");
   await expectNoHorizontalOverflow(page, "Flera tillägg i samma sökomgång");
 
