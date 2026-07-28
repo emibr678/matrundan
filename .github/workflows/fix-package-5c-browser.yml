@@ -1,0 +1,34 @@
+name: Fix Paket 5C browser
+
+on:
+  push:
+    branches:
+      - agent/paket-5c-besoksfoto
+    paths:
+      - .github/workflows/fix-package-5c-browser.yml
+      - scripts/fix-package-5c-browser.py
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/paket-5c-besoksfoto
+          fetch-depth: 0
+
+      - name: Apply browser fixes
+        run: python3 scripts/fix-package-5c-browser.py
+
+      - name: Commit fixes
+        run: |
+          git config user.name "Matrundan automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add src tests
+          git diff --cached --quiet && exit 0
+          git commit -m "Paket 5C: rätta foto efter nyskapat besök och live-mock"
+          git push origin HEAD:agent/paket-5c-besoksfoto
