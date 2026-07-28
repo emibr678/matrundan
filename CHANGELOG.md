@@ -4,6 +4,31 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.12.0] – 2026-07-28
+
+### Nytt
+
+- **Tydlig start för nya och utloggade användare.** Landningssidan erbjuder
+  att skapa en grupp, gå med via privat inbjudningslänk eller kod, eller
+  utforska ett skrivskyddat exempel.
+- **Fredagsgänget i Stockholm.** Den uttryckliga exempelgruppen använder
+  verkliga Stockholm-ställen men helt fiktiva medlemmar, besök, omdömen,
+  favoriter och aktivitet.
+- **Direkt väg från inbjudan.** En inbjudningslänk eller kod på landningssidan
+  öppnar samma säkra, tokenbaserade flöde som befintliga direktlänkar.
+
+### Förbättrat
+
+- Exempelgruppen märks **Exempelgrupp · Stockholm** på alla vyer och har en
+  tydlig väg till att skapa en egen grupp.
+- Exempelgruppen är skrivskyddad både i UI och i store-gränsen, påverkas inte
+  av lokal testdata och kan aldrig anropa live-skrivningar.
+- Appskalet skiljer nu mellan publik landning, skrivskyddat exempel och
+  autentiserat live-läge. Den interna skrivbara testsandboxen via `?demo=1`
+  finns kvar utan att vara den publika startupplevelsen.
+- Navigation, landning och exempelgrupp är verifierade utan horisontell
+  overflow vid 360 px.
+
 ## [0.11.0] – 2026-07-27
 
 ### Nytt
