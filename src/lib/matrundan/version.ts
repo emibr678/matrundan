@@ -8,7 +8,7 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.12.0";
+export const APP_VERSION = "0.12.1";
 export const APP_VERSION_DATE = "2026-07-28";
 
 export interface ChangelogEntry {
@@ -26,6 +26,29 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "Fredagsgänget går nu att prova fullt ut – ändringar sparas tillfälligt i den aktuella fliken och kan återställas när som helst.",
+    sections: [
+      {
+        kind: "Förbättrat",
+        items: [
+          "Exempelgruppen använder samma vyer och lokala produktflöden som resten av appen, så favoriter, nästa stopp, besök och gruppadministration kan provas direkt.",
+          "Ändringar i Fredagsgänget sparas bara i sessionStorage för den aktuella webbläsarfliken och skickas aldrig till databasen.",
+          "En ny Återställ-knapp återgår till den fasta Stockholm-historiken utan att påverka riktiga grupper eller den interna testsandboxen.",
+          "Teknisk copy om skrivskydd har ersatts med naturlig information om att gruppen är ett exempel och att ändringar är tillfälliga.",
+        ],
+      },
+      {
+        kind: "Rättat",
+        items: [
+          "Den publika exempelgruppen visar nu appens interaktiva kärnflöden i stället för att dölja skrivfunktioner som behövs för att förstå Matrundan.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.12.0",
+    date: "2026-07-28",
     summary:
       "En tydlig start för nya användare och den skrivskyddade exempelgruppen Fredagsgänget med verkliga matställen i Stockholm.",
     sections: [
@@ -268,7 +291,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "Förbättrat",
         items: [
           "Historiska medlemskap bevaras (status active/left); den som lämnar eller tas bort förlorar åtkomsten direkt men syns kvar i äldre besök när det senare stöds.",
-          "Alla känsliga skrivningar går genom nya SECURITY DEFINER-RPC:er; klienten kan inte längre redigera roller, medlemsstatus eller inbjudningar direkt.",
+          "Alla känsliga skrivningar går genom nya SECURITY DEFININER-RPC:er; klienten kan inte längre redigera roller, medlemsstatus eller inbjudningar direkt.",
           "Inbjudningens råa token lagras aldrig i databasen – bara SHA-256-hash. Matrundan skickar inte e-post själv, men fyller i ett förslag i din e-postklient.",
         ],
       },

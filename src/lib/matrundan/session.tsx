@@ -35,7 +35,7 @@ interface SessionState {
   user: User | null;
   session: Session | null;
   mode: AppMode;
-  demoReadOnly: boolean;
+  exampleMode: boolean;
   needsOnboarding: boolean;
   activeGroupId: string | null;
   activeGroupRole: GroupRole | null;
@@ -52,12 +52,12 @@ const ACTIVE_GROUP_KEY = "matrundan.activeGroup.v1";
 const PENDING_INVITE_KEY = "matrundan.pendingInvite.v1";
 const EXAMPLE_SESSION_KEY = "matrundan.exampleSession.v1";
 
-function resolveDemoRoute(): { forceDemo: boolean; readOnly: boolean } {
-  if (typeof window === "undefined") return { forceDemo: false, readOnly: false };
+function resolveDemoRoute(): { forceDemo: boolean; exampleMode: boolean } {
+  if (typeof window === "undefined") return { forceDemo: false, exampleMode: false };
 
   const params = new URLSearchParams(window.location.search);
   if (params.get("demo") === "1") {
-    return { forceDemo: true, readOnly: false };
+    return { forceDemo: true, exampleMode: false };
   }
 
   const explicitExample = window.location.pathname === "/exempel";
@@ -67,14 +67,14 @@ function resolveDemoRoute(): { forceDemo: boolean; readOnly: boolean } {
     } catch {
       /* ignore */
     }
-    return { forceDemo: true, readOnly: true };
+    return { forceDemo: true, exampleMode: true };
   }
 
   try {
     const storedExample = window.sessionStorage.getItem(EXAMPLE_SESSION_KEY) === "1";
-    return { forceDemo: storedExample, readOnly: storedExample };
+    return { forceDemo: storedExample, exampleMode: storedExample };
   } catch {
-    return { forceDemo: false, readOnly: false };
+    return { forceDemo: false, exampleMode: false };
   }
 }
 
@@ -232,7 +232,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       user,
       session,
       mode,
-      demoReadOnly: isDemo && demoRoute.readOnly,
+      exampleMode: isDemo && demoRoute.exampleMode,
       needsOnboarding: isLive && userGroups.length === 0,
       activeGroupId: isLive ? activeGroupId : null,
       activeGroupRole:
@@ -256,8 +256,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
   }, [
     activeGroupId,
+    demoRoute.exampleMode,
     demoRoute.forceDemo,
-    demoRoute.readOnly,
     loading,
     refreshGroups,
     selectGroup,

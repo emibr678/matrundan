@@ -6,10 +6,11 @@ const daysAgo = (days: number) =>
   new Date(today.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
 
 /**
- * Publik, skrivskyddad exempelgrupp.
+ * Publik, interaktiv exempelgrupp.
  *
  * Matställena är verkliga Stockholm-ställen. Medlemmar, besök, betyg,
  * kommentarer, favoriter och aktivitet är helt fiktiva exempeldata.
+ * Ändringar lagras bara i den aktuella webbläsarflikens session.
  */
 export const EXAMPLE_STATE: AppState = {
   version: APP_VERSION,

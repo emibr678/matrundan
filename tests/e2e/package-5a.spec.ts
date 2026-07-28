@@ -29,12 +29,14 @@ test("utloggad användare möts av landningssidan i stället för en fiktiv grup
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Skapa en grupp" })).toBeVisible();
   await expect(page.getByLabel("Inbjudningslänk eller kod")).toBeVisible();
+  await expect(page.getByText("Exempelgrupp", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /Öppna exempelgruppen/ })).toBeVisible();
   await expect(page.getByText("Fredagsgänget", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/skrivskydd/i)).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Landningssidan på 360 px");
 });
 
-test("Fredagsgänget är ett tydligt skrivskyddat Stockholmsexempel", async ({ page }) => {
+test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.setItem(
       "matrundan.state.v1",
@@ -45,27 +47,36 @@ test("Fredagsgänget är ett tydligt skrivskyddat Stockholmsexempel", async ({ p
   await page.goto("/exempel");
 
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Fredagsgänget är fiktivt och skrivskyddat/)).toBeVisible();
+  await expect(page.getByText(/ändringar sparas bara tillfälligt i den här fliken/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Hermans" })).toBeVisible();
-  await expect(page.getByText("Föreslaget av 🐻 Sam", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Registrera besök" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Slumpa" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Registrera besök" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Slumpa" })).toBeVisible();
   await expect(page.getByText("Gammal lokal demo")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Exempelgruppen på 360 px");
 
-  await page.getByRole("link", { name: "Matställen" }).click();
-  await expect(page.getByRole("heading", { name: "Pelikan", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Café Pascal", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: /^(Spara som favorit|Ta bort favorit)$/ }),
-  ).toHaveCount(0);
-  await expect(page.getByText("Göteborg", { exact: true })).toHaveCount(0);
-  await expectNoHorizontalOverflow(page, "Exempelgruppens matställeslista på 360 px");
+  await page.goto("/matstallen/p8");
+  await page.getByRole("button", { name: "Spara", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Sparad", exact: true })).toBeVisible();
+
+  const storage = await page.evaluate(() => ({
+    example: window.sessionStorage.getItem("matrundan.exampleState.v1"),
+    sandbox: window.localStorage.getItem("matrundan.state.v1"),
+  }));
+  expect(storage.example).toContain('"placeId":"p8"');
+  expect(storage.sandbox).toContain("Gammal lokal demo");
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Sparad", exact: true })).toBeVisible();
+
+  await page.getByRole("link", { name: "Hem" }).click();
+  await page.getByRole("button", { name: "Återställ" }).click();
+  await expect(page.getByText("Exempelgruppen är återställd.", { exact: true })).toBeVisible();
+  await page.goto("/matstallen/p8");
+  await expect(page.getByRole("button", { name: "Spara", exact: true })).toBeVisible();
 });
 
-test("den interna demosandboxen är fortsatt skrivbar för regressionstester", async ({ page }) => {
+test("den interna demosandboxen är fortsatt skrivbar och separat", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/?demo=1");
 

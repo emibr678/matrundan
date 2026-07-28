@@ -11,6 +11,8 @@ import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/mat
 import { StoreProvider } from "@/lib/matrundan/store";
 import type { AppState } from "@/lib/matrundan/types";
 
+const EXAMPLE_STATE_KEY = "matrundan.exampleState.v1";
+
 export function AppShell() {
   return (
     <SessionProvider>
@@ -21,7 +23,7 @@ export function AppShell() {
 }
 
 function ShellBody() {
-  const { loading, mode, demoReadOnly, needsOnboarding, activeGroupId, user } = useSession();
+  const { loading, mode, exampleMode, needsOnboarding, activeGroupId, user } = useSession();
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isInvitationRoute = pathname.startsWith("/inbjudan/");
@@ -130,17 +132,18 @@ function ShellBody() {
       key={
         mode === "live"
           ? `live:${activeGroupId ?? ""}`
-          : `demo:${demoReadOnly ? "example" : "sandbox"}`
+          : `demo:${exampleMode ? "example" : "sandbox"}`
       }
       mode={storeMode}
-      demoReadOnly={demoReadOnly}
+      demoPersistence={exampleMode ? "session" : "local"}
+      demoStorageKey={exampleMode ? EXAMPLE_STATE_KEY : undefined}
       initialState={
-        mode === "live" ? (liveState ?? undefined) : demoReadOnly ? EXAMPLE_STATE : undefined
+        mode === "live" ? (liveState ?? undefined) : exampleMode ? EXAMPLE_STATE : undefined
       }
       onLiveMutation={mode === "live" ? reloadLive : undefined}
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
-      <ShellChrome demoReadOnly={demoReadOnly} />
+      <ShellChrome exampleMode={exampleMode} />
     </StoreProvider>
   );
 }

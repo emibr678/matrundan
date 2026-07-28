@@ -117,12 +117,12 @@ export function LandingScreen() {
         <Card className="flex flex-col items-start gap-4 rounded-3xl border-primary/20 bg-primary/[0.06] p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wide text-primary">
-              Skrivskyddat exempel
+              Exempelgrupp
             </div>
             <h2 className="mt-1 font-display text-xl font-semibold">Utforska Fredagsgänget</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              Se hur ett fiktivt kompisgäng i Stockholm samlar ställen, väljer nästa stopp och
-              bevarar sin gemensamma historik.
+              Prova hur ett fiktivt kompisgäng i Stockholm samlar ställen, väljer nästa stopp och
+              minns sina besök. Dina ändringar sparas bara tillfälligt i den här fliken.
             </p>
           </div>
           <Button asChild variant="outline" className="min-h-11 w-full shrink-0 sm:w-auto">
