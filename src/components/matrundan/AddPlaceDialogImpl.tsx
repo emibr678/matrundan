@@ -1,14 +1,5 @@
 import * as React from "react";
-import {
-  ArrowLeft,
-  Check,
-  List,
-  Loader2,
-  Map,
-  Plus,
-  RefreshCcw,
-  Search,
-} from "lucide-react";
+import { ArrowLeft, Check, List, Loader2, Map, Plus, RefreshCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
@@ -99,10 +90,7 @@ function emptyManual(city: string): ManualDraft {
 }
 
 function normalizeMatch(value: string | undefined) {
-  return (value ?? "")
-    .trim()
-    .toLocaleLowerCase("sv-SE")
-    .replace(/\s+/g, " ");
+  return (value ?? "").trim().toLocaleLowerCase("sv-SE").replace(/\s+/g, " ");
 }
 
 function matchingPlace(places: Place[], suggestion: PlaceSuggestion) {
@@ -262,18 +250,7 @@ export function AddPlaceDialog({
       }
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [
-    center,
-    isLive,
-    open,
-    parsed.area,
-    parsed.city,
-    query,
-    radiusKm,
-    retry,
-    tab,
-    validLocation,
-  ]);
+  }, [center, isLive, open, parsed.area, parsed.city, query, radiusKm, retry, tab, validLocation]);
 
   const statusForResult = React.useCallback(
     (suggestion: PlaceSuggestion): ResultStatus => {
@@ -766,7 +743,12 @@ function SuggestionList({
               : status === "archived"
                 ? "Lägg tillbaka"
                 : "Lägg till";
-        const Icon = status === "added" || status === "existing" ? Check : status === "archived" ? RefreshCcw : Plus;
+        const Icon =
+          status === "added" || status === "existing"
+            ? Check
+            : status === "archived"
+              ? RefreshCcw
+              : Plus;
 
         return (
           <div
@@ -1024,22 +1006,7 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-const EMOJIS = [
-  "🍽️",
-  "🍕",
-  "🍣",
-  "🍜",
-  "🍔",
-  "🌮",
-  "☕",
-  "🥐",
-  "🍺",
-  "🍦",
-  "🥗",
-  "🍷",
-  "🥟",
-  "🐟",
-];
+const EMOJIS = ["🍽️", "🍕", "🍣", "🍜", "🍔", "🌮", "☕", "🥐", "🍺", "🍦", "🥗", "🍷", "🥟", "🐟"];
 
 function EmojiPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [open, setOpen] = React.useState(false);
