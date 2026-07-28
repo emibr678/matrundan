@@ -44,7 +44,7 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
   await expect(page.getByText(/Fotot är privat för den här gruppen/)).toBeVisible();
   await expectNoHorizontalOverflow(page, "Besöksdetalj med foto");
 
-  await page.reload();
+  await page.goto("/matstallen/p2?demo=1");
   await page
     .getByRole("button", { name: /Öppna besök av/ })
     .first()
