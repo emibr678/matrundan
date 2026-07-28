@@ -673,6 +673,63 @@ export type Database = {
           },
         ]
       }
+      visit_media: {
+        Row: {
+          byte_size: number
+          created_at: string
+          group_id: string
+          height: number
+          id: string
+          mime_type: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string
+          visit_id: string
+          width: number
+        }
+        Insert: {
+          byte_size: number
+          created_at?: string
+          group_id: string
+          height: number
+          id?: string
+          mime_type: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by: string
+          visit_id: string
+          width: number
+        }
+        Update: {
+          byte_size?: number
+          created_at?: string
+          group_id?: string
+          height?: number
+          id?: string
+          mime_type?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string
+          visit_id?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_media_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_media_visit_group_fk"
+            columns: ["visit_id", "group_id"]
+            isOneToOne: true
+            referencedRelation: "visit_group_links"
+            referencedColumns: ["visit_id", "group_id"]
+          },
+        ]
+      }
       visit_participants: {
         Row: {
           user_id: string
@@ -759,6 +816,10 @@ export type Database = {
       archive_group_place: {
         Args: { _group_id: string; _place_id: string }
         Returns: undefined
+      }
+      can_manage_visit_photo: {
+        Args: { _group_id: string; _user_id: string; _visit_id: string }
+        Returns: boolean
       }
       can_see_place: { Args: { _place_id: string }; Returns: boolean }
       create_group_invitation: {
@@ -870,8 +931,13 @@ export type Database = {
         }
         Returns: string
       }
+      delete_visit_photo: {
+        Args: { _group_id: string; _visit_id: string }
+        Returns: string
+      }
       get_group_app_state: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v4b: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5c: { Args: { _group_id: string }; Returns: Json }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
@@ -1000,6 +1066,20 @@ export type Database = {
         Args: { _avatar_emoji?: string; _display_name: string }
         Returns: undefined
       }
+      upsert_visit_photo: {
+        Args: {
+          _byte_size: number
+          _group_id: string
+          _height: number
+          _mime_type: string
+          _storage_path: string
+          _visit_id: string
+          _width: number
+        }
+        Returns: string
+      }
+      visit_photo_path_group: { Args: { _name: string }; Returns: string }
+      visit_photo_path_visit: { Args: { _name: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
