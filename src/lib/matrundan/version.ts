@@ -1,6 +1,6 @@
-import { APP_NAME, CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-history";
+import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-history";
 
-export { APP_NAME };
+export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
 export const APP_VERSION = "0.15.0";
