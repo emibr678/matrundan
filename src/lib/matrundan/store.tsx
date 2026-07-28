@@ -478,7 +478,7 @@ export function StoreProvider({
           await runLive((groupId) => liveReactivateGroup(groupId));
           return;
         }
-        assertDemoWritable(state, demoReadOnly);
+        if (demoReadOnly) throw new Error(READ_ONLY_DEMO_MESSAGE);
         setState((current) => ({
           ...current,
           group: {
