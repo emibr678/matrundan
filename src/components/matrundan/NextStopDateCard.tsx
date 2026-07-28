@@ -1,5 +1,12 @@
 import * as React from "react";
-import { CalendarDays, Check, ChevronDown, CircleHelp, Loader2, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  ChevronDown,
+  CircleHelp,
+  Loader2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,7 +54,8 @@ const RESPONSE_OPTIONS: {
   {
     value: "fits",
     icon: Check,
-    className: "data-[active=true]:border-primary data-[active=true]:bg-primary/10",
+    className:
+      "data-[active=true]:border-primary data-[active=true]:bg-primary/10",
   },
   {
     value: "not_fits",
@@ -58,20 +66,26 @@ const RESPONSE_OPTIONS: {
   {
     value: "unsure",
     icon: CircleHelp,
-    className: "data-[active=true]:border-mustard data-[active=true]:bg-mustard/20",
+    className:
+      "data-[active=true]:border-mustard data-[active=true]:bg-mustard/20",
   },
 ];
 
 function demoStorageFor(groupId: string): Storage | null {
   if (typeof window === "undefined") return null;
-  return groupId === "example-stockholm" ? window.sessionStorage : window.localStorage;
+  return groupId === "example-stockholm"
+    ? window.sessionStorage
+    : window.localStorage;
 }
 
 function storageKey(groupId: string) {
   return `matrundan.nextStopDate.v1.${groupId}`;
 }
 
-function readDemoProposal(groupId: string, fallback: NextStopDateProposal | null) {
+function readDemoProposal(
+  groupId: string,
+  fallback: NextStopDateProposal | null,
+) {
   try {
     const raw = demoStorageFor(groupId)?.getItem(storageKey(groupId));
     return raw ? (JSON.parse(raw) as NextStopDateProposal) : fallback;
@@ -80,8 +94,11 @@ function readDemoProposal(groupId: string, fallback: NextStopDateProposal | null
   }
 }
 
-function memberRole(state: ReturnType<typeof useStore>["state"]): Role | undefined {
-  return state.members.find((member) => member.id === state.currentUserId)?.role;
+function memberRole(
+  state: ReturnType<typeof useStore>["state"],
+): Role | undefined {
+  return state.members.find((member) => member.id === state.currentUserId)
+    ?.role;
 }
 
 export function NextStopDateCard({
@@ -96,13 +113,15 @@ export function NextStopDateCard({
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [time, setTime] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-  const [demoProposal, setDemoProposal] = React.useState<NextStopDateProposal | null>(() =>
-    mode === "demo"
-      ? readDemoProposal(state.group.id, state.nextStopDateProposal ?? null)
-      : null,
-  );
+  const [demoProposal, setDemoProposal] =
+    React.useState<NextStopDateProposal | null>(() =>
+      mode === "demo"
+        ? readDemoProposal(state.group.id, state.nextStopDateProposal ?? null)
+        : null,
+    );
 
-  const proposal = mode === "live" ? (state.nextStopDateProposal ?? null) : demoProposal;
+  const proposal =
+    mode === "live" ? (state.nextStopDateProposal ?? null) : demoProposal;
   const role = memberRole(state);
   const canManage = proposal
     ? canManageNextStopDateProposal(proposal, state.currentUserId, role)
@@ -112,8 +131,14 @@ export function NextStopDateCard({
     if (mode !== "demo") return;
     try {
       const storage = demoStorageFor(state.group.id);
-      if (demoProposal) storage?.setItem(storageKey(state.group.id), JSON.stringify(demoProposal));
-      else storage?.removeItem(storageKey(state.group.id));
+      if (demoProposal) {
+        storage?.setItem(
+          storageKey(state.group.id),
+          JSON.stringify(demoProposal),
+        );
+      } else {
+        storage?.removeItem(storageKey(state.group.id));
+      }
     } catch {
       /* Lagringen är ett tillfälligt stöd och får aldrig blockera flödet. */
     }
@@ -134,7 +159,9 @@ export function NextStopDateCard({
     if (mode !== "demo" || typeof window === "undefined") return;
     const reset = () => {
       try {
-        demoStorageFor(state.group.id)?.removeItem(storageKey(state.group.id));
+        demoStorageFor(state.group.id)?.removeItem(
+          storageKey(state.group.id),
+        );
       } catch {
         /* ignore */
       }
@@ -169,7 +196,11 @@ export function NextStopDateCard({
       const normalizedTime = normalizeNextStopTime(time);
       if (mode === "live") {
         await runLive(async () => {
-          await liveProposeNextStopDate(state.group.id, date, normalizedTime);
+          await liveProposeNextStopDate(
+            state.group.id,
+            date,
+            normalizedTime,
+          );
         });
       } else {
         const now = new Date().toISOString();
@@ -192,7 +223,11 @@ export function NextStopDateCard({
       setDialogOpen(false);
       toast.success("Datumet är föreslaget.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte föreslå datumet.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Kunde inte föreslå datumet.",
+      );
     }
   }
 
@@ -200,7 +235,9 @@ export function NextStopDateCard({
     if (!proposal || busy || proposal.status !== "active") return;
     try {
       if (mode === "live") {
-        await runLive(() => liveRespondNextStopDate(state.group.id, proposal.id, response));
+        await runLive(() =>
+          liveRespondNextStopDate(state.group.id, proposal.id, response),
+        );
       } else {
         const updatedAt = new Date().toISOString();
         setDemoProposal((current) =>
@@ -209,16 +246,24 @@ export function NextStopDateCard({
                 ...current,
                 updatedAt,
                 responses: [
-                  ...current.responses.filter((item) => item.memberId !== state.currentUserId),
+                  ...current.responses.filter(
+                    (item) => item.memberId !== state.currentUserId,
+                  ),
                   { memberId: state.currentUserId, response, updatedAt },
                 ],
               }
             : null,
         );
       }
-      toast.success(`Ditt svar är ${NEXT_STOP_DATE_RESPONSE_LABEL[response].toLowerCase()}.`);
+      toast.success(
+        `Ditt svar är ${NEXT_STOP_DATE_RESPONSE_LABEL[
+          response
+        ].toLowerCase()}.`,
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte spara svaret.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte spara svaret.",
+      );
     }
   }
 
@@ -226,7 +271,13 @@ export function NextStopDateCard({
     if (!proposal || busy || !canManage) return;
     try {
       if (mode === "live") {
-        await runLive(() => liveSetNextStopDateStatus(state.group.id, proposal.id, status));
+        await runLive(() =>
+          liveSetNextStopDateStatus(
+            state.group.id,
+            proposal.id,
+            status,
+          ),
+        );
       } else if (status === "confirmed") {
         const now = new Date().toISOString();
         setDemoProposal((current) =>
@@ -244,10 +295,16 @@ export function NextStopDateCard({
         setDemoProposal(null);
       }
       toast.success(
-        status === "confirmed" ? "Datumet är bekräftat." : "Datumförslaget är borttaget.",
+        status === "confirmed"
+          ? "Datumet är bekräftat."
+          : "Datumförslaget är borttaget.",
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte ändra datumförslaget.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Kunde inte ändra datumförslaget.",
+      );
     }
   }
 
@@ -292,11 +349,21 @@ export function NextStopDateCard({
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDialogOpen(false)}
+              >
                 Avbryt
               </Button>
-              <Button type="button" disabled={busy} onClick={() => void propose()}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              <Button
+                type="button"
+                disabled={busy}
+                onClick={() => void propose()}
+              >
+                {busy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
                 Föreslå
               </Button>
             </DialogFooter>
@@ -310,7 +377,9 @@ export function NextStopDateCard({
   const currentResponse = proposal.responses.find(
     (response) => response.memberId === state.currentUserId,
   )?.response;
-  const proposer = state.members.find((member) => member.id === proposal.createdBy);
+  const proposer = state.members.find(
+    (member) => member.id === proposal.createdBy,
+  );
 
   return (
     <div className="border-t border-border/60 bg-card p-4">
@@ -319,9 +388,13 @@ export function NextStopDateCard({
           <div className="flex flex-wrap items-center gap-2">
             <CalendarDays className="h-4 w-4 text-primary" />
             <h2 className="font-medium">
-              {proposal.status === "confirmed" ? "Planerat till" : "Datumförslag"}
+              {proposal.status === "confirmed"
+                ? "Planerat till"
+                : "Datumförslag"}
             </h2>
-            {proposal.status === "confirmed" ? <Badge>Bekräftat</Badge> : null}
+            {proposal.status === "confirmed" ? (
+              <Badge>Bekräftat</Badge>
+            ) : null}
           </div>
           <p className="mt-1 font-display text-lg font-semibold capitalize">
             {formatNextStopDate(proposal.date, proposal.time)}
@@ -351,7 +424,9 @@ export function NextStopDateCard({
             >
               <Icon className="h-4 w-4" />
               <span>{NEXT_STOP_DATE_RESPONSE_LABEL[value]}</span>
-              <span className="text-[10px] text-muted-foreground">{counts[value]}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {counts[value]}
+              </span>
             </button>
           ))}
         </div>
@@ -376,15 +451,25 @@ export function NextStopDateCard({
               const names = proposal.responses
                 .filter((response) => response.response === value)
                 .map((response) =>
-                  state.members.find((member) => member.id === response.memberId),
+                  state.members.find(
+                    (member) => member.id === response.memberId,
+                  ),
                 )
-                .filter((member): member is NonNullable<typeof member> => !!member)
-                .map((member) => `${member.avatar ?? ""} ${member.name}`.trim());
+                .filter(
+                  (member): member is NonNullable<typeof member> => !!member,
+                )
+                .map((member) =>
+                  `${member.avatar ?? ""} ${member.name}`.trim(),
+                );
               if (!names.length) return null;
               return (
                 <div key={value} className="text-xs leading-relaxed">
-                  <span className="font-medium">{NEXT_STOP_DATE_RESPONSE_LABEL[value]}:</span>{" "}
-                  <span className="text-muted-foreground">{names.join(", ")}</span>
+                  <span className="font-medium">
+                    {NEXT_STOP_DATE_RESPONSE_LABEL[value]}:
+                  </span>{" "}
+                  <span className="text-muted-foreground">
+                    {names.join(", ")}
+                  </span>
                 </div>
               );
             })}
