@@ -150,6 +150,33 @@ export interface Group {
   homeLocation?: HomeLocation | null;
 }
 
+export type NextStopDateResponseValue = "fits" | "not_fits" | "unsure";
+export type NextStopDateProposalStatus = "active" | "confirmed" | "cancelled";
+
+export interface NextStopDateResponse {
+  memberId: string;
+  response: NextStopDateResponseValue;
+  updatedAt: string;
+}
+
+export interface NextStopDateProposal {
+  id: string;
+  placeId: string;
+  /** Lokal kalenderdag i formatet YYYY-MM-DD. */
+  date: string;
+  /** Valfri lokal tid i formatet HH:mm. */
+  time?: string | null;
+  createdBy: string;
+  status: NextStopDateProposalStatus;
+  createdAt: string;
+  updatedAt: string;
+  confirmedAt?: string | null;
+  confirmedBy?: string | null;
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
+  responses: NextStopDateResponse[];
+}
+
 export type ActivityKind = "added" | "visited" | "favorited" | "next-picked" | "member-joined";
 
 export type ActivityTarget =
@@ -178,6 +205,8 @@ export interface AppState {
   favorites: Favorite[];
   activity: Activity[];
   nextPlaceId: string | null;
+  /** Ett öppet eller bekräftat datumförslag för gruppens aktuella nästa stopp. */
+  nextStopDateProposal?: NextStopDateProposal | null;
 }
 
 export const CATEGORY_LABEL: Record<PlaceCategory, string> = {

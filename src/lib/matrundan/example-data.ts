@@ -4,6 +4,13 @@ import { APP_VERSION } from "./version";
 const today = new Date();
 const daysAgo = (days: number) =>
   new Date(today.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+const daysFromNow = (days: number) => {
+  const date = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 /**
  * Publik, interaktiv exempelgrupp.
@@ -339,4 +346,23 @@ export const EXAMPLE_STATE: AppState = {
     },
   ],
   nextPlaceId: "p5",
+  nextStopDateProposal: {
+    id: "proposal-example-1",
+    placeId: "p5",
+    date: daysFromNow(8),
+    time: "18:30",
+    createdBy: "m2",
+    status: "active",
+    createdAt: daysAgo(2),
+    updatedAt: daysAgo(1),
+    confirmedAt: null,
+    confirmedBy: null,
+    cancelledAt: null,
+    cancelledBy: null,
+    responses: [
+      { memberId: "m2", response: "fits", updatedAt: daysAgo(2) },
+      { memberId: "m3", response: "unsure", updatedAt: daysAgo(1) },
+      { memberId: "m4", response: "not_fits", updatedAt: daysAgo(1) },
+    ],
+  },
 };

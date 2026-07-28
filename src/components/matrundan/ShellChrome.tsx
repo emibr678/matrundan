@@ -36,6 +36,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
 
   function resetExample() {
     resetDemo();
+    window.dispatchEvent(new Event("matrundan:demo-reset"));
     toast.success("Exempelgruppen är återställd.");
   }
 

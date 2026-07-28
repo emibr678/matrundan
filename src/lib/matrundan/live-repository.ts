@@ -1,7 +1,7 @@
 /**
  * Live-repository: läser en grupps state via den säkra RPC:n
- * get_group_app_state_v4b, som bygger vidare på den etablerade gruppscopade
- * läsmodellen med livscykel och gruppspecifik platsmetadata.
+ * get_group_app_state_v5d, som bygger vidare på den etablerade gruppscopade
+ * läsmodellen med livscykel, gruppspecifik platsmetadata, besöksfoto och datumförslag.
  */
 import { supabase } from "@/integrations/supabase/client";
 import type {
@@ -11,6 +11,9 @@ import type {
   Group,
   GroupLifecycleStatus,
   Member,
+  NextStopDateProposal,
+  NextStopDateProposalStatus,
+  NextStopDateResponseValue,
   Occasion,
   Place,
   PlaceCategory,
@@ -69,6 +72,26 @@ type VisitRow = {
     height: number;
     updatedAt: string;
   } | null;
+};
+
+type NextStopDateProposalRow = {
+  id: string;
+  placeId: string;
+  date: string;
+  time: string | null;
+  createdBy: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  confirmedAt: string | null;
+  confirmedBy: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  responses: {
+    memberId: string;
+    response: string;
+    updatedAt: string;
+  }[];
 };
 
 type Payload = {
@@ -136,6 +159,7 @@ type Payload = {
     text: string;
   }[];
   nextPlaceId: string | null;
+  nextStopDateProposal: NextStopDateProposalRow | null;
 };
 
 function avg(xs: number[]): number | undefined {
@@ -143,12 +167,35 @@ function avg(xs: number[]): number | undefined {
   return xs.reduce((a, b) => a + b, 0) / xs.length;
 }
 
+function mapNextStopDateProposal(row: NextStopDateProposalRow | null): NextStopDateProposal | null {
+  if (!row) return null;
+  return {
+    id: row.id,
+    placeId: row.placeId,
+    date: row.date,
+    time: row.time ? row.time.slice(0, 5) : null,
+    createdBy: row.createdBy,
+    status: row.status as NextStopDateProposalStatus,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    confirmedAt: row.confirmedAt,
+    confirmedBy: row.confirmedBy,
+    cancelledAt: row.cancelledAt,
+    cancelledBy: row.cancelledBy,
+    responses: (row.responses ?? []).map((response) => ({
+      memberId: response.memberId,
+      response: response.response as NextStopDateResponseValue,
+      updatedAt: response.updatedAt,
+    })),
+  };
+}
+
 export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const { data, error } = await supabase.rpc("get_group_app_state_v5c" as "get_group_app_state", {
+  const { data, error } = await supabase.rpc("get_group_app_state_v5d" as "get_group_app_state", {
     _group_id: groupId,
   });
   if (error || !data) {
-    console.error("[Matrundan] get_group_app_state_v5c:", error);
+    console.error("[Matrundan] get_group_app_state_v5d:", error);
     return null;
   }
   const p = data as unknown as Payload;
@@ -296,5 +343,6 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     favorites,
     activity,
     nextPlaceId: p.nextPlaceId,
+    nextStopDateProposal: mapNextStopDateProposal(p.nextStopDateProposal),
   };
 }

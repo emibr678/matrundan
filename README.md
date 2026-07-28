@@ -1,123 +1,134 @@
 # Matrundan
 
-Matrundan är en privat webbapp för vänner och familj som vill hålla ordning
-på ställen de vill prova, välja nästa stopp tillsammans, registrera besök och
-spara gruppens egna betyg.
+Matrundan är en privat webbapp för vänner och familj som vill samla matställen,
+välja nästa gemensamma stopp, registrera verkliga besök och bevara gruppens
+egna minnen och omdömen.
 
-Fokus är gänget och det ni provar tillsammans – ingen offentlig
-restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
+Fokus är gängets gemensamma matresa – ingen offentlig restaurangkatalog, social
+feed, individuell matdagbok eller global ranking.
 
 ## Huvudflöde
 
-1. **Utforska eller lägg till** ett matställe – manuellt eller via platssökning.
+1. **Utforska eller lägg till** matställen manuellt eller via platssökning.
 2. **Välj nästa stopp** manuellt eller genom att slumpa.
-3. **Registrera ett besök** med datum, tillfälle och deltagare.
-4. **Betygsätt** helheten och, om ni vill, smak, prisvärdhet och service.
+3. **Föreslå datum** och låt gruppen svara Passar, Passar inte eller Osäker.
+4. **Registrera besöket** med datum, tillfälle och faktiska deltagare.
+5. **Spara minnet** med omdöme och ett valfritt privat besöksfoto.
 
 ## Funktioner
 
-- Tydlig landningssida för att skapa grupp, gå med via inbjudan eller prova
-  den interaktiva exempelgruppen Fredagsgänget i Stockholm.
+- Publik landningssida för att skapa grupp, gå med via privat inbjudan eller
+  prova den interaktiva exempelgruppen Fredagsgänget i Stockholm.
 - Tre huvudvyer: Hem, Matställen och Gruppen.
 - Sökning, filtrering, karta och topplista i matställeslistan.
-- Registrering av besök med valfria detaljbetyg, kommentarer och ett privat foto.
-- Personliga och delade favoriter, samt status per matställe
-  (”Nytt för mig”, ”Nytt för gruppen”, ”Alla har provat”).
+- Flera matställen kan läggas till under samma sökomgång utan att sökning,
+  radie, karta eller position försvinner.
+- Nästa stopp kan väljas manuellt eller slumpas.
+- Ett privat datumförslag med valfri tid kan kopplas till nästa stopp.
+- Aktiva medlemmar kan svara Passar, Passar inte eller Osäker.
+- Förslagsställaren, ägare eller admin kan bekräfta eller ta bort datumet.
+- Registrering av besök med deltagare, omdöme och ett valfritt privat foto.
+- Personliga och delade favoriter samt status per matställe.
 - Klickbara medlemsprofiler med besök, favoriter och smakprofil.
-- Navigerbart aktivitetsflöde med djuplänkar till besök, matställen och
-  medlemmar.
+- Privat, diskret gamification med nivåer, utmärkelser och gruppens höjdpunkter.
+- Navigerbart aktivitetsflöde med länkar till besök, matställen och medlemmar.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.14.0
+## Status – v0.15.0
 
-Paket 5C lägger till ett valfritt privat foto per besök. Bilden kan väljas vid
-registreringen eller hanteras i efterhand, komprimeras och omkodas innan den
-sparas och visas som ett minne i gruppens besökshistorik. Endast faktiska
-deltagare eller gruppens ägare och admin får ändra fotot. Det är kopplat till
-ursprungsgruppen och följer aldrig automatiskt med när besöket delas vidare.
-Fredagsgänget använder samma gränssnitt men lagrar bilden bara lokalt i sessionen.
+Paket 5D lägger datumplaneringen direkt under gruppens aktuella **Nästa stopp**.
+En aktiv medlem kan föreslå en dag och en valfri tid. Varje aktiv medlem kan
+svara **Passar**, **Passar inte** eller **Osäker** och ändra sitt svar medan
+förslaget är öppet.
+
+Det sker ingen automatisk majoritetsbekräftelse. Förslagsställaren, gruppens
+ägare eller admin kan bekräfta eller ta bort datumet. Förslaget stängs
+automatiskt om nästa stopp byts, tas bort från gruppen eller registreras som
+besökt. Tidigare medlemmars gamla svar räknas inte i den aktuella gruppvyn.
+
+Paket 5C ger varje besök ett valfritt privat foto. Bilden komprimeras och
+omkodas före lagring, är privat för ursprungsgruppen och följer inte med när ett
+kanoniskt besök delas till en annan grupp.
 
 Paket 5B gör det möjligt att lägga till flera sökträffar i samma omgång.
-Sökdialogen, radien, list- eller kartläget, det valda resultatet och positionen
-bevaras efter varje tillägg. Resultat märks Tillagd, Finns redan eller Lägg
-tillbaka, en räknare summerar omgången och Klar avslutar uttryckligt. Manuellt
-tillägg och den kanoniska dubblett- och återaktiveringslogiken är oförändrade.
+Sökning, radie, list- eller kartläge, valt resultat och position bevaras efter
+varje tillägg.
 
-Paket 5A och 5A.1 skiljer tydligt mellan en publik start, en interaktiv
-exempelgrupp och användarnas riktiga privata grupper. En utloggad användare
-möts av en landningssida med valen att skapa grupp, gå med via en privat
-inbjudningslänk eller prova **Fredagsgänget**.
+Paket 5A och 5A.1 skiljer tydligt mellan publik start, interaktiv exempelgrupp
+och användarnas riktiga privata grupper. Fredagsgänget använder samma
+produktkomponenter men sparar ändringar endast i den aktuella flikens
+`sessionStorage`.
 
-Fredagsgänget är märkt **Exempelgrupp · Stockholm** på alla vyer. Gruppen,
-medlemmarna, besöken, omdömena och aktiviteten är fiktiva exempeldata, medan
-de visade matställena är verkliga Stockholm-ställen. Kärnflödena kan provas
-med samma komponenter och lokala mutationer som appen i övrigt. Ändringar
-sparas bara i den aktuella flikens `sessionStorage`, kan återställas och når
-aldrig Supabase eller användarens riktiga grupper.
+## Körlägen
 
-Platsadministrationen från Paket 4C är kvar: ägare och admin kan ta bort ett
-matställe från gruppens aktiva lista utan att tidigare besök, omdömen eller
-gruppens egna platsuppgifter försvinner. Kök och inriktning väljs från den
-gemensamma normaliserade listan och mobilväljaren följer den synliga viewporten
-när tangentbordet visas.
+### Publik landning
 
-### Tre körlägen
+Standard för utloggade användare. Ingen grupp-store eller privat gruppdata
+laddas. Besökaren kan skapa grupp, öppna en privat inbjudan eller prova
+Fredagsgänget.
 
-- **Publik landning:** standard för utloggade användare. Ingen gruppdata eller
-  grupp-store laddas. Här kan besökaren skapa grupp, gå med via inbjudan eller
-  öppna exempelgruppen.
-- **Exempelgrupp (`/exempel`):** fast Stockholm-startdata med interaktiva lokala
-  flöden. Ändringar lagras i flikens `sessionStorage`, kan återställas och gör
-  inga live-skrivningar.
-- **Live-läge:** aktiveras efter Google-inloggning. Läsning och skrivning går mot
-  Supabase enligt RLS. Har användaren inga grupper visas onboardingen.
+### Exempelgrupp (`/exempel`)
 
-Den interna utvecklings- och regressionstestsandboxen nås fortsatt via
-`?demo=1`. Den är skrivbar och använder separat `localStorage`, men är inte
-appens publika startupplevelse.
+Fast Stockholm-startdata med interaktiva lokala flöden. Medlemmar, besök,
+omdömen och historik är fiktiva; de visade matställena är verkliga.
+Ändringar sparas i flikens `sessionStorage`, kan återställas och gör inga
+live-skrivningar. Datumförslag och besöksfoto använder samma UI som live-läget
+men lokala adaptrar.
 
-### Vad som fungerar i live-läget
+### Intern testsandbox (`?demo=1`)
+
+Skrivbar lokal sandbox för utveckling och regressionstester. Den använder en
+separat `localStorage`-nyckel och är inte den publika startupplevelsen.
+
+### Live-läge
+
+Aktiveras efter Google-inloggning. Läsning och skrivning går mot Supabase via
+gruppscopade read-models och validerade RPC-anrop.
+
+## Livefunktioner
 
 - Google-inloggning via Lovable Cloud.
-- Skapa och administrera grupper, bjuda in via engångstoken, byta roll,
-  ta bort medlemmar, överföra ägarskap, lämna grupp och redigera profil.
-- Lägga till matställen, ta bort dem från gruppens aktiva lista och lägga
-  tillbaka dem utan att förlora historik eller gruppspecifik metadata.
-- Korrigera gruppens kategori, kök och inriktning, Passar för och anteckning.
-- Registrera besök med deltagare + omdöme atomärt, redigera eget omdöme,
-  lägga till ett privat besöksfoto, favoritmarkera och sätta/byta/rensa gruppens
-  nästa stopp.
-- **Kanonisk datamodell:** ett matställe (`places`) och ett besök (`visits`)
-  existerar bara en gång; varje grupp kopplas via `group_places` respektive
-  `visit_group_links`. Recensionens synlighet per grupp styrs av
-  `review_group_visibility`.
-- **Dela besök till en annan grupp** där du är medlem och deltog – matstället
-  kopplas in i målgruppen om det saknas, betygen från medlemmar som finns i
-  målgruppen blir synliga, och personer utanför räknas anonymt som +N.
-  Ta bort ett delat besök från en grupp utan att röra originalet.
-- **Egen kommentarssynlighet** per grupp: betyget syns alltid, kommentaren
-  kan du dölja i valfri grupp.
-- **Gruppinställning:** räkna delade besök i progression (av/på) – påverkar
-  både nivåer, badges och topplistor.
-- **Privat gamification:** nivåer, fem badges, tre topplistor och gemensamma
-  milstolpar per grupp. Ingen offentlig ranking eller profil.
-- **Geoapify-platssökning:** autocomplete för ort/område, matställessökning
-  med radier 1/3/5/10/25/50 km, list- och kartresultat, tydlig attribution
-  och server-skyddad API-nyckel.
-- **Säker läsmodell:** all känslig läsning går via `get_group_app_state`
-  (SECURITY DEFINER); kopplingstabellernas rader är inte direkt läsbara från
-  klienten, och `source_group_id` lämnar aldrig servern.
+- Skapa och administrera grupper, bjuda in via engångstoken, byta roll, ta bort
+  medlemmar, överföra ägarskap, lämna grupp och redigera profil.
+- Lägga till matställen, ta bort dem från gruppens aktiva lista och lägga tillbaka
+  dem utan att förlora historik eller gruppspecifik metadata.
+- Korrigera gruppens kategori, kök, inriktning, Passar för och anteckning.
+- Sätta, byta och rensa gruppens nästa stopp.
+- Föreslå datum och valfri tid för nästa stopp, svara och bekräfta eller ta bort
+  förslaget enligt medlems- och rollregler.
+- Registrera besök med deltagare och omdöme atomärt, redigera eget omdöme och
+  hantera ett privat besöksfoto.
+- Dela ett kanoniskt besök till en annan grupp utan att duplicera plats, besök,
+  deltagare eller recensioner.
+- Styra egen kommentarssynlighet per grupp.
+- Välja om delade besök räknas i progression.
+- Geoapify-sökning med server-skyddad API-nyckel, verifierat sökområde och radier
+  1/3/5/10/25/50 km.
 
-Se [CHANGELOG.md](./CHANGELOG.md) och ”Om Matrundan” i appen för fullständig
-versionshistorik.
+## Datamodell och integritet
+
+- `places` är kanoniska verkliga matställen.
+- `group_places` innehåller gruppens relation, metadata och aktiva samling.
+- `visits` är kanoniska verkliga besök.
+- `visit_group_links` kopplar original- och mottagargrupper till samma besök.
+- `review_group_visibility` styr betygs- och kommentarssynlighet per grupp.
+- `visit_media` kopplar ett privat foto till besök + ursprungsgrupp.
+- `next_stop_date_proposals` och `next_stop_date_responses` innehåller gruppens
+  privata planering för aktuellt nästa stopp.
+
+Känsliga läsningar går genom `get_group_app_state_v5d`. Skrivningar går genom
+`SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering, aktivt
+medlemskap och relevanta rollkontroller. Ursprungsgruppens identitet, privata
+kommentarer och medlemskap lämnar aldrig servern vid delning.
 
 ## Teknik
 
-- [TanStack Start](https://tanstack.com/start) v1 (React 19 + Vite 8)
-- TypeScript, Tailwind CSS v4, shadcn/ui
+- TanStack Start v1, React 19 och Vite 8
+- TypeScript och Tailwind CSS v4
+- shadcn/ui och Radix UI
 - Bun som pakethanterare och runtime
-- Lovable Cloud (Supabase) för auth och datalager
+- Lovable Cloud/Supabase för auth, datalager och privat fillagring
 
 ### Kom igång
 
@@ -126,75 +137,57 @@ bun install
 bun run dev
 ```
 
-Andra användbara kommandon:
+Verifiering:
 
 ```sh
-bun run build        # produktionsbygge
-bun run lint         # ESLint
-bun run typecheck    # typkontroll
-bun run verify:full  # format, lint, typkontroll och bygge
+bun run doctor
+bun run verify:changed
+bun run verify:agent
+bun run verify:full
 ```
 
 ## Arkitektur
 
-```
+```text
 src/
-  routes/                     Filbaserade rutter (TanStack Router)
-    __root.tsx                App-shell och global head
-    index.tsx                 Hem
-    exempel.tsx               Interaktiv exempelgrupp i aktuell session
-    matstallen.tsx            Lista, karta, sök och filter
-    matstallen.$placeId.tsx   Matställets detaljvy
-    gruppen.tsx               Gänget, aktivitet, inställningar
-  components/matrundan/       Feature-komponenter (dialogs, sheets, kort)
-    AuthMenu.tsx              Google-inloggning och gruppväxlare
-    LandingScreen.tsx         Publik start för skapa, gå med och exempel
-    OnboardingScreen.tsx      Skapa första gruppen i live-läge
-    ShellChrome.tsx           Navigation och beständiga statusmarkeringar
-    GeoapifyLocationInput.tsx Återanvändbart Plats-fält med verifierat val
-    FoodTagMultiSelect.tsx    Sökbar väljare för kök och inriktning
-    PlaceMap.tsx              Gruppens aktiva matställen på karta
-    AppShell.tsx              Val mellan landning, exempel och live
+  routes/                       Filbaserade vyer
+  components/matrundan/
+    AppShell.tsx                Landning, exempel och live
+    ShellChrome.tsx             Navigation och statusmarkeringar
+    NextStopDateCard.tsx        Datumförslag och gruppens svar
+    AddPlaceDialog.tsx          Sökning och tillägg av matställen
+    VisitDialog.tsx             Registrering av besök
   lib/matrundan/
-    types.ts                  Domänmodell
-    store.tsx                 Vy-tillstånd och val av lokal/live-lagring
-    session.tsx               Auth-, mode- och gruppvalskontext
-    live-repository.ts        Läser gruppens data från Supabase → AppState
-    live-mutations.ts         Validerade skrivningar via RPC
-    example-data.ts           Fast Stockholm-startdata för exempelgruppen
-    demo-data.ts              Skrivbar lokal data för utveckling och tester
-    places-provider.ts        Provider-gränssnitt för platssökning
-    geoapify.functions.ts     Serverfunktioner för Geoapify (authkrav)
-    geoapify-normalize.ts     Mappning av Geoapify-taxonomi till appmodellen
-    food-tags.ts              Stabil taxonomi och aliasnormalisering
-    version.ts                Version och strukturerad changelog
-  integrations/supabase/      Auto-genererad Supabase-klient och typer
-    (ej att redigera manuellt)
+    types.ts                    Klientens domänmodell
+    store.tsx                   Lokal/live-gräns
+    next-stop-date.ts           Datumformat, svar och behörighetshjälpare
+    live-repository.ts          Säker read-model till AppState
+    live-mutations.ts           Validerade RPC-skrivningar
+    example-data.ts             Fast exempelstart
+    demo-data.ts                Intern testsandbox
+    version.ts                  Aktuell version + sammanfogad historik
+    version-history.ts          Oförändrad historik till v0.14.0
+supabase/migrations/            Schema, RPC, RLS och Storage
 ```
 
-Domänmodell, datalager och vyer hålls separerade så att exempel-, demo- och
-live-läge kan följa samma läsmodell utan att UI-komponenterna gör direkta
-säkerhetskritiska databasfrågor.
+Den aktuella arkitekturkällan finns i [docs/architecture.md](./docs/architecture.md).
+Den detaljerade historiken till och med v0.14.0 finns i
+[docs/archive/architecture-v0.14.md](./docs/archive/architecture-v0.14.md).
 
 ## Konfiguration
 
 Google-inloggningen använder Lovable Clouds hanterade OAuth-broker och de
-publicerbara Supabase-nycklarna som redan finns i `.env`
-(`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
-`VITE_SUPABASE_PROJECT_ID`). Ingen egen Google Cloud-klient behövs.
+publicerbara Supabase-nycklarna i `.env`. Ingen service-role-nyckel finns i
+klientkoden eller i `VITE_`-variabler.
 
-Ingen service-role-nyckel finns i klientkoden eller i några `VITE_`-variabler.
-Klienten använder enbart publishable key + användarens JWT; all känslig åtkomst
-ligger bakom RLS och validerade RPC:er.
+Geoapify API-nyckeln (`GEOAPIFY_API_KEY`) lagras i Lovable Cloud Secrets och
+används endast server-side.
 
-Geoapify API-nyckeln (`GEOAPIFY_API_KEY`) läggs i Lovable Cloud → Secrets,
-aldrig som en `VITE_`-variabel eller i repot. Servern anropar Geoapify, så
-nyckeln exponeras aldrig för klienten. Om nyckeln saknas visas ett tydligt
-konfigurationsfel i live-sökningen, medan fliken för manuellt tillägg fortsätter
-fungera.
+## Lovable och publicering
 
-## Lovable
+Projektet är kopplat till GitHub. Mergade commits på `main` synkas automatiskt
+till Lovable-previewn. Publicering till den publika appen är alltid ett separat,
+uttryckligt godkänt steg.
 
-Projektet är kopplat till GitHub. Ändringar som mergas till `main` synkas till
-Lovable-previewn. Publicering till den publika appen är ett separat steg efter
-verifiering.
+Se [CHANGELOG.md](./CHANGELOG.md) för aktuell release och den länkade fullständiga
+historiken.
