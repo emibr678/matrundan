@@ -15,6 +15,11 @@ import type { AppState } from "@/lib/matrundan/types";
 const EXAMPLE_STATE_KEY = "matrundan.exampleState.v1";
 const LIVE_LOAD_ERROR = "Kunde inte läsa gruppens data.";
 
+function requireLiveState(state: AppState | null): AppState {
+  if (!state) throw new Error(LIVE_LOAD_ERROR);
+  return state;
+}
+
 export function AppShell() {
   return (
     <SessionProvider>
@@ -44,7 +49,7 @@ function ShellBody() {
     if (mode !== "live" || !activeGroupId) return;
     setLiveError(null);
     try {
-      const nextState = await loadLiveState(activeGroupId);
+      const nextState = requireLiveState(await loadLiveState(activeGroupId));
       setLiveState(nextState);
     } catch (error) {
       console.error(error);
@@ -62,6 +67,7 @@ function ShellBody() {
     setLiveState(null);
     setLiveError(null);
     loadLiveState(activeGroupId)
+      .then((nextState) => requireLiveState(nextState))
       .then((nextState) => {
         if (!cancelled) setLiveState(nextState);
       })
