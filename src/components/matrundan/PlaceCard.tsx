@@ -40,7 +40,7 @@ export function PlaceThumb({
   );
 }
 
-export function PlaceCard({ place }: { place: Place }) {
+export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?: boolean }) {
   const { avgRating, isFavorite, toggleFavorite } = useStore();
   const rating = avgRating(place.id);
   const fav = isFavorite(place.id);
@@ -66,25 +66,27 @@ export function PlaceCard({ place }: { place: Place }) {
                 ))}
               </div>
             </Link>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={(e) => {
-                e.preventDefault();
-                toggleFavorite(place.id);
-              }}
-              className="h-11 w-11 shrink-0 rounded-full"
-              aria-pressed={fav}
-              aria-label={fav ? "Ta bort favorit" : "Spara som favorit"}
-            >
-              <Heart
-                className={
-                  fav
-                    ? "h-4 w-4 fill-primary stroke-primary"
-                    : "h-4 w-4 stroke-muted-foreground"
-                }
-              />
-            </Button>
+            {!readOnly ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={(event) => {
+                  event.preventDefault();
+                  void toggleFavorite(place.id);
+                }}
+                className="h-11 w-11 shrink-0 rounded-full"
+                aria-pressed={fav}
+                aria-label={fav ? "Ta bort favorit" : "Spara som favorit"}
+              >
+                <Heart
+                  className={
+                    fav
+                      ? "h-4 w-4 fill-primary stroke-primary"
+                      : "h-4 w-4 stroke-muted-foreground"
+                  }
+                />
+              </Button>
+            ) : null}
           </div>
 
           <div className="mt-2 flex items-center justify-between gap-2">
@@ -97,9 +99,7 @@ export function PlaceCard({ place }: { place: Place }) {
                   </span>
                 </>
               ) : (
-                <span className="text-xs italic text-muted-foreground">
-                  Inga besök än
-                </span>
+                <span className="text-xs italic text-muted-foreground">Inga besök än</span>
               )}
             </div>
             <StatusBadge placeId={place.id} />
