@@ -30,6 +30,42 @@ Scriptet är idempotent och gör endast följande:
 
 Det ändrar inte `package.json`, `bun.lock`, produktkod eller Git-historik.
 
+## Codex Cloud
+
+Skapa eller redigera Codex-miljön för repot `emibr678/matrundan-din-gruppens-matresa` och använd följande inställningar.
+
+Setup script:
+
+```bash
+bash scripts/codex-cloud-setup.sh
+```
+
+Maintenance script:
+
+```bash
+bash scripts/codex-cloud-maintenance.sh
+```
+
+Rekommenderade miljöinställningar:
+
+- agent internet access: **Off**;
+- extra environment variables: inga krävs för demo, tester eller build;
+- secrets: inga krävs för normal implementation och verifiering;
+- package manager: använd endast den Bun-version som `package.json` anger;
+- cache: återställ efter första aktiveringen av DX1B eller när verktygskedjan ändras inkompatibelt.
+
+Setup-scriptet körs när en ny container förbereds. Det installerar den låsta Bun-versionen, projektets beroenden och Chromium. Det sparar även Bun-sökvägen i `~/.bashrc`, eftersom Codex kör setup och agentarbete i separata shellsessioner.
+
+Maintenance-scriptet körs när en cachad container återanvänds. Det säkerställer aktuell Bun-version, låsta beroenden och en Chromium-version som matchar installerad Playwright.
+
+Lägg inte produktionshemligheter i repot. Codex environment variables är tillgängliga även under agentfasen, medan Codex secrets endast ska användas för setupbehov och inte kan förutsättas finnas när agenten kör appen. Live-testhemligheter införs endast genom ett separat godkänt säkerhetspaket.
+
+Första rökprovet i en ny Codex-miljö ska vara en läs- och verifieringsuppgift utan filändringar:
+
+```text
+Kör bun run doctor och bun run verify:changed. Ändra inga filer. Redovisa exakta kommandon och resultat.
+```
+
 ## Kanoniska kommandon
 
 Kontrollera miljön:
@@ -38,13 +74,19 @@ Kontrollera miljön:
 bun run doctor
 ```
 
+Kontrollera alla shellscript:
+
+```bash
+bun run check:shell
+```
+
 Formatera endast ändrade filer:
 
 ```bash
 bun run format:changed
 ```
 
-Verifiera ändrade filer, enhetstester, TypeScript och produktionsbygge:
+Verifiera ändrade filer, shellscript, enhetstester, TypeScript och produktionsbygge:
 
 ```bash
 bun run verify:changed
@@ -90,6 +132,7 @@ Draft-PR kör:
 
 - miljökontroll;
 - lockfils- och verktygsskydd;
+- syntaxkontroll av shellscript;
 - Prettier och ESLint på ändrade filer;
 - alla enhetstester under `src`;
 - TypeScript;
