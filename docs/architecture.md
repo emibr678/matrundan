@@ -1,7 +1,7 @@
 # Matrundan architecture
 
 This document describes the architectural source of truth for Matrundan as of
-v0.12.0. It focuses on durable decisions and invariants rather than a complete
+v0.12.1. It focuses on durable decisions and invariants rather than a complete
 schema dump. When code, migrations and this document disagree, inspect the
 latest production-compatible migration and fix the documentation in the same
 change.
@@ -32,32 +32,42 @@ or any group data. The landing page offers three explicit paths:
 
 - authenticate and create a private group;
 - open an existing token-based invitation;
-- explore the read-only example group.
+- explore the interactive example group.
 
 Direct invitation routes remain available without passing through the landing
 page. The landing experience must not masquerade as membership in a group.
 
-### Read-only example mode
+### Interactive example mode
 
 `/exempel` opens **Fredagsgänget**, permanently labelled
-**Exempelgrupp · Stockholm**. It uses fixed `EXAMPLE_STATE` data:
+**Exempelgrupp · Stockholm**. It starts from fixed `EXAMPLE_STATE` data:
 
 - displayed places are real Stockholm places;
 - members, visits, ratings, comments, favourites and activity are fictional;
 - no source group, private user or live membership data is involved.
 
-The example is read-only in both the UI and the central store mutation boundary.
-It must not hydrate from or persist to the writable demo `localStorage` state,
-call live write APIs or invoke third-party providers unnecessarily. Navigation
-inside the example preserves example mode until authentication starts or the
-session is explicitly left.
+The example uses the same routed UI and local domain mutations as the internal
+demo sandbox. Its adapter persists only to a dedicated `sessionStorage` key in
+the current browser tab. It must never call live write APIs, write to Supabase
+or share storage with the internal demo sandbox. Reloading the same tab keeps
+example changes; a new tab starts from the fixed example state. The user can
+explicitly reset the example to `EXAMPLE_STATE`.
+
+Features that inherently require a real backend, such as authentication,
+provider-backed persistence, real invitations or permanent file storage, must
+remain behind their live boundaries. The example should simulate ordinary
+local product flows rather than duplicate UI implementations.
+
+Navigation inside the example preserves example mode until authentication
+starts or the session is explicitly left.
 
 ### Internal demo sandbox
 
 The explicit `?demo=1` sandbox remains available for development and regression
-tests. It stores Swedish sample data in the browser and mirrors live behaviour
-closely enough to exercise write flows. It is not a public onboarding path and
-must not be presented as the user's real group.
+tests. It stores Swedish sample data in `localStorage` and mirrors live
+behaviour closely enough to exercise write flows. It is isolated from the
+public example's `sessionStorage`, is not a public onboarding path and must not
+be presented as the user's real group.
 
 ### Live mode
 
@@ -84,13 +94,19 @@ security decisions themselves.
 ### Application state and repositories
 
 - `src/lib/matrundan/types.ts` defines the client-side read-model.
-- `src/lib/matrundan/store.tsx` provides the demo/live store boundary and
-  central read-only enforcement for the example group.
-- `src/lib/matrundan/example-data.ts` defines the fixed public example state.
+- `src/lib/matrundan/store.tsx` provides the local/live store boundary and
+  selects local or session persistence for non-live modes.
+- `src/lib/matrundan/example-data.ts` defines the fixed public example start
+  state.
 - `src/lib/matrundan/demo-data.ts` defines writable local sandbox data.
 - `src/lib/matrundan/live-repository.ts` maps the server read-model into
   application types.
 - `src/lib/matrundan/live-mutations.ts` contains approved live mutations.
+
+The example and internal sandbox must reuse the same local mutation
+implementation; only their initial data and persistence adapter differ. New
+core product flows should therefore become available in both modes without
+separate example-specific feature implementations.
 
 The UI should use these boundaries instead of issuing ad hoc database queries.
 The public landing page is deliberately rendered outside `StoreProvider`.
@@ -119,7 +135,8 @@ A group is the private collaboration boundary. A user can be an active member
 of multiple groups and can switch active group in the client.
 
 The example group is not a database group, is never added to the authenticated
-user's group list and grants no membership or permissions.
+user's group list and grants no membership or permissions. Local example role
+simulation must never be treated as real authorisation.
 
 ### Membership lifecycle
 
@@ -340,8 +357,9 @@ A write function should normally:
 Never accept client-supplied author, owner, member, source-group or group
 identity without verifying it server-side.
 
-Client-side read-only modes must also reject mutations centrally. Hiding a
-button alone is not an adequate boundary for the public example.
+The example adapter is not an authorisation boundary and must have no route to
+live mutations. Conversely, archived live groups remain centrally read-only;
+hiding buttons alone is not an adequate enforcement mechanism.
 
 ## 10. Geoapify integration
 
@@ -468,7 +486,9 @@ General rules:
 
 The public landing page must explain the product before presenting a group. Its
 primary paths are create, join and the secondary example CTA. The example banner
-must remain visible on every example route, not only on its home view.
+must remain visible on every example route, not only on its home view, and must
+explain that changes are temporary without exposing technical implementation
+language as the primary product message.
 
 The Gruppen page places the member list before the compact group-highlights
 section. Member cards show a restrained `{level} · {visits} besök` line.
@@ -521,7 +541,10 @@ visible viewport.
 Runtime-mode changes must verify at minimum:
 
 - anonymous `/` loads no group store and shows the landing actions;
-- `/exempel` ignores writable demo state and remains read-only across routes;
+- `/exempel` starts from `EXAMPLE_STATE`, supports local product mutations and
+  persists them only in the current tab's dedicated `sessionStorage` key;
+- example reload and reset behave deterministically;
+- example data never changes the internal sandbox's `localStorage` state;
 - `?demo=1` remains a writable internal sandbox;
 - direct invitation routes work before and after authentication;
 - live users with and without groups retain their existing routing behaviour.
@@ -545,7 +568,9 @@ Before merging an architecture-affecting change, confirm:
 - Are secrets server-only?
 - Are RPC grants and `search_path` correct?
 - Does the public landing avoid loading or implying group membership?
-- Is the example clearly labelled, isolated and centrally read-only?
+- Is the example clearly labelled and unable to reach live persistence?
+- Does the example reuse the current product flows rather than duplicate them?
+- Is example session data isolated from the internal demo sandbox?
 - Does the internal demo sandbox still work?
 - Does the changed flow work at 360 px?
 - Are tests and documentation updated?
