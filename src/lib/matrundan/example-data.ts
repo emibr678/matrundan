@@ -195,6 +195,15 @@ export const EXAMPLE_STATE: AppState = {
       service: 5,
       comment: "En lugn fredagsfika och en riktigt bra kardemummabulle.",
       createdBy: "m1",
+      photo: {
+        url: "/demo-visit-photo.svg",
+        uploadedBy: "m1",
+        mimeType: "image/svg+xml",
+        byteSize: 5240,
+        width: 1200,
+        height: 800,
+        updatedAt: daysAgo(6),
+      },
     },
     {
       id: "v2",

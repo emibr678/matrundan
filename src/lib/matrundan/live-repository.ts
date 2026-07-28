@@ -20,6 +20,7 @@ import type {
   Visit,
 } from "./types";
 import { APP_VERSION } from "./version";
+import { createSignedVisitPhotoUrls } from "./visit-photo";
 
 const ROLE_LABEL: Record<string, Role> = {
   owner: "ägare",
@@ -59,6 +60,15 @@ type VisitRow = {
     status: "active" | "left";
   }[];
   reviews: ReviewRow[];
+  photo: {
+    storagePath: string;
+    uploadedBy: string;
+    mimeType: string;
+    byteSize: number;
+    width: number;
+    height: number;
+    updatedAt: string;
+  } | null;
 };
 
 type Payload = {
@@ -134,11 +144,11 @@ function avg(xs: number[]): number | undefined {
 }
 
 export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const { data, error } = await supabase.rpc("get_group_app_state_v4b" as "get_group_app_state", {
+  const { data, error } = await supabase.rpc("get_group_app_state_v5c" as "get_group_app_state", {
     _group_id: groupId,
   });
   if (error || !data) {
-    console.error("[Matrundan] get_group_app_state_v4b:", error);
+    console.error("[Matrundan] get_group_app_state_v5c:", error);
     return null;
   }
   const p = data as unknown as Payload;
@@ -204,6 +214,10 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     origin: pl.origin === "manual" || pl.origin === "provider" ? pl.origin : "shared",
   }));
 
+  const signedPhotoUrls = await createSignedVisitPhotoUrls(
+    p.visits.flatMap((visit) => (visit.photo?.storagePath ? [visit.photo.storagePath] : [])),
+  );
+
   const visits: Visit[] = p.visits.map((v) => {
     const visibleReviews: VisibleReview[] = v.reviews.map((r) => ({
       id: r.id,
@@ -235,6 +249,12 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       service: avg(service),
       comment: comment ?? undefined,
       createdBy: v.createdBy,
+      photo: v.photo
+        ? {
+            ...v.photo,
+            url: signedPhotoUrls.get(v.photo.storagePath),
+          }
+        : null,
       linkType: v.linkType,
       linkedBy: v.linkedBy,
       linkedAt: v.linkedAt,

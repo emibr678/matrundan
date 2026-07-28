@@ -41,6 +41,13 @@ import type {
   VisibleReview,
 } from "./types";
 import { APP_VERSION } from "./version";
+import {
+  blobToDataUrl,
+  canManageVisitPhoto,
+  liveDeleteVisitPhoto,
+  liveSaveVisitPhoto,
+  prepareVisitPhoto,
+} from "./visit-photo";
 
 const STORAGE_KEY = "matrundan.state.v1";
 type DemoPersistence = "local" | "session";
@@ -153,6 +160,8 @@ interface StoreContextValue {
   }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
   addVisit: (visit: Omit<Visit, "id">) => Promise<Visit>;
+  saveVisitPhoto: (visitId: string, file: File, visitSnapshot?: Visit) => Promise<void>;
+  deleteVisitPhoto: (visitId: string) => Promise<void>;
   setNext: (placeId: string | null) => Promise<void>;
   archiveGroup: () => Promise<void>;
   reactivateGroup: () => Promise<void>;
@@ -432,6 +441,81 @@ export function StoreProvider({
           );
         });
         return visit;
+      },
+
+      saveVisitPhoto: async (visitId, file, visitSnapshot) => {
+        const visit = visitSnapshot ?? state.visits.find((item) => item.id === visitId);
+        if (!visit) throw new Error("Besöket finns inte.");
+        const role = state.members.find((member) => member.id === state.currentUserId)?.role;
+        if (
+          !canManageVisitPhoto(
+            visit,
+            state.currentUserId,
+            role,
+            state.group.lifecycleStatus === "archived",
+          )
+        ) {
+          throw new Error("Du saknar behörighet att ändra fotot för det här besöket.");
+        }
+        const prepared = await prepareVisitPhoto(file);
+        if (mode === "live") {
+          await runLive((groupId) => liveSaveVisitPhoto(groupId, visitId, prepared));
+          return;
+        }
+        assertDemoWritable(state, demoReadOnly);
+        const url = await blobToDataUrl(prepared.blob);
+        const updatedAt = new Date().toISOString();
+        setState((current) => {
+          if (!current.visits.some((item) => item.id === visitId)) {
+            throw new Error("Besöket finns inte.");
+          }
+          return {
+            ...current,
+            visits: current.visits.map((item) =>
+              item.id === visitId
+                ? {
+                    ...item,
+                    photo: {
+                      url,
+                      uploadedBy: current.currentUserId,
+                      mimeType: prepared.mimeType,
+                      byteSize: prepared.byteSize,
+                      width: prepared.width,
+                      height: prepared.height,
+                      updatedAt,
+                    },
+                  }
+                : item,
+            ),
+          };
+        });
+      },
+
+      deleteVisitPhoto: async (visitId) => {
+        const visit = state.visits.find((item) => item.id === visitId);
+        if (!visit) throw new Error("Besöket finns inte.");
+        const role = state.members.find((member) => member.id === state.currentUserId)?.role;
+        if (
+          !canManageVisitPhoto(
+            visit,
+            state.currentUserId,
+            role,
+            state.group.lifecycleStatus === "archived",
+          )
+        ) {
+          throw new Error("Du saknar behörighet att ta bort fotot för det här besöket.");
+        }
+        if (mode === "live") {
+          await runLive((groupId) => liveDeleteVisitPhoto(groupId, visitId));
+          return;
+        }
+        assertDemoWritable(state, demoReadOnly);
+        setState((current) => ({
+          ...current,
+          visits: current.visits.map((item) =>
+            item.id === visitId ? { ...item, photo: null } : item,
+          ),
+        }));
       },
 
       setNext: async (placeId) => {

@@ -20,7 +20,7 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
   den interaktiva exempelgruppen Fredagsgänget i Stockholm.
 - Tre huvudvyer: Hem, Matställen och Gruppen.
 - Sökning, filtrering, karta och topplista i matställeslistan.
-- Registrering av besök med valfria detaljbetyg och kommentarer.
+- Registrering av besök med valfria detaljbetyg, kommentarer och ett privat foto.
 - Personliga och delade favoriter, samt status per matställe
   (”Nytt för mig”, ”Nytt för gruppen”, ”Alla har provat”).
 - Klickbara medlemsprofiler med besök, favoriter och smakprofil.
@@ -29,7 +29,14 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.13.0
+## Status – v0.14.0
+
+Paket 5C lägger till ett valfritt privat foto per besök. Bilden kan väljas vid
+registreringen eller hanteras i efterhand, komprimeras och omkodas innan den
+sparas och visas som ett minne i gruppens besökshistorik. Endast faktiska
+deltagare eller gruppens ägare och admin får ändra fotot. Det är kopplat till
+ursprungsgruppen och följer aldrig automatiskt med när besöket delas vidare.
+Fredagsgänget använder samma gränssnitt men lagrar bilden bara lokalt i sessionen.
 
 Paket 5B gör det möjligt att lägga till flera sökträffar i samma omgång.
 Sökdialogen, radien, list- eller kartläget, det valda resultatet och positionen
@@ -79,7 +86,8 @@ appens publika startupplevelse.
   tillbaka dem utan att förlora historik eller gruppspecifik metadata.
 - Korrigera gruppens kategori, kök och inriktning, Passar för och anteckning.
 - Registrera besök med deltagare + omdöme atomärt, redigera eget omdöme,
-  favoritmarkera och sätta/byta/rensa gruppens nästa stopp.
+  lägga till ett privat besöksfoto, favoritmarkera och sätta/byta/rensa gruppens
+  nästa stopp.
 - **Kanonisk datamodell:** ett matställe (`places`) och ett besök (`visits`)
   existerar bara en gång; varje grupp kopplas via `group_places` respektive
   `visit_group_links`. Recensionens synlighet per grupp styrs av

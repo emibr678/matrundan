@@ -342,9 +342,17 @@ function PlaceDetail() {
                   } ${formatDate(visit.date)}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
-                      {author?.avatar ?? "🙂"}
-                    </div>
+                    {visit.photo?.url ? (
+                      <img
+                        src={visit.photo.url}
+                        alt=""
+                        className="h-16 w-20 shrink-0 rounded-xl border border-border/70 object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
+                        {author?.avatar ?? "🙂"}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-sm">

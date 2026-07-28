@@ -1,7 +1,7 @@
 # Matrundan architecture
 
 This document describes the architectural source of truth for Matrundan as of
-v0.12.1. It focuses on durable decisions and invariants rather than a complete
+v0.14.0. It focuses on durable decisions and invariants rather than a complete
 schema dump. When code, migrations and this document disagree, inspect the
 latest production-compatible migration and fix the documentation in the same
 change.
@@ -56,7 +56,10 @@ explicitly reset the example to `EXAMPLE_STATE`.
 Features that inherently require a real backend, such as authentication,
 provider-backed persistence, real invitations or permanent file storage, must
 remain behind their live boundaries. The example should simulate ordinary
-local product flows rather than duplicate UI implementations.
+local product flows rather than duplicate UI implementations. Visit photos use
+the same UI and domain operations in example mode, but the example adapter
+stores a compressed data URL only in the current tab's session instead of
+calling Cloud Storage.
 
 Navigation inside the example preserves example mode until authentication
 starts or the session is explicitly left.
@@ -263,6 +266,34 @@ For a group's read-model:
 - people outside the group are not exposed as identities;
 - external people are represented only by `externalParticipantCount`.
 
+### `visit_media` and private visit photos
+
+A visit photo is private media for one group's relationship to a canonical
+visit. `visit_media` is uniquely keyed by `(visit_id, group_id)` and has a
+composite foreign key to `visit_group_links`. This preserves canonical visit
+identity while preventing a photo from becoming global visit data.
+
+Important invariants:
+
+- the row can exist only for the visit's `original` group link;
+- a shared target group never receives the origin group's photo metadata,
+  storage path or signed URL;
+- all objects live in the private `visit-photos` bucket under a
+  `<group>/<visit>/<random>.jpg` path;
+- group members may read media only through the active group's read-model and
+  short-lived signed URLs;
+- only actual participants or the active group's owner/admin may add, replace
+  or remove a photo;
+- archived groups and shared visit links are read-only;
+- the database and Storage policies repeat the permission checks server-side;
+- replacing or deleting media must remove the old Storage object on a
+  best-effort basis without deleting the canonical visit.
+
+The browser re-encodes accepted images to JPEG before upload, limits the longest
+edge to 1600 px and targets a compact file size. Re-encoding strips EXIF and GPS
+metadata. The visit is created first and the image is uploaded second, so media
+failure never rolls back the real visit.
+
 ### Sharing a visit
 
 A user may share a visit to another active group only when the server-side rules
@@ -322,7 +353,9 @@ messages or source-group metadata.
 
 ## 8. Secure read model
 
-`get_group_app_state(_group_id)` is the primary live read boundary.
+`get_group_app_state_v5c(_group_id)` is the current primary live read boundary.
+It layers the group-specific visit-photo projection over the established v4b
+read-model rather than reopening direct table reads.
 
 It is a `SECURITY DEFINER` function with a locked `search_path` and must:
 
@@ -333,7 +366,9 @@ It is a `SECURITY DEFINER` function with a locked `search_path` and must:
 - preserve historical display names where allowed;
 - anonymise external participants;
 - omit source-group identity;
-- calculate or provide only group-visible review data.
+- calculate or provide only group-visible review data;
+- attach visit-photo metadata only for `_group_id`, then resolve private objects
+  to short-lived signed URLs in the live repository.
 
 Sensitive canonical and relationship tables should not be directly readable by
 the authenticated client. Read access should not be reopened as a shortcut for
@@ -550,7 +585,10 @@ Runtime-mode changes must verify at minimum:
 - live users with and without groups retain their existing routing behaviour.
 
 Database changes require explicit inspection of function definitions, grants,
-membership checks and preservation of production rows.
+membership checks and preservation of production rows. Storage changes must
+also verify bucket privacy, MIME/size limits, object-path validation, SELECT and
+DELETE policies, signed-URL scoping and the absence of cross-group media in the
+read-model.
 
 Never describe a test as completed when it was not actually run. If an
 authenticated live browser session is unavailable, state that limitation

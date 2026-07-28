@@ -75,6 +75,18 @@ export interface VisitParticipant {
   status: "active" | "left";
 }
 
+export interface VisitPhoto {
+  /** Kortlivad signerad URL i live-läge eller data-/asset-URL i demo. */
+  url?: string;
+  storagePath?: string;
+  uploadedBy: string;
+  mimeType: string;
+  byteSize: number;
+  width: number;
+  height: number;
+  updatedAt: string;
+}
+
 export interface Visit {
   id: string;
   placeId: string;
@@ -87,6 +99,8 @@ export interface Visit {
   service?: number;
   comment?: string;
   createdBy: string;
+  /** Privat foto för just den aktiva gruppens koppling till besöket. */
+  photo?: VisitPhoto | null;
   /** original = besöket registrerades i denna grupp; shared = tillagt från annan grupp. */
   linkType?: "original" | "shared";
   linkedBy?: string;
