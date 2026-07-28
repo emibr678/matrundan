@@ -95,8 +95,16 @@ jobs:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
         run: |
           bun run format:changed
-          git diff -- . ':(exclude).github/workflows/ci.yml'
-          exit 1
+          git diff -- . ':(exclude).github/workflows/ci.yml' > prettier.diff
+          test ! -s prettier.diff
+
+      - name: Upload Prettier diagnostic
+        if: always() && steps.changes.outputs.has_format == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prettier-diff
+          path: prettier.diff
+          if-no-files-found: error
 
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'
