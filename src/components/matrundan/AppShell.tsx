@@ -19,6 +19,8 @@ const NAV = [
   { to: "/gruppen", label: "Gruppen", icon: Users },
 ] as const;
 
+type NavTarget = "/" | "/exempel" | "/matstallen" | "/gruppen";
+
 export function AppShell() {
   return (
     <SessionProvider>
@@ -135,7 +137,11 @@ function ShellBody() {
 
   return (
     <StoreProvider
-      key={mode === "live" ? `live:${activeGroupId ?? ""}` : `demo:${demoReadOnly ? "example" : "sandbox"}`}
+      key={
+        mode === "live"
+          ? `live:${activeGroupId ?? ""}`
+          : `demo:${demoReadOnly ? "example" : "sandbox"}`
+      }
       mode={storeMode}
       demoReadOnly={demoReadOnly}
       initialState={
@@ -163,12 +169,15 @@ function Header({ showAuth }: { showAuth: boolean }) {
 
 function ShellChrome({ demoReadOnly }: { demoReadOnly: boolean }) {
   const { state } = useStore();
-  const { mode, signInWithGoogle } = useSession();
+  const { signInWithGoogle } = useSession();
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
-  const homeTarget = demoReadOnly ? "/exempel" : "/";
-  const targetFor = (to: (typeof NAV)[number]["to"]) => (to === "/" ? homeTarget : to);
+  const homeTarget: NavTarget = demoReadOnly ? "/exempel" : "/";
+  const targetFor = (to: (typeof NAV)[number]["to"]): NavTarget =>
+    to === "/" ? homeTarget : to;
   const isActive = (to: string) =>
-    to === "/" ? pathname === "/" || (demoReadOnly && pathname === "/exempel") : pathname.startsWith(to);
+    to === "/"
+      ? pathname === "/" || (demoReadOnly && pathname === "/exempel")
+      : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
 
   async function createOwnGroup() {
@@ -212,7 +221,7 @@ function ShellChrome({ demoReadOnly }: { demoReadOnly: boolean }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <AuthMenu showGroupActions={mode === "live"} />
+            <AuthMenu showGroupActions={!demoReadOnly} />
           </div>
         </header>
 
