@@ -25,7 +25,7 @@ export function EditReviewDialog({
   review: VisibleReview;
   placeName: string;
 }) {
-  const { updateOwnReview, submitting, state } = useStore();
+  const { updateOwnReview, submitting, state, demoReadOnly } = useStore();
   const [open, setOpen] = React.useState(false);
   const [showDetails, setShowDetails] = React.useState(
     review.taste != null || review.value != null || review.service != null,
@@ -67,7 +67,7 @@ export function EditReviewDialog({
     }
   }
 
-  if (archived) return null;
+  if (archived || demoReadOnly) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
