@@ -1,8 +1,4 @@
-import type {
-  NextStopDateProposal,
-  NextStopDateResponseValue,
-  Role,
-} from "./types";
+import type { NextStopDateProposal, NextStopDateResponseValue, Role } from "./types";
 
 export const NEXT_STOP_DATE_RESPONSE_LABEL: Record<NextStopDateResponseValue, string> = {
   fits: "Passar",
