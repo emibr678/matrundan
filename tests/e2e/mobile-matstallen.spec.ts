@@ -202,7 +202,7 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
 
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await page.goto("/placemapdiagnostik");
+  await page.goto("/placemapdiagnostik?demo=1");
   const diagnosticMap = page.getByRole("region", { name: "Diagnostisk PlaceMap" });
   await expect(diagnosticMap).toBeVisible();
   await expectInteractiveMap(page, diagnosticMap, { verifyKeyboardPan: false });
