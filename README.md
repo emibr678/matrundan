@@ -16,8 +16,8 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 
 ## Funktioner
 
-- Tydlig landningssida för att skapa grupp, gå med via inbjudan eller utforska
-  den skrivskyddade exempelgruppen Fredagsgänget i Stockholm.
+- Tydlig landningssida för att skapa grupp, gå med via inbjudan eller prova
+  den interaktiva exempelgruppen Fredagsgänget i Stockholm.
 - Tre huvudvyer: Hem, Matställen och Gruppen.
 - Sökning, filtrering, karta och topplista i matställeslistan.
 - Registrering av besök med valfria detaljbetyg och kommentarer.
@@ -29,18 +29,19 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.12.0
+## Status – v0.12.1
 
-Paket 5A skiljer nu tydligt mellan en publik start, den skrivskyddade
-exempelgruppen och användarnas riktiga privata grupper. En utloggad användare
+Paket 5A och 5A.1 skiljer tydligt mellan en publik start, en interaktiv
+exempelgrupp och användarnas riktiga privata grupper. En utloggad användare
 möts av en landningssida med valen att skapa grupp, gå med via en privat
-inbjudningslänk eller utforska **Fredagsgänget**.
+inbjudningslänk eller prova **Fredagsgänget**.
 
 Fredagsgänget är märkt **Exempelgrupp · Stockholm** på alla vyer. Gruppen,
 medlemmarna, besöken, omdömena och aktiviteten är fiktiva exempeldata, medan
-de visade matställena är verkliga Stockholm-ställen. Exemplet kan utforskas men
-inte ändras och blandas aldrig med användarens riktiga grupper eller lokala
-testdata.
+de visade matställena är verkliga Stockholm-ställen. Kärnflödena kan provas
+med samma komponenter och lokala mutationer som appen i övrigt. Ändringar
+sparas bara i den aktuella flikens `sessionStorage`, kan återställas och når
+aldrig Supabase eller användarens riktiga grupper.
 
 Platsadministrationen från Paket 4C är kvar: ägare och admin kan ta bort ett
 matställe från gruppens aktiva lista utan att tidigare besök, omdömen eller
@@ -53,15 +54,15 @@ när tangentbordet visas.
 - **Publik landning:** standard för utloggade användare. Ingen gruppdata eller
   grupp-store laddas. Här kan besökaren skapa grupp, gå med via inbjudan eller
   öppna exempelgruppen.
-- **Exempelgrupp (`/exempel`):** fast, skrivskyddad Stockholm-data. Läget gör
-  inga live-skrivningar, påverkas inte av `localStorage` och visar alltid en
-  tydlig exempelmarkering.
+- **Exempelgrupp (`/exempel`):** fast Stockholm-startdata med interaktiva lokala
+  flöden. Ändringar lagras i flikens `sessionStorage`, kan återställas och gör
+  inga live-skrivningar.
 - **Live-läge:** aktiveras efter Google-inloggning. Läsning och skrivning går mot
   Supabase enligt RLS. Har användaren inga grupper visas onboardingen.
 
 Den interna utvecklings- och regressionstestsandboxen nås fortsatt via
-`?demo=1`. Den är skrivbar och använder lokal data, men är inte appens publika
-startupplevelse.
+`?demo=1`. Den är skrivbar och använder separat `localStorage`, men är inte
+appens publika startupplevelse.
 
 ### Vad som fungerar i live-läget
 
@@ -127,7 +128,7 @@ src/
   routes/                     Filbaserade rutter (TanStack Router)
     __root.tsx                App-shell och global head
     index.tsx                 Hem
-    exempel.tsx               Skrivskyddad exempelgrupp
+    exempel.tsx               Interaktiv exempelgrupp i aktuell session
     matstallen.tsx            Lista, karta, sök och filter
     matstallen.$placeId.tsx   Matställets detaljvy
     gruppen.tsx               Gänget, aktivitet, inställningar
@@ -142,11 +143,11 @@ src/
     AppShell.tsx              Val mellan landning, exempel och live
   lib/matrundan/
     types.ts                  Domänmodell
-    store.tsx                 Vy-tillstånd, väljer demo- eller live-källa
+    store.tsx                 Vy-tillstånd och val av lokal/live-lagring
     session.tsx               Auth-, mode- och gruppvalskontext
     live-repository.ts        Läser gruppens data från Supabase → AppState
     live-mutations.ts         Validerade skrivningar via RPC
-    example-data.ts           Fast skrivskyddad Stockholm-exempeldata
+    example-data.ts           Fast Stockholm-startdata för exempelgruppen
     demo-data.ts              Skrivbar lokal data för utveckling och tester
     places-provider.ts        Provider-gränssnitt för platssökning
     geoapify.functions.ts     Serverfunktioner för Geoapify (authkrav)
