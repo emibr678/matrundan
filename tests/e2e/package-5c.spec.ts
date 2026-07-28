@@ -17,7 +17,8 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 
 test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.addInitScript(() => {
+  await page.goto("/matstallen/p2?demo=1");
+  await page.evaluate(() => {
     localStorage.removeItem("matrundan.state.v1");
     sessionStorage.clear();
   });
