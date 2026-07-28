@@ -28,11 +28,12 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function Home() {
-  const { state, getPlace, setNext, memberById, proposerOfNext } = useStore();
+export function Home() {
+  const { state, demoReadOnly, getPlace, setNext, memberById, proposerOfNext } = useStore();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitPlace, setVisitPlace] = React.useState<string | null>(null);
   const groupArchived = state.group.lifecycleStatus === "archived";
+  const canWrite = !groupArchived && !demoReadOnly;
   const activePlaces = React.useMemo(
     () => state.places.filter((place) => place.collectionStatus !== "archived"),
     [state.places],
@@ -52,7 +53,7 @@ function Home() {
   const progressPct = totalPlaces === 0 ? 0 : Math.round((tried / totalPlaces) * 100);
 
   const shuffle = () => {
-    if (groupArchived) return;
+    if (!canWrite) return;
     const pool = untried.length ? untried : activePlaces;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (pick) void setNext(pick.id);
@@ -68,7 +69,7 @@ function Home() {
             <Sparkles className="h-3.5 w-3.5" />
             Nästa stopp
           </div>
-          {!groupArchived && activePlaces.length > 0 ? (
+          {canWrite && activePlaces.length > 0 ? (
             <button
               type="button"
               onClick={shuffle}
@@ -105,7 +106,7 @@ function Home() {
                 ) : null}
               </div>
             </Link>
-            {!groupArchived && next.collectionStatus !== "archived" ? (
+            {canWrite && next.collectionStatus !== "archived" ? (
               <div className="p-4">
                 <Button
                   onClick={() => setVisitPlace(next.id)}
@@ -124,12 +125,14 @@ function Home() {
             <p className="mt-1 text-sm text-muted-foreground">
               {groupArchived
                 ? "Gruppen är arkiverad. Historiken finns kvar att utforska."
-                : activePlaces.length > 0
-                  ? "Slumpa fram ett ställe eller välj ett från listan."
-                  : "Lägg till ett ställe för att börja planera nästa stopp."}
+                : demoReadOnly
+                  ? "Exempelgruppen visar hur ett nästa stopp ser ut när gruppen har valt ett."
+                  : activePlaces.length > 0
+                    ? "Slumpa fram ett ställe eller välj ett från listan."
+                    : "Lägg till ett ställe för att börja planera nästa stopp."}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {!groupArchived && activePlaces.length > 0 ? (
+              {canWrite && activePlaces.length > 0 ? (
                 <Button onClick={shuffle}>
                   <Shuffle className="h-4 w-4" /> Slumpa
                 </Button>
@@ -159,8 +162,8 @@ function Home() {
         </Card>
       </section>
 
-      <section className={groupArchived ? "grid grid-cols-1 gap-2" : "grid grid-cols-2 gap-2"}>
-        {!groupArchived ? (
+      <section className={canWrite ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
+        {canWrite ? (
           <Button
             variant="outline"
             size="lg"
@@ -186,7 +189,7 @@ function Home() {
         </Card>
       </section>
 
-      {!groupArchived ? (
+      {canWrite ? (
         <>
           <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
           <VisitDialog

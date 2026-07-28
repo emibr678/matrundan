@@ -9,7 +9,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
-export type AppMode = "demo" | "live";
+export type AppMode = "landing" | "demo" | "live";
 export type GroupRole = "owner" | "admin" | "member";
 export type GroupLifecycleStatus = "active" | "archived";
 
@@ -35,6 +35,7 @@ interface SessionState {
   user: User | null;
   session: Session | null;
   mode: AppMode;
+  demoReadOnly: boolean;
   needsOnboarding: boolean;
   activeGroupId: string | null;
   activeGroupRole: GroupRole | null;
@@ -49,12 +50,41 @@ interface SessionState {
 const SessionContext = React.createContext<SessionState | null>(null);
 const ACTIVE_GROUP_KEY = "matrundan.activeGroup.v1";
 const PENDING_INVITE_KEY = "matrundan.pendingInvite.v1";
+const EXAMPLE_SESSION_KEY = "matrundan.exampleSession.v1";
 
-function useForceDemo(): boolean {
-  return React.useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).get("demo") === "1";
-  }, []);
+function resolveDemoRoute(): { forceDemo: boolean; readOnly: boolean } {
+  if (typeof window === "undefined") return { forceDemo: false, readOnly: false };
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("demo") === "1") {
+    return { forceDemo: true, readOnly: false };
+  }
+
+  const explicitExample = window.location.pathname === "/exempel";
+  if (explicitExample) {
+    try {
+      window.sessionStorage.setItem(EXAMPLE_SESSION_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    return { forceDemo: true, readOnly: true };
+  }
+
+  try {
+    const storedExample = window.sessionStorage.getItem(EXAMPLE_SESSION_KEY) === "1";
+    return { forceDemo: storedExample, readOnly: storedExample };
+  } catch {
+    return { forceDemo: false, readOnly: false };
+  }
+}
+
+function clearExampleSession() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(EXAMPLE_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function setPendingInvitePath(path: string) {
@@ -78,7 +108,7 @@ export function consumePendingInvitePath(): string | null {
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const forceDemo = useForceDemo();
+  const demoRoute = React.useMemo(resolveDemoRoute, []);
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [userGroups, setUserGroups] = React.useState<UserGroupSummary[]>([]);
@@ -165,6 +195,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = React.useCallback(async (opts?: { redirectPath?: string }) => {
     const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+    clearExampleSession();
     if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: origin,
@@ -177,6 +208,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = React.useCallback(async () => {
     await supabase.auth.signOut();
+    clearExampleSession();
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(ACTIVE_GROUP_KEY);
     }
@@ -190,13 +222,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const value = React.useMemo<SessionState>(() => {
     const user = session?.user ?? null;
-    const isLive = !forceDemo && !!user;
+    const mode: AppMode = demoRoute.forceDemo ? "demo" : user ? "live" : "landing";
     const activeGroup = userGroups.find((group) => group.id === activeGroupId) ?? null;
+    const isLive = mode === "live";
+    const isDemo = mode === "demo";
+
     return {
       loading,
       user,
       session,
-      mode: isLive ? "live" : "demo",
+      mode,
+      demoReadOnly: isDemo && demoRoute.readOnly,
       needsOnboarding: isLive && userGroups.length === 0,
       activeGroupId: isLive ? activeGroupId : null,
       activeGroupRole:
@@ -204,8 +240,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           ? activeGroup.role
           : isLive
             ? null
-            : "owner",
-      activeGroupLifecycleStatus: isLive ? (activeGroup?.lifecycleStatus ?? null) : "active",
+            : isDemo
+              ? "owner"
+              : null,
+      activeGroupLifecycleStatus: isLive
+        ? (activeGroup?.lifecycleStatus ?? null)
+        : isDemo
+          ? "active"
+          : null,
       userGroups,
       signInWithGoogle,
       signOut,
@@ -214,7 +256,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
   }, [
     activeGroupId,
-    forceDemo,
+    demoRoute.forceDemo,
+    demoRoute.readOnly,
     loading,
     refreshGroups,
     selectGroup,

@@ -1,7 +1,7 @@
 # Matrundan architecture
 
 This document describes the architectural source of truth for Matrundan as of
-v0.11.0. It focuses on durable decisions and invariants rather than a complete
+v0.12.0. It focuses on durable decisions and invariants rather than a complete
 schema dump. When code, migrations and this document disagree, inspect the
 latest production-compatible migration and fix the documentation in the same
 change.
@@ -25,14 +25,39 @@ each group.
 
 ## 2. Runtime modes
 
-### Demo mode
+### Public landing mode
 
-Demo mode stores Swedish sample data in the browser and does not require
-sign-in. The explicit sandbox is available with `?demo=1`.
+Anonymous users enter a public landing experience without loading a group store
+or any group data. The landing page offers three explicit paths:
 
-Demo mode should mirror the shape and main behaviour of live mode closely
-enough to exercise the UI, but it must never call live write APIs or third-party
-providers unnecessarily.
+- authenticate and create a private group;
+- open an existing token-based invitation;
+- explore the read-only example group.
+
+Direct invitation routes remain available without passing through the landing
+page. The landing experience must not masquerade as membership in a group.
+
+### Read-only example mode
+
+`/exempel` opens **Fredagsgänget**, permanently labelled
+**Exempelgrupp · Stockholm**. It uses fixed `EXAMPLE_STATE` data:
+
+- displayed places are real Stockholm places;
+- members, visits, ratings, comments, favourites and activity are fictional;
+- no source group, private user or live membership data is involved.
+
+The example is read-only in both the UI and the central store mutation boundary.
+It must not hydrate from or persist to the writable demo `localStorage` state,
+call live write APIs or invoke third-party providers unnecessarily. Navigation
+inside the example preserves example mode until authentication starts or the
+session is explicitly left.
+
+### Internal demo sandbox
+
+The explicit `?demo=1` sandbox remains available for development and regression
+tests. It stores Swedish sample data in the browser and mirrors live behaviour
+closely enough to exercise write flows. It is not a public onboarding path and
+must not be presented as the user's real group.
 
 ### Live mode
 
@@ -40,9 +65,10 @@ Live mode uses Google authentication through Lovable Cloud and Supabase. The
 active group determines the only group read-model loaded into the application
 store.
 
-The transition between demo and live state must be deterministic. Logging out
-must clear live group state rather than leaving a previous group's data in the
-client store.
+Transitions between landing, example, demo and live state must be deterministic.
+Logging out must clear live group state rather than leaving a previous group's
+data in the client store. Starting authentication from the example must clear
+the example-session marker before redirecting.
 
 ## 3. High-level application layers
 
@@ -58,12 +84,16 @@ security decisions themselves.
 ### Application state and repositories
 
 - `src/lib/matrundan/types.ts` defines the client-side read-model.
-- `src/lib/matrundan/store.tsx` provides the demo/live store boundary.
+- `src/lib/matrundan/store.tsx` provides the demo/live store boundary and
+  central read-only enforcement for the example group.
+- `src/lib/matrundan/example-data.ts` defines the fixed public example state.
+- `src/lib/matrundan/demo-data.ts` defines writable local sandbox data.
 - `src/lib/matrundan/live-repository.ts` maps the server read-model into
   application types.
 - `src/lib/matrundan/live-mutations.ts` contains approved live mutations.
 
 The UI should use these boundaries instead of issuing ad hoc database queries.
+The public landing page is deliberately rendered outside `StoreProvider`.
 
 ### Server integrations
 
@@ -87,6 +117,9 @@ group when the viewer is permitted to see the member or historical participant.
 
 A group is the private collaboration boundary. A user can be an active member
 of multiple groups and can switch active group in the client.
+
+The example group is not a database group, is never added to the authenticated
+user's group list and grants no membership or permissions.
 
 ### Membership lifecycle
 
@@ -307,6 +340,9 @@ A write function should normally:
 Never accept client-supplied author, owner, member, source-group or group
 identity without verifying it server-side.
 
+Client-side read-only modes must also reject mutations centrally. Hiding a
+button alone is not an adequate boundary for the public example.
+
 ## 10. Geoapify integration
 
 Geoapify supports two live operations:
@@ -338,6 +374,10 @@ Cuisine and speciality data from providers is mapped through the central
 provider metadata may be retained for diagnostics, but arbitrary provider
 categories must not become uncontrolled user-facing tags. Unknown historical
 labels may remain visible until an authorised user saves a corrected selection.
+
+The fixed example dataset does not call Geoapify at runtime. Real place names,
+addresses and coordinates are curated as stable demonstration data and should
+avoid volatile details such as opening hours, prices, menus or availability.
 
 ## 11. Gamification
 
@@ -426,6 +466,10 @@ General rules:
 - support long Swedish labels and names;
 - prevent horizontal overflow at 360 px.
 
+The public landing page must explain the product before presenting a group. Its
+primary paths are create, join and the secondary example CTA. The example banner
+must remain visible on every example route, not only on its home view.
+
 The Gruppen page places the member list before the compact group-highlights
 section. Member cards show a restrained `{level} · {visits} besök` line.
 
@@ -474,6 +518,14 @@ For software-keyboard-sensitive UI, also verify the component after the visual
 viewport height shrinks and confirm that its bottom edge remains within the
 visible viewport.
 
+Runtime-mode changes must verify at minimum:
+
+- anonymous `/` loads no group store and shows the landing actions;
+- `/exempel` ignores writable demo state and remains read-only across routes;
+- `?demo=1` remains a writable internal sandbox;
+- direct invitation routes work before and after authentication;
+- live users with and without groups retain their existing routing behaviour.
+
 Database changes require explicit inspection of function definitions, grants,
 membership checks and preservation of production rows.
 
@@ -492,7 +544,9 @@ Before merging an architecture-affecting change, confirm:
 - Are external participants still anonymous?
 - Are secrets server-only?
 - Are RPC grants and `search_path` correct?
-- Does demo mode still work?
+- Does the public landing avoid loading or implying group membership?
+- Is the example clearly labelled, isolated and centrally read-only?
+- Does the internal demo sandbox still work?
 - Does the changed flow work at 360 px?
 - Are tests and documentation updated?
 - Is deployment withheld until verification is green?

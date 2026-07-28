@@ -82,8 +82,17 @@ function PlaceDetail() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/matstallen/$placeId" });
   const router = useRouter();
-  const { getPlace, visitsFor, avgRating, isFavorite, toggleFavorite, setNext, state, memberById } =
-    useStore();
+  const {
+    getPlace,
+    visitsFor,
+    avgRating,
+    isFavorite,
+    toggleFavorite,
+    setNext,
+    state,
+    demoReadOnly,
+    memberById,
+  } = useStore();
   const place = getPlace(placeId);
   const [visitOpen, setVisitOpen] = React.useState(false);
   const openVisitId = search.visit || null;
@@ -115,7 +124,7 @@ function PlaceDetail() {
   const isNext = state.nextPlaceId === place.id;
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
-  const writable = !groupArchived && !placeRemoved;
+  const writable = !groupArchived && !placeRemoved && !demoReadOnly;
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
@@ -221,13 +230,20 @@ function PlaceDetail() {
           ) : (
             <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm">
               <div className="font-medium">
-                {placeRemoved ? "Inte längre i gruppens lista" : "Gruppen är arkiverad"}
+                {demoReadOnly
+                  ? "Skrivskyddad exempelgrupp"
+                  : placeRemoved
+                    ? "Inte längre i gruppens lista"
+                    : "Gruppen är arkiverad"}
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Tidigare besök, betyg, kommentarer och favoriter finns kvar.
-                {placeRemoved && !groupArchived
-                  ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
-                  : " Återaktivera gruppen för att göra ändringar."}
+                {demoReadOnly
+                  ? "Du kan utforska stället och gruppens fiktiva besök, men inte ändra exempeldata."
+                  : `Tidigare besök, betyg, kommentarer och favoriter finns kvar.${
+                      placeRemoved && !groupArchived
+                        ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
+                        : " Återaktivera gruppen för att göra ändringar."
+                    }`}
               </p>
             </div>
           )}
@@ -239,7 +255,7 @@ function PlaceDetail() {
                 </a>
               </Button>
             ) : null}
-            <PlaceAdminDialog place={place} />
+            {!demoReadOnly ? <PlaceAdminDialog place={place} /> : null}
           </div>
         </div>
       </Card>

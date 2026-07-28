@@ -16,6 +16,8 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 
 ## Funktioner
 
+- Tydlig landningssida för att skapa grupp, gå med via inbjudan eller utforska
+  den skrivskyddade exempelgruppen Fredagsgänget i Stockholm.
 - Tre huvudvyer: Hem, Matställen och Gruppen.
 - Sökning, filtrering, karta och topplista i matställeslistan.
 - Registrering av besök med valfria detaljbetyg och kommentarer.
@@ -27,29 +29,39 @@ restaurangdatabas, ingen social feed, inga rekommendationer utifrån.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.11.0
+## Status – v0.12.0
 
-Paket 4C gör platsadministrationen naturligare för gruppen. Ägare och admin
-kan ta bort ett matställe från gruppens aktiva lista utan att tidigare besök,
-omdömen eller gruppens egna platsuppgifter försvinner. Stället kan senare läggas
-till igen genom det vanliga Lägg till-flödet; den befintliga gruppkopplingen
-återaktiveras i stället för att en dubblett skapas.
+Paket 5A skiljer nu tydligt mellan en publik start, den skrivskyddade
+exempelgruppen och användarnas riktiga privata grupper. En utloggad användare
+möts av en landningssida med valen att skapa grupp, gå med via en privat
+inbjudningslänk eller utforska **Fredagsgänget**.
 
-Kök och inriktning väljs från en gemensam sökbar lista som normaliserar
-Geoapify-data och gruppens egna val. På mobil öppnas väljaren som en drawer som
-anpassar sig till den synliga skärmhöjden när tangentbordet visas.
+Fredagsgänget är märkt **Exempelgrupp · Stockholm** på alla vyer. Gruppen,
+medlemmarna, besöken, omdömena och aktiviteten är fiktiva exempeldata, medan
+de visade matställena är verkliga Stockholm-ställen. Exemplet kan utforskas men
+inte ändras och blandas aldrig med användarens riktiga grupper eller lokala
+testdata.
 
-Grupparkivering och redigering av egna omdömen från Paket 4B är kvar. Paket
-3D:s privata nivåer, badges, topplistor och milstolpar räknas fortsatt
-deterministiskt från faktiska deltagna besök.
+Platsadministrationen från Paket 4C är kvar: ägare och admin kan ta bort ett
+matställe från gruppens aktiva lista utan att tidigare besök, omdömen eller
+gruppens egna platsuppgifter försvinner. Kök och inriktning väljs från den
+gemensamma normaliserade listan och mobilväljaren följer den synliga viewporten
+när tangentbordet visas.
 
-### Två lägen sida vid sida
+### Tre körlägen
 
-- **Demo-läge (standard när man är utloggad):** all data ligger i webbläsarens
-  `localStorage` med svensk demodata. Ingen inloggning behövs. En explicit
-  sandlådevariant nås via `?demo=1` i URL:en.
-- **Live-läge (när man är inloggad):** både läsning och skrivning går mot
-  Supabase enligt RLS. Har man inga grupper visas onboardingen.
+- **Publik landning:** standard för utloggade användare. Ingen gruppdata eller
+  grupp-store laddas. Här kan besökaren skapa grupp, gå med via inbjudan eller
+  öppna exempelgruppen.
+- **Exempelgrupp (`/exempel`):** fast, skrivskyddad Stockholm-data. Läget gör
+  inga live-skrivningar, påverkas inte av `localStorage` och visar alltid en
+  tydlig exempelmarkering.
+- **Live-läge:** aktiveras efter Google-inloggning. Läsning och skrivning går mot
+  Supabase enligt RLS. Har användaren inga grupper visas onboardingen.
+
+Den interna utvecklings- och regressionstestsandboxen nås fortsatt via
+`?demo=1`. Den är skrivbar och använder lokal data, men är inte appens publika
+startupplevelse.
 
 ### Vad som fungerar i live-läget
 
@@ -115,23 +127,27 @@ src/
   routes/                     Filbaserade rutter (TanStack Router)
     __root.tsx                App-shell och global head
     index.tsx                 Hem
+    exempel.tsx               Skrivskyddad exempelgrupp
     matstallen.tsx            Lista, karta, sök och filter
     matstallen.$placeId.tsx   Matställets detaljvy
     gruppen.tsx               Gänget, aktivitet, inställningar
   components/matrundan/       Feature-komponenter (dialogs, sheets, kort)
     AuthMenu.tsx              Google-inloggning och gruppväxlare
+    LandingScreen.tsx         Publik start för skapa, gå med och exempel
     OnboardingScreen.tsx      Skapa första gruppen i live-läge
+    ShellChrome.tsx           Navigation och beständiga statusmarkeringar
     GeoapifyLocationInput.tsx Återanvändbart Plats-fält med verifierat val
     FoodTagMultiSelect.tsx    Sökbar väljare för kök och inriktning
     PlaceMap.tsx              Gruppens aktiva matställen på karta
-    AppShell.tsx              Navigation + val mellan demo/live/onboarding
+    AppShell.tsx              Val mellan landning, exempel och live
   lib/matrundan/
     types.ts                  Domänmodell
     store.tsx                 Vy-tillstånd, väljer demo- eller live-källa
     session.tsx               Auth-, mode- och gruppvalskontext
     live-repository.ts        Läser gruppens data från Supabase → AppState
     live-mutations.ts         Validerade skrivningar via RPC
-    demo-data.ts              Svensk demodata för preview
+    example-data.ts           Fast skrivskyddad Stockholm-exempeldata
+    demo-data.ts              Skrivbar lokal data för utveckling och tester
     places-provider.ts        Provider-gränssnitt för platssökning
     geoapify.functions.ts     Serverfunktioner för Geoapify (authkrav)
     geoapify-normalize.ts     Mappning av Geoapify-taxonomi till appmodellen
@@ -141,8 +157,8 @@ src/
     (ej att redigera manuellt)
 ```
 
-Domänmodell, datalager och vyer hålls separerade så att demo- och live-läge
-kan följa samma produktflöden utan att UI-komponenterna gör direkta
+Domänmodell, datalager och vyer hålls separerade så att exempel-, demo- och
+live-läge kan följa samma läsmodell utan att UI-komponenterna gör direkta
 säkerhetskritiska databasfrågor.
 
 ## Konfiguration

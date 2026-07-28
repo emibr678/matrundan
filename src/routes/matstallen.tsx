@@ -63,7 +63,7 @@ const QUICK_FILTERS: { key: Filter; label: string }[] = [
 ];
 
 function PlacesIndex() {
-  const { state, avgRating, isFavorite, statusOf } = useStore();
+  const { state, demoReadOnly, avgRating, isFavorite, statusOf } = useStore();
   const navigate = useNavigate({ from: "/matstallen" });
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
@@ -76,6 +76,7 @@ function PlacesIndex() {
   const [filterOpen, setFilterOpen] = React.useState(false);
 
   const groupArchived = state.group.lifecycleStatus === "archived";
+  const canWrite = !groupArchived && !demoReadOnly;
   const activePlaces = React.useMemo(
     () => state.places.filter((place) => place.collectionStatus !== "archived"),
     [state.places],
@@ -162,7 +163,7 @@ function PlacesIndex() {
     <div className="mx-auto max-w-2xl space-y-4 pt-2 md:max-w-4xl">
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
-        {!groupArchived ? (
+        {canWrite ? (
           <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">
             <Plus className="h-4 w-4" /> Lägg till
           </Button>
@@ -339,9 +340,9 @@ function PlacesIndex() {
           <div className="text-4xl">🍽️</div>
           <p className="mt-2 text-sm text-muted-foreground">
             Inga aktiva ställen matchar. Testa att rensa filtren
-            {!groupArchived ? " eller lägg till ett nytt" : ""}.
+            {canWrite ? " eller lägg till ett nytt" : ""}.
           </p>
-          {!groupArchived ? (
+          {canWrite ? (
             <Button className="mt-4" onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4" /> Lägg till matställe
             </Button>
@@ -350,7 +351,7 @@ function PlacesIndex() {
       ) : view === "lista" ? (
         <div className="space-y-3 pb-4 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
           {filtered.map((place) => (
-            <PlaceCard key={place.id} place={place} />
+            <PlaceCard key={place.id} place={place} readOnly={demoReadOnly} />
           ))}
         </div>
       ) : (
@@ -378,7 +379,7 @@ function PlacesIndex() {
         </section>
       )}
 
-      {!groupArchived ? <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} /> : null}
+      {canWrite ? <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} /> : null}
     </div>
   );
 }

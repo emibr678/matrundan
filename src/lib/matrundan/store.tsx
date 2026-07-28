@@ -2,7 +2,8 @@
  * Applikationstillstånd för Matrundan.
  *
  * Stöder två lägen sida vid sida:
- * - demo: hela state lever i localStorage och muteras direkt i klienten.
+ * - demo: testsandboxen kan leva i localStorage, medan exempelgruppen är
+ *   skrivskyddad och alltid startar från sin fasta exempeldata.
  * - live: state kommer från Supabase (via live-repository) och alla
  *   skrivningar går genom SECURITY DEFINER-RPC:er. Efter en lyckad
  *   live-mutation kallar vi onLiveMutation() så att AppShell kan
@@ -42,6 +43,8 @@ import type {
 import { APP_VERSION } from "./version";
 
 const STORAGE_KEY = "matrundan.state.v1";
+const READ_ONLY_DEMO_MESSAGE =
+  "Exempelgruppen är skrivskyddad. Skapa en egen grupp för att lägga till eller ändra något.";
 
 function nameOf(state: AppState, memberId: string) {
   return state.members.find((member) => member.id === memberId)?.name ?? "Någon";
@@ -125,7 +128,8 @@ function normalizeDemoState(input: AppState): AppState {
   };
 }
 
-function assertDemoWritable(state: AppState) {
+function assertDemoWritable(state: AppState, demoReadOnly: boolean) {
+  if (demoReadOnly) throw new Error(READ_ONLY_DEMO_MESSAGE);
   if (state.group.lifecycleStatus === "archived") {
     throw new Error("Gruppen är arkiverad och kan bara läsas.");
   }
@@ -134,6 +138,7 @@ function assertDemoWritable(state: AppState) {
 interface StoreContextValue {
   state: AppState;
   mode: "demo" | "live";
+  demoReadOnly: boolean;
   submitting: boolean;
   addPlace: (input: Omit<Place, "id" | "addedAt">) => Promise<Place>;
   addProviderPlace: (input: {
@@ -170,12 +175,14 @@ const StoreContext = React.createContext<StoreContextValue | null>(null);
 export function StoreProvider({
   children,
   mode = "demo",
+  demoReadOnly = false,
   initialState,
   onLiveMutation,
   activeGroupId,
 }: {
   children: React.ReactNode;
   mode?: "demo" | "live";
+  demoReadOnly?: boolean;
   initialState?: AppState;
   onLiveMutation?: () => Promise<void> | void;
   activeGroupId?: string | null;
@@ -183,15 +190,19 @@ export function StoreProvider({
   const [state, setState] = React.useState<AppState>(() =>
     mode === "demo" ? normalizeDemoState(initialState ?? DEMO_STATE) : (initialState ?? DEMO_STATE),
   );
-  const [hydrated, setHydrated] = React.useState(mode === "live");
+  const [hydrated, setHydrated] = React.useState(mode === "live" || demoReadOnly);
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (mode === "live" && initialState) setState(initialState);
-  }, [mode, initialState]);
+    if (mode === "demo" && demoReadOnly) {
+      setState(normalizeDemoState(initialState ?? DEMO_STATE));
+      setHydrated(true);
+    }
+  }, [mode, demoReadOnly, initialState]);
 
   React.useEffect(() => {
-    if (mode !== "demo") return;
+    if (mode !== "demo" || demoReadOnly) return;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) setState(normalizeDemoState(JSON.parse(raw) as AppState));
@@ -199,16 +210,16 @@ export function StoreProvider({
       /* ignore */
     }
     setHydrated(true);
-  }, [mode]);
+  }, [mode, demoReadOnly]);
 
   React.useEffect(() => {
-    if (!hydrated || mode !== "demo") return;
+    if (!hydrated || mode !== "demo" || demoReadOnly) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       /* ignore */
     }
-  }, [state, hydrated, mode]);
+  }, [state, hydrated, mode, demoReadOnly]);
 
   const onLiveMutationRef = React.useRef(onLiveMutation);
   const activeGroupIdRef = React.useRef(activeGroupId);
@@ -241,6 +252,7 @@ export function StoreProvider({
     return {
       state,
       mode,
+      demoReadOnly,
       submitting,
 
       addPlace: async (input) => {
@@ -250,7 +262,7 @@ export function StoreProvider({
           return { ...normalizedInput, id, addedAt: new Date().toISOString() } as Place;
         }
 
-        assertDemoWritable(state);
+        assertDemoWritable(state, demoReadOnly);
         const existing = state.places.find(
           (place) =>
             place.name.trim().toLocaleLowerCase("sv") ===
@@ -306,6 +318,7 @@ export function StoreProvider({
 
       addProviderPlace: async ({ provider, providerPlaceId, place, raw }) => {
         if (mode !== "live") {
+          if (demoReadOnly) throw new Error(READ_ONLY_DEMO_MESSAGE);
           throw new Error("Extern platssök är bara tillgänglig i live-läge (inloggad).");
         }
         const normalizedPlace = { ...place, cuisines: normalizeFoodTags(place.cuisines ?? []) };
@@ -335,7 +348,7 @@ export function StoreProvider({
           await runLive((groupId) => liveToggleFavorite(groupId, placeId));
           return;
         }
-        assertDemoWritable(state);
+        assertDemoWritable(state, demoReadOnly);
         if (state.places.find((place) => place.id === placeId)?.collectionStatus === "archived") {
           throw new Error("Lägg tillbaka matstället innan du ändrar favoriten.");
         }
@@ -361,7 +374,7 @@ export function StoreProvider({
           const id = await runLive((groupId) => liveCreateVisitWithReview(groupId, visitInput));
           return { ...visitInput, id } as Visit;
         }
-        assertDemoWritable(state);
+        assertDemoWritable(state, demoReadOnly);
         if (
           state.places.find((place) => place.id === visitInput.placeId)?.collectionStatus ===
           "archived"
@@ -415,7 +428,7 @@ export function StoreProvider({
           await runLive((groupId) => liveSetNextPlace(groupId, placeId));
           return;
         }
-        assertDemoWritable(state);
+        assertDemoWritable(state, demoReadOnly);
         if (
           placeId &&
           state.places.find((place) => place.id === placeId)?.collectionStatus === "archived"
@@ -447,6 +460,7 @@ export function StoreProvider({
           await runLive((groupId) => liveArchiveGroup(groupId));
           return;
         }
+        assertDemoWritable(state, demoReadOnly);
         setState((current) => ({
           ...current,
           group: {
@@ -464,6 +478,7 @@ export function StoreProvider({
           await runLive((groupId) => liveReactivateGroup(groupId));
           return;
         }
+        if (demoReadOnly) throw new Error(READ_ONLY_DEMO_MESSAGE);
         setState((current) => ({
           ...current,
           group: {
@@ -480,7 +495,7 @@ export function StoreProvider({
           await runLive((groupId) => liveArchiveGroupPlace(groupId, placeId));
           return;
         }
-        assertDemoWritable(state);
+        assertDemoWritable(state, demoReadOnly);
         setState((current) => ({
           ...current,
           places: current.places.map((place) =>
@@ -502,7 +517,7 @@ export function StoreProvider({
           await runLive((groupId) => liveRestoreGroupPlace(groupId, placeId));
           return;
         }
-        assertDemoWritable(state);
+        assertDemoWritable(state, demoReadOnly);
         setState((current) => ({
           ...current,
           places: current.places.map((place) =>
@@ -525,7 +540,7 @@ export function StoreProvider({
           );
           return;
         }
-        assertDemoWritable(state);
+        assertDemoWritable(state, demoReadOnly);
         setState((current) => ({
           ...current,
           places: current.places.map((place) => {
@@ -552,7 +567,7 @@ export function StoreProvider({
           await runLive((groupId) => liveUpdateOwnReview(groupId, reviewId, input));
           return;
         }
-        assertDemoWritable(state);
+        assertDemoWritable(state, demoReadOnly);
         const exists = state.visits.some((visit) =>
           visit.visibleReviews?.some(
             (review) => review.id === reviewId && review.userId === state.currentUserId,
@@ -581,6 +596,10 @@ export function StoreProvider({
       resetDemo: () => {
         if (mode !== "demo") {
           toast.info("Demo-återställning fungerar bara i demo-läget.");
+          return;
+        }
+        if (demoReadOnly) {
+          toast.info("Exempelgruppen återställs automatiskt och kan inte ändras.");
           return;
         }
         try {
@@ -662,7 +681,7 @@ export function StoreProvider({
         return counts;
       },
     };
-  }, [state, mode, submitting, runLive]);
+  }, [state, mode, demoReadOnly, submitting, runLive]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

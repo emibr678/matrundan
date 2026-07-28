@@ -8,8 +8,8 @@
  */
 
 export const APP_NAME = "Matrundan";
-export const APP_VERSION = "0.11.0";
-export const APP_VERSION_DATE = "2026-07-27";
+export const APP_VERSION = "0.12.0";
+export const APP_VERSION_DATE = "2026-07-28";
 
 export interface ChangelogEntry {
   version: string;
@@ -26,6 +26,31 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: APP_VERSION,
     date: APP_VERSION_DATE,
+    summary:
+      "En tydlig start för nya användare och den skrivskyddade exempelgruppen Fredagsgänget med verkliga matställen i Stockholm.",
+    sections: [
+      {
+        kind: "Nytt",
+        items: [
+          "Utloggade användare möts av en landningssida med tydliga val för att skapa grupp, gå med via inbjudan eller utforska ett exempel.",
+          "Fredagsgänget finns som en uttrycklig exempelgrupp i Stockholm med verkliga matställen och helt fiktiva medlemmar, besök, omdömen och aktivitet.",
+          "Inbjudningslänk eller inbjudningskod kan klistras in direkt på landningssidan och använder det befintliga privata inbjudningsflödet.",
+        ],
+      },
+      {
+        kind: "Förbättrat",
+        items: [
+          "Exempelgruppen är tydligt märkt på alla vyer, har en väg till att skapa egen grupp och blandas aldrig med användarens riktiga grupper.",
+          "Exempelgruppen är skrivskyddad både i gränssnittet och i store-gränsen och påverkas inte av lokal, skrivbar demodata.",
+          "Den interna demosandboxen via ?demo=1 finns kvar för utveckling och regressionstester utan att vara appens publika startläge.",
+          "Appskalet skiljer tydligt mellan publik landning, exempelgrupp och autentiserat live-läge.",
+        ],
+      },
+    ],
+  },
+  {
+    version: "0.11.0",
+    date: "2026-07-27",
     summary:
       "Ta bort och lägg tillbaka matställen utan tappad historik, välj tydligare kök och inriktning och använd väljaren smidigt på mobil.",
     sections: [
