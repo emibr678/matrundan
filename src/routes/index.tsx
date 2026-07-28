@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function Home() {
+export function Home() {
   const { state, getPlace, setNext, memberById, proposerOfNext } = useStore();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitPlace, setVisitPlace] = React.useState<string | null>(null);
