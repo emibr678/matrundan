@@ -76,7 +76,11 @@ export function LandingScreen() {
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             Logga in, skapa gruppen och bjud sedan in vänner eller familj med en privat länk.
           </p>
-          <Button className="mt-5 min-h-11 w-full" onClick={() => void createGroup()} disabled={signingIn}>
+          <Button
+            className="mt-5 min-h-11 w-full"
+            onClick={() => void createGroup()}
+            disabled={signingIn}
+          >
             <LogIn className="h-4 w-4" />
             {signingIn ? "Öppnar inloggning…" : "Skapa en grupp"}
           </Button>
