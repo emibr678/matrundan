@@ -86,6 +86,9 @@ jobs:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
         run: bun scripts/repo-tools.mjs guard-tooling
 
+      - name: Shell scripts
+        run: bun run check:shell
+
       - name: Prettier changed code and configuration
         if: steps.changes.outputs.has_format == 'true'
         env:

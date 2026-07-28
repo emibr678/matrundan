@@ -15,7 +15,9 @@ These instructions apply to the entire repository. Read
 [`docs/architecture.md`](docs/architecture.md) before changing the data model,
 sharing, authentication, Geoapify integration, group privacy, or gamification.
 Read [`docs/development-workflow.md`](docs/development-workflow.md) before
-debugging, implementing, verifying, merging, or reporting Lovable sync.
+debugging, implementing, verifying, merging, or reporting Lovable sync. Read
+[`DEVELOPMENT.md`](DEVELOPMENT.md) before setting up, repairing, or changing the
+development environment.
 
 ## Product guardrails
 
@@ -78,6 +80,20 @@ requires a separate, explicit user approval.
 - Report the exact branch, commit, PR, CI result, Lovable sync status, preview
   link, manual test steps, and anything not verified.
 
+## Codex Cloud environment
+
+- Use `bash scripts/codex-cloud-setup.sh` as the environment setup script.
+- Use `bash scripts/codex-cloud-maintenance.sh` as the maintenance script for
+  resumed cached containers.
+- Do not install another package manager, create an alternate lockfile, or add
+  global project tooling outside these scripts.
+- The setup phase installs Chromium so UI checks can run while agent internet
+  access remains off. WebKit remains a ready-CI responsibility.
+- Keep agent internet access off unless the approved task specifically requires
+  narrowly allowlisted network access.
+- Run `bun run doctor` before implementation when the environment state is
+  uncertain.
+
 ## Repository map
 
 - `src/routes/` — routed pages such as Hem, Matställen and Gruppen.
@@ -92,8 +108,12 @@ requires a separate, explicit user approval.
 - `src/lib/matrundan/version.ts` — application version and in-app changelog.
 - `src/server/` — server-only integrations, including Geoapify.
 - `supabase/migrations/` — schema, RPC, RLS and database changes.
+- `scripts/bootstrap-agent.sh` — generic reproducible bootstrap.
+- `scripts/codex-cloud-setup.sh` — Codex Cloud setup and Chromium preparation.
+- `scripts/codex-cloud-maintenance.sh` — cached Codex environment maintenance.
 - `docs/architecture.md` — canonical architecture and security decisions.
 - `docs/development-workflow.md` — canonical debugging and delivery workflow.
+- `DEVELOPMENT.md` — runtime, Codex environment and verification commands.
 - `README.md` — current human-facing project overview.
 - `CHANGELOG.md` — release history.
 
@@ -165,9 +185,13 @@ During iteration, run the narrowest checks that can falsify the current
 hypothesis. Before pushing a normal candidate, run:
 
 ```bash
-bunx prettier --check <all changed format-supported files>
-bunx eslint <all changed source files>
-bun run verify:fast
+bun run verify:changed
+```
+
+For changed UI flows, run the relevant browser-aware agent verification:
+
+```bash
+bun run verify:agent
 ```
 
 Use the canonical TypeScript command `bun run typecheck`; do not switch between
@@ -179,7 +203,7 @@ For a completed release candidate, run:
 bun run verify:full
 ```
 
-Also run focused tests, for example:
+Also run focused tests when relevant, for example:
 
 ```bash
 bun test src/lib/matrundan/gamification.test.ts
