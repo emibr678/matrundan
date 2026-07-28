@@ -4,6 +4,28 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.13.0] – 2026-07-28
+
+### Förbättrat
+
+- **Flera ställen i samma sökomgång.** Sökdialogen stannar kvar efter varje
+  tillägg och bekräftelsen öppnas ovanpå den befintliga resultatvyn.
+- Söktext, plats, radie, list- eller kartläge, valt resultat och scrollposition
+  bevaras när nästa ställe läggs till.
+- Resultat märks **Tillagd**, **Finns redan** eller **Lägg tillbaka** beroende
+  på gruppens befintliga relation till stället.
+- En diskret räknare summerar omgången och **Klar** avslutar uttryckligt.
+- Manuellt tillägg behåller sitt tidigare enstaka sparflöde. Kanonisk
+  dubblettkontroll och återaktivering av borttagna gruppkopplingar är
+  oförändrade.
+
+### Rättat
+
+- Ett lyckat söktillägg stänger inte längre dialogen eller skickar användaren
+  tillbaka till början av matställesflödet.
+- 360 px-regressionen verifierar tre sekventiella tillägg, bevarat kartläge,
+  omgångsräknare, Tillagd/Finns redan och explicit avslut med Klar.
+
 ## [0.12.1] – 2026-07-28
 
 ### Förbättrat
