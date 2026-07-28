@@ -8,6 +8,7 @@ import { useStore } from "@/lib/matrundan/store";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
+import { NextStopDateCard } from "@/components/matrundan/NextStopDateCard";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
 export const Route = createFileRoute("/")({
@@ -106,8 +107,12 @@ export function Home() {
                 ) : null}
               </div>
             </Link>
+            <NextStopDateCard
+              placeId={next.id}
+              canWrite={canWrite && next.collectionStatus !== "archived"}
+            />
             {canWrite && next.collectionStatus !== "archived" ? (
-              <div className="p-4">
+              <div className="border-t border-border/60 p-4">
                 <Button
                   onClick={() => setVisitPlace(next.id)}
                   className="h-12 w-full text-base"
