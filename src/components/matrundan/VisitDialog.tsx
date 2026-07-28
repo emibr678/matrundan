@@ -120,7 +120,7 @@ export function VisitDialog({
       let photoError: Error | null = null;
       if (photoFile && created?.id) {
         try {
-          await saveVisitPhoto(created.id, photoFile);
+          await saveVisitPhoto(created.id, photoFile, created);
         } catch (error) {
           photoError = error instanceof Error ? error : new Error("Fotot kunde inte sparas.");
         }

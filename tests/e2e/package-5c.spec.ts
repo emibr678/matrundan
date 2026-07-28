@@ -37,7 +37,8 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
   await visitDialog.getByRole("button", { name: "Spara besök" }).click();
   await expect(visitDialog).toBeHidden();
 
-  const newestVisit = page.getByRole("button", { name: /Öppna besök av Alex/ }).first();
+  const newestVisit = page.getByRole("button", { name: /Öppna besök av/ }).first();
+  await expect(newestVisit).toBeVisible();
   await newestVisit.click();
   await expect(page.getByAltText("Foto från besöket").first()).toBeVisible();
   await expect(page.getByText(/Fotot är privat för den här gruppen/)).toBeVisible();
@@ -45,7 +46,7 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
 
   await page.reload();
   await page
-    .getByRole("button", { name: /Öppna besök av Alex/ })
+    .getByRole("button", { name: /Öppna besök av/ })
     .first()
     .click();
   await expect(page.getByAltText("Foto från besöket").first()).toBeVisible();

@@ -160,7 +160,7 @@ interface StoreContextValue {
   }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
   addVisit: (visit: Omit<Visit, "id">) => Promise<Visit>;
-  saveVisitPhoto: (visitId: string, file: File) => Promise<void>;
+  saveVisitPhoto: (visitId: string, file: File, visitSnapshot?: Visit) => Promise<void>;
   deleteVisitPhoto: (visitId: string) => Promise<void>;
   setNext: (placeId: string | null) => Promise<void>;
   archiveGroup: () => Promise<void>;
@@ -443,8 +443,8 @@ export function StoreProvider({
         return visit;
       },
 
-      saveVisitPhoto: async (visitId, file) => {
-        const visit = state.visits.find((item) => item.id === visitId);
+      saveVisitPhoto: async (visitId, file, visitSnapshot) => {
+        const visit = visitSnapshot ?? state.visits.find((item) => item.id === visitId);
         if (!visit) throw new Error("Besöket finns inte.");
         const role = state.members.find((member) => member.id === state.currentUserId)?.role;
         if (
@@ -465,25 +465,30 @@ export function StoreProvider({
         assertDemoWritable(state, demoReadOnly);
         const url = await blobToDataUrl(prepared.blob);
         const updatedAt = new Date().toISOString();
-        setState((current) => ({
-          ...current,
-          visits: current.visits.map((item) =>
-            item.id === visitId
-              ? {
-                  ...item,
-                  photo: {
-                    url,
-                    uploadedBy: current.currentUserId,
-                    mimeType: prepared.mimeType,
-                    byteSize: prepared.byteSize,
-                    width: prepared.width,
-                    height: prepared.height,
-                    updatedAt,
-                  },
-                }
-              : item,
-          ),
-        }));
+        setState((current) => {
+          if (!current.visits.some((item) => item.id === visitId)) {
+            throw new Error("Besöket finns inte.");
+          }
+          return {
+            ...current,
+            visits: current.visits.map((item) =>
+              item.id === visitId
+                ? {
+                    ...item,
+                    photo: {
+                      url,
+                      uploadedBy: current.currentUserId,
+                      mimeType: prepared.mimeType,
+                      byteSize: prepared.byteSize,
+                      width: prepared.width,
+                      height: prepared.height,
+                      updatedAt,
+                    },
+                  }
+                : item,
+            ),
+          };
+        });
       },
 
       deleteVisitPhoto: async (visitId) => {
