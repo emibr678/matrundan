@@ -13,6 +13,7 @@ import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnos
 import { Route as MatstallenRouteImport } from './routes/matstallen'
 import { Route as MapdiagnostikRouteImport } from './routes/mapdiagnostik'
 import { Route as GruppenRouteImport } from './routes/gruppen'
+import { Route as ExempelRouteImport } from './routes/exempel'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
 import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
@@ -37,6 +38,11 @@ const GruppenRoute = GruppenRouteImport.update({
   path: '/gruppen',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExempelRoute = ExempelRouteImport.update({
+  id: '/exempel',
+  path: '/exempel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -55,6 +61,7 @@ const InbjudanTokenRoute = InbjudanTokenRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/exempel': typeof ExempelRoute
   '/gruppen': typeof GruppenRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/exempel': typeof ExempelRoute
   '/gruppen': typeof GruppenRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/exempel': typeof ExempelRoute
   '/gruppen': typeof GruppenRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/exempel'
     | '/gruppen'
     | '/mapdiagnostik'
     | '/matstallen'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/exempel'
     | '/gruppen'
     | '/mapdiagnostik'
     | '/matstallen'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/exempel'
     | '/gruppen'
     | '/mapdiagnostik'
     | '/matstallen'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ExempelRoute: typeof ExempelRoute
   GruppenRoute: typeof GruppenRoute
   MapdiagnostikRoute: typeof MapdiagnostikRoute
   MatstallenRoute: typeof MatstallenRouteWithChildren
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/gruppen'
       fullPath: '/gruppen'
       preLoaderRoute: typeof GruppenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exempel': {
+      id: '/exempel'
+      path: '/exempel'
+      fullPath: '/exempel'
+      preLoaderRoute: typeof ExempelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -188,6 +208,7 @@ const MatstallenRouteWithChildren = MatstallenRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ExempelRoute: ExempelRoute,
   GruppenRoute: GruppenRoute,
   MapdiagnostikRoute: MapdiagnostikRoute,
   MatstallenRoute: MatstallenRouteWithChildren,
