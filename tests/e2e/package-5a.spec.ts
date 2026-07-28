@@ -18,7 +18,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("utloggad användare möts av landningssidan i stället för en fiktiv grupp", async ({ page }) => {
+test("utloggad användare möts av landningssidan i stället för en fiktiv grupp", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
 
