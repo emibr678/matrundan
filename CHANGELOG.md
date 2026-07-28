@@ -4,6 +4,28 @@ Alla noterbara ändringar i Matrundan listas här. Formatet är inspirerat av
 [Keep a Changelog](https://keepachangelog.com/sv/1.1.0/) och versionerna
 följer [semantisk versionshantering](https://semver.org/lang/sv/).
 
+## [0.12.1] – 2026-07-28
+
+### Förbättrat
+
+- **Interaktiv exempelgrupp.** Fredagsgänget använder samma vyer och lokala
+  produktflöden som resten av appen, så favoriter, nästa stopp, besök och
+  gruppadministration kan provas direkt.
+- Exempeländringar lagras bara i den aktuella flikens `sessionStorage` och
+  skickas aldrig till Supabase, databas eller Storage.
+- En tydlig **Återställ**-knapp återgår till den fasta Stockholm-historiken.
+- Teknisk copy om skrivskydd har ersatts med naturlig information om att
+  gruppen är ett exempel och att ändringarna är tillfälliga.
+- Den interna testsandboxen via `?demo=1` behåller sin separata
+  `localStorage`-data och påverkas inte av exempelgruppen.
+
+### Rättat
+
+- Den publika exempelgruppen visar nu Matrundans interaktiva kärnflöden i
+  stället för att dölja de funktioner som behövs för att förstå appen.
+- Session, återställning och isolering mellan exempel, testsandbox och live
+  är verifierade utan horisontell overflow vid 360 px.
+
 ## [0.12.0] – 2026-07-28
 
 ### Nytt
