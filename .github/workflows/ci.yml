@@ -1,240 +1,137 @@
-name: Apply Package 5A fixes
+name: CI
 
 on:
   pull_request:
     branches:
       - main
     types:
+      - opened
       - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  apply:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+  verify:
     runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/paket-5a-landing-demo-stockholm
-          fetch-depth: 0
+    timeout-minutes: 30
 
-      - name: Apply exact fixes
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set verification level
+        id: verification
         shell: bash
         run: |
-          python3 <<'PY'
-          from pathlib import Path
+          if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.pull_request.draft }}" != "true" ]]; then
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            echo "Full verification: browser checks run when relevant." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "full=false" >> "$GITHUB_OUTPUT"
+            echo "Fast verification for draft PR: browser checks are deferred until ready for review." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-          def replace_exact(path: str, old: str, new: str) -> None:
-              file = Path(path)
-              text = file.read_text()
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{path}: expected one match, found {count}")
-              file.write_text(text.replace(old, new))
+      - name: Set up pinned Bun
+        id: bun
+        uses: oven-sh/setup-bun@v2
 
-          replace_exact(
-              "src/lib/matrundan/store.tsx",
-              '''        assertDemoWritable(state, demoReadOnly);
-          setState((current) => ({
-            ...current,
-            group: {
-              ...current.group,
-              lifecycleStatus: "active",''',
-              '''        if (demoReadOnly) throw new Error(READ_ONLY_DEMO_MESSAGE);
-          setState((current) => ({
-            ...current,
-            group: {
-              ...current.group,
-              lifecycleStatus: "active",''',
-          )
+      - name: Report runtime
+        run: echo "Bun ${{ steps.bun.outputs.bun-version }}" >> "$GITHUB_STEP_SUMMARY"
 
-          replace_exact(
-              "tests/e2e/mobile-matstallen.spec.ts",
-              '  await page.goto("/placemapdiagnostik");',
-              '  await page.goto("/placemapdiagnostik?demo=1");',
-          )
+      - name: Cache Bun downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
 
-          replace_exact(
-              "tests/e2e/package-5a.spec.ts",
-              '''  await expect(page.getByText("Pelikan", { exact: true })).toBeVisible();
-          await expect(page.getByText("Café Pascal", { exact: true })).toBeVisible();''',
-              '''  await expect(page.getByRole("heading", { name: "Pelikan", exact: true })).toBeVisible();
-          await expect(page.getByText("Café Pascal", { exact: true })).toBeVisible();
-          await expect(page.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
-          await expect(page.getByRole("button", { name: /favorit/i })).toHaveCount(0);''',
-          )
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-          replace_exact(
-              "src/components/matrundan/PlaceCard.tsx",
-              'export function PlaceCard({ place }: { place: Place }) {',
-              'export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?: boolean }) {',
-          )
-          replace_exact(
-              "src/components/matrundan/PlaceCard.tsx",
-              '''            <Button
-              size="icon"
-              variant="ghost"
-              onClick={(e) => {
-                e.preventDefault();
-                toggleFavorite(place.id);
-              }}
-              className="h-11 w-11 shrink-0 rounded-full"
-              aria-pressed={fav}
-              aria-label={fav ? "Ta bort favorit" : "Spara som favorit"}
-            >
-              <Heart
-                className={
-                  fav
-                    ? "h-4 w-4 fill-primary stroke-primary"
-                    : "h-4 w-4 stroke-muted-foreground"
-                }
-              />
-            </Button>''',
-              '''            {!readOnly ? (
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={(e) => {
-                  e.preventDefault();
-                  void toggleFavorite(place.id);
-                }}
-                className="h-11 w-11 shrink-0 rounded-full"
-                aria-pressed={fav}
-                aria-label={fav ? "Ta bort favorit" : "Spara som favorit"}
-              >
-                <Heart
-                  className={
-                    fav
-                      ? "h-4 w-4 fill-primary stroke-primary"
-                      : "h-4 w-4 stroke-muted-foreground"
-                  }
-                />
-              </Button>
-            ) : null}''',
-          )
+      - name: Find changed files
+        id: changes
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+          elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            base_sha="${{ github.event.before }}"
+          else
+            base_sha="$(git rev-parse HEAD^)"
+          fi
 
-          replace_exact(
-              "src/routes/matstallen.tsx",
-              '  const { state, avgRating, isFavorite, statusOf } = useStore();',
-              '  const { state, demoReadOnly, avgRating, isFavorite, statusOf } = useStore();',
-          )
-          replace_exact(
-              "src/routes/matstallen.tsx",
-              '''  const groupArchived = state.group.lifecycleStatus === "archived";
-          const activePlaces = React.useMemo(''',
-              '''  const groupArchived = state.group.lifecycleStatus === "archived";
-          const canWrite = !groupArchived && !demoReadOnly;
-          const activePlaces = React.useMemo(''',
-          )
-          replace_exact(
-              "src/routes/matstallen.tsx",
-              '''        {!groupArchived ? (
-            <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">''',
-              '''        {canWrite ? (
-            <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">''',
-          )
-          replace_exact(
-              "src/routes/matstallen.tsx",
-              '''            Inga aktiva ställen matchar. Testa att rensa filtren
-            {!groupArchived ? " eller lägg till ett nytt" : ""}.''',
-              '''            Inga aktiva ställen matchar. Testa att rensa filtren
-            {canWrite ? " eller lägg till ett nytt" : ""}.''',
-          )
-          replace_exact(
-              "src/routes/matstallen.tsx",
-              '''          {!groupArchived ? (
-            <Button className="mt-4" onClick={() => setAddOpen(true)}>''',
-              '''          {canWrite ? (
-            <Button className="mt-4" onClick={() => setAddOpen(true)}>''',
-          )
-          replace_exact(
-              "src/routes/matstallen.tsx",
-              '<PlaceCard key={place.id} place={place} />',
-              '<PlaceCard key={place.id} place={place} readOnly={demoReadOnly} />',
-          )
-          replace_exact(
-              "src/routes/matstallen.tsx",
-              '      {!groupArchived ? <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} /> : null}',
-              '      {canWrite ? <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} /> : null}',
-          )
+          bun scripts/repo-tools.mjs ci-flags "$base_sha" >> "$GITHUB_OUTPUT"
 
-          replace_exact(
-              "src/routes/matstallen.$placeId.tsx",
-              '''  const { getPlace, visitsFor, avgRating, isFavorite, toggleFavorite, setNext, state, memberById } =
-    useStore();''',
-              '''  const {
-    getPlace,
-    visitsFor,
-    avgRating,
-    isFavorite,
-    toggleFavorite,
-    setNext,
-    state,
-    demoReadOnly,
-    memberById,
-  } = useStore();''',
-          )
-          replace_exact(
-              "src/routes/matstallen.$placeId.tsx",
-              '  const writable = !groupArchived && !placeRemoved;',
-              '  const writable = !groupArchived && !placeRemoved && !demoReadOnly;',
-          )
-          replace_exact(
-              "src/routes/matstallen.$placeId.tsx",
-              '''              <div className="font-medium">
-                {placeRemoved ? "Inte längre i gruppens lista" : "Gruppen är arkiverad"}
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Tidigare besök, betyg, kommentarer och favoriter finns kvar.
-                {placeRemoved && !groupArchived
-                  ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
-                  : " Återaktivera gruppen för att göra ändringar."}
-              </p>''',
-              '''              <div className="font-medium">
-                {demoReadOnly
-                  ? "Skrivskyddad exempelgrupp"
-                  : placeRemoved
-                    ? "Inte längre i gruppens lista"
-                    : "Gruppen är arkiverad"}
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                {demoReadOnly
-                  ? "Du kan utforska stället och gruppens fiktiva besök, men inte ändra exempeldata."
-                  : `Tidigare besök, betyg, kommentarer och favoriter finns kvar.${
-                      placeRemoved && !groupArchived
-                        ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
-                        : " Återaktivera gruppen för att göra ändringar."
-                    }`}
-              </p>''',
-          )
-          replace_exact(
-              "src/routes/matstallen.$placeId.tsx",
-              '            <PlaceAdminDialog place={place} />',
-              '            {!demoReadOnly ? <PlaceAdminDialog place={place} /> : null}',
-          )
+      - name: Doctor
+        run: bun run doctor
 
-          replace_exact(
-              "src/components/matrundan/VisitDetailSheet.tsx",
-              '  const { state, getPlace, memberById } = useStore();',
-              '  const { state, demoReadOnly, getPlace, memberById } = useStore();',
-          )
-          replace_exact(
-              "src/components/matrundan/VisitDetailSheet.tsx",
-              '''                      {isParticipant ? (
-                        <EditReviewDialog review={myReview} placeName={place.name} />
-                      ) : null}''',
-              '''                      {isParticipant && !demoReadOnly ? (
-                        <EditReviewDialog review={myReview} placeName={place.name} />
-                      ) : null}''',
-          )
-          PY
+      - name: Guard tooling and lockfiles
+        env:
+          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+        run: bun scripts/repo-tools.mjs guard-tooling
 
-          git checkout origin/main -- .github/workflows/ci.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "Rätta Paket 5A:s skrivskydd och mobilregressioner"
-          git push origin HEAD:agent/paket-5a-landing-demo-stockholm
+      - name: Shell scripts
+        run: bun run check:shell
+
+      - name: Prettier changed code and configuration
+        if: steps.changes.outputs.has_format == 'true'
+        env:
+          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+        run: bun run format:check:changed
+
+      - name: ESLint changed code
+        if: steps.changes.outputs.has_code == 'true'
+        env:
+          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+        run: bun run lint:changed
+
+      - name: Unit tests
+        run: bun run test:unit
+
+      - name: TypeScript
+        run: bun run typecheck
+
+      - name: Production build
+        run: bun run build
+
+      - name: Install Chromium
+        if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_ui == 'true'
+        run: bunx playwright install --with-deps chromium
+
+      - name: Mobile Chromium smoke test
+        if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_ui == 'true'
+        run: bun run test:mobile
+
+      - name: Install WebKit for map compatibility
+        if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_map == 'true'
+        run: bunx playwright install --with-deps webkit
+
+      - name: iPhone and desktop map compatibility
+        if: steps.verification.outputs.full == 'true' && steps.changes.outputs.has_map == 'true'
+        run: bun run test:map:cross-browser
+
+      - name: Upload browser report on failure
+        if: failure() && steps.verification.outputs.full == 'true' && steps.changes.outputs.has_ui == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
