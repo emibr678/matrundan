@@ -129,11 +129,17 @@ function ShellBody() {
 
   return (
     <StoreProvider
-      key={mode === "live" ? `live:${activeGroupId ?? ""}` : `demo:${exampleMode ? "example" : "sandbox"}`}
+      key={
+        mode === "live"
+          ? `live:${activeGroupId ?? ""}`
+          : `demo:${exampleMode ? "example" : "sandbox"}`
+      }
       mode={storeMode}
       demoPersistence={exampleMode ? "session" : "local"}
       demoStorageKey={exampleMode ? EXAMPLE_STATE_KEY : undefined}
-      initialState={mode === "live" ? (liveState ?? undefined) : exampleMode ? EXAMPLE_STATE : undefined}
+      initialState={
+        mode === "live" ? (liveState ?? undefined) : exampleMode ? EXAMPLE_STATE : undefined
+      }
       onLiveMutation={mode === "live" ? reloadLive : undefined}
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
