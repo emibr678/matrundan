@@ -47,7 +47,7 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   await radius.click();
   await page.getByRole("option", { name: "Inom 10 km" }).click();
   await expect(radius).toContainText("Inom 10 km");
-  await expect(dialog.getByText("Päronträdets Trattoria", { exact: true })).toBeVisible();
+  await expect(suggestionRow(dialog, "Päronträdets Trattoria")).toBeVisible();
 
   await addSuggestion(page, dialog, "Päronträdets Trattoria");
   await expect(dialog).toBeVisible();
