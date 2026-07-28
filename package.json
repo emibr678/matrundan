@@ -18,7 +18,7 @@
     "lint:changed": "bun scripts/repo-tools.mjs lint-changed",
     "format": "bun run format:changed",
     "format:changed": "bun scripts/repo-tools.mjs format-changed",
-    "format:check:changed": "mkdir -p test-results && bun run format:changed && git diff -- . ':(exclude)package.json' > test-results/prettier.diff && exit 1",
+    "format:check:changed": "bun scripts/repo-tools.mjs format-check-changed",
     "format:all": "prettier --write .",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.{js,mjs}\" \"*.{ts,js,mjs,json}\"",
     "test:unit": "bun test src",
