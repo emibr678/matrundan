@@ -18,7 +18,7 @@
     "lint:changed": "bun scripts/repo-tools.mjs lint-changed",
     "format": "bun run format:changed",
     "format:changed": "bun scripts/repo-tools.mjs format-changed",
-    "format:check:changed": "cp src/components/matrundan/NextStopDateCard.tsx /tmp/NextStopDateCard.before.tsx && prettier --write src/components/matrundan/NextStopDateCard.tsx >/dev/null && diff -u /tmp/NextStopDateCard.before.tsx src/components/matrundan/NextStopDateCard.tsx; exit 1",
+    "format:check:changed": "bun scripts/repo-tools.mjs format-changed --check",
     "format:all": "prettier --write .",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.{js,mjs}\" \"*.{ts,js,mjs,json}\"",
     "test:unit": "bun test src",
