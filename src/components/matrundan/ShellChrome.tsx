@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Archive, Home, Info, MapPin, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
