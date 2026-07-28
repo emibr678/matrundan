@@ -3,7 +3,11 @@ import { CalendarDays, Check, ChevronDown, CircleHelp, Loader2, X } from "lucide
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -40,9 +44,22 @@ const RESPONSE_OPTIONS: {
   icon: typeof Check;
   className: string;
 }[] = [
-  { value: "fits", icon: Check, className: "data-[active=true]:border-primary data-[active=true]:bg-primary/10" },
-  { value: "not_fits", icon: X, className: "data-[active=true]:border-destructive/60 data-[active=true]:bg-destructive/10" },
-  { value: "unsure", icon: CircleHelp, className: "data-[active=true]:border-mustard data-[active=true]:bg-mustard/20" },
+  {
+    value: "fits",
+    icon: Check,
+    className: "data-[active=true]:border-primary data-[active=true]:bg-primary/10",
+  },
+  {
+    value: "not_fits",
+    icon: X,
+    className:
+      "data-[active=true]:border-destructive/60 data-[active=true]:bg-destructive/10",
+  },
+  {
+    value: "unsure",
+    icon: CircleHelp,
+    className: "data-[active=true]:border-mustard data-[active=true]:bg-mustard/20",
+  },
 ];
 
 function demoStorageFor(groupId: string): Storage | null {
@@ -67,7 +84,13 @@ function memberRole(state: ReturnType<typeof useStore>["state"]): Role | undefin
   return state.members.find((member) => member.id === state.currentUserId)?.role;
 }
 
-export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWrite: boolean }) {
+export function NextStopDateCard({
+  placeId,
+  canWrite,
+}: {
+  placeId: string;
+  canWrite: boolean;
+}) {
   const { state, mode } = useStore();
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
@@ -98,7 +121,11 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
 
   React.useEffect(() => {
     if (mode !== "demo") return;
-    if (state.group.lifecycleStatus === "archived" || !state.nextPlaceId || demoProposal?.placeId !== state.nextPlaceId) {
+    if (
+      state.group.lifecycleStatus === "archived" ||
+      !state.nextPlaceId ||
+      demoProposal?.placeId !== state.nextPlaceId
+    ) {
       if (demoProposal) setDemoProposal(null);
     }
   }, [demoProposal, mode, state.group.lifecycleStatus, state.nextPlaceId]);
@@ -216,7 +243,9 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
       } else {
         setDemoProposal(null);
       }
-      toast.success(status === "confirmed" ? "Datumet är bekräftat." : "Datumförslaget är borttaget.");
+      toast.success(
+        status === "confirmed" ? "Datumet är bekräftat." : "Datumförslaget är borttaget.",
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte ändra datumförslaget.");
     }
@@ -303,7 +332,9 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
             </p>
           ) : null}
         </div>
-        {busy ? <Loader2 className="mt-1 h-4 w-4 animate-spin text-muted-foreground" /> : null}
+        {busy ? (
+          <Loader2 className="mt-1 h-4 w-4 animate-spin text-muted-foreground" />
+        ) : null}
       </div>
 
       {proposal.status === "active" && canWrite ? (
@@ -344,7 +375,9 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
             {RESPONSE_OPTIONS.map(({ value }) => {
               const names = proposal.responses
                 .filter((response) => response.response === value)
-                .map((response) => state.members.find((member) => member.id === response.memberId))
+                .map((response) =>
+                  state.members.find((member) => member.id === response.memberId),
+                )
                 .filter((member): member is NonNullable<typeof member> => !!member)
                 .map((member) => `${member.avatar ?? ""} ${member.name}`.trim());
               if (!names.length) return null;
