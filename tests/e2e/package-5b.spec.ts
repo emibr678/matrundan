@@ -24,14 +24,17 @@ function suggestionRow(dialog: Locator, name: string) {
   return dialog.getByRole("button", { name: new RegExp(name) }).locator("..");
 }
 
-async function addSuggestion(page: Page, dialog: Locator, name: string) {
-  const row = suggestionRow(dialog, name);
-  await row.getByRole("button", { name: "Lägg till", exact: true }).click();
-
+async function confirmSuggestion(page: Page) {
   const confirmation = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(confirmation).toBeVisible();
   await confirmation.getByRole("button", { name: "Lägg till i gruppen" }).click();
   await expect(confirmation).toBeHidden();
+}
+
+async function addSuggestion(page: Page, dialog: Locator, name: string) {
+  const row = suggestionRow(dialog, name);
+  await row.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await confirmSuggestion(page);
   await expect(row.getByRole("button", { name: "Tillagd", exact: true })).toBeVisible();
 }
 
@@ -49,11 +52,24 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   await expect(radius).toContainText("Inom 10 km");
   await expect(suggestionRow(dialog, "Päronträdets Trattoria")).toBeVisible();
 
-  await addSuggestion(page, dialog, "Päronträdets Trattoria");
+  const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
+  await mapToggle.click();
+  await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
+  await dialog.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await confirmSuggestion(page);
   await expect(dialog).toBeVisible();
+  await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
   await expect(radius).toContainText("Inom 10 km");
   await expect(
     dialog.getByText("1 ställe tillagt i den här omgången", { exact: true }),
+  ).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Lista", exact: true }).click();
+  await expect(
+    suggestionRow(dialog, "Päronträdets Trattoria").getByRole("button", {
+      name: "Tillagd",
+      exact: true,
+    }),
   ).toBeVisible();
 
   await addSuggestion(page, dialog, "Hagabackens Kafferum");
