@@ -56,7 +56,7 @@ test("Fredagsgänget är ett tydligt skrivskyddat Stockholmsexempel", async ({ p
 
   await page.getByRole("link", { name: "Matställen" }).click();
   await expect(page.getByRole("heading", { name: "Pelikan", exact: true })).toBeVisible();
-  await expect(page.getByText("Café Pascal", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Café Pascal", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /favorit/i })).toHaveCount(0);
   await expect(page.getByText("Göteborg", { exact: true })).toHaveCount(0);
