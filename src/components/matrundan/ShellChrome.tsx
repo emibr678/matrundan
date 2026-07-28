@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Archive, Home, Info, MapPin, Users } from "lucide-react";
+import { Archive, Home, Info, MapPin, RotateCcw, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
@@ -14,15 +14,15 @@ const NAV = [
 
 type NavTarget = "/" | "/exempel" | "/matstallen" | "/gruppen";
 
-export function ShellChrome({ demoReadOnly }: { demoReadOnly: boolean }) {
-  const { state } = useStore();
+export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
+  const { state, resetDemo } = useStore();
   const { signInWithGoogle } = useSession();
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
-  const homeTarget: NavTarget = demoReadOnly ? "/exempel" : "/";
+  const homeTarget: NavTarget = exampleMode ? "/exempel" : "/";
   const targetFor = (to: (typeof NAV)[number]["to"]): NavTarget => (to === "/" ? homeTarget : to);
   const isActive = (to: string) =>
     to === "/"
-      ? pathname === "/" || (demoReadOnly && pathname === "/exempel")
+      ? pathname === "/" || (exampleMode && pathname === "/exempel")
       : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
 
@@ -32,6 +32,11 @@ export function ShellChrome({ demoReadOnly }: { demoReadOnly: boolean }) {
     } catch {
       toast.error("Kunde inte starta Google-inloggningen.");
     }
+  }
+
+  function resetExample() {
+    resetDemo();
+    toast.success("Exempelgruppen är återställd.");
   }
 
   return (
@@ -67,34 +72,44 @@ export function ShellChrome({ demoReadOnly }: { demoReadOnly: boolean }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <AuthMenu showGroupActions={!demoReadOnly} />
+            <AuthMenu showGroupActions />
           </div>
         </header>
 
         <main id="innehall" className="flex-1 px-4 md:px-6">
-          {demoReadOnly ? (
+          {exampleMode ? (
             <div
               role="status"
-              className="mx-auto mb-4 flex max-w-4xl flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/[0.06] p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+              className="mx-auto mb-4 flex max-w-4xl flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/[0.06] p-3 text-sm lg:flex-row lg:items-center lg:justify-between"
             >
               <div className="flex min-w-0 items-start gap-3">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <div className="min-w-0">
                   <div className="font-medium">Exempelgrupp · Stockholm</div>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    Fredagsgänget är fiktivt och skrivskyddat. Matställena är verkliga, men besök,
-                    omdömen och medlemskap är exempeldata.
+                    Fredagsgänget och historiken är exempeldata. Matställena är verkliga och dina
+                    ändringar sparas bara tillfälligt i den här fliken.
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="min-h-10 w-full shrink-0 sm:w-auto"
-                onClick={() => void createOwnGroup()}
-              >
-                Skapa egen grupp
-              </Button>
+              <div className="grid w-full shrink-0 grid-cols-2 gap-2 lg:flex lg:w-auto">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-10"
+                  onClick={resetExample}
+                >
+                  <RotateCcw className="h-4 w-4" /> Återställ
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="min-h-10"
+                  onClick={() => void createOwnGroup()}
+                >
+                  Skapa egen grupp
+                </Button>
+              </div>
             </div>
           ) : archived ? (
             <div
