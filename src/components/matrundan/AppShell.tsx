@@ -1,10 +1,11 @@
 import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import * as React from "react";
-import { Toaster } from "@/components/ui/sonner";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
 import { LandingScreen } from "@/components/matrundan/LandingScreen";
 import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { ShellChrome } from "@/components/matrundan/ShellChrome";
+import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import { EXAMPLE_STATE } from "@/lib/matrundan/example-data";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
@@ -12,6 +13,12 @@ import { StoreProvider } from "@/lib/matrundan/store";
 import type { AppState } from "@/lib/matrundan/types";
 
 const EXAMPLE_STATE_KEY = "matrundan.exampleState.v1";
+const LIVE_LOAD_ERROR = "Kunde inte läsa gruppens data.";
+
+function requireLiveState(state: AppState | null): AppState {
+  if (!state) throw new Error(LIVE_LOAD_ERROR);
+  return state;
+}
 
 export function AppShell() {
   return (
@@ -40,13 +47,13 @@ function ShellBody() {
 
   const reloadLive = React.useCallback(async () => {
     if (mode !== "live" || !activeGroupId) return;
+    setLiveError(null);
     try {
-      const nextState = await loadLiveState(activeGroupId);
+      const nextState = requireLiveState(await loadLiveState(activeGroupId));
       setLiveState(nextState);
-      setLiveError(null);
     } catch (error) {
       console.error(error);
-      setLiveError("Kunde inte läsa gruppens data.");
+      setLiveError(LIVE_LOAD_ERROR);
     }
   }, [mode, activeGroupId]);
 
@@ -54,16 +61,19 @@ function ShellBody() {
     let cancelled = false;
     if (mode !== "live" || !activeGroupId) {
       setLiveState(null);
+      setLiveError(null);
       return;
     }
+    setLiveState(null);
     setLiveError(null);
     loadLiveState(activeGroupId)
+      .then((nextState) => requireLiveState(nextState))
       .then((nextState) => {
         if (!cancelled) setLiveState(nextState);
       })
       .catch((error) => {
         console.error(error);
-        if (!cancelled) setLiveError("Kunde inte läsa gruppens data.");
+        if (!cancelled) setLiveError(LIVE_LOAD_ERROR);
       });
     return () => {
       cancelled = true;
@@ -119,7 +129,16 @@ function ShellBody() {
       <div className="paper-grain min-h-dvh">
         <Header showAuth />
         <div className="mx-auto max-w-md px-6 py-16 text-center text-sm text-muted-foreground">
-          {liveError ?? "Hämtar gruppens data…"}
+          {liveError ? (
+            <div className="space-y-4">
+              <p>{liveError}</p>
+              <Button type="button" variant="outline" onClick={() => void reloadLive()}>
+                Försök igen
+              </Button>
+            </div>
+          ) : (
+            <p>Hämtar gruppens data…</p>
+          )}
         </div>
       </div>
     );
