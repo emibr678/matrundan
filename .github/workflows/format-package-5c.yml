@@ -1,0 +1,41 @@
+name: Format Paket 5C
+
+on:
+  push:
+    branches:
+      - agent/paket-5c-besoksfoto
+    paths:
+      - .github/workflows/format-package-5c.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/paket-5c-besoksfoto
+          fetch-depth: 0
+
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Format changed files
+        run: bun run format:changed
+
+      - name: Commit formatting
+        run: |
+          git config user.name "Matrundan automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add src tests
+          git diff --cached --quiet && exit 0
+          git commit -m "Paket 5C: formatera implementationen"
+          git push origin HEAD:agent/paket-5c-besoksfoto
