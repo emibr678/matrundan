@@ -10,7 +10,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
     client: document.documentElement.clientWidth,
     scroll: document.documentElement.scrollWidth,
   }));
-  expect(metrics.scroll, `${context}: ingen horisontell overflow`).toBeLessThanOrEqual(metrics.client);
+  expect(metrics.scroll, `${context}: ingen horisontell overflow`).toBeLessThanOrEqual(
+    metrics.client,
+  );
 }
 
 test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ page }) => {
@@ -42,10 +44,15 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
   await expectNoHorizontalOverflow(page, "Besöksdetalj med foto");
 
   await page.reload();
-  await page.getByRole("button", { name: /Öppna besök av Alex/ }).first().click();
+  await page
+    .getByRole("button", { name: /Öppna besök av Alex/ })
+    .first()
+    .click();
   await expect(page.getByAltText("Foto från besöket").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Ta bort foto" }).click();
   await expect(page.getByAltText("Foto från besöket")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Lägg till ett minne från besöket/ })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Lägg till ett minne från besöket/ }),
+  ).toBeVisible();
 });

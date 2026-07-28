@@ -75,12 +75,8 @@ export function VisitDetailSheet({
       activeGroupRole === "admin");
   const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
-  const canManagePhoto = !!visit && canManageVisitPhoto(
-    visit,
-    state.currentUserId,
-    currentRole,
-    groupArchived,
-  );
+  const canManagePhoto =
+    !!visit && canManageVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
 
   const myReview = React.useMemo(
     () => visit?.visibleReviews?.find((review) => review.userId === state.currentUserId),

@@ -18,7 +18,12 @@ describe("behörighet för besöksfoto", () => {
 
   test("delat besök och arkiverad grupp är alltid skrivskyddade", () => {
     expect(
-      canManageVisitPhoto({ linkType: "shared", participantIds: ["member-1"] }, "member-1", "ägare", false),
+      canManageVisitPhoto(
+        { linkType: "shared", participantIds: ["member-1"] },
+        "member-1",
+        "ägare",
+        false,
+      ),
     ).toBe(false);
     expect(canManageVisitPhoto(originalVisit, "member-1", "ägare", true)).toBe(false);
   });

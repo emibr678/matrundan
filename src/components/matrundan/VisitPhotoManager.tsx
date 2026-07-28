@@ -65,7 +65,11 @@ export function VisitPhotoManager({ visit, canManage }: { visit: Visit; canManag
                 Avbryt byte
               </Button>
               <Button type="button" className="min-h-11" disabled={disabled} onClick={save}>
-                {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {disabled ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
                 Spara foto
               </Button>
             </div>
@@ -77,7 +81,11 @@ export function VisitPhotoManager({ visit, canManage }: { visit: Visit; canManag
               disabled={disabled}
               onClick={remove}
             >
-              {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {disabled ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
               Ta bort foto
             </Button>
           ) : null}

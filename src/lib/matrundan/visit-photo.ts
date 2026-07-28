@@ -24,9 +24,7 @@ export function canManageVisitPhoto(
   groupArchived: boolean,
 ) {
   if (groupArchived || visit.linkType === "shared") return false;
-  return (
-    visit.participantIds.includes(currentUserId) || role === "ägare" || role === "admin"
-  );
+  return visit.participantIds.includes(currentUserId) || role === "ägare" || role === "admin";
 }
 
 function loadImage(file: File): Promise<HTMLImageElement> {
@@ -124,9 +122,10 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 function uniquePhotoPath(groupId: string, visitId: string) {
-  const id = typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `${groupId}/${visitId}/${id}.jpg`;
 }
 
