@@ -66,18 +66,18 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
 
   await dialog.getByRole("button", { name: "Lista", exact: true }).click();
   await expect(
-    suggestionRow(dialog, "Päronträdets Trattoria").getByRole("button", {
+    suggestionRow(dialog, "Kopparkällaren").getByRole("button", {
       name: "Tillagd",
       exact: true,
     }),
   ).toBeVisible();
 
-  await addSuggestion(page, dialog, "Hagabackens Kafferum");
+  await addSuggestion(page, dialog, "Päronträdets Trattoria");
   await expect(
     dialog.getByText("2 ställen tillagda i den här omgången", { exact: true }),
   ).toBeVisible();
 
-  await addSuggestion(page, dialog, "Rislyktans Izakaya");
+  await addSuggestion(page, dialog, "Hagabackens Kafferum");
   await expect(
     dialog.getByText("3 ställen tillagda i den här omgången", { exact: true }),
   ).toBeVisible();
@@ -93,13 +93,13 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   await page.getByRole("option", { name: "Inom 10 km" }).click();
 
   await expect(
-    suggestionRow(reopened, "Päronträdets Trattoria").getByRole("button", {
+    suggestionRow(reopened, "Kopparkällaren").getByRole("button", {
       name: "Finns redan",
       exact: true,
     }),
   ).toBeVisible();
   await expect(
-    suggestionRow(reopened, "Hagabackens Kafferum").getByRole("button", {
+    suggestionRow(reopened, "Päronträdets Trattoria").getByRole("button", {
       name: "Finns redan",
       exact: true,
     }),
