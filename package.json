@@ -18,7 +18,7 @@
     "lint:changed": "bun scripts/repo-tools.mjs lint-changed",
     "format": "bun run format:changed",
     "format:changed": "bun scripts/repo-tools.mjs format-changed",
-    "format:check:changed": "bun scripts/repo-tools.mjs format-changed --check",
+    "format:check:changed": "bun run format:changed && git diff --name-only && exit 1",
     "format:all": "prettier --write .",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"scripts/**/*.{js,mjs}\" \"*.{ts,js,mjs,json}\"",
     "test:unit": "bun test src",
