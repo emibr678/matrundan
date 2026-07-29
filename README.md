@@ -35,7 +35,18 @@ feed, individuell matdagbok eller global ranking.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.18.0
+## Status – v0.19.0
+
+Paket 6D delar upp sammanhanget i ett obligatoriskt **Passar bäst för** och
+högst ett frivilligt **Passar också för**. De tre valen är **Snabbt & smidigt**,
+**Vardag & häng** och **Något särskilt**.
+
+Matställenas topplista kan växla mellan de tre sammanhangen. Bara det primära
+valet avgör var ett ställe rankas; det sekundära valet används för beskrivning
+och filtrering. På så sätt kan både en lokal pizzeria och en mer ambitiös
+matupplevelse få höga betyg utan att jämföras som samma sorts besök.
+
+## Tidigare – v0.18.0
 
 Paket 6C gör **Passar för** till en tydligare beskrivning av sammanhang:
 **Snabbt & enkelt**, **Vardag & häng** och **Middag & upplevelse**. En kort

@@ -187,6 +187,21 @@ is where group-specific information belongs, including:
 - origin of the group relationship;
 - lifecycle state for whether the place is currently in the group's active list.
 
+The ordered `occasions` array has product semantics:
+
+- the first value is the required **Passar bäst för** classification;
+- the optional second value is **Passar också för**;
+- additional legacy values are ignored by the client until an authorised user
+  explicitly saves a corrected classification.
+
+The three stable internal values remain `snabbt`, `avslappnat` and `middag`.
+Their Swedish labels may evolve without rewriting production rows.
+
+Restaurant leaderboards are private derived views of the active group. A place
+is eligible only in the leaderboard matching its first, primary occasion.
+Secondary occasions support discovery and filtering but never place the same
+restaurant in multiple leaderboards.
+
 Known origin semantics are normalised in the client as:
 
 - `manual` — created manually in the group;
@@ -451,15 +466,15 @@ Gamification is a pure derived domain layer in
 
 ### Levels
 
-| Participated visits | Level |
-| ---: | --- |
-| 0 | Nyfiken |
-| 1 | Provsmakaren |
-| 4 | Krogspanaren |
-| 10 | Matupptäckaren |
-| 20 | Smakjägaren |
-| 40 | Matkonnässören |
-| 75 | Matrundemästaren |
+| Participated visits | Level            |
+| ------------------: | ---------------- |
+|                   0 | Nyfiken          |
+|                   1 | Provsmakaren     |
+|                   4 | Krogspanaren     |
+|                  10 | Matupptäckaren   |
+|                  20 | Smakjägaren      |
+|                  40 | Matkonnässören   |
+|                  75 | Matrundemästaren |
 
 Progress toward the next level is shown only on the user's own profile.
 
@@ -565,8 +580,7 @@ Changed mobile flows require a real browser check at 360 px. Verify both the
 page and opened dialogs/sheets, including:
 
 ```js
-document.documentElement.scrollWidth <=
-  document.documentElement.clientWidth
+document.documentElement.scrollWidth <= document.documentElement.clientWidth;
 ```
 
 For software-keyboard-sensitive UI, also verify the component after the visual

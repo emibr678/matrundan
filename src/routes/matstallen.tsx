@@ -19,9 +19,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useStore } from "@/lib/matrundan/store";
+import { rankPlacesForOccasion } from "@/lib/matrundan/occasions";
 import {
   CATEGORY_LABEL,
   OCCASION_LABEL,
+  OCCASION_VALUES,
   type Occasion,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
@@ -69,6 +71,7 @@ function PlacesIndex() {
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
+  const [topOccasion, setTopOccasion] = React.useState<Occasion>("avslappnat");
   const [sort, setSort] = React.useState<Sort>("senaste");
   const [filter, setFilter] = React.useState<Filter>("alla");
   const [view, setView] = React.useState<View>("lista");
@@ -133,14 +136,10 @@ function PlacesIndex() {
   }, [filtered, selectedPlaceId]);
 
   const topRated = React.useMemo(
-    () =>
-      [...activePlaces]
-        .map((place) => ({ place, rating: avgRating(place.id) }))
-        .filter(({ rating }) => rating.count > 0)
-        .sort((a, b) => b.rating.overall - a.rating.overall)
-        .slice(0, 3),
-    [activePlaces, avgRating],
+    () => rankPlacesForOccasion(activePlaces, topOccasion, avgRating),
+    [activePlaces, avgRating, topOccasion],
   );
+  const hasRatings = activePlaces.some((place) => avgRating(place.id).count > 0);
 
   const clearAdvanced = () => {
     setCategory("alla");
@@ -187,36 +186,74 @@ function PlacesIndex() {
         />
       </div>
 
-      {topRated.length > 0 ? (
-        <section>
-          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1">
-            <h2 className="font-display text-lg">Topplista</h2>
-            <span className="text-[11px] text-muted-foreground">
-              Baserat på gruppens medelbetyg
-            </span>
+      {hasRatings ? (
+        <section aria-labelledby="place-leaderboard-heading" data-testid="occasion-leaderboard">
+          <div className="mb-2">
+            <div className="flex min-h-11 items-center gap-1">
+              <h2 id="place-leaderboard-heading" className="font-display text-lg">
+                Topplista
+              </h2>
+              <OccasionGuide compact />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Gruppens medelbetyg inom ställets primära sammanhang
+            </p>
           </div>
-          <div className="grid gap-2 md:grid-cols-3">
-            {topRated.map(({ place, rating }) => (
-              <Link
-                key={place.id}
-                to="/matstallen/$placeId"
-                params={{ placeId: place.id }}
-                className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
-              >
-                <PlaceThumb place={place} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{place.name}</div>
-                  <div className="mt-0.5 flex items-center gap-2">
-                    <RatingStars value={rating.overall} size={12} />
-                    <span className="text-xs text-muted-foreground">
-                      {formatRating(rating.overall)} · {rating.count}
-                    </span>
+
+          <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">
+            {OCCASION_VALUES.map((item) => {
+              const active = topOccasion === item;
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setTopOccasion(item)}
+                  aria-pressed={active}
+                  aria-label={`Visa topplista för ${OCCASION_LABEL[item]}`}
+                  className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Badge
+                    variant={active ? "default" : "outline"}
+                    className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                  >
+                    {OCCASION_LABEL[item]}
+                  </Badge>
+                </button>
+              );
+            })}
+          </div>
+
+          {topRated.length > 0 ? (
+            <div className="grid gap-2 md:grid-cols-3">
+              {topRated.map(({ place, rating, rank }) => (
+                <Link
+                  key={place.id}
+                  to="/matstallen/$placeId"
+                  params={{ placeId: place.id }}
+                  className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                    {rank}
+                  </span>
+                  <PlaceThumb place={place} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{place.name}</div>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      <RatingStars value={rating.overall} size={12} />
+                      <span className="text-xs text-muted-foreground">
+                        {formatRating(rating.overall)} · {rating.count}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </Link>
-            ))}
-          </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
+              Inga betyg i {OCCASION_LABEL[topOccasion].toLocaleLowerCase("sv")} ännu.
+            </div>
+          )}
         </section>
       ) : null}
 

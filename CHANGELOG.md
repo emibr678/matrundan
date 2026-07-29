@@ -7,6 +7,29 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [0.19.0] – 2026-07-29
+
+### Nytt
+
+- Topplistan kan växla mellan **Snabbt & smidigt**, **Vardag & häng** och
+  **Något särskilt**.
+- Ett ställe rankas endast i sitt primära sammanhang och ordnas efter gruppens
+  synliga medelbetyg.
+
+### Förbättrat
+
+- Varje ställe får ett obligatoriskt **Passar bäst för** och högst ett frivilligt
+  **Passar också för**.
+- Sammanhangen beskriver situationen, inte objektiv kvalitet, prisnivå eller
+  ambitionsnivå.
+- Befintliga sparade val tolkas i sin nuvarande ordning som primärt och
+  sekundärt. Inga produktionsrader skrivs om automatiskt.
+
+### Rättat
+
+- Den fria flervalsmodellen från 0.18.0 har ersatts med den beslutade
+  klassificeringen innan topplistorna byggdes vidare.
+
 ## [0.18.0] – 2026-07-29
 
 ### Förbättrat

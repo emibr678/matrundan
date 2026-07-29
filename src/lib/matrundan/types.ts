@@ -219,15 +219,17 @@ export const CATEGORY_LABEL: Record<PlaceCategory, string> = {
 };
 
 export const OCCASION_LABEL: Record<Occasion, string> = {
-  snabbt: "Snabbt & enkelt",
+  snabbt: "Snabbt & smidigt",
   avslappnat: "Vardag & häng",
-  middag: "Middag & upplevelse",
+  middag: "Något särskilt",
 };
 
 export const OCCASION_DESCRIPTION: Record<Occasion, string> = {
-  snabbt: "När det ska vara lätt att svänga förbi, äta eller ta med utan så mycket planering.",
-  avslappnat: "När ni vill sitta ner avslappnat – från café och lokalt hak till kvarterskrog.",
-  middag: "När maten, servicen eller miljön är en större del av själva upplevelsen.",
+  snabbt: "När maten ska gå fort, vara enkel att ordna eller fungera bra för takeaway.",
+  avslappnat:
+    "För avslappnade måltider, spontana träffar och ställen gruppen gärna återvänder till.",
+  middag:
+    "När maten, servicen, miljön eller själva tillfället får vara en större del av upplevelsen.",
 };
 
 export const OCCASION_VALUES = [

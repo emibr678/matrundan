@@ -14,7 +14,6 @@ import type {
   NextStopDateProposal,
   NextStopDateProposalStatus,
   NextStopDateResponseValue,
-  Occasion,
   Place,
   PlaceCategory,
   PlaceCollectionStatus,
@@ -22,6 +21,7 @@ import type {
   VisibleReview,
   Visit,
 } from "./types";
+import { normalizeOccasionClassification } from "./occasions";
 import { APP_VERSION } from "./version";
 import { createSignedVisitPhotoUrls } from "./visit-photo";
 
@@ -241,7 +241,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     cuisines: pl.cuisines ?? [],
     canonicalCuisines: pl.canonicalCuisines ?? pl.cuisines ?? [],
     cuisinesOverride: pl.cuisinesOverride ?? null,
-    occasions: (pl.occasions ?? []) as Occasion[],
+    occasions: normalizeOccasionClassification(pl.occasions ?? []),
     address: pl.address ?? "",
     city: pl.city ?? "",
     area: pl.area ?? undefined,

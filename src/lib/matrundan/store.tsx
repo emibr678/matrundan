@@ -14,6 +14,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { DEMO_STATE } from "./demo-data";
 import { normalizeFoodTags } from "./food-tags";
+import { normalizeOccasionClassification } from "./occasions";
 import {
   archiveGroup as liveArchiveGroup,
   archiveGroupPlace as liveArchiveGroupPlace,
@@ -98,6 +99,7 @@ function normalizePlace(place: Place): Place {
     canonicalCuisines,
     cuisinesOverride,
     cuisines: cuisinesOverride ?? canonicalCuisines,
+    occasions: normalizeOccasionClassification(place.occasions ?? []),
     collectionStatus: place.collectionStatus ?? "active",
     archivedAt: place.archivedAt ?? null,
     archivedBy: place.archivedBy ?? null,
@@ -277,7 +279,11 @@ export function StoreProvider({
       submitting,
 
       addPlace: async (input) => {
-        const normalizedInput = { ...input, cuisines: normalizeFoodTags(input.cuisines ?? []) };
+        const normalizedInput = {
+          ...input,
+          cuisines: normalizeFoodTags(input.cuisines ?? []),
+          occasions: normalizeOccasionClassification(input.occasions ?? []),
+        };
         if (mode === "live") {
           const id = await runLive((groupId) => liveCreatePlace(groupId, normalizedInput));
           return { ...normalizedInput, id, addedAt: new Date().toISOString() } as Place;
@@ -341,7 +347,11 @@ export function StoreProvider({
         if (mode !== "live") {
           throw new Error("Extern platssök är bara tillgänglig i live-läge (inloggad).");
         }
-        const normalizedPlace = { ...place, cuisines: normalizeFoodTags(place.cuisines ?? []) };
+        const normalizedPlace = {
+          ...place,
+          cuisines: normalizeFoodTags(place.cuisines ?? []),
+          occasions: normalizeOccasionClassification(place.occasions ?? []),
+        };
         const id = await runLive((groupId) =>
           liveCreateOrLinkProviderPlace(groupId, {
             provider,
@@ -628,6 +638,7 @@ export function StoreProvider({
           ...input,
           cuisinesOverride:
             input.cuisinesOverride == null ? null : normalizeFoodTags(input.cuisinesOverride),
+          occasions: normalizeOccasionClassification(input.occasions),
         };
         if (mode === "live") {
           await runLive((groupId) =>

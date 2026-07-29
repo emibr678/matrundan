@@ -29,6 +29,7 @@ import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { primaryOccasion, secondaryOccasion } from "@/lib/matrundan/occasions";
 import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
@@ -121,6 +122,8 @@ function PlaceDetail() {
   if (!place) return <NotFound />;
 
   const rating = avgRating(place.id);
+  const bestOccasion = primaryOccasion(place.occasions);
+  const alsoOccasion = secondaryOccasion(place.occasions);
   const fav = isFavorite(place.id);
   const isNext = state.nextPlaceId === place.id;
   const groupArchived = state.group.lifecycleStatus === "archived";
@@ -283,23 +286,35 @@ function PlaceDetail() {
               </Badge>
             ))}
           </div>
-          {place.occasions.length > 0 ? (
+          {bestOccasion ? (
             <div className="space-y-1.5">
               <div className="flex min-h-11 items-center gap-1">
                 <span className="text-xs font-medium text-muted-foreground">Passar för</span>
                 <OccasionGuide compact />
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {place.occasions.map((occasion) => (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <div className="mb-1 text-[11px] text-muted-foreground">Passar bäst för</div>
                   <Badge
-                    key={occasion}
                     variant="outline"
-                    title={OCCASION_DESCRIPTION[occasion]}
+                    title={OCCASION_DESCRIPTION[bestOccasion]}
                     className="rounded-full border-mustard/60 bg-mustard/25 text-mustard-foreground"
                   >
-                    {OCCASION_LABEL[occasion]}
+                    {OCCASION_LABEL[bestOccasion]}
                   </Badge>
-                ))}
+                </div>
+                {alsoOccasion ? (
+                  <div>
+                    <div className="mb-1 text-[11px] text-muted-foreground">Passar också för</div>
+                    <Badge
+                      variant="outline"
+                      title={OCCASION_DESCRIPTION[alsoOccasion]}
+                      className="rounded-full border-border bg-muted/50 text-foreground"
+                    >
+                      {OCCASION_LABEL[alsoOccasion]}
+                    </Badge>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
