@@ -1,6 +1,8 @@
 import * as React from "react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/matrundan/session";
@@ -17,6 +19,7 @@ export function OnboardingScreen() {
   const [locationText, setLocationText] = React.useState("");
   const [verified, setVerified] = React.useState<VerifiedHomeLocation | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [locationOpen, setLocationOpen] = React.useState(false);
 
   const locHasText = locationText.trim().length > 0;
   const locMatchesVerified = !!verified && locationText.trim() === verified.label.trim();
@@ -95,32 +98,46 @@ export function OnboardingScreen() {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="group-location">Förvalt sökområde (valfritt)</Label>
-            <GeoapifyLocationInput
-              id="group-location"
-              value={locationText}
-              onChange={(text) => {
-                setLocationText(text);
-                if (verified && text !== verified.label) setVerified(null);
-              }}
-              onSelect={(v) => {
-                setVerified(v);
-                setLocationText(v.label);
-              }}
-              onClearVerified={() => setVerified(null)}
-              placeholder="t.ex. Gamla Enskede, Stockholm"
-            />
-            {locInvalid ? (
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                Välj sökområdet från listan eller lämna fältet tomt.
-              </p>
-            ) : null}
-            <p className="text-xs text-muted-foreground">
-              Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
-              enskild sökning.
-            </p>
-          </div>
+          <Collapsible open={locationOpen} onOpenChange={setLocationOpen}>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="outline" className="w-full justify-between">
+                Lägg till vanligt sökområde (valfritt)
+                <ChevronDown
+                  className={[
+                    "h-4 w-4 transition-transform",
+                    locationOpen ? "rotate-180" : "",
+                  ].join(" ")}
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="group-location">Vanligt sökområde (valfritt)</Label>
+                <GeoapifyLocationInput
+                  id="group-location"
+                  value={locationText}
+                  onChange={(text) => {
+                    setLocationText(text);
+                    if (verified && text !== verified.label) setVerified(null);
+                  }}
+                  onSelect={(v) => {
+                    setVerified(v);
+                    setLocationText(v.label);
+                  }}
+                  onClearVerified={() => setVerified(null)}
+                  placeholder="t.ex. Gamla Enskede, Stockholm"
+                />
+                {locInvalid ? (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Välj sökområdet från listan eller lämna fältet tomt.
+                  </p>
+                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  Används som startpunkt när ni söker efter ställen. Kan ändras för varje sökning.
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <div className="flex items-center justify-between pt-2">
             <Button type="button" variant="ghost" onClick={() => void signOut()}>

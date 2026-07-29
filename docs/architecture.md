@@ -1,7 +1,7 @@
 # Matrundan architecture
 
 This document describes the architectural source of truth for Matrundan as of
-v0.20.0. It focuses on durable decisions and invariants rather than a complete
+v1.0.0. It focuses on durable decisions and invariants rather than a complete
 schema dump. When code, migrations and this document disagree, inspect the
 latest production-compatible migration and fix the documentation in the same
 change.
@@ -42,7 +42,7 @@ page. The landing experience must not masquerade as membership in a group.
 `/exempel` opens **Fredagsgänget**, permanently labelled
 **Exempelgrupp · Stockholm**. It starts from fixed `EXAMPLE_STATE` data:
 
-- displayed places are real Stockholm places;
+- displayed places and addresses are curated fictional examples;
 - members, visits, ratings, comments, favourites and activity are fictional;
 - no source group, private user or live membership data is involved.
 
@@ -131,6 +131,16 @@ is mediated through RLS, grants and membership-validating RPC functions.
 
 A profile represents an authenticated user. Profile data may be shown inside a
 group when the viewer is permitted to see the member or historical participant.
+
+Account deletion is self-service and server-orchestrated. Groups with other
+active members require an explicit successor before their owner can leave.
+Owner-only groups require a separate destructive confirmation and are deleted.
+The user's display name, avatars, comments, favourites, planning responses and
+uploaded visit media are removed. Numeric reviews and completed-visit
+participation remain attached to the scrubbed profile label `Tidigare medlem`
+so other members retain a coherent shared history. The auth user is soft-deleted
+with the service role only after the authenticated database transaction and
+private object cleanup succeed.
 
 ### Groups
 
@@ -474,9 +484,10 @@ provider metadata may be retained for diagnostics, but arbitrary provider
 categories must not become uncontrolled user-facing tags. Unknown historical
 labels may remain visible until an authorised user saves a corrected selection.
 
-The fixed example dataset does not call Geoapify at runtime. Real place names,
-addresses and coordinates are curated as stable demonstration data and should
-avoid volatile details such as opening hours, prices, menus or availability.
+The fixed example dataset does not call Geoapify at runtime. Fictional place
+names and addresses are curated as stable demonstration data. Approximate
+coordinates may be used for layout, but example details must not link fictional
+places to external map services.
 
 ## 11. Gamification
 

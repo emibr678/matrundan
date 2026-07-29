@@ -1,12 +1,14 @@
 import * as React from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Link2, LogIn, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
+import { AboutDialog } from "@/components/matrundan/AboutDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/matrundan/session";
+import { APP_VERSION } from "@/lib/matrundan/version";
 
 function invitationToken(value: string): string | null {
   const trimmed = value.trim();
@@ -29,6 +31,7 @@ export function LandingScreen() {
   const { signInWithGoogle } = useSession();
   const [invite, setInvite] = React.useState("");
   const [signingIn, setSigningIn] = React.useState(false);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
 
   async function createGroup() {
     if (signingIn) return;
@@ -72,9 +75,9 @@ export function LandingScreen() {
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Users className="h-5 w-5" />
           </div>
-          <h2 className="mt-4 font-display text-2xl font-semibold">Starta en egen grupp</h2>
+          <h2 className="mt-4 font-display text-2xl font-semibold">Fortsätt till Matrundan</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Logga in, skapa gruppen och bjud sedan in vänner eller familj med en privat länk.
+            Logga in för att öppna dina grupper eller skapa en ny.
           </p>
           <Button
             className="mt-5 min-h-11 w-full"
@@ -82,7 +85,7 @@ export function LandingScreen() {
             disabled={signingIn}
           >
             <LogIn className="h-4 w-4" />
-            {signingIn ? "Öppnar inloggning…" : "Skapa en grupp"}
+            {signingIn ? "Öppnar inloggning…" : "Fortsätt med Google"}
           </Button>
         </Card>
 
@@ -132,6 +135,18 @@ export function LandingScreen() {
           </Button>
         </Card>
       </section>
+
+      <footer className="mx-auto mt-8 flex max-w-4xl flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+        <button type="button" className="hover:text-foreground" onClick={() => setAboutOpen(true)}>
+          Om Matrundan
+        </button>
+        <Link to="/integritet" className="hover:text-foreground">
+          Integritet
+        </Link>
+        <span>v{APP_VERSION}</span>
+      </footer>
+
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </main>
   );
 }

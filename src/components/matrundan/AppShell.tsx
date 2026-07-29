@@ -34,6 +34,7 @@ function ShellBody() {
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isInvitationRoute = pathname.startsWith("/inbjudan/");
+  const isPublicInfoRoute = pathname === "/integritet";
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
 
@@ -95,7 +96,7 @@ function ShellBody() {
     );
   }
 
-  if (isInvitationRoute) {
+  if (isInvitationRoute || isPublicInfoRoute) {
     return (
       <div className="paper-grain min-h-dvh">
         <Header showAuth />

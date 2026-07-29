@@ -154,7 +154,7 @@ export function Home() {
           </div>
           <Progress value={progressPct} className="h-2" />
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <StatTile label="Aktiva ställen" value={totalPlaces} />
+            <StatTile label="Ställen" value={totalPlaces} />
             <StatTile label="Besök" value={state.visits.length} />
             <StatTile label="Kvar att prova" value={untried.length} tone="mustard" />
           </div>
