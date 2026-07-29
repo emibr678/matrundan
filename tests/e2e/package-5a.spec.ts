@@ -27,7 +27,7 @@ test("utloggad användare möts av landningssidan i stället för en fiktiv grup
   await expect(
     page.getByRole("heading", { name: "Hitta nästa ställe – och minns rundorna tillsammans." }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Skapa en grupp" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Fortsätt med Google" })).toBeVisible();
   await expect(page.getByLabel("Inbjudningslänk eller kod")).toBeVisible();
   await expect(page.getByText("Exempelgrupp", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /Öppna exempelgruppen/ })).toBeVisible();
@@ -48,7 +48,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
 
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await expect(page.getByText(/ändringar sparas bara tillfälligt i den här fliken/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Hermans" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Slumpa" })).toBeVisible();
@@ -76,6 +76,38 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(
     page.getByRole("button", { name: "Markera som favorit", exact: true }),
   ).toBeVisible();
+});
+
+test("exempelgruppen kan lämnas via menyn och Matrundan-logotypen", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+
+  await page.getByRole("link", { name: "Hem", exact: true }).click();
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Exempel", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Till startsidan", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(
+    page.getByRole("heading", { name: "Hitta nästa ställe – och minns rundorna tillsammans." }),
+  ).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem("matrundan.exampleSession.v1")))
+    .toBeNull();
+  await expectNoHorizontalOverflow(page, "Landningssidan efter exempelmenyn");
+
+  await page.getByRole("link", { name: /Öppna exempelgruppen/ }).click();
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: /Matrundan/ }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(
+    page.getByRole("heading", { name: "Hitta nästa ställe – och minns rundorna tillsammans." }),
+  ).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem("matrundan.exampleSession.v1")))
+    .toBeNull();
+  await expectNoHorizontalOverflow(page, "Landningssidan efter Matrundan-logotypen");
 });
 
 test("den interna demosandboxen är fortsatt skrivbar och separat", async ({ page }) => {

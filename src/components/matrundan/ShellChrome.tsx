@@ -16,7 +16,7 @@ type NavTarget = "/" | "/exempel" | "/matstallen" | "/gruppen";
 
 export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
   const { state, resetDemo } = useStore();
-  const { signInWithGoogle } = useSession();
+  const { signInWithGoogle, exitExampleMode } = useSession();
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
   const homeTarget: NavTarget = exampleMode ? "/exempel" : "/";
   const targetFor = (to: (typeof NAV)[number]["to"]): NavTarget => (to === "/" ? homeTarget : to);
@@ -25,6 +25,12 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
       ? pathname === "/" || (exampleMode && pathname === "/exempel")
       : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
+  const brand = (
+    <>
+      <span className="text-2xl">🍽️</span>
+      <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
+    </>
+  );
 
   async function createOwnGroup() {
     try {
@@ -44,10 +50,22 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
     <div className="paper-grain min-h-dvh text-foreground">
       <div className="mx-auto flex min-h-dvh max-w-6xl flex-col pb-24 md:pb-8">
         <header className="flex items-center justify-between gap-4 px-5 pt-6 pb-3 md:pt-8">
-          <Link to={homeTarget} className="flex items-center gap-2">
-            <span className="text-2xl">🍽️</span>
-            <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
-          </Link>
+          {exampleMode ? (
+            <a
+              href="/"
+              className="flex items-center gap-2"
+              onClick={(event) => {
+                event.preventDefault();
+                exitExampleMode();
+              }}
+            >
+              {brand}
+            </a>
+          ) : (
+            <Link to={homeTarget} className="flex items-center gap-2">
+              {brand}
+            </Link>
+          )}
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Huvudmeny">
             {NAV.map((item) => {

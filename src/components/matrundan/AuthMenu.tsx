@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Archive, LogIn, LogOut, User as UserIcon, Plus, UserCog } from "lucide-react";
+import { Archive, Home, LogIn, LogOut, User as UserIcon, Plus, UserCog } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +54,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
     selectGroup,
     signInWithGoogle,
     signOut,
+    exitExampleMode,
     refreshGroups,
   } = useSession();
   const navigate = useNavigate();
@@ -89,6 +90,15 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
             <DropdownMenuLabel>{exampleMode ? "Exempelgrupp" : "Demo-läge"}</DropdownMenuLabel>
+            {exampleMode ? (
+              <>
+                <DropdownMenuItem onSelect={exitExampleMode}>
+                  <Home className="mr-2 h-4 w-4" />
+                  Till startsidan
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
             <DropdownMenuItem onSelect={() => void signIn()}>
               <LogIn className="mr-2 h-4 w-4" />
               Logga in med Google
@@ -123,6 +133,15 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
+          {exampleMode ? (
+            <>
+              <DropdownMenuItem onSelect={exitExampleMode}>
+                <Home className="mr-2 h-4 w-4" />
+                Till startsidan
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
           <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
             <UserCog className="mr-2 h-4 w-4" />
             Min profil

@@ -58,14 +58,13 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Lägg till ställe", exact: true })).toBeVisible();
 
-  const searchTop = await page.getByLabel("Sök i matställen").evaluate((element) => {
-    return element.getBoundingClientRect().top;
-  });
+  const search = page.getByRole("textbox", { name: "Sök bland gruppens ställen" });
+  await expect(search).toHaveAttribute("placeholder", "Sök bland gruppens ställen");
+  const searchTop = await search.evaluate((element) => element.getBoundingClientRect().top);
   const topListTop = await page.getByRole("heading", { name: "Topplista" }).evaluate((element) => {
     return element.getBoundingClientRect().top;
   });
   expect(searchTop).toBeLessThan(topListTop);
-  const search = page.getByLabel("Sök i matställen");
   await search.fill("Kvarterets");
   await expect(page.getByTestId("occasion-leaderboard")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Kvarterets Kardemumma/ })).toBeVisible();

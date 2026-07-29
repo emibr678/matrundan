@@ -43,6 +43,7 @@ interface SessionState {
   userGroups: UserGroupSummary[];
   signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
   signOut: () => Promise<void>;
+  exitExampleMode: () => void;
   selectGroup: (groupId: string) => void;
   refreshGroups: () => Promise<void>;
 }
@@ -216,6 +217,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setUserGroups([]);
   }, []);
 
+  const exitExampleMode = React.useCallback(() => {
+    clearExampleSession();
+    if (typeof window !== "undefined") {
+      window.location.assign("/");
+    }
+  }, []);
+
   const refreshGroups = React.useCallback(async () => {
     await loadGroups(session?.user?.id);
   }, [loadGroups, session?.user?.id]);
@@ -251,6 +259,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       userGroups,
       signInWithGoogle,
       signOut,
+      exitExampleMode,
       selectGroup,
       refreshGroups,
     };
@@ -258,6 +267,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     activeGroupId,
     demoRoute.exampleMode,
     demoRoute.forceDemo,
+    exitExampleMode,
     loading,
     refreshGroups,
     selectGroup,
