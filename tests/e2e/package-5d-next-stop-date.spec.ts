@@ -24,21 +24,29 @@ test("gruppen föreslår, svarar och bekräftar datum för nästa stopp", async 
   await dialog.getByLabel("Tid (valfritt)").fill("18:30");
   await dialog.getByRole("button", { name: "Föreslå", exact: true }).click();
 
-  await expect(page.getByRole("heading", { name: "Datumförslag" })).toBeVisible();
+  await expect(page.getByText("Ingen har svarat än", { exact: true })).toBeVisible();
   await expect(page.getByText("kl. 18:30")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ta bort förslaget" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Passar 0", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Passar 1", exact: true })).toHaveAttribute(
+  await page.getByRole("button", { name: /Öppna datumplaneringen/ }).click();
+  const planning = page.getByRole("dialog", { name: "Planera nästa stopp" });
+  await expect(planning).toBeVisible();
+  const planningWidths = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(planningWidths.scroll).toBeLessThanOrEqual(planningWidths.client);
+  await planning.getByRole("button", { name: "Passar 0", exact: true }).click();
+  await expect(planning.getByRole("button", { name: "Passar 1", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
 
-  await page.getByRole("button", { name: "Bekräfta datum" }).click();
-  await expect(page.getByRole("heading", { name: "Planerat till" })).toBeVisible();
-  await expect(page.getByText("Bekräftat", { exact: true })).toBeVisible();
+  await planning.getByRole("button", { name: "Bekräfta datum" }).click();
+  await expect(planning.getByText("Bekräftat", { exact: true })).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Planerat till" })).toBeVisible();
+  await expect(page.getByText("Bekräftat", { exact: true })).toBeVisible();
   await expect(page.getByText("kl. 18:30")).toBeVisible();
 
   const widths = await page.evaluate(() => ({
@@ -47,6 +55,10 @@ test("gruppen föreslår, svarar och bekräftar datum för nästa stopp", async 
   }));
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
 
-  await page.getByRole("button", { name: "Ta bort förslaget" }).click();
+  await page.getByRole("button", { name: /Öppna datumplaneringen/ }).click();
+  await page
+    .getByRole("dialog", { name: "Planera nästa stopp" })
+    .getByRole("button", { name: "Ta bort datumet" })
+    .click();
   await expect(page.getByRole("button", { name: "Föreslå datum" })).toBeVisible();
 });

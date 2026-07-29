@@ -7,6 +7,24 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [0.17.0] – 2026-07-29
+
+### Förbättrat
+
+- **Kompakt datumplanering.** Hem visar datum och aktuell svarssammanfattning på
+  en lugn rad. Svarsalternativ, namn och hantering öppnas i den separata vyn
+  **Planera nästa stopp**.
+- Bekräftade datum visas utan en tung svarssammanställning på Hem.
+- **Aktivt helhetsbetyg.** Besöksregistreringen börjar utan förvalt betyg och
+  kan inte sparas förrän användaren själv har valt 1–5.
+- Besöksdialogen har en enda primär sparaknapp. För användare med flera grupper
+  erbjuds **Lägg till i annan grupp** först efter att besöket har sparats.
+
+### Rättat
+
+- Datumplaneringen och besöksdialogen verifieras vid 360 px utan horisontell
+  overflow.
+
 ## [0.16.1] – 2026-07-29
 
 ### Förbättrat

@@ -25,7 +25,7 @@ const proposal: NextStopDateProposal = {
 
 describe("datumförslag för nästa stopp", () => {
   test("formaterar svensk dag och valfri tid", () => {
-    expect(formatNextStopDate("2026-08-14", "18:30")).toContain("14 augusti");
+    expect(formatNextStopDate("2026-08-14", "18:30")).toBe("Fredag 14 augusti kl. 18:30");
     expect(formatNextStopDate("2026-08-14", "18:30")).toContain("kl. 18:30");
     expect(formatNextStopDate("2026-08-14", null)).not.toContain("kl.");
   });
