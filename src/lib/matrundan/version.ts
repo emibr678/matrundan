@@ -3,7 +3,7 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "0.16.1";
+export const APP_VERSION = "0.17.0";
 export const APP_VERSION_DATE = "2026-07-29";
 
 const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
@@ -64,7 +64,7 @@ const PACKAGE_6A_CHANGELOG: ChangelogEntry = {
 };
 
 const PACKAGE_6A_1_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
+  version: "0.16.1",
   date: APP_VERSION_DATE,
   summary: "Tydligare Google Maps-länk och bättre placerad hantering på matställets detaljsida.",
   sections: [
@@ -78,7 +78,31 @@ const PACKAGE_6A_1_CHANGELOG: ChangelogEntry = {
   ],
 };
 
+const PACKAGE_6B_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary: "Lugnare datumplanering och ett enklare besöksflöde med mer tillförlitliga betyg.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hem visar datumet och svarsläget på en kompakt rad; svar, namn och hantering öppnas först i Planera nästa stopp.",
+        "Bekräftade datum visas utan den tidigare tunga svarssammanställningen på Hem.",
+        "Ett besök kräver nu att användaren aktivt väljer helhetsbetyg i stället för att börja på ett förvalt betyg.",
+        "Besöksdialogen har en enda sparaknapp; möjligheten att lägga till besöket i en annan grupp erbjuds efter att besöket har sparats.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Datumplaneringen och besöksdialogen är regressionsskyddade mot horisontell overflow vid 360 px.",
+      ],
+    },
+  ],
+};
+
 export const CHANGELOG: ChangelogEntry[] = [
+  PACKAGE_6B_CHANGELOG,
   PACKAGE_6A_1_CHANGELOG,
   PACKAGE_6A_CHANGELOG,
   PACKAGE_5D_CHANGELOG,

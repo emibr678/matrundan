@@ -35,7 +35,15 @@ feed, individuell matdagbok eller global ranking.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.16.1
+## Status – v0.17.0
+
+Paket 6B gör datumplaneringen på Hem kompakt. Datum, bekräftelse och en kort
+svarssammanfattning ligger kvar i huvudflödet, medan svarsalternativ, namn och
+hantering öppnas i **Planera nästa stopp**.
+
+Besöksregistreringen kräver nu ett aktivt val av helhetsbetyg. Dialogen har en
+enda primär knapp för att spara besöket; möjligheten att lägga till besöket i en
+annan grupp erbjuds först efter att det har sparats.
 
 Uppföljningen 6A.1 gör Google Maps tydligt tillgängligt via en egen namngiven
 länk och flyttar **Hantera ställe** till den administrativa kontexten vid

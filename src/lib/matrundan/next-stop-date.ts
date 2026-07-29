@@ -40,7 +40,8 @@ export function formatNextStopDate(date: string, time?: string | null): string {
     day: "numeric",
     month: "long",
   }).format(parsed);
-  return time ? `${dateLabel} kl. ${time.slice(0, 5)}` : dateLabel;
+  const sentenceCaseLabel = dateLabel.charAt(0).toLocaleUpperCase("sv-SE") + dateLabel.slice(1);
+  return time ? `${sentenceCaseLabel} kl. ${time.slice(0, 5)}` : sentenceCaseLabel;
 }
 
 export function canManageNextStopDateProposal(

@@ -64,7 +64,7 @@ export function VisitDialog({
 
   const [meal, setMeal] = React.useState<(typeof MEALS)[number]>("middag");
   const [date, setDate] = React.useState<string>(new Date().toISOString().slice(0, 10));
-  const [overall, setOverall] = React.useState(4);
+  const [overall, setOverall] = React.useState(0);
   const [participants, setParticipants] = React.useState<string[]>([state.currentUserId]);
   const [taste, setTaste] = React.useState(0);
   const [value, setValue] = React.useState(0);
@@ -77,7 +77,7 @@ export function VisitDialog({
     if (!open) {
       setMeal("middag");
       setDate(new Date().toISOString().slice(0, 10));
-      setOverall(4);
+      setOverall(0);
       setParticipants([state.currentUserId]);
       setTaste(0);
       setValue(0);
@@ -93,7 +93,7 @@ export function VisitDialog({
   const toggleParticipant = (id: string) =>
     setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
-  const submit = async (thenShare = false) => {
+  const submit = async () => {
     if (isBusy) return;
     if (participants.length === 0) {
       toast.error("Välj minst en deltagare");
@@ -125,13 +125,20 @@ export function VisitDialog({
           photoError = error instanceof Error ? error : new Error("Fotot kunde inte sparas.");
         }
       }
-      toast.success("Besök registrerat", { description: place.name });
       onOpenChange(false);
+      toast.success("Besök registrerat", {
+        description: place.name,
+        duration: canShare ? 8000 : undefined,
+        action:
+          canShare && activeGroupId && created?.id
+            ? {
+                label: "Lägg till i annan grupp",
+                onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
+              }
+            : undefined,
+      });
       if (photoError) {
         toast.warning("Besöket sparades utan foto.", { description: photoError.message });
-      }
-      if (thenShare && activeGroupId && created?.id) {
-        setSharePayload({ visitId: created.id, groupId: activeGroupId });
       }
     } catch (e) {
       toast.error((e as Error).message || "Kunde inte spara besöket.");
@@ -207,6 +214,9 @@ export function VisitDialog({
 
           <div className="rounded-2xl bg-secondary/60 p-4">
             <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
+            </p>
           </div>
 
           <Collapsible open={showDetails} onOpenChange={setShowDetails}>
@@ -253,32 +263,15 @@ export function VisitDialog({
           >
             Avbryt
           </Button>
-          {canShare ? (
-            <>
-              <div className="text-[11px] text-muted-foreground sm:hidden">
-                Besöket sparas en gång och kopplas sedan till vald grupp.
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => submit(true)}
-                disabled={isBusy}
-                className="w-full sm:w-auto"
-              >
-                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Spara och lägg till i annan grupp
-              </Button>
-            </>
-          ) : null}
-          <Button onClick={() => submit(false)} disabled={isBusy} className="w-full sm:w-auto">
+          <Button
+            onClick={() => submit()}
+            disabled={isBusy || overall === 0}
+            className="w-full sm:w-auto"
+          >
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara besök
           </Button>
         </DialogFooter>
-        {canShare ? (
-          <p className="hidden text-[11px] text-muted-foreground sm:block">
-            Besöket sparas en gång och kopplas sedan till vald grupp.
-          </p>
-        ) : null}
       </DialogContent>
       <ShareVisitDialog
         visitId={sharePayload?.visitId ?? null}

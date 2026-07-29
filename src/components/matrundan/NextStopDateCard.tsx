@@ -1,9 +1,8 @@
 import * as React from "react";
-import { CalendarDays, Check, ChevronDown, CircleHelp, Loader2, X } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, CircleHelp, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   canManageNextStopDateProposal,
   countNextStopDateResponses,
@@ -75,9 +81,23 @@ function memberRole(state: ReturnType<typeof useStore>["state"]): Role | undefin
   return state.members.find((member) => member.id === state.currentUserId)?.role;
 }
 
+function responseSummary(counts: Record<NextStopDateResponseValue, number>) {
+  const total = counts.fits + counts.not_fits + counts.unsure;
+  if (total === 0) return "Ingen har svarat än";
+
+  return [
+    counts.fits > 0 ? `${counts.fits} passar` : null,
+    counts.not_fits > 0 ? `${counts.not_fits} passar inte` : null,
+    counts.unsure > 0 ? `${counts.unsure} osäkra` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWrite: boolean }) {
   const { state, mode } = useStore();
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [time, setTime] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -228,9 +248,14 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
         );
       } else {
         setDemoProposal(null);
+        setPlanningOpen(false);
       }
       toast.success(
-        status === "confirmed" ? "Datumet är bekräftat." : "Datumförslaget är borttaget.",
+        status === "confirmed"
+          ? "Datumet är bekräftat."
+          : proposal.status === "confirmed"
+            ? "Datumet är borttaget."
+            : "Datumförslaget är borttaget.",
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte ändra datumförslaget.");
@@ -239,14 +264,19 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
 
   if (!proposal || proposal.placeId !== placeId) {
     return canWrite ? (
-      <div className="border-t border-border/60 p-4">
+      <div className="flex min-h-14 items-center justify-between gap-3 border-t border-border/60 px-4 py-2">
+        <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+          <CalendarDays className="h-4 w-4 shrink-0" />
+          <span>Ingen dag planerad</span>
+        </div>
         <Button
           type="button"
-          variant="outline"
-          className="h-11 w-full rounded-xl"
+          variant="ghost"
+          size="sm"
+          className="min-h-11 shrink-0 rounded-full px-3 text-primary"
           onClick={() => setDialogOpen(true)}
         >
-          <CalendarDays className="h-4 w-4" /> Föreslå datum
+          Föreslå datum
         </Button>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
@@ -297,106 +327,148 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
     (response) => response.memberId === state.currentUserId,
   )?.response;
   const proposer = state.members.find((member) => member.id === proposal.createdBy);
+  const summary = responseSummary(counts);
 
   return (
-    <div className="border-t border-border/60 bg-card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-primary" />
-            <h2 className="font-medium">
-              {proposal.status === "confirmed" ? "Planerat till" : "Datumförslag"}
-            </h2>
-            {proposal.status === "confirmed" ? <Badge>Bekräftat</Badge> : null}
+    <>
+      <button
+        type="button"
+        className="flex min-h-16 w-full items-center gap-3 border-t border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/30"
+        onClick={() => setPlanningOpen(true)}
+        aria-label={`Öppna datumplaneringen för ${formatNextStopDate(proposal.date, proposal.time)}`}
+      >
+        <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-sm font-medium">
+              {formatNextStopDate(proposal.date, proposal.time)}
+            </span>
+            {proposal.status === "confirmed" ? (
+              <Badge className="rounded-full bg-sage text-foreground hover:bg-sage">
+                Bekräftat
+              </Badge>
+            ) : null}
+          </span>
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+            {proposal.status === "confirmed" ? "Visa planering" : summary}
+          </span>
+        </span>
+        {busy ? (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+      </button>
+
+      <Sheet open={planningOpen} onOpenChange={setPlanningOpen}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[85dvh] overflow-y-auto rounded-t-3xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:px-6"
+        >
+          <SheetHeader className="pr-8 text-left">
+            <SheetTitle className="font-display text-2xl">Planera nästa stopp</SheetTitle>
+            <SheetDescription>
+              {proposal.status === "confirmed"
+                ? "Se det bekräftade datumet och gruppens svar."
+                : "Svara på datumet och se hur det passar resten av gruppen."}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-5 rounded-2xl border border-border/70 bg-card p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              <span className="font-display text-lg font-semibold">
+                {formatNextStopDate(proposal.date, proposal.time)}
+              </span>
+              {proposal.status === "confirmed" ? (
+                <Badge className="rounded-full bg-sage text-foreground hover:bg-sage">
+                  Bekräftat
+                </Badge>
+              ) : null}
+            </div>
+            {proposer ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Föreslaget av {proposer.avatar} {proposer.name}
+              </p>
+            ) : null}
           </div>
-          <p className="mt-1 font-display text-lg font-semibold capitalize">
-            {formatNextStopDate(proposal.date, proposal.time)}
-          </p>
-          {proposer ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Föreslaget av {proposer.avatar} {proposer.name}
-            </p>
+
+          {proposal.status === "active" && canWrite ? (
+            <section className="mt-5">
+              <h3 className="mb-2 text-sm font-medium">
+                {currentResponse ? "Ändra ditt svar" : "Passar datumet dig?"}
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {RESPONSE_OPTIONS.map(({ value, icon: Icon, className }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    data-active={currentResponse === value}
+                    aria-pressed={currentResponse === value}
+                    disabled={busy}
+                    onClick={() => void respond(value)}
+                    className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-border/70 px-1.5 py-2 text-center text-[11px] font-medium transition-colors disabled:opacity-60 ${className}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{NEXT_STOP_DATE_RESPONSE_LABEL[value]}</span>
+                    <span className="text-[10px] text-muted-foreground">{counts[value]}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
           ) : null}
-        </div>
-        {busy ? <Loader2 className="mt-1 h-4 w-4 animate-spin text-muted-foreground" /> : null}
-      </div>
 
-      {proposal.status === "active" && canWrite ? (
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {RESPONSE_OPTIONS.map(({ value, icon: Icon, className }) => (
-            <button
-              key={value}
-              type="button"
-              data-active={currentResponse === value}
-              aria-pressed={currentResponse === value}
-              disabled={busy}
-              onClick={() => void respond(value)}
-              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border border-border/70 px-1.5 py-2 text-center text-[11px] font-medium transition-colors disabled:opacity-60 ${className}`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{NEXT_STOP_DATE_RESPONSE_LABEL[value]}</span>
-              <span className="text-[10px] text-muted-foreground">{counts[value]}</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span>{counts.fits} passar</span>
-          <span>·</span>
-          <span>{counts.not_fits} passar inte</span>
-          <span>·</span>
-          <span>{counts.unsure} osäkra</span>
-        </div>
-      )}
+          <section className="mt-5">
+            <h3 className="text-sm font-medium">Gruppens svar</h3>
+            {proposal.responses.length > 0 ? (
+              <div className="mt-2 space-y-2 rounded-2xl bg-muted/35 p-3">
+                {RESPONSE_OPTIONS.map(({ value }) => {
+                  const names = proposal.responses
+                    .filter((response) => response.response === value)
+                    .map((response) =>
+                      state.members.find((member) => member.id === response.memberId),
+                    )
+                    .filter((member): member is NonNullable<typeof member> => !!member)
+                    .map((member) => `${member.avatar ?? ""} ${member.name}`.trim());
+                  if (!names.length) return null;
+                  return (
+                    <div key={value} className="text-sm leading-relaxed">
+                      <span className="font-medium">{NEXT_STOP_DATE_RESPONSE_LABEL[value]}:</span>{" "}
+                      <span className="text-muted-foreground">{names.join(", ")}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-1 text-sm text-muted-foreground">Ingen har svarat än.</p>
+            )}
+          </section>
 
-      {proposal.responses.length > 0 ? (
-        <Collapsible className="mt-3">
-          <CollapsibleTrigger className="flex min-h-10 w-full items-center justify-between rounded-lg px-2 text-sm text-muted-foreground hover:bg-muted/50">
-            Se gruppens svar
-            <ChevronDown className="h-4 w-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-2 px-2 pt-2">
-            {RESPONSE_OPTIONS.map(({ value }) => {
-              const names = proposal.responses
-                .filter((response) => response.response === value)
-                .map((response) => state.members.find((member) => member.id === response.memberId))
-                .filter((member): member is NonNullable<typeof member> => !!member)
-                .map((member) => `${member.avatar ?? ""} ${member.name}`.trim());
-              if (!names.length) return null;
-              return (
-                <div key={value} className="text-xs leading-relaxed">
-                  <span className="font-medium">{NEXT_STOP_DATE_RESPONSE_LABEL[value]}:</span>{" "}
-                  <span className="text-muted-foreground">{names.join(", ")}</span>
-                </div>
-              );
-            })}
-          </CollapsibleContent>
-        </Collapsible>
-      ) : null}
-
-      {canManage && canWrite ? (
-        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            className="min-h-10"
-            disabled={busy}
-            onClick={() => void setStatus("cancelled")}
-          >
-            Ta bort förslaget
-          </Button>
-          {proposal.status === "active" ? (
-            <Button
-              type="button"
-              className="min-h-10"
-              disabled={busy}
-              onClick={() => void setStatus("confirmed")}
-            >
-              Bekräfta datum
-            </Button>
+          {canManage && canWrite ? (
+            <div className="mt-6 flex flex-col-reverse gap-2 border-t border-border/60 pt-4 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                disabled={busy}
+                onClick={() => void setStatus("cancelled")}
+              >
+                {proposal.status === "confirmed" ? "Ta bort datumet" : "Ta bort förslaget"}
+              </Button>
+              {proposal.status === "active" ? (
+                <Button
+                  type="button"
+                  className="min-h-11"
+                  disabled={busy}
+                  onClick={() => void setStatus("confirmed")}
+                >
+                  Bekräfta datum
+                </Button>
+              ) : null}
+            </div>
           ) : null}
-        </div>
-      ) : null}
-    </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
