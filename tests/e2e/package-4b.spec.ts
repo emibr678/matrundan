@@ -78,3 +78,26 @@ test("en medlem kan redigera endast sitt eget omdöme", async ({ page }) => {
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redigerat eget omdöme");
 });
+
+test("registreraren kan radera ett originalbesök med tydlig konsekvens", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/matstallen/p2?demo=1");
+  await page.evaluate(() => window.localStorage.removeItem("matrundan.state.v1"));
+  await page.goto("/matstallen/p2?demo=1&visit=v1");
+
+  const visitSheet = page.getByRole("dialog");
+  await expect(visitSheet.getByRole("heading", { name: "Kvarterets Kardemumma" })).toBeVisible();
+  await visitSheet.getByRole("button", { name: "Radera besöket" }).click();
+
+  const confirm = page.getByRole("alertdialog");
+  await expect(confirm.getByText(/fotot och alla omdömen tas bort/)).toBeVisible();
+  await expect(confirm.getByText(/försvinner det även där/)).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Bekräfta radering av besök");
+  await confirm.getByRole("button", { name: "Radera besöket" }).click();
+
+  await expect(page.getByRole("heading", { name: "Besök (2)" })).toBeVisible();
+  await page.goto("/gruppen?demo=1");
+  await expect(
+    page.getByText("Emilia registrerade ett besök på Kvarterets Kardemumma", { exact: true }),
+  ).toHaveCount(0);
+});

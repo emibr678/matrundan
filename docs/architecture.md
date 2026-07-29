@@ -1,7 +1,7 @@
 # Matrundan architecture
 
 This document describes the architectural source of truth for Matrundan as of
-v0.14.0. It focuses on durable decisions and invariants rather than a complete
+v0.20.0. It focuses on durable decisions and invariants rather than a complete
 schema dump. When code, migrations and this document disagree, inspect the
 latest production-compatible migration and fix the documentation in the same
 change.
@@ -297,8 +297,10 @@ Important invariants:
   `<group>/<visit>/<random>.jpg` path;
 - group members may read media only through the active group's read-model and
   short-lived signed URLs;
-- only actual participants or the active group's owner/admin may add, replace
-  or remove a photo;
+- only actual participants or the active group's owner/admin may add or
+  replace a photo;
+- actual participants, the original visit's creator or the active group's
+  owner/admin may remove its photo;
 - archived groups and shared visit links are read-only;
 - the database and Storage policies repeat the permission checks server-side;
 - replacing or deleting media must remove the old Storage object on a
@@ -308,6 +310,27 @@ The browser re-encodes accepted images to JPEG before upload, limits the longest
 edge to 1600 px and targets a compact file size. Re-encoding strips EXIF and GPS
 metadata. The visit is created first and the image is uploaded second, so media
 failure never rolls back the real visit.
+
+### Deleting an original visit
+
+The person who registered an original visit, or the original group's
+owner/admin, may delete it while the group is active. Deletion is a correction
+of canonical history and therefore removes the canonical visit everywhere,
+including shared links.
+
+The secured deletion flow must:
+
+- verify active membership and an `original` link in the supplied group;
+- verify that the caller is the visit creator or the group's owner/admin;
+- remove the original group's private photo through the protected Storage path
+  before deleting the visit;
+- remove visit activity rather than leaving broken history entries;
+- cascade through participants, reviews, review visibility, media metadata and
+  all visit-group links;
+- leave the canonical place and every group's place-list relationship intact.
+
+Deleting a shared link remains a separate, non-destructive action in the
+receiving group.
 
 ### Sharing a visit
 
@@ -342,6 +365,14 @@ It must not delete:
 Only authorised active target-group members may unlink, according to the
 approved role/linking rules.
 
+### Next-stop date proposals
+
+An active or confirmed proposal may be edited by its proposer or the group's
+owner/admin while it still belongs to the current next stop. A real date/time
+change resets every response and returns a confirmed proposal to `active`.
+Unchanged values are a no-op. Past dates and archived groups are rejected on
+the server.
+
 ## 7. Reviews and visibility
 
 ### `reviews`
@@ -368,9 +399,9 @@ messages or source-group metadata.
 
 ## 8. Secure read model
 
-`get_group_app_state_v5c(_group_id)` is the current primary live read boundary.
-It layers the group-specific visit-photo projection over the established v4b
-read-model rather than reopening direct table reads.
+`get_group_app_state_v5d(_group_id)` is the current primary live read boundary.
+It layers next-stop date planning over the group-specific visit-photo
+projection from v5c without reopening direct table reads.
 
 It is a `SECURITY DEFINER` function with a locked `search_path` and must:
 

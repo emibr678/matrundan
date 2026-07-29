@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CalendarDays, Check, ChevronRight, CircleHelp, Loader2, X } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, CircleHelp, Loader2, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import {
   liveProposeNextStopDate,
   liveRespondNextStopDate,
   liveSetNextStopDateStatus,
+  liveUpdateNextStopDateProposal,
 } from "@/lib/matrundan/live-mutations";
 import { useStore } from "@/lib/matrundan/store";
 import type { NextStopDateProposal, NextStopDateResponseValue, Role } from "@/lib/matrundan/types";
@@ -97,6 +98,7 @@ function responseSummary(counts: Record<NextStopDateResponseValue, number>) {
 export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWrite: boolean }) {
   const { state, mode } = useStore();
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [time, setTime] = React.useState("");
@@ -259,6 +261,62 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte ändra datumförslaget.");
+    }
+  }
+
+  function openEditDialog() {
+    if (!proposal) return;
+    setDate(proposal.date);
+    setTime(proposal.time ?? "");
+    setEditDialogOpen(true);
+  }
+
+  async function updateProposal() {
+    if (!proposal || busy || !canManage) return;
+    if (!date) {
+      toast.error("Välj ett datum.");
+      return;
+    }
+    if (isPastDateValue(date)) {
+      toast.error("Datumet kan inte ligga i det förflutna.");
+      return;
+    }
+
+    try {
+      const normalizedTime = normalizeNextStopTime(time);
+      if (proposal.date === date && (proposal.time ?? null) === normalizedTime) {
+        setEditDialogOpen(false);
+        toast.info("Datumet är redan sparat.");
+        return;
+      }
+
+      if (mode === "live") {
+        await runLive(() =>
+          liveUpdateNextStopDateProposal(state.group.id, proposal.id, date, normalizedTime),
+        );
+      } else {
+        const updatedAt = new Date().toISOString();
+        setDemoProposal((current) =>
+          current
+            ? {
+                ...current,
+                date,
+                time: normalizedTime,
+                status: "active",
+                confirmedAt: null,
+                confirmedBy: null,
+                cancelledAt: null,
+                cancelledBy: null,
+                updatedAt,
+                responses: [],
+              }
+            : null,
+        );
+      }
+      setEditDialogOpen(false);
+      toast.success("Datumet är ändrat. Gruppen kan svara på nytt.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte ändra datumet.");
     }
   }
 
@@ -455,6 +513,16 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
               >
                 {proposal.status === "confirmed" ? "Ta bort datumet" : "Ta bort förslaget"}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11"
+                disabled={busy}
+                onClick={openEditDialog}
+              >
+                <Pencil className="h-4 w-4" />
+                Ändra datum
+              </Button>
               {proposal.status === "active" ? (
                 <Button
                   type="button"
@@ -469,6 +537,48 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
           ) : null}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Ändra datum</DialogTitle>
+            <DialogDescription>
+              När datumet ändras nollställs gruppens svar. Ett bekräftat datum öppnas igen så att
+              alla kan svara på nytt.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-next-stop-date">Datum</Label>
+              <Input
+                id="edit-next-stop-date"
+                type="date"
+                min={new Date().toISOString().slice(0, 10)}
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-next-stop-time">Tid (valfritt)</Label>
+              <Input
+                id="edit-next-stop-time"
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)}>
+              Avbryt
+            </Button>
+            <Button type="button" disabled={busy} onClick={() => void updateProposal()}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Spara nytt datum
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

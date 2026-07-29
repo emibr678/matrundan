@@ -84,6 +84,13 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
       .locator("..")
       .getByRole("button", { name: "Hantera ställe" }),
   ).toBeVisible();
+  const visitHistoryTop = await page
+    .getByRole("heading", { name: /^Besök/ })
+    .evaluate((element) => element.getBoundingClientRect().top);
+  const aboutPlaceTop = await page
+    .getByRole("heading", { name: "Om stället" })
+    .evaluate((element) => element.getBoundingClientRect().top);
+  expect(visitHistoryTop).toBeLessThan(aboutPlaceTop);
 
   await page.getByRole("button", { name: "Välj som nästa stopp" }).click();
   await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();

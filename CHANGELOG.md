@@ -7,6 +7,33 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [0.20.0] – 2026-07-29
+
+### Nytt
+
+- Registreraren, gruppens ägare eller admin kan radera ett felaktigt
+  originalbesök från besöksdetaljen.
+- Förslagsställaren, ägare eller admin kan ändra ett föreslaget eller bekräftat
+  datum utan att radera förslaget och börja om.
+
+### Förbättrat
+
+- Datumändring nollställer tidigare svar och öppnar ett bekräftat datum igen så
+  att gruppen kan svara på nytt.
+- Besökshistoriken visas före **Om stället** och detaljerade betyg på
+  matställets detaljsida.
+- **Lägg till ställe** behåller sökning och utforskning som standard, manuell
+  inmatning som sekundärt val och möjligheten att lägga till flera ställen i
+  samma omgång.
+
+### Säkerhet
+
+- Originalbesök raderas genom en gruppvaliderad RPC som även tar bort omdömen,
+  deltagarkopplingar, delningar och aktivitet. Privat foto städas via den
+  befintliga skyddade lagringsvägen.
+- Radering och datumändring kräver aktivt medlemskap, rätt roll eller
+  ägarskap över handlingen och låsta `SECURITY DEFINER`-funktioner.
+
 ## [0.19.1] – 2026-07-29
 
 ### Förbättrat
