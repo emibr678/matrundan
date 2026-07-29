@@ -7,6 +7,15 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [0.16.1] – 2026-07-29
+
+### Förbättrat
+
+- **Tydligare Google Maps.** Adressen är åter vanlig information och kompletteras
+  av den tydliga länken **Öppna i Google Maps**.
+- **Bättre placerad administration.** **Hantera ställe** ligger nu diskret intill
+  **Om stället** i stället för ensam längst ned i huvudkortet.
+
 ## [0.16.0] – 2026-07-29
 
 ### Förbättrat

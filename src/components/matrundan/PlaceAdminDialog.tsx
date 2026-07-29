@@ -121,7 +121,11 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="min-h-11 w-full sm:w-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11 shrink-0 rounded-full px-3 text-muted-foreground hover:text-foreground"
+          >
             <Settings2 className="h-4 w-4" /> Hantera ställe
           </Button>
         </DialogTrigger>

@@ -3,7 +3,7 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "0.16.0";
+export const APP_VERSION = "0.16.1";
 export const APP_VERSION_DATE = "2026-07-29";
 
 const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
@@ -39,7 +39,7 @@ const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
 };
 
 const PACKAGE_6A_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
+  version: "0.16.0",
   date: APP_VERSION_DATE,
   summary:
     "Tydligare huvudvyer, naturligare språk och en lugnare handlingshierarki genom gruppens matresa.",
@@ -63,7 +63,23 @@ const PACKAGE_6A_CHANGELOG: ChangelogEntry = {
   ],
 };
 
+const PACKAGE_6A_1_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary: "Tydligare Google Maps-länk och bättre placerad hantering på matställets detaljsida.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Google Maps har åter en egen tydligt namngiven länk i stället för att vara gömd i adressen.",
+        "Hantera ställe ligger nu diskret intill Om stället i stället för ensam i huvudkortets åtgärdsyta.",
+      ],
+    },
+  ],
+};
+
 export const CHANGELOG: ChangelogEntry[] = [
+  PACKAGE_6A_1_CHANGELOG,
   PACKAGE_6A_CHANGELOG,
   PACKAGE_5D_CHANGELOG,
   ...PREVIOUS_CHANGELOG,
