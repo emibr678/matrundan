@@ -16,6 +16,8 @@ import {
   LogOut,
   ShieldCheck,
   ShieldOff,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
@@ -248,8 +250,10 @@ function SettingsSheet() {
   const [open, setOpen] = React.useState(false);
   const [about, setAbout] = React.useState(false);
   const isLive = mode === "live" && !!activeGroupId;
+  const ownStoredRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const isOwner = isLive && activeGroupRole === "owner";
   const isAdmin = isLive && (activeGroupRole === "owner" || activeGroupRole === "admin");
+  const canChangeGroupStatus = isLive && ownStoredRole === "ägare";
 
   return (
     <>
@@ -299,6 +303,8 @@ function SettingsSheet() {
             {isLive && activeGroupId ? (
               <LeaveGroupSection groupId={activeGroupId} isOwner={isOwner} onLeft={refreshGroups} />
             ) : null}
+
+            {canChangeGroupStatus ? <GroupStatusSection /> : null}
 
             {mode === "demo" ? (
               <section>
@@ -453,7 +459,7 @@ function GroupSettingsSection({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="gs-loc">Förvalt sökområde (valfritt)</Label>
+          <Label htmlFor="gs-loc">Vanligt sökområde (valfritt)</Label>
           <GeoapifyLocationInput
             id="gs-loc"
             value={locText}
@@ -469,8 +475,7 @@ function GroupSettingsSection({
             placeholder="t.ex. Gamla Enskede, Stockholm"
           />
           <p className="text-xs text-muted-foreground">
-            Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
-            enskild sökning.
+            Används som startpunkt när ni söker efter ställen. Kan ändras för varje sökning.
           </p>
           {legacyOnly && !verified && isLegacyUnchanged ? (
             <p className="text-xs text-amber-700 dark:text-amber-400">
@@ -505,6 +510,96 @@ function GroupSettingsSection({
           </Button>
         </div>
       </Card>
+    </section>
+  );
+}
+
+function GroupStatusSection() {
+  const { state, archiveGroup, reactivateGroup, submitting } = useStore();
+  const { refreshGroups } = useSession();
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const archived = state.group.lifecycleStatus === "archived";
+
+  async function archive() {
+    try {
+      await archiveGroup();
+      await refreshGroups();
+      toast.success("Gruppen är arkiverad.");
+      setConfirmOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte arkivera gruppen.");
+    }
+  }
+
+  async function reactivate() {
+    try {
+      await reactivateGroup();
+      await refreshGroups();
+      toast.success("Gruppen är återaktiverad.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte återaktivera gruppen.");
+    }
+  }
+
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-medium">Gruppstatus</h3>
+      <Card className="rounded-2xl border-border/70 p-4">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {archived
+            ? "Gruppen är arkiverad och skrivskyddad. Historiken finns kvar."
+            : "Arkivering bevarar historiken men gör gruppen skrivskyddad tills den återaktiveras."}
+        </p>
+        {archived ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3"
+            disabled={submitting}
+            onClick={() => void reactivate()}
+          >
+            <ArchiveRestore className="h-4 w-4" />
+            Återaktivera gruppen
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3 text-destructive hover:text-destructive"
+            disabled={submitting}
+            onClick={() => setConfirmOpen(true)}
+          >
+            <Archive className="h-4 w-4" />
+            Arkivera gruppen
+          </Button>
+        )}
+      </Card>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arkivera {state.group.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Historik, besök, ställen, betyg och kommentarer bevaras. Gruppen blir skrivskyddad,
+              nästa stopp rensas och aktiva inbjudningar återkallas. Du kan återaktivera gruppen
+              senare.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={submitting}
+              onClick={(event) => {
+                event.preventDefault();
+                void archive();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Arkivera gruppen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

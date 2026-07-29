@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { primaryOccasion, secondaryOccasion } from "@/lib/matrundan/occasions";
+import { useSession } from "@/lib/matrundan/session";
 import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
@@ -80,6 +81,7 @@ function NotFound() {
 }
 
 function PlaceDetail() {
+  const { exampleMode } = useSession();
   const { placeId } = useParams({ from: "/matstallen/$placeId" });
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/matstallen/$placeId" });
@@ -100,7 +102,7 @@ function PlaceDetail() {
   const openVisitId = search.visit || null;
   const closeVisitSheet = () => navigate({ params: { placeId }, search: { visit: "" } });
 
-  const visits = place ? visitsFor(place.id) : [];
+  const visits = React.useMemo(() => (place ? visitsFor(place.id) : []), [place, visitsFor]);
   const detail = React.useMemo(() => {
     const taste: number[] = [];
     const value: number[] = [];
@@ -162,16 +164,18 @@ function PlaceDetail() {
                 {place.address}, {place.city}
               </span>
             </div>
-            <a
-              href={googleMapsUrl(place)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
-              aria-label={`Öppna ${place.name} i Google Maps`}
-            >
-              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-              Öppna i Google Maps
-            </a>
+            {!exampleMode ? (
+              <a
+                href={googleMapsUrl(place)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                aria-label={`Öppna ${place.name} i Google Maps`}
+              >
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                Öppna i Google Maps
+              </a>
+            ) : null}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {isNext ? (
                 <Badge variant="secondary" className="rounded-full">

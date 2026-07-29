@@ -8,7 +8,7 @@ export const Route = createFileRoute("/exempel")({
       {
         name: "description",
         content:
-          "Utforska Matrundan genom den skrivskyddade exempelgruppen Fredagsgänget i Stockholm.",
+          "Utforska Matrundan genom den interaktiva och helt fiktiva exempelgruppen Fredagsgänget.",
       },
       { name: "robots", content: "noindex" },
     ],

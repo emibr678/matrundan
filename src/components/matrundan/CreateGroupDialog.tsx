@@ -106,7 +106,7 @@ export function CreateGroupDialog({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cg-loc">Förvalt sökområde (valfritt)</Label>
+            <Label htmlFor="cg-loc">Vanligt sökområde (valfritt)</Label>
             <GeoapifyLocationInput
               id="cg-loc"
               value={locationText}
@@ -127,8 +127,7 @@ export function CreateGroupDialog({
               </p>
             ) : null}
             <p className="text-xs text-muted-foreground">
-              Fylls i automatiskt när gruppen söker efter nya matställen. Kan alltid ändras för en
-              enskild sökning.
+              Används som startpunkt när ni söker efter ställen. Kan ändras för varje sökning.
             </p>
           </div>
           <DialogFooter>

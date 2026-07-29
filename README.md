@@ -35,20 +35,27 @@ feed, individuell matdagbok eller global ranking.
 - Privat, diskret gamification med nivåer, utmärkelser och gruppens höjdpunkter.
 - Navigerbart aktivitetsflöde med länkar till besök, matställen och medlemmar.
 - Google Maps som extern länk för vägbeskrivning.
-- ”Om Matrundan” med aktuell version och versionshistorik.
+- ”Om Matrundan” med syfte, aktuell version och versionshistorik.
+- Publik integritetssida och självbetjänad kontoradering med anonymiserad
+  historik.
 
-## Status – v0.20.0
+## Status – v1.0.0
 
-Paket 6F avslutar den kvarvarande produktlistan. Datumförslag kan ändras utan
-att först tas bort; tidigare svar nollställs så att gruppen kan svara på nytt.
-Felaktiga originalbesök kan raderas säkert tillsammans med foto, omdömen,
-deltagarkopplingar, delningar och aktivitet, vilket gör att progressionen
-räknas om från den faktiska historiken.
+Version 1.0 gör appens första möte tydligare: inloggning till befintliga
+grupper och privata inbjudningar är huvudvägarna, medan den interaktiva
+exempelgruppen är ett sekundärt sätt att prova appen. **Om Matrundan** beskriver
+syftet och den publika integritetssidan förklarar datahanteringen utan att utlova
+support för hobbyprojektet.
 
-På matställets detaljsida ligger besökshistoriken nu före sekundär
-platsinformation. **Lägg till ställe** behåller den redan förenklade modellen
-med sökning först, manuell inmatning som alternativ och flera tillägg per
-sökomgång.
+Fredagsgänget är nu helt fiktivt, inklusive matställen och adresser. En
+inloggad användare kan radera sitt konto från profilen efter att eventuella
+ägarskap har överförts. Personuppgifter och användarskapat fritext- och
+bildinnehåll tas bort medan sifferbetyg och besöksdeltagande bevaras anonymt.
+
+## Tidigare – v0.20.0
+
+Paket 6F avslutade den kvarvarande produktlistan med säker radering av
+felaktiga originalbesök och redigering av datumförslag.
 
 ## Tidigare – v0.19.1
 
@@ -134,8 +141,8 @@ Fredagsgänget.
 
 ### Exempelgrupp (`/exempel`)
 
-Fast Stockholm-startdata med interaktiva lokala flöden. Medlemmar, besök,
-omdömen och historik är fiktiva; de visade matställena är verkliga.
+Fast Stockholm-startdata med interaktiva lokala flöden. Matställen, adresser,
+medlemmar, besök, omdömen och historik är helt fiktiva.
 Ändringar sparas i flikens `sessionStorage`, kan återställas och gör inga
 live-skrivningar. Datumförslag och besöksfoto använder samma UI som live-läget
 men lokala adaptrar.
@@ -155,6 +162,8 @@ gruppscopade read-models och validerade RPC-anrop.
 - Google-inloggning via Lovable Cloud.
 - Skapa och administrera grupper, bjuda in via engångstoken, byta roll, ta bort
   medlemmar, överföra ägarskap, lämna grupp och redigera profil.
+- Radera det egna kontot med säker ägaröverlåtelse och anonymisering av
+  bevarad gemensam historik.
 - Lägga till matställen, ta bort dem från gruppens aktiva lista och lägga tillbaka
   dem utan att förlora historik eller gruppspecifik metadata.
 - Korrigera gruppens kategori, kök, inriktning, Passar för och anteckning.

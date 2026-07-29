@@ -7,6 +7,34 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [1.0.0] – 2026-07-29
+
+### Nytt
+
+- En publik integritetssida beskriver appens datahantering, leverantörer,
+  lagring och självbetjänade kontoradering.
+- Kontot kan raderas från profilen. Ägarskap överförs innan radering och
+  ensamgrupper kräver en extra uttrycklig bekräftelse.
+
+### Förbättrat
+
+- Landningssidan prioriterar inloggning till befintliga grupper och privata
+  inbjudningar.
+- **Om Matrundan** presenterar syftet och appens tre huvudsteg på ett
+  användarvänligt sätt.
+- Fredagsgängets matställen, adresser, medlemmar och historik är helt fiktiva.
+- Arkivering och återaktivering finns i **Gruppinställningar**.
+
+### Integritet och säkerhet
+
+- Kontoborttagning tar bort namn, profilbild, kommentarer, favoriter,
+  planeringssvar och uppladdade bilder.
+- Numeriska betyg och deltagande i genomförda besök bevaras anonymt som
+  **Tidigare medlem** för att övriga gruppmedlemmars historik ska förbli
+  sammanhängande.
+- Kontoraderingen använder autentiserade, låsta `SECURITY DEFINER`-RPC:er.
+  Service-role-nyckeln används endast i serverkod för bild- och auth-radering.
+
 ## [0.20.0] – 2026-07-29
 
 ### Nytt

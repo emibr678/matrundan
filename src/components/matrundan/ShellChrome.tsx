@@ -73,7 +73,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <AuthMenu showGroupActions />
+            <AuthMenu exampleMode={exampleMode} />
           </div>
         </header>
 
@@ -88,8 +88,8 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
                 <div className="min-w-0">
                   <div className="font-medium">Exempelgrupp · Stockholm</div>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    Fredagsgänget och historiken är exempeldata. Matställena är verkliga och dina
-                    ändringar sparas bara tillfälligt i den här fliken.
+                    Allt innehåll i Fredagsgänget är fiktivt. Dina ändringar sparas bara tillfälligt
+                    i den här fliken.
                   </p>
                 </div>
               </div>
@@ -116,8 +116,8 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
               <div className="min-w-0">
                 <div className="font-medium">Gruppen är arkiverad</div>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Historiken är bevarad och kan läsas. Återaktivera gruppen i gruppmenyn för att
-                  lägga till eller ändra något.
+                  Historiken är bevarad och kan läsas. Återaktivera gruppen i Gruppinställningar för
+                  att lägga till eller ändra något.
                 </p>
               </div>
             </div>

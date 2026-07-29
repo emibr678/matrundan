@@ -3,8 +3,40 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "0.20.0";
+export const APP_VERSION = "1.0.0";
 export const APP_VERSION_DATE = "2026-07-29";
+
+const VERSION_1_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary:
+    "Matrundan 1.0 samlar ett tydligare första möte, en helt fiktiv exempelgrupp och självbetjänad kontoradering.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "En publik integritetssida förklarar vilka uppgifter som används, varför de behövs och vad som händer vid kontoradering.",
+        "Kontot kan raderas direkt från profilen med ägaröverlåtelse, extra bekräftelse för ensamgrupper och anonymiserad gemensam historik.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Landningssidan prioriterar inloggning och att gå med via en privat inbjudan.",
+        "Om Matrundan beskriver appens syfte, tre huvudsteg och att tjänsten är ett kostnadsfritt hobbyprojekt utan garanterad support.",
+        "Exempelgruppens matställen, adresser, medlemmar och historik är nu helt fiktiva.",
+        "Gruppens arkivering och återaktivering finns under Gruppinställningar.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Exempelgruppen länkar inte längre fiktiva ställen till Google Maps.",
+        "Copy kring sökområde, exempel/demo och ställesantal är mer konsekvent.",
+      ],
+    },
+  ],
+};
 
 const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
   version: "0.15.0",
@@ -181,7 +213,7 @@ const PACKAGE_6E_CHANGELOG: ChangelogEntry = {
 };
 
 const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
+  version: "0.20.0",
   date: APP_VERSION_DATE,
   summary:
     "Säkrare korrigeringar av gruppens historik och planering, med radering av felaktiga besök och redigering av datumförslag.",
@@ -211,6 +243,7 @@ const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_CHANGELOG,
   PACKAGE_6F_CHANGELOG,
   PACKAGE_6E_CHANGELOG,
   PACKAGE_6D_CHANGELOG,
