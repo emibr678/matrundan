@@ -413,6 +413,129 @@ export type Database = {
           },
         ]
       }
+      next_stop_date_proposals: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string
+          group_id: string
+          id: string
+          place_id: string
+          proposed_date: string
+          proposed_time: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by: string
+          group_id: string
+          id?: string
+          place_id: string
+          proposed_date: string
+          proposed_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string
+          group_id?: string
+          id?: string
+          place_id?: string
+          proposed_date?: string
+          proposed_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_stop_date_proposals_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_stop_date_proposals_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_stop_date_proposals_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_stop_date_proposals_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_stop_date_proposals_group_place_fk"
+            columns: ["group_id", "place_id"]
+            isOneToOne: false
+            referencedRelation: "group_places"
+            referencedColumns: ["group_id", "place_id"]
+          },
+        ]
+      }
+      next_stop_date_responses: {
+        Row: {
+          created_at: string
+          member_id: string
+          proposal_id: string
+          response: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          member_id: string
+          proposal_id: string
+          response: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          member_id?: string
+          proposal_id?: string
+          response?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_stop_date_responses_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_stop_date_responses_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "next_stop_date_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       place_sources: {
         Row: {
           fetched_at: string
@@ -938,6 +1061,7 @@ export type Database = {
       get_group_app_state: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v4b: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5c: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5d: { Args: { _group_id: string }; Returns: Json }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
@@ -970,6 +1094,14 @@ export type Database = {
         Args: { _visit_id: string }
         Returns: Json
       }
+      propose_next_stop_date: {
+        Args: {
+          _group_id: string
+          _proposed_date: string
+          _proposed_time?: string
+        }
+        Returns: string
+      }
       reactivate_group: { Args: { _group_id: string }; Returns: undefined }
       remove_group_member: {
         Args: { _group_id: string; _user_id: string }
@@ -977,6 +1109,10 @@ export type Database = {
       }
       remove_shared_visit_from_group: {
         Args: { _group_id: string; _visit_id: string }
+        Returns: undefined
+      }
+      respond_next_stop_date: {
+        Args: { _group_id: string; _proposal_id: string; _response: string }
         Returns: undefined
       }
       restore_group_place: {
@@ -993,6 +1129,10 @@ export type Database = {
       }
       set_next_place: {
         Args: { _group_id: string; _place_id: string }
+        Returns: undefined
+      }
+      set_next_stop_date_status: {
+        Args: { _group_id: string; _proposal_id: string; _status: string }
         Returns: undefined
       }
       set_review_group_visibility: {
