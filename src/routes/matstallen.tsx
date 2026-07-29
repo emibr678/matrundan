@@ -181,9 +181,9 @@ function PlacesIndex() {
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Sök på namn, stad eller mat…"
+          placeholder="Sök bland gruppens ställen"
           className="rounded-2xl bg-card pl-9"
-          aria-label="Sök i matställen"
+          aria-label="Sök bland gruppens ställen"
         />
       </div>
 
