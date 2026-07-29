@@ -70,7 +70,7 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
                 }}
                 className="h-11 w-11 shrink-0 rounded-full"
                 aria-pressed={fav}
-                aria-label={fav ? "Ta bort favorit" : "Spara som favorit"}
+                aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
               >
                 <Heart
                   className={

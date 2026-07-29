@@ -35,7 +35,17 @@ feed, individuell matdagbok eller global ranking.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.15.0
+## Status – v0.16.0
+
+Paket 6A renodlar appens huvudvyer. Hem äger nästa stopp och progression, medan
+aktiviteten nu bara finns på Gruppen. Gruppen visar därför inte längre nästa
+stopp en gång till.
+
+Matställen förklarar tydligare vad gruppens lista innehåller, prioriterar
+sökningen före topplistan och använder **Lägg till ställe** konsekvent. På
+detaljsidan skiljs gruppens nästa stopp, användarens personliga favorit och den
+externa Maps-länken tydligare åt. En flagga ersätter den tidigare
+glittersymbolen för nästa stopp.
 
 Paket 5D lägger datumplaneringen direkt under gruppens aktuella **Nästa stopp**.
 En aktiv medlem kan föreslå en dag och en valfri tid. Varje aktiv medlem kan

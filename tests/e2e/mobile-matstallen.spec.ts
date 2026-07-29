@@ -174,7 +174,7 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
   await expectMarkerClustering(placesMap);
   await expectNoHorizontalOverflow(page, "Matställen i kartvy");
 
-  await page.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "Lägg till matställe" })).toBeVisible();
   await expect(dialog.getByText("Fiktiv demodata för utveckling.")).toBeVisible();

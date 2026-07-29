@@ -53,7 +53,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   await expect(page.getByText("Glöd & Grönska", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Arkiverade ställen", { exact: true })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
   await addDialog.getByLabel("Namn").fill("Glöd & Grönska");
@@ -100,7 +100,7 @@ test("kök och inriktning fungerar med mobilt tangentbord och utan fri text", as
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
-  await page.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await dialog.getByRole("button", { name: "Lägg till manuellt" }).click();
   await dialog.getByRole("combobox", { name: "Kök och inriktning" }).click();

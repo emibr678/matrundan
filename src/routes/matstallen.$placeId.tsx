@@ -11,12 +11,12 @@ import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
   ArrowLeft,
   ExternalLink,
+  Flag,
   Heart,
   ListX,
   MapPin,
   MessageCircle,
   Plus,
-  Sparkles,
 } from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
@@ -152,13 +152,25 @@ function PlaceDetail() {
             <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
               {place.name}
             </h1>
-            <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+            <a
+              href={googleMapsUrl(place)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-flex min-h-11 max-w-full items-center gap-1 py-2 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              aria-label={`Öppna ${place.address} i Maps`}
+            >
               <MapPin className="h-3.5 w-3.5" />
               <span className="truncate">
                 {place.address}, {place.city}
               </span>
-            </div>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+            </a>
             <div className="mt-2 flex flex-wrap items-center gap-2">
+              {isNext ? (
+                <Badge variant="secondary" className="rounded-full">
+                  <Flag className="mr-1 h-3 w-3" /> Nästa stopp
+                </Badge>
+              ) : null}
               {placeRemoved ? (
                 <Badge variant="outline" className="rounded-full">
                   <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
@@ -200,30 +212,34 @@ function PlaceDetail() {
               >
                 <Plus className="h-4 w-4" /> Registrera besök
               </Button>
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  variant={isNext ? "secondary" : "outline"}
-                  onClick={() => void setNext(isNext ? null : place.id)}
-                  aria-pressed={isNext}
-                  className="min-h-11"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  <span className="hidden sm:inline">{isNext ? "Är nästa" : "Nästa stopp"}</span>
-                  <span className="sm:hidden">Nästa</span>
-                </Button>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {isNext ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => void setNext(null)}
+                    className="min-h-11 text-muted-foreground"
+                  >
+                    Ta bort som nästa stopp
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => void setNext(place.id)}
+                    className="min-h-11"
+                  >
+                    <Flag className="h-4 w-4" />
+                    Välj som nästa stopp
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={() => void toggleFavorite(place.id)}
                   aria-pressed={fav}
+                  aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
                   className="min-h-11"
                 >
                   <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
-                  {fav ? "Sparad" : "Spara"}
-                </Button>
-                <Button asChild variant="outline" className="min-h-11">
-                  <a href={googleMapsUrl(place)} target="_blank" rel="noreferrer">
-                    <ExternalLink className="h-4 w-4" /> Maps
-                  </a>
+                  Favorit
                 </Button>
               </div>
             </>
@@ -248,13 +264,6 @@ function PlaceDetail() {
             </div>
           )}
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            {!writable ? (
-              <Button asChild variant="outline" className="min-h-11 sm:w-auto">
-                <a href={googleMapsUrl(place)} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-4 w-4" /> Öppna i Maps
-                </a>
-              </Button>
-            ) : null}
             {!demoReadOnly ? <PlaceAdminDialog place={place} /> : null}
           </div>
         </div>

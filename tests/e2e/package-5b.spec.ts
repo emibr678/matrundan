@@ -42,7 +42,7 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
-  await page.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(dialog).toBeVisible();
 
@@ -87,7 +87,7 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   await dialog.getByRole("button", { name: "Klar", exact: true }).click();
   await expect(dialog).toBeHidden();
 
-  await page.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const reopened = page.getByRole("dialog", { name: "Lägg till matställe" });
   await reopened.getByRole("combobox").click();
   await page.getByRole("option", { name: "Inom 10 km" }).click();

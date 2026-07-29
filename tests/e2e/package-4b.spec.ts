@@ -73,6 +73,8 @@ test("en medlem kan redigera endast sitt eget omdöme", async ({ page }) => {
   await comment.fill("Uppdaterad minnesnotering från testet.");
   await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
 
-  await expect(visitSheet.getByText("Uppdaterad minnesnotering från testet.")).toBeVisible();
+  await expect(
+    visitSheet.getByText("Uppdaterad minnesnotering från testet.").first(),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redigerat eget omdöme");
 });

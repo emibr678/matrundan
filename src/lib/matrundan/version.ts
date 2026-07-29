@@ -3,12 +3,12 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "0.15.0";
-export const APP_VERSION_DATE = "2026-07-28";
+export const APP_VERSION = "0.16.0";
+export const APP_VERSION_DATE = "2026-07-29";
 
 const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
-  date: APP_VERSION_DATE,
+  version: "0.15.0",
+  date: "2026-07-28",
   summary:
     "Föreslå och bekräfta när gruppen ska besöka sitt nästa stopp, med tydliga svar från varje medlem.",
   sections: [
@@ -38,4 +38,33 @@ const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [PACKAGE_5D_CHANGELOG, ...PREVIOUS_CHANGELOG];
+const PACKAGE_6A_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary:
+    "Tydligare huvudvyer, naturligare språk och en lugnare handlingshierarki genom gruppens matresa.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hem fokuserar på nästa stopp och progression medan gruppens aktivitet samlas på Gruppen.",
+        "Gruppen visar inte längre en duplicerad version av nästa stopp och medlemsraderna har färre överflödiga etiketter.",
+        "Matställen förklarar listans syfte, prioriterar sökningen före topplistan och använder Lägg till ställe konsekvent.",
+        "Matställets detaljsida skiljer tydligare mellan nästa stopp, personlig favorit och den externa Maps-länken.",
+        "Flaggan ersätter den otydliga glittersymbolen för nästa stopp.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "De uppdaterade huvudvyerna och detaljsidan är regressionsskyddade mot horisontell overflow vid 360 px.",
+      ],
+    },
+  ],
+};
+
+export const CHANGELOG: ChangelogEntry[] = [
+  PACKAGE_6A_CHANGELOG,
+  PACKAGE_5D_CHANGELOG,
+  ...PREVIOUS_CHANGELOG,
+];
