@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
+import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { RatingStars } from "@/components/matrundan/Rating";
 import { StatusBadge } from "@/components/matrundan/StatusBadge";
@@ -29,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
-import { CATEGORY_LABEL, OCCASION_LABEL } from "@/lib/matrundan/types";
+import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
 const MEAL_LABEL: Record<string, string> = {
@@ -281,16 +282,27 @@ function PlaceDetail() {
                 {cuisine}
               </Badge>
             ))}
-            {place.occasions.map((occasion) => (
-              <Badge
-                key={occasion}
-                variant="outline"
-                className="rounded-full border-mustard/60 bg-mustard/25 text-mustard-foreground"
-              >
-                {OCCASION_LABEL[occasion]}
-              </Badge>
-            ))}
           </div>
+          {place.occasions.length > 0 ? (
+            <div className="space-y-1.5">
+              <div className="flex min-h-11 items-center gap-1">
+                <span className="text-xs font-medium text-muted-foreground">Passar för</span>
+                <OccasionGuide compact />
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {place.occasions.map((occasion) => (
+                  <Badge
+                    key={occasion}
+                    variant="outline"
+                    title={OCCASION_DESCRIPTION[occasion]}
+                    className="rounded-full border-mustard/60 bg-mustard/25 text-mustard-foreground"
+                  >
+                    {OCCASION_LABEL[occasion]}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
           {(place.categoryOverride != null || place.cuisinesOverride != null) && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">

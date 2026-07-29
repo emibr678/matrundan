@@ -58,6 +58,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
   await addDialog.getByLabel("Namn").fill("Glöd & Grönska");
   await addDialog.getByLabel("Adress").fill("Grönskans gränd 3");
+  await addDialog.getByRole("button", { name: "Middag & upplevelse" }).click();
   await addDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
 
   const restoredLink = page.getByRole("link", { name: /Glöd & Grönska/ });
@@ -66,7 +67,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   await expect(page.locator("p").filter({ hasText: note })).toHaveText(note);
   await expect(page.getByText("Vegetariskt/veganskt", { exact: true })).toBeVisible();
   await expect(page.getByText("Grillat", { exact: true })).toBeVisible();
-  await expect(page.getByText("Trevlig middag", { exact: true })).toBeVisible();
+  await expect(page.getByText("Middag & upplevelse", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Återlagt matställe via vanliga Lägg till");
 });

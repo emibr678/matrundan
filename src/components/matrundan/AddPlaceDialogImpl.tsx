@@ -3,6 +3,7 @@ import { ArrowLeft, Check, List, Loader2, Map, Plus, RefreshCcw, Search } from "
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
+import { OccasionPicker } from "@/components/matrundan/OccasionPicker";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,13 +32,11 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
   CATEGORY_LABEL,
-  OCCASION_LABEL,
   type Occasion,
   type Place,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
 
-const OCCASIONS: Occasion[] = ["snabbt", "avslappnat", "middag"];
 const RADIUS_OPTIONS = [1, 3, 5, 10, 25, 50] as const;
 
 type ResultView = "lista" | "karta";
@@ -83,7 +82,7 @@ function emptyManual(city: string): ManualDraft {
     address: "",
     area: "",
     city,
-    occasions: ["avslappnat"],
+    occasions: [],
     notes: "",
     photo: "🍽️",
   };
@@ -144,7 +143,7 @@ export function AddPlaceDialog({
   const [resultView, setResultView] = React.useState<ResultView>("lista");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
   const [pendingCuisines, setPendingCuisines] = React.useState<string[]>([]);
-  const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>(["avslappnat"]);
+  const [pendingOccasions, setPendingOccasions] = React.useState<Occasion[]>([]);
   const [pendingNotes, setPendingNotes] = React.useState("");
   const [manual, setManual] = React.useState<ManualDraft>(() => emptyManual(state.group.city));
   const [addedResultIds, setAddedResultIds] = React.useState<Set<string>>(() => new Set());
@@ -176,7 +175,7 @@ export function AddPlaceDialog({
     setResultView("lista");
     setPending(null);
     setPendingCuisines([]);
-    setPendingOccasions(["avslappnat"]);
+    setPendingOccasions([]);
     setPendingNotes("");
     setManual(emptyManual(state.group.city));
     setAddedResultIds(new Set());
@@ -276,7 +275,7 @@ export function AddPlaceDialog({
     setSelectedId(suggestion.externalId);
     setPending(suggestion);
     setPendingCuisines(suggestion.cuisines ?? []);
-    setPendingOccasions(["avslappnat"]);
+    setPendingOccasions([]);
     setPendingNotes("");
   };
 
@@ -284,7 +283,7 @@ export function AddPlaceDialog({
     if (isBusy) return;
     setPending(null);
     setPendingCuisines([]);
-    setPendingOccasions(["avslappnat"]);
+    setPendingOccasions([]);
     setPendingNotes("");
   };
 
@@ -324,7 +323,7 @@ export function AddPlaceDialog({
       });
       setPending(null);
       setPendingCuisines([]);
-      setPendingOccasions(["avslappnat"]);
+      setPendingOccasions([]);
       setPendingNotes("");
       toast.success(
         statusBefore === "archived"
@@ -348,6 +347,10 @@ export function AddPlaceDialog({
   const submitManual = async () => {
     if (!manual.name.trim() || isBusy) {
       if (!manual.name.trim()) toast.error("Ge stället ett namn");
+      return;
+    }
+    if (manual.occasions.length === 0) {
+      toast.error("Välj minst ett sammanhang");
       return;
     }
     setBusy(true);
@@ -598,7 +601,11 @@ export function AddPlaceDialog({
               {tab === "sok" ? "Klar" : "Avbryt"}
             </Button>
             {tab === "manuell" ? (
-              <Button className="min-h-11" disabled={isBusy} onClick={submitManual}>
+              <Button
+                className="min-h-11"
+                disabled={isBusy || manual.occasions.length === 0}
+                onClick={submitManual}
+              >
                 {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Lägg till
               </Button>
@@ -632,7 +639,12 @@ export function AddPlaceDialog({
               onChange={setPendingCuisines}
               description="Förifyllt från platsinformationen. Du kan korrigera valen för gruppen."
             />
-            <OccasionPicker value={pendingOccasions} onChange={setPendingOccasions} />
+            <OccasionPicker
+              id="pending-occasions"
+              value={pendingOccasions}
+              onChange={setPendingOccasions}
+              required
+            />
             <div className="space-y-1.5">
               <Label htmlFor="pending-notes">Anteckning till gruppen (frivilligt)</Label>
               <Textarea
@@ -871,13 +883,15 @@ function ManualForm({
         />
       </div>
       <OccasionPicker
+        id="manual-occasions"
         value={value.occasions}
-        onChange={(updater) =>
+        onChange={(occasions) =>
           onChange((current) => ({
             ...current,
-            occasions: typeof updater === "function" ? updater(current.occasions) : updater,
+            occasions,
           }))
         }
+        required
       />
       <div className="space-y-1.5">
         <Label htmlFor="manual-notes">Anteckning (frivilligt)</Label>
@@ -907,45 +921,6 @@ function PlaceSummary({ suggestion }: { suggestion: PlaceSuggestion }) {
           {suggestion.address}
           {suggestion.area ? ` · ${suggestion.area}` : ""} · {suggestion.city}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function OccasionPicker({
-  value,
-  onChange,
-}: {
-  value: Occasion[];
-  onChange: React.Dispatch<React.SetStateAction<Occasion[]>>;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>Passar för</Label>
-      <div className="flex flex-wrap gap-2">
-        {OCCASIONS.map((occasion) => {
-          const active = value.includes(occasion);
-          return (
-            <button
-              key={occasion}
-              type="button"
-              className="min-h-11"
-              aria-pressed={active}
-              onClick={() =>
-                onChange((current) =>
-                  active ? current.filter((item) => item !== occasion) : [...current, occasion],
-                )
-              }
-            >
-              <Badge
-                variant={active ? "default" : "outline"}
-                className="cursor-pointer rounded-full px-3 py-1 text-xs"
-              >
-                {OCCASION_LABEL[occasion]}
-              </Badge>
-            </button>
-          );
-        })}
       </div>
     </div>
   );

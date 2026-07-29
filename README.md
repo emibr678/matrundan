@@ -35,7 +35,16 @@ feed, individuell matdagbok eller global ranking.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.17.0
+## Status – v0.18.0
+
+Paket 6C gör **Passar för** till en tydligare beskrivning av sammanhang:
+**Snabbt & enkelt**, **Vardag & häng** och **Middag & upplevelse**. En kort
+förklaring visar att kategorierna inte är ett kvalitetsomdöme och att samma
+ställe kan passa i flera sammanhang.
+
+Nya ställen får inte längre ett automatiskt förval. Minst ett sammanhang väljs
+aktivt, och samma språk används vid tillägg, administration, filtrering och på
+matställets detaljsida. Befintliga ställens sparade val bevaras.
 
 Paket 6B gör datumplaneringen på Hem kompakt. Datum, bekräftelse och en kort
 svarssammanfattning ligger kvar i huvudflödet, medan svarsalternativ, namn och
