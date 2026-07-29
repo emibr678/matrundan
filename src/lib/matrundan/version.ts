@@ -3,7 +3,7 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "0.19.0";
+export const APP_VERSION = "0.19.1";
 export const APP_VERSION_DATE = "2026-07-29";
 
 const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
@@ -126,7 +126,7 @@ const PACKAGE_6C_CHANGELOG: ChangelogEntry = {
 };
 
 const PACKAGE_6D_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
+  version: "0.19.0",
   date: APP_VERSION_DATE,
   summary:
     "En skarpare sammanhangsmodell och topplistor som jämför matställen inom rätt sorts besök.",
@@ -156,7 +156,32 @@ const PACKAGE_6D_CHANGELOG: ChangelogEntry = {
   ],
 };
 
+const PACKAGE_6E_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary:
+    "En sista UX-polering som gör progression, sökning och Passar för-valen lugnare och tydligare.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hem visar gruppens progression utan ett redundant procenttal eller intern copy om aktiva ställen.",
+        "Sökning döljer topplistan medan användaren letar efter ett specifikt ställe, så resultatet hamnar direkt under sökverktygen.",
+        "Passar för förklaras som olika sorters besök i stället för med det abstrakta ordet sammanhang.",
+        "Det frivilliga Passar också för öppnas först efter en uttrycklig handling och visar inte längre alternativet Inget andra sammanhang.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Progressionsraden på Hem kan inte längre klistra ihop bråk och procenttal på smala skärmar.",
+      ],
+    },
+  ],
+};
+
 export const CHANGELOG: ChangelogEntry[] = [
+  PACKAGE_6E_CHANGELOG,
   PACKAGE_6D_CHANGELOG,
   PACKAGE_6C_CHANGELOG,
   PACKAGE_6B_CHANGELOG,
