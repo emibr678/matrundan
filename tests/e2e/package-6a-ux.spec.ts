@@ -43,6 +43,8 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await page.goto("/?demo=1");
   await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Senaste aktivitet" })).toHaveCount(0);
+  await expect(page.getByText(/^Ni har provat \d+ av \d+ ställen$/)).toBeVisible();
+  await expect(page.getByText(/^\d+%$/)).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Hem");
 
   await page.goto("/gruppen?demo=1");
@@ -63,6 +65,12 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     return element.getBoundingClientRect().top;
   });
   expect(searchTop).toBeLessThan(topListTop);
+  const search = page.getByLabel("Sök i matställen");
+  await search.fill("Kvarterets");
+  await expect(page.getByTestId("occasion-leaderboard")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Kvarterets Kardemumma/ })).toBeVisible();
+  await search.fill("");
+  await expect(page.getByTestId("occasion-leaderboard")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Matställen");
 
   await page.goto("/matstallen/p8?demo=1");

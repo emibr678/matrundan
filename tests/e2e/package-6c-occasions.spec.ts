@@ -12,7 +12,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.clientWidth);
 }
 
-test("sammanhang väljs aktivt och förklaras konsekvent på mobil", async ({ page }) => {
+test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
@@ -24,7 +24,7 @@ test("sammanhang väljs aktivt och förklaras konsekvent på mobil", async ({ pa
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toHaveCount(0);
   await leaderboard.getByRole("button", { name: "Visa topplista för Snabbt & smidigt" }).click();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Topplista per primärt sammanhang");
+  await expectNoHorizontalOverflow(page, "Topplista per primärt val");
 
   await page.getByRole("button", { name: "Öppna filter och sortering" }).click();
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
@@ -47,15 +47,15 @@ test("sammanhang väljs aktivt och förklaras konsekvent på mobil", async ({ pa
   await expect(
     addDialog.getByText("Välj vad stället passar bäst för för att fortsätta."),
   ).toBeVisible();
-  await expect(
-    addDialog.getByText("Passar bäst för (obligatoriskt)", { exact: true }),
-  ).toBeVisible();
+  await expect(addDialog.getByText("Passar bäst för", { exact: true })).toBeVisible();
   await expect(addDialog.getByText("Vardag & häng", { exact: true })).toBeVisible();
   await expect(addDialog.getByText("Något särskilt", { exact: true })).toBeVisible();
   await expect(addDialog.getByText("Trevlig middag", { exact: true })).toHaveCount(0);
 
   await addDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
-  const guide = page.getByText("Välj efter sammanhang", { exact: true }).locator("../..");
+  const guide = page
+    .getByText("Topplistor för olika sorters besök", { exact: true })
+    .locator("../..");
   await expect(guide).toContainText("inte objektiv kvalitet");
   await expect(guide).toContainText("pizzeria");
   await expect(guide).toContainText("Passar bäst för");
@@ -66,7 +66,15 @@ test("sammanhang väljs aktivt och förklaras konsekvent på mobil", async ({ pa
   await addDialog
     .getByRole("button", { name: "Passar bäst för: Vardag & häng", exact: true })
     .click();
+  await expect(addDialog.getByText("Passar också för (valfritt)", { exact: true })).toHaveCount(0);
+  await addDialog
+    .getByRole("button", {
+      name: "Lägg till ett alternativ till (valfritt)",
+      exact: true,
+    })
+    .click();
   await expect(addDialog.getByText("Passar också för (valfritt)", { exact: true })).toBeVisible();
+  await expect(addDialog.getByText("Inget andra sammanhang", { exact: true })).toHaveCount(0);
   await addDialog
     .getByRole("button", { name: "Passar också för: Något särskilt", exact: true })
     .click();
@@ -82,7 +90,7 @@ test("sammanhang väljs aktivt och förklaras konsekvent på mobil", async ({ pa
   await expect(page.getByText("Passar bäst för", { exact: true })).toBeVisible();
   await expect(page.getByText("Passar också för", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Detaljsida med flera sammanhang");
+  await expectNoHorizontalOverflow(page, "Detaljsida med flera val");
 
   await page.getByRole("button", { name: "Hantera ställe" }).click();
   const adminDialog = page.getByRole("dialog", { name: "Hantera Testköket" });
@@ -99,5 +107,5 @@ test("sammanhang väljs aktivt och förklaras konsekvent på mobil", async ({ pa
     }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(adminDialog.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Administration med sammanhang");
+  await expectNoHorizontalOverflow(page, "Administration med typer av besök");
 });

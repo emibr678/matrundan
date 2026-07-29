@@ -7,6 +7,25 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [0.19.1] – 2026-07-29
+
+### Förbättrat
+
+- Hem visar **Ni har provat 6 av 9 ställen** och progressbaren utan ett
+  redundant procenttal.
+- När användaren söker döljs topplistan, så sökfältet leder direkt till den
+  filtrerade listan.
+- **Passar för** förklaras med konkreta sorters besök utan det abstrakta
+  samlingsordet ”sammanhang”.
+- Det frivilliga **Passar också för** öppnas genom en uttrycklig handling i
+  stället för att en ny rad dyker upp automatiskt.
+
+### Rättat
+
+- Progressionsraden på Hem klistrar inte längre ihop text och procenttal på
+  smala skärmar.
+- Det överflödiga valet **Inget andra sammanhang** är borttaget.
+
 ## [0.19.0] – 2026-07-29
 
 ### Nytt

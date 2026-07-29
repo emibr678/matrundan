@@ -140,6 +140,7 @@ function PlacesIndex() {
     [activePlaces, avgRating, topOccasion],
   );
   const hasRatings = activePlaces.some((place) => avgRating(place.id).count > 0);
+  const isSearching = query.trim().length > 0;
 
   const clearAdvanced = () => {
     setCategory("alla");
@@ -180,13 +181,13 @@ function PlacesIndex() {
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Sök namn, kök, område eller adress…"
+          placeholder="Sök på namn, stad eller mat…"
           className="rounded-2xl bg-card pl-9"
           aria-label="Sök i matställen"
         />
       </div>
 
-      {hasRatings ? (
+      {hasRatings && !isSearching ? (
         <section aria-labelledby="place-leaderboard-heading" data-testid="occasion-leaderboard">
           <div className="mb-2">
             <div className="flex min-h-11 items-center gap-1">
@@ -196,7 +197,7 @@ function PlacesIndex() {
               <OccasionGuide compact />
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Gruppens medelbetyg inom ställets primära sammanhang
+              Gruppens betyg för olika sorters besök
             </p>
           </div>
 

@@ -1,4 +1,5 @@
-import { CircleHelp } from "lucide-react";
+import * as React from "react";
+import { CircleHelp, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -35,11 +36,11 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
         className="w-[calc(100vw-2rem)] max-w-sm space-y-3 rounded-2xl p-4"
       >
         <div>
-          <div className="font-medium">Välj efter sammanhang</div>
+          <div className="font-medium">Topplistor för olika sorters besök</div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             Topplistorna beskriver inte objektiv kvalitet eller prisnivå. De hjälper gruppen att
-            välja ett ställe som passar situationen. En pizzeria och en finkrog kan båda få höga
-            betyg i sina sammanhang.
+            välja ett ställe som passar för besöket. En pizzeria och en finkrog kan båda få höga
+            betyg – i olika listor.
           </p>
         </div>
         <div className="space-y-2.5">
@@ -78,6 +79,12 @@ export function OccasionPicker({
   const descriptionId = `${id}-description`;
   const primary = primaryOccasion(value);
   const secondary = secondaryOccasion(value);
+  const [showSecondary, setShowSecondary] = React.useState(Boolean(secondary));
+
+  React.useEffect(() => {
+    if (secondary) setShowSecondary(true);
+    if (!primary) setShowSecondary(false);
+  }, [primary, secondary]);
 
   return (
     <div className="space-y-2">
@@ -86,13 +93,12 @@ export function OccasionPicker({
         <OccasionGuide />
       </div>
       <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
-        Välj det sammanhang stället främst passar för. Lägg bara till ett andra när det är ett
-        tydligt gränsfall.
+        Välj vad stället passar bäst för. Lägg till ett alternativ till om det också passar tydligt.
       </p>
       <div className="space-y-2" aria-describedby={descriptionId}>
         <div>
           <div id={`${id}-primary-label`} className="mb-1.5 text-xs font-medium">
-            Passar bäst för <span className="text-muted-foreground">(obligatoriskt)</span>
+            Passar bäst för
           </div>
           <div
             className="flex flex-wrap gap-2"
@@ -120,7 +126,19 @@ export function OccasionPicker({
           </div>
         </div>
 
-        {primary ? (
+        {primary && !showSecondary ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setShowSecondary(true)}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Lägg till ett alternativ till <span className="font-normal">(valfritt)</span>
+          </button>
+        ) : null}
+
+        {primary && showSecondary ? (
           <div>
             <div id={`${id}-secondary-label`} className="mb-1.5 text-xs font-medium">
               Passar också för <span className="text-muted-foreground">(valfritt)</span>
@@ -130,20 +148,6 @@ export function OccasionPicker({
               role="group"
               aria-labelledby={`${id}-secondary-label`}
             >
-              <button
-                type="button"
-                disabled={disabled}
-                aria-pressed={!secondary}
-                onClick={() => onChange(occasionClassification(primary))}
-                className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-              >
-                <Badge
-                  variant={!secondary ? "secondary" : "outline"}
-                  className="cursor-pointer rounded-full px-3 py-1 text-xs"
-                >
-                  Inget andra sammanhang
-                </Badge>
-              </button>
               {OCCASION_VALUES.filter((occasion) => occasion !== primary).map((occasion) => (
                 <OccasionButton
                   key={occasion}

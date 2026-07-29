@@ -35,7 +35,14 @@ feed, individuell matdagbok eller global ranking.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.19.0
+## Status – v0.19.1
+
+Paket 6E polerar de sista identifierade UX-detaljerna. Hem visar progression
+utan ett redundant procenttal, topplistan döljs under en aktiv sökning och
+**Passar för** använder konkret språk om olika sorters besök. Det frivilliga
+andra valet öppnas bara när användaren själv ber om det.
+
+## Tidigare – v0.19.0
 
 Paket 6D delar upp sammanhanget i ett obligatoriskt **Passar bäst för** och
 högst ett frivilligt **Passar också för**. De tre valen är **Snabbt & smidigt**,

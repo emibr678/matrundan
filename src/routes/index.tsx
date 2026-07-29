@@ -149,11 +149,8 @@ export function Home() {
 
       <section>
         <Card className="rounded-2xl border-border/70 p-4">
-          <div className="mb-2 flex items-baseline justify-between text-sm">
-            <span className="font-medium">
-              Du och gruppen har provat {tried} av {totalPlaces} aktiva ställen
-            </span>
-            <span className="text-muted-foreground">{progressPct}%</span>
+          <div className="mb-2 text-sm font-medium">
+            Ni har provat {tried} av {totalPlaces} ställen
           </div>
           <Progress value={progressPct} className="h-2" />
           <div className="mt-4 grid grid-cols-3 gap-2">
