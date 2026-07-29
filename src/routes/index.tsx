@@ -1,13 +1,12 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Shuffle, Plus, MapPin, Sparkles, Star } from "lucide-react";
+import { Flag, Shuffle, Plus, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/matrundan/store";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
-import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { NextStopDateCard } from "@/components/matrundan/NextStopDateCard";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
@@ -17,12 +16,12 @@ export const Route = createFileRoute("/")({
       { title: "Hem · Matrundan" },
       {
         name: "description",
-        content: "Se gruppens nästa stopp, snabba framsteg och senaste aktivitet på ett ställe.",
+        content: "Se gruppens nästa stopp och gemensamma framsteg på ett ställe.",
       },
       { property: "og:title", content: "Hem · Matrundan" },
       {
         property: "og:description",
-        content: "Nästa stopp och senaste aktivitet.",
+        content: "Nästa stopp och gruppens gemensamma matresa.",
       },
     ],
   }),
@@ -60,14 +59,12 @@ export function Home() {
     if (pick) void setNext(pick.id);
   };
 
-  const latest = state.activity.slice(0, 5);
-
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
       <section>
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5" />
+            <Flag className="h-3.5 w-3.5" />
             Nästa stopp
           </div>
           {canWrite && activePlaces.length > 0 ? (
@@ -183,15 +180,6 @@ export function Home() {
             <Star className="h-4 w-4" /> Bläddra listan
           </Link>
         </Button>
-      </section>
-
-      <section className="pb-4">
-        <h2 className="mb-2 font-display text-lg">Senaste aktivitet</h2>
-        <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-          {latest.map((activity) => (
-            <ActivityRow key={activity.id} activity={activity} />
-          ))}
-        </Card>
       </section>
 
       {canWrite ? (

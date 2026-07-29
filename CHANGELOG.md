@@ -7,6 +7,27 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [0.16.0] – 2026-07-29
+
+### Förbättrat
+
+- **Tydligare ansvar för huvudvyerna.** Hem fokuserar på nästa stopp och
+  progression. Gruppen äger aktivitet och visar inte längre nästa stopp en gång
+  till.
+- **Tydligare Matställen.** Sidan förklarar att listan innehåller vad gänget vill
+  prova och har provat, sökningen kommer före topplistan och handlingen heter
+  konsekvent **Lägg till ställe**.
+- **Tydligare handlingar på matställets detaljsida.** Nästa stopp skiljer på
+  handling och status, personlig favorit heter **Favorit** och Maps nås via
+  adressen i stället för en likvärdig åtgärdsknapp.
+- Flaggan ersätter glittersymbolen för nästa stopp.
+- Medlemsraderna på Gruppen har färre överflödiga etiketter.
+
+### Rättat
+
+- Huvudvyerna och matställets detaljsida har ett riktat mobiltest som verifierar
+  informationsplacering, copy och avsaknad av horisontell overflow vid 360 px.
+
 ## [0.15.0] – 2026-07-28
 
 ### Nytt

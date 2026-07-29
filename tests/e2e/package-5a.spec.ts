@@ -56,8 +56,8 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expectNoHorizontalOverflow(page, "Exempelgruppen på 360 px");
 
   await page.goto("/matstallen/p8");
-  await page.getByRole("button", { name: "Spara", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Sparad", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Markera som favorit", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
 
   const storage = await page.evaluate(() => ({
     example: window.sessionStorage.getItem("matrundan.exampleState.v1"),
@@ -67,13 +67,15 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   expect(storage.sandbox).toContain("Gammal lokal demo");
 
   await page.reload();
-  await expect(page.getByRole("button", { name: "Sparad", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: "Hem" }).click();
   await page.getByRole("button", { name: "Återställ" }).click();
   await expect(page.getByText("Exempelgruppen är återställd.", { exact: true })).toBeVisible();
   await page.goto("/matstallen/p8");
-  await expect(page.getByRole("button", { name: "Spara", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Markera som favorit", exact: true }),
+  ).toBeVisible();
 });
 
 test("den interna demosandboxen är fortsatt skrivbar och separat", async ({ page }) => {

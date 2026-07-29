@@ -161,13 +161,29 @@ function PlacesIndex() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 pt-2 md:max-w-4xl">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Vad gänget vill prova och har provat
+          </p>
+        </div>
         {canWrite ? (
           <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">
-            <Plus className="h-4 w-4" /> Lägg till
+            <Plus className="h-4 w-4" /> Lägg till ställe
           </Button>
         ) : null}
+      </div>
+
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Sök namn, kök, område eller adress…"
+          className="rounded-2xl bg-card pl-9"
+          aria-label="Sök i matställen"
+        />
       </div>
 
       {topRated.length > 0 ? (
@@ -202,17 +218,6 @@ function PlacesIndex() {
           </div>
         </section>
       ) : null}
-
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Sök namn, kök, område eller adress…"
-          className="rounded-2xl bg-card pl-9"
-          aria-label="Sök i matställen"
-        />
-      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         {QUICK_FILTERS.map((item) => {
@@ -344,7 +349,7 @@ function PlacesIndex() {
           </p>
           {canWrite ? (
             <Button className="mt-4" onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4" /> Lägg till matställe
+              <Plus className="h-4 w-4" /> Lägg till ställe
             </Button>
           ) : null}
         </div>

@@ -10,8 +10,6 @@ import {
   Info,
   Settings,
   Heart,
-  Sparkles,
-  MapPin,
   ChevronRight,
   Trash2,
   Crown,
@@ -81,7 +79,7 @@ export const Route = createFileRoute("/gruppen")({
       { title: "Gruppen · Matrundan" },
       {
         name: "description",
-        content: "Se vad gänget snackar om, senaste besöken, favoriterna och nästa stopp.",
+        content: "Se gruppens medlemmar, höjdpunkter, favoriter och senaste aktivitet.",
       },
       { property: "og:title", content: "Gruppen · Matrundan" },
       { property: "og:description", content: "Gänget, aktivitet och favoriter." },
@@ -94,8 +92,6 @@ function GroupPage() {
   const { state, getPlace, avgRating } = useStore();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/gruppen" });
-  const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
-
   const activeMember = React.useMemo(
     () => (search.member ? (state.members.find((m) => m.id === search.member) ?? null) : null),
     [search.member, state.members],
@@ -146,26 +142,6 @@ function GroupPage() {
         </Card>
       </section>
 
-      {next ? (
-        <section>
-          <Link
-            to="/matstallen/$placeId"
-            params={{ placeId: next.id }}
-            className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-3"
-          >
-            <Sparkles className="h-5 w-5 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-medium tracking-wide text-primary">Nästa stopp</div>
-              <div className="truncate font-medium">{next.name}</div>
-              <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {next.address}
-              </div>
-            </div>
-          </Link>
-        </section>
-      ) : null}
-
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
@@ -174,7 +150,7 @@ function GroupPage() {
             return (
               <Card
                 key={m.id}
-                className="rounded-2xl border-border/70 p-0 transition-colors focus-within:ring-2 focus-within:ring-ring hover:bg-accent/40"
+                className="min-w-0 rounded-2xl border-border/70 p-0 transition-colors focus-within:ring-2 focus-within:ring-ring hover:bg-accent/40"
               >
                 <button
                   type="button"
@@ -186,11 +162,6 @@ function GroupPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="min-w-0 max-w-full truncate font-medium">{m.name}</span>
-                      {m.id === state.currentUserId ? (
-                        <Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">
-                          Du
-                        </Badge>
-                      ) : null}
                       {m.role !== "medlem" ? (
                         <Badge variant="outline" className="shrink-0 rounded-full text-[10px]">
                           {m.role}
