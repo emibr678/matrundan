@@ -2,7 +2,7 @@ import * as React from "react";
 import { RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
-import { Badge } from "@/components/ui/badge";
+import { OccasionPicker } from "@/components/matrundan/OccasionPicker";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -37,14 +37,12 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
   CATEGORY_LABEL,
-  OCCASION_LABEL,
   type Occasion,
   type Place,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as PlaceCategory[];
-const OCCASIONS = Object.keys(OCCASION_LABEL) as Occasion[];
 
 export function PlaceAdminDialog({ place }: { place: Place }) {
   const { activeGroupRole } = useSession();
@@ -78,15 +76,11 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
 
   if (!canAdmin || groupArchived) return null;
 
-  function toggleOccasion(occasion: Occasion) {
-    setOccasions((current) =>
-      current.includes(occasion)
-        ? current.filter((item) => item !== occasion)
-        : [...current, occasion],
-    );
-  }
-
   async function save() {
+    if (occasions.length === 0) {
+      toast.error("Välj minst ett sammanhang");
+      return;
+    }
     try {
       await updatePlaceMetadata(place.id, {
         categoryOverride: category === "inherit" ? null : category,
@@ -189,29 +183,13 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Passar för</Label>
-              <div className="flex flex-wrap gap-2">
-                {OCCASIONS.map((occasion) => {
-                  const selected = occasions.includes(occasion);
-                  return (
-                    <button
-                      key={occasion}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => toggleOccasion(occasion)}
-                    >
-                      <Badge
-                        variant={selected ? "default" : "outline"}
-                        className="cursor-pointer rounded-full px-3 py-1"
-                      >
-                        {OCCASION_LABEL[occasion]}
-                      </Badge>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <OccasionPicker
+              id="place-admin-occasions"
+              value={occasions}
+              onChange={setOccasions}
+              disabled={submitting}
+              required
+            />
 
             <div className="space-y-1.5">
               <Label htmlFor="place-group-note">Gruppens anteckning</Label>
@@ -261,7 +239,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Avbryt
             </Button>
-            <Button disabled={submitting} onClick={() => void save()}>
+            <Button disabled={submitting || occasions.length === 0} onClick={() => void save()}>
               Spara ändringar
             </Button>
           </DialogFooter>

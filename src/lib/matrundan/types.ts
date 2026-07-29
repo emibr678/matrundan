@@ -220,9 +220,21 @@ export const CATEGORY_LABEL: Record<PlaceCategory, string> = {
 
 export const OCCASION_LABEL: Record<Occasion, string> = {
   snabbt: "Snabbt & enkelt",
-  avslappnat: "Avslappnat",
-  middag: "Trevlig middag",
+  avslappnat: "Vardag & häng",
+  middag: "Middag & upplevelse",
 };
+
+export const OCCASION_DESCRIPTION: Record<Occasion, string> = {
+  snabbt: "När det ska vara lätt att svänga förbi, äta eller ta med utan så mycket planering.",
+  avslappnat: "När ni vill sitta ner avslappnat – från café och lokalt hak till kvarterskrog.",
+  middag: "När maten, servicen eller miljön är en större del av själva upplevelsen.",
+};
+
+export const OCCASION_VALUES = [
+  "snabbt",
+  "avslappnat",
+  "middag",
+] as const satisfies readonly Occasion[];
 
 export function resolveActivityTarget(a: Activity): ActivityTarget | null {
   if (a.target) return a.target;

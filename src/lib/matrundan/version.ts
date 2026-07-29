@@ -3,7 +3,7 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "0.17.0";
+export const APP_VERSION = "0.18.0";
 export const APP_VERSION_DATE = "2026-07-29";
 
 const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
@@ -79,7 +79,7 @@ const PACKAGE_6A_1_CHANGELOG: ChangelogEntry = {
 };
 
 const PACKAGE_6B_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
+  version: "0.17.0",
   date: APP_VERSION_DATE,
   summary: "Lugnare datumplanering och ett enklare besöksflöde med mer tillförlitliga betyg.",
   sections: [
@@ -101,7 +101,32 @@ const PACKAGE_6B_CHANGELOG: ChangelogEntry = {
   ],
 };
 
+const PACKAGE_6C_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary:
+    "Tydligare sammanhangskategorier som gör det möjligt att uppskatta både enkla favoriter och större matupplevelser på sina egna villkor.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Passar för använder nu Snabbt & enkelt, Vardag & häng samt Middag & upplevelse.",
+        "En mobilvänlig förklaring visar att kategorierna beskriver typen av besök, inte hur bra stället är, och ger exempel för varje val.",
+        "Nya ställen får inte längre Vardag & häng automatiskt; användaren väljer aktivt minst ett sammanhang och kan välja flera.",
+        "Samma benämningar och hjälp används när ett ställe läggs till, hanteras, filtreras och visas.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Kategoriväljaren och dess förklaring är regressionsskyddade mot horisontell overflow vid 360 px.",
+      ],
+    },
+  ],
+};
+
 export const CHANGELOG: ChangelogEntry[] = [
+  PACKAGE_6C_CHANGELOG,
   PACKAGE_6B_CHANGELOG,
   PACKAGE_6A_1_CHANGELOG,
   PACKAGE_6A_CHANGELOG,

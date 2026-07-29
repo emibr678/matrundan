@@ -7,6 +7,25 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [0.18.0] – 2026-07-29
+
+### Förbättrat
+
+- **Tydligare sammanhang.** **Passar för** använder nu **Snabbt & enkelt**,
+  **Vardag & häng** samt **Middag & upplevelse**. Kategorierna beskriver vilken
+  typ av besök stället passar för – inte dess absoluta kvalitet.
+- En mobilvänlig förklaring ger exempel för varje kategori och tydliggör att ett
+  ställe kan passa i flera sammanhang.
+- Nya ställen får inte längre en kategori automatiskt. Minst ett sammanhang
+  måste väljas aktivt innan stället kan läggas till.
+- Samma kategorier och hjälp används vid tillägg, administration, filtrering och
+  på matställets detaljsida. Befintliga ställens sparade val bevaras.
+
+### Rättat
+
+- Kategoriväljaren och förklaringen verifieras vid 360 px utan horisontell
+  overflow.
+
 ## [0.17.0] – 2026-07-29
 
 ### Förbättrat

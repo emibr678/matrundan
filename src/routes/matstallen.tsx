@@ -3,6 +3,7 @@ import * as React from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronRight, List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
+import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceCard, PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { RatingStars } from "@/components/matrundan/Rating";
@@ -276,7 +277,14 @@ function PlacesIndex() {
                   onChange={(value) => setCategory(value as PlaceCategory | "alla")}
                 />
               </FilterGroup>
-              <FilterGroup label="Tillfälle">
+              <FilterGroup
+                label={
+                  <span className="flex min-h-11 items-center gap-1">
+                    Passar för
+                    <OccasionGuide compact />
+                  </span>
+                }
+              >
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
@@ -389,7 +397,7 @@ function PlacesIndex() {
   );
 }
 
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function FilterGroup({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
