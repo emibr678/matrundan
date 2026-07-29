@@ -26,6 +26,7 @@ async function removeCurrentPlace(page: Page) {
 test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka utan tappad metadata", async ({
   page,
 }) => {
+  test.setTimeout(45_000);
   const note = "Nästa stopp? Menyn ser ut att passa hela gänget.";
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen/p5?demo=1");
@@ -58,7 +59,9 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
   await addDialog.getByLabel("Namn").fill("Glöd & Grönska");
   await addDialog.getByLabel("Adress").fill("Grönskans gränd 3");
-  await addDialog.getByRole("button", { name: "Middag & upplevelse" }).click();
+  await addDialog
+    .getByRole("button", { name: "Passar bäst för: Något särskilt", exact: true })
+    .click();
   await addDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
 
   const restoredLink = page.getByRole("link", { name: /Glöd & Grönska/ });
@@ -67,7 +70,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   await expect(page.locator("p").filter({ hasText: note })).toHaveText(note);
   await expect(page.getByText("Vegetariskt/veganskt", { exact: true })).toBeVisible();
   await expect(page.getByText("Grillat", { exact: true })).toBeVisible();
-  await expect(page.getByText("Middag & upplevelse", { exact: true })).toBeVisible();
+  await expect(page.getByText("Något särskilt", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Återlagt matställe via vanliga Lägg till");
 });

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { primaryOccasion } from "@/lib/matrundan/occasions";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
@@ -77,8 +78,8 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
   if (!canAdmin || groupArchived) return null;
 
   async function save() {
-    if (occasions.length === 0) {
-      toast.error("Välj minst ett sammanhang");
+    if (!primaryOccasion(occasions)) {
+      toast.error("Välj vad stället passar bäst för");
       return;
     }
     try {
@@ -239,7 +240,10 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Avbryt
             </Button>
-            <Button disabled={submitting || occasions.length === 0} onClick={() => void save()}>
+            <Button
+              disabled={submitting || !primaryOccasion(occasions)}
+              onClick={() => void save()}
+            >
               Spara ändringar
             </Button>
           </DialogFooter>

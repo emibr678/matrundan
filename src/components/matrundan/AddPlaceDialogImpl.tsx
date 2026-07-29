@@ -27,6 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { geoapifySearchPlaces } from "@/lib/matrundan/geoapify.functions";
 import { formatLocation, parseLocation } from "@/lib/matrundan/location";
+import { primaryOccasion } from "@/lib/matrundan/occasions";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -349,8 +350,8 @@ export function AddPlaceDialog({
       if (!manual.name.trim()) toast.error("Ge stället ett namn");
       return;
     }
-    if (manual.occasions.length === 0) {
-      toast.error("Välj minst ett sammanhang");
+    if (!primaryOccasion(manual.occasions)) {
+      toast.error("Välj vad stället passar bäst för");
       return;
     }
     setBusy(true);
@@ -603,7 +604,7 @@ export function AddPlaceDialog({
             {tab === "manuell" ? (
               <Button
                 className="min-h-11"
-                disabled={isBusy || manual.occasions.length === 0}
+                disabled={isBusy || !primaryOccasion(manual.occasions)}
                 onClick={submitManual}
               >
                 {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -660,7 +661,7 @@ export function AddPlaceDialog({
               </Button>
               <Button
                 className="min-h-11"
-                disabled={isBusy || pendingOccasions.length === 0}
+                disabled={isBusy || !primaryOccasion(pendingOccasions)}
                 onClick={confirmAdd}
               >
                 {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

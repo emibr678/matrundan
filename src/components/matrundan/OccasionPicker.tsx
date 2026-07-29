@@ -9,6 +9,11 @@ import {
   OCCASION_VALUES,
   type Occasion,
 } from "@/lib/matrundan/types";
+import {
+  occasionClassification,
+  primaryOccasion,
+  secondaryOccasion,
+} from "@/lib/matrundan/occasions";
 
 export function OccasionGuide({ compact = false }: { compact?: boolean }) {
   return (
@@ -32,8 +37,9 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
         <div>
           <div className="font-medium">Välj efter sammanhang</div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Kategorierna beskriver vilken typ av besök stället passar för – inte hur bra det är.
-            Samma ställe kan passa i flera kategorier.
+            Topplistorna beskriver inte objektiv kvalitet eller prisnivå. De hjälper gruppen att
+            välja ett ställe som passar situationen. En pizzeria och en finkrog kan båda få höga
+            betyg i sina sammanhang.
           </p>
         </div>
         <div className="space-y-2.5">
@@ -45,6 +51,11 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
               </p>
             </div>
           ))}
+        </div>
+        <div className="border-t border-border/70 pt-3 text-xs leading-relaxed text-muted-foreground">
+          Välj ett obligatoriskt <strong className="text-foreground">Passar bäst för</strong> och
+          högst ett frivilligt <strong className="text-foreground">Passar också för</strong>.
+          Topplistan utgår från det primära valet.
         </div>
       </PopoverContent>
     </Popover>
@@ -65,6 +76,8 @@ export function OccasionPicker({
   required?: boolean;
 }) {
   const descriptionId = `${id}-description`;
+  const primary = primaryOccasion(value);
+  const secondary = secondaryOccasion(value);
 
   return (
     <div className="space-y-2">
@@ -73,48 +86,129 @@ export function OccasionPicker({
         <OccasionGuide />
       </div>
       <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
-        Välj ett eller flera sammanhang. Ställets kvalitet bedöms separat med betyget.
+        Välj det sammanhang stället främst passar för. Lägg bara till ett andra när det är ett
+        tydligt gränsfall.
       </p>
-      <div
-        className="flex flex-wrap gap-2"
-        role="group"
-        aria-labelledby={`${id}-label`}
-        aria-describedby={descriptionId}
-      >
-        {OCCASION_VALUES.map((occasion) => {
-          const selected = value.includes(occasion);
-          return (
-            <button
-              key={occasion}
-              type="button"
-              disabled={disabled}
-              aria-pressed={selected}
-              aria-describedby={`${id}-${occasion}-description`}
-              onClick={() =>
-                onChange(
-                  selected ? value.filter((item) => item !== occasion) : [...value, occasion],
-                )
-              }
-              className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+      <div className="space-y-2" aria-describedby={descriptionId}>
+        <div>
+          <div id={`${id}-primary-label`} className="mb-1.5 text-xs font-medium">
+            Passar bäst för <span className="text-muted-foreground">(obligatoriskt)</span>
+          </div>
+          <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-labelledby={`${id}-primary-label`}
+          >
+            {OCCASION_VALUES.map((occasion) => (
+              <OccasionButton
+                key={occasion}
+                id={`${id}-primary-${occasion}`}
+                occasion={occasion}
+                ariaLabel={`Passar bäst för: ${OCCASION_LABEL[occasion]}`}
+                selected={primary === occasion}
+                disabled={disabled}
+                onClick={() =>
+                  onChange(
+                    occasionClassification(
+                      occasion,
+                      secondary === occasion ? undefined : secondary,
+                    ),
+                  )
+                }
+              />
+            ))}
+          </div>
+        </div>
+
+        {primary ? (
+          <div>
+            <div id={`${id}-secondary-label`} className="mb-1.5 text-xs font-medium">
+              Passar också för <span className="text-muted-foreground">(valfritt)</span>
+            </div>
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-labelledby={`${id}-secondary-label`}
             >
-              <Badge
-                variant={selected ? "default" : "outline"}
-                className="cursor-pointer rounded-full px-3 py-1 text-xs"
+              <button
+                type="button"
+                disabled={disabled}
+                aria-pressed={!secondary}
+                onClick={() => onChange(occasionClassification(primary))}
+                className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
               >
-                {OCCASION_LABEL[occasion]}
-              </Badge>
-              <span id={`${id}-${occasion}-description`} className="sr-only">
-                {OCCASION_DESCRIPTION[occasion]}
-              </span>
-            </button>
-          );
-        })}
+                <Badge
+                  variant={!secondary ? "secondary" : "outline"}
+                  className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                >
+                  Inget andra sammanhang
+                </Badge>
+              </button>
+              {OCCASION_VALUES.filter((occasion) => occasion !== primary).map((occasion) => (
+                <OccasionButton
+                  key={occasion}
+                  id={`${id}-secondary-${occasion}`}
+                  occasion={occasion}
+                  ariaLabel={`Passar också för: ${OCCASION_LABEL[occasion]}`}
+                  selected={secondary === occasion}
+                  disabled={disabled}
+                  onClick={() =>
+                    onChange(
+                      occasionClassification(
+                        primary,
+                        secondary === occasion ? undefined : occasion,
+                      ),
+                    )
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
-      {required && value.length === 0 ? (
+      {required && !primary ? (
         <p className="text-xs text-muted-foreground">
-          Välj minst ett sammanhang för att fortsätta.
+          Välj vad stället passar bäst för för att fortsätta.
         </p>
       ) : null}
     </div>
+  );
+}
+
+function OccasionButton({
+  id,
+  occasion,
+  ariaLabel,
+  selected,
+  disabled,
+  onClick,
+}: {
+  id: string;
+  occasion: Occasion;
+  ariaLabel: string;
+  selected: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-pressed={selected}
+      aria-describedby={`${id}-description`}
+      onClick={onClick}
+      className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+    >
+      <Badge
+        variant={selected ? "default" : "outline"}
+        className="cursor-pointer rounded-full px-3 py-1 text-xs"
+      >
+        {OCCASION_LABEL[occasion]}
+      </Badge>
+      <span id={`${id}-description`} className="sr-only">
+        {OCCASION_DESCRIPTION[occasion]}
+      </span>
+    </button>
   );
 }

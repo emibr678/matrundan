@@ -3,7 +3,7 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "0.18.0";
+export const APP_VERSION = "0.19.0";
 export const APP_VERSION_DATE = "2026-07-29";
 
 const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
@@ -102,7 +102,7 @@ const PACKAGE_6B_CHANGELOG: ChangelogEntry = {
 };
 
 const PACKAGE_6C_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
+  version: "0.18.0",
   date: APP_VERSION_DATE,
   summary:
     "Tydligare sammanhangskategorier som gör det möjligt att uppskatta både enkla favoriter och större matupplevelser på sina egna villkor.",
@@ -125,7 +125,39 @@ const PACKAGE_6C_CHANGELOG: ChangelogEntry = {
   ],
 };
 
+const PACKAGE_6D_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary:
+    "En skarpare sammanhangsmodell och topplistor som jämför matställen inom rätt sorts besök.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Topplistan kan växla mellan Snabbt & smidigt, Vardag & häng och Något särskilt.",
+        "Ett ställe rankas bara i sitt primära sammanhang, baserat på gruppens synliga medelbetyg.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Varje ställe får ett obligatoriskt Passar bäst för och högst ett frivilligt Passar också för.",
+        "Sammanhangen heter nu Snabbt & smidigt, Vardag & häng och Något särskilt.",
+        "Hjälptexten förklarar att sammanhang inte är en kvalitets- eller prisstege.",
+        "Befintliga sparade val tolkas i ordning som primärt och sekundärt utan att produktionsrader skrivs om.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Den tidigare fria flervalsmodellen har ersatts med den beslutade primära och valfria sekundära klassificeringen.",
+      ],
+    },
+  ],
+};
+
 export const CHANGELOG: ChangelogEntry[] = [
+  PACKAGE_6D_CHANGELOG,
   PACKAGE_6C_CHANGELOG,
   PACKAGE_6B_CHANGELOG,
   PACKAGE_6A_1_CHANGELOG,
