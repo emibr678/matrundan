@@ -29,6 +29,7 @@ import {
   liveCreateOrLinkProviderPlace,
   liveCreatePlace,
   liveCreateVisitWithReview,
+  liveDeleteOriginalVisit,
   liveSetNextPlace,
   liveToggleFavorite,
 } from "./live-mutations";
@@ -42,6 +43,7 @@ import type {
   VisibleReview,
 } from "./types";
 import { APP_VERSION } from "./version";
+import { canDeleteOriginalVisit } from "./visit-permissions";
 import {
   blobToDataUrl,
   canManageVisitPhoto,
@@ -164,6 +166,7 @@ interface StoreContextValue {
   addVisit: (visit: Omit<Visit, "id">) => Promise<Visit>;
   saveVisitPhoto: (visitId: string, file: File, visitSnapshot?: Visit) => Promise<void>;
   deleteVisitPhoto: (visitId: string) => Promise<void>;
+  deleteVisit: (visitId: string) => Promise<void>;
   setNext: (placeId: string | null) => Promise<void>;
   archiveGroup: () => Promise<void>;
   reactivateGroup: () => Promise<void>;
@@ -524,6 +527,41 @@ export function StoreProvider({
           ...current,
           visits: current.visits.map((item) =>
             item.id === visitId ? { ...item, photo: null } : item,
+          ),
+        }));
+      },
+
+      deleteVisit: async (visitId) => {
+        const visit = state.visits.find((item) => item.id === visitId);
+        if (!visit) throw new Error("Besöket finns inte.");
+        const role = state.members.find((member) => member.id === state.currentUserId)?.role;
+        if (
+          !canDeleteOriginalVisit(
+            visit,
+            state.currentUserId,
+            role,
+            state.group.lifecycleStatus === "archived",
+          )
+        ) {
+          throw new Error("Du saknar behörighet att radera det här besöket.");
+        }
+
+        if (mode === "live") {
+          await runLive(async (groupId) => {
+            if (visit.photo) await liveDeleteVisitPhoto(groupId, visitId);
+            await liveDeleteOriginalVisit(groupId, visitId);
+          });
+          return;
+        }
+
+        assertDemoWritable(state, demoReadOnly);
+        setState((current) => ({
+          ...current,
+          visits: current.visits.filter((item) => item.id !== visitId),
+          activity: current.activity.filter(
+            (item) =>
+              item.visitId !== visitId &&
+              !(item.target?.kind === "visit" && item.target.visitId === visitId),
           ),
         }));
       },

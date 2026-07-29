@@ -66,6 +66,13 @@ export async function liveCreateVisitWithReview(
   );
 }
 
+export async function liveDeleteOriginalVisit(groupId: string, visitId: string): Promise<void> {
+  await rpcClient.callVoid("delete_original_visit", {
+    _group_id: groupId,
+    _visit_id: visitId,
+  });
+}
+
 export async function liveToggleFavorite(groupId: string, placeId: string): Promise<boolean> {
   return rpcClient.call(
     "toggle_favorite",
@@ -122,6 +129,20 @@ export async function liveSetNextStopDateStatus(
     _group_id: groupId,
     _proposal_id: proposalId,
     _status: status,
+  });
+}
+
+export async function liveUpdateNextStopDateProposal(
+  groupId: string,
+  proposalId: string,
+  date: string,
+  time: string | null,
+): Promise<void> {
+  await rpcClient.callVoid("update_next_stop_date_proposal", {
+    _group_id: groupId,
+    _proposal_id: proposalId,
+    _proposed_date: date,
+    _proposed_time: nn(time),
   });
 }
 

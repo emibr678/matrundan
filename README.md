@@ -26,8 +26,10 @@ feed, individuell matdagbok eller global ranking.
 - Nästa stopp kan väljas manuellt eller slumpas.
 - Ett privat datumförslag med valfri tid kan kopplas till nästa stopp.
 - Aktiva medlemmar kan svara Passar, Passar inte eller Osäker.
-- Förslagsställaren, ägare eller admin kan bekräfta eller ta bort datumet.
+- Förslagsställaren, ägare eller admin kan ändra, bekräfta eller ta bort datumet.
 - Registrering av besök med deltagare, omdöme och ett valfritt privat foto.
+- Felaktiga originalbesök kan raderas av registreraren, ägare eller admin med
+  tydlig konsekvensbekräftelse.
 - Personliga och delade favoriter samt status per matställe.
 - Klickbara medlemsprofiler med besök, favoriter och smakprofil.
 - Privat, diskret gamification med nivåer, utmärkelser och gruppens höjdpunkter.
@@ -35,7 +37,20 @@ feed, individuell matdagbok eller global ranking.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.19.1
+## Status – v0.20.0
+
+Paket 6F avslutar den kvarvarande produktlistan. Datumförslag kan ändras utan
+att först tas bort; tidigare svar nollställs så att gruppen kan svara på nytt.
+Felaktiga originalbesök kan raderas säkert tillsammans med foto, omdömen,
+deltagarkopplingar, delningar och aktivitet, vilket gör att progressionen
+räknas om från den faktiska historiken.
+
+På matställets detaljsida ligger besökshistoriken nu före sekundär
+platsinformation. **Lägg till ställe** behåller den redan förenklade modellen
+med sökning först, manuell inmatning som alternativ och flera tillägg per
+sökomgång.
+
+## Tidigare – v0.19.1
 
 Paket 6E polerar de sista identifierade UX-detaljerna. Hem visar progression
 utan ett redundant procenttal, topplistan döljs under en aktiv sökning och

@@ -33,6 +33,7 @@ import { ShareVisitDialog } from "./ShareVisitDialog";
 import { EditReviewDialog } from "./EditReviewDialog";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { canManageVisitPhoto } from "@/lib/matrundan/visit-photo";
+import { canDeleteOriginalVisit } from "@/lib/matrundan/visit-permissions";
 
 const MEAL_LABEL: Record<string, string> = {
   frukost: "Frukost",
@@ -51,7 +52,7 @@ export function VisitDetailSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { state, getPlace, memberById } = useStore();
+  const { state, getPlace, memberById, deleteVisit } = useStore();
   const { mode, activeGroupId, activeGroupRole, userGroups } = useSession();
   const visit = React.useMemo(
     () => (visitId ? state.visits.find((item) => item.id === visitId) : undefined),
@@ -77,6 +78,8 @@ export function VisitDetailSheet({
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const canManagePhoto =
     !!visit && canManageVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
+  const canDelete =
+    !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
 
   const myReview = React.useMemo(
     () => visit?.visibleReviews?.find((review) => review.userId === state.currentUserId),
@@ -85,7 +88,9 @@ export function VisitDetailSheet({
 
   const [shareOpen, setShareOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [unlinking, setUnlinking] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const [savingVisibility, setSavingVisibility] = React.useState(false);
 
   async function reload() {
@@ -107,6 +112,21 @@ export function VisitDetailSheet({
       toast.error(error instanceof Error ? error.message : "Kunde inte ta bort.");
     } finally {
       setUnlinking(false);
+    }
+  }
+
+  async function doDelete() {
+    if (!visit || groupArchived) return;
+    setDeleting(true);
+    try {
+      await deleteVisit(visit.id);
+      toast.success("Besöket är raderat.");
+      setConfirmDelete(false);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte radera besöket.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -345,6 +365,17 @@ export function VisitDetailSheet({
                     Ta bort från gruppen
                   </Button>
                 ) : null}
+
+                {canDelete ? (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-center text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Radera besöket
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -374,6 +405,28 @@ export function VisitDetailSheet({
             <AlertDialogCancel disabled={unlinking}>Avbryt</AlertDialogCancel>
             <AlertDialogAction disabled={unlinking} onClick={doUnlink}>
               {unlinking ? "Tar bort…" : "Ta bort"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Radera besöket på {place?.name ?? "matstället"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Besöket, fotot och alla omdömen tas bort. Gruppens progression räknas om. Om besöket
+              har lagts till i andra grupper försvinner det även där. Det går inte att ångra.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={doDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Raderar…" : "Radera besöket"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

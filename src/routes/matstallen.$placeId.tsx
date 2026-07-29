@@ -274,78 +274,6 @@ function PlaceDetail() {
       </Card>
 
       <section>
-        <div className="mb-2 flex min-h-11 items-center justify-between gap-2">
-          <h2 className="font-display text-lg">Om stället</h2>
-          {!demoReadOnly ? <PlaceAdminDialog place={place} /> : null}
-        </div>
-        <Card className="space-y-3 rounded-2xl border-border/70 p-4">
-          <div className="flex flex-wrap gap-1.5">
-            {place.cuisines.map((cuisine) => (
-              <Badge key={cuisine} variant="secondary" className="rounded-full">
-                {cuisine}
-              </Badge>
-            ))}
-          </div>
-          {bestOccasion ? (
-            <div className="space-y-1.5">
-              <div className="flex min-h-11 items-center gap-1">
-                <span className="text-xs font-medium text-muted-foreground">Passar för</span>
-                <OccasionGuide compact />
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div>
-                  <div className="mb-1 text-[11px] text-muted-foreground">Passar bäst för</div>
-                  <Badge
-                    variant="outline"
-                    title={OCCASION_DESCRIPTION[bestOccasion]}
-                    className="rounded-full border-mustard/60 bg-mustard/25 text-mustard-foreground"
-                  >
-                    {OCCASION_LABEL[bestOccasion]}
-                  </Badge>
-                </div>
-                {alsoOccasion ? (
-                  <div>
-                    <div className="mb-1 text-[11px] text-muted-foreground">Passar också för</div>
-                    <Badge
-                      variant="outline"
-                      title={OCCASION_DESCRIPTION[alsoOccasion]}
-                      className="rounded-full border-border bg-muted/50 text-foreground"
-                    >
-                      {OCCASION_LABEL[alsoOccasion]}
-                    </Badge>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-          {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
-          {(place.categoryOverride != null || place.cuisinesOverride != null) && (
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Kategori eller kök och inriktning har anpassats för den här gruppen. Matställets namn
-              och adress är oförändrade.
-            </p>
-          )}
-          <div className="text-xs text-muted-foreground">
-            Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
-          </div>
-        </Card>
-      </section>
-
-      {rating.count > 0 ? (
-        <section>
-          <h2 className="mb-2 font-display text-lg">Betygsdetaljer</h2>
-          <p className="mb-2 text-xs text-muted-foreground">
-            Frivilliga snitt per aspekt – syns bara när gänget har lämnat dem.
-          </p>
-          <Card className="grid grid-cols-3 gap-3 rounded-2xl border-border/70 p-4">
-            <RatingCell label="Smak" value={detail.taste} />
-            <RatingCell label="Prisvärd" value={detail.value} />
-            <RatingCell label="Service" value={detail.service} />
-          </Card>
-        </section>
-      ) : null}
-
-      <section className="pb-4">
         <h2 className="mb-2 font-display text-lg">Besök ({visits.length})</h2>
         {visits.length === 0 ? (
           <Card className="rounded-2xl border-dashed p-6 text-center">
@@ -430,6 +358,78 @@ function PlaceDetail() {
           </div>
         )}
       </section>
+
+      <section>
+        <div className="mb-2 flex min-h-11 items-center justify-between gap-2">
+          <h2 className="font-display text-lg">Om stället</h2>
+          {!demoReadOnly ? <PlaceAdminDialog place={place} /> : null}
+        </div>
+        <Card className="space-y-3 rounded-2xl border-border/70 p-4">
+          <div className="flex flex-wrap gap-1.5">
+            {place.cuisines.map((cuisine) => (
+              <Badge key={cuisine} variant="secondary" className="rounded-full">
+                {cuisine}
+              </Badge>
+            ))}
+          </div>
+          {bestOccasion ? (
+            <div className="space-y-1.5">
+              <div className="flex min-h-11 items-center gap-1">
+                <span className="text-xs font-medium text-muted-foreground">Passar för</span>
+                <OccasionGuide compact />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <div className="mb-1 text-[11px] text-muted-foreground">Passar bäst för</div>
+                  <Badge
+                    variant="outline"
+                    title={OCCASION_DESCRIPTION[bestOccasion]}
+                    className="rounded-full border-mustard/60 bg-mustard/25 text-mustard-foreground"
+                  >
+                    {OCCASION_LABEL[bestOccasion]}
+                  </Badge>
+                </div>
+                {alsoOccasion ? (
+                  <div>
+                    <div className="mb-1 text-[11px] text-muted-foreground">Passar också för</div>
+                    <Badge
+                      variant="outline"
+                      title={OCCASION_DESCRIPTION[alsoOccasion]}
+                      className="rounded-full border-border bg-muted/50 text-foreground"
+                    >
+                      {OCCASION_LABEL[alsoOccasion]}
+                    </Badge>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
+          {(place.categoryOverride != null || place.cuisinesOverride != null) && (
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              Kategori eller kök och inriktning har anpassats för den här gruppen. Matställets namn
+              och adress är oförändrade.
+            </p>
+          )}
+          <div className="text-xs text-muted-foreground">
+            Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
+          </div>
+        </Card>
+      </section>
+
+      {rating.count > 0 ? (
+        <section>
+          <h2 className="mb-2 font-display text-lg">Betygsdetaljer</h2>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Frivilliga snitt per aspekt – syns bara när gänget har lämnat dem.
+          </p>
+          <Card className="grid grid-cols-3 gap-3 rounded-2xl border-border/70 p-4">
+            <RatingCell label="Smak" value={detail.taste} />
+            <RatingCell label="Prisvärd" value={detail.value} />
+            <RatingCell label="Service" value={detail.service} />
+          </Card>
+        </section>
+      ) : null}
 
       {writable ? (
         <VisitDialog open={visitOpen} onOpenChange={setVisitOpen} placeId={place.id} />

@@ -3,7 +3,7 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "0.19.1";
+export const APP_VERSION = "0.20.0";
 export const APP_VERSION_DATE = "2026-07-29";
 
 const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
@@ -157,7 +157,7 @@ const PACKAGE_6D_CHANGELOG: ChangelogEntry = {
 };
 
 const PACKAGE_6E_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
+  version: "0.19.1",
   date: APP_VERSION_DATE,
   summary:
     "En sista UX-polering som gör progression, sökning och Passar för-valen lugnare och tydligare.",
@@ -180,7 +180,38 @@ const PACKAGE_6E_CHANGELOG: ChangelogEntry = {
   ],
 };
 
+const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary:
+    "Säkrare korrigeringar av gruppens historik och planering, med radering av felaktiga besök och redigering av datumförslag.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Den som registrerade ett originalbesök, gruppens ägare eller admin kan radera det från besöksdetaljen efter en tydlig konsekvensbekräftelse.",
+        "Förslagsställaren, gruppens ägare eller admin kan ändra ett föreslaget eller bekräftat datum utan att först ta bort det.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "När ett datum ändras nollställs tidigare svar och ett bekräftat datum öppnas igen så att gruppen kan ta ställning på nytt.",
+        "Besökshistoriken ligger före Om stället och detaljerade betyg på matställets detaljsida.",
+        "Lägg till-flödet behåller sökning och utforskning som standard, manuell inmatning som sekundärt val och stöd för flera tillägg i samma omgång.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Radering av ett originalbesök tar även bort dess foto, omdömen, deltagarkopplingar, delningar och aktivitet så att progressionen räknas om från den kanoniska historiken.",
+      ],
+    },
+  ],
+};
+
 export const CHANGELOG: ChangelogEntry[] = [
+  PACKAGE_6F_CHANGELOG,
   PACKAGE_6E_CHANGELOG,
   PACKAGE_6D_CHANGELOG,
   PACKAGE_6C_CHANGELOG,
