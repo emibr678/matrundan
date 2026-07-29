@@ -18,23 +18,18 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("ägaren kan arkivera och återaktivera en grupp i demo-läget", async ({ page }) => {
-  await page.goto("/?demo=1");
+test("demo-läget visar lokala inställningar utan livegruppens statuskontroller", async ({
+  page,
+}) => {
+  await page.goto("/gruppen?demo=1");
 
-  await page.getByRole("button", { name: "Demo" }).click();
-  await page.getByRole("menuitem", { name: "Arkivera gruppen" }).click();
-  const confirm = page.getByRole("alertdialog");
-  await expect(confirm.getByText(/Historik, besök, ställen/)).toBeVisible();
-  await confirm.getByRole("button", { name: "Arkivera gruppen" }).click();
-
-  await expect(page.getByText("Gruppen är arkiverad", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toHaveCount(0);
-  await expectNoHorizontalOverflow(page, "Arkiverad grupp");
-
-  await page.getByRole("button", { name: "Demo" }).click();
-  await page.getByRole("menuitem", { name: "Återaktivera gruppen" }).click();
-  await expect(page.getByText("Gruppen är arkiverad", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
+  await page.getByRole("button", { name: "Gruppinställningar" }).click();
+  const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
+  await expect(settings.getByText("Demo-läge: skrivningar sparas bara lokalt.")).toBeVisible();
+  await expect(settings.getByRole("button", { name: "Återställ demo-data" })).toBeVisible();
+  await expect(settings.getByRole("button", { name: "Arkivera gruppen" })).toHaveCount(0);
+  await expect(settings.getByRole("button", { name: "Återaktivera gruppen" })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Gruppinställningar i demo-läget");
 });
 
 test("adminflödet tar bort och lägger tillbaka bara gruppens platskoppling", async ({ page }) => {

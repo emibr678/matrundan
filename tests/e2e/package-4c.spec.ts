@@ -47,7 +47,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
 
   await page.goto("/?demo=1");
   await expect(page.getByRole("heading", { name: "Inget nästa stopp valt" })).toBeVisible();
-  const activeTile = page.getByText("Aktiva ställen", { exact: true }).locator("..");
+  const activeTile = page.getByText("Ställen", { exact: true }).locator("..");
   await expect(activeTile.getByText("8", { exact: true })).toBeVisible();
 
   await page.goto("/matstallen?demo=1");
