@@ -152,18 +152,21 @@ function PlaceDetail() {
             <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
               {place.name}
             </h1>
+            <div className="mt-1 flex max-w-full items-center gap-1 text-sm text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">
+                {place.address}, {place.city}
+              </span>
+            </div>
             <a
               href={googleMapsUrl(place)}
               target="_blank"
               rel="noreferrer"
-              className="mt-1 inline-flex min-h-11 max-w-full items-center gap-1 py-2 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              aria-label={`Öppna ${place.address} i Maps`}
+              className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+              aria-label={`Öppna ${place.name} i Google Maps`}
             >
-              <MapPin className="h-3.5 w-3.5" />
-              <span className="truncate">
-                {place.address}, {place.city}
-              </span>
               <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              Öppna i Google Maps
             </a>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {isNext ? (
@@ -263,14 +266,14 @@ function PlaceDetail() {
               </p>
             </div>
           )}
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            {!demoReadOnly ? <PlaceAdminDialog place={place} /> : null}
-          </div>
         </div>
       </Card>
 
       <section>
-        <h2 className="mb-2 font-display text-lg">Om stället</h2>
+        <div className="mb-2 flex min-h-11 items-center justify-between gap-2">
+          <h2 className="font-display text-lg">Om stället</h2>
+          {!demoReadOnly ? <PlaceAdminDialog place={place} /> : null}
+        </div>
         <Card className="space-y-3 rounded-2xl border-border/70 p-4">
           <div className="flex flex-wrap gap-1.5">
             {place.cuisines.map((cuisine) => (

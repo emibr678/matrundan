@@ -35,7 +35,11 @@ feed, individuell matdagbok eller global ranking.
 - Google Maps som extern länk för vägbeskrivning.
 - ”Om Matrundan” med aktuell version och versionshistorik.
 
-## Status – v0.16.0
+## Status – v0.16.1
+
+Uppföljningen 6A.1 gör Google Maps tydligt tillgängligt via en egen namngiven
+länk och flyttar **Hantera ställe** till den administrativa kontexten vid
+**Om stället**.
 
 Paket 6A renodlar appens huvudvyer. Hem äger nästa stopp och progression, medan
 aktiviteten nu bara finns på Gruppen. Gruppen visar därför inte längre nästa
