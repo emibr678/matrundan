@@ -43,7 +43,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await page.goto("/?demo=1");
   await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Senaste aktivitet" })).toHaveCount(0);
-  await expect(page.getByText(/^Ni har provat \d+ av \d+ ställen$/)).toBeVisible();
+  await expect(page.getByText(/^Ni har provat \d+ av \d+ ställen tillsammans$/)).toBeVisible();
   await expect(page.getByText(/^\d+%$/)).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Hem");
 
