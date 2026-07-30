@@ -1,8 +1,10 @@
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Link2, LogIn, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Link2, LogIn, Mail, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
+import { EmailCodeDialog } from "@/components/matrundan/EmailCodeDialog";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
