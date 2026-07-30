@@ -143,6 +143,11 @@ function InvitePage() {
           <InviteMessage state={state} groupLabel={groupLabel} />
         )}
       </Card>
+      <EmailCodeDialog
+        open={emailCodeOpen}
+        onOpenChange={setEmailCodeOpen}
+        redirectPath={pendingPath}
+      />
     </div>
   );
 }
