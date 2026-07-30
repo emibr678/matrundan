@@ -97,7 +97,6 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
     );
   }
 
-
   if (!user) {
     return (
       <>
@@ -131,7 +130,6 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
         </DropdownMenu>
         <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
       </>
-
     );
   }
 

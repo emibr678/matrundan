@@ -28,8 +28,7 @@ export const Route = createFileRoute("/inbjudan/$token")({
 function InvitePage() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
-  const { user, loading, mode, signInWithGoogle, refreshGroups, selectGroup } =
-    useSession();
+  const { user, loading, mode, signInWithGoogle, refreshGroups, selectGroup } = useSession();
 
   const [preview, setPreview] = React.useState<InvitationPreview | null>(null);
   const [previewErr, setPreviewErr] = React.useState<string | null>(null);
@@ -75,7 +74,7 @@ function InvitePage() {
   const state = preview?.state ?? (previewErr ? "invalid" : "loading");
   const groupLabel = preview?.group_emoji
     ? `${preview.group_emoji} ${preview.group_name ?? ""}`
-    : preview?.group_name ?? "";
+    : (preview?.group_name ?? "");
 
   return (
     <div className="mx-auto flex min-h-[70dvh] max-w-lg items-center px-4 py-10">
@@ -122,11 +121,9 @@ function InvitePage() {
                     används först när du klickar på Gå med.
                   </p>
                 </>
-
               ) : mode !== "live" ? (
                 <p className="text-sm text-muted-foreground">
-                  Demo-läget kan inte acceptera riktiga inbjudningar. Öppna länken utan
-                  ?demo=1.
+                  Demo-läget kan inte acceptera riktiga inbjudningar. Öppna länken utan ?demo=1.
                 </p>
               ) : (
                 <>
@@ -153,13 +150,7 @@ function InvitePage() {
   );
 }
 
-function InviteMessage({
-  state,
-  groupLabel,
-}: {
-  state: string;
-  groupLabel: string;
-}) {
+function InviteMessage({ state, groupLabel }: { state: string; groupLabel: string }) {
   const msg =
     state === "expired"
       ? "Länken har gått ut. Be gruppens ägare eller admin om en ny inbjudan."

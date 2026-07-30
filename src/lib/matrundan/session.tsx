@@ -241,8 +241,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-
-
   const signOut = React.useCallback(async () => {
     await supabase.auth.signOut();
     clearExampleSession();

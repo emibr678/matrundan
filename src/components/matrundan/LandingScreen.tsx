@@ -47,7 +47,6 @@ export function LandingScreen() {
     }
   }
 
-
   function joinGroup(event: React.FormEvent) {
     event.preventDefault();
     const token = invitationToken(invite);
@@ -103,7 +102,6 @@ export function LandingScreen() {
             Med e-postkod får du en sexsiffrig kod i mejlen – inget lösenord behövs.
           </p>
         </Card>
-
 
         <Card className="rounded-3xl border-border/70 p-5 shadow-sm sm:p-6">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-mustard/35 text-mustard-foreground">
