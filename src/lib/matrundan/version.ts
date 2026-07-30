@@ -3,11 +3,28 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.1.2";
+export const APP_VERSION = "1.2.0";
 export const APP_VERSION_DATE = "2026-07-30";
 
-const VERSION_1_1_2_CHANGELOG: ChangelogEntry = {
+const VERSION_1_2_0_CHANGELOG: ChangelogEntry = {
   version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary: "Push-notiser när något händer i dina grupper.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Du kan slå på notiser per enhet under Min profil och välja vilka händelser du vill få notis om.",
+        "Notis när någon registrerar ett besök, väljer nästa stopp eller föreslår ett datum.",
+        "Notis när du läggs till som deltagare på ett besök och när en ny medlem går med i gruppen.",
+        "Matrundan kan läggas till på hemskärmen, vilket krävs för notiser på iPhone och iPad.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_1_2_CHANGELOG: ChangelogEntry = {
+  version: "1.1.2",
   date: APP_VERSION_DATE,
   summary: "Tydligare besked när ett lösenord inte accepteras vid kontoregistrering.",
   sections: [
@@ -298,6 +315,7 @@ const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_2_0_CHANGELOG,
   VERSION_1_1_2_CHANGELOG,
   VERSION_1_1_1_CHANGELOG,
   VERSION_1_1_CHANGELOG,

@@ -19,6 +19,7 @@ import { Route as ExempelRouteImport } from './routes/exempel'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
 import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
+import { Route as ApiPublicHooksPushDispatchRouteImport } from './routes/api/public/hooks/push-dispatch'
 
 const PlacemapdiagnostikRoute = PlacemapdiagnostikRouteImport.update({
   id: '/placemapdiagnostik',
@@ -70,6 +71,12 @@ const InbjudanTokenRoute = InbjudanTokenRouteImport.update({
   path: '/inbjudan/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksPushDispatchRoute =
+  ApiPublicHooksPushDispatchRouteImport.update({
+    id: '/api/public/hooks/push-dispatch',
+    path: '/api/public/hooks/push-dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
+  '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesByTo {
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
+  '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +116,7 @@ export interface FileRoutesById {
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
+  '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
+    | '/api/public/hooks/push-dispatch'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
+    | '/api/public/hooks/push-dispatch'
   id:
     | '__root__'
     | '/'
@@ -145,6 +157,7 @@ export interface FileRouteTypes {
     | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
+    | '/api/public/hooks/push-dispatch'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -157,6 +170,7 @@ export interface RootRouteChildren {
   NyttLosenordRoute: typeof NyttLosenordRoute
   PlacemapdiagnostikRoute: typeof PlacemapdiagnostikRoute
   InbjudanTokenRoute: typeof InbjudanTokenRoute
+  ApiPublicHooksPushDispatchRoute: typeof ApiPublicHooksPushDispatchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -231,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InbjudanTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/push-dispatch': {
+      id: '/api/public/hooks/push-dispatch'
+      path: '/api/public/hooks/push-dispatch'
+      fullPath: '/api/public/hooks/push-dispatch'
+      preLoaderRoute: typeof ApiPublicHooksPushDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -256,6 +277,7 @@ const rootRouteChildren: RootRouteChildren = {
   NyttLosenordRoute: NyttLosenordRoute,
   PlacemapdiagnostikRoute: PlacemapdiagnostikRoute,
   InbjudanTokenRoute: InbjudanTokenRoute,
+  ApiPublicHooksPushDispatchRoute: ApiPublicHooksPushDispatchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

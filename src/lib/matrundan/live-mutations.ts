@@ -9,6 +9,18 @@
 import { z } from "zod";
 import type { NextStopDateResponseValue, Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
+import { flushNotificationOutbox } from "./notifications.functions";
+
+/**
+ * Notiser köas av databasen. Vi puffar på utskicket direkt efter en händelse
+ * så mottagaren normalt får den inom någon sekund; det schemalagda jobbet är
+ * bara ett skyddsnät om detta anrop misslyckas.
+ */
+function scheduleNotificationFlush(): void {
+  void flushNotificationOutbox().catch(() => {
+    /* notiser får aldrig blockera eller fela själva skrivningen */
+  });
+}
 
 const ID_SCHEMA = z.string().min(1);
 
@@ -47,7 +59,7 @@ export async function liveCreateVisitWithReview(
   input: Omit<Visit, "id">,
 ): Promise<string> {
   const visitedOn = input.date.length >= 10 ? input.date.slice(0, 10) : input.date;
-  return rpcClient.call(
+  const visitId = await rpcClient.call(
     "create_visit_with_review",
     {
       _group_id: groupId,
@@ -64,6 +76,8 @@ export async function liveCreateVisitWithReview(
     ID_SCHEMA,
     "Kunde inte registrera besöket.",
   );
+  scheduleNotificationFlush();
+  return visitId;
 }
 
 export async function liveDeleteOriginalVisit(groupId: string, visitId: string): Promise<void> {
@@ -89,6 +103,7 @@ export async function liveSetNextPlace(groupId: string, placeId: string | null):
     _group_id: groupId,
     _place_id: placeId,
   });
+  scheduleNotificationFlush();
 }
 
 export async function liveProposeNextStopDate(
@@ -96,7 +111,7 @@ export async function liveProposeNextStopDate(
   date: string,
   time: string | null,
 ): Promise<string> {
-  return rpcClient.call(
+  const proposalId = await rpcClient.call(
     "propose_next_stop_date",
     {
       _group_id: groupId,
@@ -106,6 +121,8 @@ export async function liveProposeNextStopDate(
     ID_SCHEMA,
     "Kunde inte föreslå datumet.",
   );
+  scheduleNotificationFlush();
+  return proposalId;
 }
 
 export async function liveRespondNextStopDate(

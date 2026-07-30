@@ -178,6 +178,11 @@ gruppscopade read-models och validerade RPC-anrop.
 - Välja om delade besök räknas i progression.
 - Geoapify-sökning med server-skyddad API-nyckel, verifierat sökområde och radier
   1/3/5/10/25/50 km.
+- Push-notiser för nytt besök, nytt nästa stopp eller datumförslag, när du läggs
+  till som deltagare och när en ny medlem går med. Notiser slås på per enhet och
+  varje notistyp kan väljas till eller från under Min profil.
+- Matrundan kan läggas till på hemskärmen. På iPhone och iPad krävs det för att
+  notiser ska kunna visas.
 
 ## Datamodell och integritet
 

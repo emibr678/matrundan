@@ -7,6 +7,27 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [1.2.0] – 2026-07-30
+
+### Tillagt
+
+- Push-notiser för gruppens händelser: nytt registrerat besök, nytt valt nästa
+  stopp eller föreslaget datum, när du läggs till som deltagare på ett besök och
+  när en ny medlem går med i gruppen.
+- Notisinställningar under Min profil: notiser slås på per enhet, och varje
+  notistyp kan väljas till eller från. Registrerade enheter kan tas bort.
+- Matrundan kan läggas till på hemskärmen via ett webbappsmanifest med ikoner.
+  Det krävs för att notiser ska fungera på iPhone och iPad.
+
+### Teknik
+
+- Notiser köas av databasen i `notification_outbox` via triggrar på `activity`
+  och `visit_participants`, så köläggningen sker i samma transaktion som
+  skrivningen. Utskicket sker serverbaserat med Web Push (VAPID, `aes128gcm`)
+  och plockas upp direkt efter händelsen samt av ett schemalagt skyddsnät.
+- Service workern hanterar enbart notiser och cachar ingenting, så inga gamla
+  filer kan bli kvar hos användaren.
+
 ## [1.1.2] – 2026-07-30
 
 ### Ändrat

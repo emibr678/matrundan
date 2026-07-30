@@ -5,6 +5,7 @@
  * skrivning på memberships/invitations sker längre.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { flushNotificationOutbox } from "./notifications.functions";
 
 function toErr(e: unknown): Error {
   const msg =
@@ -59,6 +60,9 @@ export async function acceptGroupInvitation(
     _token: token,
   });
   if (error) throw toErr(error);
+  void flushNotificationOutbox().catch(() => {
+    /* notiser får aldrig blockera anslutningen till gruppen */
+  });
   return data as unknown as { group_id: string; already: boolean };
 }
 
