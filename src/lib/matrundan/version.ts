@@ -3,10 +3,30 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.3.0";
+export const APP_VERSION = "1.3.1";
 export const APP_VERSION_DATE = "2026-07-30";
 
+const VERSION_1_3_1_CHANGELOG: ChangelogEntry = {
+  version: APP_VERSION,
+  date: APP_VERSION_DATE,
+  summary: "Varmare språk och lugnare vyer i hela appen.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hem visar Senast tillsammans med gruppens senaste besök, deltagare och kommentar.",
+        "Progressionen är formulerad som en gemensam matresa i stället för en torr siffra.",
+        "Topplistan på Matställen är ihopfälld som standard så gruppens lista syns tidigare.",
+        "Tomma vyer, knapprader och långa adresser fungerar bättre på små mobilskärmar.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_3_0_CHANGELOG: ChangelogEntry = {
+  version: "1.3.0",
+  date: "2026-07-30",
+
   version: APP_VERSION,
   date: APP_VERSION_DATE,
   summary: "Enklare att komma igång med notiser och att lägga appen på hemskärmen.",
