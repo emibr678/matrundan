@@ -345,6 +345,28 @@ export function AddPlaceDialog({
       setPendingCuisines([]);
       setPendingOccasions([]);
       setPendingNotes("");
+
+      // Erbjud att synka egna tidigare besök från andra grupper.
+      if (isLive && activeGroupId) {
+        try {
+          const ownVisits = await listOwnVisitsForPlaceOnAdd(added.id, activeGroupId);
+          if (ownVisits.length > 0) {
+            setSyncPlaceName(added.name);
+            setSyncVisits(ownVisits);
+            setSyncVisitIds(ownVisits.filter((v) => !v.alreadySharedToTarget).map((v) => v.visitId));
+            setSyncOpen(true);
+            toast.success(
+              statusBefore === "archived"
+                ? `${added.name} är tillbaka i gruppens lista`
+                : `${added.name} tillagd i gruppen`,
+            );
+            return;
+          }
+        } catch {
+          // Synk är sekundär; fortsätt utan att blockera.
+        }
+      }
+
       toast.success(
         statusBefore === "archived"
           ? `${added.name} är tillbaka i gruppens lista`
