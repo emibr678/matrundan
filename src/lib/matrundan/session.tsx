@@ -209,37 +209,64 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const sendEmailCode = React.useCallback(
-    async (email: string, opts?: { redirectPath?: string }) => {
-      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-      clearExampleSession();
+  /** Rensar en eventuell tidigare session så att inloggning alltid byter konto. */
+  const resetBeforeAuth = React.useCallback(async () => {
+    clearExampleSession();
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      await supabase.auth.signOut();
+    }
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(ACTIVE_GROUP_KEY);
+    }
+    setActiveGroupId(null);
+    setUserGroups([]);
+  }, []);
+
+  const signInWithPassword = React.useCallback(
+    async (email: string, password: string, opts?: { redirectPath?: string }) => {
+      await resetBeforeAuth();
       if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: origin,
-        },
+        password,
       });
-      if (error) {
-        console.error("[Matrundan] kunde inte skicka e-postkod:", error);
-        throw error;
-      }
+      if (error) throw error;
     },
-    [],
+    [resetBeforeAuth],
   );
 
-  const verifyEmailCode = React.useCallback(async (email: string, code: string) => {
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: code.trim(),
-      type: "email",
+  const signUpWithPassword = React.useCallback(
+    async (
+      email: string,
+      password: string,
+      opts?: { displayName?: string; redirectPath?: string },
+    ) => {
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+      await resetBeforeAuth();
+      if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          emailRedirectTo: origin,
+          data: opts?.displayName?.trim() ? { full_name: opts.displayName.trim() } : undefined,
+        },
+      });
+      if (error) throw error;
+      return { needsEmailConfirmation: !data.session };
+    },
+    [resetBeforeAuth],
+  );
+
+  const sendPasswordReset = React.useCallback(async (email: string) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: `${origin}/nytt-losenord`,
     });
-    if (error) {
-      console.error("[Matrundan] kunde inte verifiera e-postkod:", error);
-      throw error;
-    }
+    if (error) throw error;
   }, []);
+
 
   const signOut = React.useCallback(async () => {
     await supabase.auth.signOut();
