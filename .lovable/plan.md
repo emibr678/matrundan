@@ -1,45 +1,32 @@
-## Svar på dina frågor
+## Bakgrund (verifierat)
 
-**Gratis domän?** Nej. Avsändardomänen måste vara en riktig domän ni äger — det finns ingen gratis eller Lovable-delad avsändare. En .se-domän kostar dock bara runt 100–150 kr/år, så det är en låg tröskel den dag ni vill ha svenska, snygga mail utan Gmail-varning.
+Nätverksloggen visar att din registrering svarade `identities: []`. Det är Supabases sätt att signalera "e-postadressen finns redan" utan att avslöja det för utomstående — därför kom inget nytt verifieringsmail och inloggningen misslyckades tills du återställde lösenordet. Projektet har ingen egen e-postdomän, så alla mail går från standardavsändaren och hamnar lätt i skräppost.
 
-**Kan admin återställa lösenord i gruppen?** Nej, och det ska inte byggas. En gruppadmin som kan sätta någon annans lösenord kan också ta över kontot och se personens privata omdömen — det bryter mot Matrundans egen integritetsprincip. Det är inte best practice i någon produkt.
+## Vad som ändras
 
-**Måste vi kräva Google/Apple då?** Nej. Det viktiga du oroar dig för — "glömt lösenord → tvingas skapa nytt konto → tappar historik" — är redan löst utan egen domän: **standardmailen för autentisering fungerar redan** (det var så inloggningslänken kom fram). Alltså kan "Glömt lösenord" skickas idag. Mailet är på engelska från en delad avsändare tills ni skaffar domän, men det fungerar och räddar kontot.
+### 1. Konto aktiveras direkt vid registrering
+- Slå på automatisk bekräftelse av e-post i backendens autentiseringsinställningar.
+- Effekt: den som skapar konto loggas in direkt, inget verifieringsmail behövs.
+- Återställning av lösenord fortsätter fungera via mail (det flödet är redan verifierat av dig).
+- Texten i registreringsvyn ändras från "du får en verifieringslänk" till att kontot skapas direkt.
 
-**Best practice:** e-post + lösenord som bas, Google som snabbval, Apple som tillägg när ni vill. Kontot identifieras av e-postadressen, så en användare som loggar in med Google och senare med samma e-post hamnar på samma konto och behåller sin historik.
+### 2. Tydligt besked när e-postadressen redan finns
+- Efter registrering kontrolleras svaret: om användaren saknar identiteter finns kontot redan.
+- Visa: "Det finns redan ett konto med den e-postadressen."
+- Växla automatiskt till inloggningsvyn med e-posten förifylld, med "Glömt lösenord?" synligt intill.
 
-## Vad som byggs
+### 3. Skräppost-hint där mail faktiskt skickas
+- I "Glömt lösenord"-bekräftelsen: kort hjälptext om att mailet kan hamna i skräpposten och att avsändaren är en standardadress.
+- Ingen hint där den inte längre behövs (registrering skickar inget mail efter ändring 1).
 
-**1. Ersätt e-postkod med e-post + lösenord**
-`EmailCodeDialog` blir `EmailAuthDialog` med tre lägen:
-- Logga in: e-post + lösenord.
-- Skapa konto: e-post + lösenord (minst 8 tecken) + visa/dölj-knapp, plus namn så profilen får ett vettigt visningsnamn direkt.
-- Glömt lösenord: skickar återställningsmail.
+## Tekniska detaljer
 
-Svensk copy genomgående, tydlig text om att inloggning och gruppinbjudan är två olika saker. All copy behåller Matrundans varma ton.
+- `supabase--configure_auth`: `auto_confirm_email: true`, övriga inställningar oförändrade (HIBP-kontrollen behålls påslagen).
+- `src/lib/matrundan/session.tsx`: `signUpWithPassword` returnerar ett tydligt resultat för "kontot finns redan" (`data.user && data.user.identities?.length === 0`) i stället för att tolkas som lyckad registrering.
+- `src/components/matrundan/EmailAuthDialog.tsx`: hanterar det nya resultatet, byter läge till inloggning med bevarad e-post, uppdaterade svenska texter samt skräppost-hint i återställningsläget.
+- Version bumpas till 1.1.1 i `src/lib/matrundan/version.ts` (in-app-changelog) och `CHANGELOG.md`.
+- Verifiering: `bun run typecheck`, `bun run build` samt kontroll av dialogen vid 360 px.
 
-**2. Ny route `/nytt-losenord`**
-Publik sida dit återställningsmailet leder. Läser återställningsläget från URL:en, låter användaren sätta nytt lösenord och skickar sedan vidare till Hem.
+## Noteras
 
-**3. Sessionshantering**
-`session.tsx` får `signUpWithPassword`, `signInWithPassword` och `sendPasswordReset` istället för kodfunktionerna. Om någon redan är inloggad med ett annat konto när de loggar in med e-post: logga ut den gamla sessionen först, rensa aktiv grupp och läs om medlemskap, så förra kontots grupp inte ligger kvar.
-
-**4. Inbjudningsflödet**
-`/inbjudan/$token` erbjuder Google eller e-post/lösenord, och behåller den väntande inbjudningssökvägen genom hela registreringen så att man landar rätt efter att kontot skapats.
-
-**5. Säkerhet**
-Slå på kontroll mot kända läckta lösenord vid registrering och lösenordsbyte. Ingen automatisk e-postbekräftelse aktiveras — användaren får bekräfta sin adress som vanligt.
-
-## Vad som inte byggs
-
-- Ingen admin-återställning av andras lösenord.
-- Ingen sexsiffrig kod (kräver egen domän).
-- Inga ändringar i datamodell, RLS eller RPC:er.
-
-## Teknisk detalj
-
-Ändrade filer: `src/components/matrundan/EmailCodeDialog.tsx` (byter namn och innehåll), `src/lib/matrundan/session.tsx`, `src/routes/nytt-losenord.tsx` (ny), `src/components/matrundan/LandingScreen.tsx`, `src/components/matrundan/AuthMenu.tsx`, `src/routes/inbjudan.$token.tsx`. Auth-inställningen för läckta lösenord sätts på backend. Verifiering: typecheck, lint, build, samt 360 px-kontroll av dialogen och den nya routen. Version bumpas och CHANGELOG uppdateras.
-
-## Senare, när ni har en domän
-
-Då sätter vi upp avsändardomänen och skriver om alla sex auth-mail på svenska i Matrundans ton — och kan då också lägga tillbaka sexsiffrig kod som inloggningsalternativ om ni vill.
+Utan egen e-postdomän kommer återställningsmailen fortsatt från standardavsändaren och riskerar skräppost. Vill du helt undvika det senare krävs en egen domän — det ligger utanför den här ändringen.

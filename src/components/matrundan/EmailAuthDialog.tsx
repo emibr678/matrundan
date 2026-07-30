@@ -93,14 +93,22 @@ export function EmailAuthDialog({
     try {
       if (mode === "reset") {
         await sendPasswordReset(email);
-        toast.success("Vi har skickat en återställningslänk till din e-post.");
+        toast.success("Vi har skickat en återställningslänk till din e-post.", {
+          description: "Kolla även skräpposten – mejlet kommer från en standardavsändare.",
+        });
         setMode("signin");
       } else if (mode === "signup") {
         const result = await signUpWithPassword(email, password, {
           displayName: displayName || undefined,
           redirectPath,
         });
-        if (result.needsEmailConfirmation) {
+        if (result.accountAlreadyExists) {
+          toast.error("Det finns redan ett konto med den e-postadressen.", {
+            description: "Logga in i stället, eller välj Glömt lösenord.",
+          });
+          setMode("signin");
+          setPassword("");
+        } else if (result.needsEmailConfirmation) {
           toast.success("Nästan klart! Bekräfta din e-postadress via mejlet vi skickade.");
           onOpenChange(false);
         } else {
@@ -130,9 +138,9 @@ export function EmailAuthDialog({
 
   const description =
     mode === "signup"
-      ? "Ditt konto är personligt. Att gå med i en grupp är ett separat steg via gruppens inbjudningslänk."
+      ? "Kontot skapas direkt – ingen bekräftelse via mejl behövs. Att gå med i en grupp är ett separat steg via gruppens inbjudningslänk."
       : mode === "reset"
-        ? "Skriv din e-postadress så skickar vi en länk där du kan välja ett nytt lösenord."
+        ? "Skriv din e-postadress så skickar vi en länk där du kan välja ett nytt lösenord. Kolla även skräpposten."
         : "Använd samma e-postadress varje gång så behåller du din historik.";
 
   return (

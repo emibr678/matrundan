@@ -7,6 +7,16 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [1.1.1] – 2026-07-30
+
+### Ändrat
+
+- Nya konton bekräftas automatiskt vid registrering, så inget verifieringsmejl
+  behöver inväntas innan första inloggningen.
+- Registrering med en e-postadress som redan har ett konto ger nu ett tydligt
+  besked och växlar till inloggningsvyn i stället för att se ut att lyckas.
+- Återställning av lösenord upplyser om att mejlet kan hamna i skräpposten.
+
 ## [1.1.0] – 2026-07-30
 
 ### Nytt

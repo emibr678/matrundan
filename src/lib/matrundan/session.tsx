@@ -51,7 +51,7 @@ interface SessionState {
     email: string,
     password: string,
     opts?: { displayName?: string; redirectPath?: string },
-  ) => Promise<{ needsEmailConfirmation: boolean }>;
+  ) => Promise<{ needsEmailConfirmation: boolean; accountAlreadyExists: boolean }>;
   sendPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   exitExampleMode: () => void;
@@ -263,7 +263,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         },
       });
       if (error) throw error;
-      return { needsEmailConfirmation: !data.session };
+      // Supabase döljer att adressen redan finns genom att returnera en användare
+      // utan identiteter. Vi tolkar det som "kontot finns redan".
+      const accountAlreadyExists = Boolean(data.user && (data.user.identities?.length ?? 0) === 0);
+      return {
+        needsEmailConfirmation: !accountAlreadyExists && !data.session,
+        accountAlreadyExists,
+      };
     },
     [resetBeforeAuth],
   );
