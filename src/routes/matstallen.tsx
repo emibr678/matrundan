@@ -88,6 +88,8 @@ function PlacesIndex() {
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
   const [topOccasion, setTopOccasion] = React.useState<Occasion>("avslappnat");
+  const [topOpen, setTopOpen] = React.useState(false);
+
   const [sort, setSort] = React.useState<Sort>("senaste");
   const [filter, setFilter] = React.useState<Filter>("alla");
   const [view, setView] = React.useState<View>("lista");
