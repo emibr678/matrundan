@@ -65,9 +65,6 @@ export function VisitDialog({
   const showShareSection =
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
   const canShare = showShareSection && shareableGroups.length > 0;
-  const allShareGroupsSelected =
-    shareableGroups.length > 0 &&
-    shareableGroups.every((group) => shareGroupIds.includes(group.groupId));
   const [busy, setBusy] = React.useState(false);
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
@@ -89,6 +86,9 @@ export function VisitDialog({
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
   const hasComment = comment.trim().length > 0;
+  const allShareGroupsSelected =
+    shareableGroups.length > 0 &&
+    shareableGroups.every((group) => shareGroupIds.includes(group.groupId));
 
   React.useEffect(() => {
     if (!open) {
