@@ -108,10 +108,19 @@ function InvitePage() {
                   >
                     Fortsätt med Google
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setEmailCodeOpen(true)}
+                  >
+                    Fortsätt med e-postkod
+                  </Button>
                   <p className="text-xs text-muted-foreground">
-                    Vi använder din Google-inloggning för att koppla ditt konto till gruppen.
+                    Inloggningen kopplar ditt konto till gruppen. Inbjudningslänken är separat och
+                    används först när du klickar på Gå med.
                   </p>
                 </>
+
               ) : mode !== "live" ? (
                 <p className="text-sm text-muted-foreground">
                   Demo-läget kan inte acceptera riktiga inbjudningar. Öppna länken utan
