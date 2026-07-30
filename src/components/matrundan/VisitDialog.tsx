@@ -93,6 +93,11 @@ export function VisitDialog({
   const toggleParticipant = (id: string) =>
     setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
+  const toggleShareGroup = (id: string) =>
+    setShareGroupIds((cur) =>
+      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
+    );
+
   const submit = async () => {
     if (isBusy) return;
     if (participants.length === 0) {
@@ -125,21 +130,52 @@ export function VisitDialog({
           photoError = error instanceof Error ? error : new Error("Fotot kunde inte sparas.");
         }
       }
+
+      // Dela vidare till de förkryssade grupperna. Besöket är kanoniskt och
+      // skapas bara en gång – varje grupp får en delad länk till samma besök.
+      const targets = canShare && created?.id ? shareGroupIds : [];
+      const failed: string[] = [];
+      let sharedCount = 0;
+      for (const groupId of targets) {
+        try {
+          await shareVisitToGroup(
+            created.id,
+            groupId,
+            hasComment ? shareComment : false,
+          );
+          sharedCount += 1;
+        } catch {
+          failed.push(shareableGroups.find((g) => g.id === groupId)?.name ?? "en grupp");
+        }
+      }
+      if (sharedCount > 0 && typeof window !== "undefined") {
+        window.dispatchEvent(new Event("matrundan:reload"));
+      }
+
       onOpenChange(false);
       toast.success("Besök registrerat", {
-        description: place.name,
-        duration: canShare ? 8000 : undefined,
+        description:
+          sharedCount > 0
+            ? `${place.name} · tillagt i ${sharedCount} ${sharedCount === 1 ? "grupp" : "grupper"} till`
+            : place.name,
+        duration: canShare && sharedCount === 0 ? 8000 : undefined,
         action:
-          canShare && activeGroupId && created?.id
+          canShare && sharedCount === 0 && activeGroupId && created?.id
             ? {
                 label: "Lägg till i annan grupp",
                 onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
               }
             : undefined,
       });
+      if (failed.length > 0) {
+        toast.warning("Besöket kunde inte läggas till i alla grupper.", {
+          description: failed.join(", "),
+        });
+      }
       if (photoError) {
         toast.warning("Besöket sparades utan foto.", { description: photoError.message });
       }
+
     } catch (e) {
       toast.error((e as Error).message || "Kunde inte spara besöket.");
     } finally {
