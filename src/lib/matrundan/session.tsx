@@ -42,6 +42,8 @@ interface SessionState {
   activeGroupLifecycleStatus: GroupLifecycleStatus | null;
   userGroups: UserGroupSummary[];
   signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
+  sendEmailCode: (email: string, opts?: { redirectPath?: string }) => Promise<void>;
+  verifyEmailCode: (email: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   exitExampleMode: () => void;
   selectGroup: (groupId: string) => void;
