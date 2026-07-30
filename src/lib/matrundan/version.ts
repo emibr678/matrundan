@@ -27,8 +27,6 @@ const VERSION_1_3_0_CHANGELOG: ChangelogEntry = {
   version: "1.3.0",
   date: "2026-07-30",
 
-  version: APP_VERSION,
-  date: APP_VERSION_DATE,
   summary: "Enklare att komma igång med notiser och att lägga appen på hemskärmen.",
   sections: [
     {
