@@ -54,13 +54,12 @@ export function VisitDialog({
   placeId: string | null;
 }) {
   const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
-  const { userGroups, activeGroupId } = useSession();
+  const { activeGroupId } = useSession();
+  const [shareTargets, setShareTargets] = React.useState<PlaceShareTarget[]>([]);
+  const [shareTargetsLoading, setShareTargetsLoading] = React.useState(false);
   const shareableGroups = React.useMemo(
-    () =>
-      userGroups.filter(
-        (group) => group.lifecycleStatus === "active" && group.id !== activeGroupId,
-      ),
-    [userGroups, activeGroupId],
+    () => shareTargets.filter((group) => group.groupId !== activeGroupId),
+    [shareTargets, activeGroupId],
   );
   const canShare =
     mode === "live" &&
@@ -102,14 +101,33 @@ export function VisitDialog({
       setShowDetails(false);
       setPhotoFile(null);
       setShareComment(false);
+      setShareTargets([]);
+      setShareGroupIds([]);
     }
   }, [open, state.currentUserId]);
 
-  // Alla andra aktiva grupper är förvalda när dialogen öppnas.
+  // Hämta delningsmål när dialogen öppnas. Förval endast grupper där stället redan finns.
   React.useEffect(() => {
-    if (!open) return;
-    setShareGroupIds(shareableGroups.map((group) => group.id));
-  }, [open, shareableGroups]);
+    if (!open || mode !== "live" || !placeId) return;
+    let cancelled = false;
+    setShareTargetsLoading(true);
+    listPlaceShareTargets(placeId)
+      .then((targets) => {
+        if (cancelled) return;
+        setShareTargets(targets);
+        setShareGroupIds(targets.filter((t) => t.placeExistsInGroup).map((t) => t.groupId));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setShareTargets([]);
+      })
+      .finally(() => {
+        if (!cancelled) setShareTargetsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, mode, placeId]);
 
   if (!place) return null;
 
