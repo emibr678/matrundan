@@ -298,6 +298,7 @@ const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_1_2_CHANGELOG,
   VERSION_1_1_1_CHANGELOG,
   VERSION_1_1_CHANGELOG,
   VERSION_1_CHANGELOG,
