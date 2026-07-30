@@ -3,24 +3,25 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.5.0";
 export const APP_VERSION_DATE = "2026-07-30";
 
-const VERSION_1_4_0_CHANGELOG: ChangelogEntry = {
+const VERSION_1_5_0_CHANGELOG: ChangelogEntry = {
   version: APP_VERSION,
   date: APP_VERSION_DATE,
-  summary: "Besök följer med till dina andra grupper direkt när du sparar.",
+  summary: "Smartare delning vid registrering och synk av tidigare besök när du lägger till ett ställe.",
   sections: [
     {
       kind: "Nytt",
       items: [
-        "Registreringsdialogen har ett avsnitt där dina andra aktiva grupper är förvalda, så besöket delas dit direkt när du sparar.",
-        "Din kommentar delas fortfarande bara om du själv slår på det.",
+        "När du lägger till ett ställe från Geoapify får du frågan om att dela dina tidigare besök på samma ställe från andra grupper.",
+        "Registreringsdialogen visar nu vilka av dina andra grupper som redan har stället, och låter dig välja alla eller ingen med ett klick.",
       ],
     },
     {
       kind: "Förbättrat",
       items: [
+        "Delningsförvalen är smartare: bara grupper där stället redan finns är ikryssade från början, så du slipper dela besök till irrelevanta grupper.",
         "Tydligare språk om progression: ett ställe räknas som provat så fort någon i gänget varit där.",
       ],
     },
