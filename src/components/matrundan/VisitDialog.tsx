@@ -29,7 +29,11 @@ import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitPhotoField } from "./VisitPhotoField";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
+import {
+  listPlaceShareTargets,
+  shareVisitToGroup,
+  type PlaceShareTarget,
+} from "@/lib/matrundan/live-sharing";
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
@@ -50,13 +54,12 @@ export function VisitDialog({
   placeId: string | null;
 }) {
   const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
-  const { userGroups, activeGroupId } = useSession();
+  const { activeGroupId } = useSession();
+  const [shareTargets, setShareTargets] = React.useState<PlaceShareTarget[]>([]);
+  const [shareTargetsLoading, setShareTargetsLoading] = React.useState(false);
   const shareableGroups = React.useMemo(
-    () =>
-      userGroups.filter(
-        (group) => group.lifecycleStatus === "active" && group.id !== activeGroupId,
-      ),
-    [userGroups, activeGroupId],
+    () => shareTargets.filter((group) => group.groupId !== activeGroupId),
+    [shareTargets, activeGroupId],
   );
   const canShare =
     mode === "live" &&
@@ -98,14 +101,33 @@ export function VisitDialog({
       setShowDetails(false);
       setPhotoFile(null);
       setShareComment(false);
+      setShareTargets([]);
+      setShareGroupIds([]);
     }
   }, [open, state.currentUserId]);
 
-  // Alla andra aktiva grupper är förvalda när dialogen öppnas.
+  // Hämta delningsmål när dialogen öppnas. Förval endast grupper där stället redan finns.
   React.useEffect(() => {
-    if (!open) return;
-    setShareGroupIds(shareableGroups.map((group) => group.id));
-  }, [open, shareableGroups]);
+    if (!open || mode !== "live" || !placeId) return;
+    let cancelled = false;
+    setShareTargetsLoading(true);
+    listPlaceShareTargets(placeId)
+      .then((targets) => {
+        if (cancelled) return;
+        setShareTargets(targets);
+        setShareGroupIds(targets.filter((t) => t.placeExistsInGroup).map((t) => t.groupId));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setShareTargets([]);
+      })
+      .finally(() => {
+        if (!cancelled) setShareTargetsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, mode, placeId]);
 
   if (!place) return null;
 
@@ -158,7 +180,7 @@ export function VisitDialog({
           await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
           sharedCount += 1;
         } catch {
-          failed.push(shareableGroups.find((g) => g.id === groupId)?.name ?? "en grupp");
+          failed.push(shareableGroups.find((g) => g.groupId === groupId)?.name ?? "en grupp");
         }
       }
       if (sharedCount > 0 && typeof window !== "undefined") {
@@ -303,29 +325,48 @@ export function VisitDialog({
 
           {canShare ? (
             <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
-                <p className="text-xs text-muted-foreground">
-                  Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata kommentarer och
-                  andra gruppers medlemmar syns aldrig.
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata kommentarer och
+                    andra gruppers medlemskap syns aldrig.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShareGroupIds(
+                      shareGroupIds.length === shareableGroups.length
+                        ? []
+                        : shareableGroups.map((g) => g.groupId),
+                    )
+                  }
+                  disabled={isBusy || shareTargetsLoading}
+                  className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline disabled:opacity-50"
+                >
+                  {shareGroupIds.length === shareableGroups.length ? "Rensa alla" : "Välj alla"}
+                </button>
               </div>
               <div className="space-y-2">
                 {shareableGroups.map((group) => {
-                  const checked = shareGroupIds.includes(group.id);
+                  const checked = shareGroupIds.includes(group.groupId);
                   return (
                     <label
-                      key={group.id}
+                      key={group.groupId}
                       className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl bg-background px-3 py-2 text-sm"
                     >
                       <Checkbox
                         checked={checked}
-                        onCheckedChange={() => toggleShareGroup(group.id)}
-                        disabled={isBusy}
+                        onCheckedChange={() => toggleShareGroup(group.groupId)}
+                        disabled={isBusy || shareTargetsLoading}
                         aria-label={`Dela besöket med ${group.name}`}
                       />
                       <span aria-hidden>{group.emoji ?? "🍽️"}</span>
                       <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{group.name}</span>
+                      {group.placeExistsInGroup ? (
+                        <span className="shrink-0 text-xs text-muted-foreground">finns redan</span>
+                      ) : null}
                     </label>
                   );
                 })}

@@ -18,11 +18,31 @@ const visitShareTargetSchema = z.object({
   name: z.string(),
   emoji: z.string(),
   alreadyLinked: z.boolean(),
+  placeExistsInGroup: z.boolean(),
   externalParticipantCount: z.number().int().nonnegative(),
   visibleParticipants: z.array(visibleParticipantSchema),
   relevantReviewCount: z.number().int().nonnegative(),
   ownHasComment: z.boolean(),
   sharedVisitsCountForProgression: z.boolean(),
+});
+
+const placeShareTargetSchema = z.object({
+  groupId: z.string().min(1),
+  name: z.string(),
+  emoji: z.string(),
+  placeExistsInGroup: z.boolean(),
+  sharedVisitsCountForProgression: z.boolean(),
+});
+
+const ownVisitForPlaceSchema = z.object({
+  visitId: z.string().min(1),
+  visitedOn: z.string(),
+  mealType: z.string(),
+  groupId: z.string().min(1),
+  groupName: z.string(),
+  groupEmoji: z.string(),
+  alreadySharedToTarget: z.boolean(),
+  ownHasComment: z.boolean(),
 });
 
 export interface VisibleParticipant {
@@ -39,11 +59,31 @@ export interface VisitShareTarget {
   name: string;
   emoji: string;
   alreadyLinked: boolean;
+  placeExistsInGroup: boolean;
   externalParticipantCount: number;
   visibleParticipants: VisibleParticipant[];
   relevantReviewCount: number;
   ownHasComment: boolean;
   sharedVisitsCountForProgression: boolean;
+}
+
+export interface PlaceShareTarget {
+  groupId: string;
+  name: string;
+  emoji: string;
+  placeExistsInGroup: boolean;
+  sharedVisitsCountForProgression: boolean;
+}
+
+export interface OwnVisitForPlace {
+  visitId: string;
+  visitedOn: string;
+  mealType: string;
+  groupId: string;
+  groupName: string;
+  groupEmoji: string;
+  alreadySharedToTarget: boolean;
+  ownHasComment: boolean;
 }
 
 export async function listVisitShareTargets(visitId: string): Promise<VisitShareTarget[]> {
@@ -52,6 +92,27 @@ export async function listVisitShareTargets(visitId: string): Promise<VisitShare
     { _visit_id: visitId },
     z.array(visitShareTargetSchema),
     "Kunde inte läsa vilka grupper besöket kan delas till.",
+  );
+}
+
+export async function listPlaceShareTargets(placeId: string): Promise<PlaceShareTarget[]> {
+  return rpcClient.call(
+    "list_place_share_targets_v4b",
+    { _place_id: placeId },
+    z.array(placeShareTargetSchema),
+    "Kunde inte läsa vilka grupper stället kan delas till.",
+  );
+}
+
+export async function listOwnVisitsForPlaceOnAdd(
+  placeId: string,
+  targetGroupId: string,
+): Promise<OwnVisitForPlace[]> {
+  return rpcClient.call(
+    "list_own_visits_for_place_on_add",
+    { _place_id: placeId, _target_group_id: targetGroupId },
+    z.array(ownVisitForPlaceSchema),
+    "Kunde inte läsa dina tidigare besök på stället.",
   );
 }
 
