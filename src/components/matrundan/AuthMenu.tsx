@@ -14,7 +14,7 @@ import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
-import { EmailCodeDialog } from "./EmailCodeDialog";
+import { EmailAuthDialog } from "./EmailAuthDialog";
 
 function GroupMenuItem({
   group,
@@ -92,7 +92,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+        <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
       </>
     );
   }
@@ -128,7 +128,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+        <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
       </>
     );
   }

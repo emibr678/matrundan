@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Link2, LogIn, Mail, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
-import { EmailCodeDialog } from "@/components/matrundan/EmailCodeDialog";
+import { EmailAuthDialog } from "@/components/matrundan/EmailAuthDialog";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -161,7 +161,7 @@ export function LandingScreen() {
       </footer>
 
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
-      <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+      <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
     </main>
   );
 }

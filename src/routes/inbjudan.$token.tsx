@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { EmailCodeDialog } from "@/components/matrundan/EmailCodeDialog";
+import { EmailAuthDialog } from "@/components/matrundan/EmailAuthDialog";
 import {
   acceptGroupInvitation,
   getInvitationPreview,
@@ -141,7 +141,7 @@ function InvitePage() {
           <InviteMessage state={state} groupLabel={groupLabel} />
         )}
       </Card>
-      <EmailCodeDialog
+      <EmailAuthDialog
         open={emailCodeOpen}
         onOpenChange={setEmailCodeOpen}
         redirectPath={pendingPath}
