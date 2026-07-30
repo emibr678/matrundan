@@ -743,6 +743,103 @@ export function AddPlaceDialog({
           </DialogContent>
         ) : null}
       </Dialog>
+
+      <Dialog
+        open={open && syncOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setSyncOpen(false);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Dela tidigare besök</DialogTitle>
+            <DialogDescription>
+              Du har besökt {syncPlaceName} i andra grupper. Välj vilka besök du vill synka till den
+              här gruppen.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs text-muted-foreground">
+                Besöken läggs till som delade länkar. Ursprungsgrupp och privata kommentarer syns
+                aldrig.
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setSyncVisitIds(
+                    syncVisitIds.length === syncVisits.length
+                      ? []
+                      : syncVisits.map((v) => v.visitId),
+                  )
+                }
+                disabled={syncBusy}
+                className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline disabled:opacity-50"
+              >
+                {syncVisitIds.length === syncVisits.length ? "Rensa alla" : "Välj alla"}
+              </button>
+            </div>
+            <div className="space-y-2">
+              {syncVisits.map((visit) => {
+                const checked = syncVisitIds.includes(visit.visitId);
+                return (
+                  <label
+                    key={visit.visitId}
+                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl bg-secondary/40 px-3 py-2 text-sm"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() =>
+                        setSyncVisitIds((current) =>
+                          current.includes(visit.visitId)
+                            ? current.filter((id) => id !== visit.visitId)
+                            : [...current, visit.visitId],
+                        )
+                      }
+                      disabled={syncBusy}
+                      aria-label={`Dela besöket från ${visit.groupName}`}
+                    />
+                    <span aria-hidden>{visit.groupEmoji ?? "🍽️"}</span>
+                    <span className="min-w-0 flex-1">
+                      {visit.groupName}
+                      <span className="block text-xs text-muted-foreground">
+                        {visit.visitedOn} · {MEAL_LABEL[visit.mealType as Meal] ?? visit.mealType}
+                        {visit.alreadySharedToTarget ? " · redan delat" : null}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {syncVisits.some((v) => syncVisitIds.includes(v.visitId) && v.ownHasComment) ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
+                <Label htmlFor="sync-share-comment" className="text-sm font-normal">
+                  Dela även mina kommentarer
+                </Label>
+                <Switch
+                  id="sync-share-comment"
+                  checked={syncShareComment}
+                  onCheckedChange={setSyncShareComment}
+                  disabled={syncBusy}
+                />
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="ghost" className="min-h-11" disabled={syncBusy} onClick={() => setSyncOpen(false)}>
+              Hoppa över
+            </Button>
+            <Button
+              className="min-h-11"
+              disabled={syncBusy || syncVisitIds.length === 0}
+              onClick={confirmSyncVisits}
+            >
+              {syncBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Dela valda besök
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
