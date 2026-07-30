@@ -163,6 +163,7 @@ export function LandingScreen() {
       </footer>
 
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+      <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
     </main>
   );
 }
