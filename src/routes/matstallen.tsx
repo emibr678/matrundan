@@ -188,75 +188,98 @@ function PlacesIndex() {
       </div>
 
       {hasRatings && !isSearching ? (
-        <section aria-labelledby="place-leaderboard-heading" data-testid="occasion-leaderboard">
-          <div className="mb-2">
-            <div className="flex min-h-11 items-center gap-1">
+        <Collapsible open={topOpen} onOpenChange={setTopOpen}>
+          <section
+            aria-labelledby="place-leaderboard-heading"
+            data-testid="occasion-leaderboard"
+            className="rounded-2xl border border-border/70 bg-card/60 px-3 py-2"
+          >
+            <div className="flex items-center gap-1">
               <h2 id="place-leaderboard-heading" className="font-display text-lg">
                 Topplista
               </h2>
               <OccasionGuide compact />
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto min-h-11 rounded-full text-xs text-muted-foreground"
+                >
+                  {topOpen ? "Dölj" : "Visa"}
+                  <ChevronDown
+                    className={["h-4 w-4 transition-transform", topOpen ? "rotate-180" : ""].join(
+                      " ",
+                    )}
+                  />
+                </Button>
+              </CollapsibleTrigger>
             </div>
             <p className="text-[11px] text-muted-foreground">
               Gruppens betyg för olika sorters besök
             </p>
-          </div>
 
-          <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">
-            {OCCASION_VALUES.map((item) => {
-              const active = topOccasion === item;
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setTopOccasion(item)}
-                  aria-pressed={active}
-                  aria-label={`Visa topplista för ${OCCASION_LABEL[item]}`}
-                  className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Badge
-                    variant={active ? "default" : "outline"}
-                    className="cursor-pointer rounded-full px-3 py-1 text-xs"
-                  >
-                    {OCCASION_LABEL[item]}
-                  </Badge>
-                </button>
-              );
-            })}
-          </div>
+            <CollapsibleContent className="pt-3">
+              <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">
+                {OCCASION_VALUES.map((item) => {
+                  const active = topOccasion === item;
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setTopOccasion(item)}
+                      aria-pressed={active}
+                      aria-label={`Visa topplista för ${OCCASION_LABEL[item]}`}
+                      className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Badge
+                        variant={active ? "default" : "outline"}
+                        className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                      >
+                        {OCCASION_LABEL[item]}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
 
-          {topRated.length > 0 ? (
-            <div className="grid gap-2 md:grid-cols-3">
-              {topRated.map(({ place, rating, rank }) => (
-                <Link
-                  key={place.id}
-                  to="/matstallen/$placeId"
-                  params={{ placeId: place.id }}
-                  className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
-                >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                    {rank}
-                  </span>
-                  <PlaceThumb place={place} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{place.name}</div>
-                    <div className="mt-0.5 flex items-center gap-2">
-                      <RatingStars value={rating.overall} size={12} />
-                      <span className="text-xs text-muted-foreground">
-                        {formatRating(rating.overall)} · {rating.count}
+              {topRated.length > 0 ? (
+                <div className="grid gap-2 md:grid-cols-3">
+                  {topRated.map(({ place, rating, rank }) => (
+                    <Link
+                      key={place.id}
+                      to="/matstallen/$placeId"
+                      params={{ placeId: place.id }}
+                      className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                        {rank}
                       </span>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
-              Inga betyg i {OCCASION_LABEL[topOccasion].toLocaleLowerCase("sv")} ännu.
-            </div>
-          )}
-        </section>
+                      <PlaceThumb place={place} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{place.name}</div>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <RatingStars value={rating.overall} size={12} />
+                          <span className="text-xs text-muted-foreground">
+                            {formatRating(rating.overall)} · {rating.count}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
+                  Inga betyg för {OCCASION_LABEL[topOccasion].toLocaleLowerCase("sv")} ännu — de
+                  kommer när gänget har provat något.
+                </div>
+              )}
+            </CollapsibleContent>
+          </section>
+        </Collapsible>
       ) : null}
+
 
       <div className="flex flex-wrap items-center gap-2">
         {QUICK_FILTERS.map((item) => {
