@@ -3,12 +3,33 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.3.1";
+export const APP_VERSION = "1.4.0";
 export const APP_VERSION_DATE = "2026-07-30";
 
-const VERSION_1_3_1_CHANGELOG: ChangelogEntry = {
+const VERSION_1_4_0_CHANGELOG: ChangelogEntry = {
   version: APP_VERSION,
   date: APP_VERSION_DATE,
+  summary: "Besök följer med till dina andra grupper direkt när du sparar.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Registreringsdialogen har ett avsnitt där dina andra aktiva grupper är förvalda, så besöket delas dit direkt när du sparar.",
+        "Din kommentar delas fortfarande bara om du själv slår på det.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Tydligare språk om progression: ett ställe räknas som provat så fort någon i gänget varit där.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_3_1_CHANGELOG: ChangelogEntry = {
+  version: "1.3.1",
+  date: "2026-07-30",
   summary: "Varmare språk och lugnare vyer i hela appen.",
   sections: [
     {
@@ -22,6 +43,7 @@ const VERSION_1_3_1_CHANGELOG: ChangelogEntry = {
     },
   ],
 };
+
 
 const VERSION_1_3_0_CHANGELOG: ChangelogEntry = {
   version: "1.3.0",
