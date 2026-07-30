@@ -91,7 +91,7 @@ function InvitePage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Du har blivit inbjuden till en privat matställeslista.
               {preview.email_bound
-                ? " Inbjudan är knuten till en specifik e-postadress – logga in med rätt Google-konto."
+                ? " Inbjudan är knuten till en specifik e-postadress – logga in med rätt e-postadress."
                 : ""}
             </p>
 
