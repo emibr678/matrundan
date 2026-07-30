@@ -128,7 +128,7 @@ export function AddPlaceDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { state, addPlace, addProviderPlace, submitting } = useStore();
-  const { mode } = useSession();
+  const { mode, activeGroupId } = useSession();
   const isLive = mode === "live";
   const home = state.group.homeLocation;
   const verifiedHome =
