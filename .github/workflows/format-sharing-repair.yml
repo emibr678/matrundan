@@ -1,0 +1,35 @@
+name: Format sharing repair
+
+on:
+  push:
+    branches:
+      - fix/v1.5-sharing-repair
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Format dialog files
+        run: bunx prettier --write src/components/matrundan/AddPlaceDialogImpl.tsx src/components/matrundan/VisitDialog.tsx
+
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-sharing-files
+          path: |
+            src/components/matrundan/AddPlaceDialogImpl.tsx
+            src/components/matrundan/VisitDialog.tsx
+          if-no-files-found: error
