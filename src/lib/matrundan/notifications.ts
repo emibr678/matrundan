@@ -9,7 +9,7 @@ import { getPushPublicKey } from "./notifications.functions";
 
 export const NOTIFICATION_TYPES = [
   "visit_registered",
-  "next_stop_selected",
+  "next_stop_changed",
   "added_as_participant",
   "member_joined",
 ] as const;
@@ -21,7 +21,7 @@ export const NOTIFICATION_LABELS: Record<NotificationType, { title: string; hint
     title: "Nytt besök registrerat",
     hint: "När någon i gruppen registrerar ett besök.",
   },
-  next_stop_selected: {
+  next_stop_changed: {
     title: "Nästa stopp och datum",
     hint: "När gruppen väljer nästa stopp eller föreslår ett datum.",
   },
@@ -40,8 +40,9 @@ const SW_PATH = "/push-sw.js";
 const DEVICE_SCHEMA = z.object({
   id: z.string(),
   endpoint: z.string(),
-  label: z.string().nullable().optional(),
-  createdAt: z.string().nullable().optional(),
+  device_label: z.string().nullable(),
+  created_at: z.string().nullable(),
+  last_used_at: z.string().nullable(),
 });
 
 const SETTINGS_SCHEMA = z.object({
@@ -132,7 +133,7 @@ export async function saveNotificationPreference(
   enabled: boolean,
 ): Promise<void> {
   await rpcClient.callVoid("set_notification_preference", {
-    _notification_type: type,
+    _type: type,
     _enabled: enabled,
   });
 }
@@ -197,12 +198,14 @@ export async function enablePushOnThisDevice(): Promise<EnableResult> {
 export async function disablePushOnThisDevice(): Promise<void> {
   const registration = await navigator.serviceWorker.getRegistration(SW_PATH);
   const subscription = await registration?.pushManager.getSubscription();
-  if (subscription) {
-    await rpcClient.callVoid("remove_push_subscription", { _endpoint: subscription.endpoint });
-    await subscription.unsubscribe();
-  }
+  if (!subscription) return;
+
+  const settings = await loadNotificationSettings();
+  const device = settings.devices.find((item) => item.endpoint === subscription.endpoint);
+  if (device) await rpcClient.callVoid("remove_push_subscription", { _id: device.id });
+  await subscription.unsubscribe();
 }
 
-export async function removeNotificationDevice(endpoint: string): Promise<void> {
-  await rpcClient.callVoid("remove_push_subscription", { _endpoint: endpoint });
+export async function removeNotificationDevice(id: string): Promise<void> {
+  await rpcClient.callVoid("remove_push_subscription", { _id: id });
 }
