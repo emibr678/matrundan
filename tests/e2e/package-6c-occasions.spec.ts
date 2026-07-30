@@ -17,6 +17,7 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   await page.goto("/matstallen?demo=1");
 
   const leaderboard = page.getByTestId("occasion-leaderboard");
+  await leaderboard.getByRole("button", { name: "Visa", exact: true }).click();
   await expect(
     leaderboard.getByRole("button", { name: "Visa topplista för Vardag & häng" }),
   ).toHaveAttribute("aria-pressed", "true");
