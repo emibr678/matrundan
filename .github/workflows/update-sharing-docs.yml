@@ -1,0 +1,98 @@
+name: Update sharing documentation
+
+on:
+  push:
+    branches:
+      - fix/v1.5-sharing-repair
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: fix/v1.5-sharing-repair
+
+      - name: Update release documentation
+        shell: python
+        run: |
+          from pathlib import Path
+
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text()
+          text = text.replace(
+              "- Registreringsdialogen visar nu vilka av dina andra grupper som redan har\n"
+              "  stället, och låter dig välja alla eller rensa alla med ett klick.\n",
+              "- Registreringsdialogen visar nu vilka av dina andra grupper som redan har\n"
+              "  stället. Du kan välja alla eller rensa valet med ett klick.\n",
+          )
+          text = text.replace(
+              "- Delningsförvalen i registreringsdialogen är smartare: bara grupper där\n"
+              "  stället redan finns är ikryssade från början.\n",
+              "- Delningsförvalen i registreringsdialogen är smartare: bara grupper där\n"
+              "  stället redan finns är ikryssade från början.\n"
+              "- Tidigare egna besök börjar helt ovalda och erbjuds bara när stället har\n"
+              "  identifierats säkert via Geoapify. Redan delade besök erbjuds inte igen.\n",
+          )
+          text = text.replace(
+              "- Tydligare progressionscopy på Hem, i statusbadgen och på matställessidan:\n"
+              "  ett ställe räknas som provat så fort någon i gänget varit där.\n\n"
+              "## [1.4.0]",
+              "- Tydligare progressionscopy på Hem, i statusbadgen och på matställessidan:\n"
+              "  ett ställe räknas som provat så fort någon i gänget varit där.\n\n"
+              "### Säkerhet\n\n"
+              "- Arkiverade grupper kan inte ta emot delade besök. Om matstället tidigare\n"
+              "  tagits bort från målgruppens lista återaktiveras det när besöket delas.\n\n"
+              "## [1.4.0]",
+          )
+          changelog.write_text(text)
+
+          version = Path("src/lib/matrundan/version.ts")
+          text = version.read_text()
+          text = text.replace(
+              '"Registreringsdialogen visar nu vilka av dina andra grupper som redan har stället, och låter dig välja alla eller ingen med ett klick.",',
+              '"Registreringsdialogen visar vilka andra grupper som redan har stället och låter dig välja alla eller rensa valet med ett klick.",',
+          )
+          text = text.replace(
+              '"Delningsförvalen är smartare: bara grupper där stället redan finns är ikryssade från början, så du slipper dela besök till irrelevanta grupper.",\n'
+              '        "Tydligare språk om progression: ett ställe räknas som provat så fort någon i gänget varit där.",',
+              '"Delningsförvalen är smartare: bara grupper där stället redan finns är ikryssade från början, så du slipper dela besök till irrelevanta grupper.",\n'
+              '        "Tidigare egna besök börjar helt ovalda, och redan delade besök erbjuds inte igen.",\n'
+              '        "Arkiverade grupper kan inte ta emot delningar, medan borttagna matställen återaktiveras när ett besök delas dit.",\n'
+              '        "Tydligare språk om progression: ett ställe räknas som provat så fort någon i gänget varit där.",',
+          )
+          version.write_text(text)
+
+          readme = Path("README.md")
+          text = readme.read_text()
+          text = text.replace(
+              "- Registrera besök med deltagare och omdöme atomärt, redigera eget omdöme och\n"
+              "  hantera ett privat besöksfoto.\n"
+              "- Dela ett kanoniskt besök till en annan grupp utan att duplicera plats, besök,\n"
+              "  deltagare eller recensioner.\n",
+              "- Registrera besök med deltagare och omdöme atomärt, redigera eget omdöme och\n"
+              "  hantera ett privat besöksfoto. Besöket och matstället kan samtidigt delas\n"
+              "  till valda andra aktiva grupper; grupper där stället redan finns är förvalda.\n"
+              "- Dela ett kanoniskt besök till en annan grupp utan att duplicera plats, besök,\n"
+              "  deltagare eller recensioner. När ett Geoapify-ställe läggs till kan egna\n"
+              "  tidigare besök delas frivilligt; inget besök eller egen kommentar är förvalt.\n",
+          )
+          readme.write_text(text)
+
+      - name: Commit documentation
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Dokumentationen är redan uppdaterad."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md README.md src/lib/matrundan/version.ts
+          git commit -m "Document completed v1.5 sharing flow"
+          git push origin HEAD:fix/v1.5-sharing-repair
