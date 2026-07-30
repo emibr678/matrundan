@@ -311,6 +311,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     selectGroup,
     session,
     signInWithGoogle,
+    sendEmailCode,
+    verifyEmailCode,
     signOut,
     userGroups,
   ]);
