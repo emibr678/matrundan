@@ -14,7 +14,7 @@ import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
-import { EmailCodeDialog } from "./EmailCodeDialog";
+import { EmailAuthDialog } from "./EmailAuthDialog";
 
 function GroupMenuItem({
   group,
@@ -88,11 +88,11 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setEmailCodeOpen(true)}>
               <Mail className="mr-2 h-4 w-4" />
-              Fortsätt med e-postkod
+              Fortsätt med e-post
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+        <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
       </>
     );
   }
@@ -124,11 +124,11 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setEmailCodeOpen(true)}>
               <Mail className="mr-2 h-4 w-4" />
-              Logga in med e-postkod
+              Logga in med e-post
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+        <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
       </>
     );
   }

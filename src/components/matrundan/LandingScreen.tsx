@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Link2, LogIn, Mail, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
-import { EmailCodeDialog } from "@/components/matrundan/EmailCodeDialog";
+import { EmailAuthDialog } from "@/components/matrundan/EmailAuthDialog";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -96,10 +96,10 @@ export function LandingScreen() {
             onClick={() => setEmailCodeOpen(true)}
           >
             <Mail className="h-4 w-4" />
-            Fortsätt med e-postkod
+            Fortsätt med e-post
           </Button>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Med e-postkod får du en sexsiffrig kod i mejlen – inget lösenord behövs.
+            Har du inget Google-konto skapar du ett konto med e-post och lösenord.
           </p>
         </Card>
 
@@ -161,7 +161,7 @@ export function LandingScreen() {
       </footer>
 
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
-      <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+      <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
     </main>
   );
 }
