@@ -30,6 +30,7 @@ import {
 } from "@/lib/matrundan/account.functions";
 import { updateProfile } from "@/lib/matrundan/live-admin";
 import { useSession } from "@/lib/matrundan/session";
+import { NotificationSettingsSection } from "./NotificationSettingsSection";
 
 const AVATAR_EMOJIS = [
   "🦊",
@@ -103,7 +104,7 @@ export function ProfileDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Min profil</DialogTitle>
             <DialogDescription>Så här ser gruppen dig i Matrundan.</DialogDescription>
@@ -158,6 +159,8 @@ export function ProfileDialog({
                 Utan emoji används din Google-bild om den finns.
               </p>
             </div>
+
+            <NotificationSettingsSection active={open} />
 
             <Card className="rounded-2xl border-destructive/25 p-4">
               <div className="text-sm font-medium">Radera konto</div>
