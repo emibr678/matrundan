@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Flag, Shuffle, Plus, MapPin, Star } from "lucide-react";
+import { Flag, Heart, Shuffle, Plus, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
