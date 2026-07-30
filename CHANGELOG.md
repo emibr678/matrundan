@@ -7,7 +7,27 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [1.1.0] – 2026-07-30
+
+### Nytt
+
+- Konto kan skapas och användas med e-postadress och lösenord vid sidan av
+  Google-inloggningen.
+- Glömt lösenord skickar en återställningslänk till sidan `/nytt-losenord`,
+  så att kontot och historiken behålls.
+
+### Förbättrat
+
+- Nya lösenord kontrolleras mot kända läckor vid registrering och byte.
+- Inloggning med ett annat konto rensar tidigare session, gruppval och
+  exempel-läge innan den nya sessionen skapas.
+
+### Borttaget
+
+- Inloggning med sexsiffrig e-postkod, som kräver en egen avsändardomän.
+
 ## [1.0.0] – 2026-07-29
+
 
 ### Nytt
 
