@@ -15,13 +15,15 @@ const VERSION_1_5_0_CHANGELOG: ChangelogEntry = {
       kind: "Nytt",
       items: [
         "När du lägger till ett ställe från Geoapify får du frågan om att dela dina tidigare besök på samma ställe från andra grupper.",
-        "Registreringsdialogen visar nu vilka av dina andra grupper som redan har stället, och låter dig välja alla eller ingen med ett klick.",
+        "Registreringsdialogen visar vilka andra grupper som redan har stället och låter dig välja alla eller rensa valet med ett klick.",
       ],
     },
     {
       kind: "Förbättrat",
       items: [
         "Delningsförvalen är smartare: bara grupper där stället redan finns är ikryssade från början, så du slipper dela besök till irrelevanta grupper.",
+        "Tidigare egna besök börjar helt ovalda, och redan delade besök erbjuds inte igen.",
+        "Arkiverade grupper kan inte ta emot delningar, medan borttagna matställen återaktiveras när ett besök delas dit.",
         "Tydligare språk om progression: ett ställe räknas som provat så fort någon i gänget varit där.",
       ],
     },

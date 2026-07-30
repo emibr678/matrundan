@@ -14,14 +14,21 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 - När du lägger till ett ställe från Geoapify får du frågan om att dela dina
   tidigare besök på samma ställe från andra grupper till den aktuella gruppen.
 - Registreringsdialogen visar nu vilka av dina andra grupper som redan har
-  stället, och låter dig välja alla eller rensa alla med ett klick.
+  stället. Du kan välja alla eller rensa valet med ett klick.
 
 ### Ändrat
 
 - Delningsförvalen i registreringsdialogen är smartare: bara grupper där
   stället redan finns är ikryssade från början.
+- Tidigare egna besök börjar helt ovalda och erbjuds bara när stället har
+  identifierats säkert via Geoapify. Redan delade besök erbjuds inte igen.
 - Tydligare progressionscopy på Hem, i statusbadgen och på matställessidan:
   ett ställe räknas som provat så fort någon i gänget varit där.
+
+### Säkerhet
+
+- Arkiverade grupper kan inte ta emot delade besök. Om matstället tidigare
+  tagits bort från målgruppens lista återaktiveras det när besöket delas.
 
 ## [1.4.0] – 2026-07-30
 
