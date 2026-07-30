@@ -1,32 +1,27 @@
-## Bakgrund (verifierat)
+## Problem
 
-Nätverksloggen visar att din registrering svarade `identities: []`. Det är Supabases sätt att signalera "e-postadressen finns redan" utan att avslöja det för utomstående — därför kom inget nytt verifieringsmail och inloggningen misslyckades tills du återställde lösenordet. Projektet har ingen egen e-postdomän, så alla mail går från standardavsändaren och hamnar lätt i skräppost.
+När kontoregistrering avvisas av backend på grund av lösenordskravet visas det generiska meddelandet "Något gick fel. Försök igen om en stund.". Felöversättningen i `EmailAuthDialog.tsx` matchar bara texter som innehåller "pwned" eller "compromised". Kontrollen mot kända läckor (aktiverad i v1.1.0) avvisar i stället med felkoden `weak_password` och en engelsk text i stil med "Password is known to be weak and easy to guess", som ingen regel fångar. Samma sak gäller backends minimilängd, som svarar "Password should be at least N characters".
 
-## Vad som ändras
+## Åtgärd
 
-### 1. Konto aktiveras direkt vid registrering
-- Slå på automatisk bekräftelse av e-post i backendens autentiseringsinställningar.
-- Effekt: den som skapar konto loggas in direkt, inget verifieringsmail behövs.
-- Återställning av lösenord fortsätter fungera via mail (det flödet är redan verifierat av dig).
-- Texten i registreringsvyn ändras från "du får en verifieringslänk" till att kontot skapas direkt.
+1. **Felöversättning (`src/components/matrundan/EmailAuthDialog.tsx`)**
+   - Läs även felkod (`weak_password`, `over_email_send_rate_limit`, `user_already_exists`) utöver meddelandetext, eftersom Supabase-fel bär en `code`.
+   - Lägg till träffar för "weak", "easy to guess", "should be at least", "password should contain".
+   - Text vid svagt lösenord: "Lösenordet är för lätt att gissa eller finns i kända läckor. Välj ett längre och mer unikt lösenord."
+   - Behåll befintlig fallback för verkligt okända fel.
 
-### 2. Tydligt besked när e-postadressen redan finns
-- Efter registrering kontrolleras svaret: om användaren saknar identiteter finns kontot redan.
-- Visa: "Det finns redan ett konto med den e-postadressen."
-- Växla automatiskt till inloggningsvyn med e-posten förifylld, med "Glömt lösenord?" synligt intill.
+2. **Förebyggande hjälptext i registreringsläget**
+   - Visa en diskret hjälptext under lösenordsfältet vid "Skapa konto": minst 8 tecken och undvik vanliga lösenord, eftersom nya lösenord kontrolleras mot kända läckor.
+   - Ingen ny validering utöver befintlig minimilängd; kontrollen mot läckor sker fortsatt i backend.
 
-### 3. Skräppost-hint där mail faktiskt skickas
-- I "Glömt lösenord"-bekräftelsen: kort hjälptext om att mailet kan hamna i skräpposten och att avsändaren är en standardadress.
-- Ingen hint där den inte längre behövs (registrering skickar inget mail efter ändring 1).
+3. **Version och dokumentation**
+   - Bumpa till 1.1.2 i `src/lib/matrundan/version.ts` med changelog-post om tydligare lösenordsbesked.
+   - Lägg till motsvarande post i `CHANGELOG.md`.
 
-## Tekniska detaljer
+4. **Verifiering**
+   - `bun run typecheck` och `bun run build`.
+   - Kontroll av registreringsdialogen vid 360 px utan horisontell overflow.
 
-- `supabase--configure_auth`: `auto_confirm_email: true`, övriga inställningar oförändrade (HIBP-kontrollen behålls påslagen).
-- `src/lib/matrundan/session.tsx`: `signUpWithPassword` returnerar ett tydligt resultat för "kontot finns redan" (`data.user && data.user.identities?.length === 0`) i stället för att tolkas som lyckad registrering.
-- `src/components/matrundan/EmailAuthDialog.tsx`: hanterar det nya resultatet, byter läge till inloggning med bevarad e-post, uppdaterade svenska texter samt skräppost-hint i återställningsläget.
-- Version bumpas till 1.1.1 i `src/lib/matrundan/version.ts` (in-app-changelog) och `CHANGELOG.md`.
-- Verifiering: `bun run typecheck`, `bun run build` samt kontroll av dialogen vid 360 px.
+## Avgränsning
 
-## Noteras
-
-Utan egen e-postdomän kommer återställningsmailen fortsatt från standardavsändaren och riskerar skräppost. Vill du helt undvika det senare krävs en egen domän — det ligger utanför den här ändringen.
+Inga ändringar i auth-inställningar, databas eller sessionslogik. Endast presentation av fel samt versionsdokumentation.
