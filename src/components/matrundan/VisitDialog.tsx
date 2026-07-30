@@ -27,6 +27,10 @@ import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitPhotoField } from "./VisitPhotoField";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
+
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
