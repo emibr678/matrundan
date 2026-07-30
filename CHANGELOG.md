@@ -7,6 +7,14 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [1.1.2] – 2026-07-30
+
+### Ändrat
+
+- Ett lösenord som avvisas för att det är för kort eller för lätt att gissa ger
+  nu ett tydligt besked i stället för ett generiskt felmeddelande.
+- Registreringsformuläret visar lösenordskraven innan formuläret skickas.
+
 ## [1.1.1] – 2026-07-30
 
 ### Ändrat
