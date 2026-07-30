@@ -138,9 +138,9 @@ export function EmailAuthDialog({
 
   const description =
     mode === "signup"
-      ? "Ditt konto är personligt. Att gå med i en grupp är ett separat steg via gruppens inbjudningslänk."
+      ? "Kontot skapas direkt – ingen bekräftelse via mejl behövs. Att gå med i en grupp är ett separat steg via gruppens inbjudningslänk."
       : mode === "reset"
-        ? "Skriv din e-postadress så skickar vi en länk där du kan välja ett nytt lösenord."
+        ? "Skriv din e-postadress så skickar vi en länk där du kan välja ett nytt lösenord. Kolla även skräpposten."
         : "Använd samma e-postadress varje gång så behåller du din historik.";
 
   return (
