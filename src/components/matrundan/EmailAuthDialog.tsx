@@ -229,6 +229,12 @@ export function EmailAuthDialog({
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {mode === "signup" ? (
+                <p className="text-xs text-muted-foreground">
+                  Minst 8 tecken. Undvik vanliga lösenord – nya lösenord kontrolleras mot kända
+                  läckor.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
