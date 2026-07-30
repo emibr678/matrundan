@@ -1,58 +1,50 @@
-## Rekommendation på teknikval
+## Mål
 
-**Ren Web Push med VAPID — inte Firebase, inte OneSignal.**
+Nya medlemmar ska inte behöva leta i profilen för att hitta notiser, och de ska få enkel, plattformsanpassad hjälp att lägga Matrundan på hemskärmen. Allt sker som en diskret, avfärdbar uppmaning i befintlig design – inga popup-avbrott mitt i ett flöde.
 
-Firebase och OneSignal ger framför allt värde vid *native* appar (App Store/Play), kampanjverktyg och segmentering. Matrundan är en privat gruppapp där notiser är händelsedrivna och all data redan finns i Lovable Cloud. Firebase/OneSignal skulle betyda ett extra konto, extra SDK i klienten, en tredje part som ser vilka enheter dina användare har — och samma PWA-krav på iOS ändå. Ren Web Push är gratis, standardiserat, ingen tredje part, prenumerationerna ligger i din egen databas.
+## 1. Notisfråga vid rätt tillfälle
 
-Viktigt: **på iPhone/iPad fungerar notiser bara när appen lagts till på hemskärmen** (iOS 16.4+). Det gäller oavsett teknikval. Därför ingår PWA-steget.
+En ny, låg-intensiv kort ("Slå på notiser") visas överst på Hem-vyn i live-läget när alla dessa gäller:
 
-**E-postnotiser utgår** ur den här planen — de kräver en domän du äger, och det är inte aktuellt. Inställningsmodellen byggs ändå så att en e-postkanal kan läggas till senare utan omskrivning.
+- användaren är inloggad och medlem i minst en grupp
+- webbläsaren stödjer push (befintlig `checkPushSupport`)
+- ingen prenumeration finns på den här enheten
+- användaren har inte avfärdat kortet tidigare på den här enheten
 
-## Vad som byggs
+Kortet har kort text ("Få veta när gruppen registrerar ett besök eller väljer nästa stopp"), en primärknapp "Slå på notiser" som kör befintliga `enablePushOnThisDevice()`, samt "Inte nu". Vid lyckad aktivering: bekräftelse och kortet försvinner permanent. Vid "Inte nu": göms i 30 dagar, sedan får man frågan en gång till.
 
-### 1. Installerbar app (PWA)
-- `public/manifest.webmanifest` med namn, färger, `display: standalone` och ikoner i Matrundans varma stil.
-- Manifest- och ikonlänkar i rotens `head()`.
-- En service worker **enbart för notiser** (visa notis, hantera klick → öppna rätt vy). Ingen offline-cachning, ingen app-shell-cache — det håller previews och publicerad app fria från stale-cache-problem.
-- En diskret "Lägg till på hemskärmen"-guide som bara visas för iOS-användare som försöker slå på notiser utan installerad app.
+Extra utlösare: direkt efter att man tackat ja till en inbjudan eller skapat sin första grupp visas samma kort högst upp – det är då nyttan är tydligast.
 
-### 2. Datamodell (nya tabeller)
-- `push_subscriptions` — en rad per enhet: användare, endpoint, nycklar, enhetsetikett, senast använd.
-- `notification_preferences` — per användare och notistyp: på/av.
-- `notification_outbox` — köade utskick (typ, mottagare, grupp, payload, status, försök). Ger idempotens och retry, och gör att en besöksregistrering aldrig kan misslyckas för att en notis inte gick fram.
+Ingen webbläsardialog visas förrän användaren själv trycker på knappen (best practice; annars riskerar man permanent "blockerad").
 
-RLS: användare ser och ändrar bara sina egna rader. Skrivningar till outbox sker enbart via `SECURITY DEFINER`-RPC:er/triggers, aldrig från klient.
+## 2. Installera på hemskärmen
 
-### 3. Notistyper (alla fyra du valde)
-| Typ | Utlöses av | Mottagare |
-|---|---|---|
-| Nytt besök registrerat | `create_visit_*` | gruppens aktiva medlemmar utom registreraren |
-| Nästa stopp satt/ändrat | `set_next_place` | gruppens aktiva medlemmar utom den som satte |
-| Du lades till som deltagare | besöksdeltagare | endast berörd användare |
-| Ny medlem i gruppen | accepterad inbjudan | gruppens aktiva medlemmar utom den nya |
+Appen har redan manifest, ikoner och service worker, så installation fungerar tekniskt. Det som saknas är vägledning.
 
-Regler: aldrig notis till den som utlöste händelsen, aldrig text som avslöjar annan grupps identitet, alltid gruppnamn + tydlig svensk text, klick leder till rätt vy i rätt grupp.
+- **Android/Chrome/Edge:** vi fångar webbläsarens `beforeinstallprompt`-händelse och visar en egen "Lägg till Matrundan på hemskärmen"-knapp. Trycket öppnar det riktiga installationsförslaget – ett klick, ingen instruktion behövs.
+- **iOS Safari:** ingen sådan händelse finns, så vi visar i stället en kort bildbeskrivning: "Tryck på Dela-ikonen och välj Lägg till på hemskärmen". Detta är dessutom ett krav för att notiser alls ska fungera på iPhone, så texten kopplar ihop de två.
+- **Övriga/redan installerad:** inget visas.
 
-### 4. Utskick
-- Serverfunktion som plockar outbox-rader och skickar. Web Push signeras med VAPID via Web Crypto (Worker-kompatibelt bibliotek, inte Node-`web-push`).
-- Prenumerationer som svarar 404/410 tas bort automatiskt.
-- Direkt-försök vid händelsen så vanliga notiser kommer på sekunden, plus ett `/api/public/*`-jobb som pg_cron triggar varje minut för eftersläpande köade utskick.
-- VAPID-nyckelparet genereras och lagras som hemlighet; den publika nyckeln exponeras (den är avsedd att vara publik).
+Var det syns:
+1. Samma diskreta kort-plats på Hem (visas en gång, kan avfärdas, återkommer inte om appen redan är installerad).
+2. En permanent post i profildialogen ("Appen på mobilen") så att den som avfärdat kortet kan hitta tillbaka.
+3. En rad i notisavsnittet på iPhone som förklarar varför installation krävs innan notiser kan slås på.
 
-### 5. Inställningar i profilen
-Ny sektion "Notiser":
-- Tydlig knapp "Slå på notiser på den här enheten" (hanterar behörighetsdialogen och registrerar enheten).
-- Lista över dina registrerade enheter med möjlighet att koppla bort.
-- På/av per notistyp, alla fyra på som standard.
-- Ärlig hjälptext om iPhone-kravet på hemskärmsinstallation.
-- Allt verifierat i 360 px.
+## 3. Copy och ton
 
-### 6. Kvalitet och release
-- Enhetstester för mottagarurval (ingen självnotis, bara aktiva medlemmar, respekterar inställningar, dedupe per händelse).
-- Kontraktstest mot RPC/RLS: ingen kan läsa andras prenumerationer eller köa utskick till en grupp de inte tillhör.
-- Playwright: 360 px utan horisontell overflow i inställningsvyn.
-- `bun run verify:changed`, `typecheck`, build.
-- Version bumpas till **v1.2.0** i `version.ts`, `version-history.ts`, `CHANGELOG.md` och `README.md`.
+Svensk, varm och kort text i befintlig stil. Inga utropstecken, ingen påträngande upprepning: max ett kort åt gången, notisfrågan prioriteras före installationsförslaget utom på iPhone där installation måste komma först.
 
-## Leveransordning
-Allt ovan levereras som ett sammanhållet paket (Paket 7). Om du senare vill ha en påminnelsenotis inför bokat nästa stopp lägger vi till den som en femte typ — modellen är byggd för det.
+## Tekniska detaljer
+
+- Ny komponent `src/components/matrundan/AppNudges.tsx` som väljer vilket kort som ska visas, renderad överst i Hem-vyn (`src/routes/index.tsx`) inom live-läget.
+- Ny hjälpfil `src/lib/matrundan/install-prompt.ts`: lyssnar på `beforeinstallprompt`, exponerar `useInstallPrompt()` med `canPrompt`, `promptInstall()` och plattformsdetektering; återanvänder `isIosLike`/`isInstalledApp` från `notifications.ts`.
+- Avfärdningsstatus i `localStorage` under `matrundan.nudges.v1` (enhetslokalt, ingen databasändring).
+- Återanvänder befintliga `checkPushSupport`, `currentDeviceEndpoint` och `enablePushOnThisDevice` – ingen ny server- eller databaslogik, inga nya RPC:er, inga migrationer.
+- Ingen offline-cachning eller ny service worker; `push-sw.js` lämnas orörd.
+- Version bumpas till v1.3.0 med poster i `version.ts`, `CHANGELOG.md` och README.
+
+## Verifiering
+
+- `bun run verify:changed` samt typecheck och build.
+- Playwright vid 360 px: korten får inte orsaka horisontell overflow, knappar minst 44 px.
+- Manuell kontroll på Android av installationsknappen; iOS-instruktionen verifieras visuellt (kan inte automattestas här).
