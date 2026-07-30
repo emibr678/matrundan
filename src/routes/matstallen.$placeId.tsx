@@ -229,7 +229,7 @@ function PlaceDetail() {
                   <Button
                     variant="ghost"
                     onClick={() => void setNext(null)}
-                    className="min-h-11 text-muted-foreground"
+                    className="min-h-11 whitespace-normal text-muted-foreground"
                   >
                     Ta bort som nästa stopp
                   </Button>
@@ -237,9 +237,9 @@ function PlaceDetail() {
                   <Button
                     variant="outline"
                     onClick={() => void setNext(place.id)}
-                    className="min-h-11"
+                    className="min-h-11 whitespace-normal"
                   >
-                    <Flag className="h-4 w-4" />
+                    <Flag className="h-4 w-4 shrink-0" />
                     Välj som nästa stopp
                   </Button>
                 )}
