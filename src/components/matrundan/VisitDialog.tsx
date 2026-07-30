@@ -180,7 +180,7 @@ export function VisitDialog({
           await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
           sharedCount += 1;
         } catch {
-          failed.push(shareableGroups.find((g) => g.id === groupId)?.name ?? "en grupp");
+          failed.push(shareableGroups.find((g) => g.groupId === groupId)?.name ?? "en grupp");
         }
       }
       if (sharedCount > 0 && typeof window !== "undefined") {
