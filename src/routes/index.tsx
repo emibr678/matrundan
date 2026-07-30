@@ -8,6 +8,7 @@ import { useStore } from "@/lib/matrundan/store";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { NextStopDateCard } from "@/components/matrundan/NextStopDateCard";
+import { AppNudges } from "@/components/matrundan/AppNudges";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
 export const Route = createFileRoute("/")({
