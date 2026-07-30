@@ -309,7 +309,53 @@ export function VisitDialog({
               placeholder="En liten minnesnotering…"
             />
           </div>
+
+          {canShare ? (
+            <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
+                <p className="text-xs text-muted-foreground">
+                  Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata
+                  kommentarer och andra gruppers medlemmar syns aldrig.
+                </p>
+              </div>
+              <div className="space-y-2">
+                {shareableGroups.map((group) => {
+                  const checked = shareGroupIds.includes(group.id);
+                  return (
+                    <label
+                      key={group.id}
+                      className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl bg-background px-3 py-2 text-sm"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleShareGroup(group.id)}
+                        disabled={isBusy}
+                        aria-label={`Dela besöket med ${group.name}`}
+                      />
+                      <span aria-hidden>{group.emoji ?? "🍽️"}</span>
+                      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{group.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {hasComment && shareGroupIds.length > 0 ? (
+                <div className="flex items-center justify-between gap-3 rounded-xl bg-background px-3 py-2">
+                  <Label htmlFor="share-comment" className="text-sm font-normal">
+                    Dela även min kommentar
+                  </Label>
+                  <Switch
+                    id="share-comment"
+                    checked={shareComment}
+                    onCheckedChange={setShareComment}
+                    disabled={isBusy}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
+
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
