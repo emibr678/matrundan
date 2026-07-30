@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnostik'
+import { Route as NyttLosenordRouteImport } from './routes/nytt-losenord'
 import { Route as MatstallenRouteImport } from './routes/matstallen'
 import { Route as MapdiagnostikRouteImport } from './routes/mapdiagnostik'
 import { Route as IntegritetRouteImport } from './routes/integritet'
@@ -22,6 +23,11 @@ import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
 const PlacemapdiagnostikRoute = PlacemapdiagnostikRouteImport.update({
   id: '/placemapdiagnostik',
   path: '/placemapdiagnostik',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NyttLosenordRoute = NyttLosenordRouteImport.update({
+  id: '/nytt-losenord',
+  path: '/nytt-losenord',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatstallenRoute = MatstallenRouteImport.update({
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/integritet': typeof IntegritetRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/integritet': typeof IntegritetRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/integritet': typeof IntegritetRoute
   '/mapdiagnostik': typeof MapdiagnostikRoute
   '/matstallen': typeof MatstallenRouteWithChildren
+  '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/integritet'
     | '/mapdiagnostik'
     | '/matstallen'
+    | '/nytt-losenord'
     | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/integritet'
     | '/mapdiagnostik'
     | '/matstallen'
+    | '/nytt-losenord'
     | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/integritet'
     | '/mapdiagnostik'
     | '/matstallen'
+    | '/nytt-losenord'
     | '/placemapdiagnostik'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   IntegritetRoute: typeof IntegritetRoute
   MapdiagnostikRoute: typeof MapdiagnostikRoute
   MatstallenRoute: typeof MatstallenRouteWithChildren
+  NyttLosenordRoute: typeof NyttLosenordRoute
   PlacemapdiagnostikRoute: typeof PlacemapdiagnostikRoute
   InbjudanTokenRoute: typeof InbjudanTokenRoute
 }
@@ -153,6 +166,13 @@ declare module '@tanstack/react-router' {
       path: '/placemapdiagnostik'
       fullPath: '/placemapdiagnostik'
       preLoaderRoute: typeof PlacemapdiagnostikRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nytt-losenord': {
+      id: '/nytt-losenord'
+      path: '/nytt-losenord'
+      fullPath: '/nytt-losenord'
+      preLoaderRoute: typeof NyttLosenordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/matstallen': {
@@ -233,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   IntegritetRoute: IntegritetRoute,
   MapdiagnostikRoute: MapdiagnostikRoute,
   MatstallenRoute: MatstallenRouteWithChildren,
+  NyttLosenordRoute: NyttLosenordRoute,
   PlacemapdiagnostikRoute: PlacemapdiagnostikRoute,
   InbjudanTokenRoute: InbjudanTokenRoute,
 }
