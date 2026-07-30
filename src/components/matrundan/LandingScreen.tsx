@@ -1,8 +1,10 @@
 import * as React from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Link2, LogIn, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Link2, LogIn, Mail, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
+import { EmailCodeDialog } from "@/components/matrundan/EmailCodeDialog";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,7 @@ export function LandingScreen() {
   const [invite, setInvite] = React.useState("");
   const [signingIn, setSigningIn] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
+  const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
 
   async function createGroup() {
     if (signingIn) return;
@@ -87,6 +90,17 @@ export function LandingScreen() {
             <LogIn className="h-4 w-4" />
             {signingIn ? "Öppnar inloggning…" : "Fortsätt med Google"}
           </Button>
+          <Button
+            variant="outline"
+            className="mt-2 min-h-11 w-full"
+            onClick={() => setEmailCodeOpen(true)}
+          >
+            <Mail className="h-4 w-4" />
+            Fortsätt med e-postkod
+          </Button>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            Med e-postkod får du en sexsiffrig kod i mejlen – inget lösenord behövs.
+          </p>
         </Card>
 
         <Card className="rounded-3xl border-border/70 p-5 shadow-sm sm:p-6">
@@ -147,6 +161,7 @@ export function LandingScreen() {
       </footer>
 
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+      <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
     </main>
   );
 }

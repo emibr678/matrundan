@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmailCodeDialog } from "@/components/matrundan/EmailCodeDialog";
 import {
   acceptGroupInvitation,
   getInvitationPreview,
@@ -27,12 +28,12 @@ export const Route = createFileRoute("/inbjudan/$token")({
 function InvitePage() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
-  const { user, loading, mode, signInWithGoogle, refreshGroups, selectGroup } =
-    useSession();
+  const { user, loading, mode, signInWithGoogle, refreshGroups, selectGroup } = useSession();
 
   const [preview, setPreview] = React.useState<InvitationPreview | null>(null);
   const [previewErr, setPreviewErr] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
   const submitted = React.useRef(false);
 
   React.useEffect(() => {
@@ -73,7 +74,7 @@ function InvitePage() {
   const state = preview?.state ?? (previewErr ? "invalid" : "loading");
   const groupLabel = preview?.group_emoji
     ? `${preview.group_emoji} ${preview.group_name ?? ""}`
-    : preview?.group_name ?? "";
+    : (preview?.group_name ?? "");
 
   return (
     <div className="mx-auto flex min-h-[70dvh] max-w-lg items-center px-4 py-10">
@@ -89,7 +90,7 @@ function InvitePage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Du har blivit inbjuden till en privat matställeslista.
               {preview.email_bound
-                ? " Inbjudan är knuten till en specifik e-postadress – logga in med rätt Google-konto."
+                ? " Inbjudan är knuten till en specifik e-postadress – logga in med rätt e-postadress."
                 : ""}
             </p>
 
@@ -108,14 +109,21 @@ function InvitePage() {
                   >
                     Fortsätt med Google
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setEmailCodeOpen(true)}
+                  >
+                    Fortsätt med e-postkod
+                  </Button>
                   <p className="text-xs text-muted-foreground">
-                    Vi använder din Google-inloggning för att koppla ditt konto till gruppen.
+                    Inloggningen kopplar ditt konto till gruppen. Inbjudningslänken är separat och
+                    används först när du klickar på Gå med.
                   </p>
                 </>
               ) : mode !== "live" ? (
                 <p className="text-sm text-muted-foreground">
-                  Demo-läget kan inte acceptera riktiga inbjudningar. Öppna länken utan
-                  ?demo=1.
+                  Demo-läget kan inte acceptera riktiga inbjudningar. Öppna länken utan ?demo=1.
                 </p>
               ) : (
                 <>
@@ -133,17 +141,16 @@ function InvitePage() {
           <InviteMessage state={state} groupLabel={groupLabel} />
         )}
       </Card>
+      <EmailCodeDialog
+        open={emailCodeOpen}
+        onOpenChange={setEmailCodeOpen}
+        redirectPath={pendingPath}
+      />
     </div>
   );
 }
 
-function InviteMessage({
-  state,
-  groupLabel,
-}: {
-  state: string;
-  groupLabel: string;
-}) {
+function InviteMessage({ state, groupLabel }: { state: string; groupLabel: string }) {
   const msg =
     state === "expired"
       ? "Länken har gått ut. Be gruppens ägare eller admin om en ny inbjudan."

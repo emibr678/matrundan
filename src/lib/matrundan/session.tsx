@@ -42,6 +42,8 @@ interface SessionState {
   activeGroupLifecycleStatus: GroupLifecycleStatus | null;
   userGroups: UserGroupSummary[];
   signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
+  sendEmailCode: (email: string, opts?: { redirectPath?: string }) => Promise<void>;
+  verifyEmailCode: (email: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   exitExampleMode: () => void;
   selectGroup: (groupId: string) => void;
@@ -207,6 +209,38 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const sendEmailCode = React.useCallback(
+    async (email: string, opts?: { redirectPath?: string }) => {
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+      clearExampleSession();
+      if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: origin,
+        },
+      });
+      if (error) {
+        console.error("[Matrundan] kunde inte skicka e-postkod:", error);
+        throw error;
+      }
+    },
+    [],
+  );
+
+  const verifyEmailCode = React.useCallback(async (email: string, code: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: code.trim(),
+      type: "email",
+    });
+    if (error) {
+      console.error("[Matrundan] kunde inte verifiera e-postkod:", error);
+      throw error;
+    }
+  }, []);
+
   const signOut = React.useCallback(async () => {
     await supabase.auth.signOut();
     clearExampleSession();
@@ -258,6 +292,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           : null,
       userGroups,
       signInWithGoogle,
+      sendEmailCode,
+      verifyEmailCode,
       signOut,
       exitExampleMode,
       selectGroup,
@@ -273,6 +309,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     selectGroup,
     session,
     signInWithGoogle,
+    sendEmailCode,
+    verifyEmailCode,
     signOut,
     userGroups,
   ]);
