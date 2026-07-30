@@ -50,13 +50,14 @@ export function useInstallPrompt(): InstallState {
     };
   }, []);
 
+  const hasPrompt = deferredPrompt !== null;
   const mode: InstallMode = React.useMemo(() => {
     if (!hydrated) return "none";
     if (isInstalledApp()) return "installed";
-    if (deferredPrompt) return "prompt";
+    if (hasPrompt) return "prompt";
     if (isIosLike()) return "ios-manual";
     return "none";
-  }, [hydrated, deferredPrompt !== null]);
+  }, [hydrated, hasPrompt]);
 
   const promptInstall = React.useCallback(async () => {
     const event = deferredPrompt;
