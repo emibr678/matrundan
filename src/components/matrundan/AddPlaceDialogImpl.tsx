@@ -196,6 +196,12 @@ export function AddPlaceDialog({
     setExistingResultIds(new Set());
     setError(null);
     setRetry(0);
+    setSyncOpen(false);
+    setSyncPlaceName("");
+    setSyncVisits([]);
+    setSyncVisitIds([]);
+    setSyncShareComment(false);
+    setSyncBusy(false);
   }, [isLive, state.group.city, verifiedHome]);
 
   React.useEffect(() => {
