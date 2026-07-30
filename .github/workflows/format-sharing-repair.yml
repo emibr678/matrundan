@@ -6,7 +6,7 @@ on:
       - fix/v1.5-sharing-repair
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: fix/v1.5-sharing-repair
 
       - name: Set up pinned Bun
         uses: oven-sh/setup-bun@v2
@@ -25,11 +27,15 @@ jobs:
       - name: Format dialog files
         run: bunx prettier --write src/components/matrundan/AddPlaceDialogImpl.tsx src/components/matrundan/VisitDialog.tsx
 
-      - name: Upload formatted files
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-sharing-files
-          path: |
-            src/components/matrundan/AddPlaceDialogImpl.tsx
-            src/components/matrundan/VisitDialog.tsx
-          if-no-files-found: error
+      - name: Commit formatting when needed
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Dialogfilerna är redan formatterade."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/AddPlaceDialogImpl.tsx src/components/matrundan/VisitDialog.tsx
+          git commit -m "Format sharing dialog changes"
+          git push origin HEAD:fix/v1.5-sharing-repair
