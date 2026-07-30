@@ -52,6 +52,25 @@ export function Home() {
   const totalPlaces = activePlaces.length;
   const tried = totalPlaces - untried.length;
   const progressPct = totalPlaces === 0 ? 0 : Math.round((tried / totalPlaces) * 100);
+  const progressNote =
+    totalPlaces === 0
+      ? "Er runda börjar med det första stället ni lägger till."
+      : untried.length === 0
+        ? "Hela listan är avklarad — dags att fylla på med nya smultronställen."
+        : untried.length === 1
+          ? "Ett ställe kvar innan ni har provat hela listan."
+          : null;
+
+  const lastVisit = React.useMemo(() => {
+    return [...state.visits].sort((a, b) => b.date.localeCompare(a.date))[0];
+  }, [state.visits]);
+  const lastVisitPlace = lastVisit ? getPlace(lastVisit.placeId) : undefined;
+  const lastVisitNames = lastVisit
+    ? lastVisit.participantIds
+        .map((id) => memberById(id)?.name)
+        .filter((name): name is string => Boolean(name))
+    : [];
+
 
   const shuffle = () => {
     if (!canWrite) return;
