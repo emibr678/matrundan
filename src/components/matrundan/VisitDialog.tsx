@@ -325,30 +325,48 @@ export function VisitDialog({
 
           {canShare ? (
             <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
-                <button type="button">test</button>
-                <p className="text-xs text-muted-foreground">
-                  Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata kommentarer och
-                  andra gruppers medlemmar syns aldrig.
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata kommentarer och
+                    andra gruppers medlemskap syns aldrig.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShareGroupIds(
+                      shareGroupIds.length === shareableGroups.length
+                        ? []
+                        : shareableGroups.map((g) => g.groupId),
+                    )
+                  }
+                  disabled={isBusy || shareTargetsLoading}
+                  className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline disabled:opacity-50"
+                >
+                  {shareGroupIds.length === shareableGroups.length ? "Rensa alla" : "Välj alla"}
+                </button>
               </div>
               <div className="space-y-2">
                 {shareableGroups.map((group) => {
-                  const checked = shareGroupIds.includes(group.id);
+                  const checked = shareGroupIds.includes(group.groupId);
                   return (
                     <label
-                      key={group.id}
+                      key={group.groupId}
                       className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl bg-background px-3 py-2 text-sm"
                     >
                       <Checkbox
                         checked={checked}
-                        onCheckedChange={() => toggleShareGroup(group.id)}
-                        disabled={isBusy}
+                        onCheckedChange={() => toggleShareGroup(group.groupId)}
+                        disabled={isBusy || shareTargetsLoading}
                         aria-label={`Dela besöket med ${group.name}`}
                       />
                       <span aria-hidden>{group.emoji ?? "🍽️"}</span>
                       <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{group.name}</span>
+                      {group.placeExistsInGroup ? (
+                        <span className="shrink-0 text-xs text-muted-foreground">finns redan</span>
+                      ) : null}
                     </label>
                   );
                 })}
