@@ -431,8 +431,8 @@ function PlacesIndex() {
         <div className="rounded-2xl border border-dashed border-border p-8 text-center">
           <div className="text-4xl">🍽️</div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Inga aktiva ställen matchar. Testa att rensa filtren
-            {canWrite ? " eller lägg till ett nytt" : ""}.
+            Inga ställen matchar just nu. Rensa filtren för att se hela listan
+            {canWrite ? " eller lägg till ett nytt smultronställe" : ""}.
           </p>
           {canWrite ? (
             <Button className="mt-4" onClick={() => setAddOpen(true)}>
