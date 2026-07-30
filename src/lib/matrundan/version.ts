@@ -3,12 +3,36 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.0.0";
-export const APP_VERSION_DATE = "2026-07-29";
+export const APP_VERSION = "1.1.0";
+export const APP_VERSION_DATE = "2026-07-30";
 
-const VERSION_1_CHANGELOG: ChangelogEntry = {
+const VERSION_1_1_CHANGELOG: ChangelogEntry = {
   version: APP_VERSION,
   date: APP_VERSION_DATE,
+  summary:
+    "Nu går det att skapa konto med e-post och lösenord, för dig som inte vill eller kan använda Google.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Skapa konto och logga in med e-postadress och lösenord vid sidan av Google.",
+        "Glömt lösenord skickar en återställningslänk, så du behåller ditt konto och din historik.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Nya lösenord kontrolleras mot kända läckor.",
+        "Att logga in med ett annat konto rensar den tidigare sessionen och gruppvalet direkt.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_CHANGELOG: ChangelogEntry = {
+  version: "1.0.0",
+  date: "2026-07-29",
+
   summary:
     "Matrundan 1.0 samlar ett tydligare första möte, en helt fiktiv exempelgrupp och självbetjänad kontoradering.",
   sections: [
