@@ -29,19 +29,41 @@ function isValidEmail(value: string) {
 
 function friendlyError(error: unknown, fallback: string) {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
-  if (message.includes("invalid login credentials")) {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code ?? "").toLowerCase()
+      : "";
+
+  if (code === "invalid_credentials" || message.includes("invalid login credentials")) {
     return "Fel e-postadress eller lösenord.";
   }
-  if (message.includes("email not confirmed")) {
+  if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
     return "Bekräfta din e-postadress via mejlet vi skickade, sedan kan du logga in.";
   }
-  if (message.includes("already registered") || message.includes("already been registered")) {
+  if (
+    code === "user_already_exists" ||
+    message.includes("already registered") ||
+    message.includes("already been registered")
+  ) {
     return "Det finns redan ett konto med den adressen. Logga in i stället.";
   }
-  if (message.includes("pwned") || message.includes("compromised")) {
-    return "Lösenordet finns i kända läckor. Välj ett annat.";
+  if (message.includes("should be at least") || message.includes("password should contain")) {
+    return "Lösenordet uppfyller inte kraven. Välj ett längre lösenord med minst 8 tecken.";
   }
-  if (message.includes("rate limit") || message.includes("too many")) {
+  if (
+    code === "weak_password" ||
+    message.includes("weak") ||
+    message.includes("easy to guess") ||
+    message.includes("pwned") ||
+    message.includes("compromised")
+  ) {
+    return "Lösenordet är för lätt att gissa eller finns i kända läckor. Välj ett längre och mer unikt lösenord.";
+  }
+  if (
+    code.includes("rate_limit") ||
+    message.includes("rate limit") ||
+    message.includes("too many")
+  ) {
     return "För många försök just nu. Vänta en stund och försök igen.";
   }
   return fallback;
@@ -207,6 +229,12 @@ export function EmailAuthDialog({
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {mode === "signup" ? (
+                <p className="text-xs text-muted-foreground">
+                  Minst 8 tecken. Undvik vanliga lösenord – nya lösenord kontrolleras mot kända
+                  läckor.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
