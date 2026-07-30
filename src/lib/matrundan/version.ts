@@ -44,7 +44,6 @@ const VERSION_1_3_1_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-
 const VERSION_1_3_0_CHANGELOG: ChangelogEntry = {
   version: "1.3.0",
   date: "2026-07-30",

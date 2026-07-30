@@ -27,7 +27,6 @@ export function StatusBadge({ placeId }: { placeId: string }) {
               cls: "bg-muted text-muted-foreground border-border",
             };
 
-
   return (
     <Badge
       variant="outline"

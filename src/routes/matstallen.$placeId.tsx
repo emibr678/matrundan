@@ -191,12 +191,11 @@ function PlaceDetail() {
               )}
               {placeRemoved ? null : (
                 <p className="w-full text-xs text-muted-foreground">
-                  Stället räknas som provat så fort någon i gänget varit här — alla
-                  behöver inte gå hit.
+                  Stället räknas som provat så fort någon i gänget varit här — alla behöver inte gå
+                  hit.
                 </p>
               )}
             </div>
-
           </div>
         </div>
 
@@ -231,7 +230,6 @@ function PlaceDetail() {
                 <Plus className="h-4 w-4" /> Registrera besök
               </Button>
               <div className="grid grid-cols-2 gap-2">
-
                 {isNext ? (
                   <Button
                     variant="ghost"

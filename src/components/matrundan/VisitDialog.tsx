@@ -31,7 +31,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
 
-
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
   frukost: "Frukost",
@@ -110,14 +109,11 @@ export function VisitDialog({
 
   if (!place) return null;
 
-
   const toggleParticipant = (id: string) =>
     setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   const toggleShareGroup = (id: string) =>
-    setShareGroupIds((cur) =>
-      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
-    );
+    setShareGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   const submit = async () => {
     if (isBusy) return;
@@ -159,11 +155,7 @@ export function VisitDialog({
       let sharedCount = 0;
       for (const groupId of targets) {
         try {
-          await shareVisitToGroup(
-            created.id,
-            groupId,
-            hasComment ? shareComment : false,
-          );
+          await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
           sharedCount += 1;
         } catch {
           failed.push(shareableGroups.find((g) => g.id === groupId)?.name ?? "en grupp");
@@ -196,7 +188,6 @@ export function VisitDialog({
       if (photoError) {
         toast.warning("Besöket sparades utan foto.", { description: photoError.message });
       }
-
     } catch (e) {
       toast.error((e as Error).message || "Kunde inte spara besöket.");
     } finally {
@@ -315,8 +306,8 @@ export function VisitDialog({
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
                 <p className="text-xs text-muted-foreground">
-                  Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata
-                  kommentarer och andra gruppers medlemmar syns aldrig.
+                  Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata kommentarer och
+                  andra gruppers medlemmar syns aldrig.
                 </p>
               </div>
               <div className="space-y-2">
@@ -355,7 +346,6 @@ export function VisitDialog({
             </div>
           ) : null}
         </div>
-
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button

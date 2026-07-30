@@ -61,7 +61,6 @@ export function Home() {
           ? "Ett ställe kvar innan ni har provat hela listan."
           : "Ett ställe räknas som provat så fort någon i gänget varit där.";
 
-
   const lastVisit = React.useMemo(() => {
     return [...state.visits].sort((a, b) => b.date.localeCompare(a.date))[0];
   }, [state.visits]);
@@ -71,7 +70,6 @@ export function Home() {
         .map((id) => memberById(id)?.name)
         .filter((name): name is string => Boolean(name))
     : [];
-
 
   const shuffle = () => {
     if (!canWrite) return;
@@ -213,7 +211,6 @@ export function Home() {
           </Card>
         </section>
       ) : null}
-
 
       <section className={canWrite ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
         {canWrite ? (

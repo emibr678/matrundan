@@ -23,7 +23,6 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 
 ## [1.3.1] – 2026-07-30
 
-
 ### Ändrat
 
 - Hem visar "Senast tillsammans" med gruppens senaste besök, deltagare och
@@ -43,7 +42,6 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 - Den dubblerade "Registrera besök"-knappen i tomma besökslistan är borttagen.
 
 ## [1.3.0] – 2026-07-30
-
 
 ### Tillagt
 
