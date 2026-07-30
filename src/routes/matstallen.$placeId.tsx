@@ -266,7 +266,7 @@ function PlaceDetail() {
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 {demoReadOnly
-                  ? "Du kan utforska stället och gruppens fiktiva besök, men inte ändra exempeldata."
+                  ? "Du kan utforska stället och gruppens påhittade besök, men inte ändra exempeldata."
                   : `Tidigare besök, betyg, kommentarer och favoriter finns kvar.${
                       placeRemoved && !groupArchived
                         ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
