@@ -7,6 +7,20 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [1.4.0] – 2026-07-30
+
+### Lagt till
+
+- Registreringsdialogen har ett avsnitt "Dela med dina andra grupper" där alla
+  dina andra aktiva grupper är förvalda. Besöket sparas kanoniskt en gång och
+  delas till valda grupper via det befintliga säkra delningsflödet.
+- Egen kommentar delas fortfarande bara efter aktivt val.
+
+### Ändrat
+
+- Tydligare progressionscopy på Hem, i statusbadgen och på matställessidan:
+  ett ställe räknas som provat så fort någon i gänget varit där.
+
 ## [1.3.1] – 2026-07-30
 
 ### Ändrat
@@ -28,7 +42,6 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 - Den dubblerade "Registrera besök"-knappen i tomma besökslistan är borttagen.
 
 ## [1.3.0] – 2026-07-30
-
 
 ### Tillagt
 

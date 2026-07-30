@@ -27,6 +27,9 @@ import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitPhotoField } from "./VisitPhotoField";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
@@ -48,12 +51,18 @@ export function VisitDialog({
 }) {
   const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
   const { userGroups, activeGroupId } = useSession();
-  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
+  const shareableGroups = React.useMemo(
+    () =>
+      userGroups.filter(
+        (group) => group.lifecycleStatus === "active" && group.id !== activeGroupId,
+      ),
+    [userGroups, activeGroupId],
+  );
   const canShare =
     mode === "live" &&
     state.group.lifecycleStatus !== "archived" &&
     !!activeGroupId &&
-    activeGroupCount >= 2;
+    shareableGroups.length > 0;
   const [busy, setBusy] = React.useState(false);
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
@@ -72,6 +81,9 @@ export function VisitDialog({
   const [comment, setComment] = React.useState("");
   const [showDetails, setShowDetails] = React.useState(false);
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
+  const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
+  const [shareComment, setShareComment] = React.useState(false);
+  const hasComment = comment.trim().length > 0;
 
   React.useEffect(() => {
     if (!open) {
@@ -85,13 +97,23 @@ export function VisitDialog({
       setComment("");
       setShowDetails(false);
       setPhotoFile(null);
+      setShareComment(false);
     }
   }, [open, state.currentUserId]);
+
+  // Alla andra aktiva grupper är förvalda när dialogen öppnas.
+  React.useEffect(() => {
+    if (!open) return;
+    setShareGroupIds(shareableGroups.map((group) => group.id));
+  }, [open, shareableGroups]);
 
   if (!place) return null;
 
   const toggleParticipant = (id: string) =>
     setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+
+  const toggleShareGroup = (id: string) =>
+    setShareGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   const submit = async () => {
     if (isBusy) return;
@@ -125,18 +147,44 @@ export function VisitDialog({
           photoError = error instanceof Error ? error : new Error("Fotot kunde inte sparas.");
         }
       }
+
+      // Dela vidare till de förkryssade grupperna. Besöket är kanoniskt och
+      // skapas bara en gång – varje grupp får en delad länk till samma besök.
+      const targets = canShare && created?.id ? shareGroupIds : [];
+      const failed: string[] = [];
+      let sharedCount = 0;
+      for (const groupId of targets) {
+        try {
+          await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
+          sharedCount += 1;
+        } catch {
+          failed.push(shareableGroups.find((g) => g.id === groupId)?.name ?? "en grupp");
+        }
+      }
+      if (sharedCount > 0 && typeof window !== "undefined") {
+        window.dispatchEvent(new Event("matrundan:reload"));
+      }
+
       onOpenChange(false);
       toast.success("Besök registrerat", {
-        description: place.name,
-        duration: canShare ? 8000 : undefined,
+        description:
+          sharedCount > 0
+            ? `${place.name} · tillagt i ${sharedCount} ${sharedCount === 1 ? "grupp" : "grupper"} till`
+            : place.name,
+        duration: canShare && sharedCount === 0 ? 8000 : undefined,
         action:
-          canShare && activeGroupId && created?.id
+          canShare && sharedCount === 0 && activeGroupId && created?.id
             ? {
                 label: "Lägg till i annan grupp",
                 onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
               }
             : undefined,
       });
+      if (failed.length > 0) {
+        toast.warning("Besöket kunde inte läggas till i alla grupper.", {
+          description: failed.join(", "),
+        });
+      }
       if (photoError) {
         toast.warning("Besöket sparades utan foto.", { description: photoError.message });
       }
@@ -252,6 +300,51 @@ export function VisitDialog({
               placeholder="En liten minnesnotering…"
             />
           </div>
+
+          {canShare ? (
+            <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
+                <p className="text-xs text-muted-foreground">
+                  Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata kommentarer och
+                  andra gruppers medlemmar syns aldrig.
+                </p>
+              </div>
+              <div className="space-y-2">
+                {shareableGroups.map((group) => {
+                  const checked = shareGroupIds.includes(group.id);
+                  return (
+                    <label
+                      key={group.id}
+                      className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl bg-background px-3 py-2 text-sm"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleShareGroup(group.id)}
+                        disabled={isBusy}
+                        aria-label={`Dela besöket med ${group.name}`}
+                      />
+                      <span aria-hidden>{group.emoji ?? "🍽️"}</span>
+                      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{group.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {hasComment && shareGroupIds.length > 0 ? (
+                <div className="flex items-center justify-between gap-3 rounded-xl bg-background px-3 py-2">
+                  <Label htmlFor="share-comment" className="text-sm font-normal">
+                    Dela även min kommentar
+                  </Label>
+                  <Switch
+                    id="share-comment"
+                    checked={shareComment}
+                    onCheckedChange={setShareComment}
+                    disabled={isBusy}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">

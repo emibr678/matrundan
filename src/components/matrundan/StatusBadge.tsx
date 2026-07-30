@@ -14,16 +14,16 @@ export function StatusBadge({ placeId }: { placeId: string }) {
         }
       : status === "alla-provat"
         ? {
-            text: "Alla har provat",
+            text: "Provat i gänget",
             cls: "bg-sage/40 text-sage-foreground border-sage/50",
           }
         : status === "nytt-for-mig"
           ? {
-              text: `Nytt för dig · ${visited}/${total} provat`,
+              text: `Provat i gänget · nytt för dig`,
               cls: "bg-mustard/40 text-mustard-foreground border-mustard/50",
             }
           : {
-              text: `${visited} av ${total} har provat`,
+              text: `Provat i gänget · ${visited} av ${total}`,
               cls: "bg-muted text-muted-foreground border-border",
             };
 

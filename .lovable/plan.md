@@ -1,58 +1,32 @@
-## Utgångsläge
+## Mål
 
-Jag har gått igenom Hem, Matställen, matställessida, Gruppen och landningssidan i mobilbredd (390 px) samt läst copy i vyer och dialoger. Ingen horisontell overflow, inga konsolfel. Grunden är stabil och den varma paletten sitter — det som återstår är finputs på tomrum, hierarki, copy-konsekvens och tonfall.
+1. Gör det självklart att ett besök kan följa med till dina andra grupper — alla andra aktiva grupper är förvalda.
+2. Förtydliga att progression betyder "någon i gänget har provat", inte "alla har provat".
 
-## Vad jag hittade
+## Del 1 – Delning direkt i besöksdialogen
 
-**1. Faktafel i copy på landningssidan**
-Exempelgruppen beskrivs som "ett fiktivt kompisgäng i Stockholm", men all demodata ligger i Göteborg. Första intrycket för en ny familjemedlem blir motsägelsefullt.
+**Idag:** besöket sparas, sedan dyker en toast upp med "Lägg till i annan grupp" som lätt missas. Delning sker till en grupp i taget via `ShareVisitDialog`.
 
-**2. Hem känns tom och avslutas abrupt**
-Under statistikkortet och de två knapparna tar sidan slut med ett stort tomt fält. Hem är appens hjärta men berättar inget om gruppens liv. Förslag: en varm, kort avslutning — t.ex. "Senast tillsammans"-rad (senaste besöket med plats, deltagare och betyg) som länkar vidare, alternativt ett litet "Kvar att prova"-tips med ett slumpat ställe. Ingen ny datamodell behövs, allt finns i state.
+**Nytt flöde i `VisitDialog`:**
+- När dialogen öppnas hämtas dina andra aktiva grupper (befintlig `list_visit_share_targets`-logik, men utan visit-id: se teknisk not nedan).
+- Ett nytt avsnitt "Dela med dina andra grupper" visas ovanför sparaknappen med en kryssruta per grupp, **alla förvalda**.
+- Kort hjälptext: "Besöket läggs till i dessa grupper. Ursprungsgrupp, privata kommentarer och andra gruppers medlemmar syns aldrig."
+- Egen kommentar delas inte som standard (oförändrad integritetsregel); en enkel växel "Dela även min kommentar" visas bara om du skrivit en kommentar.
+- Vid spara: besöket skapas en gång (kanoniskt) och delas sedan till varje ikryssad grupp via befintlig `share_visit_to_group`. Misslyckas en enskild delning sparas besöket ändå och en varning visas med vilka grupper som inte kunde uppdateras.
+- Toast blir "Besök registrerat · tillagt i 2 grupper till". Den gamla toast-genvägen tas bort när avsnittet finns; "Lägg till i annan grupp" finns kvar i `VisitDetailSheet` för besök i efterhand.
+- Om du inte är medlem i någon annan grupp visas inget avsnitt alls.
 
-**3. Statistikkortet är kyligt**
-"Ställen / Besök / Kvar att prova" är rena siffror utan värme. Förslag: behåll strukturen men gör rubriken mer relationell ("Ni har provat 5 av 9 ställen tillsammans") och ge kortet en mjuk mikrotext under progressbaren när gruppen närmar sig hela listan.
+## Del 2 – Progressionscopy
 
-**4. Tomma tillstånd är funktionella men opersonliga**
-"Inget nästa stopp valt", "Inga besök än. Bli först i gänget." — bra ansats, men blandad ton mellan vyer. Går igenom samtliga tomma tillstånd (Hem, Matställen, matställessida, Gruppen, filtrerad lista) och ger dem en gemensam, varm och uppmuntrande röst på svenska.
+Progressionen räknar redan ett ställe som provat så fort **någon** i gruppen varit där — den är korrekt, bara otydlig.
 
-**5. Matställessidan: knapparna dominerar över innehållet**
-Tre staplade fullbreddsknappar (Registrera besök / Välj som nästa stopp / Favorit) tar mer plats än stället självt. Förslag: behåll "Registrera besök" som primär fullbredd, gör "Välj som nästa stopp" och "Favorit" till en kompaktare rad bredvid varandra. Frigör utrymme och stärker hierarkin.
+- Hem: hjälptext under progressbaren förtydligas, t.ex. "Ett ställe räknas som provat så fort någon i gänget varit där."
+- `StatusBadge`: "X av Y har provat" behålls men får en tydligare läsning — statusen "Nytt för gruppen" respektive "Provat i gänget" (i stället för att "Alla har provat" känns som ett krav). Detaljvyn får en kort rad som förklarar att alla inte behöver besöka samma ställe.
+- Inga ändringar i beräkningslogik, gamification eller databas.
 
-**6. Dubblerad "Registrera besök" på matställessidan**
-Knappen finns både i huvudkortet och i det tomma besökstillståndet direkt under. Ta bort dubbletten i det tomma tillståndet och låt den rutan bara bära den varma texten.
+## Tekniska noter
 
-**7. Matställen: mycket beslutsyta före listan**
-Sökfält, topplista med tre tillfällesflikar, fem filterchips, filterknapp och Lista/Karta-växlare — allt före första kortet. Förslag: fäll ihop topplistan till ett kompakt kort som kan expanderas, så att listan börjar högre upp. Ingen funktionalitet tas bort.
-
-**8. Adresstext trunkeras hårt**
-"Okänd tvärgata nära centru…" på matställessidan. Låt adressen radbrytas på två rader istället för att klippas mitt i ett ord.
-
-**9. Terminologi och tonfall**
-Går igenom hela appen för konsekvent bruk av "gänget"/"gruppen", "tillfälle" (inte "sammanhang"), "ställe"/"matställe" och tilltal (ni/du). Blandningen finns idag mellan vyer och dialoger.
-
-**10. Kärnidén syns svagt i appen efter inloggning**
-Landningssidan säljer "gemensam matresa", men inne i appen är den känslan bara implicit. Punkt 2 och 3 ovan är det billigaste sättet att låta idén genomsyra Hem utan att lägga till nya funktioner.
-
-## Vad jag INTE föreslår
-
-- Inga ändringar i datamodell, RPC:er, RLS eller gamification-logik.
-- Inga nya funktioner, ingen ny navigation, inga nya beroenden.
-- Inga ändringar i demo/live-gränssnittet eller i auth-flödet.
-
-## Teknisk omfattning
-
-Frontend och copy enbart. Berörda filer: `src/routes/index.tsx`, `src/routes/matstallen.tsx`, `src/routes/matstallen.$placeId.tsx`, `src/routes/gruppen.tsx`, `src/components/matrundan/LandingScreen.tsx`, `PlaceCard.tsx`, `GroupHighlights.tsx` samt mindre copy-justeringar i dialoger.
-
-Version bumpas till v1.3.1 med uppdaterad `version.ts`, in-app-historik och `CHANGELOG.md`.
-
-## Verifiering
-
-- `bun run verify:changed` (typecheck, lint, tester)
-- Playwright-kontroll i 360 px av Hem, Matställen, matställessida och Gruppen — `scrollWidth <= clientWidth`
-- Befintliga e2e-tester (bl.a. `package-6a-ux.spec.ts`) justeras om copy de asserterar ändras
-- Publicering sker först efter din uttryckliga godkännande
-
-## Fråga innan jag börjar
-
-Vill du ha hela listan (1–10), eller ska jag hålla mig till copy- och tonfallsdelen (1, 4, 9) och lämna layoutändringarna till efter familjens första testrunda?
+- Delmålslistan behöver hämtas **innan** besöket finns. Nuvarande RPC `list_visit_share_targets_v4b` kräver `_visit_id`. Enklaste hållbara lösningen utan ny RPC: spara besöket först (som idag) och därefter direkt läsa mållistan och dela till de förkryssade grupperna i samma sparaflöde. Kryssrutorna i dialogen fylls då från `list_user_groups_v4b` (dina aktiva grupper), och grupper där besöket redan är länkat filtreras bort efter sparandet.
+- Inga schema- eller RLS-ändringar. Delning går fortsatt genom `share_visit_to_group` med serverkontrollerad medlemskapsvalidering och `source_group_id` server-only.
+- 360 px verifieras för den utökade dialogen (Playwright-screenshot + scrollWidth-kontroll).
+- Version bumpas till v1.4.0 med uppdaterad `version.ts`, in-app-historik och `CHANGELOG.md`; `bun run verify:changed` körs före leverans.
