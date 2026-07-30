@@ -14,6 +14,7 @@ import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
+import { EmailCodeDialog } from "./EmailCodeDialog";
 
 function GroupMenuItem({
   group,
