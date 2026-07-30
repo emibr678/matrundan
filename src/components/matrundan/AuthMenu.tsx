@@ -60,6 +60,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
 
   async function signIn() {
     try {
@@ -71,12 +72,30 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
 
   if (!user && mode !== "demo") {
     return (
-      <Button size="sm" variant="outline" className="rounded-full" onClick={() => void signIn()}>
-        <LogIn className="mr-1.5 h-4 w-4" />
-        Logga in
-      </Button>
+      <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline" className="rounded-full">
+              <LogIn className="mr-1.5 h-4 w-4" />
+              Logga in
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuItem onSelect={() => void signIn()}>
+              <LogIn className="mr-2 h-4 w-4" />
+              Fortsätt med Google
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setEmailCodeOpen(true)}>
+              <Mail className="mr-2 h-4 w-4" />
+              Fortsätt med e-postkod
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+      </>
     );
   }
+
 
   if (!user) {
     return (
