@@ -386,6 +386,37 @@ export function AddPlaceDialog({
     }
   };
 
+  const confirmSyncVisits = async () => {
+    if (!activeGroupId || syncVisitIds.length === 0) {
+      setSyncOpen(false);
+      return;
+    }
+    setSyncBusy(true);
+    const failed: string[] = [];
+    let sharedCount = 0;
+    for (const visitId of syncVisitIds) {
+      const visit = syncVisits.find((v) => v.visitId === visitId);
+      try {
+        await shareVisitToGroup(visitId, activeGroupId, visit?.ownHasComment ? syncShareComment : false);
+        sharedCount += 1;
+      } catch {
+        failed.push(visit?.groupName ?? "en grupp");
+      }
+    }
+    setSyncBusy(false);
+    setSyncOpen(false);
+    if (sharedCount > 0 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("matrundan:reload"));
+    }
+    if (failed.length > 0) {
+      toast.warning("Några besök kunde inte delas.", { description: failed.join(", ") });
+    } else {
+      toast.success(
+        `${sharedCount} ${sharedCount === 1 ? "besök delat" : "besök delade"} till gruppen`,
+      );
+    }
+  };
+
   const submitManual = async () => {
     if (!manual.name.trim() || isBusy) {
       if (!manual.name.trim()) toast.error("Ge stället ett namn");
