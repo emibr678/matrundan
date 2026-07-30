@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Archive, Home, LogIn, LogOut, User as UserIcon, Plus, UserCog } from "lucide-react";
+import { Archive, Home, LogIn, LogOut, Mail, User as UserIcon, Plus, UserCog } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
