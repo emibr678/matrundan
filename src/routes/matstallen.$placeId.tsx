@@ -189,7 +189,14 @@ function PlaceDetail() {
               ) : (
                 <StatusBadge placeId={place.id} />
               )}
+              {placeRemoved ? null : (
+                <p className="w-full text-xs text-muted-foreground">
+                  Stället räknas som provat så fort någon i gänget varit här — alla
+                  behöver inte gå hit.
+                </p>
+              )}
             </div>
+
           </div>
         </div>
 
