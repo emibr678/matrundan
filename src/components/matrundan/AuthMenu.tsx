@@ -88,7 +88,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setEmailCodeOpen(true)}>
               <Mail className="mr-2 h-4 w-4" />
-              Fortsätt med e-postkod
+              Fortsätt med e-post
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -124,7 +124,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setEmailCodeOpen(true)}>
               <Mail className="mr-2 h-4 w-4" />
-              Logga in med e-postkod
+              Logga in med e-post
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

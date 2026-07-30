@@ -96,10 +96,10 @@ export function LandingScreen() {
             onClick={() => setEmailCodeOpen(true)}
           >
             <Mail className="h-4 w-4" />
-            Fortsätt med e-postkod
+            Fortsätt med e-post
           </Button>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Med e-postkod får du en sexsiffrig kod i mejlen – inget lösenord behövs.
+            Har du inget Google-konto skapar du ett konto med e-post och lösenord.
           </p>
         </Card>
 

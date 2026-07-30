@@ -114,7 +114,7 @@ function InvitePage() {
                     className="w-full"
                     onClick={() => setEmailCodeOpen(true)}
                   >
-                    Fortsätt med e-postkod
+                    Fortsätt med e-post
                   </Button>
                   <p className="text-xs text-muted-foreground">
                     Inloggningen kopplar ditt konto till gruppen. Inbjudningslänken är separat och
