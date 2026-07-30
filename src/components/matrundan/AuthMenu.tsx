@@ -123,9 +123,15 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
               <LogIn className="mr-2 h-4 w-4" />
               Logga in med Google
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setEmailCodeOpen(true)}>
+              <Mail className="mr-2 h-4 w-4" />
+              Logga in med e-postkod
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <EmailCodeDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
       </>
+
     );
   }
 
