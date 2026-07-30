@@ -568,6 +568,83 @@ export type Database = {
           },
         ]
       }
+      notification_outbox: {
+        Row: {
+          attempts: number
+          body: string
+          created_at: string
+          dedupe_key: string
+          group_id: string | null
+          id: string
+          last_error: string | null
+          notification_type: string
+          sent_at: string | null
+          status: string
+          title: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          body: string
+          created_at?: string
+          dedupe_key: string
+          group_id?: string | null
+          id?: string
+          last_error?: string | null
+          notification_type: string
+          sent_at?: string | null
+          status?: string
+          title: string
+          url?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          created_at?: string
+          dedupe_key?: string
+          group_id?: string | null
+          id?: string
+          last_error?: string | null
+          notification_type?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_outbox_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          notification_type: string
+          push_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          notification_type: string
+          push_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          notification_type?: string
+          push_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       place_sources: {
         Row: {
           fetched_at: string
@@ -686,6 +763,42 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          device_label: string | null
+          endpoint: string
+          id: string
+          last_error: string | null
+          last_used_at: string | null
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          device_label?: string | null
+          endpoint: string
+          id?: string
+          last_error?: string | null
+          last_used_at?: string | null
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          device_label?: string | null
+          endpoint?: string
+          id?: string
+          last_error?: string | null
+          last_used_at?: string | null
+          p256dh?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1103,6 +1216,7 @@ export type Database = {
       get_group_app_state_v5c: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5d: { Args: { _group_id: string }; Returns: Json }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
+      get_notification_settings: { Args: never; Returns: Json }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
@@ -1134,6 +1248,10 @@ export type Database = {
         Args: { _visit_id: string }
         Returns: Json
       }
+      notification_type_enabled: {
+        Args: { _type: string; _user_id: string }
+        Returns: boolean
+      }
       prepare_own_account_deletion: {
         Args: { _confirm_solo_group_deletion?: boolean; _successors?: Json }
         Returns: Json
@@ -1146,11 +1264,33 @@ export type Database = {
         }
         Returns: string
       }
+      queue_notification: {
+        Args: {
+          _body: string
+          _dedupe_key: string
+          _group_id: string
+          _title: string
+          _type: string
+          _url: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       reactivate_group: { Args: { _group_id: string }; Returns: undefined }
+      register_push_subscription: {
+        Args: {
+          _auth: string
+          _device_label?: string
+          _endpoint: string
+          _p256dh: string
+        }
+        Returns: string
+      }
       remove_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: undefined
       }
+      remove_push_subscription: { Args: { _id: string }; Returns: undefined }
       remove_shared_visit_from_group: {
         Args: { _group_id: string; _visit_id: string }
         Returns: undefined
@@ -1177,6 +1317,10 @@ export type Database = {
       }
       set_next_stop_date_status: {
         Args: { _group_id: string; _proposal_id: string; _status: string }
+        Returns: undefined
+      }
+      set_notification_preference: {
+        Args: { _enabled: boolean; _type: string }
         Returns: undefined
       }
       set_review_group_visibility: {
