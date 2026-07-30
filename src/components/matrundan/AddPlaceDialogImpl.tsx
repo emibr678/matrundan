@@ -803,7 +803,7 @@ export function AddPlaceDialog({
                     <span className="min-w-0 flex-1">
                       {visit.groupName}
                       <span className="block text-xs text-muted-foreground">
-                        {visit.visitedOn} · {MEAL_LABEL[visit.mealType as Meal] ?? visit.mealType}
+                        {visit.visitedOn} · {visit.mealType}
                         {visit.alreadySharedToTarget ? " · redan delat" : null}
                       </span>
                     </span>
