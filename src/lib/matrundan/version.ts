@@ -3,12 +3,28 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.1.1";
 export const APP_VERSION_DATE = "2026-07-30";
 
-const VERSION_1_1_CHANGELOG: ChangelogEntry = {
+const VERSION_1_1_1_CHANGELOG: ChangelogEntry = {
   version: APP_VERSION,
   date: APP_VERSION_DATE,
+  summary: "Enklare kontoregistrering med e-post, utan väntan på bekräftelsemejl.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Nya konton aktiveras direkt vid registrering, så du kommer igång utan bekräftelsemejl.",
+        "Om e-postadressen redan har ett konto får du ett tydligt besked och hamnar direkt i inloggningen.",
+        "Återställning av lösenord påminner om att mejlet kan hamna i skräpposten.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_1_CHANGELOG: ChangelogEntry = {
+  version: "1.1.0",
+  date: "2026-07-30",
   summary:
     "Nu går det att skapa konto med e-post och lösenord, för dig som inte vill eller kan använda Google.",
   sections: [
