@@ -8,6 +8,7 @@ import { useStore } from "@/lib/matrundan/store";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { NextStopDateCard } from "@/components/matrundan/NextStopDateCard";
+import { AppNudges } from "@/components/matrundan/AppNudges";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
 export const Route = createFileRoute("/")({
@@ -61,6 +62,7 @@ export function Home() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
+      <AppNudges />
       <section>
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">

@@ -3,12 +3,29 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.2.0";
+export const APP_VERSION = "1.3.0";
 export const APP_VERSION_DATE = "2026-07-30";
 
-const VERSION_1_2_0_CHANGELOG: ChangelogEntry = {
+const VERSION_1_3_0_CHANGELOG: ChangelogEntry = {
   version: APP_VERSION,
   date: APP_VERSION_DATE,
+  summary: "Enklare att komma igång med notiser och att lägga appen på hemskärmen.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Ett diskret kort på Hem föreslår att slå på notiser när du är med i en grupp och inte redan har notiser på enheten.",
+        "På Android och i datorwebbläsare går det att lägga Matrundan på hemskärmen direkt med en knapp.",
+        "På iPhone och iPad visas en kort instruktion för Dela → Lägg till på hemskärmen, som också krävs för notiser.",
+        "Min profil har ett eget avsnitt, Appen på mobilen, för den som vill installera appen senare.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_2_0_CHANGELOG: ChangelogEntry = {
+  version: "1.2.0",
+  date: "2026-07-30",
   summary: "Push-notiser när något händer i dina grupper.",
   sections: [
     {
@@ -315,6 +332,7 @@ const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_3_0_CHANGELOG,
   VERSION_1_2_0_CHANGELOG,
   VERSION_1_1_2_CHANGELOG,
   VERSION_1_1_1_CHANGELOG,

@@ -30,6 +30,7 @@ import {
 } from "@/lib/matrundan/account.functions";
 import { updateProfile } from "@/lib/matrundan/live-admin";
 import { useSession } from "@/lib/matrundan/session";
+import { InstallAppSection } from "./AppNudges";
 import { NotificationSettingsSection } from "./NotificationSettingsSection";
 
 const AVATAR_EMOJIS = [
@@ -161,6 +162,8 @@ export function ProfileDialog({
             </div>
 
             <NotificationSettingsSection active={open} />
+
+            <InstallAppSection />
 
             <Card className="rounded-2xl border-destructive/25 p-4">
               <div className="text-sm font-medium">Radera konto</div>
