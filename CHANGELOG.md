@@ -7,6 +7,17 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [1.3.0] – 2026-07-30
+
+### Tillagt
+
+- Ett avfärdbart kort högst upp på Hem föreslår att slå på notiser för
+  inloggade medlemmar som inte redan har en prenumeration på enheten.
+- Stöd för installation på hemskärmen: knapp via webbläsarens
+  installationshändelse på Android och skrivbord, och en kort Safari-instruktion
+  på iPhone och iPad.
+- Avsnittet "Appen på mobilen" i Min profil för installation i efterhand.
+
 ## [1.2.0] – 2026-07-30
 
 ### Tillagt
