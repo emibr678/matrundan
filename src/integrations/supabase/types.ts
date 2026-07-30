@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_jobs: {
+        Row: {
+          completed_at: string | null
+          requested_at: string
+          status: string
+          storage_paths: string[]
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          requested_at?: string
+          status?: string
+          storage_paths?: string[]
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          requested_at?: string
+          status?: string
+          storage_paths?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_deletion_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity: {
         Row: {
           actor_id: string | null
@@ -632,6 +664,7 @@ export type Database = {
           avatar_emoji: string | null
           avatar_url: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           id: string
           updated_at: string
@@ -640,6 +673,7 @@ export type Database = {
           avatar_emoji?: string | null
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id: string
           updated_at?: string
@@ -648,6 +682,7 @@ export type Database = {
           avatar_emoji?: string | null
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           updated_at?: string
@@ -945,6 +980,10 @@ export type Database = {
         Returns: boolean
       }
       can_see_place: { Args: { _place_id: string }; Returns: boolean }
+      complete_account_deletion: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       create_group_invitation: {
         Args: {
           _expires_in_days?: number
@@ -1058,6 +1097,7 @@ export type Database = {
         Args: { _group_id: string; _visit_id: string }
         Returns: string
       }
+      get_account_deletion_requirements: { Args: never; Returns: Json }
       get_group_app_state: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v4b: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5c: { Args: { _group_id: string }; Returns: Json }
@@ -1092,6 +1132,10 @@ export type Database = {
       list_visit_share_targets: { Args: { _visit_id: string }; Returns: Json }
       list_visit_share_targets_v4b: {
         Args: { _visit_id: string }
+        Returns: Json
+      }
+      prepare_own_account_deletion: {
+        Args: { _confirm_solo_group_deletion?: boolean; _successors?: Json }
         Returns: Json
       }
       propose_next_stop_date: {
