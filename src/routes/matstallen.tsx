@@ -19,7 +19,13 @@ import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { RatingStars } from "@/components/matrundan/Rating";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
+
 import {
   Sheet,
   SheetContent,
