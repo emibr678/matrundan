@@ -48,12 +48,18 @@ export function VisitDialog({
 }) {
   const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
   const { userGroups, activeGroupId } = useSession();
-  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
+  const shareableGroups = React.useMemo(
+    () =>
+      userGroups.filter(
+        (group) => group.lifecycleStatus === "active" && group.id !== activeGroupId,
+      ),
+    [userGroups, activeGroupId],
+  );
   const canShare =
     mode === "live" &&
     state.group.lifecycleStatus !== "archived" &&
     !!activeGroupId &&
-    activeGroupCount >= 2;
+    shareableGroups.length > 0;
   const [busy, setBusy] = React.useState(false);
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
@@ -72,6 +78,9 @@ export function VisitDialog({
   const [comment, setComment] = React.useState("");
   const [showDetails, setShowDetails] = React.useState(false);
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
+  const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
+  const [shareComment, setShareComment] = React.useState(false);
+  const hasComment = comment.trim().length > 0;
 
   React.useEffect(() => {
     if (!open) {
@@ -85,10 +94,18 @@ export function VisitDialog({
       setComment("");
       setShowDetails(false);
       setPhotoFile(null);
+      setShareComment(false);
     }
   }, [open, state.currentUserId]);
 
+  // Alla andra aktiva grupper är förvalda när dialogen öppnas.
+  React.useEffect(() => {
+    if (!open) return;
+    setShareGroupIds(shareableGroups.map((group) => group.id));
+  }, [open, shareableGroups]);
+
   if (!place) return null;
+
 
   const toggleParticipant = (id: string) =>
     setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
