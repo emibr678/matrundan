@@ -1242,6 +1242,14 @@ export type Database = {
           state: string
         }[]
       }
+      list_own_visits_for_place_on_add: {
+        Args: { _place_id: string; _target_group_id: string }
+        Returns: Json
+      }
+      list_place_share_targets_v4b: {
+        Args: { _place_id: string }
+        Returns: Json
+      }
       list_user_groups_v4b: { Args: never; Returns: Json }
       list_visit_share_targets: { Args: { _visit_id: string }; Returns: Json }
       list_visit_share_targets_v4b: {
