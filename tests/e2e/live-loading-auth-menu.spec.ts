@@ -115,6 +115,6 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
 
   releaseGroups?.();
 
-  await expect(page.getByText("Inget nästa stopp valt")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vart går rundan härnäst?" })).toBeVisible();
   await expect(page.getByText("Något gick snett")).toHaveCount(0);
 });

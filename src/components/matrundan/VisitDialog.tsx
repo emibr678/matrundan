@@ -1,6 +1,10 @@
 import * as React from "react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -9,10 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,20 +21,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
-import { RatingInput } from "./Rating";
-import { useStore } from "@/lib/matrundan/store";
-import { useSession } from "@/lib/matrundan/session";
-import { ShareVisitDialog } from "./ShareVisitDialog";
-import { VisitPhotoField } from "./VisitPhotoField";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   listPlaceShareTargets,
   shareVisitToGroup,
   type PlaceShareTarget,
 } from "@/lib/matrundan/live-sharing";
+import { useSession } from "@/lib/matrundan/session";
+import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharing-selection";
+import { useStore } from "@/lib/matrundan/store";
+import { RatingInput } from "./Rating";
+import { ShareVisitDialog } from "./ShareVisitDialog";
+import { VisitPhotoField } from "./VisitPhotoField";
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
 const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
@@ -57,15 +57,14 @@ export function VisitDialog({
   const { activeGroupId } = useSession();
   const [shareTargets, setShareTargets] = React.useState<PlaceShareTarget[]>([]);
   const [shareTargetsLoading, setShareTargetsLoading] = React.useState(false);
+  const [shareTargetsError, setShareTargetsError] = React.useState<string | null>(null);
   const shareableGroups = React.useMemo(
     () => shareTargets.filter((group) => group.groupId !== activeGroupId),
     [shareTargets, activeGroupId],
   );
-  const canShare =
-    mode === "live" &&
-    state.group.lifecycleStatus !== "archived" &&
-    !!activeGroupId &&
-    shareableGroups.length > 0;
+  const showShareSection =
+    mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
+  const canShare = showShareSection && shareableGroups.length > 0;
   const [busy, setBusy] = React.useState(false);
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
@@ -87,6 +86,9 @@ export function VisitDialog({
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
   const hasComment = comment.trim().length > 0;
+  const allShareGroupsSelected =
+    shareableGroups.length > 0 &&
+    shareableGroups.every((group) => shareGroupIds.includes(group.groupId));
 
   React.useEffect(() => {
     if (!open) {
@@ -102,24 +104,27 @@ export function VisitDialog({
       setPhotoFile(null);
       setShareComment(false);
       setShareTargets([]);
+      setShareTargetsError(null);
       setShareGroupIds([]);
     }
   }, [open, state.currentUserId]);
 
-  // Hämta delningsmål när dialogen öppnas. Förval endast grupper där stället redan finns.
   React.useEffect(() => {
     if (!open || mode !== "live" || !placeId) return;
     let cancelled = false;
     setShareTargetsLoading(true);
+    setShareTargetsError(null);
     listPlaceShareTargets(placeId)
       .then((targets) => {
         if (cancelled) return;
         setShareTargets(targets);
-        setShareGroupIds(targets.filter((t) => t.placeExistsInGroup).map((t) => t.groupId));
+        setShareGroupIds(defaultShareGroupIds(targets, activeGroupId));
       })
       .catch(() => {
         if (cancelled) return;
         setShareTargets([]);
+        setShareGroupIds([]);
+        setShareTargetsError("Dina andra grupper kunde inte hämtas just nu.");
       })
       .finally(() => {
         if (!cancelled) setShareTargetsLoading(false);
@@ -127,7 +132,7 @@ export function VisitDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, mode, placeId]);
+  }, [activeGroupId, open, mode, placeId]);
 
   if (!place) return null;
 
@@ -170,8 +175,6 @@ export function VisitDialog({
         }
       }
 
-      // Dela vidare till de förkryssade grupperna. Besöket är kanoniskt och
-      // skapas bara en gång – varje grupp får en delad länk till samma besök.
       const targets = canShare && created?.id ? shareGroupIds : [];
       const failed: string[] = [];
       let sharedCount = 0;
@@ -180,7 +183,9 @@ export function VisitDialog({
           await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
           sharedCount += 1;
         } catch {
-          failed.push(shareableGroups.find((g) => g.groupId === groupId)?.name ?? "en grupp");
+          failed.push(
+            shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp",
+          );
         }
       }
       if (sharedCount > 0 && typeof window !== "undefined") {
@@ -210,8 +215,8 @@ export function VisitDialog({
       if (photoError) {
         toast.warning("Besöket sparades utan foto.", { description: photoError.message });
       }
-    } catch (e) {
-      toast.error((e as Error).message || "Kunde inte spara besöket.");
+    } catch (error) {
+      toast.error((error as Error).message || "Kunde inte spara besöket.");
     } finally {
       setBusy(false);
     }
@@ -235,20 +240,20 @@ export function VisitDialog({
                 id="date"
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(event) => setDate(event.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               />
             </div>
             <div className="space-y-1.5">
               <Label>Tillfälle</Label>
-              <Select value={meal} onValueChange={(v) => setMeal(v as typeof meal)}>
+              <Select value={meal} onValueChange={(value) => setMeal(value as typeof meal)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MEALS.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {MEAL_LABEL[m]}
+                  {MEALS.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {MEAL_LABEL[value]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -259,22 +264,22 @@ export function VisitDialog({
           <div className="space-y-1.5">
             <Label>Deltagare</Label>
             <div className="flex flex-wrap gap-2">
-              {state.members.map((m) => {
-                const active = participants.includes(m.id);
+              {state.members.map((member) => {
+                const active = participants.includes(member.id);
                 return (
                   <button
-                    key={m.id}
+                    key={member.id}
                     type="button"
-                    onClick={() => toggleParticipant(m.id)}
+                    onClick={() => toggleParticipant(member.id)}
                     aria-pressed={active}
-                    aria-label={`${active ? "Ta bort" : "Lägg till"} ${m.name} som deltagare`}
+                    aria-label={`${active ? "Ta bort" : "Lägg till"} ${member.name} som deltagare`}
                   >
                     <Badge
                       variant={active ? "default" : "outline"}
                       className="cursor-pointer gap-1 rounded-full px-3 py-1"
                     >
-                      <span>{m.avatar}</span>
-                      <span>{m.name}</span>
+                      <span>{member.avatar}</span>
+                      <span>{member.name}</span>
                     </Badge>
                   </button>
                 );
@@ -317,35 +322,57 @@ export function VisitDialog({
             <Textarea
               id="comment"
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(event) => setComment(event.target.value)}
               rows={2}
               placeholder="En liten minnesnotering…"
             />
           </div>
 
-          {canShare ? (
+          {showShareSection && shareTargetsLoading ? (
+            <div
+              role="status"
+              className="flex min-h-11 items-center gap-2 rounded-2xl border border-border/70 bg-secondary/40 px-4 py-3 text-sm text-muted-foreground"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" /> Hämtar dina andra grupper…
+            </div>
+          ) : null}
+
+          {showShareSection && shareTargetsError ? (
+            <div
+              role="alert"
+              className="rounded-2xl border border-border/70 bg-secondary/40 px-4 py-3 text-sm"
+            >
+              <p>{shareTargetsError}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Besöket kan fortfarande sparas i den här gruppen.
+              </p>
+            </div>
+          ) : null}
+
+          {canShare && !shareTargetsLoading && !shareTargetsError ? (
             <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
                   <p className="text-xs text-muted-foreground">
-                    Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata kommentarer och
-                    andra gruppers medlemskap syns aldrig.
+                    Besöket och matstället läggs till i de valda grupperna. Ursprungsgrupp, privata
+                    kommentarer och andra gruppers medlemmar syns aldrig.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() =>
                     setShareGroupIds(
-                      shareGroupIds.length === shareableGroups.length
-                        ? []
-                        : shareableGroups.map((g) => g.groupId),
+                      toggleAllSelection(
+                        shareableGroups.map((group) => group.groupId),
+                        shareGroupIds,
+                      ),
                     )
                   }
-                  disabled={isBusy || shareTargetsLoading}
+                  disabled={isBusy}
                   className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline disabled:opacity-50"
                 >
-                  {shareGroupIds.length === shareableGroups.length ? "Rensa alla" : "Välj alla"}
+                  {allShareGroupsSelected ? "Rensa val" : "Välj alla"}
                 </button>
               </div>
               <div className="space-y-2">
@@ -359,7 +386,7 @@ export function VisitDialog({
                       <Checkbox
                         checked={checked}
                         onCheckedChange={() => toggleShareGroup(group.groupId)}
-                        disabled={isBusy || shareTargetsLoading}
+                        disabled={isBusy}
                         aria-label={`Dela besöket med ${group.name}`}
                       />
                       <span aria-hidden>{group.emoji ?? "🍽️"}</span>
@@ -397,11 +424,7 @@ export function VisitDialog({
           >
             Avbryt
           </Button>
-          <Button
-            onClick={() => submit()}
-            disabled={isBusy || overall === 0}
-            className="w-full sm:w-auto"
-          >
+          <Button onClick={submit} disabled={isBusy || overall === 0} className="w-full sm:w-auto">
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara besök
           </Button>
@@ -411,8 +434,8 @@ export function VisitDialog({
         visitId={sharePayload?.visitId ?? null}
         currentGroupId={sharePayload?.groupId ?? ""}
         open={sharePayload !== null}
-        onOpenChange={(o) => {
-          if (!o) setSharePayload(null);
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setSharePayload(null);
         }}
         onShared={() => {
           if (typeof window !== "undefined") {

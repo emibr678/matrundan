@@ -171,9 +171,11 @@ gruppscopade read-models och validerade RPC-anrop.
 - Föreslå datum och valfri tid för nästa stopp, svara och bekräfta eller ta bort
   förslaget enligt medlems- och rollregler.
 - Registrera besök med deltagare och omdöme atomärt, redigera eget omdöme och
-  hantera ett privat besöksfoto.
+  hantera ett privat besöksfoto. Besöket och matstället kan samtidigt delas
+  till valda andra aktiva grupper; grupper där stället redan finns är förvalda.
 - Dela ett kanoniskt besök till en annan grupp utan att duplicera plats, besök,
-  deltagare eller recensioner.
+  deltagare eller recensioner. När ett Geoapify-ställe läggs till kan egna
+  tidigare besök delas frivilligt; inget besök eller egen kommentar är förvalt.
 - Styra egen kommentarssynlighet per grupp.
 - Välja om delade besök räknas i progression.
 - Geoapify-sökning med server-skyddad API-nyckel, verifierat sökområde och radier
