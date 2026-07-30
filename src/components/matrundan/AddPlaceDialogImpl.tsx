@@ -385,7 +385,9 @@ export function AddPlaceDialog({
         } catch (caught) {
           toast.warning("Stället lades till, men tidigare besök kunde inte hämtas.", {
             description:
-              caught instanceof Error ? caught.message : "Försök igen från besökets detaljsida senare.",
+              caught instanceof Error
+                ? caught.message
+                : "Försök igen från besökets detaljsida senare.",
           });
         }
       }
@@ -848,7 +850,9 @@ export function AddPlaceDialog({
                 );
               })}
             </div>
-            {syncVisits.some((visit) => syncVisitIds.includes(visit.visitId) && visit.ownHasComment) ? (
+            {syncVisits.some(
+              (visit) => syncVisitIds.includes(visit.visitId) && visit.ownHasComment,
+            ) ? (
               <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
                 <Label htmlFor="sync-share-comment" className="text-sm font-normal">
                   Dela även mina kommentarer

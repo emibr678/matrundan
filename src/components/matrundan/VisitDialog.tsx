@@ -183,7 +183,9 @@ export function VisitDialog({
           await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
           sharedCount += 1;
         } catch {
-          failed.push(shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp");
+          failed.push(
+            shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp",
+          );
         }
       }
       if (sharedCount > 0 && typeof window !== "undefined") {
@@ -422,11 +424,7 @@ export function VisitDialog({
           >
             Avbryt
           </Button>
-          <Button
-            onClick={submit}
-            disabled={isBusy || overall === 0}
-            className="w-full sm:w-auto"
-          >
+          <Button onClick={submit} disabled={isBusy || overall === 0} className="w-full sm:w-auto">
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara besök
           </Button>
