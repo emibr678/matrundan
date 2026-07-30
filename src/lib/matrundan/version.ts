@@ -3,12 +3,27 @@ import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.1.1";
+export const APP_VERSION = "1.1.2";
 export const APP_VERSION_DATE = "2026-07-30";
 
-const VERSION_1_1_1_CHANGELOG: ChangelogEntry = {
+const VERSION_1_1_2_CHANGELOG: ChangelogEntry = {
   version: APP_VERSION,
   date: APP_VERSION_DATE,
+  summary: "Tydligare besked när ett lösenord inte accepteras vid kontoregistrering.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Ett lösenord som är för kort eller för lätt att gissa ger nu ett tydligt besked i stället för ett generiskt felmeddelande.",
+        "Registreringen visar kraven på lösenordet redan innan du skickar formuläret.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_1_1_CHANGELOG: ChangelogEntry = {
+  version: "1.1.1",
+  date: "2026-07-30",
   summary: "Enklare kontoregistrering med e-post, utan väntan på bekräftelsemejl.",
   sections: [
     {
