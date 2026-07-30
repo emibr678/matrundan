@@ -160,8 +160,14 @@ export function AddPlaceDialog({
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [retry, setRetry] = React.useState(0);
+  const [syncOpen, setSyncOpen] = React.useState(false);
+  const [syncPlaceName, setSyncPlaceName] = React.useState("");
+  const [syncVisits, setSyncVisits] = React.useState<OwnVisitForPlace[]>([]);
+  const [syncVisitIds, setSyncVisitIds] = React.useState<string[]>([]);
+  const [syncShareComment, setSyncShareComment] = React.useState(false);
+  const [syncBusy, setSyncBusy] = React.useState(false);
   const requestRef = React.useRef(0);
-  const isBusy = busy || submitting;
+  const isBusy = busy || submitting || syncBusy;
 
   const parsed = React.useMemo(
     () => parseLocation(location, isLive ? "" : state.group.city),
