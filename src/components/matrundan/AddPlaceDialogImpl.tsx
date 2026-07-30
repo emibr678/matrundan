@@ -7,6 +7,7 @@ import { OccasionPicker } from "@/components/matrundan/OccasionPicker";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -24,9 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { geoapifySearchPlaces } from "@/lib/matrundan/geoapify.functions";
 import { formatLocation, parseLocation } from "@/lib/matrundan/location";
 import {
@@ -37,6 +37,12 @@ import {
 import { primaryOccasion } from "@/lib/matrundan/occasions";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
+import {
+  availableOwnVisits,
+  formatMealType,
+  formatOwnVisitDate,
+  toggleAllSelection,
+} from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
 import {
   CATEGORY_LABEL,
@@ -168,6 +174,8 @@ export function AddPlaceDialog({
   const [syncBusy, setSyncBusy] = React.useState(false);
   const requestRef = React.useRef(0);
   const isBusy = busy || submitting || syncBusy;
+  const allSyncVisitsSelected =
+    syncVisits.length > 0 && syncVisits.every((visit) => syncVisitIds.includes(visit.visitId));
 
   const parsed = React.useMemo(
     () => parseLocation(location, isLive ? "" : state.group.city),
@@ -307,9 +315,20 @@ export function AddPlaceDialog({
     setPendingNotes("");
   };
 
+  const closeSync = () => {
+    if (syncBusy) return;
+    setSyncOpen(false);
+    setSyncPlaceName("");
+    setSyncVisits([]);
+    setSyncVisitIds([]);
+    setSyncShareComment(false);
+  };
+
   const confirmAdd = async () => {
     if (!pending || isBusy) return;
     const statusBefore = statusForResult(pending);
+    const shouldOfferSync =
+      isLive && !!activeGroupId && !!pending.provider && pending.provider !== "demo";
     setBusy(true);
     try {
       const place = {
@@ -346,32 +365,30 @@ export function AddPlaceDialog({
       setPendingOccasions([]);
       setPendingNotes("");
 
-      // Erbjud att synka egna tidigare besök från andra grupper.
-      if (isLive && activeGroupId) {
-        try {
-          const ownVisits = await listOwnVisitsForPlaceOnAdd(added.id, activeGroupId);
-          if (ownVisits.length > 0) {
-            setSyncPlaceName(added.name);
-            setSyncVisits(ownVisits);
-            setSyncVisitIds(ownVisits.filter((v) => !v.alreadySharedToTarget).map((v) => v.visitId));
-            setSyncOpen(true);
-            toast.success(
-              statusBefore === "archived"
-                ? `${added.name} är tillbaka i gruppens lista`
-                : `${added.name} tillagd i gruppen`,
-            );
-            return;
-          }
-        } catch {
-          // Synk är sekundär; fortsätt utan att blockera.
-        }
-      }
-
       toast.success(
         statusBefore === "archived"
           ? `${added.name} är tillbaka i gruppens lista`
           : `${added.name} tillagd i gruppen`,
       );
+
+      if (shouldOfferSync && activeGroupId) {
+        try {
+          const ownVisits = await listOwnVisitsForPlaceOnAdd(added.id, activeGroupId);
+          const shareableVisits = availableOwnVisits(ownVisits);
+          if (shareableVisits.length > 0) {
+            setSyncPlaceName(added.name);
+            setSyncVisits(shareableVisits);
+            setSyncVisitIds([]);
+            setSyncShareComment(false);
+            setSyncOpen(true);
+          }
+        } catch (caught) {
+          toast.warning("Stället lades till, men tidigare besök kunde inte hämtas.", {
+            description:
+              caught instanceof Error ? caught.message : "Försök igen från besökets detaljsida senare.",
+          });
+        }
+      }
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Kunde inte lägga till stället.";
       if (/redan|already|duplicate|unique/i.test(message)) {
@@ -387,34 +404,52 @@ export function AddPlaceDialog({
   };
 
   const confirmSyncVisits = async () => {
-    if (!activeGroupId || syncVisitIds.length === 0) {
-      setSyncOpen(false);
-      return;
-    }
+    if (!activeGroupId || syncVisitIds.length === 0 || syncBusy) return;
+
     setSyncBusy(true);
-    const failed: string[] = [];
-    let sharedCount = 0;
+    const failedIds: string[] = [];
+    const failedGroups: string[] = [];
+    const successfulIds: string[] = [];
+
     for (const visitId of syncVisitIds) {
-      const visit = syncVisits.find((v) => v.visitId === visitId);
+      const visit = syncVisits.find((candidate) => candidate.visitId === visitId);
+      if (!visit) continue;
       try {
-        await shareVisitToGroup(visitId, activeGroupId, visit?.ownHasComment ? syncShareComment : false);
-        sharedCount += 1;
+        await shareVisitToGroup(
+          visitId,
+          activeGroupId,
+          visit.ownHasComment ? syncShareComment : false,
+        );
+        successfulIds.push(visitId);
       } catch {
-        failed.push(visit?.groupName ?? "en grupp");
+        failedIds.push(visitId);
+        failedGroups.push(visit.groupName);
       }
     }
-    setSyncBusy(false);
-    setSyncOpen(false);
-    if (sharedCount > 0 && typeof window !== "undefined") {
+
+    if (successfulIds.length > 0 && typeof window !== "undefined") {
       window.dispatchEvent(new Event("matrundan:reload"));
     }
-    if (failed.length > 0) {
-      toast.warning("Några besök kunde inte delas.", { description: failed.join(", ") });
-    } else {
-      toast.success(
-        `${sharedCount} ${sharedCount === 1 ? "besök delat" : "besök delade"} till gruppen`,
-      );
+
+    if (failedIds.length > 0) {
+      setSyncVisits((current) => current.filter((visit) => failedIds.includes(visit.visitId)));
+      setSyncVisitIds(failedIds);
+      setSyncBusy(false);
+      toast.warning("Några besök kunde inte delas.", {
+        description: `${[...new Set(failedGroups)].join(", ")}. Försök igen eller hoppa över.`,
+      });
+      return;
     }
+
+    setSyncBusy(false);
+    setSyncOpen(false);
+    setSyncPlaceName("");
+    setSyncVisits([]);
+    setSyncVisitIds([]);
+    setSyncShareComment(false);
+    toast.success(
+      `${successfulIds.length} ${successfulIds.length === 1 ? "besök delat" : "besök delade"} till gruppen`,
+    );
   };
 
   const submitManual = async () => {
@@ -747,36 +782,39 @@ export function AddPlaceDialog({
       <Dialog
         open={open && syncOpen}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen) setSyncOpen(false);
+          if (!nextOpen) closeSync();
         }}
       >
         <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Dela tidigare besök</DialogTitle>
             <DialogDescription>
-              Du har besökt {syncPlaceName} i andra grupper. Välj vilka besök du vill synka till den
-              här gruppen.
+              {syncVisits.length === 1
+                ? `Du har ett tidigare besök på ${syncPlaceName} i en annan grupp.`
+                : `Du har ${syncVisits.length} tidigare besök på ${syncPlaceName} i andra grupper.`}{" "}
+              Välj vilka du vill dela till den här gruppen.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs text-muted-foreground">
-                Besöken läggs till som delade länkar. Ursprungsgrupp och privata kommentarer syns
-                aldrig.
+                Besöken länkas till den här gruppen. Medlemmarna här ser inte ursprungsgruppen eller
+                privata kommentarer. Din egen kommentar delas bara om du väljer det.
               </p>
               <button
                 type="button"
                 onClick={() =>
                   setSyncVisitIds(
-                    syncVisitIds.length === syncVisits.length
-                      ? []
-                      : syncVisits.map((v) => v.visitId),
+                    toggleAllSelection(
+                      syncVisits.map((visit) => visit.visitId),
+                      syncVisitIds,
+                    ),
                   )
                 }
                 disabled={syncBusy}
                 className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline disabled:opacity-50"
               >
-                {syncVisitIds.length === syncVisits.length ? "Rensa alla" : "Välj alla"}
+                {allSyncVisitsSelected ? "Rensa val" : "Välj alla"}
               </button>
             </div>
             <div className="space-y-2">
@@ -800,18 +838,17 @@ export function AddPlaceDialog({
                       aria-label={`Dela besöket från ${visit.groupName}`}
                     />
                     <span aria-hidden>{visit.groupEmoji ?? "🍽️"}</span>
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                       {visit.groupName}
                       <span className="block text-xs text-muted-foreground">
-                        {visit.visitedOn} · {visit.mealType}
-                        {visit.alreadySharedToTarget ? " · redan delat" : null}
+                        {formatOwnVisitDate(visit.visitedOn)} · {formatMealType(visit.mealType)}
                       </span>
                     </span>
                   </label>
                 );
               })}
             </div>
-            {syncVisits.some((v) => syncVisitIds.includes(v.visitId) && v.ownHasComment) ? (
+            {syncVisits.some((visit) => syncVisitIds.includes(visit.visitId) && visit.ownHasComment) ? (
               <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
                 <Label htmlFor="sync-share-comment" className="text-sm font-normal">
                   Dela även mina kommentarer
@@ -826,7 +863,7 @@ export function AddPlaceDialog({
             ) : null}
           </div>
           <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="ghost" className="min-h-11" disabled={syncBusy} onClick={() => setSyncOpen(false)}>
+            <Button variant="ghost" className="min-h-11" disabled={syncBusy} onClick={closeSync}>
               Hoppa över
             </Button>
             <Button
