@@ -51,7 +51,7 @@ interface SessionState {
     email: string,
     password: string,
     opts?: { displayName?: string; redirectPath?: string },
-  ) => Promise<{ needsEmailConfirmation: boolean }>;
+  ) => Promise<{ needsEmailConfirmation: boolean; accountAlreadyExists: boolean }>;
   sendPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   exitExampleMode: () => void;
