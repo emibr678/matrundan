@@ -33,6 +33,7 @@ function InvitePage() {
   const [preview, setPreview] = React.useState<InvitationPreview | null>(null);
   const [previewErr, setPreviewErr] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
   const submitted = React.useRef(false);
 
   React.useEffect(() => {
