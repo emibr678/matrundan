@@ -158,9 +158,9 @@ function PlaceDetail() {
             <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
               {place.name}
             </h1>
-            <div className="mt-1 flex max-w-full items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">
+            <div className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 [overflow-wrap:anywhere]">
                 {place.address}, {place.city}
               </span>
             </div>
