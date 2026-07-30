@@ -185,6 +185,34 @@ export function Home() {
         </Card>
       </section>
 
+      {lastVisit && lastVisitPlace ? (
+        <section>
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
+            <Heart className="h-3.5 w-3.5" />
+            Senast tillsammans
+          </div>
+          <Card className="rounded-2xl border-border/70 p-4">
+            <Link
+              to="/matstallen/$placeId"
+              params={{ placeId: lastVisitPlace.id }}
+              className="font-display text-lg [overflow-wrap:anywhere] hover:underline"
+            >
+              {lastVisitPlace.name}
+            </Link>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {new Date(lastVisit.date).toLocaleDateString("sv-SE", {
+                day: "numeric",
+                month: "long",
+              })}
+              {lastVisitNames.length > 0 ? ` · ${lastVisitNames.join(", ")}` : ""}
+            </p>
+            {lastVisit.comment ? (
+              <p className="mt-2 text-sm [overflow-wrap:anywhere]">”{lastVisit.comment}”</p>
+            ) : null}
+          </Card>
+        </section>
+      ) : null}
+
 
       <section className={canWrite ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
         {canWrite ? (
