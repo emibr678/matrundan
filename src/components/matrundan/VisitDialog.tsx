@@ -327,6 +327,7 @@ export function VisitDialog({
             <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
+                <button type="button">test</button>
                 <p className="text-xs text-muted-foreground">
                   Besöket läggs till i de valda grupperna. Ursprungsgrupp, privata kommentarer och
                   andra gruppers medlemmar syns aldrig.
