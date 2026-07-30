@@ -28,7 +28,6 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 
 ## [1.0.0] – 2026-07-29
 
-
 ### Nytt
 
 - En publik integritetssida beskriver appens datahantering, leverantörer,
