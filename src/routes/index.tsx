@@ -62,6 +62,7 @@ export function Home() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
+      <AppNudges />
       <section>
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
