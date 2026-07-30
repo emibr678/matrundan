@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Flag, Shuffle, Plus, MapPin, Star } from "lucide-react";
+import { Flag, Heart, Shuffle, Plus, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -52,6 +52,25 @@ export function Home() {
   const totalPlaces = activePlaces.length;
   const tried = totalPlaces - untried.length;
   const progressPct = totalPlaces === 0 ? 0 : Math.round((tried / totalPlaces) * 100);
+  const progressNote =
+    totalPlaces === 0
+      ? "Er runda börjar med det första stället ni lägger till."
+      : untried.length === 0
+        ? "Hela listan är avklarad — dags att fylla på med nya smultronställen."
+        : untried.length === 1
+          ? "Ett ställe kvar innan ni har provat hela listan."
+          : null;
+
+  const lastVisit = React.useMemo(() => {
+    return [...state.visits].sort((a, b) => b.date.localeCompare(a.date))[0];
+  }, [state.visits]);
+  const lastVisitPlace = lastVisit ? getPlace(lastVisit.placeId) : undefined;
+  const lastVisitNames = lastVisit
+    ? lastVisit.participantIds
+        .map((id) => memberById(id)?.name)
+        .filter((name): name is string => Boolean(name))
+    : [];
+
 
   const shuffle = () => {
     if (!canWrite) return;
@@ -125,15 +144,15 @@ export function Home() {
         ) : (
           <Card className="rounded-3xl border-dashed border-border bg-card p-6 text-center shadow-sm">
             <div className="text-5xl">🎯</div>
-            <h2 className="mt-3 font-display text-xl">Inget nästa stopp valt</h2>
+            <h2 className="mt-3 font-display text-xl">Vart går rundan härnäst?</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {groupArchived
-                ? "Gruppen är arkiverad. Historiken finns kvar att utforska."
+                ? "Gruppen är arkiverad, men allt ni har varit med om finns kvar att bläddra i."
                 : demoReadOnly
-                  ? "Exempelgruppen visar hur ett nästa stopp ser ut när gruppen har valt ett."
+                  ? "Exempelgruppen visar hur ett nästa stopp ser ut när gänget har valt ett."
                   : activePlaces.length > 0
-                    ? "Slumpa fram ett ställe eller välj ett från listan."
-                    : "Lägg till ett ställe för att börja planera nästa stopp."}
+                    ? "Slumpa fram ett ställe eller välj ett ur listan – ni bestämmer tillsammans."
+                    : "Lägg till ert första ställe så börjar rundan här."}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {canWrite && activePlaces.length > 0 ? (
@@ -152,9 +171,12 @@ export function Home() {
       <section>
         <Card className="rounded-2xl border-border/70 p-4">
           <div className="mb-2 text-sm font-medium">
-            Ni har provat {tried} av {totalPlaces} ställen
+            Ni har provat {tried} av {totalPlaces} ställen tillsammans
           </div>
           <Progress value={progressPct} className="h-2" />
+          {progressNote ? (
+            <p className="mt-2 text-xs text-muted-foreground">{progressNote}</p>
+          ) : null}
           <div className="mt-4 grid grid-cols-3 gap-2">
             <StatTile label="Ställen" value={totalPlaces} />
             <StatTile label="Besök" value={state.visits.length} />
@@ -162,6 +184,35 @@ export function Home() {
           </div>
         </Card>
       </section>
+
+      {lastVisit && lastVisitPlace ? (
+        <section>
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
+            <Heart className="h-3.5 w-3.5" />
+            Senast tillsammans
+          </div>
+          <Card className="rounded-2xl border-border/70 p-4">
+            <Link
+              to="/matstallen/$placeId"
+              params={{ placeId: lastVisitPlace.id }}
+              className="font-display text-lg [overflow-wrap:anywhere] hover:underline"
+            >
+              {lastVisitPlace.name}
+            </Link>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {new Date(lastVisit.date).toLocaleDateString("sv-SE", {
+                day: "numeric",
+                month: "long",
+              })}
+              {lastVisitNames.length > 0 ? ` · ${lastVisitNames.join(", ")}` : ""}
+            </p>
+            {lastVisit.comment ? (
+              <p className="mt-2 text-sm [overflow-wrap:anywhere]">”{lastVisit.comment}”</p>
+            ) : null}
+          </Card>
+        </section>
+      ) : null}
+
 
       <section className={canWrite ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
         {canWrite ? (

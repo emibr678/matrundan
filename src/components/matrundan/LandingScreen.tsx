@@ -138,7 +138,7 @@ export function LandingScreen() {
             </div>
             <h2 className="mt-1 font-display text-xl font-semibold">Utforska Fredagsgänget</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              Prova hur ett fiktivt kompisgäng i Stockholm samlar ställen, väljer nästa stopp och
+              Prova hur ett påhittat kompisgäng i Göteborg samlar ställen, väljer nästa stopp och
               minns sina besök. Dina ändringar sparas bara tillfälligt i den här fliken.
             </p>
           </div>

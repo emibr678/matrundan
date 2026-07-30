@@ -1,50 +1,58 @@
-## Mål
+## Utgångsläge
 
-Nya medlemmar ska inte behöva leta i profilen för att hitta notiser, och de ska få enkel, plattformsanpassad hjälp att lägga Matrundan på hemskärmen. Allt sker som en diskret, avfärdbar uppmaning i befintlig design – inga popup-avbrott mitt i ett flöde.
+Jag har gått igenom Hem, Matställen, matställessida, Gruppen och landningssidan i mobilbredd (390 px) samt läst copy i vyer och dialoger. Ingen horisontell overflow, inga konsolfel. Grunden är stabil och den varma paletten sitter — det som återstår är finputs på tomrum, hierarki, copy-konsekvens och tonfall.
 
-## 1. Notisfråga vid rätt tillfälle
+## Vad jag hittade
 
-En ny, låg-intensiv kort ("Slå på notiser") visas överst på Hem-vyn i live-läget när alla dessa gäller:
+**1. Faktafel i copy på landningssidan**
+Exempelgruppen beskrivs som "ett fiktivt kompisgäng i Stockholm", men all demodata ligger i Göteborg. Första intrycket för en ny familjemedlem blir motsägelsefullt.
 
-- användaren är inloggad och medlem i minst en grupp
-- webbläsaren stödjer push (befintlig `checkPushSupport`)
-- ingen prenumeration finns på den här enheten
-- användaren har inte avfärdat kortet tidigare på den här enheten
+**2. Hem känns tom och avslutas abrupt**
+Under statistikkortet och de två knapparna tar sidan slut med ett stort tomt fält. Hem är appens hjärta men berättar inget om gruppens liv. Förslag: en varm, kort avslutning — t.ex. "Senast tillsammans"-rad (senaste besöket med plats, deltagare och betyg) som länkar vidare, alternativt ett litet "Kvar att prova"-tips med ett slumpat ställe. Ingen ny datamodell behövs, allt finns i state.
 
-Kortet har kort text ("Få veta när gruppen registrerar ett besök eller väljer nästa stopp"), en primärknapp "Slå på notiser" som kör befintliga `enablePushOnThisDevice()`, samt "Inte nu". Vid lyckad aktivering: bekräftelse och kortet försvinner permanent. Vid "Inte nu": göms i 30 dagar, sedan får man frågan en gång till.
+**3. Statistikkortet är kyligt**
+"Ställen / Besök / Kvar att prova" är rena siffror utan värme. Förslag: behåll strukturen men gör rubriken mer relationell ("Ni har provat 5 av 9 ställen tillsammans") och ge kortet en mjuk mikrotext under progressbaren när gruppen närmar sig hela listan.
 
-Extra utlösare: direkt efter att man tackat ja till en inbjudan eller skapat sin första grupp visas samma kort högst upp – det är då nyttan är tydligast.
+**4. Tomma tillstånd är funktionella men opersonliga**
+"Inget nästa stopp valt", "Inga besök än. Bli först i gänget." — bra ansats, men blandad ton mellan vyer. Går igenom samtliga tomma tillstånd (Hem, Matställen, matställessida, Gruppen, filtrerad lista) och ger dem en gemensam, varm och uppmuntrande röst på svenska.
 
-Ingen webbläsardialog visas förrän användaren själv trycker på knappen (best practice; annars riskerar man permanent "blockerad").
+**5. Matställessidan: knapparna dominerar över innehållet**
+Tre staplade fullbreddsknappar (Registrera besök / Välj som nästa stopp / Favorit) tar mer plats än stället självt. Förslag: behåll "Registrera besök" som primär fullbredd, gör "Välj som nästa stopp" och "Favorit" till en kompaktare rad bredvid varandra. Frigör utrymme och stärker hierarkin.
 
-## 2. Installera på hemskärmen
+**6. Dubblerad "Registrera besök" på matställessidan**
+Knappen finns både i huvudkortet och i det tomma besökstillståndet direkt under. Ta bort dubbletten i det tomma tillståndet och låt den rutan bara bära den varma texten.
 
-Appen har redan manifest, ikoner och service worker, så installation fungerar tekniskt. Det som saknas är vägledning.
+**7. Matställen: mycket beslutsyta före listan**
+Sökfält, topplista med tre tillfällesflikar, fem filterchips, filterknapp och Lista/Karta-växlare — allt före första kortet. Förslag: fäll ihop topplistan till ett kompakt kort som kan expanderas, så att listan börjar högre upp. Ingen funktionalitet tas bort.
 
-- **Android/Chrome/Edge:** vi fångar webbläsarens `beforeinstallprompt`-händelse och visar en egen "Lägg till Matrundan på hemskärmen"-knapp. Trycket öppnar det riktiga installationsförslaget – ett klick, ingen instruktion behövs.
-- **iOS Safari:** ingen sådan händelse finns, så vi visar i stället en kort bildbeskrivning: "Tryck på Dela-ikonen och välj Lägg till på hemskärmen". Detta är dessutom ett krav för att notiser alls ska fungera på iPhone, så texten kopplar ihop de två.
-- **Övriga/redan installerad:** inget visas.
+**8. Adresstext trunkeras hårt**
+"Okänd tvärgata nära centru…" på matställessidan. Låt adressen radbrytas på två rader istället för att klippas mitt i ett ord.
 
-Var det syns:
-1. Samma diskreta kort-plats på Hem (visas en gång, kan avfärdas, återkommer inte om appen redan är installerad).
-2. En permanent post i profildialogen ("Appen på mobilen") så att den som avfärdat kortet kan hitta tillbaka.
-3. En rad i notisavsnittet på iPhone som förklarar varför installation krävs innan notiser kan slås på.
+**9. Terminologi och tonfall**
+Går igenom hela appen för konsekvent bruk av "gänget"/"gruppen", "tillfälle" (inte "sammanhang"), "ställe"/"matställe" och tilltal (ni/du). Blandningen finns idag mellan vyer och dialoger.
 
-## 3. Copy och ton
+**10. Kärnidén syns svagt i appen efter inloggning**
+Landningssidan säljer "gemensam matresa", men inne i appen är den känslan bara implicit. Punkt 2 och 3 ovan är det billigaste sättet att låta idén genomsyra Hem utan att lägga till nya funktioner.
 
-Svensk, varm och kort text i befintlig stil. Inga utropstecken, ingen påträngande upprepning: max ett kort åt gången, notisfrågan prioriteras före installationsförslaget utom på iPhone där installation måste komma först.
+## Vad jag INTE föreslår
 
-## Tekniska detaljer
+- Inga ändringar i datamodell, RPC:er, RLS eller gamification-logik.
+- Inga nya funktioner, ingen ny navigation, inga nya beroenden.
+- Inga ändringar i demo/live-gränssnittet eller i auth-flödet.
 
-- Ny komponent `src/components/matrundan/AppNudges.tsx` som väljer vilket kort som ska visas, renderad överst i Hem-vyn (`src/routes/index.tsx`) inom live-läget.
-- Ny hjälpfil `src/lib/matrundan/install-prompt.ts`: lyssnar på `beforeinstallprompt`, exponerar `useInstallPrompt()` med `canPrompt`, `promptInstall()` och plattformsdetektering; återanvänder `isIosLike`/`isInstalledApp` från `notifications.ts`.
-- Avfärdningsstatus i `localStorage` under `matrundan.nudges.v1` (enhetslokalt, ingen databasändring).
-- Återanvänder befintliga `checkPushSupport`, `currentDeviceEndpoint` och `enablePushOnThisDevice` – ingen ny server- eller databaslogik, inga nya RPC:er, inga migrationer.
-- Ingen offline-cachning eller ny service worker; `push-sw.js` lämnas orörd.
-- Version bumpas till v1.3.0 med poster i `version.ts`, `CHANGELOG.md` och README.
+## Teknisk omfattning
+
+Frontend och copy enbart. Berörda filer: `src/routes/index.tsx`, `src/routes/matstallen.tsx`, `src/routes/matstallen.$placeId.tsx`, `src/routes/gruppen.tsx`, `src/components/matrundan/LandingScreen.tsx`, `PlaceCard.tsx`, `GroupHighlights.tsx` samt mindre copy-justeringar i dialoger.
+
+Version bumpas till v1.3.1 med uppdaterad `version.ts`, in-app-historik och `CHANGELOG.md`.
 
 ## Verifiering
 
-- `bun run verify:changed` samt typecheck och build.
-- Playwright vid 360 px: korten får inte orsaka horisontell overflow, knappar minst 44 px.
-- Manuell kontroll på Android av installationsknappen; iOS-instruktionen verifieras visuellt (kan inte automattestas här).
+- `bun run verify:changed` (typecheck, lint, tester)
+- Playwright-kontroll i 360 px av Hem, Matställen, matställessida och Gruppen — `scrollWidth <= clientWidth`
+- Befintliga e2e-tester (bl.a. `package-6a-ux.spec.ts`) justeras om copy de asserterar ändras
+- Publicering sker först efter din uttryckliga godkännande
+
+## Fråga innan jag börjar
+
+Vill du ha hela listan (1–10), eller ska jag hålla mig till copy- och tonfallsdelen (1, 4, 9) och lämna layoutändringarna till efter familjens första testrunda?

@@ -158,9 +158,9 @@ function PlaceDetail() {
             <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
               {place.name}
             </h1>
-            <div className="mt-1 flex max-w-full items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">
+            <div className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 [overflow-wrap:anywhere]">
                 {place.address}, {place.city}
               </span>
             </div>
@@ -223,12 +223,13 @@ function PlaceDetail() {
               >
                 <Plus className="h-4 w-4" /> Registrera besök
               </Button>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2">
+
                 {isNext ? (
                   <Button
                     variant="ghost"
                     onClick={() => void setNext(null)}
-                    className="min-h-11 text-muted-foreground"
+                    className="min-h-11 whitespace-normal text-muted-foreground"
                   >
                     Ta bort som nästa stopp
                   </Button>
@@ -236,9 +237,9 @@ function PlaceDetail() {
                   <Button
                     variant="outline"
                     onClick={() => void setNext(place.id)}
-                    className="min-h-11"
+                    className="min-h-11 whitespace-normal"
                   >
-                    <Flag className="h-4 w-4" />
+                    <Flag className="h-4 w-4 shrink-0" />
                     Välj som nästa stopp
                   </Button>
                 )}
@@ -265,7 +266,7 @@ function PlaceDetail() {
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 {demoReadOnly
-                  ? "Du kan utforska stället och gruppens fiktiva besök, men inte ändra exempeldata."
+                  ? "Du kan utforska stället och gruppens påhittade besök, men inte ändra exempeldata."
                   : `Tidigare besök, betyg, kommentarer och favoriter finns kvar.${
                       placeRemoved && !groupArchived
                         ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
@@ -284,14 +285,9 @@ function PlaceDetail() {
             <div className="text-4xl">✨</div>
             <p className="mt-2 text-sm text-muted-foreground">
               {writable
-                ? "Inga besök än. Bli först i gänget."
+                ? "Här är det tomt än. Blir ni först får gänget minnet för alltid."
                 : "Inga registrerade besök finns i historiken."}
             </p>
-            {writable ? (
-              <Button className="mt-3" onClick={() => setVisitOpen(true)}>
-                <Plus className="h-4 w-4" /> Registrera besök
-              </Button>
-            ) : null}
           </Card>
         ) : (
           <div className="space-y-2">

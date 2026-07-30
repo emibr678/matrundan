@@ -7,7 +7,28 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [1.3.1] – 2026-07-30
+
+### Ändrat
+
+- Hem visar "Senast tillsammans" med gruppens senaste besök, deltagare och
+  kommentar, så startsidan känns som en gemensam matresa.
+- Progressionstexten är omskriven ("Ni har provat X av Y ställen tillsammans")
+  med en varm hjälptext när listan nästan eller helt är avklarad.
+- Topplistan på Matställen är ihopfälld som standard så gruppens egen lista
+  syns tidigare i vyn.
+- Varmare svensk copy i tomma tillstånd på Hem, Matställen och
+  matställessidan.
+- Landningssidans exempelgrupp beskrivs korrekt som ett kompisgäng i Göteborg.
+
+### Fixat
+
+- Knappraden "Nästa stopp"/"Favorit" och långa adresser bryter nu snyggt på
+  360 px i stället för att trunkeras.
+- Den dubblerade "Registrera besök"-knappen i tomma besökslistan är borttagen.
+
 ## [1.3.0] – 2026-07-30
+
 
 ### Tillagt
 
