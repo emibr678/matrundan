@@ -9,7 +9,8 @@ export const APP_VERSION_DATE = "2026-07-30";
 const VERSION_1_5_0_CHANGELOG: ChangelogEntry = {
   version: APP_VERSION,
   date: APP_VERSION_DATE,
-  summary: "Smartare delning vid registrering och synk av tidigare besök när du lägger till ett ställe.",
+  summary:
+    "Smartare delning vid registrering och synk av tidigare besök när du lägger till ett ställe.",
   sections: [
     {
       kind: "Nytt",
