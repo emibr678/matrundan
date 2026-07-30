@@ -125,15 +125,15 @@ export function Home() {
         ) : (
           <Card className="rounded-3xl border-dashed border-border bg-card p-6 text-center shadow-sm">
             <div className="text-5xl">🎯</div>
-            <h2 className="mt-3 font-display text-xl">Inget nästa stopp valt</h2>
+            <h2 className="mt-3 font-display text-xl">Vart går rundan härnäst?</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {groupArchived
-                ? "Gruppen är arkiverad. Historiken finns kvar att utforska."
+                ? "Gruppen är arkiverad, men allt ni har varit med om finns kvar att bläddra i."
                 : demoReadOnly
-                  ? "Exempelgruppen visar hur ett nästa stopp ser ut när gruppen har valt ett."
+                  ? "Exempelgruppen visar hur ett nästa stopp ser ut när gänget har valt ett."
                   : activePlaces.length > 0
-                    ? "Slumpa fram ett ställe eller välj ett från listan."
-                    : "Lägg till ett ställe för att börja planera nästa stopp."}
+                    ? "Slumpa fram ett ställe eller välj ett ur listan – ni bestämmer tillsammans."
+                    : "Lägg till ert första ställe så börjar rundan här."}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {canWrite && activePlaces.length > 0 ? (
@@ -152,9 +152,12 @@ export function Home() {
       <section>
         <Card className="rounded-2xl border-border/70 p-4">
           <div className="mb-2 text-sm font-medium">
-            Ni har provat {tried} av {totalPlaces} ställen
+            Ni har provat {tried} av {totalPlaces} ställen tillsammans
           </div>
           <Progress value={progressPct} className="h-2" />
+          {progressNote ? (
+            <p className="mt-2 text-xs text-muted-foreground">{progressNote}</p>
+          ) : null}
           <div className="mt-4 grid grid-cols-3 gap-2">
             <StatTile label="Ställen" value={totalPlaces} />
             <StatTile label="Besök" value={state.visits.length} />
@@ -162,6 +165,7 @@ export function Home() {
           </div>
         </Card>
       </section>
+
 
       <section className={canWrite ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
         {canWrite ? (
