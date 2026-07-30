@@ -46,7 +46,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   await expectNoHorizontalOverflow(page, "Borttaget matställe utan besök");
 
   await page.goto("/?demo=1");
-  await expect(page.getByRole("heading", { name: "Inget nästa stopp valt" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vart går rundan härnäst?" })).toBeVisible();
   const activeTile = page.getByText("Ställen", { exact: true }).locator("..");
   await expect(activeTile.getByText("8", { exact: true })).toBeVisible();
 
