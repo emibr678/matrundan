@@ -140,7 +140,7 @@ test("ett RPC-fel lämnar laddningsläget och kan återförsökas", async ({ pag
 
   await page.getByRole("button", { name: "Försök igen" }).click();
 
-  await expect(page.getByText("Inget nästa stopp valt")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vart går rundan härnäst?" })).toBeVisible();
   await expect(page.getByText("Kunde inte läsa gruppens data.")).toHaveCount(0);
   expect(attempts).toBe(2);
 });
