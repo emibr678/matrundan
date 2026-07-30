@@ -284,14 +284,9 @@ function PlaceDetail() {
             <div className="text-4xl">✨</div>
             <p className="mt-2 text-sm text-muted-foreground">
               {writable
-                ? "Inga besök än. Bli först i gänget."
+                ? "Här är det tomt än. Blir ni först får gänget minnet för alltid."
                 : "Inga registrerade besök finns i historiken."}
             </p>
-            {writable ? (
-              <Button className="mt-3" onClick={() => setVisitOpen(true)}>
-                <Plus className="h-4 w-4" /> Registrera besök
-              </Button>
-            ) : null}
           </Card>
         ) : (
           <div className="space-y-2">
