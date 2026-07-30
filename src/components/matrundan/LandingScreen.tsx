@@ -32,6 +32,7 @@ export function LandingScreen() {
   const [invite, setInvite] = React.useState("");
   const [signingIn, setSigningIn] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
+  const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
 
   async function createGroup() {
     if (signingIn) return;
@@ -43,6 +44,7 @@ export function LandingScreen() {
       setSigningIn(false);
     }
   }
+
 
   function joinGroup(event: React.FormEvent) {
     event.preventDefault();
