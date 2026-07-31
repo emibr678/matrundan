@@ -32,9 +32,7 @@ function existingSection(dialog: Locator, count: number) {
 }
 
 async function readExistingCount(dialog: Locator) {
-  const trigger = dialog
-    .getByRole("button", { name: /Redan i gruppen \(\d+\)/ })
-    .first();
+  const trigger = dialog.getByRole("button", { name: /Redan i gruppen \(\d+\)/ }).first();
   await expect(trigger).toBeVisible();
   const match = (await trigger.innerText()).match(/\((\d+)\)/);
   if (!match) throw new Error("Kunde inte läsa antalet ställen som redan finns i gruppen.");
