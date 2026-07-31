@@ -39,7 +39,7 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
 
-  const foodTagTrigger = detailsDialog.getByLabel("Kök och inriktning");
+  const foodTagTrigger = detailsDialog.getByRole("combobox", { name: "Kök och inriktning" });
   await expect(foodTagTrigger).toContainText("2 valda");
   await foodTagTrigger.click();
 
@@ -100,9 +100,8 @@ test("en dold demoträff försvinner ur sökningen och kan återställas i grupp
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  const hiddenSection = settings.locator("section").filter({
-    has: settings.getByRole("heading", { name: "Dolda sökträffar" }),
-  });
+  const hiddenHeading = settings.getByRole("heading", { name: "Dolda sökträffar" });
+  const hiddenSection = hiddenHeading.locator("..");
   await expect(hiddenSection.getByText(PLACE_NAME)).toBeVisible();
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
