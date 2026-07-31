@@ -148,9 +148,9 @@ export function FoodTagMultiSelect({
           <DialogTrigger asChild>{trigger}</DialogTrigger>
           <DialogContent
             data-testid="food-tag-mobile-dialog"
-            className="left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-0 p-0 shadow-none"
+            className="inset-0 h-auto min-h-0 max-h-none w-auto max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-0 p-0 shadow-none"
           >
-            <div className="flex min-h-0 h-full flex-col">
+            <div className="flex h-full min-h-0 flex-col">
               <DialogHeader className="shrink-0 border-b px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] pr-12 text-left">
                 <DialogTitle>{label}</DialogTitle>
                 <DialogDescription>
