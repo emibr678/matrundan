@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { PlaceSuggestion } from "./places-provider";
 import {
+  isBroadAdministrativeSearchArea,
   isSearchRadiusKm,
   mergeAreaSearchResults,
   SEARCH_RADIUS_OPTIONS,
@@ -30,6 +31,16 @@ describe("flera sökområden", () => {
     expect(SEARCH_RADIUS_OPTIONS).toContain(2);
     expect(isSearchRadiusKm(2)).toBe(true);
     expect(isSearchRadiusKm(4)).toBe(false);
+  });
+
+  test("kommun-, läns- och landsnivå används inte som punktcentrum", () => {
+    expect(isBroadAdministrativeSearchArea("county")).toBe(true);
+    expect(isBroadAdministrativeSearchArea("state")).toBe(true);
+    expect(isBroadAdministrativeSearchArea("country")).toBe(true);
+    expect(isBroadAdministrativeSearchArea("city")).toBe(false);
+    expect(isBroadAdministrativeSearchArea("district")).toBe(false);
+    expect(isBroadAdministrativeSearchArea("building")).toBe(false);
+    expect(isBroadAdministrativeSearchArea(undefined)).toBe(false);
   });
 
   test("samma providerställe visas en gång med kortaste avståndet", () => {
