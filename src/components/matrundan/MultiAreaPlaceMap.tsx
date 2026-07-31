@@ -52,10 +52,7 @@ const RADIUS_FILL = "multi-area-radius-fill";
 const RADIUS_LINE = "multi-area-radius-line";
 
 function themeColor(variable: string, fallback: string) {
-  const value = window
-    .getComputedStyle(document.documentElement)
-    .getPropertyValue(variable)
-    .trim();
+  const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
   if (!value) return fallback;
 
   const canvas = document.createElement("canvas");
