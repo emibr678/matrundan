@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 const root = process.cwd();
 const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const changelogPath = resolve(root, "CHANGELOG.md");
+const archivedChangelogPath = resolve(root, "docs/archive/changelog-through-v1.6.md");
 const versionPath = resolve(root, "src/lib/matrundan/version.ts");
 const errors = [];
 
@@ -56,9 +57,14 @@ function changedFiles(baseSha) {
   return output ? output.split("\n").filter(Boolean) : [];
 }
 
+function isTestFile(file) {
+  return /(?:^|\/)(?:tests?|__tests__)(?:\/|$)/.test(file) || /\.test\.[cm]?[jt]sx?$/.test(file);
+}
+
 function isUserFacing(file) {
-  if (/\.test\.[cm]?[jt]sx?$/.test(file)) return false;
+  if (isTestFile(file)) return false;
   if (file === "src/lib/matrundan/version.ts") return false;
+  if (file === "src/lib/matrundan/version-through-1-6.ts") return false;
   return (
     file.startsWith("src/components/matrundan/") ||
     file.startsWith("src/routes/") ||
@@ -77,7 +83,9 @@ const { APP_VERSION, APP_VERSION_DATE, CHANGELOG } = await import(
   `${pathToFileURL(versionPath).href}?release-check=${Date.now()}`
 );
 const markdown = readFileSync(changelogPath, "utf8");
+const archivedMarkdown = readFileSync(archivedChangelogPath, "utf8");
 const markdownEntries = markdownReleases(markdown);
+const allMarkdownEntries = [...markdownEntries, ...markdownReleases(archivedMarkdown)];
 
 if (!markdown.includes("## [Unreleased]")) {
   errors.push("CHANGELOG.md måste innehålla sektionen [Unreleased].");
@@ -86,7 +94,7 @@ if (CHANGELOG.length === 0) {
   errors.push("Versionshistoriken får inte vara tom.");
 }
 if (CHANGELOG[0]?.version !== APP_VERSION || CHANGELOG[0]?.date !== APP_VERSION_DATE) {
-  errors.push("APP_VERSION och APP_VERSION_DATE måste härledas från första versionsposten.");
+  errors.push("APP_VERSION och APP_VERSION_DATE måste matcha första versionsposten.");
 }
 
 const seen = new Set();
@@ -126,15 +134,15 @@ if (!latestMarkdown) {
   );
 }
 
-const markdownByVersion = new Map(markdownEntries.map((entry) => [entry.version, entry.date]));
+const markdownByVersion = new Map(allMarkdownEntries.map((entry) => [entry.version, entry.date]));
 for (const entry of CHANGELOG) {
   if (compareSemver(entry.version, "0.15.0") < 0) break;
   const markdownDate = markdownByVersion.get(entry.version);
   if (!markdownDate) {
-    errors.push(`CHANGELOG.md saknar release ${entry.version}.`);
+    errors.push(`Changeloggen saknar release ${entry.version}.`);
   } else if (markdownDate !== entry.date) {
     errors.push(
-      `Datumet för ${entry.version} skiljer sig: appen ${entry.date}, CHANGELOG.md ${markdownDate}.`,
+      `Datumet för ${entry.version} skiljer sig: appen ${entry.date}, changeloggen ${markdownDate}.`,
     );
   }
 }
@@ -142,25 +150,52 @@ for (const entry of CHANGELOG) {
 if (base) {
   const files = changedFiles(base);
   const changelogChanged = files.includes("CHANGELOG.md");
+  const versionChanged = files.includes("src/lib/matrundan/version.ts");
   const userFacingChanged = files.some(isUserFacing);
-  const exempt = process.env.MATRUNDAN_CHANGELOG_EXEMPT === "1";
+  const exempt = process.env.MATRUNDAN_VERSION_EXEMPT === "1";
 
-  if (userFacingChanged && !changelogChanged && !exempt) {
+  if (userFacingChanged && exempt) {
     errors.push(
-      "Användarsynlig kod eller migration har ändrats utan CHANGELOG.md. " +
-        "Uppdatera Unreleased eller markera det uttryckliga PR-undantaget.",
+      "Version: inte relevant får endast användas för ändringar utan användarsynlig kod eller migration.",
+    );
+  }
+
+  if (userFacingChanged && !versionChanged) {
+    errors.push(
+      "Användarsynlig kod eller migration har ändrats utan versionshöjning i version.ts.",
+    );
+  }
+  if (userFacingChanged && !changelogChanged) {
+    errors.push(
+      "Användarsynlig kod eller migration har ändrats utan en daterad uppdatering av CHANGELOG.md.",
     );
   }
 
   const baseSource = git(["show", `${base}:src/lib/matrundan/version.ts`], true);
   const baseVersion = versionFromSource(baseSource);
-  if (baseVersion && baseVersion !== APP_VERSION) {
-    if (compareSemver(APP_VERSION, baseVersion) <= 0) {
+  if (versionChanged) {
+    if (!baseVersion) {
+      errors.push("Kunde inte läsa appversionen på målgrenen.");
+    } else if (compareSemver(APP_VERSION, baseVersion) <= 0) {
       errors.push(`Ny appversion ${APP_VERSION} måste vara högre än ${baseVersion}.`);
     }
     if (!changelogChanged) {
       errors.push("En versionshöjning kräver en samtidig uppdatering av CHANGELOG.md.");
     }
+  }
+
+  const decisionFiles = files.filter(
+    (file) =>
+      ![
+        "CHANGELOG.md",
+        "src/lib/matrundan/version.ts",
+        ".github/pull_request_template.md",
+      ].includes(file),
+  );
+  if (decisionFiles.length > 0 && !userFacingChanged && !versionChanged && !exempt) {
+    errors.push(
+      "Markera Version: inte relevant i PR:n för dokumentations-, test- eller verktygsändringar utan versionshöjning.",
+    );
   }
 }
 

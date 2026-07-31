@@ -91,7 +91,7 @@ jobs:
 
       - name: Release and changelog contract
         env:
-          MATRUNDAN_CHANGELOG_EXEMPT: "${{ contains(github.event.pull_request.body || '', '- [x] Changelog: inte relevant') && '1' || '0' }}"
+          MATRUNDAN_VERSION_EXEMPT: "${{ contains(github.event.pull_request.body || '', '- [x] Version: inte relevant') && '1' || '0' }}"
         run: bun scripts/release-check.mjs "${{ steps.changes.outputs.base_sha }}"
 
       - name: Database and RPC contract
@@ -102,6 +102,22 @@ jobs:
         env:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
         run: bun run format:check:changed
+
+      - name: Create formatting patch on failure
+        if: failure() && steps.changes.outputs.has_format == 'true'
+        env:
+          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+        run: |
+          bun run format:changed
+          git diff --binary > formatting.patch
+
+      - name: Upload formatting patch
+        if: failure() && steps.changes.outputs.has_format == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatting-patch
+          path: formatting.patch
+          if-no-files-found: error
 
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'

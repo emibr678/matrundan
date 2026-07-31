@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
@@ -18,10 +18,15 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { emojiForCategory, safeParse } from "@/lib/matrundan/add-place-v16-utils";
 import {
+  hideDemoPlaceSuggestion,
+  hideGroupPlaceSuggestion,
+} from "@/lib/matrundan/hidden-place-suggestions";
+import {
   listOwnVisitsForPlaceOnAdd,
   shareVisitToGroup,
   type OwnVisitForPlace,
 } from "@/lib/matrundan/live-sharing";
+import { googleMapsSearchUrl } from "@/lib/matrundan/place-links";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
 import {
@@ -45,19 +50,22 @@ export function AddPlaceResultDialogsV16({
   onAdded: (externalId: string) => void;
 }) {
   const { state, addPlace, addProviderPlace, submitting } = useStore();
-  const { mode, activeGroupId } = useSession();
+  const { mode, activeGroupId, activeGroupRole } = useSession();
   const isLive = mode === "live";
+  const canHideSuggestion =
+    mode === "demo" || activeGroupRole === "owner" || activeGroupRole === "admin";
   const [cuisines, setCuisines] = React.useState<string[]>([]);
   const [occasions, setOccasions] = React.useState<Occasion[]>([]);
   const [notes, setNotes] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [hideBusy, setHideBusy] = React.useState(false);
   const [syncOpen, setSyncOpen] = React.useState(false);
   const [syncPlaceName, setSyncPlaceName] = React.useState("");
   const [syncVisits, setSyncVisits] = React.useState<OwnVisitForPlace[]>([]);
   const [syncVisitIds, setSyncVisitIds] = React.useState<string[]>([]);
   const [syncShareComment, setSyncShareComment] = React.useState(false);
   const [syncBusy, setSyncBusy] = React.useState(false);
-  const isBusy = busy || submitting || syncBusy;
+  const isBusy = busy || hideBusy || submitting || syncBusy;
   const allSyncVisitsSelected =
     syncVisits.length > 0 && syncVisits.every((visit) => syncVisitIds.includes(visit.visitId));
 
@@ -68,12 +76,16 @@ export function AddPlaceResultDialogsV16({
     setNotes("");
   }, [pending]);
 
-  function closePending() {
-    if (isBusy) return;
+  function resetPending() {
     onPendingChange(null);
     setCuisines([]);
     setOccasions([]);
     setNotes("");
+  }
+
+  function closePending() {
+    if (isBusy) return;
+    resetPending();
   }
 
   function resetSync() {
@@ -82,6 +94,28 @@ export function AddPlaceResultDialogsV16({
     setSyncVisits([]);
     setSyncVisitIds([]);
     setSyncShareComment(false);
+  }
+
+  async function hidePendingSuggestion() {
+    if (!pending || isBusy || !canHideSuggestion) return;
+    const groupId = isLive ? activeGroupId : state.group.id;
+    if (!groupId) return;
+
+    setHideBusy(true);
+    try {
+      if (isLive) await hideGroupPlaceSuggestion(groupId, pending);
+      else hideDemoPlaceSuggestion(groupId, pending);
+      const hiddenName = pending.name;
+      resetPending();
+      window.dispatchEvent(new Event("matrundan:hidden-place-suggestions-changed"));
+      toast.success(`${hiddenName} döljs från gruppens sökningar.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte dölja sökträffen från gruppen.",
+      );
+    } finally {
+      setHideBusy(false);
+    }
   }
 
   async function confirmAdd() {
@@ -115,10 +149,7 @@ export function AddPlaceResultDialogsV16({
             })
           : await addPlace(place);
       onAdded(externalId);
-      onPendingChange(null);
-      setCuisines([]);
-      setOccasions([]);
-      setNotes("");
+      resetPending();
       toast.success(`${added.name} tillagd i gruppen`);
 
       if (shouldOfferSync && activeGroupId) {
@@ -145,7 +176,7 @@ export function AddPlaceResultDialogsV16({
       const message = error instanceof Error ? error.message : "Kunde inte lägga till stället.";
       if (/redan|already|duplicate|unique/i.test(message)) {
         onAdded(externalId);
-        onPendingChange(null);
+        resetPending();
         toast.info("Det här stället finns redan i gruppen.");
       } else {
         toast.error(message);
@@ -226,8 +257,7 @@ export function AddPlaceResultDialogsV16({
                   {pending.cuisines?.length ? ` · ${pending.cuisines.join(", ")}` : ""}
                 </div>
                 <div className="break-words text-[11px] text-muted-foreground">
-                  {pending.address}
-                  {pending.area ? ` · ${pending.area}` : ""} · {pending.city}
+                  {[pending.address, pending.area, pending.city].filter(Boolean).join(" · ")}
                 </div>
               </div>
             </div>
@@ -239,12 +269,29 @@ export function AddPlaceResultDialogsV16({
                   rel="noreferrer"
                   aria-label={`Öppna ${pending.name} i Google Maps`}
                 >
-                  <ExternalLink className="h-4 w-4" /> Öppna i Google Maps
+                  <ExternalLink className="h-4 w-4" /> Sök i Google Maps
                 </a>
               </Button>
-              <p className="text-xs text-muted-foreground">
-                Bilder, öppettider, webbplats och mer visas i Google Maps.
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Google Maps söker efter namn, adress och vid behov kartposition. Kontrollera att
+                rätt verksamhet har öppnats.
               </p>
+              {canHideSuggestion ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-11 w-full justify-start text-muted-foreground"
+                  disabled={isBusy || state.group.lifecycleStatus === "archived"}
+                  onClick={() => void hidePendingSuggestion()}
+                >
+                  {hideBusy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <EyeOff className="h-4 w-4" />
+                  )}
+                  Dölj från gruppens sökningar
+                </Button>
+              ) : null}
             </div>
             <FoodTagMultiSelect
               id="pending-food-tags"
@@ -267,7 +314,7 @@ export function AddPlaceResultDialogsV16({
                 <ArrowLeft className="h-4 w-4" /> Tillbaka
               </Button>
               <Button className="min-h-11" disabled={isBusy} onClick={confirmAdd}>
-                {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Lägg till i gruppen
               </Button>
             </DialogFooter>
@@ -377,11 +424,4 @@ export function AddPlaceResultDialogsV16({
       </Dialog>
     </>
   );
-}
-
-function googleMapsSearchUrl(place: PlaceSuggestion) {
-  const query = [place.name, place.address, place.area, place.city]
-    .filter((value): value is string => Boolean(value?.trim()))
-    .join(", ");
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }

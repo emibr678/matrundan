@@ -25,6 +25,7 @@ import { AboutDialog } from "@/components/matrundan/AboutDialog";
 import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
 import { GroupHighlights } from "@/components/matrundan/GroupHighlights";
 import { GroupSettingsSectionV16 } from "@/components/matrundan/GroupSettingsSectionV16";
+import { HiddenPlaceSuggestionsSection } from "@/components/matrundan/HiddenPlaceSuggestionsSection";
 import { computeMemberProgression } from "@/lib/matrundan/gamification";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -288,6 +289,8 @@ function SettingsSheet() {
                 initialShareCounts={state.group.sharedVisitsCountForProgression ?? true}
               />
             ) : null}
+
+            {mode === "demo" ? <HiddenPlaceSuggestionsSection /> : null}
 
             <MembersSection
               members={state.members}

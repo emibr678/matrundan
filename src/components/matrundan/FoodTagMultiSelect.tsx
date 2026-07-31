@@ -11,14 +11,13 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -49,38 +48,9 @@ interface FoodTagOptionsProps {
 
 const GROUPS: FoodTagGroup[] = ["cuisine", "specialty"];
 
-function useVisualViewportHeight(active: boolean) {
-  const [height, setHeight] = React.useState<number>();
-
-  React.useEffect(() => {
-    if (!active) {
-      setHeight(undefined);
-      return;
-    }
-
-    const viewport = window.visualViewport;
-    const updateHeight = () => {
-      setHeight(Math.floor(viewport?.height ?? window.innerHeight));
-    };
-
-    updateHeight();
-    viewport?.addEventListener("resize", updateHeight);
-    viewport?.addEventListener("scroll", updateHeight);
-    window.addEventListener("resize", updateHeight);
-
-    return () => {
-      viewport?.removeEventListener("resize", updateHeight);
-      viewport?.removeEventListener("scroll", updateHeight);
-      window.removeEventListener("resize", updateHeight);
-    };
-  }, [active]);
-
-  return height;
-}
-
 function FoodTagOptions({ knownLabels, onToggle, mobile = false }: FoodTagOptionsProps) {
   return (
-    <Command className={cn(mobile && "min-h-0 flex-1 rounded-none")}>
+    <Command className={cn(mobile && "flex min-h-0 flex-1 flex-col rounded-none")}>
       <CommandInput placeholder="Sök kök eller inriktning…" />
       <CommandList
         className={cn(
@@ -123,14 +93,12 @@ export function FoodTagMultiSelect({
 }: FoodTagMultiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const isMobile = useIsMobile();
-  const viewportHeight = useVisualViewportHeight(isMobile && open);
   const selected = React.useMemo(() => normalizeFoodTags(value), [value]);
   const knownLabels = React.useMemo(
     () =>
       new Set(selected.filter((item) => findFoodTag(item)).map((item) => findFoodTag(item)!.label)),
     [selected],
   );
-  const mobilePanelHeight = viewportHeight ? Math.max(240, viewportHeight - 8) : undefined;
 
   function toggle(labelValue: string) {
     const tag = findFoodTag(labelValue);
@@ -176,33 +144,28 @@ export function FoodTagMultiSelect({
       </div>
 
       {isMobile ? (
-        <Drawer open={open} onOpenChange={setOpen} repositionInputs>
-          <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-          <DrawerContent
-            data-testid="food-tag-mobile-drawer"
-            className="max-h-[calc(100dvh-0.5rem)] overflow-hidden rounded-t-2xl"
-            style={
-              mobilePanelHeight
-                ? { height: mobilePanelHeight, maxHeight: mobilePanelHeight }
-                : undefined
-            }
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>{trigger}</DialogTrigger>
+          <DialogContent
+            data-testid="food-tag-mobile-dialog"
+            className="inset-0 h-auto min-h-0 max-h-none w-auto max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-0 p-0 shadow-none"
           >
-            <DrawerHeader className="flex shrink-0 flex-row items-start justify-between gap-3 border-b px-4 pb-3 pt-4 text-left">
-              <div className="min-w-0 space-y-1">
-                <DrawerTitle>{label}</DrawerTitle>
-                <DrawerDescription>
-                  Sök eller bläddra. Du kan välja flera alternativ.
-                </DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button type="button" variant="ghost" className="min-h-11 shrink-0 px-3">
+            <div className="flex h-full min-h-0 flex-col">
+              <DialogHeader className="shrink-0 border-b px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] pr-12 text-left">
+                <DialogTitle>{label}</DialogTitle>
+                <DialogDescription>
+                  Sök eller bläddra. Du kan välja flera alternativ och stänga när du är klar.
+                </DialogDescription>
+              </DialogHeader>
+              <FoodTagOptions knownLabels={knownLabels} onToggle={toggle} mobile />
+              <div className="shrink-0 border-t bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+                <Button type="button" className="min-h-11 w-full" onClick={() => setOpen(false)}>
                   Klar
                 </Button>
-              </DrawerClose>
-            </DrawerHeader>
-            <FoodTagOptions knownLabels={knownLabels} onToggle={toggle} mobile />
-          </DrawerContent>
-        </Drawer>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       ) : (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>{trigger}</PopoverTrigger>

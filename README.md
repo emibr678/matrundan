@@ -27,6 +27,8 @@ individuell matdagbok, social feed eller global ranking.
 - Deduplicerade sökresultat i lista och karta. Nya och tidigare borttagna
   ställen visas som möjliga att lägga till, medan aktiva gruppställen samlas i
   den stängda sektionen **Redan i gruppen**.
+- Ägare och administratörer kan dölja en felaktig eller inaktuell providerträff
+  enbart för den aktuella gruppen och återställa den under gruppinställningarna.
 - Nästa stopp kan väljas manuellt eller slumpas.
 - Gruppen kan föreslå datum och valfri tid, svara **Passar**, **Passar inte**
   eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.
@@ -73,6 +75,8 @@ Gruppen är den primära produkt- och integritetsgränsen.
 - `places` representerar kanoniska verkliga matställen.
 - `group_places` innehåller gruppens relation, metadata och aktiva lista.
 - `group_search_areas` innehåller gruppens verifierade sökcentrum.
+- `group_hidden_place_suggestions` innehåller gruppens spärrlista för externa
+  sökträffar utan att radera det kanoniska matstället.
 - `visits` representerar kanoniska verkliga besök.
 - `visit_group_links` kopplar original- och mottagargrupper till samma besök.
 - `review_group_visibility` styr betygs- och kommentarssynlighet per grupp.
