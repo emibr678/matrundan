@@ -64,6 +64,8 @@ function groupState() {
       archivedAt: null,
       archivedBy: null,
       sharedVisitsCountForProgression: true,
+      defaultSearchRadiusKm: 1,
+      searchAreas: [],
       homeLocation: null,
     },
     members: [
@@ -105,7 +107,7 @@ test("ett RPC-fel lämnar laddningsläget och kan återförsökas", async ({ pag
   });
 
   let attempts = 0;
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5d", async (route) => {
+  await page.route("**/rest/v1/rpc/get_group_app_state_v5e", async (route) => {
     attempts += 1;
     if (attempts === 1) {
       await route.fulfill({
@@ -113,7 +115,7 @@ test("ett RPC-fel lämnar laddningsläget och kan återförsökas", async ({ pag
         contentType: "application/json",
         body: JSON.stringify({
           code: "PGRST202",
-          message: "Could not find the function public.get_group_app_state_v5d",
+          message: "Could not find the function public.get_group_app_state_v5e",
         }),
       });
       return;
