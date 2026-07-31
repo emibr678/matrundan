@@ -47,7 +47,11 @@ Inga ändringar ännu.
 `,
   );
   writeFixtureFile(root, "docs/archive/changelog-through-v1.6.md", "# Arkiv\n");
-  writeFixtureFile(root, "src/components/matrundan/TestView.tsx", "export function TestView() {}\n");
+  writeFixtureFile(
+    root,
+    "src/components/matrundan/TestView.tsx",
+    "export function TestView() {}\n",
+  );
 
   expect(run(root, "git", ["init"]).status).toBe(0);
   expect(run(root, "git", ["config", "user.email", "ci@example.invalid"]).status).toBe(0);
