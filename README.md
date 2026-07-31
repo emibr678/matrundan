@@ -1,273 +1,170 @@
 # Matrundan
 
-Matrundan är en privat webbapp för vänner och familj som vill samla matställen,
-välja nästa gemensamma stopp, registrera verkliga besök och bevara gruppens
-egna minnen och omdömen.
+Matrundan är en privat, gruppcentrerad webbapp för vänner och familjer som vill
+upptäcka, välja, besöka och minnas matställen tillsammans.
 
-Fokus är gängets gemensamma matresa – ingen offentlig restaurangkatalog, social
-feed, individuell matdagbok eller global ranking.
+Kärnan är gruppens gemensamma matresa:
 
-## Huvudflöde
+1. samla ställen gruppen är nyfiken på;
+2. bestäm nästa gemensamma stopp;
+3. registrera verkliga besök och faktiska deltagare;
+4. bevara privata omdömen, favoriter, foton och historik;
+5. använda historiken som inspiration till nästa upplevelse.
 
-1. **Utforska eller lägg till** matställen manuellt eller via platssökning.
-2. **Välj nästa stopp** manuellt eller genom att slumpa.
-3. **Föreslå datum** och låt gruppen svara Passar, Passar inte eller Osäker.
-4. **Registrera besöket** med datum, tillfälle och faktiska deltagare.
-5. **Spara minnet** med omdöme och ett valfritt privat besöksfoto.
+Matrundan är inte en offentlig restaurangkatalog, publik recensionsplattform,
+individuell matdagbok, social feed eller global ranking.
 
-## Funktioner
+## Viktigaste funktionerna
 
-- Publik landningssida för att skapa grupp, gå med via privat inbjudan eller
-  prova den interaktiva exempelgruppen Fredagsgänget i Stockholm.
-- Tre huvudvyer: Hem, Matställen och Gruppen.
-- Sökning, filtrering, karta och topplista i matställeslistan.
-- Flera matställen kan läggas till under samma sökomgång utan att sökning,
-  radie, karta eller position försvinner.
+- Privata grupper med ägare, administratörer, medlemmar och tokenbaserade
+  inbjudningar.
+- Gruppens egen lista över matställen att prova och redan besökta favoriter.
+- Geoapify-sökning från upp till fem verifierade sökområden med en gemensam
+  radie på 1, 2, 3, 5, 10, 25 eller 50 km.
+- Alla sparade sökområden är förvalda i sökningen och kan slås av eller på som
+  mobilvänliga valbrickor. En tillfällig annan plats kan användas utan att
+  gruppinställningen ändras.
+- Deduplicerade sökresultat i lista och karta. Nya och tidigare borttagna
+  ställen visas som möjliga att lägga till, medan aktiva gruppställen samlas i
+  den stängda sektionen **Redan i gruppen**.
 - Nästa stopp kan väljas manuellt eller slumpas.
-- Ett privat datumförslag med valfri tid kan kopplas till nästa stopp.
-- Aktiva medlemmar kan svara Passar, Passar inte eller Osäker.
-- Förslagsställaren, ägare eller admin kan ändra, bekräfta eller ta bort datumet.
-- Registrering av besök med deltagare, omdöme och ett valfritt privat foto.
-- Felaktiga originalbesök kan raderas av registreraren, ägare eller admin med
-  tydlig konsekvensbekräftelse.
-- Personliga och delade favoriter samt status per matställe.
-- Klickbara medlemsprofiler med besök, favoriter och smakprofil.
-- Privat, diskret gamification med nivåer, utmärkelser och gruppens höjdpunkter.
-- Navigerbart aktivitetsflöde med länkar till besök, matställen och medlemmar.
-- Google Maps som extern länk för vägbeskrivning.
-- ”Om Matrundan” med syfte, aktuell version och versionshistorik.
-- Publik integritetssida och självbetjänad kontoradering med anonymiserad
-  historik.
+- Gruppen kan föreslå datum och valfri tid, svara **Passar**, **Passar inte**
+  eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.
+- Besök registreras med datum, måltid, faktiska deltagare, omdömen och ett
+  valfritt privat foto.
+- Kanoniska platser och besök kan delas mellan användarens grupper utan att
+  dupliceras eller avslöja ursprungsgrupp, privata kommentarer eller medlemskap.
+- Personliga favoriter, privata topplistor, medlemsprofiler och diskret
+  gamification som räknar verkligt deltagande och återbesök.
+- Push-notiser, installation på hemskärmen, publik integritetssida och
+  självbetjänad kontoradering med anonymiserad gemensam historik.
 
-## Status – v1.0.0
-
-Version 1.0 gör appens första möte tydligare: inloggning till befintliga
-grupper och privata inbjudningar är huvudvägarna, medan den interaktiva
-exempelgruppen är ett sekundärt sätt att prova appen. **Om Matrundan** beskriver
-syftet och den publika integritetssidan förklarar datahanteringen utan att utlova
-support för hobbyprojektet.
-
-Fredagsgänget är nu helt fiktivt, inklusive matställen och adresser. En
-inloggad användare kan radera sitt konto från profilen efter att eventuella
-ägarskap har överförts. Personuppgifter och användarskapat fritext- och
-bildinnehåll tas bort medan sifferbetyg och besöksdeltagande bevaras anonymt.
-
-## Tidigare – v0.20.0
-
-Paket 6F avslutade den kvarvarande produktlistan med säker radering av
-felaktiga originalbesök och redigering av datumförslag.
-
-## Tidigare – v0.19.1
-
-Paket 6E polerar de sista identifierade UX-detaljerna. Hem visar progression
-utan ett redundant procenttal, topplistan döljs under en aktiv sökning och
-**Passar för** använder konkret språk om olika sorters besök. Det frivilliga
-andra valet öppnas bara när användaren själv ber om det.
-
-## Tidigare – v0.19.0
-
-Paket 6D delar upp sammanhanget i ett obligatoriskt **Passar bäst för** och
-högst ett frivilligt **Passar också för**. De tre valen är **Snabbt & smidigt**,
-**Vardag & häng** och **Något särskilt**.
-
-Matställenas topplista kan växla mellan de tre sammanhangen. Bara det primära
-valet avgör var ett ställe rankas; det sekundära valet används för beskrivning
-och filtrering. På så sätt kan både en lokal pizzeria och en mer ambitiös
-matupplevelse få höga betyg utan att jämföras som samma sorts besök.
-
-## Tidigare – v0.18.0
-
-Paket 6C gör **Passar för** till en tydligare beskrivning av sammanhang:
-**Snabbt & enkelt**, **Vardag & häng** och **Middag & upplevelse**. En kort
-förklaring visar att kategorierna inte är ett kvalitetsomdöme och att samma
-ställe kan passa i flera sammanhang.
-
-Nya ställen får inte längre ett automatiskt förval. Minst ett sammanhang väljs
-aktivt, och samma språk används vid tillägg, administration, filtrering och på
-matställets detaljsida. Befintliga ställens sparade val bevaras.
-
-Paket 6B gör datumplaneringen på Hem kompakt. Datum, bekräftelse och en kort
-svarssammanfattning ligger kvar i huvudflödet, medan svarsalternativ, namn och
-hantering öppnas i **Planera nästa stopp**.
-
-Besöksregistreringen kräver nu ett aktivt val av helhetsbetyg. Dialogen har en
-enda primär knapp för att spara besöket; möjligheten att lägga till besöket i en
-annan grupp erbjuds först efter att det har sparats.
-
-Uppföljningen 6A.1 gör Google Maps tydligt tillgängligt via en egen namngiven
-länk och flyttar **Hantera ställe** till den administrativa kontexten vid
-**Om stället**.
-
-Paket 6A renodlar appens huvudvyer. Hem äger nästa stopp och progression, medan
-aktiviteten nu bara finns på Gruppen. Gruppen visar därför inte längre nästa
-stopp en gång till.
-
-Matställen förklarar tydligare vad gruppens lista innehåller, prioriterar
-sökningen före topplistan och använder **Lägg till ställe** konsekvent. På
-detaljsidan skiljs gruppens nästa stopp, användarens personliga favorit och den
-externa Maps-länken tydligare åt. En flagga ersätter den tidigare
-glittersymbolen för nästa stopp.
-
-Paket 5D lägger datumplaneringen direkt under gruppens aktuella **Nästa stopp**.
-En aktiv medlem kan föreslå en dag och en valfri tid. Varje aktiv medlem kan
-svara **Passar**, **Passar inte** eller **Osäker** och ändra sitt svar medan
-förslaget är öppet.
-
-Det sker ingen automatisk majoritetsbekräftelse. Förslagsställaren, gruppens
-ägare eller admin kan bekräfta eller ta bort datumet. Förslaget stängs
-automatiskt om nästa stopp byts, tas bort från gruppen eller registreras som
-besökt. Tidigare medlemmars gamla svar räknas inte i den aktuella gruppvyn.
-
-Paket 5C ger varje besök ett valfritt privat foto. Bilden komprimeras och
-omkodas före lagring, är privat för ursprungsgruppen och följer inte med när ett
-kanoniskt besök delas till en annan grupp.
-
-Paket 5B gör det möjligt att lägga till flera sökträffar i samma omgång.
-Sökning, radie, list- eller kartläge, valt resultat och position bevaras efter
-varje tillägg.
-
-Paket 5A och 5A.1 skiljer tydligt mellan publik start, interaktiv exempelgrupp
-och användarnas riktiga privata grupper. Fredagsgänget använder samma
-produktkomponenter men sparar ändringar endast i den aktuella flikens
-`sessionStorage`.
+Se [CHANGELOG.md](./CHANGELOG.md) för släppta och ännu inte publicerade
+ändringar.
 
 ## Körlägen
 
 ### Publik landning
 
-Standard för utloggade användare. Ingen grupp-store eller privat gruppdata
-laddas. Besökaren kan skapa grupp, öppna en privat inbjudan eller prova
-Fredagsgänget.
+Utloggade användare möts av produktens publika start utan att gruppdata laddas.
+Här går det att skapa konto, öppna en privat inbjudan eller prova
+exempelgruppen.
 
 ### Exempelgrupp (`/exempel`)
 
-Fast Stockholm-startdata med interaktiva lokala flöden. Matställen, adresser,
-medlemmar, besök, omdömen och historik är helt fiktiva.
-Ändringar sparas i flikens `sessionStorage`, kan återställas och gör inga
-live-skrivningar. Datumförslag och besöksfoto använder samma UI som live-läget
-men lokala adaptrar.
+En interaktiv, helt fiktiv grupp som återanvänder produktens vanliga gränssnitt.
+Ändringar sparas endast i den aktuella flikens `sessionStorage` och gör inga
+live-skrivningar.
 
 ### Intern testsandbox (`?demo=1`)
 
-Skrivbar lokal sandbox för utveckling och regressionstester. Den använder en
-separat `localStorage`-nyckel och är inte den publika startupplevelsen.
+En separat skrivbar sandbox för utveckling och regressionstester. Den använder
+lokal testdata och är inte en publik onboardingväg.
 
 ### Live-läge
 
-Aktiveras efter Google-inloggning. Läsning och skrivning går mot Supabase via
-gruppscopade read-models och validerade RPC-anrop.
+Aktiveras efter inloggning. Läsning och skrivning går mot Supabase genom
+gruppscopade read-models, serverfunktioner och validerade RPC-anrop.
 
-## Livefunktioner
+## Arkitektur och integritet
 
-- Google-inloggning via Lovable Cloud.
-- Skapa och administrera grupper, bjuda in via engångstoken, byta roll, ta bort
-  medlemmar, överföra ägarskap, lämna grupp och redigera profil.
-- Radera det egna kontot med säker ägaröverlåtelse och anonymisering av
-  bevarad gemensam historik.
-- Lägga till matställen, ta bort dem från gruppens aktiva lista och lägga tillbaka
-  dem utan att förlora historik eller gruppspecifik metadata.
-- Korrigera gruppens kategori, kök, inriktning, Passar för och anteckning.
-- Sätta, byta och rensa gruppens nästa stopp.
-- Föreslå datum och valfri tid för nästa stopp, svara och bekräfta eller ta bort
-  förslaget enligt medlems- och rollregler.
-- Registrera besök med deltagare och omdöme atomärt, redigera eget omdöme och
-  hantera ett privat besöksfoto. Besöket och matstället kan samtidigt delas
-  till valda andra aktiva grupper; grupper där stället redan finns är förvalda.
-- Dela ett kanoniskt besök till en annan grupp utan att duplicera plats, besök,
-  deltagare eller recensioner. När ett Geoapify-ställe läggs till kan egna
-  tidigare besök delas frivilligt; inget besök eller egen kommentar är förvalt.
-- Styra egen kommentarssynlighet per grupp.
-- Välja om delade besök räknas i progression.
-- Geoapify-sökning med server-skyddad API-nyckel, verifierat sökområde och radier
-  1/3/5/10/25/50 km.
-- Push-notiser för nytt besök, nytt nästa stopp eller datumförslag, när du läggs
-  till som deltagare och när en ny medlem går med. Notiser slås på per enhet och
-  varje notistyp kan väljas till eller från under Min profil.
-- Matrundan kan läggas till på hemskärmen. På iPhone och iPad krävs det för att
-  notiser ska kunna visas.
+Gruppen är den primära produkt- och integritetsgränsen.
 
-## Datamodell och integritet
-
-- `places` är kanoniska verkliga matställen.
-- `group_places` innehåller gruppens relation, metadata och aktiva samling.
-- `visits` är kanoniska verkliga besök.
+- `places` representerar kanoniska verkliga matställen.
+- `group_places` innehåller gruppens relation, metadata och aktiva lista.
+- `group_search_areas` innehåller gruppens verifierade sökcentrum.
+- `visits` representerar kanoniska verkliga besök.
 - `visit_group_links` kopplar original- och mottagargrupper till samma besök.
 - `review_group_visibility` styr betygs- och kommentarssynlighet per grupp.
-- `visit_media` kopplar ett privat foto till besök + ursprungsgrupp.
+- `visit_media` kopplar ett privat foto till besökets ursprungsgrupp.
 - `next_stop_date_proposals` och `next_stop_date_responses` innehåller gruppens
-  privata planering för aktuellt nästa stopp.
+  privata planering.
 
-Känsliga läsningar går genom `get_group_app_state_v5d`. Skrivningar går genom
-`SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering, aktivt
-medlemskap och relevanta rollkontroller. Ursprungsgruppens identitet, privata
-kommentarer och medlemskap lämnar aldrig servern vid delning.
+Den primära live-läsningen går genom `get_group_app_state_v5e`. Känsliga
+skrivningar använder validerade `SECURITY DEFINER`-RPC:er med låst
+`search_path`, autentisering, medlemskapskontroller och relevanta rollkrav.
+
+Ursprungsgruppens identitet, privata kommentarer och medlemskap lämnar aldrig
+servern vid delning. Endast faktiska deltagare får progression; registreraren
+får ingen extra kredit och återbesök räknas.
+
+Den kanoniska arkitekturkällan finns i
+[docs/architecture.md](./docs/architecture.md).
 
 ## Teknik
 
-- TanStack Start v1, React 19 och Vite 8
+- TanStack Start, React 19 och Vite 8
 - TypeScript och Tailwind CSS v4
 - shadcn/ui och Radix UI
-- Bun som pakethanterare och runtime
-- Lovable Cloud/Supabase för auth, datalager och privat fillagring
+- Bun som låst pakethanterare och runtime
+- Lovable Cloud och Supabase för autentisering, datalager och privat fillagring
+- Geoapify och MapLibre för plats- och kartfunktioner
+- Playwright för mobila och tvärbrowserbaserade regressionstester
 
-### Kom igång
+## Kom igång
 
-```sh
-bun install
+Den rekommenderade, reproducerbara starten är:
+
+```bash
+bash scripts/bootstrap-agent.sh
 bun run dev
 ```
 
-Verifiering:
+För en miljö som även ska köra mobila Playwright-tester:
 
-```sh
+```bash
+bash scripts/bootstrap-agent.sh --with-chromium
+```
+
+Mer information om runtime, Codex Cloud och miljöunderhåll finns i
+[DEVELOPMENT.md](./DEVELOPMENT.md).
+
+## Verifiering
+
+```bash
 bun run doctor
 bun run verify:changed
 bun run verify:agent
 bun run verify:full
 ```
 
-## Arkitektur
+- `verify:changed` kontrollerar ändrade filer, enhetstester, TypeScript och
+  produktionsbygge.
+- `verify:agent` lägger till relevant Chromium-verifiering för ändrade UI-flöden.
+- `verify:full` är den fulla repoövergripande kontrollen för releasekandidater.
+- Redo-CI kör dessutom WebKit- och desktopmatrisen när kartkod ändras.
+
+Det kanoniska arbetsflödet för planering, implementation, verifiering, merge och
+publicering finns i
+[docs/development-workflow.md](./docs/development-workflow.md).
+
+## Repositoryöversikt
 
 ```text
-src/
-  routes/                       Filbaserade vyer
-  components/matrundan/
-    AppShell.tsx                Landning, exempel och live
-    ShellChrome.tsx             Navigation och statusmarkeringar
-    NextStopDateCard.tsx        Datumförslag och gruppens svar
-    AddPlaceDialog.tsx          Sökning och tillägg av matställen
-    VisitDialog.tsx             Registrering av besök
-  lib/matrundan/
-    types.ts                    Klientens domänmodell
-    store.tsx                   Lokal/live-gräns
-    next-stop-date.ts           Datumformat, svar och behörighetshjälpare
-    live-repository.ts          Säker read-model till AppState
-    live-mutations.ts           Validerade RPC-skrivningar
-    example-data.ts             Fast exempelstart
-    demo-data.ts                Intern testsandbox
-    version.ts                  Aktuell version + sammanfogad historik
-    version-history.ts          Oförändrad historik till v0.14.0
-supabase/migrations/            Schema, RPC, RLS och Storage
+src/routes/                    Filbaserade vyer
+src/components/matrundan/      Produktkomponenter och dialoger
+src/components/ui/             Delade shadcn/Radix-primitiver
+src/lib/matrundan/             Domänlogik, read-models och integrationer
+supabase/migrations/           Schema, RPC, RLS och Storage
+scripts/                       Reproducerbar setup och repoverifiering
+tests/e2e/                     Playwright-regressioner
+docs/                          Kanonisk arkitektur och utvecklingsflöde
 ```
 
-Den aktuella arkitekturkällan finns i [docs/architecture.md](./docs/architecture.md).
-Den detaljerade historiken till och med v0.14.0 finns i
-[docs/archive/architecture-v0.14.md](./docs/archive/architecture-v0.14.md).
+Agentinstruktioner finns i [AGENTS.md](./AGENTS.md). Äldre arkitektur- och
+changeloghistorik ligger uttryckligen under [docs/archive](./docs/archive/).
 
-## Konfiguration
+## Konfiguration och hemligheter
 
-Google-inloggningen använder Lovable Clouds hanterade OAuth-broker och de
-publicerbara Supabase-nycklarna i `.env`. Ingen service-role-nyckel finns i
-klientkoden eller i `VITE_`-variabler.
+Publicerbara Supabase-värden kan finnas i `.env`. Service-role-nycklar och andra
+privilegierade hemligheter får aldrig exponeras i klientkod eller `VITE_`-
+variabler.
 
-Geoapify API-nyckeln (`GEOAPIFY_API_KEY`) lagras i Lovable Cloud Secrets och
-används endast server-side.
+`GEOAPIFY_API_KEY` lagras i Lovable Cloud Secrets och används endast av
+serverkod. Inga produktionshemligheter ska committas till repot.
 
 ## Lovable och publicering
 
-Projektet är kopplat till GitHub. Mergade commits på `main` synkas automatiskt
-till Lovable-previewn. Publicering till den publika appen är alltid ett separat,
-uttryckligt godkänt steg.
-
-Se [CHANGELOG.md](./CHANGELOG.md) för aktuell release och den länkade fullständiga
-historiken.
+Projektet är kopplat till GitHub. Mergade commits på `main` synkas till Lovable,
+men merge, preview-synk, databasdriftsättning och publicering är separata statusar.
+Publicering till den publika appen kräver alltid ett uttryckligt godkännande.
