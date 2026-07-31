@@ -81,6 +81,43 @@ function hasCategory(categories: string[], prefix: string): boolean {
   return categories.some((category) => category === prefix || category.startsWith(`${prefix}.`));
 }
 
+function explicitLifecycleValue(value: unknown): boolean {
+  if (value === true || value === 1) return true;
+  if (typeof value !== "string") return false;
+  return ["yes", "true", "1", "closed", "disused", "abandoned", "demolished", "removed"]
+    .includes(value.trim().toLocaleLowerCase("en-US"));
+}
+
+export function isExplicitlyClosedGeoapifyPlace(
+  properties: GeoapifyProperties | undefined,
+): boolean {
+  if (!properties) return false;
+  const raw = properties.datasource?.raw;
+  const categories = properties.categories ?? [];
+
+  if (
+    categories.some((category) =>
+      /(^|\.)(abandoned|demolished|disused|razed|removed)(\.|$)/i.test(category),
+    )
+  ) {
+    return true;
+  }
+  if (!raw) return false;
+
+  for (const key of ["closed", "disused", "abandoned", "demolished", "razed", "removed"]) {
+    if (explicitLifecycleValue(raw[key])) return true;
+  }
+  for (const key of [
+    "disused:amenity",
+    "abandoned:amenity",
+    "demolished:amenity",
+    "removed:amenity",
+  ]) {
+    if (typeof raw[key] === "string" && raw[key].trim()) return true;
+  }
+  return typeof raw.end_date === "string" && raw.end_date.trim().length > 0;
+}
+
 export function categoryFromGeoapify(
   categories: string[] | undefined,
   amenity?: string,
@@ -158,7 +195,7 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
   const properties = feature.properties;
   const externalId = properties?.place_id?.trim();
   const name = properties?.name?.trim();
-  if (!properties || !externalId || !name) return null;
+  if (!properties || !externalId || !name || isExplicitlyClosedGeoapifyPlace(properties)) return null;
 
   const providerRaw = properties.datasource?.raw;
   const website = properties.website || providerRaw?.website;
