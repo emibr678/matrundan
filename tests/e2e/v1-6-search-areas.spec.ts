@@ -19,8 +19,8 @@ test("flera sökområden läggs till i samma fält utan horisontell overflow på
   await expect(page.getByRole("button", { name: /annan plats/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /använd platsen/i })).toHaveCount(0);
 
-  const areaInput = page.getByPlaceholder("Sök ort, stadsdel eller adress");
-  await expect(areaInput).toBeVisible();
+  const areaInput = page.getByLabel("Sökområden");
+  await expect(areaInput).toHaveAttribute("placeholder", "Sök ort, stadsdel eller adress");
   await areaInput.fill("Majorna, Göteborg");
   await areaInput.press("Enter");
   await expect(areaInput).toHaveValue("");
@@ -30,6 +30,15 @@ test("flera sökområden läggs till i samma fält utan horisontell overflow på
   await areaInput.press("Enter");
   await expect(areaInput).toHaveValue("");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Södermalm");
+  await expect(areaInput).toBeDisabled();
+
+  const mapToggle = page.getByRole("button", { name: "Karta", exact: true });
+  await mapToggle.click();
+  const map = page.getByRole("region", {
+    name: "Karta över sökresultat och valda sökområden",
+  });
+  await expect(map).toHaveAttribute("data-map-icon-renderer", "canvas");
+  await expect(map).toHaveAttribute("data-map-point-visual", "category-icon");
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
