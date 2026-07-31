@@ -83,8 +83,8 @@ DECLARE
   _normalized_name text := trim(coalesce(_name, ''));
 BEGIN
   IF _uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
-  IF NOT public.has_membership(_group_id, _uid) THEN
-    RAISE EXCEPTION 'Du saknar åtkomst till gruppen';
+  IF NOT public.has_group_role(_group_id, _uid, ARRAY['owner','admin']) THEN
+    RAISE EXCEPTION 'Endast ägare eller admin kan dölja sökträffar';
   END IF;
   IF NOT public.group_is_active(_group_id) THEN
     RAISE EXCEPTION 'Gruppen är arkiverad och kan bara läsas';
@@ -145,8 +145,8 @@ DECLARE
   _uid uuid := auth.uid();
 BEGIN
   IF _uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
-  IF NOT public.has_membership(_group_id, _uid) THEN
-    RAISE EXCEPTION 'Du saknar åtkomst till gruppen';
+  IF NOT public.has_group_role(_group_id, _uid, ARRAY['owner','admin']) THEN
+    RAISE EXCEPTION 'Endast ägare eller admin kan återställa sökträffar';
   END IF;
   IF NOT public.group_is_active(_group_id) THEN
     RAISE EXCEPTION 'Gruppen är arkiverad och kan bara läsas';
