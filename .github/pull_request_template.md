@@ -17,8 +17,28 @@ Beskriv observerade data, diagnostik och varför ändringen behövs.
 
 - 
 
+## Changelog och version
+
+- [ ] `CHANGELOG.md` är uppdaterad under **Unreleased** eller som en daterad release
+- [ ] Appversion och inbyggd historik är synkroniserade när en release görs
+- [ ] Changelog: inte relevant
+
+Motivering om changelog inte är relevant:
+
+## Databas
+
+- Databasändring: ja/nej
+- Migration:
+- Bakåtkompatibel med nuvarande liveapp: ja/nej/inte relevant
+- Applicerad i produktion: ja/nej/inte relevant
+- `supabase/production-preflight.sql`: godkänd/inte körd/inte relevant
+- PostgREST schema-cache omladdad: ja/nej/inte relevant
+- Autentiserad RPC-smoke mot verklig grupp: godkänd/inte körd/inte relevant
+
 ## Verifiering
 
+- [ ] `bun run check:release`
+- [ ] `bun run check:database`
 - [ ] Prettier på ändrade filer
 - [ ] ESLint på ändrade kodfiler
 - [ ] `bun run typecheck`
