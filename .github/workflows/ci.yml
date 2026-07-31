@@ -103,6 +103,20 @@ jobs:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
         run: bun run format:check:changed
 
+      - name: Prepare formatted release guards on formatting failure
+        if: failure() && steps.changes.outputs.has_format == 'true'
+        run: bunx prettier --write scripts/database-contract-check.mjs scripts/release-check.mjs
+
+      - name: Upload formatted release guards
+        if: failure() && steps.changes.outputs.has_format == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-release-guards
+          path: |
+            scripts/database-contract-check.mjs
+            scripts/release-check.mjs
+          if-no-files-found: error
+
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'
         env:
