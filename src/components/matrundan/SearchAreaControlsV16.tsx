@@ -116,7 +116,6 @@ function SearchAreaField({
   );
 }
 
-// prettier-ignore
 function SelectedAreas({
   savedAreas,
   temporaryAreas,
@@ -132,17 +131,9 @@ function SelectedAreas({
   }
 
   return (
-    <div
-      className="flex min-w-0 flex-wrap gap-2"
-      role="list"
-      aria-label="Valda sökområden"
-    >
+    <div className="flex min-w-0 flex-wrap gap-2" role="list" aria-label="Valda sökområden">
       {savedAreas.map((area) => (
-        <SearchAreaPill
-          key={area.id}
-          area={area}
-          onRemove={() => onRemoveSaved(area.id)}
-        />
+        <SearchAreaPill key={area.id} area={area} onRemove={() => onRemoveSaved(area.id)} />
       ))}
       {temporaryAreas.map((area) => (
         <SearchAreaPill
