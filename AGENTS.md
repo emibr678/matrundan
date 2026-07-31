@@ -11,242 +11,254 @@
 
 # Matrundan agent instructions
 
-These instructions apply to the entire repository. Read
-[`docs/architecture.md`](docs/architecture.md) before changing the data model,
-sharing, authentication, Geoapify integration, group privacy, or gamification.
-Read [`docs/development-workflow.md`](docs/development-workflow.md) before
-debugging, implementing, verifying, merging, or reporting Lovable sync. Read
-[`DEVELOPMENT.md`](DEVELOPMENT.md) before setting up, repairing, or changing the
-development environment.
+These instructions apply to the entire repository.
+
+Read:
+
+- [`docs/architecture.md`](docs/architecture.md) before changing the data model,
+  authentication, sharing, Geoapify, group privacy, notifications or
+  gamification;
+- [`docs/development-workflow.md`](docs/development-workflow.md) before
+  implementing, debugging, verifying, merging or reporting Lovable sync;
+- [`DEVELOPMENT.md`](DEVELOPMENT.md) before setting up or changing the
+  development environment.
 
 ## Product guardrails
 
 Matrundan is a private, group-centred app for friends and families who explore
-restaurants and cafés together. It is not a public review site, a public social
-feed, or a global leaderboard.
+restaurants and cafés together. It is not a public review site, public social
+feed, individual food diary, generic map service or global leaderboard.
 
 Preserve these rules:
 
+- The group is the primary product and privacy boundary.
 - Group content is private and isolated between groups.
-- Never expose the source group's identity, private comments, membership, or
+- Never expose the source group's identity, private comments, membership or
   internal identifiers when a visit is shared.
-- `places` and `visits` are canonical real-world entities. Sharing must link to
-  them rather than duplicate them.
-- Only actual visit participants receive progression. The user who registers a
-  visit gets no extra credit.
-- Repeat visits count and are part of the product.
-- Gamification is warm, discreet, and secondary. No global/public rankings.
-- A group's default search area is only a prefilled search location, never a
+- `places` and `visits` are canonical real-world entities. Sharing links to them
+  instead of duplicating them.
+- Only actual visit participants receive progression. Registration work gives
+  no extra credit.
+- Repeat visits count.
+- Gamification is warm, discreet, private and secondary.
+- A group's saved search areas are only prefilled search centres, never a
   geographical restriction.
+- All saved search areas are selected by default; there is no primary area.
 - Product copy is Swedish unless a technical identifier must remain English.
-- Keep demo mode and authenticated live mode working side by side.
-- Treat 360 px mobile layout as a supported target, not an edge case.
+- Keep example, demo and authenticated live mode working side by side.
+- Treat 360 px layout as a supported target, not an edge case.
 
-## Planning versus implementation
+## Product discussion, planning and implementation
 
-For large features, architecture changes, or explicit planning requests:
+For a new feature, large change or explicit planning request:
 
-1. Inspect the actual implementation and relevant database objects.
-2. Produce a concrete plan with edge cases and tests.
-3. Do not modify files, migrations, database state, commits, or deployments
-   until the user explicitly approves implementation.
+1. inspect the actual implementation and relevant database objects;
+2. discuss the product decision against Matrundan's shared food journey;
+3. produce a concrete plan with edge cases, security and tests;
+4. do not modify files, migrations, database state, commits or deployments
+   until implementation is explicitly approved.
 
-`plan_mode`, "Gör endast en plan", and "ej implementation" are absolute. Do
-not interpret them as permission to create a draft implementation.
+`plan_mode`, “Gör endast en plan” and “ej implementation” are absolute.
 
 For approved implementation, make the smallest coherent change that satisfies
-the agreed specification. Do not silently broaden scope.
+the agreed scope. Do not silently broaden the task.
 
-When an approved scope is implemented, reviewed, and has green relevant CI, the
-assistant may mark the PR ready and merge it to `main`. Publishing still
-requires a separate, explicit user approval.
+When an approved scope is implemented, reviewed and has green relevant CI, the
+PR may be marked ready and merged to `main`. Publishing always requires a
+separate explicit approval.
 
-## Diagnostic and implementation workflow
+Corrective documentation and small maintenance may be performed within an
+explicit review request, but must not introduce new product behaviour.
 
-- Reuse a valid checkout. Clone only when the environment is new, the checkout
-  is missing, or its state cannot be verified safely.
-- Use one branch per coherent approved task. Do not create a PR for every
-  debugging hypothesis.
-- Start non-trivial bugs with reproduction and runtime evidence. Classify the
-  failure and identify a supported root cause before repeated code changes.
-- Keep exploratory iterations local. Push only a coherent candidate fix, a
-  necessary preview checkpoint, or a reviewable diagnostic checkpoint.
-- Do not create commits solely to trigger a workflow.
-- GitHub Actions verify code. Do not add workflows that patch, commit, or push
-  product code back to the branch.
-- Use fast targeted checks during iteration. Run the full relevant browser
-  matrix when a PR is ready for review, before merge, or when the changed
-  behaviour specifically requires it.
-- Report the exact branch, commit, PR, CI result, Lovable sync status, preview
-  link, manual test steps, and anything not verified.
+## Implementation and diagnostics
+
+- Reuse a valid checkout. Clone only when the environment is new, missing or
+  cannot be verified safely.
+- Use one branch and PR per coherent approved task.
+- Start non-trivial bugs with reproduction and runtime evidence.
+- Form a falsifiable hypothesis before repeated code changes.
+- Keep exploratory iterations local and push a coherent candidate.
+- Do not create commits solely to trigger CI.
+- GitHub Actions verify code. Do not add workflows that patch, commit or push
+  product code back to a branch.
+- Remove temporary diagnostics when the root cause is resolved.
+- Run the full relevant browser matrix before merge when a changed flow needs it.
+- Report exact branch, commit, PR, CI, Lovable sync, preview, database and
+  publication status.
 
 ## Codex Cloud environment
 
-- Use `bash scripts/codex-cloud-setup.sh` as the environment setup script.
-- Use `bash scripts/codex-cloud-maintenance.sh` as the maintenance script for
-  resumed cached containers.
-- Do not install another package manager, create an alternate lockfile, or add
-  global project tooling outside these scripts.
-- The setup phase installs Chromium so UI checks can run while agent internet
-  access remains off. WebKit remains a ready-CI responsibility.
-- Keep agent internet access off unless the approved task specifically requires
-  narrowly allowlisted network access.
-- Run `bun run doctor` before implementation when the environment state is
-  uncertain.
+- Setup: `bash scripts/codex-cloud-setup.sh`.
+- Maintenance: `bash scripts/codex-cloud-maintenance.sh`.
+- Do not install another package manager or create an alternate lockfile.
+- Keep agent internet access off unless an approved task requires narrowly
+  allowlisted network access.
+- Chromium is installed by setup; WebKit remains a ready-CI responsibility.
+- Run `bun run doctor` when environment state is uncertain.
 
 ## Repository map
 
-- `src/routes/` — routed pages such as Hem, Matställen and Gruppen.
-- `src/components/matrundan/` — product-specific UI and dialogs.
-- `src/components/ui/` — shared shadcn/Radix primitives; prefer reuse.
+- `src/routes/` — routed views such as Hem, Matställen and Gruppen.
+- `src/components/matrundan/` — product UI and dialogs.
+- `src/components/ui/` — shared shadcn/Radix primitives.
 - `src/lib/matrundan/types.ts` — client read-model types.
-- `src/lib/matrundan/store.tsx` — demo/live state boundary and store access.
-- `src/lib/matrundan/live-repository.ts` — mapping from the secure live
-  read-model into application state.
-- `src/lib/matrundan/live-mutations.ts` — approved live write calls.
-- `src/lib/matrundan/gamification.ts` — deterministic derived progression.
-- `src/lib/matrundan/version.ts` — application version and in-app changelog.
-- `src/server/` — server-only integrations, including Geoapify.
-- `supabase/migrations/` — schema, RPC, RLS and database changes.
-- `scripts/bootstrap-agent.sh` — generic reproducible bootstrap.
-- `scripts/codex-cloud-setup.sh` — Codex Cloud setup and Chromium preparation.
-- `scripts/codex-cloud-maintenance.sh` — cached Codex environment maintenance.
+- `src/lib/matrundan/store.tsx` — local/live state boundary.
+- `src/lib/matrundan/live-repository.ts` — secure read-model mapping.
+- `src/lib/matrundan/live-mutations.ts` and `live-admin.ts` — approved live
+  writes.
+- `src/lib/matrundan/rpc-client.ts` — central validated RPC boundary.
+- `src/lib/matrundan/geoapify.functions.ts` — server-side Geoapify functions.
+- `src/lib/matrundan/search-areas.ts` — search-area domain rules.
+- `src/lib/matrundan/gamification.ts` — deterministic progression.
+- `src/lib/matrundan/version.ts` — published application version and in-app
+  changelog.
+- `supabase/migrations/` — schema, RPC, RLS and Storage changes.
+- `scripts/` — reproducible setup and verification tooling.
 - `docs/architecture.md` — canonical architecture and security decisions.
-- `docs/development-workflow.md` — canonical debugging and delivery workflow.
-- `DEVELOPMENT.md` — runtime, Codex environment and verification commands.
+- `docs/development-workflow.md` — canonical delivery workflow.
+- `DEVELOPMENT.md` — runtime, setup and verification commands.
 - `README.md` — current human-facing project overview.
-- `CHANGELOG.md` — release history.
+- `CHANGELOG.md` — released and unreleased user-facing history.
 
-Inspect the current tree before assuming these paths or APIs are unchanged.
+Inspect the current tree before assuming paths or APIs are unchanged.
 
 ## Data and security rules
 
-- Sensitive reads must remain scoped to one group and require active
-  membership. Prefer the existing `get_group_app_state(_group_id)` read-model.
+- Sensitive reads remain scoped to one group and require active membership.
+- The primary live read boundary is `get_group_app_state_v5e(_group_id)`.
 - Do not reintroduce direct client `SELECT` access to canonical visits,
-  participants, reviews, sharing links, or visibility tables.
-- Writes must use validated `SECURITY DEFINER` RPCs or server functions with a
-  locked `search_path` and explicit membership/role checks.
-- Revoke callable database functions from `PUBLIC` and `anon`; grant only the
-  intended role, normally `authenticated`.
-- Never trust a client-supplied group, user, author, owner, or source-group
-  identity without server-side validation.
+  participants, reviews, sharing links, visibility tables or search-area data.
+- Writes use validated `SECURITY DEFINER` RPCs or server functions with locked
+  `search_path` and explicit membership/role checks.
+- Revoke callable functions from `PUBLIC` and `anon`; grant only intended roles.
+- Never trust client-supplied group, user, author, owner or source-group identity
+  without server-side validation.
 - Keep `source_group_id` server-only.
 - Preserve historical membership data without granting former members current
-  access or placing them in active leaderboards.
-- Provider places are deduplicated primarily by provider and provider place ID.
-- Do not guess a location from unverified free text when coordinates matter.
+  access or leaderboard placement.
+- Provider places and search areas deduplicate primarily by provider and
+  provider place ID.
+- Do not guess coordinates from unverified free text.
 - Store secrets only in Lovable Cloud Secrets. Never commit them, expose them
-  through `VITE_` variables, return them to the client, or print them in logs.
-- Database migrations must preserve existing production rows unless destructive
-  behaviour is explicitly approved and documented.
+  through `VITE_`, return them to the client or print them in logs.
+- Migrations preserve existing production rows unless destructive behaviour is
+  explicitly approved and documented.
 
-## Canonical and shared visit invariants
+## Search-area invariants
+
+- A group may save at most five verified Geoapify search areas.
+- There is no primary area; all saved areas are selected when search opens.
+- One shared default radius applies to all selected areas.
+- Supported radii are 1, 2, 3, 5, 10, 25 and 50 km.
+- Temporary locations are search-session data and are not saved automatically.
+- Multi-area results deduplicate by provider identity and use the shortest
+  distance to a selected area.
+- Previously removed places appear as normal add candidates and reactivate the
+  existing `group_places` relationship.
+- Active group places belong under the collapsed **Redan i gruppen** section,
+  not among the primary add candidates.
+
+## Canonical place and visit invariants
 
 - One real place corresponds to one canonical `places` row.
-- Group-specific notes, occasions and origin belong to `group_places`.
+- Group notes, occasions and lifecycle belong to `group_places`.
 - One real visit corresponds to one canonical `visits` row.
 - A visit has exactly one original group link and may have shared links.
-- Sharing or unlinking a visit must not duplicate or delete the canonical
-  place, visit, participants or reviews.
+- Sharing or unlinking must not duplicate or delete canonical place, visit,
+  participants or reviews.
 - Reviews are canonical per visit/user; visibility is controlled per group.
-- External participants are represented anonymously as a count and must not be
-  treated as group members.
-- The same canonical visit must never count twice in one group's progression.
+- External participants are anonymous counts, not group members.
+- A canonical visit must never count twice in one group's progression.
+- Private visit media belongs only to the original group's visit link and never
+  follows a shared visit.
 
 ## Gamification rules
 
-- Derive levels, badges, leaderboards and milestones from the current read-model.
-- Do not store a mutable score, cached badge ownership, or gamification activity
-  event unless a future approved design explicitly requires it.
-- Deduplicate by canonical `Visit.id` before all progression calculations.
-- Respect both the group's shared-progression setting and the visit's
-  `countsForProgression` value.
-- Active members may appear in current leaderboards; historical members may
-  remain visible in historical visit data.
-- Do not reward clicks, comments, ratings, registration work, or administration.
+- Derive levels, badges, leaderboards and milestones from current read-model.
+- Do not store mutable score or badge ownership without an approved design.
+- Deduplicate by `Visit.id` before progression calculations.
+- Respect group and visit settings for shared progression.
+- Active members may appear in current leaderboards; historical members remain
+  only in allowed history.
+- Do not reward clicks, comments, ratings, registration or administration.
 
 ## UI and accessibility
 
-- Follow the existing visual language: warm, simple, rounded and restrained.
-- Prefer existing components and patterns over adding parallel UI systems.
-- Avoid competing representations of the same information.
-- Primary actions must be clear; advanced or destructive actions stay
-  secondary and require suitable confirmation.
+- Follow the existing warm, simple, rounded and restrained visual language.
+- Prefer existing components over parallel UI systems.
+- Avoid duplicate displays of the same information.
+- Keep primary actions clear and destructive actions secondary with suitable
+  confirmation.
 - Maintain keyboard behaviour and ARIA semantics for autocomplete, dialogs,
-  tabs and sheets.
-- Interactive targets should be at least 44 px where practical.
-- Test long Swedish labels, wrapping, dialog widths and sheets at 360 px.
-- No horizontal page overflow is acceptable on supported mobile views.
+  tabs, sheets and collapsibles.
+- Use practical 44 px touch targets.
+- Test long Swedish labels, wrapping and software keyboard behaviour.
+- No horizontal overflow is acceptable in supported 360 px flows.
+- Search-area pills wrap; they do not require horizontal scrolling.
 
 ## Validation before completion
 
-During iteration, run the narrowest checks that can falsify the current
-hypothesis. Before pushing a normal candidate, run:
+During iteration, run the narrowest check that can falsify the current
+hypothesis.
+
+Normal candidate:
 
 ```bash
 bun run verify:changed
 ```
 
-For changed UI flows, run the relevant browser-aware agent verification:
+Changed UI:
 
 ```bash
 bun run verify:agent
 ```
 
-Use the canonical TypeScript command `bun run typecheck`; do not switch between
-`tsgo` and `tsc` ad hoc.
-
-For a completed release candidate, run:
+Release candidate:
 
 ```bash
 bun run verify:full
 ```
 
-Also run focused tests when relevant, for example:
+Use `bun run typecheck` as the canonical TypeScript command. Run focused tests
+for changed domain modules and `bun run test:map` for map-specific changes.
 
-```bash
-bun test src/lib/matrundan/gamification.test.ts
-bun run test:map
-```
-
-For changed mobile flows, use a real browser/Playwright check at 360 px and
-measure that `document.documentElement.scrollWidth <= clientWidth`.
-
-For database/RPC changes, inspect production-compatible definitions and verify:
+For database/RPC changes, inspect definitions and verify:
 
 - membership and role checks;
-- `SECURITY DEFINER` and locked `search_path` where applicable;
-- grants for `PUBLIC`, `anon` and `authenticated`;
+- `SECURITY DEFINER` and locked `search_path`;
+- grants for `PUBLIC`, `anon`, `authenticated` and `service_role`;
 - cross-group isolation;
 - preservation of existing rows.
 
 Do not claim a test was run unless it was actually run. State explicitly when
-an authenticated live browser test was not possible.
+an authenticated live browser test was unavailable.
 
 ## Releases and documentation
 
-For a release:
+For a published release:
 
-- update `src/lib/matrundan/version.ts` and its in-app changelog;
-- update `README.md` when current capabilities or limitations change;
-- add a correctly headed entry to `CHANGELOG.md`;
-- update `docs/architecture.md` when an invariant or architecture decision
-  changes;
-- keep the version number consistent across all locations;
-- publish only after relevant checks are green;
-- report the exact commit and actual deployment status.
+- update `src/lib/matrundan/version.ts` and in-app history;
+- move the release from **Unreleased** to a dated entry in `CHANGELOG.md`;
+- update `README.md` when current capability or limitation changes;
+- update `docs/architecture.md` when a durable decision changes;
+- keep version and deployment status consistent;
+- publish only after relevant checks are green and approval is explicit.
 
-Documentation-only commits do not require an application deployment unless the
-published application itself reads the changed file.
+README must not duplicate a long release history. Completed implementation
+plans should be removed or archived after durable decisions are captured in
+architecture and changelog.
+
+Documentation-only commits do not require app publication unless the app reads
+the changed file.
 
 ## Git discipline
 
-- Never force-push or rewrite published history.
-- Do not amend, rebase or squash commits already synced to Lovable.
+- Never force-push or rewrite pushed history.
+- Do not amend or rebase commits already synced to Lovable.
 - Keep `main` buildable and coherent after each commit.
 - Prefer focused commits with descriptive messages.
-- Do not push every exploratory edit or create commits only to trigger CI.
+- Do not push every exploratory edit.
+- Do not create commits only to trigger CI.
 - Do not use self-modifying workflows to write or push product code.
-- Inspect the current branch and latest commit before modifying files because
-  Lovable and GitHub can both advance the connected branch.
+- Inspect branch and latest commit before modifying files because Lovable and
+  GitHub can both advance the repository.
