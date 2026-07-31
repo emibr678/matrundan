@@ -70,9 +70,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
 
   const addButton = addDialog.getByRole("button", { name: "Lägg till", exact: true });
   await expect(addButton).toBeEnabled();
-  await expect(
-    addDialog.getByText("Välj minst ett alternativ för att fortsätta."),
-  ).toHaveCount(0);
+  await expect(addDialog.getByText("Välj minst ett alternativ för att fortsätta.")).toHaveCount(0);
   await expect(
     addDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
   ).toBeVisible();
