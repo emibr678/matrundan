@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { primaryOccasion } from "@/lib/matrundan/occasions";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
@@ -78,10 +77,6 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
   if (!canAdmin || groupArchived) return null;
 
   async function save() {
-    if (!primaryOccasion(occasions)) {
-      toast.error("Välj vad stället passar bäst för");
-      return;
-    }
     try {
       await updatePlaceMetadata(place.id, {
         categoryOverride: category === "inherit" ? null : category,
@@ -189,7 +184,6 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
               value={occasions}
               onChange={setOccasions}
               disabled={submitting}
-              required
             />
 
             <div className="space-y-1.5">
@@ -240,10 +234,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Avbryt
             </Button>
-            <Button
-              disabled={submitting || !primaryOccasion(occasions)}
-              onClick={() => void save()}
-            >
+            <Button disabled={submitting} onClick={() => void save()}>
               Spara ändringar
             </Button>
           </DialogFooter>
