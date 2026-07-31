@@ -42,9 +42,7 @@ async function readExistingCount(dialog: Locator) {
 async function confirmSuggestion(page: Page) {
   const confirmation = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(confirmation).toBeVisible();
-  await confirmation
-    .getByRole("button", { name: "Passar för: Avslappnat", exact: true })
-    .click();
+  await confirmation.getByRole("button", { name: "Passar för: Avslappnat", exact: true }).click();
   await confirmation.getByRole("button", { name: "Lägg till i gruppen" }).click();
   await expect(confirmation).toBeHidden();
 }
