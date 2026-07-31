@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CircleHelp, Plus } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +21,8 @@ import {
   type Occasion,
 } from "@/lib/matrundan/types";
 import {
-  occasionClassification,
-  primaryOccasion,
-  secondaryOccasion,
+  normalizeOccasionClassification,
+  toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
 
 const OccasionGuideTrigger = React.forwardRef<
@@ -67,10 +66,9 @@ function OccasionGuideContent() {
         ))}
       </div>
       <div className="border-t border-border/70 pt-3 text-xs leading-relaxed text-muted-foreground">
-        Välj ett <strong className="text-foreground">Passar bäst för</strong> och högst ett
-        frivilligt <strong className="text-foreground">Passar också för</strong> när gruppen vet.
-        Det går bra att lämna valet tomt tills stället har upplevts. Topplistan utgår från det
-        primära valet.
+        Välj en eller två kategorier som stället passar för. Valen är likvärdiga, och ett ställe med
+        två val kan visas i båda topplistorna. Det går bra att lämna valet tomt tills stället har
+        upplevts.
       </div>
     </div>
   );
@@ -133,14 +131,8 @@ export function OccasionPicker({
   description?: string;
 }) {
   const descriptionId = `${id}-description`;
-  const primary = primaryOccasion(value);
-  const secondary = secondaryOccasion(value);
-  const [showSecondary, setShowSecondary] = React.useState(Boolean(secondary));
-
-  React.useEffect(() => {
-    if (secondary) setShowSecondary(true);
-    if (!primary) setShowSecondary(false);
-  }, [primary, secondary]);
+  const selected = normalizeOccasionClassification(value);
+  const atLimit = selected.length >= 2;
 
   return (
     <div className="space-y-2">
@@ -149,93 +141,31 @@ export function OccasionPicker({
         <OccasionGuide />
       </div>
       <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
-        {description ??
-          (required
-            ? "Välj vad stället passar bäst för. Lägg till ett alternativ till om det också passar tydligt."
-            : "Välj om du redan vet – annars kan gruppen bestämma efter ett besök.")}
+        {description ?? (required ? "Välj en eller två." : "Valfritt – välj upp till två.")}
       </p>
-      <div className="space-y-2" aria-describedby={descriptionId}>
-        <div>
-          <div id={`${id}-primary-label`} className="mb-1.5 text-xs font-medium">
-            Passar bäst för
-          </div>
-          <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-labelledby={`${id}-primary-label`}
-          >
-            {OCCASION_VALUES.map((occasion) => (
-              <OccasionButton
-                key={occasion}
-                id={`${id}-primary-${occasion}`}
-                occasion={occasion}
-                ariaLabel={`Passar bäst för: ${OCCASION_LABEL[occasion]}`}
-                selected={primary === occasion}
-                disabled={disabled}
-                onClick={() => {
-                  if (primary === occasion) {
-                    onChange([]);
-                    return;
-                  }
-                  onChange(
-                    occasionClassification(
-                      occasion,
-                      secondary === occasion ? undefined : secondary,
-                    ),
-                  );
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {primary && !showSecondary ? (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => setShowSecondary(true)}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Lägg till ett alternativ till <span className="font-normal">(valfritt)</span>
-          </button>
-        ) : null}
-
-        {primary && showSecondary ? (
-          <div>
-            <div id={`${id}-secondary-label`} className="mb-1.5 text-xs font-medium">
-              Passar också för <span className="text-muted-foreground">(valfritt)</span>
-            </div>
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-labelledby={`${id}-secondary-label`}
-            >
-              {OCCASION_VALUES.filter((occasion) => occasion !== primary).map((occasion) => (
-                <OccasionButton
-                  key={occasion}
-                  id={`${id}-secondary-${occasion}`}
-                  occasion={occasion}
-                  ariaLabel={`Passar också för: ${OCCASION_LABEL[occasion]}`}
-                  selected={secondary === occasion}
-                  disabled={disabled}
-                  onClick={() =>
-                    onChange(
-                      occasionClassification(
-                        primary,
-                        secondary === occasion ? undefined : occasion,
-                      ),
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-labelledby={`${id}-label`}
+        aria-describedby={descriptionId}
+      >
+        {OCCASION_VALUES.map((occasion) => {
+          const isSelected = selected.includes(occasion);
+          return (
+            <OccasionButton
+              key={occasion}
+              id={`${id}-${occasion}`}
+              occasion={occasion}
+              selected={isSelected}
+              disabled={disabled || (atLimit && !isSelected)}
+              onClick={() => onChange(toggleOccasionSelection(selected, occasion))}
+            />
+          );
+        })}
       </div>
-      {required && !primary ? (
+      {required && selected.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          Välj vad stället passar bäst för för att fortsätta.
+          Välj minst ett alternativ för att fortsätta.
         </p>
       ) : null}
     </div>
@@ -245,14 +175,12 @@ export function OccasionPicker({
 function OccasionButton({
   id,
   occasion,
-  ariaLabel,
   selected,
   disabled,
   onClick,
 }: {
   id: string;
   occasion: Occasion;
-  ariaLabel: string;
   selected: boolean;
   disabled: boolean;
   onClick: () => void;
@@ -261,7 +189,7 @@ function OccasionButton({
     <button
       type="button"
       disabled={disabled}
-      aria-label={ariaLabel}
+      aria-label={`Passar för: ${OCCASION_LABEL[occasion]}`}
       aria-pressed={selected}
       aria-describedby={`${id}-description`}
       onClick={onClick}
