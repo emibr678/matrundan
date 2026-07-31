@@ -1,671 +1,554 @@
-# Matrundan architecture
+# Matrundan – arkitektur och säkerhetsbeslut
 
-This document describes the architectural source of truth for Matrundan as of
-v1.0.0. It focuses on durable decisions and invariants rather than a complete
-schema dump. When code, migrations and this document disagree, inspect the
-latest production-compatible migration and fix the documentation in the same
-change.
+Det här dokumentet är Matrundans kanoniska källa för varaktiga arkitektur-,
+data- och säkerhetsbeslut. Det beskriver avsiktliga gränser och invariants, inte
+ett fullständigt schemadump.
 
-## 1. Product boundary
+När kod, migrationer och dokumentation skiljer sig ska den senaste
+produktionskompatibla migrationen och den faktiska runtime-vägen inspekteras.
+Dokumentationen ska rättas i samma ändring.
 
-Matrundan is a private application for groups of friends and families who want
-to collect places, choose what to try next, register real visits and preserve a
-shared food history.
+## 1. Produktgräns
 
-The product is deliberately not:
+Matrundan är en privat, gruppcentrerad app för vänner och familjer som vill:
 
-- a public restaurant catalogue or public review platform;
-- a public social network;
-- a cross-group recommendation engine;
-- a global competition or leaderboard.
+1. samla matställen de är nyfikna på;
+2. bestämma nästa gemensamma stopp;
+3. registrera verkliga besök och faktiska deltagare;
+4. bevara privata omdömen, favoriter, foton och historik;
+5. använda historiken som inspiration till nästa upplevelse.
 
-The group is the primary privacy and product boundary. Canonical data may be
-shared technically across groups, but the visible context remains private to
-each group.
+Produkten är avsiktligt inte:
 
-## 2. Runtime modes
+- en offentlig restaurangkatalog eller publik recensionsplattform;
+- en offentlig social feed;
+- en individuell matdagbok;
+- en generell karttjänst;
+- en global tävling eller ranking;
+- en rekommendationsmotor som blandar privata grupper.
 
-### Public landing mode
+Gruppen är den primära produkt- och integritetsgränsen. Kanoniska verkliga
+entiteter kan länkas tekniskt mellan grupper, men synlig kontext och
+användarskapat innehåll förblir gruppprivat.
 
-Anonymous users enter a public landing experience without loading a group store
-or any group data. The landing page offers three explicit paths:
+## 2. Körlägen
 
-- authenticate and create a private group;
-- open an existing token-based invitation;
-- explore the interactive example group.
+### Publik landning
 
-Direct invitation routes remain available without passing through the landing
-page. The landing experience must not masquerade as membership in a group.
+Utloggade användare möts av en publik start utan `StoreProvider` och utan att
+privat gruppdata laddas. Landningen erbjuder konto/inloggning, privat inbjudan
+och den sekundära exempelgruppen.
 
-### Interactive example mode
+Direkta inbjudningsrutter ska fungera utan att först gå via landningen.
+Landningen får aldrig framstå som medlemskap i en grupp.
 
-`/exempel` opens **Fredagsgänget**, permanently labelled
-**Exempelgrupp · Stockholm**. It starts from fixed `EXAMPLE_STATE` data:
+### Interaktiv exempelgrupp
 
-- displayed places and addresses are curated fictional examples;
-- members, visits, ratings, comments, favourites and activity are fictional;
-- no source group, private user or live membership data is involved.
+`/exempel` öppnar en uttryckligt märkt, helt fiktiv exempelgrupp.
 
-The example uses the same routed UI and local domain mutations as the internal
-demo sandbox. Its adapter persists only to a dedicated `sessionStorage` key in
-the current browser tab. It must never call live write APIs, write to Supabase
-or share storage with the internal demo sandbox. Reloading the same tab keeps
-example changes; a new tab starts from the fixed example state. The user can
-explicitly reset the example to `EXAMPLE_STATE`.
+- Startdata kommer från `EXAMPLE_STATE`.
+- Matställen, adresser, medlemmar, besök, betyg och aktivitet är fiktiva.
+- Vanliga produktkomponenter och lokala mutationer återanvänds.
+- Ändringar sparas endast i en dedikerad `sessionStorage`-nyckel i aktuell flik.
+- Exempelläget får aldrig nå live-mutationer, Supabase eller permanent Storage.
+- Besöksfoton lagras lokalt som komprimerad data endast i sessionen.
 
-Features that inherently require a real backend, such as authentication,
-provider-backed persistence, real invitations or permanent file storage, must
-remain behind their live boundaries. The example should simulate ordinary
-local product flows rather than duplicate UI implementations. Visit photos use
-the same UI and domain operations in example mode, but the example adapter
-stores a compressed data URL only in the current tab's session instead of
-calling Cloud Storage.
+En ny flik börjar från fast exempeldata. Omladdning i samma flik behåller
+sessionens ändringar tills användaren återställer eller lämnar exemplet.
 
-Navigation inside the example preserves example mode until authentication
-starts or the session is explicitly left.
+### Intern testsandbox
 
-### Internal demo sandbox
+`?demo=1` är en separat skrivbar sandbox för utveckling och regressionstester.
+Den använder egen `localStorage`, får inte dela data med exempelgruppen och ska
+inte presenteras som användarens riktiga grupp.
 
-The explicit `?demo=1` sandbox remains available for development and regression
-tests. It stores Swedish sample data in `localStorage` and mirrors live
-behaviour closely enough to exercise write flows. It is isolated from the
-public example's `sessionStorage`, is not a public onboarding path and must not
-be presented as the user's real group.
+### Live-läge
 
-### Live mode
+Live-läge aktiveras efter autentisering. Den aktiva gruppen bestämmer den enda
+grupp-read-model som laddas i appens store.
 
-Live mode uses Google authentication through Lovable Cloud and Supabase. The
-active group determines the only group read-model loaded into the application
-store.
+Övergångar mellan landning, exempel, demo och live ska vara deterministiska.
+Utloggning och kontobyte ska rensa tidigare live-state och gruppval.
 
-Transitions between landing, example, demo and live state must be deterministic.
-Logging out must clear live group state rather than leaving a previous group's
-data in the client store. Starting authentication from the example must clear
-the example-session marker before redirecting.
+## 3. Applikationslager
 
-## 3. High-level application layers
+### UI och routes
 
-### UI and routes
+- `src/routes/` innehåller filbaserade vyer.
+- `src/components/matrundan/` innehåller produktspecifika komponenter och
+  dialoger.
+- `src/components/ui/` innehåller delade shadcn/Radix-primitiver.
 
-- `src/routes/` contains routed pages.
-- `src/components/matrundan/` contains product components and dialogs.
-- `src/components/ui/` contains shared shadcn/Radix primitives.
+UI får konsumera read-model och anropa godkända mutationsgränser, men ska inte
+återskapa serverns behörighetsbeslut eller göra ad hoc-frågor mot databasen.
 
-UI components consume the application read-model and should not reconstruct
-security decisions themselves.
+### Domän, state och repositories
 
-### Application state and repositories
+- `src/lib/matrundan/types.ts` definierar klientens read-model.
+- `src/lib/matrundan/store.tsx` komponerar lokal/live-state och persistence.
+- `src/lib/matrundan/live-repository.ts` mappar den säkra live-payloaden till
+  `AppState`.
+- `src/lib/matrundan/live-mutations.ts` och domänspecifika adminmoduler innehåller
+  godkända live-skrivningar.
+- `src/lib/matrundan/rpc-client.ts` är den centrala typ-escape hatchen och
+  runtime-validerade RPC-gränsen.
+- `src/lib/matrundan/example-data.ts` och `demo-data.ts` äger startdata för de
+  två lokala lägena.
+- Ren domänlogik ska ligga i testbara moduler utan React- eller databasberoende.
 
-- `src/lib/matrundan/types.ts` defines the client-side read-model.
-- `src/lib/matrundan/store.tsx` provides the local/live store boundary and
-  selects local or session persistence for non-live modes.
-- `src/lib/matrundan/example-data.ts` defines the fixed public example start
-  state.
-- `src/lib/matrundan/demo-data.ts` defines writable local sandbox data.
-- `src/lib/matrundan/live-repository.ts` maps the server read-model into
-  application types.
-- `src/lib/matrundan/live-mutations.ts` contains approved live mutations.
+Exempel och testsandbox ska återanvända samma produktflöden och lokala
+domänmutationer. Separata UI-implementationer per körläge ska undvikas.
 
-The example and internal sandbox must reuse the same local mutation
-implementation; only their initial data and persistence adapter differ. New
-core product flows should therefore become available in both modes without
-separate example-specific feature implementations.
+### Serverintegrationer
 
-The UI should use these boundaries instead of issuing ad hoc database queries.
-The public landing page is deliberately rendered outside `StoreProvider`.
+Serverfunktioner kapslar hemligheter och tredjepartsanrop. Geoapify-anrop finns
+i `src/lib/matrundan/geoapify.functions.ts`; klienten får endast normaliserade
+svar och aldrig API-nyckeln eller råa providerpayloads.
 
-### Server integrations
+### Databas
 
-Server-only code handles secrets and third-party calls. Geoapify requests are
-made server-side, and only a normalised response is returned to the browser.
+Supabase/PostgreSQL lagrar kanoniska entiteter, grupprelationer, medlemskap,
+inbjudningar, planering, recensioner, favoriter, aktivitet, notisdata och privat
+media. Känslig åtkomst skyddas av RLS, explicita grants och
+medlemskapsvaliderande RPC-funktioner.
 
-### Database
+## 4. Identitet och medlemskap
 
-Supabase/PostgreSQL stores canonical entities, group relationships,
-memberships, invitations, reviews, favourites and activity. Sensitive access
-is mediated through RLS, grants and membership-validating RPC functions.
+### Profiler
 
-## 4. Identity and memberships
+En profil representerar en autentiserad användare. Profilinformation får visas i
+en grupp när betraktaren har rätt att se medlemmen eller en historisk
+deltagare.
 
-### Profiles
+Självbetjänad kontoradering är serverorkestrerad:
 
-A profile represents an authenticated user. Profile data may be shown inside a
-group when the viewer is permitted to see the member or historical participant.
+- grupper med andra aktiva medlemmar kräver uttrycklig efterträdare för ägaren;
+- ensamägda grupper kräver separat destruktiv bekräftelse och tas bort;
+- namn, avatar, kommentarer, favoriter, planeringssvar och privat media tas bort;
+- numeriska omdömen och genomförd deltagandehistorik bevaras anonymt som
+  **Tidigare medlem**;
+- auth-användaren hanteras med service role först efter att databastransaktion
+  och privat objektstädning har lyckats.
 
-Account deletion is self-service and server-orchestrated. Groups with other
-active members require an explicit successor before their owner can leave.
-Owner-only groups require a separate destructive confirmation and are deleted.
-The user's display name, avatars, comments, favourites, planning responses and
-uploaded visit media are removed. Numeric reviews and completed-visit
-participation remain attached to the scrubbed profile label `Tidigare medlem`
-so other members retain a coherent shared history. The auth user is soft-deleted
-with the service role only after the authenticated database transaction and
-private object cleanup succeed.
+### Grupper och roller
 
-### Groups
+En användare kan vara aktiv medlem i flera grupper och växla aktiv grupp.
+Exempelgruppen är aldrig en databasgrupp och ger inga riktiga rättigheter.
 
-A group is the private collaboration boundary. A user can be an active member
-of multiple groups and can switch active group in the client.
+Medlemskap har roll och livscykel. Viktiga invariants:
 
-The example group is not a database group, is never added to the authenticated
-user's group list and grants no membership or permissions. Local example role
-simulation must never be treated as real authorisation.
+- endast aktivt medlemskap ger aktuell åtkomst;
+- tidigare medlemmar får inte återfå åtkomst genom historiska rader;
+- endast aktiva medlemmar visas i aktuella topplistor;
+- ägarskap kan inte tyst tas bort eller nedgraderas;
+- ägaröverföring är atomisk;
+- exakt en aktiv ägare ska finnas per aktiv grupp;
+- återinträde återställer inte automatiskt en tidigare ägarroll.
 
-### Membership lifecycle
-
-Memberships have a role and lifecycle state. Active membership grants current
-access. Historical membership may remain so that old visits can retain names
-and attribution without restoring access.
-
-Important invariants:
-
-- a former member must not regain access through historical data;
-- only active members appear in current group leaderboards;
-- ownership cannot be silently removed or demoted;
-- ownership transfer must be atomic;
-- exactly one active owner must exist per group;
-- rejoining does not implicitly restore an old owner role.
-
-## 5. Canonical place model
+## 5. Kanoniska matställen
 
 ### `places`
 
-`places` represents a real-world place independently of any group. Canonical
-identity prevents two groups from creating separate copies of the same provider
-place.
+`places` representerar ett verkligt matställe oberoende av grupp. Ett provider-
+ställe identifieras primärt med `(provider, provider_place_id)`.
 
-Provider-backed places use `(provider, provider_place_id)` as their primary
-duplicate identity. Name and address matching may be useful as a fallback for
-manual data but is not a substitute for a provider ID.
+Namn/adress kan användas som ett kontrollerat reservfall för manuella ställen,
+men ersätter inte provideridentiteten.
 
 ### `place_sources`
 
-Provider metadata is associated with the canonical place. Raw third-party
-payloads should not be sent to the browser or treated as stable application
-schema.
+Providerrelaterad metadata hör till det kanoniska stället. Råa
+providerpayloads är inte en stabil appmodell och ska inte skickas till klienten.
 
 ### `group_places`
 
-`group_places` represents one group's relationship to a canonical place. This
-is where group-specific information belongs, including:
+`group_places` representerar en grupps relation till ett kanoniskt ställe. Här
+hör gruppspecifik information hemma:
 
-- notes;
-- occasions or suitability labels;
-- group-specific category and cuisine/speciality overrides;
-- who added the place to the group;
-- when it was added;
-- origin of the group relationship;
-- lifecycle state for whether the place is currently in the group's active list.
+- anteckning;
+- kategori, kök och inriktning;
+- **Passar bäst för** och valfritt **Passar också för**;
+- vem som lade till stället och hur relationen uppstod;
+- om stället finns i gruppens aktiva lista.
 
-The ordered `occasions` array has product semantics:
+Det ordnade `occasions`-fältet har semantik:
 
-- the first value is the required **Passar bäst för** classification;
-- the optional second value is **Passar också för**;
-- additional legacy values are ignored by the client until an authorised user
-  explicitly saves a corrected classification.
+- första värdet är obligatoriskt primärt användningssammanhang;
+- andra värdet är valfritt sekundärt sammanhang;
+- äldre extra värden ignoreras tills en behörig användare sparar om.
 
-The three stable internal values remain `snabbt`, `avslappnat` and `middag`.
-Their Swedish labels may evolve without rewriting production rows.
+Interna värden är stabila även om svensk copy utvecklas. Gruppens topplista
+rankar ett ställe endast i dess primära sammanhang.
 
-Restaurant leaderboards are private derived views of the active group. A place
-is eligible only in the leaderboard matching its first, primary occasion.
-Secondary occasions support discovery and filtering but never place the same
-restaurant in multiple leaderboards.
+Kända ursprung normaliseras som `manual`, `provider` och `shared`. Okända värden
+ska falla säkert mot delat/importerat, inte manuellt, eftersom ett manuellt
+fallback kan ge felaktig gamification.
 
-Known origin semantics are normalised in the client as:
+### Livscykel i gruppen
 
-- `manual` — created manually in the group;
-- `provider` — added from an external provider search in the group;
-- `shared` — introduced through a shared visit.
+**Ta bort från gruppen** är en mjuk livscykeländring på `group_places`, inte en
+radering av `places`.
 
-The database value `shared_visit` maps to client origin `shared`. Unknown origin
-values must fail safe as shared/imported rather than manual, because manual
-fallback could incorrectly award proposal-based gamification.
+Ett borttaget ställe ska:
 
-### Group-place lifecycle
+- försvinna från aktiva listor, kartor, nästa stopp och slumpning;
+- behålla kanoniska besök, deltagare, omdömen och gruppmetadata;
+- kunna nås via historiska besök;
+- återaktiveras genom det vanliga **Lägg till**-flödet utan dubblett.
 
-Removing a place from the group is a soft lifecycle change on `group_places`,
-not deletion of the canonical `places` row. The user-facing product language is
-"Ta bort från gruppen", not archive/canonical terminology.
+Användaren ska inte behöva förstå intern copy som arkivera eller återaktivera.
+I sökningen visas tidigare borttagna ställen som vanliga kandidater med
+**Lägg till**.
 
-A removed group-place relationship must:
+## 6. Gruppens sökområden
 
-- disappear from the active place list and map;
-- be ineligible for next stop and random selection;
-- not contribute as an active place to planning or progression views;
-- keep canonical visits, participants and reviews intact;
-- remain readable when reached through historical visits;
-- show a neutral status such as "Inte längre i gruppens lista".
+### Datamodell
 
-There is no ordinary user-facing archive list for removed places. Re-adding is
-performed through the normal Add place flow. Provider-backed matches use the
-provider identity; manual matches use the approved name/address fallback. A
-match must reactivate the existing `group_places` relationship rather than
-create a duplicate and must preserve earlier notes, occasions, cuisine tags and
-other group metadata unless the user explicitly changes them.
+`group_search_areas` innehåller upp till fem verifierade Geoapify-områden per
+grupp:
 
-### Default search area
+- kort visningsetikett;
+- provider och provider place ID;
+- latitud och longitud;
+- stabil sorteringsordning.
 
-A group's default search area is optional structured Geoapify data:
+Det finns inget primärt område. Alla sparade områden beskriver tillsammans
+gruppens vanliga sökstart och är valda när sökningen öppnas.
 
-- display label;
-- provider;
-- provider place ID;
-- latitude;
-- longitude.
+`groups.default_search_radius_km` lagrar en gemensam standardradie. Tillåtna
+värden är 1, 2, 3, 5, 10, 25 och 50 km.
 
-It is only a default search centre. It does not constrain where the group may
-add or visit places.
+### Regler
 
-Legacy free-text areas may remain visible until an owner chooses a verified
-Geoapify result. The application must not invent coordinates for legacy text.
+- Endast ägare och admin får ersätta gruppens sökområden och standardradie.
+- Samma providerplats får inte förekomma två gånger i samma grupp.
+- Hela listan valideras innan tidigare inställningar ersätts.
+- Migrationer bevarar befintliga verifierade områden och produktionsrader.
+- Första sparade området speglas till äldre `home_location_*`-kolumner under
+  övergången, men den nya listan är den kanoniska modellen.
+- Overifierad fritext får inte användas som koordinatkälla.
+- En tillfällig annan plats i sökdialogen sparas inte automatiskt i gruppen.
+- Sökområden är endast förvalda sökcentrum och aldrig geografiska begränsningar
+  för vad gruppen får lägga till eller besöka.
 
-## 6. Canonical visit model
+Skrivning går atomiskt genom `replace_group_search_settings`. Nya grupper skapas
+med områden och gemensam radie genom `create_group_with_owner_v2`.
 
-### `visits`
+## 7. Kanoniska besök
 
-`visits` represents a real visit once, independent of how many groups can see
-it. It does not contain a group ID in the canonical model.
+### `visits` och `visit_group_links`
 
-### `visit_group_links`
+`visits` representerar ett verkligt besök en gång. Gruppsynlighet lagras i
+`visit_group_links`:
 
-A visit is connected to groups through `visit_group_links`:
+- exakt en `original`-länk anger registrerande grupp;
+- noll eller flera `shared`-länkar visar samma besök i andra grupper.
 
-- exactly one `original` link identifies the group where the visit was
-  registered;
-- zero or more `shared` links expose the same canonical visit to other groups.
+En databasconstraint ska hindra fler än en originallänk per besök.
 
-A unique database constraint/index must guarantee no more than one original
-link per visit.
+### Deltagare
 
-### `visit_participants`
+`visit_participants` representerar faktiska autentiserade deltagare.
+Registreraren får ingen extra progression om hen inte själv är deltagare.
 
-Participants represent real authenticated users attached to the canonical
-visit. Registration credit and gamification are based on participants, not the
-user who created the row.
+I en grupps read-model:
 
-For a group's read-model:
+- relevanta nuvarande och historiska gruppdeltagare kan visas;
+- personer utanför gruppen exponeras inte som identiteter;
+- externa personer representeras endast som ett anonymt antal.
 
-- visible member participant IDs contain users who are or have been relevant
-  members of that group;
-- people outside the group are not exposed as identities;
-- external people are represented only by `externalParticipantCount`.
-
-### `visit_media` and private visit photos
-
-A visit photo is private media for one group's relationship to a canonical
-visit. `visit_media` is uniquely keyed by `(visit_id, group_id)` and has a
-composite foreign key to `visit_group_links`. This preserves canonical visit
-identity while preventing a photo from becoming global visit data.
+### Privat besöksfoto
 
-Important invariants:
-
-- the row can exist only for the visit's `original` group link;
-- a shared target group never receives the origin group's photo metadata,
-  storage path or signed URL;
-- all objects live in the private `visit-photos` bucket under a
-  `<group>/<visit>/<random>.jpg` path;
-- group members may read media only through the active group's read-model and
-  short-lived signed URLs;
-- only actual participants or the active group's owner/admin may add or
-  replace a photo;
-- actual participants, the original visit's creator or the active group's
-  owner/admin may remove its photo;
-- archived groups and shared visit links are read-only;
-- the database and Storage policies repeat the permission checks server-side;
-- replacing or deleting media must remove the old Storage object on a
-  best-effort basis without deleting the canonical visit.
+`visit_media` är gruppspecifik privat media kopplad till besökets originallänk.
 
-The browser re-encodes accepted images to JPEG before upload, limits the longest
-edge to 1600 px and targets a compact file size. Re-encoding strips EXIF and GPS
-metadata. The visit is created first and the image is uploaded second, so media
-failure never rolls back the real visit.
-
-### Deleting an original visit
-
-The person who registered an original visit, or the original group's
-owner/admin, may delete it while the group is active. Deletion is a correction
-of canonical history and therefore removes the canonical visit everywhere,
-including shared links.
-
-The secured deletion flow must:
-
-- verify active membership and an `original` link in the supplied group;
-- verify that the caller is the visit creator or the group's owner/admin;
-- remove the original group's private photo through the protected Storage path
-  before deleting the visit;
-- remove visit activity rather than leaving broken history entries;
-- cascade through participants, reviews, review visibility, media metadata and
-  all visit-group links;
-- leave the canonical place and every group's place-list relationship intact.
+- Delade målgrupper får aldrig ursprungsgruppens foto, storage path eller URL.
+- Objekt ligger i den privata `visit-photos`-bucketen under validerad grupp- och
+  besökssökväg.
+- Endast faktisk deltagare eller gruppens ägare/admin får lägga till eller
+  ersätta foto.
+- Deltagare, registrerare eller gruppens ägare/admin får ta bort foto enligt
+  serverns regler.
+- Arkiverade grupper och delade länkar är skrivskyddade.
+- Bilder omkodas i webbläsaren till JPEG, begränsas i dimension och storlek och
+  tappar EXIF/GPS-metadata före uppladdning.
 
-Deleting a shared link remains a separate, non-destructive action in the
-receiving group.
-
-### Sharing a visit
-
-A user may share a visit to another active group only when the server-side rules
-allow it, including that the user participated and is an active member of the
-target group.
-
-Sharing must:
-
-- link the existing canonical visit, never create a duplicate visit;
-- connect the canonical place to the target group if needed;
-- preserve the original group's privacy;
-- expose only target-relevant participant identities;
-- represent everyone else anonymously as `+N`;
-- initialise review visibility conservatively;
-- never return `source_group_id` to the client.
+Besöket skapas före medieuppladdningen. Ett mediafel får inte rulla tillbaka det
+verkliga besöket.
 
-### Removing a shared link
+### Radering av originalbesök
 
-Removing a shared visit from a target group deletes only the target group's
-shared relationship and target-specific visibility/activity rows.
+Registreraren eller originallänkens ägare/admin får korrigera historiken genom
+att radera ett originalbesök i en aktiv grupp.
 
-It must not delete:
+Raderingen tar bort besöket överallt, inklusive delningar, deltagare, omdömen,
+visibilityrader, media och relevant aktivitet. Det kanoniska matstället och
+gruppernas platsrelationer ska lämnas kvar.
 
-- the canonical visit;
-- the canonical place;
-- participants;
-- reviews;
-- the original group's link;
-- another group's link.
-
-Only authorised active target-group members may unlink, according to the
-approved role/linking rules.
+Att ta bort en delad länk är en separat, icke-destruktiv handling som bara tar
+bort målgruppens relation och målgruppsspecifika aktivitet/visibility.
 
-### Next-stop date proposals
+### Delning
 
-An active or confirmed proposal may be edited by its proposer or the group's
-owner/admin while it still belongs to the current next stop. A real date/time
-change resets every response and returns a confirmed proposal to `active`.
-Unchanged values are a no-op. Past dates and archived groups are rejected on
-the server.
+En användare får dela ett besök till en annan aktiv grupp endast när servern
+verifierar deltagande och aktivt medlemskap i målgruppen.
 
-## 7. Reviews and visibility
+Delning ska:
 
-### `reviews`
+- länka samma kanoniska besök och plats;
+- skapa eller återaktivera målgruppens `group_places` vid behov;
+- aldrig exponera `source_group_id`;
+- endast visa deltagaridentiteter som är relevanta för målgruppen;
+- representera andra som anonymt `+N`;
+- börja med konservativ kommentarssynlighet.
 
-A review is canonical per visit and user. Ratings and comments belong to the
-real visit, not to a duplicated group-specific copy.
+Tidigare egna besök kan erbjudas vid tillägg av ett säkert identifierat
+Geoapify-ställe. Inget tidigare besök eller privat kommentar är förvalt.
 
-### `review_group_visibility`
+## 8. Planering av nästa stopp
 
-Visibility is controlled per review and group. A rating may be visible while a
-comment remains hidden.
+`next_stop_date_proposals` och `next_stop_date_responses` är privata för gruppen
+och aktuellt nästa stopp.
 
-When sharing:
+- En aktiv medlem kan föreslå datum och valfri tid.
+- Aktiva medlemmar kan svara **Passar**, **Passar inte** eller **Osäker**.
+- Förslagsställare, ägare eller admin får ändra, bekräfta eller ta bort.
+- En verklig datum/tidsändring nollställer svar och öppnar ett bekräftat förslag
+  igen.
+- Oförändrade värden är en no-op.
+- Förslaget stängs när nästa stopp byts, tas bort eller registreras som besökt.
+- Tidigare medlemmars svar räknas inte i aktuell gruppvy.
+- Det sker ingen automatisk majoritetsbekräftelse.
 
-- relevant ratings can be visible in the target group;
-- comments default to hidden unless the author explicitly allows their own
-  comment to follow;
-- a user can later change visibility only for their own review;
-- aggregates must include only reviews whose rating is visible in the active
-  group.
+## 9. Omdömen och synlighet
 
-Private comments must never leak through averages, activity payloads, error
-messages or source-group metadata.
+`reviews` är kanoniska per besök och användare. `review_group_visibility` styr
+betygs- och kommentarssynlighet per grupp.
 
-## 8. Secure read model
+Vid delning:
 
-`get_group_app_state_v5d(_group_id)` is the current primary live read boundary.
-It layers next-stop date planning over the group-specific visit-photo
-projection from v5c without reopening direct table reads.
+- relevanta betyg kan visas i målgruppen;
+- kommentarer är dolda tills författaren uttryckligen väljer annat;
+- en användare får ändra visibility endast för sitt eget omdöme;
+- aggregat får endast använda betyg som är synliga i aktiv grupp.
 
-It is a `SECURITY DEFINER` function with a locked `search_path` and must:
+Privata kommentarer får inte läcka genom aktivitet, felmeddelanden, aggregat
+eller metadata om ursprungsgruppen.
 
-- require an authenticated user;
-- require active membership in `_group_id`;
-- return data for exactly one group;
-- expose only fields needed by the application;
-- preserve historical display names where allowed;
-- anonymise external participants;
-- omit source-group identity;
-- calculate or provide only group-visible review data;
-- attach visit-photo metadata only for `_group_id`, then resolve private objects
-  to short-lived signed URLs in the live repository.
+## 10. Säker read-model
 
-Sensitive canonical and relationship tables should not be directly readable by
-the authenticated client. Read access should not be reopened as a shortcut for
-new features.
+`get_group_app_state_v5e(_group_id)` är den primära live-läsgränsen. Den bygger
+vidare på v5d och lägger till gruppens `searchAreas` och
+`defaultSearchRadiusKm` utan att öppna direkt tabellåtkomst.
 
-## 9. Secure writes
+Funktionen är `SECURITY DEFINER` med låst `search_path` och ska:
 
-Client writes use approved RPC functions or server functions.
+- kräva autentiserad användare;
+- kräva aktivt medlemskap i exakt `_group_id`;
+- returnera endast en grupps data;
+- exponera endast fält som appen behöver;
+- bevara tillåtna historiska visningsnamn;
+- anonymisera externa deltagare;
+- utelämna ursprungsgruppens identitet;
+- beräkna endast gruppsynliga omdömen;
+- inkludera foto endast för aktuell grupp och låta repositoryt skapa kortlivade
+  signerade URL:er.
 
-A write function should normally:
+Känsliga kanoniska tabeller och relationstabeller ska inte återöppnas för direkt
+klient-`SELECT` som genväg för nya funktioner.
 
-1. derive the caller from `auth.uid()`;
-2. validate active membership and required role;
-3. validate all IDs belong to the intended group context;
-4. validate enums, lengths, ranges and immutable identities;
-5. perform the complete operation atomically;
-6. use `SECURITY DEFINER` with a locked `search_path` when appropriate;
-7. revoke execution from `PUBLIC` and `anon`;
-8. grant only the intended role, normally `authenticated`.
+## 11. Säkra skrivningar
 
-Never accept client-supplied author, owner, member, source-group or group
-identity without verifying it server-side.
+Skrivningar använder godkända RPC-funktioner eller serverfunktioner.
 
-The example adapter is not an authorisation boundary and must have no route to
-live mutations. Conversely, archived live groups remain centrally read-only;
-hiding buttons alone is not an adequate enforcement mechanism.
+En skrivgräns ska normalt:
 
-## 10. Geoapify integration
+1. härleda användaren från `auth.uid()`;
+2. verifiera aktivt medlemskap och roll;
+3. verifiera att alla ID:n hör till avsedd gruppkontext;
+4. validera enums, längder, intervall och immutabla identiteter;
+5. utföra hela operationen atomiskt;
+6. använda `SECURITY DEFINER` och låst `search_path` när lämpligt;
+7. återkalla exekvering från `PUBLIC` och `anon`;
+8. ge endast avsedd roll, normalt `authenticated`, rätt att anropa.
 
-Geoapify supports two live operations:
+Klientangiven användare, författare, ägare, medlem, grupp eller ursprungsgrupp
+får aldrig litas på utan servervalidering.
 
-- location autocomplete;
-- food-place search around a selected coordinate.
+Arkiverade live-grupper är centralt skrivskyddade. Att bara dölja knappar är
+inte behörighetskontroll.
 
-The API key is stored in Lovable Cloud Secrets as `GEOAPIFY_API_KEY` and read
-only by server code. It must never appear in:
+## 12. Geoapify och flerområdessökning
 
-- client bundles;
-- `VITE_` variables;
-- GitHub;
-- browser responses;
-- application logs.
+Geoapify används för:
 
-The browser receives a provider-neutral, normalised suggestion model. Search
-uses bounded radii and requires an actual selected location when coordinates are
-needed.
+- autocomplete av verifierade platser;
+- sökning efter matställen runt ett eller flera valda centrum.
 
-Current supported radii are 1, 3, 5, 10, 25 and 50 km, with 1 km as the default.
-The UI must show Geoapify/OpenStreetMap attribution in live search results.
+`GEOAPIFY_API_KEY` lagras i Lovable Cloud Secrets och läses endast av serverkod.
+Den får aldrig förekomma i klientbundle, `VITE_`-variabler, repo,
+browserrespons eller loggar.
 
-A selected provider place is inserted or linked atomically. Concurrent requests
-for the same provider ID must not create duplicate canonical places.
+Sökningen använder en gemensam radie för alla valda centrum. Servern gör ett
+begränsat anrop per centrum och:
 
-Cuisine and speciality data from providers is mapped through the central
-`food-tags.ts` taxonomy. Known aliases become stable Swedish labels. Bounded raw
-provider metadata may be retained for diagnostics, but arbitrary provider
-categories must not become uncontrolled user-facing tags. Unknown historical
-labels may remain visible until an authorised user saves a corrected selection.
+- validerar maximalt antal centrum och tillåten radie;
+- normaliserar resultat till en providerneutral modell;
+- deduplicerar primärt på provider + provider place ID;
+- behåller kortaste avståndet och närmaste områdesetikett;
+- sorterar på kortaste avstånd och därefter namn;
+- begränsar totalen till högst 50 unika resultat;
+- returnerar fungerande delresultat när ett enskilt område misslyckas;
+- visar Geoapify/OpenStreetMap-attribution i liveflödet.
 
-The fixed example dataset does not call Geoapify at runtime. Fictional place
-names and addresses are curated as stable demonstration data. Approximate
-coordinates may be used for layout, but example details must not link fictional
-places to external map services.
+Aktiva gruppställen separeras från kandidater och visas i den kollapsade
+sektionen **Redan i gruppen**. Listan och kartan ska använda samma
+deduplicerade resultatmodell.
 
-## 11. Gamification
+Providerkök och inriktningar mappas genom den centrala `food-tags.ts`-taxonomin.
+Okända råkategorier får inte bli en okontrollerad användartaxonomi.
 
-Gamification is a pure derived domain layer in
+Exempelgruppen anropar inte Geoapify vid runtime och länkar inte fiktiva ställen
+till externa karttjänster.
+
+## 13. Karta
+
+MapLibre är kartlager för produktens interna kartor.
+
+- `PlaceMap.tsx` äger den etablerade kartan för gruppens ställen.
+- `MultiAreaPlaceMap.tsx` visar valda sökområden, gemensamma radiecirklar och
+  deduplicerade sökträffar.
+- Kartdata ska byggas från rena, testbara GeoJSON-hjälpare när det är praktiskt.
+- Samma ställe får inte bli flera markörer efter deduplicering.
+- Kategoriikoner och klustring ska fungera i Chromium och WebKit.
+- CSS-temafärger måste konverteras till format som MapLibre accepterar.
+- Kartändringar ska klassificeras av `scripts/repo-tools.mjs` så att
+  tvärbrowsermatrisen körs.
+
+Diagnostikrutter är interna verktyg och får inte behandlas som produktfunktioner.
+De ska skyddas eller tas bort när deras behov upphör.
+
+## 14. Gamification
+
+Gamification är en ren härledd domän i
 `src/lib/matrundan/gamification.ts`.
 
-### Principles
+- Inget muterbart poängsaldo eller cachat badgeägande lagras.
+- Endast faktiska deltagare får progression.
+- Registrering, betyg, kommentarer, klick och administration ger ingen kredit.
+- Återbesök räknas.
+- Delade besök räknas endast när både gruppens och besökets inställning tillåter
+  det.
+- Kanoniska besök dedupliceras på `Visit.id` före progression, topplistor och
+  milstolpar.
+- Aktuella topplistor är privata och innehåller endast aktiva medlemmar.
+- Oavgjort använder competition ranking, exempelvis `1, 1, 3`.
 
-- No mutable point balance is stored.
-- Levels and badges are recalculated from the active group's read-model.
-- Only actual participants receive credit.
-- Repeat visits count.
-- Registration, comments, ratings, clicks and administration do not earn
-  progression.
-- Shared visits count only when both group and visit settings allow it.
-- Canonical visits are defensively deduplicated by `Visit.id` before every
-  progression, leaderboard and milestone calculation.
+Nivågränser, badges och milstolpar definieras i domänkoden och skyddas av
+enhetstester. De ska inte dupliceras som en separat muterbar datakälla.
 
-### Levels
+## 15. Aktivitet och notiser
 
-| Participated visits | Level            |
-| ------------------: | ---------------- |
-|                   0 | Nyfiken          |
-|                   1 | Provsmakaren     |
-|                   4 | Krogspanaren     |
-|                  10 | Matupptäckaren   |
-|                  20 | Smakjägaren      |
-|                  40 | Matkonnässören   |
-|                  75 | Matrundemästaren |
+Aktivitet är en privat, användarorienterad historik över meningsfulla
+händelser. Mutationer som redan skapar aktivitet ska göra det atomiskt på
+servern.
 
-Progress toward the next level is shown only on the user's own profile.
+Gamification skapar inte lagrade aktivitetsrader. Härledda nivåer och badges ska
+inte skrivas till aktivitet bara för att göras persistenta.
 
-### Badges
+Push-notiser köas via `notification_outbox` i samma databastransaktion som den
+utlösande händelsen när möjligt. Utskick sker serverbaserat och användaren styr
+prenumeration per enhet och notistyp.
 
-- **Första rundan** — first progression-counted participated visit.
-- **Världsvan** — five unique normalised cuisine types.
-- **Brett register** — four unique place categories.
-- **Stammis** — third progression-counted visit to the same canonical place.
-- **Fullträff** — a non-shared place attributed to the member is later visited
-  in an original group visit with at least one other group-relevant member.
+Service workern hanterar notiser men ska inte införa generell asset-cache som
+kan hålla kvar gamla appversioner. Notispayloads får inte läcka privata detaljer
+från andra grupper.
 
-External participant counts must never satisfy the "other group member" rule.
+## 16. UI och tillgänglighet
 
-### Leaderboards
+Gränssnittet är svenskt, varmt, enkelt och återhållsamt. Gruppens nästa stopp,
+besök och historik prioriteras före statistik och gamification.
 
-Leaderboards are private to the group and include active members only. Current
-categories are participated visits, new places and cuisine breadth, for the
-periods current year and all time.
+- Återanvänd befintliga shadcn/Radix-mönster.
+- Undvik konkurrerande representationer av samma information.
+- Primära handlingar ska vara tydliga; avancerade och destruktiva handlingar
+  ska vara sekundära och bekräftas lämpligt.
+- Bevara tangentbord och ARIA-semantik i dialoger, sheets, tabs, comboboxar och
+  kollapsade sektioner.
+- Interaktiva mål bör vara minst cirka 44 px.
+- Långa svenska etiketter och namn ska radbrytas.
+- Horisontell overflow är inte tillåten i huvudflöden vid 360 px.
+- Sökområden visas som radbrytande valbrickor i sökningen och vertikala rader i
+  gruppinställningarna.
+- Mobil layout med tangentbord ska ta hänsyn till `visualViewport` eller
+  dynamisk viewport så att sökfält och val inte döljs.
 
-Ties use competition ranking: `1, 1, 3`. Alphabetical order may stabilise visual
-ordering but must not break a tie.
+## 17. Versionering och dokumentation
 
-### Group milestones
+Varje dokument har ett avgränsat ansvar:
 
-Current milestones include counts of unique visited places, group anniversaries
-and the first visit with the whole active group.
+- `README.md` – kort aktuell projektöversikt;
+- `CHANGELOG.md` – släppta och ännu inte publicerade användarförändringar;
+- `src/lib/matrundan/version.ts` – publicerad appversion och in-app-historik;
+- detta dokument – varaktiga arkitektur- och säkerhetsbeslut;
+- `DEVELOPMENT.md` – runtime, setup och kommandon;
+- `docs/development-workflow.md` – process från diskussion till publicering;
+- `docs/archive/` – historiska dokument som inte längre är kanoniska.
 
-Known limitation: exact historical membership periods cannot currently be
-reconstructed for the whole-group milestone. It uses the now-active member set
-and can therefore change retroactively when membership changes.
+En publicerad release är ofullständig om appversion, in-app-historik,
+changelog och faktisk deploymentstatus inte stämmer överens.
 
-## 12. Activity
+En mergad men ännu inte publicerad funktion ska ligga under **Unreleased** i
+changelog och får inte beskrivas som publicerad appversion.
 
-Activity is a user-facing history of meaningful group events. Mutations that
-already create activity should do so atomically on the server.
+## 18. Verifiering
 
-Gamification does not create stored activity kinds. Derived levels, badges and
-leaderboards must not be written into activity merely to make them persistent.
-
-When a shared visit is unlinked, target-specific share activity should be
-removed without touching original-group history.
-
-## 13. UI architecture and accessibility
-
-The interface is Swedish, warm and restrained. Gamification is secondary to
-planning and visit history.
-
-General rules:
-
-- reuse existing shadcn/Radix primitives;
-- avoid duplicate displays of the same information;
-- keep advanced and destructive actions secondary;
-- use suitable confirmation for destructive actions;
-- preserve keyboard and ARIA behaviour in dialogs, sheets, tabs and comboboxes;
-- provide practical 44 px interactive targets;
-- support long Swedish labels and names;
-- prevent horizontal overflow at 360 px.
-
-The public landing page must explain the product before presenting a group. Its
-primary paths are create, join and the secondary example CTA. The example banner
-must remain visible on every example route, not only on its home view, and must
-explain that changes are temporary without exposing technical implementation
-language as the primary product message.
-
-The Gruppen page places the member list before the compact group-highlights
-section. Member cards show a restrained `{level} · {visits} besök` line.
-
-Long searchable multi-selects use a compact popover on desktop and a bottom
-drawer below 768 px. The mobile drawer must react to `visualViewport`/dynamic
-viewport changes so an opened software keyboard does not hide the search field
-or trap the option list behind the keyboard.
-
-## 14. Versioning and documentation
-
-The release version and changelog exist in several places:
-
-- `src/lib/matrundan/version.ts` for the application and in-app history;
-- `README.md` for current capability and limitations;
-- `CHANGELOG.md` for external release history;
-- this document for durable architectural changes.
-
-A release is incomplete when these disagree.
-
-## 15. Verification expectations
-
-A normal release candidate should run:
+Normal iteration:
 
 ```bash
-bun run typecheck
-bunx eslint <all changed source files>
-bun run build
+bun run doctor
+bun run verify:changed
 ```
 
-Focused tests should be run for changed domain modules. Gamification currently
-uses:
+Ändrade UI-flöden:
 
 ```bash
-bun test src/lib/matrundan/gamification.test.ts
+bun run verify:agent
 ```
 
-Changed mobile flows require a real browser check at 360 px. Verify both the
-page and opened dialogs/sheets, including:
+Releasekandidat:
 
-```js
-document.documentElement.scrollWidth <= document.documentElement.clientWidth;
+```bash
+bun run verify:full
 ```
 
-For software-keyboard-sensitive UI, also verify the component after the visual
-viewport height shrinks and confirm that its bottom edge remains within the
-visible viewport.
+Redo-CI kör mobil Chromium för UI-ändringar och WebKit/desktop Chromium för
+kartrelaterade ändringar.
 
-Runtime-mode changes must verify at minimum:
+Utöver automatisk verifiering kräver ändringar:
 
-- anonymous `/` loads no group store and shows the landing actions;
-- `/exempel` starts from `EXAMPLE_STATE`, supports local product mutations and
-  persists them only in the current tab's dedicated `sessionStorage` key;
-- example reload and reset behave deterministically;
-- example data never changes the internal sandbox's `localStorage` state;
-- `?demo=1` remains a writable internal sandbox;
-- direct invitation routes work before and after authentication;
-- live users with and without groups retain their existing routing behaviour.
+- browserkontroll vid 360 px för berörda huvudflöden;
+- kontroll att `scrollWidth <= clientWidth` för dokument och body;
+- tangentbordstest för viewportkänsliga väljare;
+- explicit granskning av migrationer, grants och gruppisolering;
+- kontroll av exempel, demo och live när runtime-gränsen berörs;
+- ärlig redovisning när autentiserat live-test eller verklig enhet saknas.
 
-Database changes require explicit inspection of function definitions, grants,
-membership checks and preservation of production rows. Storage changes must
-also verify bucket privacy, MIME/size limits, object-path validation, SELECT and
-DELETE policies, signed-URL scoping and the absence of cross-group media in the
-read-model.
+## 19. Arkitekturchecklista
 
-Never describe a test as completed when it was not actually run. If an
-authenticated live browser session is unavailable, state that limitation
-explicitly.
+Före merge av en arkitekturpåverkande ändring:
 
-## 16. Change checklist
-
-Before merging an architecture-affecting change, confirm:
-
-- Does it preserve canonical place and visit identity?
-- Is every read and write scoped to the correct group?
-- Could it reveal another group's name, member, comment or source identity?
-- Are former members denied current access?
-- Are external participants still anonymous?
-- Are secrets server-only?
-- Are RPC grants and `search_path` correct?
-- Does the public landing avoid loading or implying group membership?
-- Is the example clearly labelled and unable to reach live persistence?
-- Does the example reuse the current product flows rather than duplicate them?
-- Is example session data isolated from the internal demo sandbox?
-- Does the internal demo sandbox still work?
-- Does the changed flow work at 360 px?
-- Are tests and documentation updated?
-- Is deployment withheld until verification is green?
+- Bevaras kanonisk plats- och besöksidentitet?
+- Är varje read och write scoperad till rätt grupp?
+- Kan en annan grupps namn, medlem, kommentar eller ursprung exponeras?
+- Nekas tidigare medlemmar aktuell åtkomst?
+- Förblir externa deltagare anonyma?
+- Är hemligheter server-only?
+- Är RPC-grants och `search_path` korrekta?
+- Bevaras befintliga produktionsrader?
+- Undviker den publika landningen privat gruppstate?
+- Är exempelgruppen isolerad från live och intern demo?
+- Återanvänds produktflöden mellan demo och live?
+- Fungerar ändrade flöden vid 360 px utan overflow?
+- Är relevant Chromium- och WebKit-verifiering aktiverad?
+- Är changelog och kanonisk dokumentation uppdaterade?
+- Är publicering separerad från merge och verifiering?
