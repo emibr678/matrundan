@@ -89,6 +89,14 @@ jobs:
       - name: Shell scripts
         run: bun run check:shell
 
+      - name: Release and changelog contract
+        env:
+          MATRUNDAN_CHANGELOG_EXEMPT: "${{ contains(github.event.pull_request.body || '', '- [x] Changelog: inte relevant') && '1' || '0' }}"
+        run: bun scripts/release-check.mjs "${{ steps.changes.outputs.base_sha }}"
+
+      - name: Database and RPC contract
+        run: bun scripts/database-contract-check.mjs "${{ steps.changes.outputs.base_sha }}"
+
       - name: Prettier changed code and configuration
         if: steps.changes.outputs.has_format == 'true'
         env:

@@ -1,14 +1,37 @@
-import { CHANGELOG as PREVIOUS_CHANGELOG, type ChangelogEntry } from "./version-history";
+import { CHANGELOG as HISTORICAL_CHANGELOG, type ChangelogEntry } from "./version-history";
 
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-export const APP_VERSION = "1.5.0";
-export const APP_VERSION_DATE = "2026-07-30";
+const VERSION_1_6_0_CHANGELOG: ChangelogEntry = {
+  version: "1.6.0",
+  date: "2026-07-31",
+  summary:
+    "Sök från flera vanliga områden samtidigt och samla nya ställen utan att de som redan finns skapar brus.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "En grupp kan spara upp till fem verifierade sökområden och använda samma valda sökradie runt dem.",
+        "En tillfällig annan plats kan användas i en enskild sökning utan att gruppens inställningar ändras.",
+        "Sökresultaten kan utforskas i både lista och karta med flera sökcentrum och radiecirklar.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Alla sparade områden är valda när sökningen öppnas; det finns inget primärt område.",
+        "Träffar från flera områden dedupliceras och sorteras efter kortaste avståndet till ett valt område.",
+        "Nya och tidigare borttagna ställen använder samma Lägg till-flöde, medan aktiva gruppställen samlas under Redan i gruppen.",
+        "Sökområden radbryts på mobil och administreras som tydliga vertikala rader i gruppinställningarna.",
+      ],
+    },
+  ],
+};
 
 const VERSION_1_5_0_CHANGELOG: ChangelogEntry = {
-  version: APP_VERSION,
-  date: APP_VERSION_DATE,
+  version: "1.5.0",
+  date: "2026-07-30",
   summary:
     "Smartare delning vid registrering och synk av tidigare besök när du lägger till ett ställe.",
   sections: [
@@ -26,6 +49,28 @@ const VERSION_1_5_0_CHANGELOG: ChangelogEntry = {
         "Tidigare egna besök börjar helt ovalda, och redan delade besök erbjuds inte igen.",
         "Arkiverade grupper kan inte ta emot delningar, medan borttagna matställen återaktiveras när ett besök delas dit.",
         "Tydligare språk om progression: ett ställe räknas som provat så fort någon i gänget varit där.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_4_0_CHANGELOG: ChangelogEntry = {
+  version: "1.4.0",
+  date: "2026-07-30",
+  summary: "Dela ett nytt besök direkt med dina andra aktiva grupper.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Besöksregistreringen kan länka samma kanoniska besök och matställe till valda andra aktiva grupper.",
+        "Dina andra aktiva grupper är förvalda när delningssteget öppnas och kan väljas bort före sparning.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Ursprungsgrupp, medlemskap och privata kommentarer exponeras aldrig i mottagargruppen.",
+        "Din egen kommentar delas fortfarande bara efter ett separat aktivt val.",
       ],
     },
   ],
@@ -51,7 +96,6 @@ const VERSION_1_3_1_CHANGELOG: ChangelogEntry = {
 const VERSION_1_3_0_CHANGELOG: ChangelogEntry = {
   version: "1.3.0",
   date: "2026-07-30",
-
   summary: "Enklare att komma igång med notiser och att lägga appen på hemskärmen.",
   sections: [
     {
@@ -85,14 +129,14 @@ const VERSION_1_2_0_CHANGELOG: ChangelogEntry = {
 
 const VERSION_1_1_2_CHANGELOG: ChangelogEntry = {
   version: "1.1.2",
-  date: APP_VERSION_DATE,
+  date: "2026-07-30",
   summary: "Tydligare besked när ett lösenord inte accepteras vid kontoregistrering.",
   sections: [
     {
       kind: "Förbättrat",
       items: [
         "Ett lösenord som är för kort eller för lätt att gissa ger nu ett tydligt besked i stället för ett generiskt felmeddelande.",
-        "Registreringen visar kraven på lösenordet redan innan du skickar formuläret.",
+        "Registreringsformuläret visar kraven på lösenordet redan innan formuläret skickas.",
       ],
     },
   ],
@@ -140,7 +184,6 @@ const VERSION_1_1_CHANGELOG: ChangelogEntry = {
 const VERSION_1_CHANGELOG: ChangelogEntry = {
   version: "1.0.0",
   date: "2026-07-29",
-
   summary:
     "Matrundan 1.0 samlar ett tydligare första möte, en helt fiktiv exempelgrupp och självbetjänad kontoradering.",
   sections: [
@@ -204,7 +247,7 @@ const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
 
 const PACKAGE_6A_CHANGELOG: ChangelogEntry = {
   version: "0.16.0",
-  date: APP_VERSION_DATE,
+  date: "2026-07-29",
   summary:
     "Tydligare huvudvyer, naturligare språk och en lugnare handlingshierarki genom gruppens matresa.",
   sections: [
@@ -229,7 +272,7 @@ const PACKAGE_6A_CHANGELOG: ChangelogEntry = {
 
 const PACKAGE_6A_1_CHANGELOG: ChangelogEntry = {
   version: "0.16.1",
-  date: APP_VERSION_DATE,
+  date: "2026-07-29",
   summary: "Tydligare Google Maps-länk och bättre placerad hantering på matställets detaljsida.",
   sections: [
     {
@@ -244,7 +287,7 @@ const PACKAGE_6A_1_CHANGELOG: ChangelogEntry = {
 
 const PACKAGE_6B_CHANGELOG: ChangelogEntry = {
   version: "0.17.0",
-  date: APP_VERSION_DATE,
+  date: "2026-07-29",
   summary: "Lugnare datumplanering och ett enklare besöksflöde med mer tillförlitliga betyg.",
   sections: [
     {
@@ -267,7 +310,7 @@ const PACKAGE_6B_CHANGELOG: ChangelogEntry = {
 
 const PACKAGE_6C_CHANGELOG: ChangelogEntry = {
   version: "0.18.0",
-  date: APP_VERSION_DATE,
+  date: "2026-07-29",
   summary:
     "Tydligare sammanhangskategorier som gör det möjligt att uppskatta både enkla favoriter och större matupplevelser på sina egna villkor.",
   sections: [
@@ -291,7 +334,7 @@ const PACKAGE_6C_CHANGELOG: ChangelogEntry = {
 
 const PACKAGE_6D_CHANGELOG: ChangelogEntry = {
   version: "0.19.0",
-  date: APP_VERSION_DATE,
+  date: "2026-07-29",
   summary:
     "En skarpare sammanhangsmodell och topplistor som jämför matställen inom rätt sorts besök.",
   sections: [
@@ -322,7 +365,7 @@ const PACKAGE_6D_CHANGELOG: ChangelogEntry = {
 
 const PACKAGE_6E_CHANGELOG: ChangelogEntry = {
   version: "0.19.1",
-  date: APP_VERSION_DATE,
+  date: "2026-07-29",
   summary:
     "En sista UX-polering som gör progression, sökning och Passar för-valen lugnare och tydligare.",
   sections: [
@@ -346,7 +389,7 @@ const PACKAGE_6E_CHANGELOG: ChangelogEntry = {
 
 const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
   version: "0.20.0",
-  date: APP_VERSION_DATE,
+  date: "2026-07-29",
   summary:
     "Säkrare korrigeringar av gruppens historik och planering, med radering av felaktiga besök och redigering av datumförslag.",
   sections: [
@@ -374,18 +417,17 @@ const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [
+const RECENT_CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_6_0_CHANGELOG,
   VERSION_1_5_0_CHANGELOG,
+  VERSION_1_4_0_CHANGELOG,
   VERSION_1_3_1_CHANGELOG,
-
   VERSION_1_3_0_CHANGELOG,
-
   VERSION_1_2_0_CHANGELOG,
   VERSION_1_1_2_CHANGELOG,
   VERSION_1_1_1_CHANGELOG,
   VERSION_1_1_CHANGELOG,
   VERSION_1_CHANGELOG,
-
   PACKAGE_6F_CHANGELOG,
   PACKAGE_6E_CHANGELOG,
   PACKAGE_6D_CHANGELOG,
@@ -394,5 +436,17 @@ export const CHANGELOG: ChangelogEntry[] = [
   PACKAGE_6A_1_CHANGELOG,
   PACKAGE_6A_CHANGELOG,
   PACKAGE_5D_CHANGELOG,
-  ...PREVIOUS_CHANGELOG,
 ];
+
+/**
+ * Kanonisk, fallande versionshistorik för gränssnittet. Den äldre filen är
+ * endast ett arkiv för versionerna till och med 0.14.0; aktuell version och
+ * datum härleds alltid från den första posten här.
+ */
+export const CHANGELOG: ChangelogEntry[] = [...RECENT_CHANGELOG, ...HISTORICAL_CHANGELOG];
+
+const currentRelease = CHANGELOG[0];
+if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");
+
+export const APP_VERSION = currentRelease.version;
+export const APP_VERSION_DATE = currentRelease.date;
