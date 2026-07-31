@@ -94,9 +94,9 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         </div>
         <FoodTagMultiSelect
           id="manual-food-tags"
+          label="Kök och inriktning (valfritt)"
           value={draft.cuisines}
           onChange={(value) => set("cuisines", value)}
-          description="Välj från Matrundans gemensamma lista för att undvika dubletter."
         />
         <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="space-y-1.5">
@@ -128,9 +128,10 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
           id="manual-occasions"
           value={draft.occasions}
           onChange={(value) => set("occasions", value)}
+          description="Valfritt – kan fyllas i efter ett besök."
         />
         <div className="space-y-1.5">
-          <Label htmlFor="manual-notes">Anteckning (frivilligt)</Label>
+          <Label htmlFor="manual-notes">Anteckning (valfritt)</Label>
           <Textarea
             id="manual-notes"
             rows={2}
