@@ -78,16 +78,15 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   await expect(addDialog.getByText("Trevlig middag", { exact: true })).toHaveCount(0);
 
   await addDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
-  const guide = page
-    .getByText("Topplistor för olika sorters besök", { exact: true })
-    .locator("../..");
+  const guide = page.getByRole("dialog", { name: "Så fungerar Passar för" });
   await expect(guide).toContainText("inte objektiv kvalitet");
   await expect(guide).toContainText("pizzeria");
   await expect(guide).toContainText("Passar bäst för");
   await expect(guide).toContainText("finkrog");
   await expect(guide).toContainText("lämna valet tomt");
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
-  await page.keyboard.press("Escape");
+  await guide.getByRole("button", { name: "Stäng", exact: true }).click();
+  await expect(guide).toBeHidden();
 
   const relaxedButton = addDialog.getByRole("button", {
     name: "Passar bäst för: Avslappnat",
