@@ -41,6 +41,7 @@ function sameSearchArea(a: SearchArea, b: Pick<SearchArea, "provider" | "placeId
   return a.provider === b.provider && a.placeId === b.placeId;
 }
 
+// prettier-ignore
 function SearchAreaPill({ area, onRemove }: SearchAreaPillProps) {
   return (
     <div
@@ -60,6 +61,7 @@ function SearchAreaPill({ area, onRemove }: SearchAreaPillProps) {
   );
 }
 
+// prettier-ignore
 export function SearchAreaControlsV16({
   savedAreas,
   selectedAreaIds,
