@@ -22,7 +22,9 @@ test("flera sökområden läggs till i samma fält utan horisontell overflow på
     page.getByText("Ändringar här gäller bara den här sökningen.", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Högst fem områden kan användas samtidigt. Ta bort ett för att välja ett annat."),
+    page.getByText(
+      "Högst fem områden kan användas samtidigt. Ta bort ett för att välja ett annat.",
+    ),
   ).toHaveCount(0);
 
   const areaInput = page.getByRole("textbox", { name: "Sökområden", exact: true });
