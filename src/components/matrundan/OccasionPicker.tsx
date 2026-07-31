@@ -26,20 +26,24 @@ import {
   secondaryOccasion,
 } from "@/lib/matrundan/occasions";
 
-function OccasionGuideTrigger({ compact }: { compact: boolean }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      className="min-h-11 rounded-full px-2 text-xs text-muted-foreground"
-      aria-label="Vad betyder Passar för?"
-    >
-      <CircleHelp className="h-4 w-4" />
-      {compact ? null : <span>Så fungerar det</span>}
-    </Button>
-  );
-}
+const OccasionGuideTrigger = React.forwardRef<
+  React.ElementRef<typeof Button>,
+  React.ComponentPropsWithoutRef<typeof Button> & { compact: boolean }
+>(({ compact, ...props }, ref) => (
+  <Button
+    ref={ref}
+    {...props}
+    type="button"
+    variant="ghost"
+    size="sm"
+    className="min-h-11 rounded-full px-2 text-xs text-muted-foreground"
+    aria-label="Vad betyder Passar för?"
+  >
+    <CircleHelp className="h-4 w-4" />
+    {compact ? null : <span>Så fungerar det</span>}
+  </Button>
+));
+OccasionGuideTrigger.displayName = "OccasionGuideTrigger";
 
 function OccasionGuideContent() {
   return (
