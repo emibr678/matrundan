@@ -23,16 +23,16 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   ).toHaveAttribute("aria-pressed", "true");
   await expect(leaderboard.getByText("Månskärans Taquería", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toHaveCount(0);
-  await leaderboard.getByRole("button", { name: "Visa topplista för Snabbt & smidigt" }).click();
+  await leaderboard.getByRole("button", { name: /Snabbt och enkelt/ }).click();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Topplista per primärt val");
 
   await page.getByRole("button", { name: "Öppna filter och sortering" }).click();
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
   await expect(filterSheet.getByText("Passar för", { exact: true })).toBeVisible();
-  await expect(filterSheet.getByText("Vardag & häng", { exact: true })).toBeVisible();
-  await expect(filterSheet.getByText("Något särskilt", { exact: true })).toBeVisible();
-  await expect(filterSheet.getByText("Snabbt & smidigt", { exact: true })).toBeVisible();
+  await expect(filterSheet.getByText("Avslappnat", { exact: true })).toBeVisible();
+  await expect(filterSheet.getByText("Något extra", { exact: true })).toBeVisible();
+  await expect(filterSheet.getByText("Snabbt och enkelt", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Trevlig middag", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Kategorifilter");
   await filterSheet.getByRole("button", { name: /Visa \d+/ }).click();
@@ -49,8 +49,8 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
     addDialog.getByText("Välj vad stället passar bäst för för att fortsätta."),
   ).toBeVisible();
   await expect(addDialog.getByText("Passar bäst för", { exact: true })).toBeVisible();
-  await expect(addDialog.getByText("Vardag & häng", { exact: true })).toBeVisible();
-  await expect(addDialog.getByText("Något särskilt", { exact: true })).toBeVisible();
+  await expect(addDialog.getByText("Avslappnat", { exact: true })).toBeVisible();
+  await expect(addDialog.getByText("Något extra", { exact: true })).toBeVisible();
   await expect(addDialog.getByText("Trevlig middag", { exact: true })).toHaveCount(0);
 
   await addDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
@@ -60,7 +60,7 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   await expect(guide).toContainText("inte objektiv kvalitet");
   await expect(guide).toContainText("pizzeria");
   await expect(guide).toContainText("Passar bäst för");
-  await expect(guide).toContainText("upplevelsen");
+  await expect(guide).toContainText("finkrog");
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
   await page.keyboard.press("Escape");
 
