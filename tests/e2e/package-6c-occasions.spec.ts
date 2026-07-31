@@ -65,7 +65,7 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   await page.keyboard.press("Escape");
 
   await addDialog
-    .getByRole("button", { name: "Passar bäst för: Vardag & häng", exact: true })
+    .getByRole("button", { name: "Passar bäst för: Avslappnat", exact: true })
     .click();
   await expect(addDialog.getByText("Passar också för (valfritt)", { exact: true })).toHaveCount(0);
   await addDialog
@@ -77,7 +77,7 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   await expect(addDialog.getByText("Passar också för (valfritt)", { exact: true })).toBeVisible();
   await expect(addDialog.getByText("Inget andra sammanhang", { exact: true })).toHaveCount(0);
   await addDialog
-    .getByRole("button", { name: "Passar också för: Något särskilt", exact: true })
+    .getByRole("button", { name: "Passar också för: Något extra", exact: true })
     .click();
   await expect(addButton).toBeEnabled();
   await expectNoHorizontalOverflow(page, "Manuellt tillägg med kategorier");
@@ -86,8 +86,8 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   const placeLink = page.getByRole("link", { name: /Testköket/ });
   await expect(placeLink).toBeVisible();
   await placeLink.click();
-  await expect(page.getByText("Vardag & häng", { exact: true })).toBeVisible();
-  await expect(page.getByText("Något särskilt", { exact: true })).toBeVisible();
+  await expect(page.getByText("Avslappnat", { exact: true })).toBeVisible();
+  await expect(page.getByText("Något extra", { exact: true })).toBeVisible();
   await expect(page.getByText("Passar bäst för", { exact: true })).toBeVisible();
   await expect(page.getByText("Passar också för", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
@@ -97,13 +97,13 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   const adminDialog = page.getByRole("dialog", { name: "Hantera Testköket" });
   await expect(
     adminDialog.getByRole("button", {
-      name: "Passar bäst för: Vardag & häng",
+      name: "Passar bäst för: Avslappnat",
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(
     adminDialog.getByRole("button", {
-      name: "Passar också för: Något särskilt",
+      name: "Passar också för: Något extra",
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
