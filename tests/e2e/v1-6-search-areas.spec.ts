@@ -1,10 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 async function openDemo(page: import("@playwright/test").Page) {
-  await page.goto("/");
-  const demo = page.getByRole("button", { name: /prova exempel|öppna exempel|utforska exempel/i });
-  if (await demo.isVisible().catch(() => false)) await demo.click();
-  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.goto("/matstallen?demo=1");
+  await expect(page.getByRole("heading", { name: "Matställen" })).toBeVisible();
 }
 
 test("flera sökområden radbryts utan horisontell overflow på 360 px", async ({ page }) => {
