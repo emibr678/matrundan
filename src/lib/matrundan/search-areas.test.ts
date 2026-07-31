@@ -33,11 +33,16 @@ describe("flera sökområden", () => {
     expect(isSearchRadiusKm(4)).toBe(false);
   });
 
-  test("kommun-, läns- och landsnivå används inte som punktcentrum", () => {
+  test("kommun-, läns-, region- och landsnivå används inte som punktcentrum", () => {
     expect(isBroadAdministrativeSearchArea("county")).toBe(true);
     expect(isBroadAdministrativeSearchArea("state")).toBe(true);
     expect(isBroadAdministrativeSearchArea("country")).toBe(true);
-    expect(isBroadAdministrativeSearchArea("city")).toBe(false);
+    expect(isBroadAdministrativeSearchArea("municipality")).toBe(true);
+    expect(isBroadAdministrativeSearchArea("city", "Nacka kommun, Sverige")).toBe(true);
+    expect(isBroadAdministrativeSearchArea("city", "Västra Götalands län, Sverige")).toBe(true);
+    expect(isBroadAdministrativeSearchArea("city", "Region Stockholm, Sverige")).toBe(true);
+    expect(isBroadAdministrativeSearchArea("city", "Nacka, Sverige")).toBe(false);
+    expect(isBroadAdministrativeSearchArea("street", "Kommunalvägen, Huddinge")).toBe(false);
     expect(isBroadAdministrativeSearchArea("district")).toBe(false);
     expect(isBroadAdministrativeSearchArea("building")).toBe(false);
     expect(isBroadAdministrativeSearchArea(undefined)).toBe(false);
