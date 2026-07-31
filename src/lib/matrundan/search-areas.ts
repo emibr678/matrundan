@@ -12,7 +12,8 @@ const BROAD_ADMINISTRATIVE_RESULT_TYPES = new Set([
   "municipality",
   "region",
 ]);
-const BROAD_ADMINISTRATIVE_LABEL = /(^region\s|\s(?:kommun|län|region|municipality|county|state|country)$)/iu;
+const BROAD_ADMINISTRATIVE_LABEL =
+  /(^region\s|\s(?:kommun|län|region|municipality|county|state|country)$)/iu;
 
 export function isSearchRadiusKm(value: number): value is SearchRadiusKm {
   return (SEARCH_RADIUS_OPTIONS as readonly number[]).includes(value);

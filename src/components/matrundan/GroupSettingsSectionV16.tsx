@@ -65,9 +65,7 @@ export function GroupSettingsSectionV16({
   const { refreshGroups } = useSession();
 
   const atAreaLimit = areas.length >= MAX_SEARCH_AREAS;
-  const broadAreas = areas.filter((area) =>
-    isBroadAdministrativeSearchArea(undefined, area.label),
-  );
+  const broadAreas = areas.filter((area) => isBroadAdministrativeSearchArea(undefined, area.label));
   const legacyOnly = areas.length === 0 && !!initialHome && !initialHome.verified;
 
   function addArea(value: VerifiedSearchArea) {
