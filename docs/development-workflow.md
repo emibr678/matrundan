@@ -1,37 +1,52 @@
-# Utvecklings- och felsökningsflöde
+# Utvecklings- och leveransflöde
 
-Detta dokument beskriver hur godkänd implementation, felsökning, verifiering, merge och Lovable-synk ska genomföras för Matrundan.
+Det här dokumentet är den kanoniska processen för produktdiskussion, planering,
+godkänd implementation, verifiering, merge, Lovable-synk och publicering.
 
-Målet är att minska väntetid och repetitivt arbete utan att sänka kvaliteten eller skyddet för gruppdata.
+Miljösetup, låst Bun-version och exakta kommandon finns i
+[DEVELOPMENT.md](../DEVELOPMENT.md). Arkitektur- och säkerhetsregler finns i
+[architecture.md](./architecture.md).
 
 ## 1. Faser
 
-Arbetet ska alltid beskrivas som en av följande faser:
+Arbetet ska alltid kunna beskrivas som en av följande faser:
 
-1. produktdiskussion;
-2. planering;
-3. godkänd implementation;
-4. verifiering;
-5. merge;
-6. publicering.
+1. **Produktdiskussion** – mål, användarbehov och avgränsning.
+2. **Planering** – konkret lösning, risker, datamodell och tester.
+3. **Godkänd implementation** – kod och migrationer inom uttryckligen godkänt
+   scope.
+4. **Verifiering** – statiska kontroller, tester, CI och manuell kontroll.
+5. **Merge** – en verifierad ändring förs in i `main`.
+6. **Publicering** – databasdriftsättning och publik release.
 
-Implementation kräver uttryckligt godkännande. Publicering kräver ett separat uttryckligt godkännande även när implementationen är mergad.
+En ny funktion eller större förändring kräver uttryckligt
+godkännande innan implementation. Publicering kräver ett separat uttryckligt
+godkännande även när implementationen redan är mergad.
 
-När ett godkänt scope är färdigimplementerat, granskat och har grön relevant CI får agenten markera PR:n som redo och merga till `main`.
+Korrigerande dokumentation och små underhållsändringar får göras inom ett
+uttryckligt granskningsuppdrag, men får inte användas för att smyga in nytt
+produktbeteende.
 
-## 2. Arbetsyta och Git
+## 2. Scope och planering
 
-En fungerande checkout ska återanvändas.
+Innan en icke-trivial implementation:
 
-Normalt arbetssätt:
+1. inspektera aktuell kod, migrationer och dokumentation;
+2. identifiera vilken källa som faktiskt är kanonisk;
+3. formulera mål, avgränsningar, edge cases och verifiering;
+4. skilj produktbeslut från tekniskt genomförande;
+5. invänta implementationsgodkännande när ändringen är en ny funktion eller
+   större förändring.
 
-```bash
-git fetch origin --prune
-git switch <befintlig-branch>
-git pull --ff-only
-```
+Ett godkänt scope ska genomföras som minsta sammanhängande lösning. Bredda inte
+uppgiften tyst och blanda inte in orelaterad refaktorering.
 
-Skapa en ny branch från aktuell `main` när en ny godkänd uppgift börjar:
+## 3. Arbetsyta och Git
+
+Återanvänd en verifierad checkout. Klona endast när miljön är ny, checkouten
+saknas eller dess tillstånd inte kan återställas säkert.
+
+En ny godkänd uppgift får normalt en branch från aktuell `main`:
 
 ```bash
 git fetch origin --prune
@@ -40,41 +55,34 @@ git pull --ff-only
 git switch -c agent/<beskrivande-namn>
 ```
 
-Klona endast när:
+Använd en branch och en PR per sammanhängande uppgift. Skapa inte nya branches,
+PR:er eller commits för varje felsökningshypotes.
 
-- arbetsmiljön är ny och saknar checkout;
-- den tidigare checkouten har försvunnit;
-- checkoutens tillstånd inte går att verifiera eller återställa säkert.
+Historik som redan har pushats och synkats till Lovable får inte skrivas om med
+force-push, rebase eller amend. En PR med många arbetscommits kan squash-mergas
+av GitHub när det inte skriver om den publicerade feature-branchens historik.
 
-En ny tillfällig CI-runner behöver alltid checkout. Det är inte samma sak som att en beständig utvecklingsmiljö ska klona repot vid varje iteration.
+## 4. Diagnostik före fix
 
-Använd en branch per sammanhängande uppgift. Skapa inte en ny PR för varje felsökningshypotes.
+En icke-trivial bugg ska börja med reproduktion och bevis:
 
-## 3. Diagnostik före fix
+1. reproducera felet i relevant miljö;
+2. samla runtime-data som skiljer fungerande och trasigt beteende;
+3. klassificera felet, exempelvis data, layout, renderering, nätverk,
+   behörighet, miljö eller integration;
+4. formulera en falsifierbar hypotes;
+5. gör minsta riktade diagnostik eller ändring;
+6. kontrollera resultatet innan nästa hypotes;
+7. implementera slutlig fix när grundorsaken stöds av observerade data;
+8. ta bort tillfällig diagnostik som inte ska vara permanent.
 
-Vid en icke-trivial bugg ska arbetet börja med reproduktion och bevis.
+För kartproblem bör diagnostik i första hand visa containerns och canvasens
+mått, MapLibre-källor och lager, resursstatus, WebGL/workerstatus och skillnaden
+mellan isolerad komponent och produktflöde.
 
-1. Reproducera felet i den relevanta miljön.
-2. Samla runtime-data som skiljer fungerande och trasigt beteende.
-3. Klassificera felet, exempelvis data, layout, renderering, nätverk, behörighet, miljö eller integration.
-4. Formulera en hypotes som kan falsifieras.
-5. Gör minsta riktade diagnostik eller kodändring.
-6. Kontrollera resultatet innan nästa hypotes.
-7. Implementera den slutliga fixen först när grundorsaken stöds av observerade data.
-8. Ta bort tillfällig diagnostik som inte ska vara permanent.
+## 5. Implementation och lokal iteration
 
-För kartproblem bör diagnostik i första hand visa:
-
-- containerns och canvasens verkliga mått;
-- MapLibre-status, lager och källor;
-- resurs- och nätverksstatus;
-- WebGL- och workerstatus;
-- skillnaden mellan isolerad komponent och produktflöde;
-- faktisk previewmiljö och enhet.
-
-## 4. Lokal iteration
-
-Flera små iterationer ska göras i samma checkout innan push.
+Flera små iterationer ska göras i samma arbetsyta före push:
 
 ```text
 reproducera
@@ -86,108 +94,91 @@ reproducera
 → push
 ```
 
-Pusha när:
+Pusha när det finns en granskbar kandidat, en preview behövs för verklig
+enhetstestning eller en viktig checkpoint måste bevaras. Pusha inte varje
+experiment och skapa inte commits enbart för att trigga CI.
 
-- det finns en sammanhängande kandidatfix;
-- en Lovable-preview behövs för verklig enhetstestning;
-- en viktig diagnostisk checkpoint behöver bevaras;
-- uppgiften är redo för CI eller granskning.
+GitHub Actions verifierar kod. Workflows får inte användas som en fjärrstyrd
+editor som patchar, committar eller pushar produktkod tillbaka till branchen.
 
-Pusha inte varje experiment. Skapa inte commits enbart för att trigga ett workflow.
+## 6. Verifiering
 
-GitHub Actions ska verifiera kod. Workflows ska inte användas som fjärrstyrd editor som patchar produktkod, skapar commits eller pushar tillbaka till samma branch.
+Använd kommandona som definieras i `package.json` och beskrivs i
+[DEVELOPMENT.md](../DEVELOPMENT.md).
 
-## 5. Kanoniska kommandon
-
-Installera beroenden en gång per beständig arbetsyta eller när `bun.lock` ändras:
-
-```bash
-bun install --frozen-lockfile
-```
-
-Kontrollera ändrade filer under iteration:
+Under iteration:
 
 ```bash
-bunx prettier --check <ändrade filer>
-bunx eslint <ändrade kodfiler>
-bun run verify:fast
+bun run doctor
+bun run verify:changed
 ```
 
-`verify:fast` kör TypeScript och produktionsbuild.
-
-Kör fokuserade tester när de är relevanta:
+När UI eller huvudflöden har ändrats:
 
 ```bash
-bun test <relevant testfil>
-bun run test:map
+bun run verify:agent
 ```
 
-Inför en färdig releasekandidat:
+För en färdig releasekandidat:
 
 ```bash
 bun run verify:full
 ```
 
-`verify:full` kör formatkontroll, full ESLint, TypeScript och produktionsbuild. Browserkontroller körs dessutom när huvudflöden eller kartan har ändrats.
+Kör även fokuserade tester för berörd domän, exempelvis en enhetstestfil eller
+kartsviten. Ett test får bara rapporteras som utfört när det faktiskt har körts.
+En saknad autentiserad live-session ska redovisas som en begränsning, inte döljas
+bakom grön demo-CI.
 
-## 6. CI-nivåer
+Databas- och RPC-ändringar kräver dessutom manuell granskning av:
 
-Draft-PR använder snabb CI:
+- autentisering, medlemskap och rollkrav;
+- `SECURITY DEFINER` och låst `search_path`;
+- grants för `PUBLIC`, `anon`, `authenticated` och `service_role`;
+- isolering mellan grupper;
+- bevarande av befintliga produktionsrader.
 
-- Prettier på ändrade filer;
-- ESLint på ändrade kodfiler;
+## 7. CI-nivåer
+
+Draft-PR kör den snabba men kompletta kodkedjan:
+
+- miljökontroll och verktygsskydd;
+- shellsyntax;
+- Prettier och ESLint på ändrade filer;
+- alla enhetstester under `src`;
 - TypeScript;
-- produktionsbuild.
+- produktionsbygge.
 
-När PR:n markeras redo, eller när `main` uppdateras, används full CI:
+När en PR markeras redo, när `main` uppdateras eller vid manuell fullkörning
+läggs relevanta browserkontroller till:
 
-- alla snabba kontroller;
 - mobil Chromium för UI-ändringar;
 - WebKit/iPhone och desktop Chromium för kartrelaterade ändringar.
 
-Det innebär att dyr browserinstallation och browsermatris inte upprepas efter varje liten push till en draft-PR.
+Ändringsklassificeringen i `scripts/repo-tools.mjs` ska hållas uppdaterad när nya
+centrala UI- eller kartfiler tillkommer.
 
-En manuell `workflow_dispatch` kör full verifiering.
-
-## 7. PR och merge
+## 8. PR och merge
 
 En PR ska vara draft medan implementation eller diagnostik pågår.
 
 Innan den markeras redo ska följande vara tydligt:
 
 - godkänt scope;
-- faktisk grundorsak eller motivering;
-- ändrade filer;
+- motivering eller verifierad grundorsak;
+- viktigaste ändringar;
+- databas- och integritetskonsekvenser;
 - utförda kontroller;
 - manuella teststeg;
 - sådant som inte kunde verifieras;
 - om publicering ingår eller inte.
 
-Mergning får ske när:
+Merge får ske när scope är uppfyllt, diffen är granskad, relevant CI är grön och
+inga kända blockerare återstår. Merge innebär inte automatiskt att databasen är
+driftsatt, att Lovable-previewn har synkat eller att den publika appen är
+publicerad.
 
-- implementationen håller godkänt scope;
-- diffen är granskad;
-- relevant CI är grön;
-- inga kända blockerare återstår.
-
-Använd inte force-push, rebase, amend eller squash på historik som redan har synkats till Lovable.
-
-## 8. Lovable, preview och leveranskvitto
-
-Efter varje push som är avsedd att testas ska ChatGPT-svaret innehålla:
-
-```text
-Fas:
-Branch:
-Commit:
-PR:
-CI:
-Lovable-synk:
-Preview:
-Testa:
-Ej verifierat:
-Publicering:
-```
+## 9. Lovable, preview och publicering
 
 Projektets previeworigin är:
 
@@ -199,25 +190,64 @@ Den publika appen är:
 
 Skilj alltid mellan:
 
-- previewlänken finns;
+- commit pushad;
+- PR mergad;
 - Lovable har synkat aktuell commit;
 - previewn har laddats;
-- funktionen har verifierats;
-- funktionen har verifierats på verklig mobil enhet;
-- ändringen har publicerats.
+- funktionen har verifierats i preview;
+- databasmigrationen är applicerad;
+- funktionen är verifierad på verklig mobil enhet;
+- den publika appen är publicerad.
 
-Skriv inte att synk eller verifiering är klar utan faktisk bekräftelse.
+Skriv inte att synk, driftsättning eller publicering är klar utan faktisk
+bekräftelse.
 
-## 9. Antimönster
+## 10. Leveranskvitto
+
+Efter en push eller merge som är avsedd att testas ska status redovisas med de
+fält som är relevanta:
+
+```text
+Fas:
+Branch:
+Commit:
+PR:
+CI:
+Lovable-synk:
+Preview:
+Testa:
+Ej verifierat:
+Databas:
+Publicering:
+```
+
+## 11. Dokumentationsansvar
+
+Varje typ av information ska ha en tydlig källa:
+
+- `README.md` – kort, aktuell projektöversikt och startpunkt;
+- `CHANGELOG.md` – släppta och ännu inte publicerade användarförändringar;
+- `docs/architecture.md` – varaktiga arkitektur- och säkerhetsbeslut;
+- `DEVELOPMENT.md` – miljösetup och kanoniska kommandon;
+- detta dokument – arbets- och leveransprocess;
+- `AGENTS.md` – bindande instruktioner för kodande agenter;
+- `docs/archive/` – historiska dokument som inte längre är kanoniska.
+
+README ska inte duplicera en lång releasehistorik. Avslutade
+implementationsplaner ska tas bort eller arkiveras när deras varaktiga beslut
+har flyttats till arkitektur och changelog.
+
+## 12. Antimönster
 
 Undvik:
 
 - upprepade kloner i samma beständiga arbetsyta;
 - nya branches eller PR:er för varje hypotes;
-- många commits med namn som `Changes`, `x` eller `Work in progress`;
+- generiska commitmeddelanden som `Changes`, `x` eller `Work in progress`;
 - commits som endast triggar workflows;
 - självmodifierande GitHub Actions-workflows;
-- full browsermatris efter varje diagnostikändring;
-- global skrivande formattering när bara ett fåtal filer ändrats;
+- full browsermatris efter varje liten diagnostikändring;
+- global skrivande formattering när bara några filer ändrats;
 - parallella verktyg för samma kontroll, exempelvis både `tsgo` och `tsc`;
-- att blanda produktfix, CI-ombyggnad och publicering i samma PR.
+- att blanda produktfunktion, CI-ombyggnad och publicering i samma PR;
+- flera dokument som gör anspråk på att vara kanoniska för samma sak.
