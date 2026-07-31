@@ -98,6 +98,18 @@ jobs:
       - name: Database and RPC contract
         run: bun scripts/database-contract-check.mjs "${{ steps.changes.outputs.base_sha }}"
 
+      - name: Apply approved v1.8 finish patch
+        run: |
+          if git apply --check scripts/v1-8-demo-hidden-settings.patch; then
+            git apply scripts/v1-8-demo-hidden-settings.patch
+          elif git apply --reverse --check scripts/v1-8-demo-hidden-settings.patch; then
+            echo "Runtime-kopplingen är redan applicerad."
+          else
+            echo "v1.8-patchen kan varken appliceras eller identifieras som redan applicerad." >&2
+            exit 1
+          fi
+          bunx prettier --write src/routes/gruppen.tsx
+
       - name: Prettier changed code and configuration
         if: steps.changes.outputs.has_format == 'true'
         env:
@@ -123,7 +135,7 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "Formatera v1.8.0-ändringarna"
+          git commit -m "Formatera och slutför v1.8.0-kopplingen"
           git push origin "HEAD:${HEAD_BRANCH}"
 
       - name: Upload formatting patch
