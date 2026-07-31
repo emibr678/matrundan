@@ -11,6 +11,18 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.8.1] – 2026-07-31
+
+### Ändrat
+
+- **Lägg till matställe** visar färre instruktioner och låter sökfält,
+  sökområden och handlingar förklara flödet.
+- Google Maps-knappen heter **Öppna i Google Maps** och den överflödiga
+  hjälptexten under knappen är borttagen.
+- Valfria uppgifter använder kortare och konsekvent copy i både sökresultat och
+  manuellt tillägg.
+- Gränsen på fem samtidiga sökområden visas först när den har nåtts.
+
 ## [1.8.0] – 2026-07-31
 
 ### Lagt till
