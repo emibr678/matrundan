@@ -30,6 +30,27 @@ const REQUEST_TIMEOUT_MS = 10_000;
 const WIDE_AREA_RADIUS_KM = 50;
 const DISCOVERY_RESULT_LIMIT = 50;
 
+const radiusSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(5),
+  z.literal(10),
+  z.literal(25),
+  z.literal(50),
+  z.null(),
+]);
+
+export type MultiAreaPlaceSuggestion = NormalizedPlaceSuggestion & {
+  nearestAreaLabel: string;
+  matchingAreaLabels: string[];
+};
+
+export interface MultiAreaSearchResponse {
+  results: MultiAreaPlaceSuggestion[];
+  failedAreaLabels: string[];
+}
+
 function readKey(): string {
   const key = process.env.GEOAPIFY_API_KEY?.trim();
   if (!key) {
@@ -115,6 +136,50 @@ function matchesQuery(place: NormalizedPlaceSuggestion, query: string): boolean 
   return terms.every((term) => haystack.includes(term));
 }
 
+async function searchPlacesAtCenter(input: {
+  text?: string;
+  lat: number;
+  lng: number;
+  radiusKm: 1 | 2 | 3 | 5 | 10 | 25 | 50 | null;
+  limit?: number;
+}): Promise<NormalizedPlaceSuggestion[]> {
+  const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
+  const query = input.text?.trim() ?? "";
+  const requestedLimit = query
+    ? Math.min(input.limit ?? 30, DISCOVERY_RESULT_LIMIT)
+    : DISCOVERY_RESULT_LIMIT;
+
+  const url = new URL("https://api.geoapify.com/v2/places");
+  url.searchParams.set("categories", CATEGORIES);
+  url.searchParams.set(
+    "filter",
+    `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`,
+  );
+  url.searchParams.set("bias", `proximity:${input.lng},${input.lat}`);
+  url.searchParams.set("lang", "sv");
+  url.searchParams.set("limit", String(DISCOVERY_RESULT_LIMIT));
+  if (query && likelyPlaceName(query)) url.searchParams.set("name", query);
+  url.searchParams.set("apiKey", readKey());
+
+  const json = await callGeoapify(url);
+  const seen = new Set<string>();
+  const normalized: NormalizedPlaceSuggestion[] = [];
+  for (const feature of json.features ?? []) {
+    const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
+    if (!place || seen.has(place.externalId)) continue;
+    seen.add(place.externalId);
+    if (query && !matchesQuery(place, query)) continue;
+    normalized.push(place);
+  }
+
+  normalized.sort((a, b) => {
+    const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
+    const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
+    return da - db || a.name.localeCompare(b.name, "sv-SE");
+  });
+  return normalized.slice(0, requestedLimit);
+}
+
 export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -163,49 +228,96 @@ export const geoapifySearchPlaces = createServerFn({ method: "POST" })
         text: z.string().trim().max(120).optional(),
         lat: z.number().min(-90).max(90),
         lng: z.number().min(-180).max(180),
-        radiusKm: z.union([
-          z.literal(1),
-          z.literal(3),
-          z.literal(5),
-          z.literal(10),
-          z.literal(25),
-          z.null(),
-        ]),
+        radiusKm: radiusSchema,
         limit: z.number().int().min(1).max(50).optional(),
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<NormalizedPlaceSuggestion[]> => {
-    const radiusKm = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
-    const query = data.text?.trim() ?? "";
-    const requestedLimit = query
-      ? Math.min(data.limit ?? 30, DISCOVERY_RESULT_LIMIT)
-      : DISCOVERY_RESULT_LIMIT;
+  .handler(async ({ data }): Promise<NormalizedPlaceSuggestion[]> => searchPlacesAtCenter(data));
 
-    const url = new URL("https://api.geoapify.com/v2/places");
-    url.searchParams.set("categories", CATEGORIES);
-    url.searchParams.set("filter", `circle:${data.lng},${data.lat},${Math.round(radiusKm * 1000)}`);
-    url.searchParams.set("bias", `proximity:${data.lng},${data.lat}`);
-    url.searchParams.set("lang", "sv");
-    url.searchParams.set("limit", String(DISCOVERY_RESULT_LIMIT));
-    if (query && likelyPlaceName(query)) url.searchParams.set("name", query);
-    url.searchParams.set("apiKey", readKey());
+export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        text: z.string().trim().max(120).optional(),
+        centers: z
+          .array(
+            z.object({
+              id: z.string().min(1).max(120),
+              label: z.string().trim().min(1).max(180),
+              lat: z.number().min(-90).max(90),
+              lng: z.number().min(-180).max(180),
+            }),
+          )
+          .min(1)
+          .max(5),
+        radiusKm: radiusSchema,
+        limit: z.number().int().min(1).max(50).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<MultiAreaSearchResponse> => {
+    const settled = await Promise.allSettled(
+      data.centers.map(async (center) => ({
+        center,
+        results: await searchPlacesAtCenter({
+          text: data.text,
+          lat: center.lat,
+          lng: center.lng,
+          radiusKm: data.radiusKm,
+          limit: DISCOVERY_RESULT_LIMIT,
+        }),
+      })),
+    );
 
-    const json = await callGeoapify(url);
-    const seen = new Set<string>();
-    const normalized: NormalizedPlaceSuggestion[] = [];
-    for (const feature of json.features ?? []) {
-      const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
-      if (!place || seen.has(place.externalId)) continue;
-      seen.add(place.externalId);
-      if (query && !matchesQuery(place, query)) continue;
-      normalized.push(place);
+    const failedAreaLabels: string[] = [];
+    const merged = new Map<string, MultiAreaPlaceSuggestion>();
+    let firstFailure: unknown = null;
+
+    settled.forEach((outcome, index) => {
+      const center = data.centers[index];
+      if (outcome.status === "rejected") {
+        firstFailure ??= outcome.reason;
+        failedAreaLabels.push(center.label);
+        return;
+      }
+
+      for (const place of outcome.value.results) {
+        const key = `${place.provider}:${place.externalId}`;
+        const current = merged.get(key);
+        const nextDistance = place.distanceKm ?? Number.POSITIVE_INFINITY;
+        const currentDistance = current?.distanceKm ?? Number.POSITIVE_INFINITY;
+        const matchingAreaLabels = Array.from(
+          new Set([...(current?.matchingAreaLabels ?? []), center.label]),
+        );
+
+        if (!current || nextDistance < currentDistance) {
+          merged.set(key, {
+            ...place,
+            nearestAreaLabel: center.label,
+            matchingAreaLabels,
+          });
+        } else {
+          merged.set(key, { ...current, matchingAreaLabels });
+        }
+      }
+    });
+
+    if (merged.size === 0 && failedAreaLabels.length === data.centers.length) {
+      throw firstFailure instanceof Error
+        ? firstFailure
+        : new Error("GEOAPIFY_UNAVAILABLE: Inga områden kunde sökas just nu.");
     }
 
-    normalized.sort((a, b) => {
-      const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
-      const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
-      return da - db || a.name.localeCompare(b.name, "sv-SE");
-    });
-    return normalized.slice(0, requestedLimit);
+    const limit = data.limit ?? DISCOVERY_RESULT_LIMIT;
+    const results = [...merged.values()]
+      .sort((a, b) => {
+        const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
+        const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
+        return da - db || a.name.localeCompare(b.name, "sv-SE");
+      })
+      .slice(0, limit);
+
+    return { results, failedAreaLabels };
   });
