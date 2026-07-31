@@ -40,8 +40,10 @@ const SOURCE = "multi-area-items";
 const CLUSTERS = "multi-area-clusters";
 const COUNTS = "multi-area-counts";
 const POINTS = "multi-area-points";
+const POINT_ICONS = "multi-area-point-icons";
 const SELECTED_SOURCE = "multi-area-selected";
 const SELECTED = "multi-area-selected-point";
+const SELECTED_ICON = "multi-area-selected-icon";
 const CENTER_SOURCE = "multi-area-centers";
 const CENTERS = "multi-area-center-points";
 const CENTER_LABELS = "multi-area-center-labels";
@@ -50,9 +52,27 @@ const RADIUS_FILL = "multi-area-radius-fill";
 const RADIUS_LINE = "multi-area-radius-line";
 
 function themeColor(variable: string, fallback: string) {
-  return (
-    window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim() || fallback
-  );
+  const value = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue(variable)
+    .trim();
+  if (!value) return fallback;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return fallback;
+
+  try {
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = value;
+    context.fillRect(0, 0, 1, 1);
+    const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+    return `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
+  } catch {
+    return fallback;
+  }
 }
 
 function fallbackStyle(background: string): StyleSpecification {
@@ -68,6 +88,22 @@ function fallbackStyle(background: string): StyleSpecification {
     ],
   };
 }
+
+const CATEGORY_EMOJI_EXPRESSION = [
+  "match",
+  ["get", "category"],
+  "café",
+  "☕",
+  "bageri",
+  "🥐",
+  "snabbmat",
+  "🍔",
+  "pub",
+  "🍺",
+  "matvagn",
+  "🌭",
+  "🍽️",
+] as const;
 
 export function MultiAreaPlaceMap({
   items,
@@ -95,6 +131,7 @@ export function MultiAreaPlaceMap({
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const selectRef = React.useRef(onSelect);
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
+  const [layersReady, setLayersReady] = React.useState(false);
   const mapsKey = (import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } }).env
     ?.VITE_GEOAPIFY_MAPS_KEY;
 
@@ -106,6 +143,9 @@ export function MultiAreaPlaceMap({
     const element = containerRef.current;
     if (!element) return;
     let cancelled = false;
+    setLayersReady(false);
+    setStatus("loading");
+
     void waitForMapLibre()
       .then((mapLibre) => {
         if (cancelled || !element.isConnected) return;
@@ -125,19 +165,28 @@ export function MultiAreaPlaceMap({
           renderWorldCopies: false,
         });
         map.touchZoomRotate.disableRotation();
-        map.on("load", () => !cancelled && setStatus("ready"));
+        map.on("load", () => {
+          if (!cancelled) setStatus("ready");
+        });
         map.on("error", (event) => {
           console.error("[Matrundan] Flerområdeskartan kunde inte laddas:", event.error ?? event);
-          if (!cancelled) setStatus("error");
+          if (!cancelled) {
+            setLayersReady(false);
+            setStatus("error");
+          }
         });
         mapRef.current = map;
       })
       .catch((error) => {
         console.error("[Matrundan] MapLibre kunde inte laddas:", error);
-        if (!cancelled) setStatus("error");
+        if (!cancelled) {
+          setLayersReady(false);
+          setStatus("error");
+        }
       });
     return () => {
       cancelled = true;
+      setLayersReady(false);
       mapRef.current?.remove();
       mapRef.current = null;
     };
@@ -150,123 +199,156 @@ export function MultiAreaPlaceMap({
     const background = themeColor("--background", "#fbf5e8");
     const foreground = themeColor("--foreground", "#3d2d27");
 
-    map.addSource(RADIUS_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_RADII });
-    map.addLayer({
-      id: RADIUS_FILL,
-      type: "fill",
-      source: RADIUS_SOURCE,
-      paint: { "fill-color": primary, "fill-opacity": 0.09 },
-    });
-    map.addLayer({
-      id: RADIUS_LINE,
-      type: "line",
-      source: RADIUS_SOURCE,
-      paint: { "line-color": primary, "line-opacity": 0.6, "line-width": 2 },
-    });
-    map.addSource(CENTER_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_CENTERS });
-    map.addLayer({
-      id: CENTERS,
-      type: "circle",
-      source: CENTER_SOURCE,
-      paint: {
-        "circle-radius": 7,
-        "circle-color": primary,
-        "circle-stroke-color": background,
-        "circle-stroke-width": 3,
-      },
-    });
-    map.addLayer({
-      id: CENTER_LABELS,
-      type: "symbol",
-      source: CENTER_SOURCE,
-      minzoom: 10,
-      layout: {
-        "text-field": ["get", "label"],
-        "text-size": 11,
-        "text-offset": [0, 1.5],
-        "text-anchor": "top",
-        "text-optional": true,
-      },
-      paint: {
-        "text-color": foreground,
-        "text-halo-color": background,
-        "text-halo-width": 2,
-      },
-    });
-    map.addSource(SOURCE, {
-      type: "geojson",
-      data: EMPTY_MULTI_AREA_POINTS,
-      cluster: true,
-      clusterMaxZoom: 14,
-      clusterRadius: 38,
-    });
-    map.addLayer({
-      id: CLUSTERS,
-      type: "circle",
-      source: SOURCE,
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-radius": ["step", ["get", "point_count"], 20, 10, 24, 30, 28],
-        "circle-color": primary,
-        "circle-stroke-color": background,
-        "circle-stroke-width": 3,
-      },
-    });
-    map.addLayer({
-      id: COUNTS,
-      type: "symbol",
-      source: SOURCE,
-      filter: ["has", "point_count"],
-      layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 12 },
-      paint: { "text-color": background },
-    });
-    map.addLayer({
-      id: POINTS,
-      type: "circle",
-      source: SOURCE,
-      filter: ["!", ["has", "point_count"]],
-      paint: {
-        "circle-radius": 10,
-        "circle-color": background,
-        "circle-stroke-color": primary,
-        "circle-stroke-width": 3,
-      },
-    });
-    map.addSource(SELECTED_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_POINTS });
-    map.addLayer({
-      id: SELECTED,
-      type: "circle",
-      source: SELECTED_SOURCE,
-      paint: {
-        "circle-radius": 15,
-        "circle-color": background,
-        "circle-stroke-color": primary,
-        "circle-stroke-width": 5,
-      },
-    });
-
-    const selectPoint = (event: MapLayerMouseEvent) => {
-      const id = event.features?.[0]?.properties?.id;
-      if (typeof id === "string") selectRef.current?.(id);
-    };
-    const zoomCluster = (event: MapLayerMouseEvent) => {
-      map.easeTo({
-        center: event.lngLat,
-        zoom: Math.min(map.getZoom() + 2, 18),
-        duration: 250,
+    try {
+      map.addSource(RADIUS_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_RADII });
+      map.addLayer({
+        id: RADIUS_FILL,
+        type: "fill",
+        source: RADIUS_SOURCE,
+        paint: { "fill-color": primary, "fill-opacity": 0.09 },
       });
-    };
-    map.on("click", POINTS, selectPoint);
-    map.on("click", CLUSTERS, zoomCluster);
-    return () => {
-      map.off("click", POINTS, selectPoint);
-      map.off("click", CLUSTERS, zoomCluster);
-    };
+      map.addLayer({
+        id: RADIUS_LINE,
+        type: "line",
+        source: RADIUS_SOURCE,
+        paint: { "line-color": primary, "line-opacity": 0.6, "line-width": 2 },
+      });
+      map.addSource(CENTER_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_CENTERS });
+      map.addLayer({
+        id: CENTERS,
+        type: "circle",
+        source: CENTER_SOURCE,
+        paint: {
+          "circle-radius": 7,
+          "circle-color": primary,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 3,
+        },
+      });
+      map.addLayer({
+        id: CENTER_LABELS,
+        type: "symbol",
+        source: CENTER_SOURCE,
+        minzoom: 10,
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": 11,
+          "text-offset": [0, 1.5],
+          "text-anchor": "top",
+          "text-optional": true,
+        },
+        paint: {
+          "text-color": foreground,
+          "text-halo-color": background,
+          "text-halo-width": 2,
+        },
+      });
+      map.addSource(SOURCE, {
+        type: "geojson",
+        data: EMPTY_MULTI_AREA_POINTS,
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 38,
+      });
+      map.addLayer({
+        id: CLUSTERS,
+        type: "circle",
+        source: SOURCE,
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-radius": ["step", ["get", "point_count"], 20, 10, 24, 30, 28],
+          "circle-color": primary,
+          "circle-stroke-color": background,
+          "circle-stroke-width": 3,
+        },
+      });
+      map.addLayer({
+        id: COUNTS,
+        type: "symbol",
+        source: SOURCE,
+        filter: ["has", "point_count"],
+        layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 12 },
+        paint: { "text-color": background },
+      });
+      map.addLayer({
+        id: POINTS,
+        type: "circle",
+        source: SOURCE,
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-radius": 14,
+          "circle-color": background,
+          "circle-stroke-color": primary,
+          "circle-stroke-width": 2,
+        },
+      });
+      map.addLayer({
+        id: POINT_ICONS,
+        type: "symbol",
+        source: SOURCE,
+        filter: ["!", ["has", "point_count"]],
+        layout: {
+          "text-field": CATEGORY_EMOJI_EXPRESSION,
+          "text-size": 16,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+      });
+      map.addSource(SELECTED_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_POINTS });
+      map.addLayer({
+        id: SELECTED,
+        type: "circle",
+        source: SELECTED_SOURCE,
+        paint: {
+          "circle-radius": 18,
+          "circle-color": background,
+          "circle-stroke-color": primary,
+          "circle-stroke-width": 4,
+        },
+      });
+      map.addLayer({
+        id: SELECTED_ICON,
+        type: "symbol",
+        source: SELECTED_SOURCE,
+        layout: {
+          "text-field": CATEGORY_EMOJI_EXPRESSION,
+          "text-size": 19,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+      });
+
+      const selectPoint = (event: MapLayerMouseEvent) => {
+        const id = event.features?.[0]?.properties?.id;
+        if (typeof id === "string") selectRef.current?.(id);
+      };
+      const zoomCluster = (event: MapLayerMouseEvent) => {
+        map.easeTo({
+          center: event.lngLat,
+          zoom: Math.min(map.getZoom() + 2, 18),
+          duration: 250,
+        });
+      };
+      map.on("click", POINTS, selectPoint);
+      map.on("click", POINT_ICONS, selectPoint);
+      map.on("click", CLUSTERS, zoomCluster);
+      setLayersReady(true);
+
+      return () => {
+        map.off("click", POINTS, selectPoint);
+        map.off("click", POINT_ICONS, selectPoint);
+        map.off("click", CLUSTERS, zoomCluster);
+      };
+    } catch (error) {
+      console.error("[Matrundan] Flerområdeskartans lager kunde inte skapas:", error);
+      setLayersReady(false);
+      setStatus("error");
+    }
   }, [status]);
 
   React.useEffect(() => {
     const map = mapRef.current;
-    if (status !== "ready" || !map) return;
+    if (status !== "ready" || !layersReady || !map) return;
     (map.getSource(SOURCE) as MapLibreGeoJSONSource)?.setData(
       multiAreaItemsCollection(mappedItems),
     );
@@ -279,11 +361,11 @@ export function MultiAreaPlaceMap({
     (map.getSource(RADIUS_SOURCE) as MapLibreGeoJSONSource)?.setData(
       multiAreaRadiiCollection(centers, radiusKm),
     );
-  }, [centers, mappedItems, radiusKm, selected, status]);
+  }, [centers, layersReady, mappedItems, radiusKm, selected, status]);
 
   React.useEffect(() => {
     const map = mapRef.current;
-    if (status !== "ready" || !map) return;
+    if (status !== "ready" || !layersReady || !map) return;
     const points: [number, number][] = [
       ...centers.map((center) => [center.lng, center.lat] as [number, number]),
       ...mappedItems.map((item) => [item.lng!, item.lat!] as [number, number]),
@@ -305,7 +387,7 @@ export function MultiAreaPlaceMap({
         duration: 0,
       });
     });
-  }, [centers, mappedItems, selected, status]);
+  }, [centers, layersReady, mappedItems, selected, status]);
 
   if (mappedItems.length === 0 && centers.length === 0) {
     return (
@@ -317,16 +399,27 @@ export function MultiAreaPlaceMap({
     );
   }
 
+  const ready = status === "ready" && layersReady;
+  const tileStatus = mapsKey ? (status === "ready" ? "ready" : status) : "missing";
+
   return (
     <div
       className={`relative min-h-[340px] overflow-hidden rounded-2xl border border-border/70 bg-muted ${className ?? ""}`}
       role="region"
       aria-label="Karta över sökresultat och valda sökområden"
-      data-map-ready={status === "ready"}
+      data-map-ready={ready}
+      data-map-renderer="maplibre-vector"
+      data-map-tile-status={tileStatus}
+      data-map-error-code={status === "error" ? "runtime" : ""}
+      data-map-cluster-profile="discovery"
+      data-map-cluster-radius="38"
+      data-clustering-disabled-at="15"
+      data-map-icon-layer={ready && mapRef.current?.getLayer(POINT_ICONS) ? "ready" : "missing"}
+      data-map-category-icon-count="6"
       data-search-center-count={centers.length}
     >
       <div ref={containerRef} className="absolute inset-0" />
-      {status !== "ready" ? (
+      {!ready ? (
         <div className="pointer-events-none absolute left-3 top-3 z-20 rounded-xl border bg-background/90 px-3 py-2 text-xs text-muted-foreground shadow-sm">
           {status === "error" ? "Kartan kunde inte laddas." : "Laddar kartan…"}
         </div>
@@ -338,7 +431,7 @@ export function MultiAreaPlaceMap({
           variant="ghost"
           className="h-9 w-9"
           onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
-          disabled={status !== "ready"}
+          disabled={!ready}
           aria-label="Zooma in kartan"
         >
           <Plus className="h-4 w-4" />
@@ -349,7 +442,7 @@ export function MultiAreaPlaceMap({
           variant="ghost"
           className="h-9 w-9"
           onClick={() => mapRef.current?.zoomOut({ duration: 200 })}
-          disabled={status !== "ready"}
+          disabled={!ready}
           aria-label="Zooma ut kartan"
         >
           <Minus className="h-4 w-4" />
