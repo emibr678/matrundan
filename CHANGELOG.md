@@ -11,6 +11,9 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 
 ### Ändrat
 
+- Sökresultat kan öppnas för att kontrollera platsen och gå vidare till Google
+  Maps innan stället läggs till. **Passar för** är nu frivilligt vid tillägg och
+  kan kompletteras efter ett besök.
 - **Passar för** använder nu **Snabbt och enkelt**, **Avslappnat** och
   **Något extra**. Befintliga val nollställs eftersom den tidigare indelningen
   inte kan översättas säkert till de nya kategorierna.
