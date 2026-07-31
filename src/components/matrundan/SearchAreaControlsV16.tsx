@@ -37,6 +37,23 @@ interface SearchAreaPillProps {
   onRemove: () => void;
 }
 
+interface SearchAreaFieldProps {
+  isLive: boolean;
+  query: string;
+  placeholder: string;
+  disabled: boolean;
+  onQueryChange: (query: string) => void;
+  onSelect: (location: VerifiedHomeLocation) => void;
+  onDemoSubmit: () => void;
+}
+
+interface SelectedAreasProps {
+  savedAreas: SearchArea[];
+  temporaryAreas: SearchArea[];
+  onRemoveSaved: (areaId: string) => void;
+  onRemoveTemporary: (area: SearchArea) => void;
+}
+
 function sameSearchArea(a: SearchArea, b: Pick<SearchArea, "provider" | "placeId">) {
   return a.provider === b.provider && a.placeId === b.placeId;
 }
@@ -56,6 +73,112 @@ function SearchAreaPill({ area, onRemove }: SearchAreaPillProps) {
       >
         <X className="h-4 w-4" />
       </button>
+    </div>
+  );
+}
+
+function SearchAreaField({
+  isLive,
+  query,
+  placeholder,
+  disabled,
+  onQueryChange,
+  onSelect,
+  onDemoSubmit,
+}: SearchAreaFieldProps) {
+  if (isLive) {
+    return (
+      <GeoapifyLocationInput
+        id="search-area-query"
+        value={query}
+        onChange={onQueryChange}
+        onSelect={onSelect}
+        placeholder={placeholder}
+        disabled={disabled}
+      />
+    );
+  }
+
+  return (
+    <Input
+      id="search-area-query"
+      value={query}
+      onChange={(event) => onQueryChange(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && query.trim()) {
+          event.preventDefault();
+          onDemoSubmit();
+        }
+      }}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  );
+}
+
+function SelectedAreas({
+  savedAreas,
+  temporaryAreas,
+  onRemoveSaved,
+  onRemoveTemporary,
+}: SelectedAreasProps) {
+  if (savedAreas.length === 0 && temporaryAreas.length === 0) {
+    return (
+      <p className="rounded-xl border border-dashed border-border/70 px-3 py-3 text-sm text-muted-foreground">
+        Sök och välj minst en plats att utgå från.
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className="flex min-w-0 flex-wrap gap-2"
+      role="list"
+      aria-label="Valda sökområden"
+    >
+      {savedAreas.map((area) => (
+        <SearchAreaPill
+          key={area.id}
+          area={area}
+          onRemove={() => onRemoveSaved(area.id)}
+        />
+      ))}
+      {temporaryAreas.map((area) => (
+        <SearchAreaPill
+          key={`${area.provider}:${area.placeId}`}
+          area={area}
+          onRemove={() => onRemoveTemporary(area)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function SearchRadiusSelect({
+  radiusKm,
+  onRadiusChange,
+}: {
+  radiusKm: SearchRadiusKm;
+  onRadiusChange: (radius: SearchRadiusKm) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor="place-radius">Sökradie</Label>
+      <Select
+        value={String(radiusKm)}
+        onValueChange={(value) => onRadiusChange(Number(value) as SearchRadiusKm)}
+      >
+        <SelectTrigger id="place-radius" className="min-h-11">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SEARCH_RADIUS_OPTIONS.map((value) => (
+            <SelectItem key={value} value={String(value)}>
+              {value === 50 ? "Större område · inom 50 km" : `Inom ${value} km`}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -130,89 +253,31 @@ export function SearchAreaControlsV16({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="search-area-query">Sökområden</Label>
-        {/* prettier-ignore */}
-        {isLive ? (
-          <GeoapifyLocationInput
-            id="search-area-query"
-            value={areaQuery}
-            onChange={setAreaQuery}
-            onSelect={addVerifiedArea}
-            placeholder={placeholder}
-            disabled={atLimit}
-          />
-        ) : (
-          <Input
-            id="search-area-query"
-            value={areaQuery}
-            onChange={(event) => setAreaQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && areaQuery.trim()) {
-                event.preventDefault();
-                addDemoArea();
-              }
-            }}
-            placeholder={placeholder}
-            disabled={atLimit}
-          />
-        )}
+        <SearchAreaField
+          isLive={isLive}
+          query={areaQuery}
+          placeholder={placeholder}
+          disabled={atLimit}
+          onQueryChange={setAreaQuery}
+          onSelect={addVerifiedArea}
+          onDemoSubmit={addDemoArea}
+        />
         <p className="text-xs leading-relaxed text-muted-foreground">
           Välj en träff så läggs den till nedan. Valen gäller bara den här sökningen.
         </p>
-
-        {/* prettier-ignore */}
-        {activeAreas.length > 0 ? (
-          <div
-            className="flex min-w-0 flex-wrap gap-2"
-            role="list"
-            aria-label="Valda sökområden"
-          >
-            {selectedSavedAreas.map((area) => (
-              <SearchAreaPill
-                key={area.id}
-                area={area}
-                onRemove={() => removeSavedArea(area.id)}
-              />
-            ))}
-            {temporaryAreas.map((area) => (
-              <SearchAreaPill
-                key={`${area.provider}:${area.placeId}`}
-                area={area}
-                onRemove={() => removeTemporaryArea(area)}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-xl border border-dashed border-border/70 px-3 py-3 text-sm text-muted-foreground">
-            Sök och välj minst en plats att utgå från.
-          </p>
-        )}
-
-        {/* prettier-ignore */}
+        <SelectedAreas
+          savedAreas={selectedSavedAreas}
+          temporaryAreas={temporaryAreas}
+          onRemoveSaved={removeSavedArea}
+          onRemoveTemporary={removeTemporaryArea}
+        />
         {atLimit ? (
           <p className="text-xs text-muted-foreground">
             Högst fem områden kan användas samtidigt. Ta bort ett för att välja ett annat.
           </p>
         ) : null}
       </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="place-radius">Sökradie</Label>
-        <Select
-          value={String(radiusKm)}
-          onValueChange={(value) => onRadiusChange(Number(value) as SearchRadiusKm)}
-        >
-          <SelectTrigger id="place-radius" className="min-h-11">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SEARCH_RADIUS_OPTIONS.map((value) => (
-              <SelectItem key={value} value={String(value)}>
-                {value === 50 ? "Större område · inom 50 km" : `Inom ${value} km`}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <SearchRadiusSelect radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
     </div>
   );
 }
