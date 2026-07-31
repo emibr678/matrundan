@@ -70,7 +70,7 @@ export function GeoapifyLocationInput({
               lat: row.lat as number,
               lng: row.lng as number,
               resultType: row.resultType,
-              blocked: isBroadAdministrativeSearchArea(row.resultType),
+              blocked: isBroadAdministrativeSearchArea(row.resultType, row.label),
             }));
           setSuggestions(mapped);
           setActiveIx(-1);
