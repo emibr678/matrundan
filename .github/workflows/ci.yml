@@ -91,7 +91,7 @@ jobs:
 
       - name: Release and changelog contract
         env:
-          MATRUNDAN_CHANGELOG_EXEMPT: "${{ contains(github.event.pull_request.body || '', '- [x] Changelog: inte relevant') && '1' || '0' }}"
+          MATRUNDAN_VERSION_EXEMPT: "${{ contains(github.event.pull_request.body || '', '- [x] Version: inte relevant') && '1' || '0' }}"
         run: bun scripts/release-check.mjs "${{ steps.changes.outputs.base_sha }}"
 
       - name: Database and RPC contract
