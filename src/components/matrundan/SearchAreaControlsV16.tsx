@@ -130,6 +130,7 @@ export function SearchAreaControlsV16({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="search-area-query">Sökområden</Label>
+        {/* prettier-ignore */}
         {isLive ? (
           <GeoapifyLocationInput
             id="search-area-query"
