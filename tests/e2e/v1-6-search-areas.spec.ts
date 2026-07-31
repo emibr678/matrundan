@@ -19,7 +19,7 @@ test("flera sökområden läggs till i samma fält utan horisontell overflow på
   await expect(page.getByRole("button", { name: /annan plats/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /använd platsen/i })).toHaveCount(0);
 
-  const areaInput = page.getByLabel("Sökområden");
+  const areaInput = page.getByRole("textbox", { name: "Sökområden", exact: true });
   await expect(areaInput).toHaveAttribute("placeholder", "Sök ort, stadsdel eller adress");
   await areaInput.fill("Majorna, Göteborg");
   await areaInput.press("Enter");
