@@ -1,7 +1,7 @@
 import * as React from "react";
-import { X } from "lucide-react";
 import { toast } from "sonner";
 import { GeoapifyLocationInput } from "./GeoapifyLocationInput";
+import { SearchAreaPill } from "./SearchAreaPill";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import { demoSearchAreaFromText } from "@/lib/matrundan/places-provider";
-import { SEARCH_RADIUS_OPTIONS, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
+import { SEARCH_RADIUS_OPTIONS } from "@/lib/matrundan/search-areas";
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
@@ -30,11 +30,6 @@ interface SearchAreaControlsProps {
   onRadiusChange: (radius: SearchRadiusKm) => void;
   isLive: boolean;
   fallbackCity: string;
-}
-
-interface SearchAreaPillProps {
-  area: SearchArea;
-  onRemove: () => void;
 }
 
 interface SearchAreaFieldProps {
@@ -56,25 +51,6 @@ interface SelectedAreasProps {
 
 function sameSearchArea(a: SearchArea, b: Pick<SearchArea, "provider" | "placeId">) {
   return a.provider === b.provider && a.placeId === b.placeId;
-}
-
-function SearchAreaPill({ area, onRemove }: SearchAreaPillProps) {
-  return (
-    <div
-      role="listitem"
-      className="flex min-h-11 max-w-full items-center gap-1 rounded-full border border-primary/40 bg-primary/10 pl-3 pr-1 text-sm"
-    >
-      <span className="min-w-0 break-words">{shortSearchAreaLabel(area.label)}</span>
-      <button
-        type="button"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-background/70"
-        onClick={onRemove}
-        aria-label={`Ta bort ${area.label} från sökningen`}
-      >
-        <X className="h-4 w-4" />
-      </button>
-    </div>
-  );
 }
 
 function SearchAreaField({
@@ -133,13 +109,19 @@ function SelectedAreas({
   return (
     <div className="flex min-w-0 flex-wrap gap-2" role="list" aria-label="Valda sökområden">
       {savedAreas.map((area) => (
-        <SearchAreaPill key={area.id} area={area} onRemove={() => onRemoveSaved(area.id)} />
+        <SearchAreaPill
+          key={area.id}
+          area={area}
+          onRemove={() => onRemoveSaved(area.id)}
+          removeAriaLabel={`Ta bort ${area.label} från sökningen`}
+        />
       ))}
       {temporaryAreas.map((area) => (
         <SearchAreaPill
           key={`${area.provider}:${area.placeId}`}
           area={area}
           onRemove={() => onRemoveTemporary(area)}
+          removeAriaLabel={`Ta bort ${area.label} från sökningen`}
         />
       ))}
     </div>
