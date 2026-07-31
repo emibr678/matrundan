@@ -39,17 +39,12 @@ describe("sammanhangskategorier", () => {
 
   test("direkt flerval lägger till, tar bort och stoppar ett tredje val", () => {
     expect(toggleOccasionSelection([], "avslappnat")).toEqual(["avslappnat"]);
-    expect(toggleOccasionSelection(["avslappnat"], "middag")).toEqual([
-      "avslappnat",
-      "middag",
-    ]);
+    expect(toggleOccasionSelection(["avslappnat"], "middag")).toEqual(["avslappnat", "middag"]);
     expect(toggleOccasionSelection(["avslappnat", "middag"], "snabbt")).toEqual([
       "avslappnat",
       "middag",
     ]);
-    expect(toggleOccasionSelection(["avslappnat", "middag"], "avslappnat")).toEqual([
-      "middag",
-    ]);
+    expect(toggleOccasionSelection(["avslappnat", "middag"], "avslappnat")).toEqual(["middag"]);
   });
 
   test("topplistan inkluderar stället för vart och ett av dess val", () => {
