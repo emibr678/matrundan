@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { MapLayerMouseEvent, StyleSpecification } from "maplibre-gl";
+import type { ExpressionSpecification, MapLayerMouseEvent, StyleSpecification } from "maplibre-gl";
 import { ArrowRight, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,7 +86,7 @@ function fallbackStyle(background: string): StyleSpecification {
   };
 }
 
-const CATEGORY_EMOJI_EXPRESSION = [
+const CATEGORY_EMOJI_EXPRESSION: ExpressionSpecification = [
   "match",
   ["get", "category"],
   "café",
@@ -100,7 +100,7 @@ const CATEGORY_EMOJI_EXPRESSION = [
   "matvagn",
   "🌭",
   "🍽️",
-] as const;
+];
 
 export function MultiAreaPlaceMap({
   items,
