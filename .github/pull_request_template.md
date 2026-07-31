@@ -19,11 +19,13 @@ Beskriv observerade data, diagnostik och varför ändringen behövs.
 
 ## Changelog och version
 
-- [ ] `CHANGELOG.md` är uppdaterad under **Unreleased** eller som en daterad release
-- [ ] Appversion och inbyggd historik är synkroniserade när en release görs
-- [ ] Changelog: inte relevant
+- [ ] `CHANGELOG.md` har en daterad release som matchar apphistoriken
+- [ ] Patch
+- [ ] Minor
+- [ ] Major
+- [ ] Version: inte relevant
 
-Motivering om changelog inte är relevant:
+Motivering om version inte är relevant (endast dokumentation, tester eller verktyg utan användarsynlig ändring):
 
 ## Databas
 
