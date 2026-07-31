@@ -39,7 +39,7 @@ export function PlaceDiscoveryV16({
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(() =>
     savedAreas.map((area) => area.id),
   );
-  const [temporaryArea, setTemporaryArea] = React.useState<SearchArea | null>(null);
+  const [temporaryAreas, setTemporaryAreas] = React.useState<SearchArea[]>([]);
   const [radiusKm, setRadiusKm] = React.useState<SearchRadiusKm>(
     state.group.defaultSearchRadiusKm ?? 1,
   );
@@ -55,8 +55,8 @@ export function PlaceDiscoveryV16({
 
   const activeAreas = React.useMemo(() => {
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
-    return temporaryArea ? [...selected, temporaryArea].slice(0, 5) : selected;
-  }, [savedAreas, selectedAreaIds, temporaryArea]);
+    return [...selected, ...temporaryAreas].slice(0, 5);
+  }, [savedAreas, selectedAreaIds, temporaryAreas]);
 
   React.useEffect(() => {
     if (activeAreas.length === 0) {
@@ -232,8 +232,8 @@ export function PlaceDiscoveryV16({
         savedAreas={savedAreas}
         selectedAreaIds={selectedAreaIds}
         onSelectedAreaIdsChange={setSelectedAreaIds}
-        temporaryArea={temporaryArea}
-        onTemporaryAreaChange={setTemporaryArea}
+        temporaryAreas={temporaryAreas}
+        onTemporaryAreasChange={setTemporaryAreas}
         radiusKm={radiusKm}
         onRadiusChange={setRadiusKm}
         isLive={isLive}
@@ -241,7 +241,7 @@ export function PlaceDiscoveryV16({
       />
 
       {activeAreas.length === 0 ? (
-        <Empty text="Välj minst ett sökområde eller lägg till en annan plats för den här sökningen." />
+        <Empty text="Sök och välj minst ett sökområde." />
       ) : loading ? (
         <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…

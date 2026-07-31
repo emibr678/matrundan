@@ -50,6 +50,23 @@ const CENTER_LABELS = "multi-area-center-labels";
 const RADIUS_SOURCE = "multi-area-radii";
 const RADIUS_FILL = "multi-area-radius-fill";
 const RADIUS_LINE = "multi-area-radius-line";
+const CATEGORY_IMAGE_PREFIX = "multi-area-category-";
+const PLACE_CATEGORIES = [
+  "restaurang",
+  "café",
+  "bageri",
+  "snabbmat",
+  "pub",
+  "matvagn",
+] as const satisfies readonly PlaceCategory[];
+const CATEGORY_INITIAL: Record<PlaceCategory, string> = {
+  restaurang: "R",
+  café: "C",
+  bageri: "B",
+  snabbmat: "S",
+  pub: "P",
+  matvagn: "M",
+};
 
 function themeColor(variable: string, fallback: string) {
   const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -86,20 +103,49 @@ function fallbackStyle(background: string): StyleSpecification {
   };
 }
 
-const CATEGORY_EMOJI_EXPRESSION: ExpressionSpecification = [
+function categoryIconName(category: PlaceCategory) {
+  return `${CATEGORY_IMAGE_PREFIX}${category}`;
+}
+
+function drawCategoryIcon(category: PlaceCategory, color: string): ImageData {
+  const canvas = document.createElement("canvas");
+  canvas.width = 48;
+  canvas.height = 48;
+  const context = canvas.getContext("2d");
+  if (!context) return new ImageData(48, 48);
+
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = color;
+  context.font = "700 28px system-ui, -apple-system, sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(CATEGORY_INITIAL[category], 24, 25);
+  return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function registerCategoryIcons(map: MapLibreMap, color: string) {
+  for (const category of PLACE_CATEGORIES) {
+    const name = categoryIconName(category);
+    if (!map.hasImage(name)) {
+      map.addImage(name, drawCategoryIcon(category, color), { pixelRatio: 2 });
+    }
+  }
+}
+
+const CATEGORY_ICON_EXPRESSION: ExpressionSpecification = [
   "match",
   ["get", "category"],
   "café",
-  "☕",
+  categoryIconName("café"),
   "bageri",
-  "🥐",
+  categoryIconName("bageri"),
   "snabbmat",
-  "🍔",
+  categoryIconName("snabbmat"),
   "pub",
-  "🍺",
+  categoryIconName("pub"),
   "matvagn",
-  "🌭",
-  "🍽️",
+  categoryIconName("matvagn"),
+  categoryIconName("restaurang"),
 ];
 
 export function MultiAreaPlaceMap({
@@ -197,6 +243,7 @@ export function MultiAreaPlaceMap({
     const foreground = themeColor("--foreground", "#3d2d27");
 
     try {
+      registerCategoryIcons(map, foreground);
       map.addSource(RADIUS_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_RADII });
       map.addLayer({
         id: RADIUS_FILL,
@@ -285,10 +332,10 @@ export function MultiAreaPlaceMap({
         source: SOURCE,
         filter: ["!", ["has", "point_count"]],
         layout: {
-          "text-field": CATEGORY_EMOJI_EXPRESSION,
-          "text-size": 16,
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
+          "icon-image": CATEGORY_ICON_EXPRESSION,
+          "icon-size": 0.58,
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
         },
       });
       map.addSource(SELECTED_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_POINTS });
@@ -308,10 +355,10 @@ export function MultiAreaPlaceMap({
         type: "symbol",
         source: SELECTED_SOURCE,
         layout: {
-          "text-field": CATEGORY_EMOJI_EXPRESSION,
-          "text-size": 19,
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
+          "icon-image": CATEGORY_ICON_EXPRESSION,
+          "icon-size": 0.72,
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
         },
       });
 
@@ -411,6 +458,8 @@ export function MultiAreaPlaceMap({
       data-map-cluster-profile="discovery"
       data-map-cluster-radius="38"
       data-clustering-disabled-at="15"
+      data-map-point-visual="category-icon"
+      data-map-icon-renderer="canvas"
       data-map-icon-layer={ready && mapRef.current?.getLayer(POINT_ICONS) ? "ready" : "missing"}
       data-map-category-icon-count="6"
       data-search-center-count={centers.length}

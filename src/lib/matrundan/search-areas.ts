@@ -5,8 +5,19 @@ export const SEARCH_RADIUS_OPTIONS = [
   1, 2, 3, 5, 10, 25, 50,
 ] as const satisfies readonly SearchRadiusKm[];
 
+const BROAD_ADMINISTRATIVE_RESULT_TYPES = new Set(["county", "state", "country"]);
+
 export function isSearchRadiusKm(value: number): value is SearchRadiusKm {
   return (SEARCH_RADIUS_OPTIONS as readonly number[]).includes(value);
+}
+
+/**
+ * Geoapify-resultat på kommun-, läns- eller landsnivå är för stora för
+ * Matrundans punkt + radie-modell. Ort, stadsdel, gata, adress och postnummer
+ * är fortsatt giltiga sökcentrum.
+ */
+export function isBroadAdministrativeSearchArea(resultType?: string): boolean {
+  return BROAD_ADMINISTRATIVE_RESULT_TYPES.has(resultType?.trim().toLowerCase() ?? "");
 }
 
 export function shortSearchAreaLabel(label: string): string {

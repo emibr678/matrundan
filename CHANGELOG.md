@@ -11,6 +11,14 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 
 ### Ändrat
 
+- Sökområden väljs nu i ett enda återanvändbart platsfält. Varje vald träff
+  läggs direkt till som en valbricka och fältet kan användas igen utan en
+  separat panel eller extra bekräftelseknappar.
+- Breda administrativa Geoapify-resultat som kommuner, län och länder visas som
+  vägledning men kan inte användas som punktcentrum. Användaren hänvisas i
+  stället till en ort, stadsdel eller adress i området.
+- Flerområdeskartan använder canvasrenderade kategoriikoner i stället för
+  enhetsberoende emoji-glypher, vilket ger stabila markörer även på mobil.
 - Live-läsningen faller tillfälligt tillbaka till den föregående kompatibla
   read-modelen om, och endast om, den aktuella RPC-funktionen saknas efter en
   ofullständig databasdriftsättning.
@@ -339,7 +347,7 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 - **Tydligare handlingar på matställets detaljsida.** Nästa stopp skiljer på
   handling och status, personlig favorit heter **Favorit** och Maps nås via
   adressen i stället för en likvärdig åtgärdsknapp.
-- Flaggan ersätter glittersymbolen för nästa stopp.
+- Flaggan ersätter den otydliga glittersymbolen för nästa stopp.
 - Medlemsraderna på Gruppen har färre överflödiga etiketter.
 
 ### Rättat
