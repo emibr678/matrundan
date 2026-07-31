@@ -186,9 +186,11 @@ if (base) {
 
   const decisionFiles = files.filter(
     (file) =>
-      !["CHANGELOG.md", "src/lib/matrundan/version.ts", ".github/pull_request_template.md"].includes(
-        file,
-      ),
+      ![
+        "CHANGELOG.md",
+        "src/lib/matrundan/version.ts",
+        ".github/pull_request_template.md",
+      ].includes(file),
   );
   if (decisionFiles.length > 0 && !userFacingChanged && !versionChanged && !exempt) {
     errors.push(
