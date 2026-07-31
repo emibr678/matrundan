@@ -1,7 +1,7 @@
 /**
  * Live-repository: läser en grupps state via den säkra RPC:n
- * get_group_app_state_v5d, som bygger vidare på den etablerade gruppscopade
- * läsmodellen med livscykel, gruppspecifik platsmetadata, besöksfoto och datumförslag.
+ * get_group_app_state_v5e, som bygger vidare på den etablerade gruppscopade
+ * läsmodellen med sökområden, livscykel, platsmetadata, besöksfoto och datumförslag.
  */
 import { supabase } from "@/integrations/supabase/client";
 import type {
@@ -18,10 +18,12 @@ import type {
   PlaceCategory,
   PlaceCollectionStatus,
   Role,
+  SearchRadiusKm,
   VisibleReview,
   Visit,
 } from "./types";
 import { normalizeOccasionClassification } from "./occasions";
+import { isSearchRadiusKm } from "./search-areas";
 import { APP_VERSION } from "./version";
 import { createSignedVisitPhotoUrls } from "./visit-photo";
 
@@ -107,6 +109,15 @@ type Payload = {
     archivedAt?: string | null;
     archivedBy?: string | null;
     sharedVisitsCountForProgression: boolean;
+    defaultSearchRadiusKm?: number;
+    searchAreas?: {
+      id: string;
+      label: string;
+      lat: number;
+      lng: number;
+      provider: string;
+      placeId: string;
+    }[];
     homeLocation: {
       label: string;
       verified: boolean;
@@ -191,16 +202,20 @@ function mapNextStopDateProposal(row: NextStopDateProposalRow | null): NextStopD
 }
 
 export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const { data, error } = await supabase.rpc("get_group_app_state_v5d" as "get_group_app_state", {
-    _group_id: groupId,
-  });
+  const { data, error } = await supabase.rpc(
+    "get_group_app_state_v5e" as "get_group_app_state",
+    { _group_id: groupId },
+  );
   if (error || !data) {
-    console.error("[Matrundan] get_group_app_state_v5d:", error);
+    console.error("[Matrundan] get_group_app_state_v5e:", error);
     return null;
   }
   const p = data as unknown as Payload;
 
   const home = p.group.homeLocation;
+  const radius: SearchRadiusKm = isSearchRadiusKm(p.group.defaultSearchRadiusKm ?? 1)
+    ? (p.group.defaultSearchRadiusKm ?? 1)
+    : 1;
   const group: Group = {
     id: p.group.id,
     name: p.group.name,
@@ -212,6 +227,23 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     archivedAt: p.group.archivedAt ?? null,
     archivedBy: p.group.archivedBy ?? null,
     sharedVisitsCountForProgression: p.group.sharedVisitsCountForProgression,
+    defaultSearchRadiusKm: radius,
+    searchAreas: (p.group.searchAreas ?? [])
+      .filter(
+        (area) =>
+          area.provider === "geoapify" &&
+          Number.isFinite(area.lat) &&
+          Number.isFinite(area.lng) &&
+          area.placeId.trim().length > 0,
+      )
+      .map((area) => ({
+        id: area.id,
+        label: area.label,
+        lat: area.lat,
+        lng: area.lng,
+        provider: "geoapify" as const,
+        placeId: area.placeId,
+      })),
     homeLocation: home
       ? {
           label: home.label,
