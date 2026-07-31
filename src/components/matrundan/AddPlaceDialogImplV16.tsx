@@ -31,7 +31,7 @@ export function AddPlaceDialogV16({
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
             <DialogDescription>
-              Utforska gruppens vanliga områden eller välj en annan plats för den här sökningen.
+              Sök i gruppens vanliga områden eller lägg till fler platser för den här sökningen.
             </DialogDescription>
           </DialogHeader>
           <TabToggle value={tab} onChange={setTab} />
