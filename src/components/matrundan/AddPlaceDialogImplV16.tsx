@@ -30,8 +30,8 @@ export function AddPlaceDialogV16({
         <DialogContent className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
-            <DialogDescription>
-              Sök i gruppens vanliga områden eller lägg till fler platser för den här sökningen.
+            <DialogDescription className="sr-only">
+              Sök efter ett matställe eller lägg till ett manuellt.
             </DialogDescription>
           </DialogHeader>
           <TabToggle value={tab} onChange={setTab} />
@@ -69,7 +69,7 @@ function TabToggle({ value, onChange }: { value: Tab; onChange: (value: Tab) => 
           aria-pressed={value === tab}
           onClick={() => onChange(tab)}
         >
-          {tab === "sok" ? "Sök & utforska" : "Lägg till manuellt"}
+          {tab === "sok" ? "Sök" : "Lägg till manuellt"}
         </button>
       ))}
     </div>

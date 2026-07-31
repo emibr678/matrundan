@@ -24,7 +24,23 @@ async function openPlaceSearch(page: Page) {
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const searchDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(searchDialog).toBeVisible();
-  await searchDialog.getByLabel("Vad är du sugen på?").fill(PLACE_NAME);
+  await expect(searchDialog.getByRole("button", { name: "Sök", exact: true })).toBeVisible();
+  await expect(
+    searchDialog.getByText(
+      "Sök i gruppens vanliga områden eller lägg till fler platser för den här sökningen.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
+  await expect(
+    searchDialog.getByText("Ändringar här gäller bara den här sökningen.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    searchDialog.getByText(
+      "Välj en träff så läggs den till nedan. Valen gäller bara den här sökningen.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
+  await searchDialog.getByLabel("Sök", { exact: true }).fill(PLACE_NAME);
   await expect(
     searchDialog.getByRole("button", { name: `Visa information om ${PLACE_NAME}` }),
   ).toBeVisible();
@@ -38,8 +54,20 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await page.getByRole("button", { name: `Visa information om ${PLACE_NAME}` }).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
+  await expect(detailsDialog.getByText("Öppna i Google Maps", { exact: true })).toBeVisible();
+  await expect(
+    detailsDialog.getByText(
+      "Google Maps söker efter namn, adress och vid behov kartposition. Kontrollera att rätt verksamhet har öppnats.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
+  await expect(
+    detailsDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
+  ).toBeVisible();
 
-  const foodTagTrigger = detailsDialog.getByRole("combobox", { name: "Kök och inriktning" });
+  const foodTagTrigger = detailsDialog.getByRole("combobox", {
+    name: "Kök och inriktning (valfritt)",
+  });
   await expect(foodTagTrigger).toContainText("2 valda");
   await foodTagTrigger.click();
 

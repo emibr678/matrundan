@@ -55,7 +55,9 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
       exact: true,
     }),
   ).toHaveAttribute("href", /google\.com\/maps\/search\/\?api=1&query=/);
-  await expect(resultDialog.getByText(/Välj om du redan vet/)).toBeVisible();
+  await expect(
+    resultDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
+  ).toBeVisible();
   await expect(
     resultDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }),
   ).toBeEnabled();
@@ -71,7 +73,9 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   await expect(
     addDialog.getByText("Välj vad stället passar bäst för för att fortsätta."),
   ).toHaveCount(0);
-  await expect(addDialog.getByText(/Välj om du redan vet/)).toBeVisible();
+  await expect(
+    addDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
+  ).toBeVisible();
   await expect(addDialog.getByText("Passar bäst för", { exact: true })).toBeVisible();
   await expect(addDialog.getByText("Avslappnat", { exact: true })).toBeVisible();
   await expect(addDialog.getByText("Något extra", { exact: true })).toBeVisible();

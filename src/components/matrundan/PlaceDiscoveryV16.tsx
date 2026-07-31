@@ -258,7 +258,7 @@ export function PlaceDiscoveryV16({
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="place-query">Vad är du sugen på?</Label>
+        <Label htmlFor="place-query">Sök</Label>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
