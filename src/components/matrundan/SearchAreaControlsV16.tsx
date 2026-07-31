@@ -187,6 +187,7 @@ export function SearchAreaControlsV16({
           </p>
         )}
 
+        {/* prettier-ignore */}
         {atLimit ? (
           <p className="text-xs text-muted-foreground">
             Högst fem områden kan användas samtidigt. Ta bort ett för att välja ett annat.
