@@ -81,6 +81,8 @@ describe("releasekontrollens versionsskydd", () => {
       "- En synlig ändring utan daterad versionshöjning.",
     );
     writeFileSync(join(root, "CHANGELOG.md"), changelog);
+    expect(run(root, "git", ["add", "."]).status).toBe(0);
+    expect(run(root, "git", ["commit", "-m", "ui without version bump"]).status).toBe(0);
 
     const result = run(root, process.execPath, [releaseCheckPath, base]);
 
