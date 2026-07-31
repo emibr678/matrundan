@@ -18,6 +18,12 @@ test("flera sökområden läggs till i samma fält utan horisontell overflow på
   await expect(page.getByText("Sökområden", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /annan plats/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /använd platsen/i })).toHaveCount(0);
+  await expect(
+    page.getByText("Ändringar här gäller bara den här sökningen.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Högst fem områden kan användas samtidigt. Ta bort ett för att välja ett annat."),
+  ).toHaveCount(0);
 
   const areaInput = page.getByRole("textbox", { name: "Sökområden", exact: true });
   await expect(areaInput).toHaveAttribute("placeholder", "Sök ort, stadsdel eller adress");
@@ -31,6 +37,7 @@ test("flera sökområden läggs till i samma fält utan horisontell overflow på
   await expect(areaInput).toHaveValue("");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Södermalm");
   await expect(areaInput).toBeDisabled();
+  await expect(areaInput).toHaveAttribute("placeholder", "Max 5 områden valda");
 
   const mapToggle = page.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
