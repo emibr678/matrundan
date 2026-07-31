@@ -123,12 +123,14 @@ export function OccasionPicker({
   onChange,
   disabled = false,
   required = false,
+  description,
 }: {
   id: string;
   value: Occasion[];
   onChange: (value: Occasion[]) => void;
   disabled?: boolean;
   required?: boolean;
+  description?: string;
 }) {
   const descriptionId = `${id}-description`;
   const primary = primaryOccasion(value);
@@ -147,9 +149,10 @@ export function OccasionPicker({
         <OccasionGuide />
       </div>
       <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
-        {required
-          ? "Välj vad stället passar bäst för. Lägg till ett alternativ till om det också passar tydligt."
-          : "Välj om du redan vet – annars kan gruppen bestämma efter ett besök."}
+        {description ??
+          (required
+            ? "Välj vad stället passar bäst för. Lägg till ett alternativ till om det också passar tydligt."
+            : "Välj om du redan vet – annars kan gruppen bestämma efter ett besök.")}
       </p>
       <div className="space-y-2" aria-describedby={descriptionId}>
         <div>
