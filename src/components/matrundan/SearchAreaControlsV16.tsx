@@ -18,7 +18,7 @@ import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
 const SEARCH_PLACEHOLDER = "Sök ort, stadsdel eller adress";
-const LIMIT_PLACEHOLDER = "Ta bort ett område för att lägga till ett nytt";
+const LIMIT_PLACEHOLDER = "Max 5 områden valda";
 
 interface SearchAreaControlsProps {
   savedAreas: SearchArea[];
@@ -237,7 +237,7 @@ export function SearchAreaControlsV16({
           onDemoSubmit={addDemoArea}
         />
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Välj en träff så läggs den till nedan. Valen gäller bara den här sökningen.
+          Ändringar här gäller bara den här sökningen.
         </p>
         <SelectedAreas
           savedAreas={selectedSavedAreas}
@@ -245,11 +245,6 @@ export function SearchAreaControlsV16({
           onRemoveSaved={removeSavedArea}
           onRemoveTemporary={removeTemporaryArea}
         />
-        {atLimit ? (
-          <p className="text-xs text-muted-foreground">
-            Högst fem områden kan användas samtidigt. Ta bort ett för att välja ett annat.
-          </p>
-        ) : null}
       </div>
       <SearchRadiusSelect radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
     </div>
