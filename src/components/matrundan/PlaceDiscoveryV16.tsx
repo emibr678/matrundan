@@ -53,12 +53,6 @@ export function PlaceDiscoveryV16({
   const [retry, setRetry] = React.useState(0);
   const requestRef = React.useRef(0);
 
-  React.useEffect(() => {
-    setSelectedAreaIds(savedAreas.map((area) => area.id));
-    setTemporaryArea(null);
-    setRadiusKm(state.group.defaultSearchRadiusKm ?? 1);
-  }, [savedAreas, state.group.defaultSearchRadiusKm]);
-
   const activeAreas = React.useMemo(() => {
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
     return temporaryArea ? [...selected, temporaryArea].slice(0, 5) : selected;
