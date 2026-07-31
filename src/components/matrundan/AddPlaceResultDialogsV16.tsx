@@ -267,7 +267,7 @@ export function AddPlaceResultDialogsV16({
                   href={googleMapsSearchUrl(pending)}
                   target="_blank"
                   rel="noreferrer"
-                  aria-label={`Sök efter ${pending.name} i Google Maps`}
+                  aria-label={`Öppna ${pending.name} i Google Maps`}
                 >
                   <ExternalLink className="h-4 w-4" /> Sök i Google Maps
                 </a>
