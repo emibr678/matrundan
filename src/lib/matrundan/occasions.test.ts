@@ -13,9 +13,9 @@ describe("sammanhangskategorier", () => {
   test("har tre tydliga och unika benämningar", () => {
     expect(OCCASION_VALUES).toEqual(["snabbt", "avslappnat", "middag"]);
     expect(OCCASION_VALUES.map((occasion) => OCCASION_LABEL[occasion])).toEqual([
-      "Snabbt & smidigt",
-      "Vardag & häng",
-      "Något särskilt",
+      "Snabbt och enkelt",
+      "Avslappnat",
+      "Något extra",
     ]);
   });
 
@@ -23,8 +23,9 @@ describe("sammanhangskategorier", () => {
     for (const occasion of OCCASION_VALUES) {
       expect(OCCASION_DESCRIPTION[occasion].length).toBeGreaterThan(30);
     }
-    expect(OCCASION_DESCRIPTION.snabbt).toContain("takeaway");
-    expect(OCCASION_DESCRIPTION.middag).toContain("upplevelsen");
+    expect(OCCASION_DESCRIPTION.snabbt).toContain("ta med maten");
+    expect(OCCASION_DESCRIPTION.avslappnat).toContain("vänner eller familj");
+    expect(OCCASION_DESCRIPTION.middag).toContain("finkrog");
   });
 
   test("tolkar första valet som primärt och högst ett val som sekundärt", () => {
