@@ -23,7 +23,9 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   ).toHaveAttribute("aria-pressed", "true");
   await expect(leaderboard.getByText("Månskärans Taquería", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toHaveCount(0);
-  await leaderboard.getByRole("button", { name: "Visa topplista för Snabbt och enkelt" }).click();
+  await leaderboard
+    .getByRole("button", { name: "Visa topplista för Snabbt och enkelt" })
+    .click();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Topplista per primärt val");
 
