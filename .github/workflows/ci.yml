@@ -78,6 +78,9 @@ jobs:
 
           bun scripts/repo-tools.mjs ci-flags "$base_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Apply group settings integration diagnostic
+        run: bun scripts/v16-route-codemod.mjs
+
       - name: Format v1.6 diagnostic workspace
         env:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
@@ -89,15 +92,22 @@ jobs:
           name: formatted-v1-6-sources
           path: |
             src/components/matrundan/AddPlaceDialogImplV16.tsx
+            src/components/matrundan/AddPlaceResultDialogsV16.tsx
             src/components/matrundan/CreateGroupDialog.tsx
             src/components/matrundan/GroupSettingsSectionV16.tsx
+            src/components/matrundan/ManualAddPlaceFormV16.tsx
             src/components/matrundan/MultiAreaPlaceMap.tsx
+            src/components/matrundan/PlaceDiscoveryV16.tsx
+            src/components/matrundan/SearchAreaControlsV16.tsx
+            src/components/matrundan/SearchResultSectionsV16.tsx
+            src/lib/matrundan/add-place-v16-utils.ts
             src/lib/matrundan/geoapify.functions.ts
             src/lib/matrundan/live-admin.ts
             src/lib/matrundan/live-repository.ts
             src/lib/matrundan/places-provider.ts
             src/lib/matrundan/search-areas.test.ts
             src/lib/matrundan/search-areas.ts
+            src/routes/gruppen.tsx
             tests/e2e/v1-6-search-areas.spec.ts
           if-no-files-found: error
 
