@@ -1,7 +1,8 @@
 /**
- * Live-repository: läser en grupps state via den säkra RPC:n
- * get_group_app_state_v5e, som bygger vidare på den etablerade gruppscopade
- * läsmodellen med sökområden, livscykel, platsmetadata, besöksfoto och datumförslag.
+ * Live-repository: läser en grupps state via den säkra, versionshanterade
+ * read-modelen. Vid just en saknad aktuell RPC får klienten tillfälligt falla
+ * tillbaka till föregående kompatibla version så att gruppen fortfarande kan
+ * läsas medan databasdriftsättningen färdigställs.
  */
 import { supabase } from "@/integrations/supabase/client";
 import type {
@@ -23,6 +24,11 @@ import type {
   Visit,
 } from "./types";
 import { normalizeOccasionClassification } from "./occasions";
+import {
+  CURRENT_GROUP_STATE_RPC,
+  PREVIOUS_GROUP_STATE_RPC,
+  shouldFallbackToPreviousGroupStateRpc,
+} from "./read-model-version";
 import { isSearchRadiusKm } from "./search-areas";
 import { APP_VERSION } from "./version";
 import { createSignedVisitPhotoUrls } from "./visit-photo";
@@ -201,15 +207,35 @@ function mapNextStopDateProposal(row: NextStopDateProposalRow | null): NextStopD
   };
 }
 
-export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const { data, error } = await supabase.rpc("get_group_app_state_v5e" as "get_group_app_state", {
+async function readGroupPayload(groupId: string): Promise<Payload | null> {
+  const current = await supabase.rpc(CURRENT_GROUP_STATE_RPC as "get_group_app_state", {
     _group_id: groupId,
   });
-  if (error || !data) {
-    console.error("[Matrundan] get_group_app_state_v5e:", error);
+
+  if (!current.error && current.data) return current.data as unknown as Payload;
+
+  if (!shouldFallbackToPreviousGroupStateRpc(current.error)) {
+    console.error(`[Matrundan] ${CURRENT_GROUP_STATE_RPC}:`, current.error);
     return null;
   }
-  const p = data as unknown as Payload;
+
+  console.warn(
+    `[Matrundan] ${CURRENT_GROUP_STATE_RPC} saknas. Läser tillfälligt via ${PREVIOUS_GROUP_STATE_RPC}.`,
+  );
+  const previous = await supabase.rpc(PREVIOUS_GROUP_STATE_RPC as "get_group_app_state", {
+    _group_id: groupId,
+  });
+  if (previous.error || !previous.data) {
+    console.error(`[Matrundan] ${PREVIOUS_GROUP_STATE_RPC}:`, previous.error);
+    return null;
+  }
+
+  return previous.data as unknown as Payload;
+}
+
+export async function loadLiveState(groupId: string): Promise<AppState | null> {
+  const p = await readGroupPayload(groupId);
+  if (!p) return null;
 
   const home = p.group.homeLocation;
   const configuredRadius = p.group.defaultSearchRadiusKm ?? 1;
