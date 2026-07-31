@@ -93,9 +93,7 @@ export function SearchAreaControlsV16({
   }
 
   function removeTemporaryArea(area: SearchArea) {
-    onTemporaryAreasChange(
-      temporaryAreas.filter((candidate) => !sameSearchArea(candidate, area)),
-    );
+    onTemporaryAreasChange(temporaryAreas.filter((candidate) => !sameSearchArea(candidate, area)));
   }
 
   return (
