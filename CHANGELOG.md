@@ -11,6 +11,9 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 
 ### Ändrat
 
+- **Passar för** använder nu **Snabbt och enkelt**, **Avslappnat** och
+  **Något extra**. Befintliga val nollställs eftersom den tidigare indelningen
+  inte kan översättas säkert till de nya kategorierna.
 - Sökområden väljs nu i ett enda återanvändbart platsfält. Varje vald träff
   läggs direkt till som en valbricka och fältet kan användas igen utan en
   separat panel eller extra bekräftelseknappar.
