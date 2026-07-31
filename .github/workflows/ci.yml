@@ -16,8 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: read
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -98,31 +97,6 @@ jobs:
       - name: Database and RPC contract
         run: bun scripts/database-contract-check.mjs "${{ steps.changes.outputs.base_sha }}"
 
-      - name: Apply and commit approved v1.8 finish patch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          git reset --hard "$HEAD_SHA"
-          if git apply --check scripts/v1-8-demo-hidden-settings.patch; then
-            git apply scripts/v1-8-demo-hidden-settings.patch
-          elif git apply --reverse --check scripts/v1-8-demo-hidden-settings.patch; then
-            echo "Runtime-kopplingen är redan applicerad."
-          else
-            echo "v1.8-patchen kan varken appliceras eller identifieras som redan applicerad." >&2
-            exit 1
-          fi
-          bunx prettier --write docs/architecture.md src/routes/gruppen.tsx
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/architecture.md src/routes/gruppen.tsx
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "Slutför dolda sökträffar i demo och arkitektur"
-          git push origin "HEAD:${HEAD_BRANCH}"
-
       - name: Prettier changed code and configuration
         if: steps.changes.outputs.has_format == 'true'
         env:
@@ -143,21 +117,6 @@ jobs:
         with:
           name: formatting-patch
           path: formatting.patch
-          if-no-files-found: error
-
-      - name: Upload formatted source files
-        if: failure() && steps.changes.outputs.has_format == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-source-files
-          path: |
-            scripts/release-check.mjs
-            src/components/matrundan/AddPlaceResultDialogsV16.tsx
-            src/components/matrundan/GroupSettingsSectionV16.tsx
-            src/lib/matrundan/geoapify-normalize.ts
-            src/lib/matrundan/hidden-place-suggestions.ts
-            src/lib/matrundan/release-check-contract.test.ts
-            src/lib/matrundan/version.ts
           if-no-files-found: error
 
       - name: ESLint changed code
