@@ -6,7 +6,7 @@
  */
 
 import { normalizeFoodTags } from "./food-tags";
-import type { PlaceCategory } from "./types";
+import type { PlaceCategory, SearchArea } from "./types";
 
 export interface PlaceSuggestion {
   externalId: string;
@@ -21,12 +21,16 @@ export interface PlaceSuggestion {
   distanceKm?: number;
   provider?: string;
   raw?: string;
+  nearestAreaLabel?: string;
+  matchingAreaLabels?: string[];
 }
 
 export interface PlacesSearchOpts {
   query?: string;
-  city: string;
+  city?: string;
   area?: string;
+  center?: { lat: number; lng: number };
+  areaLabel?: string;
   radiusKm: number | null;
 }
 
@@ -43,6 +47,7 @@ const AREA_CENTERS: Record<string, { lat: number; lng: number }> = {
   majorna: { lat: 57.6969, lng: 11.9138 },
   linné: { lat: 57.6963, lng: 11.9464 },
   rosenlund: { lat: 57.7005, lng: 11.9514 },
+  södermalm: { lat: 59.3153, lng: 18.0711 },
 };
 
 const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
@@ -52,12 +57,31 @@ const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
   uppsala: { lat: 59.8586, lng: 17.6389 },
 };
 
-function centerFor(city: string, area?: string) {
+function centerFor(city = "Göteborg", area?: string) {
   if (area) {
     const areaCenter = AREA_CENTERS[area.trim().toLowerCase()];
     if (areaCenter) return areaCenter;
   }
   return CITY_CENTERS[city.trim().toLowerCase()] ?? CITY_CENTERS.göteborg;
+}
+
+export function demoSearchAreaFromText(text: string, fallbackCity = "Göteborg"): SearchArea | null {
+  const parts = text
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return null;
+  const area = parts[0];
+  const city = parts[1] ?? fallbackCity;
+  const center = centerFor(city, area);
+  return {
+    id: `demo-temp-${area.toLocaleLowerCase("sv-SE")}-${city.toLocaleLowerCase("sv-SE")}`,
+    label: parts.join(", "),
+    lat: center.lat,
+    lng: center.lng,
+    provider: "demo",
+    placeId: `demo:${parts.join(":").toLocaleLowerCase("sv-SE")}`,
+  };
 }
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
@@ -203,41 +227,57 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     lat: 55.6117,
     lng: 12.9989,
   },
+  {
+    externalId: "demo-existing-kardemumma",
+    provider: "demo",
+    name: "Kvarterets Kardemumma",
+    category: "café",
+    address: "Kanelgången 4",
+    area: "Haga",
+    city: "Göteborg",
+    cuisines: ["kaffe", "surdeg", "bakverk"],
+    lat: 57.6996,
+    lng: 11.9552,
+  },
 ];
 
 const demoProvider: PlacesProvider = {
   id: "demo",
-  async search({ query, city, area, radiusKm }) {
+  async search({ query, city = "", area, center: suppliedCenter, areaLabel, radiusKm }) {
     await new Promise((resolve) => setTimeout(resolve, 220));
-    if (!city.trim()) return [];
+    if (!suppliedCenter && !city.trim()) return [];
 
-    const normalizedQuery = (query ?? "").trim().toLowerCase();
-    const normalizedArea = (area ?? "").trim().toLowerCase();
-    const center = centerFor(city, area);
+    const normalizedQuery = (query ?? "").trim().toLocaleLowerCase("sv-SE");
+    const normalizedArea = (area ?? "").trim().toLocaleLowerCase("sv-SE");
+    const center = suppliedCenter ?? centerFor(city, area);
     const normalizedSuggestions = DEMO_SUGGESTIONS.map((suggestion) => ({
       ...suggestion,
       cuisines: normalizeFoodTags(suggestion.cuisines ?? []),
     }));
-    let items = normalizedSuggestions.filter(
-      (suggestion) => suggestion.city.toLowerCase() === city.trim().toLowerCase(),
-    );
+    let items = suppliedCenter
+      ? normalizedSuggestions
+      : normalizedSuggestions.filter(
+          (suggestion) => suggestion.city.toLocaleLowerCase("sv-SE") === city.trim().toLocaleLowerCase("sv-SE"),
+        );
 
-    if (normalizedArea) {
+    if (!suppliedCenter && normalizedArea) {
       items = items.filter(
         (suggestion) =>
-          suggestion.area?.toLowerCase().includes(normalizedArea) ||
-          suggestion.address.toLowerCase().includes(normalizedArea),
+          suggestion.area?.toLocaleLowerCase("sv-SE").includes(normalizedArea) ||
+          suggestion.address.toLocaleLowerCase("sv-SE").includes(normalizedArea),
       );
     }
 
     if (normalizedQuery) {
       items = items.filter(
         (suggestion) =>
-          suggestion.name.toLowerCase().includes(normalizedQuery) ||
-          suggestion.category.toLowerCase().includes(normalizedQuery) ||
-          suggestion.cuisines?.some((cuisine) => cuisine.toLowerCase().includes(normalizedQuery)) ||
-          suggestion.address.toLowerCase().includes(normalizedQuery) ||
-          suggestion.area?.toLowerCase().includes(normalizedQuery),
+          suggestion.name.toLocaleLowerCase("sv-SE").includes(normalizedQuery) ||
+          suggestion.category.toLocaleLowerCase("sv-SE").includes(normalizedQuery) ||
+          suggestion.cuisines?.some((cuisine) =>
+            cuisine.toLocaleLowerCase("sv-SE").includes(normalizedQuery),
+          ) ||
+          suggestion.address.toLocaleLowerCase("sv-SE").includes(normalizedQuery) ||
+          suggestion.area?.toLocaleLowerCase("sv-SE").includes(normalizedQuery),
       );
     }
 
@@ -247,6 +287,8 @@ const demoProvider: PlacesProvider = {
         suggestion.lat != null && suggestion.lng != null
           ? Math.round(haversineKm(center, { lat: suggestion.lat, lng: suggestion.lng }) * 10) / 10
           : undefined,
+      nearestAreaLabel: areaLabel,
+      matchingAreaLabels: areaLabel ? [areaLabel] : undefined,
     }));
 
     const filtered =
@@ -256,7 +298,9 @@ const demoProvider: PlacesProvider = {
             (suggestion) => suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
           );
 
-    filtered.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+    filtered.sort((a, b) =>
+      (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || a.name.localeCompare(b.name, "sv-SE"),
+    );
     return filtered;
   },
 };
