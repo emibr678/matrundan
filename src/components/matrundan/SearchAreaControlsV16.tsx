@@ -77,6 +77,7 @@ function SearchAreaPill({ area, onRemove }: SearchAreaPillProps) {
   );
 }
 
+// prettier-ignore
 function SearchAreaField({
   isLive,
   query,
@@ -116,6 +117,7 @@ function SearchAreaField({
   );
 }
 
+// prettier-ignore
 function SelectedAreas({
   savedAreas,
   temporaryAreas,
