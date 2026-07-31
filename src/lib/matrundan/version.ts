@@ -1,449 +1,112 @@
-import { CHANGELOG as HISTORICAL_CHANGELOG, type ChangelogEntry } from "./version-history";
+import {
+  CHANGELOG as CHANGELOG_THROUGH_1_6,
+  type ChangelogEntry,
+} from "./version-through-1-6";
 
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
-const VERSION_1_6_0_CHANGELOG: ChangelogEntry = {
-  version: "1.6.0",
+const VERSION_1_8_0_CHANGELOG: ChangelogEntry = {
+  version: "1.8.0",
   date: "2026-07-31",
   summary:
-    "Sök från flera vanliga områden samtidigt och samla nya ställen utan att de som redan finns skapar brus.",
+    "Stabilare mobilval och renare platssökning när gruppen letar efter sitt nästa ställe.",
   sections: [
     {
       kind: "Nytt",
       items: [
-        "En grupp kan spara upp till fem verifierade sökområden och använda samma valda sökradie runt dem.",
-        "En tillfällig annan plats kan användas i en enskild sökning utan att gruppens inställningar ändras.",
-        "Sökresultaten kan utforskas i både lista och karta med flera sökcentrum och radiecirklar.",
+        "Ägare och administratörer kan dölja en felaktig eller inaktuell sökträff enbart för den aktuella gruppen.",
+        "Dolda träffar kan återställas under Gruppinställningar utan att det verkliga matstället eller andra grupper påverkas.",
       ],
     },
     {
       kind: "Förbättrat",
       items: [
-        "Alla sparade områden är valda när sökningen öppnas; det finns inget primärt område.",
-        "Träffar från flera områden dedupliceras och sorteras efter kortaste avståndet till ett valt område.",
-        "Nya och tidigare borttagna ställen använder samma Lägg till-flöde, medan aktiva gruppställen samlas under Redan i gruppen.",
-        "Sökområden radbryts på mobil och administreras som tydliga vertikala rader i gruppinställningarna.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_5_0_CHANGELOG: ChangelogEntry = {
-  version: "1.5.0",
-  date: "2026-07-30",
-  summary:
-    "Smartare delning vid registrering och synk av tidigare besök när du lägger till ett ställe.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "När du lägger till ett ställe från Geoapify får du frågan om att dela dina tidigare besök på samma ställe från andra grupper.",
-        "Registreringsdialogen visar vilka andra grupper som redan har stället och låter dig välja alla eller rensa valet med ett klick.",
-      ],
-    },
-    {
-      kind: "Förbättrat",
-      items: [
-        "Delningsförvalen är smartare: bara grupper där stället redan finns är ikryssade från början, så du slipper dela besök till irrelevanta grupper.",
-        "Tidigare egna besök börjar helt ovalda, och redan delade besök erbjuds inte igen.",
-        "Arkiverade grupper kan inte ta emot delningar, medan borttagna matställen återaktiveras när ett besök delas dit.",
-        "Tydligare språk om progression: ett ställe räknas som provat så fort någon i gänget varit där.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_4_0_CHANGELOG: ChangelogEntry = {
-  version: "1.4.0",
-  date: "2026-07-30",
-  summary: "Dela ett nytt besök direkt med dina andra aktiva grupper.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "Besöksregistreringen kan länka samma kanoniska besök och matställe till valda andra aktiva grupper.",
-        "Dina andra aktiva grupper är förvalda när delningssteget öppnas och kan väljas bort före sparning.",
-      ],
-    },
-    {
-      kind: "Förbättrat",
-      items: [
-        "Ursprungsgrupp, medlemskap och privata kommentarer exponeras aldrig i mottagargruppen.",
-        "Din egen kommentar delas fortfarande bara efter ett separat aktivt val.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_3_1_CHANGELOG: ChangelogEntry = {
-  version: "1.3.1",
-  date: "2026-07-30",
-  summary: "Varmare språk och lugnare vyer i hela appen.",
-  sections: [
-    {
-      kind: "Förbättrat",
-      items: [
-        "Hem visar Senast tillsammans med gruppens senaste besök, deltagare och kommentar.",
-        "Progressionen är formulerad som en gemensam matresa i stället för en torr siffra.",
-        "Topplistan på Matställen är ihopfälld som standard så gruppens lista syns tidigare.",
-        "Tomma vyer, knapprader och långa adresser fungerar bättre på små mobilskärmar.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_3_0_CHANGELOG: ChangelogEntry = {
-  version: "1.3.0",
-  date: "2026-07-30",
-  summary: "Enklare att komma igång med notiser och att lägga appen på hemskärmen.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "Ett diskret kort på Hem föreslår att slå på notiser när du är med i en grupp och inte redan har notiser på enheten.",
-        "På Android och i datorwebbläsare går det att lägga Matrundan på hemskärmen direkt med en knapp.",
-        "På iPhone och iPad visas en kort instruktion för Dela → Lägg till på hemskärmen, som också krävs för notiser.",
-        "Min profil har ett eget avsnitt, Appen på mobilen, för den som vill installera appen senare.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_2_0_CHANGELOG: ChangelogEntry = {
-  version: "1.2.0",
-  date: "2026-07-30",
-  summary: "Push-notiser när något händer i dina grupper.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "Du kan slå på notiser per enhet under Min profil och välja vilka händelser du vill få notis om.",
-        "Notis när någon registrerar ett besök, väljer nästa stopp eller föreslår ett datum.",
-        "Notis när du läggs till som deltagare på ett besök och när en ny medlem går med i gruppen.",
-        "Matrundan kan läggas till på hemskärmen, vilket krävs för notiser på iPhone och iPad.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_1_2_CHANGELOG: ChangelogEntry = {
-  version: "1.1.2",
-  date: "2026-07-30",
-  summary: "Tydligare besked när ett lösenord inte accepteras vid kontoregistrering.",
-  sections: [
-    {
-      kind: "Förbättrat",
-      items: [
-        "Ett lösenord som är för kort eller för lätt att gissa ger nu ett tydligt besked i stället för ett generiskt felmeddelande.",
-        "Registreringsformuläret visar kraven på lösenordet redan innan formuläret skickas.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_1_1_CHANGELOG: ChangelogEntry = {
-  version: "1.1.1",
-  date: "2026-07-30",
-  summary: "Enklare kontoregistrering med e-post, utan väntan på bekräftelsemejl.",
-  sections: [
-    {
-      kind: "Förbättrat",
-      items: [
-        "Nya konton aktiveras direkt vid registrering, så du kommer igång utan bekräftelsemejl.",
-        "Om e-postadressen redan har ett konto får du ett tydligt besked och hamnar direkt i inloggningen.",
-        "Återställning av lösenord påminner om att mejlet kan hamna i skräpposten.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_1_CHANGELOG: ChangelogEntry = {
-  version: "1.1.0",
-  date: "2026-07-30",
-  summary:
-    "Nu går det att skapa konto med e-post och lösenord, för dig som inte vill eller kan använda Google.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "Skapa konto och logga in med e-postadress och lösenord vid sidan av Google.",
-        "Glömt lösenord skickar en återställningslänk, så du behåller ditt konto och din historik.",
-      ],
-    },
-    {
-      kind: "Förbättrat",
-      items: [
-        "Nya lösenord kontrolleras mot kända läckor.",
-        "Att logga in med ett annat konto rensar den tidigare sessionen och gruppvalet direkt.",
-      ],
-    },
-  ],
-};
-
-const VERSION_1_CHANGELOG: ChangelogEntry = {
-  version: "1.0.0",
-  date: "2026-07-29",
-  summary:
-    "Matrundan 1.0 samlar ett tydligare första möte, en helt fiktiv exempelgrupp och självbetjänad kontoradering.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "En publik integritetssida förklarar vilka uppgifter som används, varför de behövs och vad som händer vid kontoradering.",
-        "Kontot kan raderas direkt från profilen med ägaröverlåtelse, extra bekräftelse för ensamgrupper och anonymiserad gemensam historik.",
-      ],
-    },
-    {
-      kind: "Förbättrat",
-      items: [
-        "Landningssidan prioriterar inloggning och att gå med via en privat inbjudan.",
-        "Om Matrundan beskriver appens syfte, tre huvudsteg och att tjänsten är ett kostnadsfritt hobbyprojekt utan garanterad support.",
-        "Exempelgruppens matställen, adresser, medlemmar och historik är nu helt fiktiva.",
-        "Gruppens arkivering och återaktivering finns under Gruppinställningar.",
+        "Kök och inriktning öppnas som en stabil helskärmsväljare på mobil med låst rubrik, egen resultat-scroll och en tydlig Klar-knapp.",
+        "Så fungerar Passar för ryms och går att scrolla även på smala och korta mobilskärmar.",
+        "Google Maps-sökningen tar bort dubblerade platsdelar, använder kartposition som reserv och förklarar att rätt verksamhet behöver kontrolleras.",
       ],
     },
     {
       kind: "Rättat",
       items: [
-        "Exempelgruppen länkar inte längre fiktiva ställen till Google Maps.",
-        "Copy kring sökområde, exempel/demo och ställesantal är mer konsekvent.",
+        "Mobilväljaren lämnar inte längre ett tomt vitt lager när tangentbordet stängs i Android WebView.",
+        "Geoapify-träffar som uttryckligen är markerade som nedlagda, övergivna eller borttagna filtreras bort.",
       ],
     },
   ],
 };
 
-const PACKAGE_5D_CHANGELOG: ChangelogEntry = {
-  version: "0.15.0",
-  date: "2026-07-28",
-  summary:
-    "Föreslå och bekräfta när gruppen ska besöka sitt nästa stopp, med tydliga svar från varje medlem.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "En medlem kan föreslå ett datum och en valfri tid direkt på gruppens aktuella nästa stopp.",
-        "Varje aktiv medlem kan svara Passar, Passar inte eller Osäker och ändra sitt svar medan förslaget är öppet.",
-        "Gruppen kan se svarens antal och vilka aktiva medlemmar som valt respektive alternativ.",
-      ],
-    },
-    {
-      kind: "Förbättrat",
-      items: [
-        "Förslagsställaren, gruppens ägare eller en administratör kan bekräfta eller ta bort datumet; ingen majoritet bekräftar automatiskt.",
-        "Ett datumförslag stängs automatiskt när nästa stopp byts, tas bort eller registreras som besökt.",
-        "Datumförslag och svar är privata för gruppen och skrivs genom validerade RPC-anrop med aktivt medlemskap.",
-        "Fredagsgänget använder samma gränssnitt och sparar datumplaneringen tillfälligt i webbläsarsessionen.",
-      ],
-    },
-    {
-      kind: "Rättat",
-      items: [
-        "Planeringsflödet är verifierat på 360 px utan horisontell overflow, inklusive omladdning och återställning i demo.",
-      ],
-    },
-  ],
-};
-
-const PACKAGE_6A_CHANGELOG: ChangelogEntry = {
-  version: "0.16.0",
-  date: "2026-07-29",
-  summary:
-    "Tydligare huvudvyer, naturligare språk och en lugnare handlingshierarki genom gruppens matresa.",
+const VERSION_1_7_1_CHANGELOG: ChangelogEntry = {
+  version: "1.7.1",
+  date: "2026-07-31",
+  summary: "Kontrollera ett sökresultat före tillägg och komplettera Passar för när gruppen vet.",
   sections: [
     {
       kind: "Förbättrat",
       items: [
-        "Hem fokuserar på nästa stopp och progression medan gruppens aktivitet samlas på Gruppen.",
-        "Gruppen visar inte längre en duplicerad version av nästa stopp och medlemsraderna har färre överflödiga etiketter.",
-        "Matställen förklarar listans syfte, prioriterar sökningen före topplistan och använder Lägg till ställe konsekvent.",
-        "Matställets detaljsida skiljer tydligare mellan nästa stopp, personlig favorit och den externa Maps-länken.",
-        "Flaggan ersätter den otydliga glittersymbolen för nästa stopp.",
-      ],
-    },
-    {
-      kind: "Rättat",
-      items: [
-        "De uppdaterade huvudvyerna och detaljsidan är regressionsskyddade mot horisontell overflow vid 360 px.",
+        "Sökresultat öppnas först i en informationsvy där platsen kan kontrolleras i Google Maps innan den läggs till.",
+        "Passar för är frivilligt när ett nytt ställe läggs till och kan kompletteras efter ett faktiskt besök.",
       ],
     },
   ],
 };
 
-const PACKAGE_6A_1_CHANGELOG: ChangelogEntry = {
-  version: "0.16.1",
-  date: "2026-07-29",
-  summary: "Tydligare Google Maps-länk och bättre placerad hantering på matställets detaljsida.",
+const VERSION_1_7_0_CHANGELOG: ChangelogEntry = {
+  version: "1.7.0",
+  date: "2026-07-31",
+  summary: "Tydligare Passar för-val för snabbt, avslappnat och något extra.",
   sections: [
     {
       kind: "Förbättrat",
       items: [
-        "Google Maps har åter en egen tydligt namngiven länk i stället för att vara gömd i adressen.",
-        "Hantera ställe ligger nu diskret intill Om stället i stället för ensam i huvudkortets åtgärdsyta.",
+        "Passar för använder Snabbt och enkelt, Avslappnat och Något extra.",
+        "Ett ställe kan ha ett primärt och ett frivilligt sekundärt val, men valet kan lämnas tomt tills gruppen har upplevt stället.",
+        "Tidigare Passar för-val nollställs eftersom de gamla kategorierna inte kan översättas säkert.",
       ],
     },
   ],
 };
 
-const PACKAGE_6B_CHANGELOG: ChangelogEntry = {
-  version: "0.17.0",
-  date: "2026-07-29",
-  summary: "Lugnare datumplanering och ett enklare besöksflöde med mer tillförlitliga betyg.",
+const VERSION_1_6_2_CHANGELOG: ChangelogEntry = {
+  version: "1.6.2",
+  date: "2026-07-31",
+  summary: "Samma enkla sökområdesflöde i sökningen och gruppinställningarna.",
   sections: [
     {
       kind: "Förbättrat",
       items: [
-        "Hem visar datumet och svarsläget på en kompakt rad; svar, namn och hantering öppnas först i Planera nästa stopp.",
-        "Bekräftade datum visas utan den tidigare tunga svarssammanställningen på Hem.",
-        "Ett besök kräver nu att användaren aktivt väljer helhetsbetyg i stället för att börja på ett förvalt betyg.",
-        "Besöksdialogen har en enda sparaknapp; möjligheten att lägga till besöket i en annan grupp erbjuds efter att besöket har sparats.",
-      ],
-    },
-    {
-      kind: "Rättat",
-      items: [
-        "Datumplaneringen och besöksdialogen är regressionsskyddade mot horisontell overflow vid 360 px.",
+        "Vanliga sökområden i Gruppinställningar väljs i samma återanvändbara platsfält och visas som valbrickor.",
+        "Kommuner, län, regioner och länder visas som vägledning men kan inte sparas som ett oprecist punktcentrum.",
       ],
     },
   ],
 };
 
-const PACKAGE_6C_CHANGELOG: ChangelogEntry = {
-  version: "0.18.0",
-  date: "2026-07-29",
-  summary:
-    "Tydligare sammanhangskategorier som gör det möjligt att uppskatta både enkla favoriter och större matupplevelser på sina egna villkor.",
+const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
+  version: "1.6.1",
+  date: "2026-07-31",
+  summary: "Smidigare val av flera sökområden och stabilare markörer på mobilen.",
   sections: [
     {
       kind: "Förbättrat",
       items: [
-        "Passar för använder nu Snabbt & enkelt, Vardag & häng samt Middag & upplevelse.",
-        "En mobilvänlig förklaring visar att kategorierna beskriver typen av besök, inte hur bra stället är, och ger exempel för varje val.",
-        "Nya ställen får inte längre Vardag & häng automatiskt; användaren väljer aktivt minst ett sammanhang och kan välja flera.",
-        "Samma benämningar och hjälp används när ett ställe läggs till, hanteras, filtreras och visas.",
-      ],
-    },
-    {
-      kind: "Rättat",
-      items: [
-        "Kategoriväljaren och dess förklaring är regressionsskyddade mot horisontell overflow vid 360 px.",
+        "Ett sökområde läggs direkt till som en valbricka när en Geoapify-träff väljs, och samma fält kan användas igen.",
+        "Flerområdeskartan använder stabila kategoriikoner i stället för enhetsberoende emoji-markörer.",
+        "Live-läsningen kan tillfälligt använda föregående kompatibla read-model om den senaste RPC-funktionen saknas efter en ofullständig databasdriftsättning.",
       ],
     },
   ],
 };
 
-const PACKAGE_6D_CHANGELOG: ChangelogEntry = {
-  version: "0.19.0",
-  date: "2026-07-29",
-  summary:
-    "En skarpare sammanhangsmodell och topplistor som jämför matställen inom rätt sorts besök.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "Topplistan kan växla mellan Snabbt & smidigt, Vardag & häng och Något särskilt.",
-        "Ett ställe rankas bara i sitt primära sammanhang, baserat på gruppens synliga medelbetyg.",
-      ],
-    },
-    {
-      kind: "Förbättrat",
-      items: [
-        "Varje ställe får ett obligatoriskt Passar bäst för och högst ett frivilligt Passar också för.",
-        "Sammanhangen heter nu Snabbt & smidigt, Vardag & häng och Något särskilt.",
-        "Hjälptexten förklarar att sammanhang inte är en kvalitets- eller prisstege.",
-        "Befintliga sparade val tolkas i ordning som primärt och sekundärt utan att produktionsrader skrivs om.",
-      ],
-    },
-    {
-      kind: "Rättat",
-      items: [
-        "Den tidigare fria flervalsmodellen har ersatts med den beslutade primära och valfria sekundära klassificeringen.",
-      ],
-    },
-  ],
-};
-
-const PACKAGE_6E_CHANGELOG: ChangelogEntry = {
-  version: "0.19.1",
-  date: "2026-07-29",
-  summary:
-    "En sista UX-polering som gör progression, sökning och Passar för-valen lugnare och tydligare.",
-  sections: [
-    {
-      kind: "Förbättrat",
-      items: [
-        "Hem visar gruppens progression utan ett redundant procenttal eller intern copy om aktiva ställen.",
-        "Sökning döljer topplistan medan användaren letar efter ett specifikt ställe, så resultatet hamnar direkt under sökverktygen.",
-        "Passar för förklaras som olika sorters besök i stället för med det abstrakta ordet sammanhang.",
-        "Det frivilliga Passar också för öppnas först efter en uttrycklig handling och visar inte längre alternativet Inget andra sammanhang.",
-      ],
-    },
-    {
-      kind: "Rättat",
-      items: [
-        "Progressionsraden på Hem kan inte längre klistra ihop bråk och procenttal på smala skärmar.",
-      ],
-    },
-  ],
-};
-
-const PACKAGE_6F_CHANGELOG: ChangelogEntry = {
-  version: "0.20.0",
-  date: "2026-07-29",
-  summary:
-    "Säkrare korrigeringar av gruppens historik och planering, med radering av felaktiga besök och redigering av datumförslag.",
-  sections: [
-    {
-      kind: "Nytt",
-      items: [
-        "Den som registrerade ett originalbesök, gruppens ägare eller admin kan radera det från besöksdetaljen efter en tydlig konsekvensbekräftelse.",
-        "Förslagsställaren, gruppens ägare eller admin kan ändra ett föreslaget eller bekräftat datum utan att först ta bort det.",
-      ],
-    },
-    {
-      kind: "Förbättrat",
-      items: [
-        "När ett datum ändras nollställs tidigare svar och ett bekräftat datum öppnas igen så att gruppen kan ta ställning på nytt.",
-        "Besökshistoriken ligger före Om stället och detaljerade betyg på matställets detaljsida.",
-        "Lägg till-flödet behåller sökning och utforskning som standard, manuell inmatning som sekundärt val och stöd för flera tillägg i samma omgång.",
-      ],
-    },
-    {
-      kind: "Rättat",
-      items: [
-        "Radering av ett originalbesök tar även bort dess foto, omdömen, deltagarkopplingar, delningar och aktivitet så att progressionen räknas om från den kanoniska historiken.",
-      ],
-    },
-  ],
-};
-
-const RECENT_CHANGELOG: ChangelogEntry[] = [
-  VERSION_1_6_0_CHANGELOG,
-  VERSION_1_5_0_CHANGELOG,
-  VERSION_1_4_0_CHANGELOG,
-  VERSION_1_3_1_CHANGELOG,
-  VERSION_1_3_0_CHANGELOG,
-  VERSION_1_2_0_CHANGELOG,
-  VERSION_1_1_2_CHANGELOG,
-  VERSION_1_1_1_CHANGELOG,
-  VERSION_1_1_CHANGELOG,
-  VERSION_1_CHANGELOG,
-  PACKAGE_6F_CHANGELOG,
-  PACKAGE_6E_CHANGELOG,
-  PACKAGE_6D_CHANGELOG,
-  PACKAGE_6C_CHANGELOG,
-  PACKAGE_6B_CHANGELOG,
-  PACKAGE_6A_1_CHANGELOG,
-  PACKAGE_6A_CHANGELOG,
-  PACKAGE_5D_CHANGELOG,
+export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_8_0_CHANGELOG,
+  VERSION_1_7_1_CHANGELOG,
+  VERSION_1_7_0_CHANGELOG,
+  VERSION_1_6_2_CHANGELOG,
+  VERSION_1_6_1_CHANGELOG,
+  ...CHANGELOG_THROUGH_1_6,
 ];
-
-/**
- * Kanonisk, fallande versionshistorik för gränssnittet. Den äldre filen är
- * endast ett arkiv för versionerna till och med 0.14.0; aktuell version och
- * datum härleds alltid från den första posten här.
- */
-export const CHANGELOG: ChangelogEntry[] = [...RECENT_CHANGELOG, ...HISTORICAL_CHANGELOG];
 
 const currentRelease = CHANGELOG[0];
 if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");
