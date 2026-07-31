@@ -202,10 +202,9 @@ function mapNextStopDateProposal(row: NextStopDateProposalRow | null): NextStopD
 }
 
 export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const { data, error } = await supabase.rpc(
-    "get_group_app_state_v5e" as "get_group_app_state",
-    { _group_id: groupId },
-  );
+  const { data, error } = await supabase.rpc("get_group_app_state_v5e" as "get_group_app_state", {
+    _group_id: groupId,
+  });
   if (error || !data) {
     console.error("[Matrundan] get_group_app_state_v5e:", error);
     return null;
@@ -213,9 +212,8 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
   const p = data as unknown as Payload;
 
   const home = p.group.homeLocation;
-  const radius: SearchRadiusKm = isSearchRadiusKm(p.group.defaultSearchRadiusKm ?? 1)
-    ? (p.group.defaultSearchRadiusKm ?? 1)
-    : 1;
+  const configuredRadius = p.group.defaultSearchRadiusKm ?? 1;
+  const radius: SearchRadiusKm = isSearchRadiusKm(configuredRadius) ? configuredRadius : 1;
   const group: Group = {
     id: p.group.id,
     name: p.group.name,
