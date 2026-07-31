@@ -55,14 +55,16 @@ export async function listGroupHiddenPlaceSuggestions(
     { _group_id: groupId } as never,
   );
   if (error) throw toError(error);
-  return ((data ?? []) as unknown as Array<{
-    provider: string;
-    provider_place_id: string;
-    name: string;
-    address: string;
-    city: string;
-    hidden_at: string;
-  }>).map((row) => ({
+  return (
+    (data ?? []) as unknown as Array<{
+      provider: string;
+      provider_place_id: string;
+      name: string;
+      address: string;
+      city: string;
+      hidden_at: string;
+    }>
+  ).map((row) => ({
     provider: row.provider,
     providerPlaceId: row.provider_place_id,
     name: row.name,
