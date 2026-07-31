@@ -3,11 +3,13 @@ import type {
   MultiAreaMapCenter,
   MultiAreaMapItem,
 } from "@/components/matrundan/MultiAreaPlaceMap";
+import type { PlaceCategory } from "./types";
 
 export type MultiAreaItemProperties = {
   id: string;
   name: string;
   actionable: boolean;
+  category: PlaceCategory;
 };
 
 export type MultiAreaCenterProperties = { id: string; label: string };
@@ -41,6 +43,7 @@ export function multiAreaItemsCollection(
           id: item.id,
           name: item.name,
           actionable: item.actionable !== false,
+          category: item.category ?? "restaurang",
         },
       })),
   };
@@ -60,6 +63,7 @@ export function multiAreaSelectedCollection(
           id: item.id,
           name: item.name,
           actionable: item.actionable !== false,
+          category: item.category ?? "restaurang",
         },
       },
     ],
