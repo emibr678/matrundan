@@ -14,6 +14,8 @@ const ALTERNATE_LOCKFILES = [
 ];
 const MAP_FILES = new Set([
   "src/components/matrundan/PlaceMap.tsx",
+  "src/components/matrundan/MultiAreaPlaceMap.tsx",
+  "src/lib/matrundan/multi-area-map-data.ts",
   "src/lib/matrundan/maplibre-client.ts",
   "playwright.config.ts",
   "tests/e2e/mobile-matstallen.spec.ts",

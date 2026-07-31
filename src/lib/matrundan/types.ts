@@ -5,6 +5,7 @@ export type Occasion = "snabbt" | "avslappnat" | "middag";
 export type Role = "ägare" | "admin" | "medlem";
 export type GroupLifecycleStatus = "active" | "archived";
 export type PlaceCollectionStatus = "active" | "archived";
+export type SearchRadiusKm = 1 | 2 | 3 | 5 | 10 | 25 | 50;
 
 export interface Member {
   id: string;
@@ -121,8 +122,8 @@ export interface Favorite {
 }
 
 /**
- * Gruppens förvalda sökområde. Endast `verified=true` (dvs. ett val från
- * Geoapify med både koordinater och place_id) får användas som sökcentrum.
+ * Legacy-modellen för ett enda förvalt sökområde. Behålls tillfälligt för
+ * kompatibilitet med äldre grupper och klienter.
  */
 export interface HomeLocation {
   label: string;
@@ -131,6 +132,16 @@ export interface HomeLocation {
   lng?: number;
   provider?: "geoapify";
   placeId?: string;
+}
+
+/** Ett verifierat sökcentrum som tillhör en grupp. */
+export interface SearchArea {
+  id: string;
+  label: string;
+  lat: number;
+  lng: number;
+  provider: "geoapify" | "demo";
+  placeId: string;
 }
 
 export interface Group {
@@ -146,8 +157,12 @@ export interface Group {
   archivedBy?: string | null;
   /** Om delade besök räknas mot progression. */
   sharedVisitsCountForProgression?: boolean;
-  /** Förvalt sökområde (valfritt). Null om ingen text finns sparad. */
+  /** Legacy-fält för äldre grupper. Nya flöden använder searchAreas. */
   homeLocation?: HomeLocation | null;
+  /** Gruppens vanliga sökområden. Alla är valda när sökningen öppnas. */
+  searchAreas?: SearchArea[];
+  /** En gemensam standardradie för samtliga valda sökområden. */
+  defaultSearchRadiusKm?: SearchRadiusKm;
 }
 
 export type NextStopDateResponseValue = "fits" | "not_fits" | "unsure";
