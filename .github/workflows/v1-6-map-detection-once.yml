@@ -1,0 +1,53 @@
+name: Register v1.6 map files once
+
+on:
+  push:
+    branches:
+      - agent/v1-6-multiple-search-areas
+    paths:
+      - .github/workflows/v1-6-map-detection-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/v1-6-multiple-search-areas
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Register map files
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/repo-tools.mjs")
+          text = path.read_text()
+          marker = '  "src/components/matrundan/PlaceMap.tsx",\n'
+          replacement = (
+              '  "src/components/matrundan/PlaceMap.tsx",\n'
+              '  "src/components/matrundan/MultiAreaPlaceMap.tsx",\n'
+              '  "src/lib/matrundan/multi-area-map-data.ts",\n'
+          )
+          if marker not in text:
+              raise SystemExit("MAP_FILES marker saknas")
+          path.write_text(text.replace(marker, replacement, 1))
+          PY
+          bunx prettier --write scripts/repo-tools.mjs
+          bun scripts/repo-tools.mjs changed-files map origin/main | grep -F "src/components/matrundan/MultiAreaPlaceMap.tsx"
+
+      - name: Commit map detection
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/repo-tools.mjs
+          git commit -m "Känn igen flerområdeskartan i CI"
+          git push origin HEAD:agent/v1-6-multiple-search-areas
