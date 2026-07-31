@@ -128,7 +128,6 @@ export function SearchAreaControlsV16({
 
   return (
     <div className="space-y-4">
-      {/* prettier-ignore */}
       <div className="space-y-2">
         <Label htmlFor="search-area-query">Sökområden</Label>
         {isLive ? (
@@ -159,6 +158,7 @@ export function SearchAreaControlsV16({
           Välj en träff så läggs den till nedan. Valen gäller bara den här sökningen.
         </p>
 
+        {/* prettier-ignore */}
         {activeAreas.length > 0 ? (
           <div
             className="flex min-w-0 flex-wrap gap-2"
