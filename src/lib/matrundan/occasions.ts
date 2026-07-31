@@ -45,10 +45,7 @@ export function secondaryOccasion(value: readonly Occasion[]): Occasion | undefi
 }
 
 /** @deprecated Använd ett direkt flerval och normalizeOccasionClassification. */
-export function occasionClassification(
-  first: Occasion | undefined,
-  second?: Occasion,
-): Occasion[] {
+export function occasionClassification(first: Occasion | undefined, second?: Occasion): Occasion[] {
   return normalizeOccasionClassification([first, second]);
 }
 
