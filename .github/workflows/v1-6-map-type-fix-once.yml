@@ -1,0 +1,56 @@
+name: Fix v1.6 map expression type once
+
+on:
+  push:
+    branches:
+      - agent/v1-6-multiple-search-areas
+    paths:
+      - .github/workflows/v1-6-map-type-fix-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/v1-6-multiple-search-areas
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Fix expression type
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/components/matrundan/MultiAreaPlaceMap.tsx")
+          text = path.read_text()
+          text = text.replace(
+              'import type { MapLayerMouseEvent, StyleSpecification } from "maplibre-gl";',
+              'import type { ExpressionSpecification, MapLayerMouseEvent, StyleSpecification } from "maplibre-gl";',
+              1,
+          )
+          text = text.replace(
+              'const CATEGORY_EMOJI_EXPRESSION = [',
+              'const CATEGORY_EMOJI_EXPRESSION: ExpressionSpecification = [',
+              1,
+          )
+          text = text.replace('] as const;\n\nexport function MultiAreaPlaceMap', '];\n\nexport function MultiAreaPlaceMap', 1)
+          path.write_text(text)
+          PY
+          bunx prettier --write src/components/matrundan/MultiAreaPlaceMap.tsx
+          bun run typecheck
+
+      - name: Commit type fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/MultiAreaPlaceMap.tsx
+          git commit -m "Rätta MapLibre-typ för kategoriikoner"
+          git push origin HEAD:agent/v1-6-multiple-search-areas
