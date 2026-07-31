@@ -1088,6 +1088,10 @@ export type Database = {
         Args: { _group_id: string; _place_id: string }
         Returns: undefined
       }
+      can_delete_original_visit: {
+        Args: { _group_id: string; _user_id: string; _visit_id: string }
+        Returns: boolean
+      }
       can_manage_visit_photo: {
         Args: { _group_id: string; _user_id: string; _visit_id: string }
         Returns: boolean
@@ -1205,6 +1209,10 @@ export type Database = {
           _visited_on: string
         }
         Returns: string
+      }
+      delete_original_visit: {
+        Args: { _group_id: string; _visit_id: string }
+        Returns: undefined
       }
       delete_visit_photo: {
         Args: { _group_id: string; _visit_id: string }
@@ -1383,6 +1391,15 @@ export type Database = {
           _home_provider?: string
           _name: string
           _shared_visits_count_for_progression?: boolean
+        }
+        Returns: undefined
+      }
+      update_next_stop_date_proposal: {
+        Args: {
+          _group_id: string
+          _proposal_id: string
+          _proposed_date: string
+          _proposed_time?: string
         }
         Returns: undefined
       }
