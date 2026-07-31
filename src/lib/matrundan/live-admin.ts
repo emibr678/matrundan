@@ -6,6 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { flushNotificationOutbox } from "./notifications.functions";
+import type { SearchRadiusKm } from "./types";
 
 function toErr(e: unknown): Error {
   const msg =
@@ -105,7 +106,7 @@ export async function updateProfile(
   if (error) throw toErr(error);
 }
 
-export interface VerifiedHomeLocation {
+export interface VerifiedSearchArea {
   label: string;
   lat: number;
   lng: number;
@@ -113,12 +114,15 @@ export interface VerifiedHomeLocation {
   placeId: string;
 }
 
+/** Legacy-alias medan äldre gruppflöden fortfarande kan referera till namnet. */
+export type VerifiedHomeLocation = VerifiedSearchArea;
+
 export interface GroupSettingsInput {
   name: string;
   emoji: string | null;
   /**
-   * Antingen ett verifierat sökområde (label + koordinater + provider/place_id),
-   * `null` för att inte röra sökområdet, eller `"clear"` för att nolla allt.
+   * Legacy-kompatibilitet. Nya områden sparas separat via
+   * replaceGroupSearchSettings.
    */
   homeLocation: VerifiedHomeLocation | null | "clear";
   sharedVisitsCountForProgression?: boolean;
@@ -159,6 +163,25 @@ export async function updateGroupSettings(
   if (error) throw toErr(error);
 }
 
+export async function replaceGroupSearchSettings(
+  groupId: string,
+  areas: VerifiedSearchArea[],
+  defaultRadiusKm: SearchRadiusKm,
+): Promise<void> {
+  const { error } = await supabase.rpc("replace_group_search_settings" as never, {
+    _group_id: groupId,
+    _areas: areas.map((area) => ({
+      label: area.label,
+      lat: area.lat,
+      lng: area.lng,
+      provider: area.provider,
+      placeId: area.placeId,
+    })),
+    _default_radius_km: defaultRadiusKm,
+  } as never);
+  if (error) throw toErr(error);
+}
+
 export async function setMemberRole(
   groupId: string,
   userId: string,
@@ -196,28 +219,22 @@ export async function transferGroupOwnership(groupId: string, newOwnerId: string
 export async function createGroupWithOwner(
   name: string,
   emoji: string | null,
-  homeLocation: VerifiedHomeLocation | null,
+  searchAreas: VerifiedSearchArea[] | VerifiedSearchArea | null,
+  defaultRadiusKm: SearchRadiusKm = 1,
 ): Promise<string> {
-  const rpcArgs: {
-    _name: string;
-    _emoji?: string;
-    _home_label?: string;
-    _home_lat?: number;
-    _home_lng?: number;
-    _home_provider?: string;
-    _home_place_id?: string;
-  } = {
+  const areas = Array.isArray(searchAreas) ? searchAreas : searchAreas ? [searchAreas] : [];
+  const { data, error } = await supabase.rpc("create_group_with_owner_v2" as never, {
     _name: name,
     _emoji: emoji ?? undefined,
-  };
-  if (homeLocation) {
-    rpcArgs._home_label = homeLocation.label;
-    rpcArgs._home_lat = homeLocation.lat;
-    rpcArgs._home_lng = homeLocation.lng;
-    rpcArgs._home_provider = homeLocation.provider;
-    rpcArgs._home_place_id = homeLocation.placeId;
-  }
-  const { data, error } = await supabase.rpc("create_group_with_owner", rpcArgs);
+    _search_areas: areas.map((area) => ({
+      label: area.label,
+      lat: area.lat,
+      lng: area.lng,
+      provider: area.provider,
+      placeId: area.placeId,
+    })),
+    _default_radius_km: defaultRadiusKm,
+  } as never);
   if (error) throw toErr(error);
   return data as unknown as string;
 }
