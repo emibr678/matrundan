@@ -119,6 +119,21 @@ jobs:
           path: formatting.patch
           if-no-files-found: error
 
+      - name: Upload formatted source files
+        if: failure() && steps.changes.outputs.has_format == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-source-files
+          path: |
+            scripts/release-check.mjs
+            src/components/matrundan/AddPlaceResultDialogsV16.tsx
+            src/components/matrundan/GroupSettingsSectionV16.tsx
+            src/lib/matrundan/geoapify-normalize.ts
+            src/lib/matrundan/hidden-place-suggestions.ts
+            src/lib/matrundan/release-check-contract.test.ts
+            src/lib/matrundan/version.ts
+          if-no-files-found: error
+
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'
         env:
