@@ -5,19 +5,30 @@ export const SEARCH_RADIUS_OPTIONS = [
   1, 2, 3, 5, 10, 25, 50,
 ] as const satisfies readonly SearchRadiusKm[];
 
-const BROAD_ADMINISTRATIVE_RESULT_TYPES = new Set(["county", "state", "country"]);
+const BROAD_ADMINISTRATIVE_RESULT_TYPES = new Set([
+  "county",
+  "state",
+  "country",
+  "municipality",
+  "region",
+]);
+const BROAD_ADMINISTRATIVE_LABEL = /(^region\s|\s(?:kommun|län|region|municipality|county|state|country)$)/iu;
 
 export function isSearchRadiusKm(value: number): value is SearchRadiusKm {
   return (SEARCH_RADIUS_OPTIONS as readonly number[]).includes(value);
 }
 
 /**
- * Geoapify-resultat på kommun-, läns- eller landsnivå är för stora för
- * Matrundans punkt + radie-modell. Ort, stadsdel, gata, adress och postnummer
- * är fortsatt giltiga sökcentrum.
+ * Geoapify-resultat på kommun-, läns-, region- eller landsnivå är för stora för
+ * Matrundans punkt + radie-modell. Geoapify kan klassificera svenska kommuner
+ * som `city`, därför kontrolleras både result_type och den första etikettdelen.
  */
-export function isBroadAdministrativeSearchArea(resultType?: string): boolean {
-  return BROAD_ADMINISTRATIVE_RESULT_TYPES.has(resultType?.trim().toLowerCase() ?? "");
+export function isBroadAdministrativeSearchArea(resultType?: string, label?: string): boolean {
+  const normalizedType = resultType?.trim().toLowerCase() ?? "";
+  if (BROAD_ADMINISTRATIVE_RESULT_TYPES.has(normalizedType)) return true;
+
+  const localName = label?.split(",")[0]?.trim() ?? "";
+  return BROAD_ADMINISTRATIVE_LABEL.test(localName);
 }
 
 export function shortSearchAreaLabel(label: string): string {
