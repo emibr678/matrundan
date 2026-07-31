@@ -23,8 +23,8 @@ import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
 import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
-import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 import { GroupHighlights } from "@/components/matrundan/GroupHighlights";
+import { GroupSettingsSectionV16 } from "@/components/matrundan/GroupSettingsSectionV16";
 import { computeMemberProgression } from "@/lib/matrundan/gamification";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -61,7 +60,6 @@ import {
   revokeGroupInvitation,
   setMemberRole,
   transferGroupOwnership,
-  updateGroupSettings,
   type InvitationListItem,
 } from "@/lib/matrundan/live-admin";
 import { APP_VERSION, APP_NAME } from "@/lib/matrundan/version";
@@ -280,10 +278,12 @@ function SettingsSheet() {
 
           <div className="space-y-5 py-4">
             {isAdmin && activeGroupId ? (
-              <GroupSettingsSection
+              <GroupSettingsSectionV16
                 groupId={activeGroupId}
                 initialName={state.group.name}
                 initialEmoji={state.group.emoji}
+                initialSearchAreas={state.group.searchAreas ?? []}
+                initialRadius={state.group.defaultSearchRadiusKm ?? 1}
                 initialHome={state.group.homeLocation ?? null}
                 initialShareCounts={state.group.sharedVisitsCountForProgression ?? true}
               />
@@ -360,159 +360,6 @@ function SettingsSheet() {
 }
 
 // ------- Sections --------
-
-function GroupSettingsSection({
-  groupId,
-  initialName,
-  initialEmoji,
-  initialHome,
-  initialShareCounts,
-}: {
-  groupId: string;
-  initialName: string;
-  initialEmoji: string;
-  initialHome: import("@/lib/matrundan/types").HomeLocation | null;
-  initialShareCounts: boolean;
-}) {
-  const [name, setName] = React.useState(initialName);
-  const [emoji, setEmoji] = React.useState(initialEmoji);
-  const [locText, setLocText] = React.useState(initialHome?.label ?? "");
-  const [verified, setVerified] = React.useState<
-    import("@/lib/matrundan/live-admin").VerifiedHomeLocation | null
-  >(
-    initialHome &&
-      initialHome.verified &&
-      initialHome.lat != null &&
-      initialHome.lng != null &&
-      initialHome.placeId
-      ? {
-          label: initialHome.label,
-          lat: initialHome.lat,
-          lng: initialHome.lng,
-          provider: "geoapify",
-          placeId: initialHome.placeId,
-        }
-      : null,
-  );
-  const legacyOnly = !!initialHome && !initialHome.verified;
-  const [shareCounts, setShareCounts] = React.useState(initialShareCounts);
-  const [busy, setBusy] = React.useState(false);
-  const { refreshGroups } = useSession();
-
-  const trimmedLoc = locText.trim();
-  const legacyLabel = (initialHome?.label ?? "").trim();
-  const isVerifiedMatch = !!verified && trimmedLoc === verified.label.trim();
-  const isLegacyUnchanged = legacyOnly && trimmedLoc === legacyLabel;
-  const isInvalidText = trimmedLoc !== "" && !isVerifiedMatch && !isLegacyUnchanged;
-
-  async function save() {
-    if (isInvalidText) {
-      toast.error("Välj sökområdet från listan eller rensa fältet.");
-      return;
-    }
-    setBusy(true);
-    try {
-      // Bestäm home-payload:
-      // - Tomt fält och gruppen har något sparat sedan tidigare → rensa allt.
-      // - Verifierat val (från listan) → spara komplett.
-      // - Legacy oförändrat → rör inte hemområdet.
-      let homePayload: import("@/lib/matrundan/live-admin").VerifiedHomeLocation | null | "clear" =
-        null;
-      if (trimmedLoc === "" && initialHome) {
-        homePayload = "clear";
-      } else if (isVerifiedMatch) {
-        homePayload = verified;
-      }
-      await updateGroupSettings(groupId, {
-        name: name.trim(),
-        emoji,
-        homeLocation: homePayload,
-        sharedVisitsCountForProgression: shareCounts,
-      });
-      await refreshGroups();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("matrundan:reload"));
-      }
-      toast.success("Gruppen är uppdaterad.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Kunde inte spara.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section>
-      <h3 className="mb-2 text-sm font-medium">Gruppinställningar</h3>
-      <Card className="space-y-3 rounded-2xl border-border/70 p-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="gs-name">Namn</Label>
-          <Input id="gs-name" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="gs-emoji">Emoji</Label>
-          <Input
-            id="gs-emoji"
-            value={emoji}
-            onChange={(e) => setEmoji(e.target.value)}
-            maxLength={4}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="gs-loc">Vanligt sökområde (valfritt)</Label>
-          <GeoapifyLocationInput
-            id="gs-loc"
-            value={locText}
-            onChange={(t) => {
-              setLocText(t);
-              if (verified && t !== verified.label) setVerified(null);
-            }}
-            onSelect={(v) => {
-              setVerified(v);
-              setLocText(v.label);
-            }}
-            onClearVerified={() => setVerified(null)}
-            placeholder="t.ex. Gamla Enskede, Stockholm"
-          />
-          <p className="text-xs text-muted-foreground">
-            Används som startpunkt när ni söker efter ställen. Kan ändras för varje sökning.
-          </p>
-          {legacyOnly && !verified && isLegacyUnchanged ? (
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              Gruppen har ett äldre område ({initialHome?.label}). Välj området från listan för att
-              aktivera det som förvalt sökområde.
-            </p>
-          ) : null}
-          {isInvalidText ? (
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              Välj sökområdet från listan eller rensa fältet.
-            </p>
-          ) : null}
-        </div>
-
-        <div className="space-y-2 rounded-xl border border-border/60 bg-muted/30 p-3">
-          <div className="text-sm font-medium">Delade besök</div>
-          <div className="flex items-start justify-between gap-3">
-            <Label htmlFor="gs-share-counts" className="text-sm font-normal">
-              Räkna delade besök i progression
-            </Label>
-            <Switch id="gs-share-counts" checked={shareCounts} onCheckedChange={setShareCounts} />
-          </div>
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            Delade besök syns alltid i historik, besöksstatus och betyg. Inställningen påverkar bara
-            framtida nivåer och märken.
-          </p>
-        </div>
-
-        <div className="flex justify-end">
-          <Button onClick={save} disabled={busy}>
-            {busy ? "Sparar…" : "Spara"}
-          </Button>
-        </div>
-      </Card>
-    </section>
-  );
-}
 
 function GroupStatusSection() {
   const { state, archiveGroup, reactivateGroup, submitting } = useStore();
