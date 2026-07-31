@@ -31,6 +31,16 @@ function existingSection(dialog: Locator, count: number) {
   });
 }
 
+async function readExistingCount(dialog: Locator) {
+  const trigger = dialog
+    .getByRole("button", { name: /Redan i gruppen \(\d+\)/ })
+    .first();
+  await expect(trigger).toBeVisible();
+  const match = (await trigger.innerText()).match(/\((\d+)\)/);
+  if (!match) throw new Error("Kunde inte läsa antalet ställen som redan finns i gruppen.");
+  return Number(match[1]);
+}
+
 async function confirmSuggestion(page: Page) {
   const confirmation = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(confirmation).toBeVisible();
@@ -60,6 +70,7 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   await page.getByRole("option", { name: "Inom 10 km" }).click();
   await expect(radius).toContainText("Inom 10 km");
   await expect(suggestionRow(dialog, "Päronträdets Trattoria")).toBeVisible();
+  const initialExistingCount = await readExistingCount(dialog);
 
   const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
@@ -74,21 +85,27 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   ).toBeVisible();
 
   await dialog.getByRole("button", { name: "Lista", exact: true }).click();
-  const oneExisting = existingSection(dialog, 1);
-  await expect(oneExisting).toBeVisible();
-  await expect(oneExisting).toHaveAttribute("data-state", "closed");
+  const afterMapAdd = existingSection(dialog, initialExistingCount + 1);
+  await expect(afterMapAdd).toBeVisible();
+  await expect(afterMapAdd).toHaveAttribute("data-state", "closed");
 
   await addSuggestion(page, dialog, "Päronträdets Trattoria");
   await expect(
     dialog.getByText("2 ställen tillagda i den här omgången", { exact: true }),
   ).toBeVisible();
-  await expect(existingSection(dialog, 2)).toHaveAttribute("data-state", "closed");
+  await expect(existingSection(dialog, initialExistingCount + 2)).toHaveAttribute(
+    "data-state",
+    "closed",
+  );
 
   await addSuggestion(page, dialog, "Hagabackens Kafferum");
   await expect(
     dialog.getByText("3 ställen tillagda i den här omgången", { exact: true }),
   ).toBeVisible();
-  await expect(existingSection(dialog, 3)).toHaveAttribute("data-state", "closed");
+  await expect(existingSection(dialog, initialExistingCount + 3)).toHaveAttribute(
+    "data-state",
+    "closed",
+  );
   await expect(radius).toContainText("Inom 10 km");
   await expectNoHorizontalOverflow(page, "Flera tillägg i samma sökomgång");
 
@@ -100,18 +117,18 @@ test("flera sökträffar kan läggas till utan att sökningen börjar om", async
   await reopened.getByRole("combobox").click();
   await page.getByRole("option", { name: "Inom 10 km" }).click();
 
-  const reopenedExisting = existingSection(reopened, 3);
+  const reopenedExisting = existingSection(reopened, initialExistingCount + 3);
   await expect(reopenedExisting).toHaveAttribute("data-state", "closed");
   await reopenedExisting.click();
   await expect(reopenedExisting).toHaveAttribute("data-state", "open");
   await expect(
-    suggestionRow(reopened, "Kopparkällaren").getByRole("link", {
+    suggestionRow(reopened, "Päronträdets Trattoria").getByRole("link", {
       name: "Öppna",
       exact: true,
     }),
   ).toBeVisible();
   await expect(
-    suggestionRow(reopened, "Päronträdets Trattoria").getByRole("link", {
+    suggestionRow(reopened, "Hagabackens Kafferum").getByRole("link", {
       name: "Öppna",
       exact: true,
     }),
