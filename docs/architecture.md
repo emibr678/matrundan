@@ -167,19 +167,22 @@ hör gruppspecifik information hemma:
 
 - anteckning;
 - kategori, kök och inriktning;
-- **Passar bäst för** och valfritt **Passar också för**;
+- upp till två likvärdiga **Passar för**-val;
 - vem som lade till stället och hur relationen uppstod;
 - om stället finns i gruppens aktiva lista.
 
-Det ordnade `occasions`-fältet har semantik:
+`occasions`-fältet har följande semantik:
 
 - listan får vara tom tills gruppen känner stället tillräckligt väl;
-- första värdet, när det finns, är primärt användningssammanhang;
-- andra värdet är valfritt sekundärt sammanhang;
+- högst två unika, stabila interna värden används;
+- värdenas ordning har ingen produktsemantik och normaliseras till en stabil
+  kanonisk ordning i klientens domänlogik;
 - äldre extra värden ignoreras tills en behörig användare sparar om.
 
 Interna värden är stabila även om svensk copy utvecklas. Gruppens topplista
-rankar ett ställe endast i dess primära sammanhang.
+inkluderar ett ställe i vart och ett av dess valda sammanhang. Samma befintliga
+arrayfält används vidare, så övergången från primärt/sekundärt till likvärdiga
+val kräver ingen databasrensning eller migration.
 
 Kända ursprung normaliseras som `manual`, `provider` och `shared`. Okända värden
 ska falla säkert mot delat/importerat, inte manuellt, eftersom ett manuellt
