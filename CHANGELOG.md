@@ -11,6 +11,18 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.9.0] – 2026-08-01
+
+### Ändrat
+
+- **Passar för** väljs direkt med en eller två likvärdiga kategorier utan ett
+  separat steg för **Passar bäst för** och **Passar också för**.
+- Ett ställe med två val visas i topplistan för båda kategorierna.
+- Detaljsidan och administrationen visar alla val under en gemensam
+  **Passar för**-rubrik.
+- Befintliga val behålls. Ingen databasrensning eller migration behövs eftersom
+  samma fält och högst två värden används vidare utan ordningssemantik.
+
 ## [1.8.1] – 2026-07-31
 
 ### Ändrat
