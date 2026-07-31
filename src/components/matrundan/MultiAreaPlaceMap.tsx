@@ -59,6 +59,14 @@ const PLACE_CATEGORIES = [
   "pub",
   "matvagn",
 ] as const satisfies readonly PlaceCategory[];
+const CATEGORY_INITIAL: Record<PlaceCategory, string> = {
+  restaurang: "R",
+  café: "C",
+  bageri: "B",
+  snabbmat: "S",
+  pub: "P",
+  matvagn: "M",
+};
 
 function themeColor(variable: string, fallback: string) {
   const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -101,66 +109,17 @@ function categoryIconName(category: PlaceCategory) {
 
 function drawCategoryIcon(category: PlaceCategory, color: string): ImageData {
   const canvas = document.createElement("canvas");
-  canvas.width = 56;
-  canvas.height = 56;
+  canvas.width = 48;
+  canvas.height = 48;
   const context = canvas.getContext("2d");
-  if (!context) return new ImageData(56, 56);
+  if (!context) return new ImageData(48, 48);
 
-  context.strokeStyle = color;
+  context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = color;
-  context.lineWidth = 4;
-  context.lineCap = "round";
-  context.lineJoin = "round";
-
-  const line = (x1: number, y1: number, x2: number, y2: number) => {
-    context.beginPath();
-    context.moveTo(x1, y1);
-    context.lineTo(x2, y2);
-    context.stroke();
-  };
-
-  switch (category) {
-    case "café":
-      context.strokeRect(14, 23, 25, 16);
-      context.beginPath();
-      context.arc(40, 30, 7, -Math.PI / 2, Math.PI / 2);
-      context.stroke();
-      line(18, 17, 18, 11);
-      line(27, 17, 27, 9);
-      line(36, 17, 36, 11);
-      line(12, 44, 43, 44);
-      break;
-    case "bageri":
-      context.beginPath();
-      context.moveTo(12,, 38);
-      line(40, 38, 47, 38);
-      line(14, 24, 36, 24);
-      line(15, 18, 15, 24);
-      line(22, 18, 22, 24);
-      line(29, 18, 29, 24);
-      line(36, 18, 36, 24);
-      context.beginPath();
-      context.arc(18, 43, 4, 0, Math.PI * 2);
-      context.arc(40, 43, 4, 0, Math.PI * 2);
-      context.fill();
-      break;
-    case "restaurang":
-    default:
-      line(17, 11, 17, 45);
-      line(12, 11, 12, 23);
-      line(22, 11, 22, 23);
-      context.beginPath();
-      context.moveTo(12, 23);
-      context.quadraticCurveTo(17, 28, 22, 23);
-      context.stroke();
-      context.beginPath();
-      context.moveTo(36, 11);
-      context.quadraticCurveTo(45, 19, 38, 29);
-      context.lineTo(38, 45);
-      context.stroke();
-      break;
-  }
-
+  context.font = "700 28px system-ui, -apple-system, sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(CATEGORY_INITIAL[category], 24, 25);
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
@@ -374,7 +333,7 @@ export function MultiAreaPlaceMap({
         filter: ["!", ["has", "point_count"]],
         layout: {
           "icon-image": CATEGORY_ICON_EXPRESSION,
-          "icon-size": 0.56,
+          "icon-size": 0.58,
           "icon-allow-overlap": true,
           "icon-ignore-placement": true,
         },
@@ -397,7 +356,7 @@ export function MultiAreaPlaceMap({
         source: SELECTED_SOURCE,
         layout: {
           "icon-image": CATEGORY_ICON_EXPRESSION,
-          "icon-size": 0.68,
+          "icon-size": 0.72,
           "icon-allow-overlap": true,
           "icon-ignore-placement": true,
         },
