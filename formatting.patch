@@ -1,0 +1,52 @@
+diff --git a/src/components/matrundan/AddPlaceResultDialogsV16.tsx b/src/components/matrundan/AddPlaceResultDialogsV16.tsx
+index 7167649..f9f594e 100644
+--- a/src/components/matrundan/AddPlaceResultDialogsV16.tsx
++++ b/src/components/matrundan/AddPlaceResultDialogsV16.tsx
+@@ -273,8 +273,8 @@ export function AddPlaceResultDialogsV16({
+                 </a>
+               </Button>
+               <p className="text-xs leading-relaxed text-muted-foreground">
+-                Google Maps söker efter namn, adress och vid behov kartposition. Kontrollera att rätt
+-                verksamhet har öppnats.
++                Google Maps söker efter namn, adress och vid behov kartposition. Kontrollera att
++                rätt verksamhet har öppnats.
+               </p>
+               {canHideSuggestion ? (
+                 <Button
+diff --git a/src/components/matrundan/GroupSettingsSectionV16.tsx b/src/components/matrundan/GroupSettingsSectionV16.tsx
+index c4dec93..1543728 100644
+--- a/src/components/matrundan/GroupSettingsSectionV16.tsx
++++ b/src/components/matrundan/GroupSettingsSectionV16.tsx
+@@ -176,8 +176,8 @@ export function GroupSettingsSectionV16({
+               </div>
+             ) : (
+               <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
+-                Gruppen har inga verifierade sökområden ännu. Ni kan fortfarande välja en plats direkt
+-                i sökningen.
++                Gruppen har inga verifierade sökområden ännu. Ni kan fortfarande välja en plats
++                direkt i sökningen.
+               </p>
+             )}
+ 
+@@ -196,8 +196,8 @@ export function GroupSettingsSectionV16({
+ 
+             {legacyOnly ? (
+               <p className="text-xs text-amber-700 dark:text-amber-400">
+-                Gruppen har ett äldre område ({initialHome?.label}). Välj det igen från listan för att
+-                använda det i den nya sökningen.
++                Gruppen har ett äldre område ({initialHome?.label}). Välj det igen från listan för
++                att använda det i den nya sökningen.
+               </p>
+             ) : null}
+ 
+@@ -239,8 +239,8 @@ export function GroupSettingsSectionV16({
+               />
+             </div>
+             <p className="text-[11px] leading-snug text-muted-foreground">
+-              Delade besök syns alltid i historik, besöksstatus och betyg. Inställningen påverkar bara
+-              framtida nivåer och märken.
++              Delade besök syns alltid i historik, besöksstatus och betyg. Inställningen påverkar
++              bara framtida nivåer och märken.
+             </p>
+           </div>
+ 

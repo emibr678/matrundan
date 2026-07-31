@@ -273,8 +273,8 @@ export function AddPlaceResultDialogsV16({
                 </a>
               </Button>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Google Maps söker efter namn, adress och vid behov kartposition. Kontrollera att rätt
-                verksamhet har öppnats.
+                Google Maps söker efter namn, adress och vid behov kartposition. Kontrollera att
+                rätt verksamhet har öppnats.
               </p>
               {canHideSuggestion ? (
                 <Button

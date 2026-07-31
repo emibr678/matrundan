@@ -176,8 +176,8 @@ export function GroupSettingsSectionV16({
               </div>
             ) : (
               <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
-                Gruppen har inga verifierade sökområden ännu. Ni kan fortfarande välja en plats direkt
-                i sökningen.
+                Gruppen har inga verifierade sökområden ännu. Ni kan fortfarande välja en plats
+                direkt i sökningen.
               </p>
             )}
 
@@ -196,8 +196,8 @@ export function GroupSettingsSectionV16({
 
             {legacyOnly ? (
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Gruppen har ett äldre område ({initialHome?.label}). Välj det igen från listan för att
-                använda det i den nya sökningen.
+                Gruppen har ett äldre område ({initialHome?.label}). Välj det igen från listan för
+                att använda det i den nya sökningen.
               </p>
             ) : null}
 
@@ -239,8 +239,8 @@ export function GroupSettingsSectionV16({
               />
             </div>
             <p className="text-[11px] leading-snug text-muted-foreground">
-              Delade besök syns alltid i historik, besöksstatus och betyg. Inställningen påverkar bara
-              framtida nivåer och märken.
+              Delade besök syns alltid i historik, besöksstatus och betyg. Inställningen påverkar
+              bara framtida nivåer och märken.
             </p>
           </div>
 
