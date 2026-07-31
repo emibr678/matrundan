@@ -64,9 +64,7 @@ test("typer av besök väljs aktivt och förklaras konsekvent på mobil", async 
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
   await page.keyboard.press("Escape");
 
-  await addDialog
-    .getByRole("button", { name: "Passar bäst för: Avslappnat", exact: true })
-    .click();
+  await addDialog.getByRole("button", { name: "Passar bäst för: Avslappnat", exact: true }).click();
   await expect(addDialog.getByText("Passar också för (valfritt)", { exact: true })).toHaveCount(0);
   await addDialog
     .getByRole("button", {
