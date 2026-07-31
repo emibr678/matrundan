@@ -17,9 +17,47 @@ import { SEARCH_RADIUS_OPTIONS, shortSearchAreaLabel } from "@/lib/matrundan/sea
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
+const SEARCH_PLACEHOLDER = "Sök ort, stadsdel eller adress";
+const LIMIT_PLACEHOLDER = "Ta bort ett område för att lägga till ett nytt";
+
+interface SearchAreaControlsProps {
+  savedAreas: SearchArea[];
+  selectedAreaIds: string[];
+  onSelectedAreaIdsChange: (ids: string[]) => void;
+  temporaryAreas: SearchArea[];
+  onTemporaryAreasChange: (areas: SearchArea[]) => void;
+  radiusKm: SearchRadiusKm;
+  onRadiusChange: (radius: SearchRadiusKm) => void;
+  isLive: boolean;
+  fallbackCity: string;
+}
+
+interface SearchAreaPillProps {
+  area: SearchArea;
+  onRemove: () => void;
+}
 
 function sameSearchArea(a: SearchArea, b: Pick<SearchArea, "provider" | "placeId">) {
   return a.provider === b.provider && a.placeId === b.placeId;
+}
+
+function SearchAreaPill({ area, onRemove }: SearchAreaPillProps) {
+  return (
+    <div
+      role="listitem"
+      className="flex min-h-11 max-w-full items-center gap-1 rounded-full border border-primary/40 bg-primary/10 pl-3 pr-1 text-sm"
+    >
+      <span className="min-w-0 break-words">{shortSearchAreaLabel(area.label)}</span>
+      <button
+        type="button"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-background/70"
+        onClick={onRemove}
+        aria-label={`Ta bort ${area.label} från sökningen`}
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
 }
 
 export function SearchAreaControlsV16({
@@ -32,21 +70,12 @@ export function SearchAreaControlsV16({
   onRadiusChange,
   isLive,
   fallbackCity,
-}: {
-  savedAreas: SearchArea[];
-  selectedAreaIds: string[];
-  onSelectedAreaIdsChange: (ids: string[]) => void;
-  temporaryAreas: SearchArea[];
-  onTemporaryAreasChange: (areas: SearchArea[]) => void;
-  radiusKm: SearchRadiusKm;
-  onRadiusChange: (radius: SearchRadiusKm) => void;
-  isLive: boolean;
-  fallbackCity: string;
-}) {
+}: SearchAreaControlsProps) {
   const [areaQuery, setAreaQuery] = React.useState("");
   const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
+  const placeholder = atLimit ? LIMIT_PLACEHOLDER : SEARCH_PLACEHOLDER;
 
   function addArea(area: SearchArea) {
     if (activeAreas.some((current) => sameSearchArea(current, area))) {
@@ -93,7 +122,10 @@ export function SearchAreaControlsV16({
   }
 
   function removeTemporaryArea(area: SearchArea) {
-    onTemporaryAreasChange(temporaryAreas.filter((candidate) => !sameSearchArea(candidate, area)));
+    const remainingAreas = temporaryAreas.filter(
+      (candidate) => !sameSearchArea(candidate, area),
+    );
+    onTemporaryAreasChange(remainingAreas);
   }
 
   return (
@@ -106,11 +138,7 @@ export function SearchAreaControlsV16({
             value={areaQuery}
             onChange={setAreaQuery}
             onSelect={addVerifiedArea}
-            placeholder={
-              atLimit
-                ? "Ta bort ett område för att lägga till ett nytt"
-                : "Sök ort, stadsdel eller adress"
-            }
+            placeholder={placeholder}
             disabled={atLimit}
           />
         ) : (
@@ -124,11 +152,7 @@ export function SearchAreaControlsV16({
                 addDemoArea();
               }
             }}
-            placeholder={
-              atLimit
-                ? "Ta bort ett område för att lägga till ett nytt"
-                : "Sök ort, stadsdel eller adress"
-            }
+            placeholder={placeholder}
             disabled={atLimit}
           />
         )}
@@ -143,38 +167,18 @@ export function SearchAreaControlsV16({
             aria-label="Valda sökområden"
           >
             {selectedSavedAreas.map((area) => (
-              <div
+              <SearchAreaPill
                 key={area.id}
-                role="listitem"
-                className="flex min-h-11 max-w-full items-center gap-1 rounded-full border border-primary/40 bg-primary/10 pl-3 pr-1 text-sm"
-              >
-                <span className="min-w-0 break-words">{shortSearchAreaLabel(area.label)}</span>
-                <button
-                  type="button"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-background/70"
-                  onClick={() => removeSavedArea(area.id)}
-                  aria-label={`Ta bort ${area.label} från sökningen`}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+                area={area}
+                onRemove={() => removeSavedArea(area.id)}
+              />
             ))}
             {temporaryAreas.map((area) => (
-              <div
+              <SearchAreaPill
                 key={`${area.provider}:${area.placeId}`}
-                role="listitem"
-                className="flex min-h-11 max-w-full items-center gap-1 rounded-full border border-primary/40 bg-primary/10 pl-3 pr-1 text-sm"
-              >
-                <span className="min-w-0 break-words">{shortSearchAreaLabel(area.label)}</span>
-                <button
-                  type="button"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-background/70"
-                  onClick={() => removeTemporaryArea(area)}
-                  aria-label={`Ta bort ${area.label} från sökningen`}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+                area={area}
+                onRemove={() => removeTemporaryArea(area)}
+              />
             ))}
           </div>
         ) : (
