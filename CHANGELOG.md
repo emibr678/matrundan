@@ -9,6 +9,24 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 
 ## [Unreleased]
 
+### Ändrat
+
+- Live-läsningen faller tillfälligt tillbaka till den föregående kompatibla
+  read-modelen om, och endast om, den aktuella RPC-funktionen saknas efter en
+  ofullständig databasdriftsättning.
+
+### Teknik och kvalitet
+
+- CI verifierar att appversion, datum, inbyggd versionshistorik och
+  `CHANGELOG.md` är synkroniserade och strikt semantiskt sorterade.
+- Användarsynlig kod och migrationer kräver en changelogändring eller ett
+  uttryckligt granskat undantag i PR:n.
+- Nya RPC-anrop kontrolleras mot repots migrationer och en skrivskyddad
+  produktions-preflight verifierar obligatoriska funktioner, tabeller, kolumner
+  och grants före publicering.
+
+## [1.6.0] – 2026-07-31
+
 ### Lagt till
 
 - En grupp kan spara upp till fem verifierade sökområden som tillsammans utgör
@@ -306,7 +324,7 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 - **Tydligare Google Maps.** Adressen är åter vanlig information och kompletteras
   av den tydliga länken **Öppna i Google Maps**.
 - **Bättre placerad administration.** **Hantera ställe** ligger nu diskret intill
-  **Om stället** i stället för ensam längst ned i huvudkortet.
+  **Om stället** i stället för ensam längst ned i huvudkortets åtgärdsyta.
 
 ## [0.16.0] – 2026-07-29
 
