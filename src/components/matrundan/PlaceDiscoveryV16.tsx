@@ -13,6 +13,12 @@ import {
   toPlaceSuggestion,
 } from "@/lib/matrundan/add-place-v16-utils";
 import { geoapifySearchPlacesMulti } from "@/lib/matrundan/geoapify.functions";
+import {
+  hiddenPlaceRecordKey,
+  hiddenPlaceSuggestionKey,
+  listDemoHiddenPlaceSuggestions,
+  listGroupHiddenPlaceSuggestions,
+} from "@/lib/matrundan/hidden-place-suggestions";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
@@ -32,8 +38,9 @@ export function PlaceDiscoveryV16({
   onClose: () => void;
 }) {
   const { state, submitting } = useStore();
-  const { mode } = useSession();
+  const { mode, activeGroupId } = useSession();
   const isLive = mode === "live";
+  const groupId = isLive ? activeGroupId : state.group.id;
   const savedAreas = React.useMemo(() => configuredSearchAreas(state, isLive), [isLive, state]);
   const [query, setQuery] = React.useState("");
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(() =>
@@ -44,6 +51,8 @@ export function PlaceDiscoveryV16({
     state.group.defaultSearchRadiusKm ?? 1,
   );
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
+  const [hiddenKeys, setHiddenKeys] = React.useState<Set<string>>(() => new Set());
+  const [hiddenLoading, setHiddenLoading] = React.useState(true);
   const [failedAreas, setFailedAreas] = React.useState<string[]>([]);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [resultView, setResultView] = React.useState<ResultView>("lista");
@@ -57,6 +66,35 @@ export function PlaceDiscoveryV16({
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
     return [...selected, ...temporaryAreas].slice(0, 5);
   }, [savedAreas, selectedAreaIds, temporaryAreas]);
+
+  const loadHiddenSuggestions = React.useCallback(async () => {
+    if (!groupId) {
+      setHiddenKeys(new Set());
+      setHiddenLoading(false);
+      return;
+    }
+
+    setHiddenLoading(true);
+    try {
+      const rows = isLive
+        ? await listGroupHiddenPlaceSuggestions(groupId)
+        : listDemoHiddenPlaceSuggestions(groupId);
+      setHiddenKeys(new Set(rows.map(hiddenPlaceRecordKey)));
+    } catch (caught) {
+      console.warn("[Matrundan] kunde inte läsa dolda sökträffar:", caught);
+      setHiddenKeys(new Set());
+    } finally {
+      setHiddenLoading(false);
+    }
+  }, [groupId, isLive]);
+
+  React.useEffect(() => {
+    void loadHiddenSuggestions();
+    const handleChanged = () => void loadHiddenSuggestions();
+    window.addEventListener("matrundan:hidden-place-suggestions-changed", handleChanged);
+    return () =>
+      window.removeEventListener("matrundan:hidden-place-suggestions-changed", handleChanged);
+  }, [loadHiddenSuggestions]);
 
   React.useEffect(() => {
     if (activeAreas.length === 0) {
@@ -135,6 +173,11 @@ export function PlaceDiscoveryV16({
     return () => window.clearTimeout(timer);
   }, [activeAreas, isLive, query, radiusKm, retry]);
 
+  const visibleResults = React.useMemo(
+    () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
+    [hiddenKeys, results],
+  );
+
   const statusForResult = React.useCallback(
     (suggestion: PlaceSuggestion): ResultStatus => {
       if (addedResultIds.has(suggestion.externalId)) return "existing";
@@ -144,22 +187,22 @@ export function PlaceDiscoveryV16({
     [addedResultIds, state.places],
   );
   const availableResults = React.useMemo(
-    () => results.filter((result) => statusForResult(result) === "available"),
-    [results, statusForResult],
+    () => visibleResults.filter((result) => statusForResult(result) === "available"),
+    [statusForResult, visibleResults],
   );
   const existingResults = React.useMemo(
-    () => results.filter((result) => statusForResult(result) === "existing"),
-    [results, statusForResult],
+    () => visibleResults.filter((result) => statusForResult(result) === "existing"),
+    [statusForResult, visibleResults],
   );
 
   React.useEffect(() => {
-    const visible = existingOpen ? results : availableResults;
+    const visible = existingOpen ? visibleResults : availableResults;
     if (!visible.some((result) => result.externalId === selectedId)) {
       setSelectedId(visible[0]?.externalId ?? null);
     }
-  }, [availableResults, existingOpen, results, selectedId]);
+  }, [availableResults, existingOpen, selectedId, visibleResults]);
 
-  const mapResults = existingOpen ? results : availableResults;
+  const mapResults = existingOpen ? visibleResults : availableResults;
   const mapItems: MultiAreaMapItem[] = mapResults.map((result) => ({
     id: result.externalId,
     name: result.name,
@@ -242,7 +285,7 @@ export function PlaceDiscoveryV16({
 
       {activeAreas.length === 0 ? (
         <Empty text="Sök och välj minst ett sökområde." />
-      ) : loading ? (
+      ) : loading || hiddenLoading ? (
         <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
         </div>
@@ -266,7 +309,7 @@ export function PlaceDiscoveryV16({
               Kunde inte söka i {failedAreas.join(", ")}. Övriga resultat visas.
             </div>
           ) : null}
-          {results.length === 0 ? (
+          {visibleResults.length === 0 ? (
             <Empty text="Inga matställen hittades. Prova större radie, andra områden eller lägg till manuellt." />
           ) : (
             <>
