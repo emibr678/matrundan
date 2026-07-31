@@ -168,17 +168,20 @@ export async function replaceGroupSearchSettings(
   areas: VerifiedSearchArea[],
   defaultRadiusKm: SearchRadiusKm,
 ): Promise<void> {
-  const { error } = await supabase.rpc("replace_group_search_settings" as never, {
-    _group_id: groupId,
-    _areas: areas.map((area) => ({
-      label: area.label,
-      lat: area.lat,
-      lng: area.lng,
-      provider: area.provider,
-      placeId: area.placeId,
-    })),
-    _default_radius_km: defaultRadiusKm,
-  } as never);
+  const { error } = await supabase.rpc(
+    "replace_group_search_settings" as never,
+    {
+      _group_id: groupId,
+      _areas: areas.map((area) => ({
+        label: area.label,
+        lat: area.lat,
+        lng: area.lng,
+        provider: area.provider,
+        placeId: area.placeId,
+      })),
+      _default_radius_km: defaultRadiusKm,
+    } as never,
+  );
   if (error) throw toErr(error);
 }
 
@@ -223,18 +226,21 @@ export async function createGroupWithOwner(
   defaultRadiusKm: SearchRadiusKm = 1,
 ): Promise<string> {
   const areas = Array.isArray(searchAreas) ? searchAreas : searchAreas ? [searchAreas] : [];
-  const { data, error } = await supabase.rpc("create_group_with_owner_v2" as never, {
-    _name: name,
-    _emoji: emoji ?? undefined,
-    _search_areas: areas.map((area) => ({
-      label: area.label,
-      lat: area.lat,
-      lng: area.lng,
-      provider: area.provider,
-      placeId: area.placeId,
-    })),
-    _default_radius_km: defaultRadiusKm,
-  } as never);
+  const { data, error } = await supabase.rpc(
+    "create_group_with_owner_v2" as never,
+    {
+      _name: name,
+      _emoji: emoji ?? undefined,
+      _search_areas: areas.map((area) => ({
+        label: area.label,
+        lat: area.lat,
+        lng: area.lng,
+        provider: area.provider,
+        placeId: area.placeId,
+      })),
+      _default_radius_km: defaultRadiusKm,
+    } as never,
+  );
   if (error) throw toErr(error);
   return data as unknown as string;
 }

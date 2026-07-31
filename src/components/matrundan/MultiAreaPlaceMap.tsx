@@ -95,9 +95,8 @@ export function MultiAreaPlaceMap({
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const selectRef = React.useRef(onSelect);
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
-  const mapsKey = (
-    import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } }
-  ).env?.VITE_GEOAPIFY_MAPS_KEY;
+  const mapsKey = (import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } }).env
+    ?.VITE_GEOAPIFY_MAPS_KEY;
 
   React.useEffect(() => {
     selectRef.current = onSelect;
@@ -367,9 +366,7 @@ export function MultiAreaPlaceMap({
               ) : null}
               <div className="truncate font-medium">{selected.name}</div>
               {selected.description ? (
-                <div className="truncate text-xs text-muted-foreground">
-                  {selected.description}
-                </div>
+                <div className="truncate text-xs text-muted-foreground">{selected.description}</div>
               ) : null}
             </div>
             {onAction && selected.actionable !== false ? (

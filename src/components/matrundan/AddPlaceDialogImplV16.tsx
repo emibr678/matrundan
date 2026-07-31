@@ -50,9 +50,7 @@ export function AddPlaceDialogV16({
         parentOpen={open}
         pending={pending}
         onPendingChange={setPending}
-        onAdded={(externalId) =>
-          setAddedResultIds((current) => new Set(current).add(externalId))
-        }
+        onAdded={(externalId) => setAddedResultIds((current) => new Set(current).add(externalId))}
       />
     </>
   );

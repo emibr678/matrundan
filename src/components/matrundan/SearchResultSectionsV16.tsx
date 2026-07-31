@@ -2,11 +2,7 @@ import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";

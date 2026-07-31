@@ -1,12 +1,6 @@
 import type { MultiAreaPlaceSuggestion } from "./geoapify.functions";
 import type { PlaceSuggestion } from "./places-provider";
-import type {
-  AppState,
-  Occasion,
-  Place,
-  PlaceCategory,
-  SearchArea,
-} from "./types";
+import type { AppState, Occasion, Place, PlaceCategory, SearchArea } from "./types";
 
 export type ManualPlaceDraft = {
   name: string;

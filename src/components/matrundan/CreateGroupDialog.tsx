@@ -19,10 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  createGroupWithOwner,
-  type VerifiedSearchArea,
-} from "@/lib/matrundan/live-admin";
+import { createGroupWithOwner, type VerifiedSearchArea } from "@/lib/matrundan/live-admin";
 import { SEARCH_RADIUS_OPTIONS } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import type { SearchRadiusKm } from "@/lib/matrundan/types";

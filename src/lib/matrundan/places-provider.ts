@@ -257,7 +257,8 @@ const demoProvider: PlacesProvider = {
     let items = suppliedCenter
       ? normalizedSuggestions
       : normalizedSuggestions.filter(
-          (suggestion) => suggestion.city.toLocaleLowerCase("sv-SE") === city.trim().toLocaleLowerCase("sv-SE"),
+          (suggestion) =>
+            suggestion.city.toLocaleLowerCase("sv-SE") === city.trim().toLocaleLowerCase("sv-SE"),
         );
 
     if (!suppliedCenter && normalizedArea) {
@@ -298,8 +299,9 @@ const demoProvider: PlacesProvider = {
             (suggestion) => suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
           );
 
-    filtered.sort((a, b) =>
-      (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || a.name.localeCompare(b.name, "sv-SE"),
+    filtered.sort(
+      (a, b) =>
+        (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || a.name.localeCompare(b.name, "sv-SE"),
     );
     return filtered;
   },

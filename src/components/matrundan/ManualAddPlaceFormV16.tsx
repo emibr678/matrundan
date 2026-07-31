@@ -15,30 +15,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  emptyManualPlace,
-  type ManualPlaceDraft,
-} from "@/lib/matrundan/add-place-v16-utils";
+import { emptyManualPlace, type ManualPlaceDraft } from "@/lib/matrundan/add-place-v16-utils";
 import { primaryOccasion } from "@/lib/matrundan/occasions";
 import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type PlaceCategory } from "@/lib/matrundan/types";
 
-const EMOJIS = [
-  "🍽️",
-  "🍕",
-  "🍣",
-  "🍜",
-  "🍔",
-  "🌮",
-  "☕",
-  "🥐",
-  "🍺",
-  "🍦",
-  "🥗",
-  "🍷",
-  "🥟",
-  "🐟",
-];
+const EMOJIS = ["🍽️", "🍕", "🍣", "🍜", "🍔", "🌮", "☕", "🥐", "🍺", "🍦", "🥗", "🍷", "🥟", "🐟"];
 
 export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
   const { state, addPlace, submitting } = useStore();

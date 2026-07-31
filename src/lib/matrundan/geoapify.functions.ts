@@ -151,10 +151,7 @@ async function searchPlacesAtCenter(input: {
 
   const url = new URL("https://api.geoapify.com/v2/places");
   url.searchParams.set("categories", CATEGORIES);
-  url.searchParams.set(
-    "filter",
-    `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`,
-  );
+  url.searchParams.set("filter", `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`);
   url.searchParams.set("bias", `proximity:${input.lng},${input.lat}`);
   url.searchParams.set("lang", "sv");
   url.searchParams.set("limit", String(DISCOVERY_RESULT_LIMIT));

@@ -1,7 +1,9 @@
 import type { PlaceSuggestion } from "./places-provider";
 import type { SearchArea, SearchRadiusKm } from "./types";
 
-export const SEARCH_RADIUS_OPTIONS = [1, 2, 3, 5, 10, 25, 50] as const satisfies readonly SearchRadiusKm[];
+export const SEARCH_RADIUS_OPTIONS = [
+  1, 2, 3, 5, 10, 25, 50,
+] as const satisfies readonly SearchRadiusKm[];
 
 export function isSearchRadiusKm(value: number): value is SearchRadiusKm {
   return (SEARCH_RADIUS_OPTIONS as readonly number[]).includes(value);
@@ -55,7 +57,7 @@ export function mergeAreaSearchResults(
         ...base,
         nearestAreaLabel:
           useSuggestion || !current?.nearestAreaLabel
-            ? suggestion.nearestAreaLabel ?? search.areaLabel
+            ? (suggestion.nearestAreaLabel ?? search.areaLabel)
             : current.nearestAreaLabel,
         matchingAreaLabels: [...labels],
       });
@@ -65,8 +67,7 @@ export function mergeAreaSearchResults(
   return [...merged.values()]
     .sort((a, b) => {
       const distance =
-        (a.distanceKm ?? Number.POSITIVE_INFINITY) -
-        (b.distanceKm ?? Number.POSITIVE_INFINITY);
+        (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY);
       return distance || a.name.localeCompare(b.name, "sv-SE");
     })
     .slice(0, Math.max(0, limit));

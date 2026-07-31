@@ -152,9 +152,7 @@ export function GroupSettingsSectionV16({
                     className="h-11 w-11 shrink-0 text-destructive hover:text-destructive"
                     disabled={busy}
                     onClick={() =>
-                      setAreas((current) =>
-                        current.filter((item) => item.placeId !== area.placeId),
-                      )
+                      setAreas((current) => current.filter((item) => item.placeId !== area.placeId))
                     }
                     aria-label={`Ta bort ${area.label}`}
                   >

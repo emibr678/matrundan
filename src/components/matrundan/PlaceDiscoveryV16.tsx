@@ -17,11 +17,7 @@ import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
-import {
-  CATEGORY_LABEL,
-  type SearchArea,
-  type SearchRadiusKm,
-} from "@/lib/matrundan/types";
+import { CATEGORY_LABEL, type SearchArea, type SearchRadiusKm } from "@/lib/matrundan/types";
 
 type ResultView = "lista" | "karta";
 type ResultStatus = "available" | "existing";
@@ -38,10 +34,7 @@ export function PlaceDiscoveryV16({
   const { state, submitting } = useStore();
   const { mode } = useSession();
   const isLive = mode === "live";
-  const savedAreas = React.useMemo(
-    () => configuredSearchAreas(state, isLive),
-    [isLive, state],
-  );
+  const savedAreas = React.useMemo(() => configuredSearchAreas(state, isLive), [isLive, state]);
   const [query, setQuery] = React.useState("");
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(() =>
     savedAreas.map((area) => area.id),
@@ -126,9 +119,7 @@ export function PlaceDiscoveryV16({
               : [],
           );
           nextFailedAreas = settled.flatMap((outcome, index) =>
-            outcome.status === "rejected"
-              ? [shortSearchAreaLabel(activeAreas[index].label)]
-              : [],
+            outcome.status === "rejected" ? [shortSearchAreaLabel(activeAreas[index].label)] : [],
           );
           if (successful.length === 0 && nextFailedAreas.length > 0) {
             throw new Error("Kunde inte söka i de valda områdena.");

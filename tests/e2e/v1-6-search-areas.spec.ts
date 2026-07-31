@@ -26,7 +26,10 @@ test("flera sökområden radbryts utan horisontell overflow på 360 px", async (
 
 test("redan tillagda ställen ligger i en stängd egen sektion", async ({ page }) => {
   await openDemo(page);
-  await page.getByRole("button", { name: /lägg till ställe/i }).first().click();
+  await page
+    .getByRole("button", { name: /lägg till ställe/i })
+    .first()
+    .click();
 
   const existing = page.getByRole("button", { name: /redan i gruppen \(/i });
   await expect(existing).toBeVisible();

@@ -49,10 +49,7 @@ describe("flera sökområden", () => {
     expect(merged).toHaveLength(1);
     expect(merged[0].distanceKm).toBe(0.4);
     expect(merged[0].nearestAreaLabel).toBe("Slakthusområdet");
-    expect(merged[0].matchingAreaLabels).toEqual([
-      "Gamla Enskede",
-      "Slakthusområdet",
-    ]);
+    expect(merged[0].matchingAreaLabels).toEqual(["Gamla Enskede", "Slakthusområdet"]);
   });
 
   test("olika leverantörer dedupliceras inte av misstag", () => {
@@ -77,11 +74,7 @@ describe("flera sökområden", () => {
         {
           areaId: "a",
           areaLabel: "Haga",
-          results: [
-            place("3", "Örten", 2),
-            place("2", "Ängen", 1),
-            place("1", "Bageriet", 1),
-          ],
+          results: [place("3", "Örten", 2), place("2", "Ängen", 1), place("1", "Bageriet", 1)],
         },
       ],
       2,
@@ -90,8 +83,6 @@ describe("flera sökområden", () => {
   });
 
   test("långa Geoapify-etiketter får ett kort pillnamn", () => {
-    expect(shortSearchAreaLabel("Gamla Enskede, Stockholm, Sverige")).toBe(
-      "Gamla Enskede",
-    );
+    expect(shortSearchAreaLabel("Gamla Enskede, Stockholm, Sverige")).toBe("Gamla Enskede");
   });
 });

@@ -252,12 +252,7 @@ export function AddPlaceResultDialogsV16({
               />
             </div>
             <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                variant="ghost"
-                className="min-h-11"
-                disabled={isBusy}
-                onClick={closePending}
-              >
+              <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={closePending}>
                 <ArrowLeft className="h-4 w-4" /> Tillbaka
               </Button>
               <Button
@@ -359,12 +354,7 @@ export function AddPlaceResultDialogsV16({
             ) : null}
           </div>
           <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button
-              variant="ghost"
-              className="min-h-11"
-              disabled={syncBusy}
-              onClick={resetSync}
-            >
+            <Button variant="ghost" className="min-h-11" disabled={syncBusy} onClick={resetSync}>
               Hoppa över
             </Button>
             <Button
