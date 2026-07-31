@@ -7,6 +7,43 @@ följer [semantisk versionshantering](https://semver.org/lang/sv/).
 Den fullständiga historiken till och med version 0.14.0 är bevarad i
 [docs/archive/changelog-through-v0.14.md](./docs/archive/changelog-through-v0.14.md).
 
+## [Unreleased]
+
+### Lagt till
+
+- En grupp kan spara upp till fem verifierade sökområden som tillsammans utgör
+  den vanliga sökstarten.
+- Sökradien 2 km finns nu tillsammans med 1, 3, 5, 10, 25 och 50 km.
+- En tillfällig annan plats kan läggas till i en sökomgång utan att sparas i
+  gruppinställningarna.
+- Kartan visar flera valda sökcentrum och en gemensam radie runt varje område.
+
+### Ändrat
+
+- Alla gruppens sparade sökområden är valda när sökningen öppnas. Det finns
+  inget primärt område och samma radie gäller för samtliga valda centrum.
+- Sökresultat från flera områden slås ihop, dedupliceras och sorteras efter
+  kortaste avståndet till ett valt område.
+- Nya och tidigare borttagna ställen visas tillsammans under **Ställen att
+  lägga till** med samma **Lägg till**-flöde.
+- Aktiva ställen som redan finns i gruppen samlas i den stängda sektionen
+  **Redan i gruppen** i stället för att skapa brus bland kandidaterna.
+- Sökområden visas som radbrytande valbrickor i sökdialogen och som vertikala
+  rader i gruppinställningarna.
+
+### Teknik och säkerhet
+
+- `group_search_areas` lagrar verifierade gruppområden och
+  `groups.default_search_radius_km` lagrar den gemensamma standardradien.
+- Befintliga verifierade områden migreras utan att äldre produktionsrader tas
+  bort. Skrivningar går atomiskt genom rollvaliderade RPC:er.
+- `get_group_app_state_v5e` utökar den gruppscopade read-modelen med sökområden
+  och standardradie utan att återöppna direkt tabellåtkomst.
+- Flerområdessökningen hanterar delvisa providerfel och returnerar högst 50
+  unika resultat.
+- Flödet är regressionsskyddat vid 360 px och kartan verifieras i Chromium och
+  WebKit.
+
 ## [1.5.0] – 2026-07-30
 
 ### Lagt till
