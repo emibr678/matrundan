@@ -6,8 +6,7 @@ import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
-const base =
-  process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
+const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const changelogPath = resolve(root, "CHANGELOG.md");
 const versionPath = resolve(root, "src/lib/matrundan/version.ts");
 const errors = [];
@@ -22,9 +21,7 @@ function git(args, allowFailure = false) {
 }
 
 function parseSemver(value) {
-  const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(
-    value,
-  );
+  const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(value);
   return match ? match.slice(1).map(Number) : null;
 }
 
@@ -41,16 +38,12 @@ function compareSemver(left, right) {
 function validDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
-  return (
-    !Number.isNaN(date.valueOf()) &&
-    date.toISOString().slice(0, 10) === value
-  );
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
 function markdownReleases(markdown) {
   const entries = [];
-  const pattern =
-    /^## \[(\d+\.\d+\.\d+)\]\s+[–-]\s+(\d{4}-\d{2}-\d{2})$/gm;
+  const pattern = /^## \[(\d+\.\d+\.\d+)\]\s+[–-]\s+(\d{4}-\d{2}-\d{2})$/gm;
   for (const match of markdown.matchAll(pattern)) {
     entries.push({ version: match[1], date: match[2] });
   }
@@ -59,10 +52,7 @@ function markdownReleases(markdown) {
 
 function changedFiles(baseSha) {
   if (!baseSha) return [];
-  const output = git(
-    ["diff", "--name-only", "--diff-filter=ACMR", baseSha, "HEAD"],
-    true,
-  );
+  const output = git(["diff", "--name-only", "--diff-filter=ACMR", baseSha, "HEAD"], true);
   return output ? output.split("\n").filter(Boolean) : [];
 }
 
@@ -78,15 +68,13 @@ function isUserFacing(file) {
 }
 
 function versionFromSource(source) {
-  const legacy = /export const APP_VERSION = "(\d+\.\d+\.\d+)"/.exec(
-    source,
-  )?.[1];
+  const legacy = /export const APP_VERSION = "(\d+\.\d+\.\d+)"/.exec(source)?.[1];
   if (legacy) return legacy;
   return /version:\s*"(\d+\.\d+\.\d+)"/.exec(source)?.[1] ?? null;
 }
 
 const { APP_VERSION, APP_VERSION_DATE, CHANGELOG } = await import(
-  `${pathToFileURL(versionPath).href}?release-check=${Date.now()}`,
+  `${pathToFileURL(versionPath).href}?release-check=${Date.now()}`
 );
 const markdown = readFileSync(changelogPath, "utf8");
 const markdownEntries = markdownReleases(markdown);
@@ -97,13 +85,8 @@ if (!markdown.includes("## [Unreleased]")) {
 if (CHANGELOG.length === 0) {
   errors.push("Versionshistoriken får inte vara tom.");
 }
-if (
-  CHANGELOG[0]?.version !== APP_VERSION ||
-  CHANGELOG[0]?.date !== APP_VERSION_DATE
-) {
-  errors.push(
-    "APP_VERSION och APP_VERSION_DATE måste härledas från första versionsposten.",
-  );
+if (CHANGELOG[0]?.version !== APP_VERSION || CHANGELOG[0]?.date !== APP_VERSION_DATE) {
+  errors.push("APP_VERSION och APP_VERSION_DATE måste härledas från första versionsposten.");
 }
 
 const seen = new Set();
@@ -136,19 +119,14 @@ for (let index = 0; index < CHANGELOG.length; index += 1) {
 const latestMarkdown = markdownEntries[0];
 if (!latestMarkdown) {
   errors.push("CHANGELOG.md saknar daterade releaseposter.");
-} else if (
-  latestMarkdown.version !== APP_VERSION ||
-  latestMarkdown.date !== APP_VERSION_DATE
-) {
+} else if (latestMarkdown.version !== APP_VERSION || latestMarkdown.date !== APP_VERSION_DATE) {
   errors.push(
     `Senaste release i CHANGELOG.md (${latestMarkdown.version}, ${latestMarkdown.date}) ` +
       `matchar inte appen (${APP_VERSION}, ${APP_VERSION_DATE}).`,
   );
 }
 
-const markdownByVersion = new Map(
-  markdownEntries.map((entry) => [entry.version, entry.date]),
-);
+const markdownByVersion = new Map(markdownEntries.map((entry) => [entry.version, entry.date]));
 for (const entry of CHANGELOG) {
   if (compareSemver(entry.version, "0.15.0") < 0) break;
   const markdownDate = markdownByVersion.get(entry.version);
@@ -174,21 +152,14 @@ if (base) {
     );
   }
 
-  const baseSource = git(
-    ["show", `${base}:src/lib/matrundan/version.ts`],
-    true,
-  );
+  const baseSource = git(["show", `${base}:src/lib/matrundan/version.ts`], true);
   const baseVersion = versionFromSource(baseSource);
   if (baseVersion && baseVersion !== APP_VERSION) {
     if (compareSemver(APP_VERSION, baseVersion) <= 0) {
-      errors.push(
-        `Ny appversion ${APP_VERSION} måste vara högre än ${baseVersion}.`,
-      );
+      errors.push(`Ny appversion ${APP_VERSION} måste vara högre än ${baseVersion}.`);
     }
     if (!changelogChanged) {
-      errors.push(
-        "En versionshöjning kräver en samtidig uppdatering av CHANGELOG.md.",
-      );
+      errors.push("En versionshöjning kräver en samtidig uppdatering av CHANGELOG.md.");
     }
   }
 }
@@ -198,6 +169,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  `Releasekontroll godkänd: Matrundan ${APP_VERSION} · ${APP_VERSION_DATE}.`,
-);
+console.log(`Releasekontroll godkänd: Matrundan ${APP_VERSION} · ${APP_VERSION_DATE}.`);

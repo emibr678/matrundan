@@ -9,8 +9,7 @@ import {
 } from "../src/lib/matrundan/read-model-version";
 
 const root = process.cwd();
-const base =
-  process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
+const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const migrationRoot = resolve(root, "supabase/migrations");
 const preflightPath = resolve(root, "supabase/production-preflight.sql");
 const errors = [];
@@ -33,26 +32,16 @@ function walk(directory) {
 
 function changedFiles(baseSha) {
   if (!baseSha) return [];
-  const output = git(
-    ["diff", "--name-only", "--diff-filter=ACMR", baseSha, "HEAD"],
-    true,
-  );
+  const output = git(["diff", "--name-only", "--diff-filter=ACMR", baseSha, "HEAD"], true);
   return output ? output.split("\n").filter(Boolean) : [];
 }
 
 function functionPattern(name) {
-  return new RegExp(
-    `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${name}\\s*\\(`,
-    "i",
-  );
+  return new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${name}\\s*\\(`, "i");
 }
 
-const migrationFiles = walk(migrationRoot).filter(
-  (file) => extname(file) === ".sql",
-);
-const sql = migrationFiles
-  .map((file) => readFileSync(file, "utf8"))
-  .join("\n\n");
+const migrationFiles = walk(migrationRoot).filter((file) => extname(file) === ".sql");
+const sql = migrationFiles.map((file) => readFileSync(file, "utf8")).join("\n\n");
 const requiredFunctions = [
   PREVIOUS_GROUP_STATE_RPC,
   CURRENT_GROUP_STATE_RPC,
@@ -65,18 +54,10 @@ for (const name of requiredFunctions) {
     errors.push(`Migrationerna saknar funktionen public.${name}.`);
   }
 }
-if (
-  !/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+public\.group_search_areas/i.test(
-    sql,
-  )
-) {
+if (!/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+public\.group_search_areas/i.test(sql)) {
   errors.push("Migrationerna saknar tabellen public.group_search_areas.");
 }
-if (
-  !/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+default_search_radius_km/i.test(
-    sql,
-  )
-) {
+if (!/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+default_search_radius_km/i.test(sql)) {
   errors.push("Migrationerna saknar groups.default_search_radius_km.");
 }
 
@@ -101,38 +82,29 @@ if (base) {
   const changedCode = files.filter(
     (file) =>
       file.startsWith("src/") &&
-      [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(
-        extname(file),
-      ) &&
+      [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(extname(file)) &&
       existsSync(resolve(root, file)),
   );
   const rpcNames = new Set();
   for (const file of changedCode) {
     const source = readFileSync(resolve(root, file), "utf8");
-    for (const match of source.matchAll(
-      /\.rpc\(\s*["']([a-zA-Z0-9_]+)["']/g,
-    )) {
+    for (const match of source.matchAll(/\.rpc\(\s*["']([a-zA-Z0-9_]+)["']/g)) {
       rpcNames.add(match[1]);
     }
   }
   for (const name of rpcNames) {
     if (!functionPattern(name).test(sql)) {
-      errors.push(
-        `Ändrad kod anropar RPC:n ${name}, men ingen migration definierar den.`,
-      );
+      errors.push(`Ändrad kod anropar RPC:n ${name}, men ingen migration definierar den.`);
     }
   }
 
   const changedMigrations = files.filter(
-    (file) =>
-      file.startsWith("supabase/migrations/") && file.endsWith(".sql"),
+    (file) => file.startsWith("supabase/migrations/") && file.endsWith(".sql"),
   );
   for (const file of changedMigrations) {
     const source = readFileSync(resolve(root, file), "utf8");
     const definitions = [
-      ...source.matchAll(
-        /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.([a-zA-Z0-9_]+)/gi,
-      ),
+      ...source.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.([a-zA-Z0-9_]+)/gi),
     ];
     if (
       definitions.length > 0 &&
