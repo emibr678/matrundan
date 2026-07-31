@@ -241,9 +241,8 @@ export function AddPlaceResultDialogsV16({
           <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
-              <DialogDescription>
-                Kontrollera stället, öppna Google Maps vid behov och justera gruppens uppgifter om
-                du vill.
+              <DialogDescription className="sr-only">
+                Granska och lägg till {pending.name} i gruppen.
               </DialogDescription>
             </DialogHeader>
             <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-card p-3">
@@ -269,13 +268,9 @@ export function AddPlaceResultDialogsV16({
                   rel="noreferrer"
                   aria-label={`Öppna ${pending.name} i Google Maps`}
                 >
-                  <ExternalLink className="h-4 w-4" /> Sök i Google Maps
+                  <ExternalLink className="h-4 w-4" /> Öppna i Google Maps
                 </a>
               </Button>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Google Maps söker efter namn, adress och vid behov kartposition. Kontrollera att
-                rätt verksamhet har öppnats.
-              </p>
               {canHideSuggestion ? (
                 <Button
                   type="button"
@@ -295,13 +290,18 @@ export function AddPlaceResultDialogsV16({
             </div>
             <FoodTagMultiSelect
               id="pending-food-tags"
+              label="Kök och inriktning (valfritt)"
               value={cuisines}
               onChange={setCuisines}
-              description="Förifyllt från platsinformationen. Du kan korrigera valen för gruppen."
             />
-            <OccasionPicker id="pending-occasions" value={occasions} onChange={setOccasions} />
+            <OccasionPicker
+              id="pending-occasions"
+              value={occasions}
+              onChange={setOccasions}
+              description="Valfritt – kan fyllas i efter ett besök."
+            />
             <div className="space-y-1.5">
-              <Label htmlFor="pending-notes">Anteckning till gruppen (frivilligt)</Label>
+              <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
               <Textarea
                 id="pending-notes"
                 value={notes}
