@@ -98,8 +98,13 @@ jobs:
       - name: Database and RPC contract
         run: bun scripts/database-contract-check.mjs "${{ steps.changes.outputs.base_sha }}"
 
-      - name: Apply approved v1.8 finish patch
+      - name: Apply and commit approved v1.8 finish patch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          git reset --hard "$HEAD_SHA"
           if git apply --check scripts/v1-8-demo-hidden-settings.patch; then
             git apply scripts/v1-8-demo-hidden-settings.patch
           elif git apply --reverse --check scripts/v1-8-demo-hidden-settings.patch; then
@@ -108,7 +113,15 @@ jobs:
             echo "v1.8-patchen kan varken appliceras eller identifieras som redan applicerad." >&2
             exit 1
           fi
-          bunx prettier --write src/routes/gruppen.tsx
+          bunx prettier --write docs/architecture.md src/routes/gruppen.tsx
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/architecture.md src/routes/gruppen.tsx
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Slutför dolda sökträffar i demo och arkitektur"
+          git push origin "HEAD:${HEAD_BRANCH}"
 
       - name: Prettier changed code and configuration
         if: steps.changes.outputs.has_format == 'true'
@@ -123,20 +136,6 @@ jobs:
         run: |
           bun run format:changed
           git diff --binary > formatting.patch
-
-      - name: Commit formatter output to same-repository PR
-        if: failure() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && steps.changes.outputs.has_format == 'true'
-        env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "Formatera och slutför v1.8.0-kopplingen"
-          git push origin "HEAD:${HEAD_BRANCH}"
 
       - name: Upload formatting patch
         if: failure() && steps.changes.outputs.has_format == 'true'
