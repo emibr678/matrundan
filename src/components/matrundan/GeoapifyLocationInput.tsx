@@ -2,13 +2,23 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { geoapifyAutocompleteLocation } from "@/lib/matrundan/geoapify.functions";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
+import { isBroadAdministrativeSearchArea } from "@/lib/matrundan/search-areas";
+
+type LocationSuggestion = {
+  label: string;
+  placeId: string;
+  lat: number;
+  lng: number;
+  resultType?: string;
+  blocked: boolean;
+};
 
 /**
  * Val-baserat Geoapify-autocomplete-fält för sökområden.
  *
- * Rå fritext utan explicit val räknas aldrig som en verifierad plats.
- * Anroparen får bara ett strukturerat värde via `onSelect` när användaren
- * väljer ett förslag från listan (klick eller Enter).
+ * Rå fritext utan explicit val räknas aldrig som en verifierad plats. Breda
+ * administrativa områden visas för förklaring men kan inte väljas eftersom
+ * Matrundans sökning utgår från en punkt och en gemensam radie.
  */
 export function GeoapifyLocationInput({
   id,
@@ -21,21 +31,15 @@ export function GeoapifyLocationInput({
   ariaInvalid,
 }: {
   id?: string;
-  /** Aktuell text i fältet. */
   value: string;
-  /** Kallas vid varje tangenttryck så anroparen kan invalidera tidigare val. */
   onChange: (text: string) => void;
-  /** Kallas när användaren väljer ett förslag. */
   onSelect: (value: VerifiedHomeLocation) => void;
-  /** Anropas när användaren har tömt fältet (för explicit rensning). */
   onClearVerified?: () => void;
   placeholder?: string;
   disabled?: boolean;
   ariaInvalid?: boolean;
 }) {
-  const [suggestions, setSuggestions] = React.useState<
-    { label: string; placeId: string; lat: number; lng: number }[]
-  >([]);
+  const [suggestions, setSuggestions] = React.useState<LocationSuggestion[]>([]);
   const [open, setOpen] = React.useState(false);
   const [activeIx, setActiveIx] = React.useState(-1);
   const [loading, setLoading] = React.useState(false);
@@ -48,22 +52,25 @@ export function GeoapifyLocationInput({
       setSuggestions([]);
       setLoading(false);
       setDone(false);
+      setActiveIx(-1);
       return;
     }
     const reqId = ++reqRef.current;
     setLoading(true);
     setDone(false);
-    const t = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       geoapifyAutocompleteLocation({ data: { text, limit: 6 } })
         .then((rows) => {
           if (reqId !== reqRef.current) return;
           const mapped = rows
-            .filter((r) => r.lat != null && r.lng != null && r.placeId)
-            .map((r) => ({
-              label: r.label,
-              placeId: r.placeId,
-              lat: r.lat as number,
-              lng: r.lng as number,
+            .filter((row) => row.lat != null && row.lng != null && row.placeId)
+            .map((row) => ({
+              label: row.label,
+              placeId: row.placeId,
+              lat: row.lat as number,
+              lng: row.lng as number,
+              resultType: row.resultType,
+              blocked: isBroadAdministrativeSearchArea(row.resultType),
             }));
           setSuggestions(mapped);
           setActiveIx(-1);
@@ -73,20 +80,22 @@ export function GeoapifyLocationInput({
         .catch(() => {
           if (reqId !== reqRef.current) return;
           setSuggestions([]);
+          setActiveIx(-1);
           setLoading(false);
           setDone(true);
         });
     }, 300);
-    return () => clearTimeout(t);
+    return () => window.clearTimeout(timer);
   }, [value]);
 
-  function pick(s: (typeof suggestions)[number]) {
+  function pick(suggestion: LocationSuggestion) {
+    if (suggestion.blocked) return;
     onSelect({
-      label: s.label,
-      lat: s.lat,
-      lng: s.lng,
+      label: suggestion.label,
+      lat: suggestion.lat,
+      lng: suggestion.lng,
       provider: "geoapify",
-      placeId: s.placeId,
+      placeId: suggestion.placeId,
     });
     setOpen(false);
     setActiveIx(-1);
@@ -94,27 +103,49 @@ export function GeoapifyLocationInput({
     setDone(false);
   }
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open || suggestions.length === 0) {
-      if (e.key === "ArrowDown" && suggestions.length > 0) {
+  function moveActive(direction: 1 | -1) {
+    const selectable = suggestions
+      .map((suggestion, index) => ({ suggestion, index }))
+      .filter(({ suggestion }) => !suggestion.blocked)
+      .map(({ index }) => index);
+    if (selectable.length === 0) return;
+
+    const currentPosition = selectable.indexOf(activeIx);
+    const nextPosition =
+      currentPosition < 0
+        ? direction === 1
+          ? 0
+          : selectable.length - 1
+        : (currentPosition + direction + selectable.length) % selectable.length;
+    setActiveIx(selectable[nextPosition]);
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      if (suggestions.length > 0) {
+        event.preventDefault();
         setOpen(true);
-        setActiveIx(0);
-        e.preventDefault();
+        moveActive(1);
       }
       return;
     }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIx((ix) => (ix + 1) % suggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIx((ix) => (ix <= 0 ? suggestions.length - 1 : ix - 1));
-    } else if (e.key === "Enter") {
-      if (activeIx >= 0) {
-        e.preventDefault();
-        pick(suggestions[activeIx]);
+    if (event.key === "ArrowUp") {
+      if (suggestions.length > 0) {
+        event.preventDefault();
+        setOpen(true);
+        moveActive(-1);
       }
-    } else if (e.key === "Escape") {
+      return;
+    }
+    if (event.key === "Enter" && open && activeIx >= 0) {
+      const suggestion = suggestions[activeIx];
+      if (suggestion && !suggestion.blocked) {
+        event.preventDefault();
+        pick(suggestion);
+      }
+      return;
+    }
+    if (event.key === "Escape") {
       setOpen(false);
       setActiveIx(-1);
     }
@@ -127,16 +158,16 @@ export function GeoapifyLocationInput({
       <Input
         id={id}
         value={value}
-        onChange={(e) => {
-          const next = e.target.value;
+        onChange={(event) => {
+          const next = event.target.value;
           onChange(next);
           setOpen(true);
           if (next.trim() === "" && onClearVerified) onClearVerified();
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
         onKeyDown={onKeyDown}
-        placeholder={placeholder ?? "Sök stad eller område"}
+        placeholder={placeholder ?? "Sök ort, stadsdel eller adress"}
         autoComplete="off"
         disabled={disabled}
         aria-invalid={ariaInvalid}
@@ -150,32 +181,42 @@ export function GeoapifyLocationInput({
         <ul
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
+          className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
         >
           {loading && suggestions.length === 0 ? (
             <li className="px-2 py-2 text-muted-foreground">Söker…</li>
           ) : suggestions.length === 0 ? (
             <li className="px-2 py-2 text-muted-foreground">Inga träffar</li>
           ) : (
-            suggestions.map((s, i) => (
+            suggestions.map((suggestion, index) => (
               <li
-                key={s.placeId}
-                id={id ? `${id}-opt-${i}` : undefined}
+                key={suggestion.placeId}
+                id={id ? `${id}-opt-${index}` : undefined}
                 role="option"
-                aria-selected={i === activeIx}
+                aria-selected={!suggestion.blocked && index === activeIx}
+                aria-disabled={suggestion.blocked}
               >
                 <button
                   type="button"
+                  disabled={suggestion.blocked}
                   className={[
-                    "w-full rounded px-2 py-1.5 text-left hover:bg-accent",
-                    i === activeIx ? "bg-accent" : "",
+                    "w-full rounded px-2 py-2 text-left",
+                    suggestion.blocked
+                      ? "cursor-not-allowed text-muted-foreground opacity-75"
+                      : "hover:bg-accent",
+                    !suggestion.blocked && index === activeIx ? "bg-accent" : "",
                   ].join(" ")}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    pick(s);
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    pick(suggestion);
                   }}
                 >
-                  {s.label}
+                  <span className="block break-words">{suggestion.label}</span>
+                  {suggestion.blocked ? (
+                    <span className="mt-0.5 block text-xs leading-snug">
+                      Välj en ort, stadsdel eller adress i området.
+                    </span>
+                  ) : null}
                 </button>
               </li>
             ))
