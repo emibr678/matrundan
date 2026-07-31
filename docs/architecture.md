@@ -227,6 +227,12 @@ värden är 1, 2, 3, 5, 10, 25 och 50 km.
 - Första sparade området speglas till äldre `home_location_*`-kolumner under
   övergången, men den nya listan är den kanoniska modellen.
 - Overifierad fritext får inte användas som koordinatkälla.
+- Kommuner, län, regioner och länder får inte sparas som nya punktcentrum.
+  Valideringen använder både Geoapifys typ och platsens etikett eftersom svenska
+  kommuner ibland klassificeras som `city`.
+- Befintliga breda områden raderas inte automatiskt. De visas med vägledning i
+  gruppinställningarna tills en behörig användare byter dem mot en ort, stadsdel
+  eller adress.
 - En tillfällig annan plats i sökdialogen sparas inte automatiskt i gruppen.
 - Sökområden är endast förvalda sökcentrum och aldrig geografiska begränsningar
   för vad gruppen får lägga till eller besöka.
