@@ -126,6 +126,7 @@ export function SearchAreaControlsV16({
     onTemporaryAreasChange(remainingAreas);
   }
 
+  // prettier-ignore
   return (
     <div className="space-y-4">
       <div className="space-y-2">
