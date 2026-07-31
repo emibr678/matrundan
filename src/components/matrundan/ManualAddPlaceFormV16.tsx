@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { emptyManualPlace, type ManualPlaceDraft } from "@/lib/matrundan/add-place-v16-utils";
-import { primaryOccasion } from "@/lib/matrundan/occasions";
 import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type PlaceCategory } from "@/lib/matrundan/types";
 
@@ -36,10 +35,6 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
   async function submit() {
     if (!draft.name.trim()) {
       toast.error("Ge stället ett namn");
-      return;
-    }
-    if (!primaryOccasion(draft.occasions)) {
-      toast.error("Välj vad stället passar bäst för");
       return;
     }
     setBusy(true);
@@ -133,7 +128,6 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
           id="manual-occasions"
           value={draft.occasions}
           onChange={(value) => set("occasions", value)}
-          required
         />
         <div className="space-y-1.5">
           <Label htmlFor="manual-notes">Anteckning (frivilligt)</Label>
@@ -149,11 +143,7 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={onClose}>
           Avbryt
         </Button>
-        <Button
-          className="min-h-11"
-          disabled={isBusy || !primaryOccasion(draft.occasions)}
-          onClick={submit}
-        >
+        <Button className="min-h-11" disabled={isBusy} onClick={submit}>
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Lägg till
         </Button>
