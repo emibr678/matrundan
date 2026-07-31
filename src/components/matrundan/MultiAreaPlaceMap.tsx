@@ -50,6 +50,15 @@ const CENTER_LABELS = "multi-area-center-labels";
 const RADIUS_SOURCE = "multi-area-radii";
 const RADIUS_FILL = "multi-area-radius-fill";
 const RADIUS_LINE = "multi-area-radius-line";
+const CATEGORY_IMAGE_PREFIX = "multi-area-category-";
+const PLACE_CATEGORIES = [
+  "restaurang",
+  "café",
+  "bageri",
+  "snabbmat",
+  "pub",
+  "matvagn",
+] as const satisfies readonly PlaceCategory[];
 
 function themeColor(variable: string, fallback: string) {
   const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -86,20 +95,98 @@ function fallbackStyle(background: string): StyleSpecification {
   };
 }
 
-const CATEGORY_EMOJI_EXPRESSION: ExpressionSpecification = [
+function categoryIconName(category: PlaceCategory) {
+  return `${CATEGORY_IMAGE_PREFIX}${category}`;
+}
+
+function drawCategoryIcon(category: PlaceCategory, color: string): ImageData {
+  const canvas = document.createElement("canvas");
+  canvas.width = 56;
+  canvas.height = 56;
+  const context = canvas.getContext("2d");
+  if (!context) return new ImageData(56, 56);
+
+  context.strokeStyle = color;
+  context.fillStyle = color;
+  context.lineWidth = 4;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+
+  const line = (x1: number, y1: number, x2: number, y2: number) => {
+    context.beginPath();
+    context.moveTo(x1, y1);
+    context.lineTo(x2, y2);
+    context.stroke();
+  };
+
+  switch (category) {
+    case "café":
+      context.strokeRect(14, 23, 25, 16);
+      context.beginPath();
+      context.arc(40, 30, 7, -Math.PI / 2, Math.PI / 2);
+      context.stroke();
+      line(18, 17, 18, 11);
+      line(27, 17, 27, 9);
+      line(36, 17, 36, 11);
+      line(12, 44, 43, 44);
+      break;
+    case "bageri":
+      context.beginPath();
+      context.moveTo(12,, 38);
+      line(40, 38, 47, 38);
+      line(14, 24, 36, 24);
+      line(15, 18, 15, 24);
+      line(22, 18, 22, 24);
+      line(29, 18, 29, 24);
+      line(36, 18, 36, 24);
+      context.beginPath();
+      context.arc(18, 43, 4, 0, Math.PI * 2);
+      context.arc(40, 43, 4, 0, Math.PI * 2);
+      context.fill();
+      break;
+    case "restaurang":
+    default:
+      line(17, 11, 17, 45);
+      line(12, 11, 12, 23);
+      line(22, 11, 22, 23);
+      context.beginPath();
+      context.moveTo(12, 23);
+      context.quadraticCurveTo(17, 28, 22, 23);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(36, 11);
+      context.quadraticCurveTo(45, 19, 38, 29);
+      context.lineTo(38, 45);
+      context.stroke();
+      break;
+  }
+
+  return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function registerCategoryIcons(map: MapLibreMap, color: string) {
+  for (const category of PLACE_CATEGORIES) {
+    const name = categoryIconName(category);
+    if (!map.hasImage(name)) {
+      map.addImage(name, drawCategoryIcon(category, color), { pixelRatio: 2 });
+    }
+  }
+}
+
+const CATEGORY_ICON_EXPRESSION: ExpressionSpecification = [
   "match",
   ["get", "category"],
   "café",
-  "☕",
+  categoryIconName("café"),
   "bageri",
-  "🥐",
+  categoryIconName("bageri"),
   "snabbmat",
-  "🍔",
+  categoryIconName("snabbmat"),
   "pub",
-  "🍺",
+  categoryIconName("pub"),
   "matvagn",
-  "🌭",
-  "🍽️",
+  categoryIconName("matvagn"),
+  categoryIconName("restaurang"),
 ];
 
 export function MultiAreaPlaceMap({
@@ -197,6 +284,7 @@ export function MultiAreaPlaceMap({
     const foreground = themeColor("--foreground", "#3d2d27");
 
     try {
+      registerCategoryIcons(map, foreground);
       map.addSource(RADIUS_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_RADII });
       map.addLayer({
         id: RADIUS_FILL,
@@ -285,10 +373,10 @@ export function MultiAreaPlaceMap({
         source: SOURCE,
         filter: ["!", ["has", "point_count"]],
         layout: {
-          "text-field": CATEGORY_EMOJI_EXPRESSION,
-          "text-size": 16,
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
+          "icon-image": CATEGORY_ICON_EXPRESSION,
+          "icon-size": 0.56,
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
         },
       });
       map.addSource(SELECTED_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_POINTS });
@@ -308,10 +396,10 @@ export function MultiAreaPlaceMap({
         type: "symbol",
         source: SELECTED_SOURCE,
         layout: {
-          "text-field": CATEGORY_EMOJI_EXPRESSION,
-          "text-size": 19,
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
+          "icon-image": CATEGORY_ICON_EXPRESSION,
+          "icon-size": 0.68,
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
         },
       });
 
@@ -411,6 +499,8 @@ export function MultiAreaPlaceMap({
       data-map-cluster-profile="discovery"
       data-map-cluster-radius="38"
       data-clustering-disabled-at="15"
+      data-map-point-visual="category-icon"
+      data-map-icon-renderer="canvas"
       data-map-icon-layer={ready && mapRef.current?.getLayer(POINT_ICONS) ? "ready" : "missing"}
       data-map-category-icon-count="6"
       data-search-center-count={centers.length}
