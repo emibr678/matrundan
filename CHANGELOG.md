@@ -14,9 +14,13 @@ Den fullständiga historiken till och med version 0.14.0 är bevarad i
 - Sökområden väljs nu i ett enda återanvändbart platsfält. Varje vald träff
   läggs direkt till som en valbricka och fältet kan användas igen utan en
   separat panel eller extra bekräftelseknappar.
-- Breda administrativa Geoapify-resultat som kommuner, län och länder visas som
-  vägledning men kan inte användas som punktcentrum. Användaren hänvisas i
-  stället till en ort, stadsdel eller adress i området.
+- Gruppinställningarnas vanliga sökområden använder samma autocomplete-till-
+  valbricka-flöde som sökdialogen och sparas tillsammans med gruppens övriga
+  ändringar.
+- Breda administrativa Geoapify-resultat som kommuner, län, regioner och länder
+  visas som vägledning men kan inte användas som punktcentrum. Kontrollen använder
+  både Geoapifys typ och platsens etikett, och nya breda val avvisas även av
+  databasens rollskyddade skrivfunktion.
 - Flerområdeskartan använder canvasrenderade kategoriikoner i stället för
   enhetsberoende emoji-glypher, vilket ger stabila markörer även på mobil.
 - Live-läsningen faller tillfälligt tillbaka till den föregående kompatibla
