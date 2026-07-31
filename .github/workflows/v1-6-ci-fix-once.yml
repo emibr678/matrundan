@@ -1,0 +1,218 @@
+name: Apply v1.6 CI fixes once
+
+on:
+  push:
+    branches:
+      - agent/v1-6-multiple-search-areas
+    paths:
+      - .github/workflows/v1-6-ci-fix-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/v1-6-multiple-search-areas
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Apply focused fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          discovery = Path("src/components/matrundan/PlaceDiscoveryV16.tsx")
+          text = discovery.read_text()
+          old = '''  React.useEffect(() => {
+            setSelectedAreaIds(savedAreas.map((area) => area.id));
+            setTemporaryArea(null);
+            setRadiusKm(state.group.defaultSearchRadiusKm ?? 1);
+          }, [savedAreas, state.group.defaultSearchRadiusKm]);
+
+          '''
+          if old not in text:
+              raise SystemExit("PlaceDiscovery reset block not found")
+          discovery.write_text(text.replace(old, "", 1))
+
+          path = Path("src/components/matrundan/MultiAreaPlaceMap.tsx")
+          text = path.read_text()
+          text = text.replace(
+              'const POINTS = "multi-area-points";\n',
+              'const POINTS = "multi-area-points";\nconst POINT_ICONS = "multi-area-point-icons";\n',
+              1,
+          )
+          old_theme = '''function themeColor(variable: string, fallback: string) {
+            return (
+              window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim() || fallback
+            );
+          }
+          '''
+          new_theme = '''function themeColor(variable: string, fallback: string) {
+            const value = window
+              .getComputedStyle(document.documentElement)
+              .getPropertyValue(variable)
+              .trim();
+            if (!value) return fallback;
+
+            const canvas = document.createElement("canvas");
+            canvas.width = 1;
+            canvas.height = 1;
+            const context = canvas.getContext("2d", { willReadFrequently: true });
+            if (!context) return fallback;
+
+            try {
+              context.clearRect(0, 0, 1, 1);
+              context.fillStyle = value;
+              context.fillRect(0, 0, 1, 1);
+              const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+              return `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
+            } catch {
+              return fallback;
+            }
+          }
+          '''
+          if old_theme not in text:
+              raise SystemExit("themeColor block not found")
+          text = text.replace(old_theme, new_theme, 1)
+          text = text.replace(
+              '  const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");\n',
+              '  const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");\n  const [layersReady, setLayersReady] = React.useState(false);\n',
+              1,
+          )
+          text = text.replace(
+              '          if (!cancelled) setStatus("error");\n',
+              '          if (!cancelled) {\n            setLayersReady(false);\n            setStatus("error");\n          }\n',
+              1,
+          )
+          point_marker = '''    map.addLayer({
+              id: POINTS,
+              type: "circle",
+              source: SOURCE,
+              filter: ["!", ["has", "point_count"]],
+              paint: {
+                "circle-radius": 10,
+                "circle-color": background,
+                "circle-stroke-color": primary,
+                "circle-stroke-width": 3,
+              },
+            });
+          '''
+          point_replacement = point_marker + '''    map.addLayer({
+              id: POINT_ICONS,
+              type: "symbol",
+              source: SOURCE,
+              filter: ["!", ["has", "point_count"]],
+              layout: {
+                "text-field": [
+                  "match",
+                  ["get", "category"],
+                  "café",
+                  "☕",
+                  "bageri",
+                  "🥐",
+                  "snabbmat",
+                  "🍔",
+                  "pub",
+                  "🍺",
+                  "matvagn",
+                  "🌭",
+                  "🍽️",
+                ],
+                "text-size": 16,
+                "text-allow-overlap": true,
+                "text-ignore-placement": true,
+              },
+            });
+          '''
+          if point_marker not in text:
+              raise SystemExit("point layer marker not found")
+          text = text.replace(point_marker, point_replacement, 1)
+          selected_marker = '''    map.addLayer({
+              id: SELECTED,
+              type: "circle",
+              source: SELECTED_SOURCE,
+              paint: {
+                "circle-radius": 15,
+                "circle-color": background,
+                "circle-stroke-color": primary,
+                "circle-stroke-width": 5,
+              },
+            });
+
+            const selectPoint'''
+          selected_replacement = '''    map.addLayer({
+              id: SELECTED,
+              type: "circle",
+              source: SELECTED_SOURCE,
+              paint: {
+                "circle-radius": 15,
+                "circle-color": background,
+                "circle-stroke-color": primary,
+                "circle-stroke-width": 5,
+              },
+            });
+            setLayersReady(true);
+
+            const selectPoint'''
+          if selected_marker not in text:
+              raise SystemExit("selected layer marker not found")
+          text = text.replace(selected_marker, selected_replacement, 1)
+          text = text.replace(
+              '    if (status !== "ready" || !map) return;\n    (map.getSource(SOURCE)',
+              '    if (status !== "ready" || !layersReady || !map) return;\n    (map.getSource(SOURCE)',
+              1,
+          )
+          text = text.replace(
+              '  }, [centers, mappedItems, radiusKm, selected, status]);\n',
+              '  }, [centers, layersReady, mappedItems, radiusKm, selected, status]);\n',
+              1,
+          )
+          text = text.replace(
+              '    if (status !== "ready" || !map) return;\n    const points:',
+              '    if (status !== "ready" || !layersReady || !map) return;\n    const points:',
+              1,
+          )
+          text = text.replace(
+              '  }, [centers, mappedItems, selected, status]);\n',
+              '  }, [centers, layersReady, mappedItems, selected, status]);\n',
+              1,
+          )
+          text = text.replace(
+              '      data-map-ready={status === "ready"}\n      data-search-center-count={centers.length}\n',
+              '      data-map-ready={status === "ready" && layersReady}\n      data-map-renderer="maplibre-vector"\n      data-map-tile-status={mapsKey ? (status === "ready" ? "ready" : status) : "missing"}\n      data-map-error-code={status === "error" ? "runtime" : ""}\n      data-map-cluster-profile="discovery"\n      data-map-cluster-radius="38"\n      data-clustering-disabled-at="15"\n      data-map-icon-layer={layersReady && mapRef.current?.getLayer(POINT_ICONS) ? "ready" : "missing"}\n      data-search-center-count={centers.length}\n',
+              1,
+          )
+          text = text.replace(
+              '      {status !== "ready" ? (\n',
+              '      {status !== "ready" || !layersReady ? (\n',
+              1,
+          )
+          text = text.replace(
+              '          disabled={status !== "ready"}\n',
+              '          disabled={status !== "ready" || !layersReady}\n',
+              2,
+          )
+          path.write_text(text)
+          PY
+
+          bun run format:changed
+
+      - name: Verify focused fixes
+        run: bun run lint:changed && bun run test:unit && bun run typecheck && bun run build
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/matrundan/PlaceDiscoveryV16.tsx src/components/matrundan/MultiAreaPlaceMap.tsx
+          git commit -m "Rätta mobilregressioner i flerområdessökningen"
+          git push origin HEAD:agent/v1-6-multiple-search-areas
