@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
@@ -22,7 +22,6 @@ import {
   shareVisitToGroup,
   type OwnVisitForPlace,
 } from "@/lib/matrundan/live-sharing";
-import { primaryOccasion } from "@/lib/matrundan/occasions";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
 import {
@@ -212,7 +211,8 @@ export function AddPlaceResultDialogsV16({
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
               <DialogDescription>
-                Kontrollera detaljerna och justera gruppens etiketter innan du lägger till stället.
+                Kontrollera stället, öppna Google Maps vid behov och justera gruppens uppgifter om
+                du vill.
               </DialogDescription>
             </DialogHeader>
             <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-card p-3">
@@ -223,6 +223,7 @@ export function AddPlaceResultDialogsV16({
                 <div className="break-words font-medium">{pending.name}</div>
                 <div className="text-xs text-muted-foreground">
                   {CATEGORY_LABEL[pending.category]}
+                  {pending.cuisines?.length ? ` · ${pending.cuisines.join(", ")}` : ""}
                 </div>
                 <div className="break-words text-[11px] text-muted-foreground">
                   {pending.address}
@@ -230,18 +231,28 @@ export function AddPlaceResultDialogsV16({
                 </div>
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Button asChild variant="outline" className="min-h-11 w-full">
+                <a
+                  href={googleMapsSearchUrl(pending)}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Öppna ${pending.name} i Google Maps`}
+                >
+                  <ExternalLink className="h-4 w-4" /> Öppna i Google Maps
+                </a>
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Bilder, öppettider, webbplats och mer visas i Google Maps.
+              </p>
+            </div>
             <FoodTagMultiSelect
               id="pending-food-tags"
               value={cuisines}
               onChange={setCuisines}
               description="Förifyllt från platsinformationen. Du kan korrigera valen för gruppen."
             />
-            <OccasionPicker
-              id="pending-occasions"
-              value={occasions}
-              onChange={setOccasions}
-              required
-            />
+            <OccasionPicker id="pending-occasions" value={occasions} onChange={setOccasions} />
             <div className="space-y-1.5">
               <Label htmlFor="pending-notes">Anteckning till gruppen (frivilligt)</Label>
               <Textarea
@@ -255,11 +266,7 @@ export function AddPlaceResultDialogsV16({
               <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={closePending}>
                 <ArrowLeft className="h-4 w-4" /> Tillbaka
               </Button>
-              <Button
-                className="min-h-11"
-                disabled={isBusy || !primaryOccasion(occasions)}
-                onClick={confirmAdd}
-              >
+              <Button className="min-h-11" disabled={isBusy} onClick={confirmAdd}>
                 {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Lägg till i gruppen
               </Button>
@@ -370,4 +377,11 @@ export function AddPlaceResultDialogsV16({
       </Dialog>
     </>
   );
+}
+
+function googleMapsSearchUrl(place: PlaceSuggestion) {
+  const query = [place.name, place.address, place.area, place.city]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }

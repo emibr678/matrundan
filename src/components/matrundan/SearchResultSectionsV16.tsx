@@ -38,7 +38,11 @@ export function SearchResultSectionsV16({
               key={result.externalId}
               result={result}
               selected={selectedId === result.externalId}
-              onSelect={() => onSelect(result.externalId)}
+              interactionLabel={`Visa information om ${result.name}`}
+              onSelect={() => {
+                onSelect(result.externalId);
+                onAdd(result);
+              }}
               action={
                 <Button
                   size="sm"
@@ -111,11 +115,13 @@ export function SearchResultSectionsV16({
 function SuggestionRowV16({
   result,
   selected,
+  interactionLabel,
   onSelect,
   action,
 }: {
   result: PlaceSuggestion;
   selected: boolean;
+  interactionLabel?: string;
   onSelect: () => void;
   action: React.ReactNode;
 }) {
@@ -129,6 +135,7 @@ function SuggestionRowV16({
         type="button"
         className="flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring"
         onClick={onSelect}
+        aria-label={interactionLabel}
         aria-pressed={selected}
       >
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-xl">

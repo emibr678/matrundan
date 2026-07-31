@@ -54,9 +54,10 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
           ))}
         </div>
         <div className="border-t border-border/70 pt-3 text-xs leading-relaxed text-muted-foreground">
-          Välj ett obligatoriskt <strong className="text-foreground">Passar bäst för</strong> och
-          högst ett frivilligt <strong className="text-foreground">Passar också för</strong>.
-          Topplistan utgår från det primära valet.
+          Välj ett <strong className="text-foreground">Passar bäst för</strong> och högst ett
+          frivilligt <strong className="text-foreground">Passar också för</strong> när gruppen vet.
+          Det går bra att lämna valet tomt tills stället har upplevts. Topplistan utgår från det
+          primära valet.
         </div>
       </PopoverContent>
     </Popover>
@@ -93,7 +94,9 @@ export function OccasionPicker({
         <OccasionGuide />
       </div>
       <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
-        Välj vad stället passar bäst för. Lägg till ett alternativ till om det också passar tydligt.
+        {required
+          ? "Välj vad stället passar bäst för. Lägg till ett alternativ till om det också passar tydligt."
+          : "Välj om du redan vet – annars kan gruppen bestämma efter ett besök."}
       </p>
       <div className="space-y-2" aria-describedby={descriptionId}>
         <div>
@@ -113,14 +116,18 @@ export function OccasionPicker({
                 ariaLabel={`Passar bäst för: ${OCCASION_LABEL[occasion]}`}
                 selected={primary === occasion}
                 disabled={disabled}
-                onClick={() =>
+                onClick={() => {
+                  if (primary === occasion) {
+                    onChange([]);
+                    return;
+                  }
                   onChange(
                     occasionClassification(
                       occasion,
                       secondary === occasion ? undefined : secondary,
                     ),
-                  )
-                }
+                  );
+                }}
               />
             ))}
           </div>
