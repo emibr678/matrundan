@@ -1,0 +1,20 @@
+diff --git a/src/routes/gruppen.tsx b/src/routes/gruppen.tsx
+--- a/src/routes/gruppen.tsx
++++ b/src/routes/gruppen.tsx
+@@ -24,6 +24,7 @@ import { AboutDialog } from "@/components/matrundan/AboutDialog";
+ import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
+ import { GroupHighlights } from "@/components/matrundan/GroupHighlights";
+ import { GroupSettingsSectionV16 } from "@/components/matrundan/GroupSettingsSectionV16";
++import { HiddenPlaceSuggestionsSection } from "@/components/matrundan/HiddenPlaceSuggestionsSection";
+ import { computeMemberProgression } from "@/lib/matrundan/gamification";
+ import { toast } from "sonner";
+ import { Button } from "@/components/ui/button";
+@@ -294,6 +295,8 @@ function SettingsSheet() {
+               />
+             ) : null}
+ 
++            {mode === "demo" ? <HiddenPlaceSuggestionsSection /> : null}
++
+             <MembersSection
+               members={state.members}
+               currentUserId={state.currentUserId}

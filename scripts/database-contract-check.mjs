@@ -47,6 +47,9 @@ const requiredFunctions = [
   CURRENT_GROUP_STATE_RPC,
   "replace_group_search_settings",
   "create_group_with_owner_v2",
+  "list_group_hidden_place_suggestions",
+  "hide_group_place_suggestion",
+  "restore_group_place_suggestion",
 ];
 
 for (const name of requiredFunctions) {
@@ -54,8 +57,10 @@ for (const name of requiredFunctions) {
     errors.push(`Migrationerna saknar funktionen public.${name}.`);
   }
 }
-if (!/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+public\.group_search_areas/i.test(sql)) {
-  errors.push("Migrationerna saknar tabellen public.group_search_areas.");
+for (const table of ["group_search_areas", "group_hidden_place_suggestions"]) {
+  if (!new RegExp(`CREATE\\s+TABLE\\s+IF\\s+NOT\\s+EXISTS\\s+public\\.${table}`, "i").test(sql)) {
+    errors.push(`Migrationerna saknar tabellen public.${table}.`);
+  }
 }
 if (!/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+default_search_radius_km/i.test(sql)) {
   errors.push("Migrationerna saknar groups.default_search_radius_km.");
@@ -70,7 +75,11 @@ if (!existsSync(preflightPath)) {
       errors.push(`Produktions-preflight saknar ${name}.`);
     }
   }
-  for (const object of ["group_search_areas", "default_search_radius_km"]) {
+  for (const object of [
+    "group_search_areas",
+    "group_hidden_place_suggestions",
+    "default_search_radius_km",
+  ]) {
     if (!preflight.includes(object)) {
       errors.push(`Produktions-preflight saknar ${object}.`);
     }

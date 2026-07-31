@@ -2,8 +2,18 @@ import * as React from "react";
 import { CircleHelp, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   OCCASION_DESCRIPTION,
   OCCASION_LABEL,
@@ -16,49 +26,88 @@ import {
   secondaryOccasion,
 } from "@/lib/matrundan/occasions";
 
+function OccasionGuideTrigger({ compact }: { compact: boolean }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="min-h-11 rounded-full px-2 text-xs text-muted-foreground"
+      aria-label="Vad betyder Passar för?"
+    >
+      <CircleHelp className="h-4 w-4" />
+      {compact ? null : <span>Så fungerar det</span>}
+    </Button>
+  );
+}
+
+function OccasionGuideContent() {
+  return (
+    <div className="min-w-0 space-y-3">
+      <div>
+        <div className="font-medium">Topplistor för olika sorters besök</div>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          Topplistorna beskriver inte objektiv kvalitet eller prisnivå. De hjälper gruppen att välja
+          ett ställe som passar för besöket. En pizzeria och en finkrog kan båda få höga betyg – i
+          olika listor.
+        </p>
+      </div>
+      <div className="space-y-2.5">
+        {OCCASION_VALUES.map((occasion) => (
+          <div key={occasion}>
+            <div className="text-sm font-medium">{OCCASION_LABEL[occasion]}</div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {OCCASION_DESCRIPTION[occasion]}
+            </p>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-border/70 pt-3 text-xs leading-relaxed text-muted-foreground">
+        Välj ett <strong className="text-foreground">Passar bäst för</strong> och högst ett
+        frivilligt <strong className="text-foreground">Passar också för</strong> när gruppen vet.
+        Det går bra att lämna valet tomt tills stället har upplevts. Topplistan utgår från det
+        primära valet.
+      </div>
+    </div>
+  );
+}
+
 export function OccasionGuide({ compact = false }: { compact?: boolean }) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <OccasionGuideTrigger compact={compact} />
+        </DialogTrigger>
+        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-sm">
+          <DialogHeader className="pr-8 text-left">
+            <DialogTitle>Så fungerar Passar för</DialogTitle>
+          </DialogHeader>
+          <OccasionGuideContent />
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" className="min-h-11 w-full">
+                Stäng
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="min-h-11 rounded-full px-2 text-xs text-muted-foreground"
-          aria-label="Vad betyder Passar för?"
-        >
-          <CircleHelp className="h-4 w-4" />
-          {compact ? null : <span>Så fungerar det</span>}
-        </Button>
+        <OccasionGuideTrigger compact={compact} />
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-[calc(100vw-2rem)] max-w-sm space-y-3 rounded-2xl p-4"
+        className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-sm overflow-y-auto rounded-2xl p-4"
       >
-        <div>
-          <div className="font-medium">Topplistor för olika sorters besök</div>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Topplistorna beskriver inte objektiv kvalitet eller prisnivå. De hjälper gruppen att
-            välja ett ställe som passar för besöket. En pizzeria och en finkrog kan båda få höga
-            betyg – i olika listor.
-          </p>
-        </div>
-        <div className="space-y-2.5">
-          {OCCASION_VALUES.map((occasion) => (
-            <div key={occasion}>
-              <div className="text-sm font-medium">{OCCASION_LABEL[occasion]}</div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {OCCASION_DESCRIPTION[occasion]}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-border/70 pt-3 text-xs leading-relaxed text-muted-foreground">
-          Välj ett <strong className="text-foreground">Passar bäst för</strong> och högst ett
-          frivilligt <strong className="text-foreground">Passar också för</strong> när gruppen vet.
-          Det går bra att lämna valet tomt tills stället har upplevts. Topplistan utgår från det
-          primära valet.
-        </div>
+        <OccasionGuideContent />
       </PopoverContent>
     </Popover>
   );
