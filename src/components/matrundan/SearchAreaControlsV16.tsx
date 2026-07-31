@@ -13,10 +13,7 @@ import {
 } from "@/components/ui/select";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import { demoSearchAreaFromText } from "@/lib/matrundan/places-provider";
-import {
-  SEARCH_RADIUS_OPTIONS,
-  shortSearchAreaLabel,
-} from "@/lib/matrundan/search-areas";
+import { SEARCH_RADIUS_OPTIONS, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
@@ -47,9 +44,7 @@ export function SearchAreaControlsV16({
   fallbackCity: string;
 }) {
   const [areaQuery, setAreaQuery] = React.useState("");
-  const selectedSavedAreas = savedAreas.filter((area) =>
-    selectedAreaIds.includes(area.id),
-  );
+  const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
 
@@ -155,9 +150,7 @@ export function SearchAreaControlsV16({
                 role="listitem"
                 className="flex min-h-11 max-w-full items-center gap-1 rounded-full border border-primary/40 bg-primary/10 pl-3 pr-1 text-sm"
               >
-                <span className="min-w-0 break-words">
-                  {shortSearchAreaLabel(area.label)}
-                </span>
+                <span className="min-w-0 break-words">{shortSearchAreaLabel(area.label)}</span>
                 <button
                   type="button"
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-background/70"
@@ -174,9 +167,7 @@ export function SearchAreaControlsV16({
                 role="listitem"
                 className="flex min-h-11 max-w-full items-center gap-1 rounded-full border border-primary/40 bg-primary/10 pl-3 pr-1 text-sm"
               >
-                <span className="min-w-0 break-words">
-                  {shortSearchAreaLabel(area.label)}
-                </span>
+                <span className="min-w-0 break-words">{shortSearchAreaLabel(area.label)}</span>
                 <button
                   type="button"
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-background/70"
