@@ -60,7 +60,6 @@ function SearchAreaPill({ area, onRemove }: SearchAreaPillProps) {
   );
 }
 
-// prettier-ignore
 export function SearchAreaControlsV16({
   savedAreas,
   selectedAreaIds,
@@ -123,9 +122,7 @@ export function SearchAreaControlsV16({
   }
 
   function removeTemporaryArea(area: SearchArea) {
-    const remainingAreas = temporaryAreas.filter(
-      (candidate) => !sameSearchArea(candidate, area),
-    );
+    const remainingAreas = temporaryAreas.filter((candidate) => !sameSearchArea(candidate, area));
     onTemporaryAreasChange(remainingAreas);
   }
 
