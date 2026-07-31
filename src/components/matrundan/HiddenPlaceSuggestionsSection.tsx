@@ -49,6 +49,7 @@ export function HiddenPlaceSuggestionsSection() {
   if (!groupId) return null;
 
   async function restore(item: HiddenPlaceSuggestion) {
+    if (!groupId) return;
     const key = `${item.provider}:${item.providerPlaceId}`;
     setBusyKey(key);
     try {
