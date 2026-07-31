@@ -173,7 +173,8 @@ hör gruppspecifik information hemma:
 
 Det ordnade `occasions`-fältet har semantik:
 
-- första värdet är obligatoriskt primärt användningssammanhang;
+- listan får vara tom tills gruppen känner stället tillräckligt väl;
+- första värdet, när det finns, är primärt användningssammanhang;
 - andra värdet är valfritt sekundärt sammanhang;
 - äldre extra värden ignoreras tills en behörig användare sparar om.
 
@@ -239,6 +240,25 @@ värden är 1, 2, 3, 5, 10, 25 och 50 km.
 
 Skrivning går atomiskt genom `replace_group_search_settings`. Nya grupper skapas
 med områden och gemensam radie genom `create_group_with_owner_v2`.
+
+### Dolda providersökträffar
+
+`group_hidden_place_suggestions` är en gruppspecifik spärrlista för felaktiga
+eller inaktuella träffar från en extern platsleverantör. Identiteten är
+`(group_id, provider, provider_place_id)`.
+
+- Döljning påverkar bara söklistan och kartan i den aktuella gruppen.
+- Det kanoniska matstället, `places` och andra gruppers sökningar påverkas inte.
+- Alla aktiva gruppmedlemmar får läsa spärrlistan så att samma filtrering gäller
+  i gruppen.
+- Endast ägare och admin får dölja eller återställa en live-träff.
+- Direkt tabellåtkomst är spärrad; läsning och skrivning går genom
+  medlemskapsvaliderande RPC-funktioner.
+- Exempel- och demoläge lagrar motsvarande provideridentitet endast i den
+  aktuella webbläsarsessionen och gör inga live-skrivningar.
+- Providerträffar som uttryckligen är märkta som nedlagda, övergivna, rivna
+  eller borttagna filtreras före sökresultatet. Avsaknad av webbplats eller
+  öppettider räcker inte som grund för automatisk bortfiltrering.
 
 ## 7. Kanoniska besök
 
