@@ -1,7 +1,4 @@
-import {
-  CHANGELOG as CHANGELOG_THROUGH_1_6,
-  type ChangelogEntry,
-} from "./version-through-1-6";
+import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./version-through-1-6";
 
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
@@ -9,8 +6,7 @@ export type { ChangelogEntry };
 const VERSION_1_8_0_CHANGELOG: ChangelogEntry = {
   version: "1.8.0",
   date: "2026-07-31",
-  summary:
-    "Stabilare mobilval och renare platssökning när gruppen letar efter sitt nästa ställe.",
+  summary: "Stabilare mobilval och renare platssökning när gruppen letar efter sitt nästa ställe.",
   sections: [
     {
       kind: "Nytt",
