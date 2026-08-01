@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./versi
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
+const VERSION_1_10_1_CHANGELOG: ChangelogEntry = {
+  version: "1.10.1",
+  date: "2026-08-01",
+  summary: "Ett tydligt Välj flera-läge gör masstillägg snabbare utan att tynga det vanliga flödet.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Sökresultat använder åter det enkla enskilda tillägget som normalläge.",
+        "Masstillägg aktiveras uttryckligen med Välj flera och visar först då kryssrutor och batchåtgärden.",
+        "Listan och kartan följer samma läge, och Avbryt återställer normalläget utan kvarvarande val.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_10_0_CHANGELOG: ChangelogEntry = {
   version: "1.10.0",
   date: "2026-08-01",
@@ -151,6 +167,7 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_10_1_CHANGELOG,
   VERSION_1_10_0_CHANGELOG,
   VERSION_1_9_0_CHANGELOG,
   VERSION_1_8_1_CHANGELOG,
