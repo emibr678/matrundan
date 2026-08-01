@@ -61,6 +61,7 @@ const requiredFunctions = [
   "fail_place_data_report_osm_submission_v1",
   "get_place_data_report_osm_refresh_v1",
   "update_place_data_report_osm_status_v1",
+  "link_provider_source_to_existing_place_v1",
 ];
 
 for (const name of requiredFunctions) {
