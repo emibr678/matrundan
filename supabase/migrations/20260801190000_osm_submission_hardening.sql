@@ -47,14 +47,15 @@ SELECT
   r.id,
   r.group_id,
   r.osm_submitted_by,
-  attempt_number,
+  attempts.attempt_number,
   COALESCE(
     r.osm_public_reference,
-    'MR-' || upper(substr(md5(r.id::text || ':' || attempt_number::text), 1, 10))
+    'MR-' || upper(substr(md5(r.id::text || ':' || attempts.attempt_number::text), 1, 10))
   ),
   COALESCE(r.osm_submission_started_at, r.updated_at, r.created_at, now())
 FROM public.place_data_reports r
-CROSS JOIN LATERAL generate_series(1, r.osm_submission_attempts) AS attempt_number
+CROSS JOIN LATERAL generate_series(1, r.osm_submission_attempts)
+  AS attempts(attempt_number)
 WHERE r.osm_submission_attempts > 0
 ON CONFLICT (report_id, attempt_number) DO NOTHING;
 
@@ -212,6 +213,15 @@ BEGIN
     RAISE EXCEPTION
       'Matstället har redan en aktiv OpenStreetMap-koppling. Rapporten ska inte publiceras';
   END IF;
+
+  -- Serialisera kvotkontrollen över olika rapporter för samma användare och
+  -- grupp. Låsen tas alltid i samma ordning för att undvika låscykler.
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended('osm-submit-user:' || _uid::text, 0)
+  );
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended('osm-submit-group:' || _group_id::text, 0)
+  );
 
   IF (
     SELECT count(*)
