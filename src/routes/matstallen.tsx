@@ -72,6 +72,7 @@ function PlacesLayout() {
 
 type Sort = "senaste" | "betyg" | "namn";
 type Filter = "alla" | "favoriter" | "nytt-for-gruppen" | "nytt-for-mig";
+type MissingField = "cuisines" | "occasions";
 type View = "lista" | "karta";
 
 const QUICK_FILTERS: { key: Filter; label: string }[] = [
@@ -87,6 +88,7 @@ function PlacesIndex() {
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
+  const [missingFields, setMissingFields] = React.useState<MissingField[]>([]);
   const [topOccasion, setTopOccasion] = React.useState<Occasion>("avslappnat");
   const [topOpen, setTopOpen] = React.useState(false);
 
@@ -105,13 +107,18 @@ function PlacesIndex() {
   );
 
   const activeAdvancedCount =
-    (category !== "alla" ? 1 : 0) + (occasion !== "alla" ? 1 : 0) + (sort !== "senaste" ? 1 : 0);
+    (category !== "alla" ? 1 : 0) +
+    (occasion !== "alla" ? 1 : 0) +
+    missingFields.length +
+    (sort !== "senaste" ? 1 : 0);
 
   const filtered = React.useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     let list = activePlaces.filter((place) => {
       if (category !== "alla" && place.category !== category) return false;
       if (occasion !== "alla" && !place.occasions.includes(occasion)) return false;
+      if (missingFields.includes("cuisines") && place.cuisines.length > 0) return false;
+      if (missingFields.includes("occasions") && place.occasions.length > 0) return false;
       if (filter === "favoriter" && !isFavorite(place.id)) return false;
       if (filter === "nytt-for-gruppen" && statusOf(place.id) !== "nytt-for-gruppen") {
         return false;
@@ -142,7 +149,18 @@ function PlacesIndex() {
       list.sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1));
     }
     return list;
-  }, [activePlaces, query, category, occasion, filter, sort, avgRating, isFavorite, statusOf]);
+  }, [
+    activePlaces,
+    query,
+    category,
+    occasion,
+    missingFields,
+    filter,
+    sort,
+    avgRating,
+    isFavorite,
+    statusOf,
+  ]);
 
   React.useEffect(() => {
     if (selectedPlaceId && filtered.some((place) => place.id === selectedPlaceId)) {
@@ -163,6 +181,7 @@ function PlacesIndex() {
   const clearAdvanced = () => {
     setCategory("alla");
     setOccasion("alla");
+    setMissingFields([]);
     setSort("senaste");
   };
 
@@ -298,7 +317,6 @@ function PlacesIndex() {
         </Collapsible>
       ) : null}
 
-
       <div className="flex flex-wrap items-center gap-2">
         {QUICK_FILTERS.map((item) => {
           const active = filter === item.key;
@@ -374,6 +392,22 @@ function PlacesIndex() {
                   ]}
                   value={occasion}
                   onChange={(value) => setOccasion(value as Occasion | "alla")}
+                />
+              </FilterGroup>
+              <FilterGroup label="Saknar uppgifter">
+                <MultiChipRow
+                  options={[
+                    { key: "cuisines", label: "Kök/inriktning" },
+                    { key: "occasions", label: "Passar för" },
+                  ]}
+                  values={missingFields}
+                  onToggle={(value) =>
+                    setMissingFields((current) =>
+                      current.includes(value)
+                        ? current.filter((item) => item !== value)
+                        : [...current, value],
+                    )
+                  }
                 />
               </FilterGroup>
               <FilterGroup label="Sortera">
@@ -503,6 +537,40 @@ function ChipRow({
             key={option.key}
             type="button"
             onClick={() => onChange(option.key)}
+            aria-pressed={active}
+            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Badge
+              variant={active ? "default" : "outline"}
+              className="min-h-8 cursor-pointer rounded-full px-3 py-1"
+            >
+              {option.label}
+            </Badge>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MultiChipRow({
+  options,
+  values,
+  onToggle,
+}: {
+  options: { key: MissingField; label: string }[];
+  values: MissingField[];
+  onToggle: (value: MissingField) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrera på saknade uppgifter">
+      {options.map((option) => {
+        const active = values.includes(option.key);
+        return (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => onToggle(option.key)}
             aria-pressed={active}
             className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
