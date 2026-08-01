@@ -3,6 +3,29 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./versi
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
+const VERSION_1_13_0_CHANGELOG: ChangelogEntry = {
+  version: "1.13.0",
+  date: "2026-08-01",
+  summary: "Granskade anonyma OSM-anteckningar med privat statusuppföljning.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Ägare och administratörer kan redigera och bekräfta den exakta offentliga texten innan en förberedd rapport publiceras anonymt till OpenStreetMap.",
+        "Publicerade OSM-anteckningar får en offentlig länk och en status som kan kontrolleras manuellt från gruppens privata granskningskö.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Gruppnamn, rapportör, interna anteckningar och interna identifierare skickas inte automatiskt till OpenStreetMap.",
+        "Exempelgruppen och testsandboxen simulerar publicering och statuskontroll lokalt utan extern OSM-trafik.",
+        "En neutral referens och atomisk reservation minskar risken för dubbla anteckningar efter osäkra nätverksavbrott.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_12_0_CHANGELOG: ChangelogEntry = {
   version: "1.12.0",
   date: "2026-08-01",
@@ -212,6 +235,7 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_13_0_CHANGELOG,
   VERSION_1_12_0_CHANGELOG,
   VERSION_1_11_0_CHANGELOG,
   VERSION_1_10_1_CHANGELOG,
