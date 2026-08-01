@@ -296,9 +296,7 @@ export function PlaceDiscoveryV16({
       onToggleBulkSelection={
         bulkMode
           ? (item) => {
-              const result = availableResults.find(
-                (candidate) => candidate.externalId === item.id,
-              );
+              const result = availableResults.find((candidate) => candidate.externalId === item.id);
               if (result) onToggleSelected(result);
             }
           : undefined
