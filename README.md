@@ -27,6 +27,9 @@ individuell matdagbok, social feed eller global ranking.
 - Deduplicerade sökresultat i lista och karta. Nya och tidigare borttagna
   ställen visas som möjliga att lägga till, medan aktiva gruppställen samlas i
   den stängda sektionen **Redan i gruppen**.
+- Matställets egen webbplats visas diskret på detaljsidan när en giltig adress
+  finns. Geoapify- och OpenStreetMap-identiteter bevaras separat så platsdata kan
+  följas över tid utan att äldre besök skrivs om.
 - Flera nya sökträffar kan markeras och läggas till i samma omgång. Providerdata
   används där den finns och osäkra gruppuppgifter kan kompletteras senare.
 - Filter för **Saknar uppgifter** hjälper gruppen hitta ställen utan kök och
@@ -81,8 +84,12 @@ gruppscopade read-models, serverfunktioner och validerade RPC-anrop.
 
 Gruppen är den primära produkt- och integritetsgränsen.
 
-- `places` representerar kanoniska verkliga matställen.
-- `group_places` innehåller gruppens relation, metadata och aktiva lista.
+- `places` representerar kanoniska verkliga matställen och kan innehålla en
+  normaliserad kanonisk webbplats.
+- `place_sources` kopplar externa Geoapify- och OpenStreetMap-identiteter till
+  ett matställe och bevarar observationstid samt aktiv eller ersatt koppling.
+- `group_places` innehåller gruppens relation, metadata, eventuell
+  webbplatsöverstyrning och aktiva lista.
 - `group_search_areas` innehåller gruppens verifierade sökcentrum.
 - `group_hidden_place_suggestions` innehåller gruppens spärrlista för externa
   sökträffar utan att radera det kanoniska matstället.
@@ -93,9 +100,11 @@ Gruppen är den primära produkt- och integritetsgränsen.
 - `next_stop_date_proposals` och `next_stop_date_responses` innehåller gruppens
   privata planering.
 
-Den primära live-läsningen går genom `get_group_app_state_v5e`. Känsliga
-skrivningar använder validerade `SECURITY DEFINER`-RPC:er med låst
-`search_path`, autentisering, medlemskapskontroller och relevanta rollkrav.
+Den primära live-läsningen går genom `get_group_app_state_v5f` med strikt
+fallback till `get_group_app_state_v5e` endast när den nya funktionen uttryckligen
+saknas. Rå providerdata stannar på serversidan. Känsliga skrivningar använder
+validerade `SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering,
+medlemskapskontroller och relevanta rollkrav.
 
 Ursprungsgruppens identitet, privata kommentarer och medlemskap lämnar aldrig
 servern vid delning. Endast faktiska deltagare får progression; registreraren
