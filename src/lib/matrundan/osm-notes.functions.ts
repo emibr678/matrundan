@@ -98,11 +98,7 @@ async function responseJson(response: Response): Promise<unknown> {
   try {
     return await response.json();
   } catch {
-    throw new OsmRequestError(
-      "OpenStreetMap svarade med ett oväntat format.",
-      "malformed",
-      false,
-    );
+    throw new OsmRequestError("OpenStreetMap svarade med ett oväntat format.", "malformed", false);
   }
 }
 
@@ -237,10 +233,7 @@ export const publishAnonymousOsmNote = createServerFn({ method: "POST" })
       throw new Error(prepared.error.message ?? "Kunde inte förbereda OSM-publiceringen.");
     }
     const submission = prepareSchema.parse(prepared.data);
-    const finalText = composeOsmNoteText(
-      submission.publicText,
-      submission.publicReference,
-    );
+    const finalText = composeOsmNoteText(submission.publicText, submission.publicReference);
 
     try {
       const existing = await searchExistingNote(
