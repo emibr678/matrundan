@@ -78,8 +78,8 @@ const sourceSchema = z.object({
 
 const reportSchema = z.object({
   id: z.string().uuid(),
-  groupId: z.string().uuid(),
-  placeId: z.string().uuid(),
+  groupId: z.string().min(1),
+  placeId: z.string().min(1),
   placeName: z.string(),
   placeAddress: z.string(),
   placeCity: z.string(),
