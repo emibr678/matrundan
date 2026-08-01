@@ -77,6 +77,7 @@ export function PlaceDiscoveryV16({
   const [retry, setRetry] = React.useState(0);
   const requestRef = React.useRef(0);
   const previousBulkBusyRef = React.useRef(false);
+  const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
 
   const activeAreas = React.useMemo(() => {
@@ -90,6 +91,10 @@ export function PlaceDiscoveryV16({
     }
     previousBulkBusyRef.current = bulkBusy;
   }, [bulkBusy, selectedResults.length]);
+
+  React.useEffect(() => {
+    if (!bulkMode && !bulkBusy && selectedResults.length > 0) onClearSelected();
+  }, [bulkBusy, bulkMode, onClearSelected, selectedResults.length]);
 
   const loadHiddenSuggestions = React.useCallback(async () => {
     if (!groupId) {
@@ -240,8 +245,15 @@ export function PlaceDiscoveryV16({
     setSelectedId(id);
     const result = availableResults.find((candidate) => candidate.externalId === id);
     if (!result || interactionsDisabled) return;
-    if (bulkMode) onToggleSelected(result);
-    else onBeginAdd(result);
+    if (bulkMode) {
+      const now = performance.now();
+      const previous = lastMapToggleRef.current;
+      if (previous?.id === id && now - previous.at < 150) return;
+      lastMapToggleRef.current = { id, at: now };
+      onToggleSelected(result);
+    } else {
+      onBeginAdd(result);
+    }
   }
 
   const mapResults = existingOpen ? visibleResults : availableResults;
