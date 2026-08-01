@@ -42,7 +42,10 @@ const categoryIntro: Record<PlaceDataReportCategory, string> = {
 };
 
 function normalizeLineBreaks(value: string): string {
-  return value.replace(/\r\n?/g, "\n").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n");
+  return value
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
 }
 
 export function normalizeOsmPublicText(value: string): string {
