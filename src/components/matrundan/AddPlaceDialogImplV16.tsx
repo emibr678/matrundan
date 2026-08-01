@@ -20,6 +20,12 @@ import {
   type BulkPlaceAddItemResult,
   type BulkPlaceAddResult,
 } from "@/lib/matrundan/bulk-place-add";
+import {
+  hiddenPlaceRecordKey,
+  hiddenPlaceSuggestionKey,
+  listDemoHiddenPlaceSuggestions,
+  listGroupHiddenPlaceSuggestions,
+} from "@/lib/matrundan/hidden-place-suggestions";
 import { liveCreateOrLinkProviderPlacesBatch } from "@/lib/matrundan/live-mutations";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
@@ -43,14 +49,33 @@ export function AddPlaceDialogV16({
   const [bulkBusy, setBulkBusy] = React.useState(false);
 
   React.useEffect(() => {
-    const clearHiddenSelection = () => setSelectedResults([]);
-    window.addEventListener("matrundan:hidden-place-suggestions-changed", clearHiddenSelection);
+    const removeHiddenSelections = () => {
+      const groupId = mode === "live" ? activeGroupId : state.group.id;
+      if (!groupId) return;
+
+      void Promise.resolve(
+        mode === "live"
+          ? listGroupHiddenPlaceSuggestions(groupId)
+          : listDemoHiddenPlaceSuggestions(groupId),
+      )
+        .then((rows) => {
+          const hiddenKeys = new Set(rows.map(hiddenPlaceRecordKey));
+          setSelectedResults((current) =>
+            current.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
+          );
+        })
+        .catch((error) => {
+          console.warn("[Matrundan] kunde inte rensa dolda bulkval:", error);
+        });
+    };
+
+    window.addEventListener("matrundan:hidden-place-suggestions-changed", removeHiddenSelections);
     return () =>
       window.removeEventListener(
         "matrundan:hidden-place-suggestions-changed",
-        clearHiddenSelection,
+        removeHiddenSelections,
       );
-  }, []);
+  }, [activeGroupId, mode, state.group.id]);
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen && !bulkBusy) {
