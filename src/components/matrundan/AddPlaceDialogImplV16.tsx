@@ -60,7 +60,9 @@ export function AddPlaceDialogV16({
   const { mode, activeGroupId, exampleMode } = useSession();
   const [tab, setTab] = React.useState<Tab>("sok");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
-  const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(null);
+  const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
+    null,
+  );
   const [addedResultIds, setAddedResultIds] = React.useState<Set<string>>(() => new Set());
   const [selectedResults, setSelectedResults] = React.useState<PlaceSuggestion[]>([]);
   const [bulkBusy, setBulkBusy] = React.useState(false);
@@ -307,8 +309,8 @@ export function AddPlaceDialogV16({
             <AlertDialogTitle>Länka till befintligt matställe?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3 text-left">
               <span className="block">
-                Sökträffen <strong>{pendingSourceMatch?.result.name}</strong> verkar motsvara gruppens
-                manuella ställe <strong>{pendingSourceMatch?.place.name}</strong>.
+                Sökträffen <strong>{pendingSourceMatch?.result.name}</strong> verkar motsvara
+                gruppens manuella ställe <strong>{pendingSourceMatch?.place.name}</strong>.
               </span>
               <span className="grid gap-2 rounded-xl bg-muted/50 p-3 text-xs">
                 <span>
@@ -325,9 +327,9 @@ export function AddPlaceDialogV16({
                 </span>
               </span>
               <span className="block">
-                Bara den externa källidentiteten länkas. Det befintliga plats-ID:t, besök,
-                omdömen och privata gruppuppgifter bevaras. Åtgärden slår inte ihop två redan
-                etablerade matställen.
+                Bara den externa källidentiteten länkas. Det befintliga plats-ID:t, besök, omdömen
+                och privata gruppuppgifter bevaras. Åtgärden slår inte ihop två redan etablerade
+                matställen.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
