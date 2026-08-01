@@ -40,9 +40,7 @@ async function readExistingCount(dialog: Locator) {
 }
 
 async function selectForBulk(dialog: Locator, name: string) {
-  await dialog
-    .getByRole("checkbox", { name: `Välj ${name} för masstillägg`, exact: true })
-    .click();
+  await dialog.getByRole("checkbox", { name: `Välj ${name} för masstillägg`, exact: true }).click();
 }
 
 test("flera sökträffar markeras och läggs till i samma omgång", async ({ page }) => {
@@ -95,11 +93,8 @@ test("flera sökträffar markeras och läggs till i samma omgång", async ({ pag
       exact: true,
     }),
   ).toHaveCount(0);
-  await expect(
-    dialog.getByRole("link", { name: "Öppna", exact: true }).filter({
-      has: dialog.getByText("Päronträdets Trattoria", { exact: true }),
-    }),
-  ).toHaveCount(0);
+  await expect(dialog.getByText("Päronträdets Trattoria", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Hagabackens Kafferum", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Masstillägg och redan tillagda vid 360 px");
 
   await dialog.getByRole("button", { name: "Klar", exact: true }).click();
