@@ -69,14 +69,14 @@ test("gruppen granskar och simulerar en anonym OSM-anteckning privat", async ({ 
     "Webbplatsen i kartdatan verkar vara inaktuell. Verksamhetens skylt visar en annan officiell webbplats.",
   );
   await expectNoHorizontalOverflow(page, "Offentlig OSM-text på mobil");
-  await placeDataSection
-    .getByRole("button", { name: "Publicera anonym OSM-anteckning" })
-    .click();
+  await placeDataSection.getByRole("button", { name: "Publicera anonym OSM-anteckning" }).click();
 
   const confirmation = page.getByRole("alertdialog", {
     name: "Publicera offentligt till OpenStreetMap?",
   });
-  await expect(confirmation.getByText(/kan inte redigeras, kommenteras eller stängas/)).toBeVisible();
+  await expect(
+    confirmation.getByText(/kan inte redigeras, kommenteras eller stängas/),
+  ).toBeVisible();
   await confirmation.getByRole("button", { name: "Publicera anonymt" }).click();
 
   await expect(placeDataSection.getByText(/Simulerad OSM-anteckning/)).toBeVisible();
