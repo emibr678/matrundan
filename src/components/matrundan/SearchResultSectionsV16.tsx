@@ -1,15 +1,24 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDown, Link2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
+import type { ManualSourceMatchReason } from "@/lib/matrundan/manual-place-source-linking";
+import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-source-linking";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
 
+export interface SourceMatchResult {
+  result: PlaceSuggestion;
+  place: Place;
+  reason: ManualSourceMatchReason;
+}
+
 export function SearchResultSectionsV16({
   available,
+  sourceMatches,
   existing,
   existingOpen,
   onExistingOpenChange,
@@ -19,10 +28,12 @@ export function SearchResultSectionsV16({
   onSelect,
   onToggleSelected,
   onAdd,
+  onLinkSource,
   places,
   disabled,
 }: {
   available: PlaceSuggestion[];
+  sourceMatches: SourceMatchResult[];
   existing: PlaceSuggestion[];
   existingOpen: boolean;
   onExistingOpenChange: (open: boolean) => void;
@@ -32,11 +43,52 @@ export function SearchResultSectionsV16({
   onSelect: (id: string) => void;
   onToggleSelected: (result: PlaceSuggestion) => void;
   onAdd: (result: PlaceSuggestion) => void;
+  onLinkSource: (match: SourceMatchResult) => void;
   places: Place[];
   disabled: boolean;
 }) {
   return (
     <div className="space-y-4">
+      {sourceMatches.length > 0 ? (
+        <section aria-label="Möjliga matchningar i gruppen" className="space-y-2">
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed text-muted-foreground">
+            <p className="font-medium text-foreground">Möjlig match i gruppen</p>
+            <p className="mt-1">
+              Granska innan den externa källan länkas. Befintliga besök, omdömen och gruppuppgifter
+              ligger kvar på samma matställe.
+            </p>
+          </div>
+          {sourceMatches.map((match) => (
+            <SuggestionRowV16
+              key={match.result.externalId}
+              result={match.result}
+              selected={selectedId === match.result.externalId}
+              bulkSelected={false}
+              bulkMode={false}
+              interactionLabel={`Visa möjlig matchning för ${match.result.name}`}
+              onSelect={() => onSelect(match.result.externalId)}
+              footer={
+                <span className="text-[11px] text-muted-foreground">
+                  Matchar {match.place.name}: {MANUAL_SOURCE_MATCH_REASON_LABEL[match.reason]}
+                </span>
+              }
+              action={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="min-h-11 w-full sm:w-auto"
+                  disabled={disabled}
+                  onClick={() => onLinkSource(match)}
+                >
+                  <Link2 className="h-4 w-4" /> Granska länk
+                </Button>
+              }
+            />
+          ))}
+        </section>
+      ) : null}
+
       <section className="space-y-2">
         {available.length > 0 ? (
           available.map((result) => {
@@ -82,11 +134,11 @@ export function SearchResultSectionsV16({
               />
             );
           })
-        ) : (
+        ) : sourceMatches.length === 0 ? (
           <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
             Inga nya ställen i den här sökningen.
           </p>
-        )}
+        ) : null}
       </section>
 
       {existing.length > 0 ? (
@@ -149,6 +201,7 @@ function SuggestionRowV16({
   interactionLabel,
   onSelect,
   action,
+  footer,
 }: {
   result: PlaceSuggestion;
   selected: boolean;
@@ -157,6 +210,7 @@ function SuggestionRowV16({
   interactionLabel?: string;
   onSelect: () => void;
   action: React.ReactNode;
+  footer?: React.ReactNode;
 }) {
   return (
     <div
@@ -195,6 +249,7 @@ function SuggestionRowV16({
               {result.address}
             </span>
           ) : null}
+          {footer ? <span className="mt-2 block break-words">{footer}</span> : null}
         </span>
       </button>
       <div className={bulkMode ? "absolute right-2 top-2" : "shrink-0"}>{action}</div>

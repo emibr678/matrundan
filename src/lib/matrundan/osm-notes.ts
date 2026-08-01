@@ -33,6 +33,7 @@ const PUBLIC_TEXT_MIN = 20;
 const PUBLIC_TEXT_MAX = 1000;
 
 const categoryIntro: Record<PlaceDataReportCategory, string> = {
+  missing_in_osm: "Verksamheten verkar saknas i OpenStreetMaps kartdata.",
   closed_or_replaced: "Verksamheten på platsen verkar vara stängd eller ersatt.",
   wrong_name: "Namnet i kartdatan verkar vara inaktuellt.",
   wrong_address: "Adressen eller kartpositionen verkar vara fel.",

@@ -25,6 +25,20 @@ describe("anonyma OSM-anteckningar", () => {
     expect(text).not.toContain("rapportör");
   });
 
+  test("förklarar att ett granskat manuellt ställe saknas i OSM", () => {
+    const text = buildDefaultOsmPublicText({
+      placeName: "Nya Hörnet",
+      placeAddress: "Hörngatan 4",
+      placeCity: "Stockholm",
+      category: "missing_in_osm",
+      description: "Verksamheten finns på plats och har en egen skylt.",
+    });
+
+    expect(text).toContain("Verksamheten verkar saknas i OpenStreetMaps kartdata.");
+    expect(text).toContain("Nya Hörnet (Hörngatan 4, Stockholm)");
+    expect(text).not.toContain("grupp");
+  });
+
   test("normaliserar text och lägger till en icke-intern publik referens", () => {
     expect(normalizeOsmPublicText("  Första raden.\r\n\r\n\r\nAndra raden.  ")).toBe(
       "Första raden.\n\nAndra raden.",

@@ -2,7 +2,7 @@ import * as React from "react";
 import { Check, List, Loader2, Map, Search } from "lucide-react";
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
 import { SearchAreaControlsV16 } from "./SearchAreaControlsV16";
-import { SearchResultSectionsV16 } from "./SearchResultSectionsV16";
+import { SearchResultSectionsV16, type SourceMatchResult } from "./SearchResultSectionsV16";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,15 @@ import {
   listDemoHiddenPlaceSuggestions,
   listGroupHiddenPlaceSuggestions,
 } from "@/lib/matrundan/hidden-place-suggestions";
+import {
+  findManualSourceLinkCandidate,
+  hasActiveProviderSource,
+} from "@/lib/matrundan/manual-place-source-linking";
+import {
+  hasLocalManualSourceLink,
+  listLocalManualSourceLinks,
+  type LocalManualSourceLink,
+} from "@/lib/matrundan/manual-place-source-links";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
@@ -26,7 +35,7 @@ import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type SearchArea, type SearchRadiusKm } from "@/lib/matrundan/types";
 
 type ResultView = "lista" | "karta";
-type ResultStatus = "available" | "existing";
+type ResultStatus = "available" | "linkable" | "existing";
 
 export function PlaceDiscoveryV16({
   addedResultIds,
@@ -36,6 +45,7 @@ export function PlaceDiscoveryV16({
   onClearSelected,
   onAddSelected,
   onBeginAdd,
+  onLinkSource,
   onClose,
 }: {
   addedResultIds: Set<string>;
@@ -45,12 +55,16 @@ export function PlaceDiscoveryV16({
   onClearSelected: () => void;
   onAddSelected: () => void;
   onBeginAdd: (suggestion: PlaceSuggestion) => void;
+  onLinkSource: (match: SourceMatchResult) => void;
   onClose: () => void;
 }) {
   const { state, submitting } = useStore();
-  const { mode, activeGroupId } = useSession();
+  const { mode, activeGroupId, exampleMode } = useSession();
   const isLive = mode === "live";
   const groupId = isLive ? activeGroupId : state.group.id;
+  const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
+  const canLinkSources = currentRole === "ägare" || currentRole === "admin";
+  const localStorageKind = exampleMode ? "session" : "local";
   const savedAreas = React.useMemo(() => configuredSearchAreas(state, isLive), [isLive, state]);
   const selectedResultIds = React.useMemo(
     () => new Set(selectedResults.map((result) => result.externalId)),
@@ -66,6 +80,7 @@ export function PlaceDiscoveryV16({
   );
   const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
   const [hiddenKeys, setHiddenKeys] = React.useState<Set<string>>(() => new Set());
+  const [localSourceLinks, setLocalSourceLinks] = React.useState<LocalManualSourceLink[]>([]);
   const [hiddenLoading, setHiddenLoading] = React.useState(true);
   const [failedAreas, setFailedAreas] = React.useState<string[]>([]);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -95,6 +110,17 @@ export function PlaceDiscoveryV16({
   React.useEffect(() => {
     if (!bulkMode && !bulkBusy && selectedResults.length > 0) onClearSelected();
   }, [bulkBusy, bulkMode, onClearSelected, selectedResults.length]);
+
+  React.useEffect(() => {
+    if (isLive || !groupId) {
+      setLocalSourceLinks([]);
+      return;
+    }
+    const load = () => setLocalSourceLinks(listLocalManualSourceLinks(groupId, localStorageKind));
+    load();
+    window.addEventListener("matrundan:manual-place-source-links-changed", load);
+    return () => window.removeEventListener("matrundan:manual-place-source-links-changed", load);
+  }, [groupId, isLive, localStorageKind]);
 
   const loadHiddenSuggestions = React.useCallback(async () => {
     if (!groupId) {
@@ -207,13 +233,39 @@ export function PlaceDiscoveryV16({
     [hiddenKeys, results],
   );
 
+  const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
+    if (!canLinkSources) return [];
+    return visibleResults.flatMap((result) => {
+      if (
+        addedResultIds.has(result.externalId) ||
+        state.places.some((place) => hasActiveProviderSource(place, result)) ||
+        hasLocalManualSourceLink(localSourceLinks, result)
+      ) {
+        return [];
+      }
+      const match = findManualSourceLinkCandidate(state.places, result);
+      return match ? [{ result, place: match.place, reason: match.reason }] : [];
+    });
+  }, [addedResultIds, canLinkSources, localSourceLinks, state.places, visibleResults]);
+  const sourceMatchIds = React.useMemo(
+    () => new Set(sourceMatches.map((match) => match.result.externalId)),
+    [sourceMatches],
+  );
+
   const statusForResult = React.useCallback(
     (suggestion: PlaceSuggestion): ResultStatus => {
-      if (addedResultIds.has(suggestion.externalId)) return "existing";
+      if (
+        addedResultIds.has(suggestion.externalId) ||
+        state.places.some((place) => hasActiveProviderSource(place, suggestion)) ||
+        hasLocalManualSourceLink(localSourceLinks, suggestion)
+      ) {
+        return "existing";
+      }
+      if (sourceMatchIds.has(suggestion.externalId)) return "linkable";
       const match = matchingPlace(state.places, suggestion);
       return match && match.collectionStatus !== "archived" ? "existing" : "available";
     },
-    [addedResultIds, state.places],
+    [addedResultIds, localSourceLinks, sourceMatchIds, state.places],
   );
   const availableResults = React.useMemo(
     () => visibleResults.filter((result) => statusForResult(result) === "available"),
@@ -225,11 +277,12 @@ export function PlaceDiscoveryV16({
   );
 
   React.useEffect(() => {
-    const visible = existingOpen ? visibleResults : availableResults;
+    const primaryResults = [...sourceMatches.map((match) => match.result), ...availableResults];
+    const visible = existingOpen ? [...primaryResults, ...existingResults] : primaryResults;
     if (!visible.some((result) => result.externalId === selectedId)) {
       setSelectedId(visible[0]?.externalId ?? null);
     }
-  }, [availableResults, existingOpen, selectedId, visibleResults]);
+  }, [availableResults, existingOpen, existingResults, selectedId, sourceMatches]);
 
   function toggleBulkMode() {
     if (bulkMode) {
@@ -256,7 +309,7 @@ export function PlaceDiscoveryV16({
     }
   }
 
-  const mapResults = existingOpen ? visibleResults : availableResults;
+  const mapResults = existingOpen ? [...availableResults, ...existingResults] : availableResults;
   const mapItems: MultiAreaMapItem[] = mapResults.map((result) => ({
     id: result.externalId,
     name: result.name,
@@ -280,6 +333,7 @@ export function PlaceDiscoveryV16({
   const resultSections = (
     <SearchResultSectionsV16
       available={availableResults}
+      sourceMatches={sourceMatches}
       existing={existingResults}
       existingOpen={existingOpen}
       onExistingOpenChange={setExistingOpen}
@@ -289,6 +343,7 @@ export function PlaceDiscoveryV16({
       onSelect={setSelectedId}
       onToggleSelected={onToggleSelected}
       onAdd={onBeginAdd}
+      onLinkSource={onLinkSource}
       places={state.places}
       disabled={interactionsDisabled}
     />
@@ -446,8 +501,8 @@ export function PlaceDiscoveryV16({
           role="status"
         >
           <Check className="h-4 w-4 shrink-0 text-primary" />
-          {addedResultIds.size} {addedResultIds.size === 1 ? "ställe tillagt" : "ställen tillagda"}{" "}
-          i den här omgången
+          {addedResultIds.size}{" "}
+          {addedResultIds.size === 1 ? "ställe hanterat" : "ställen hanterade"} i den här omgången
         </div>
       ) : null}
 

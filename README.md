@@ -30,6 +30,11 @@ individuell matdagbok, social feed eller global ranking.
 - Matställets egen webbplats visas diskret på detaljsidan när en giltig adress
   finns. Geoapify- och OpenStreetMap-identiteter bevaras separat så platsdata kan
   följas över tid utan att äldre besök skrivs om.
+- Manuella matställen kan få en verifierad kartposition och ett privat underlag
+  om att verksamheten saknas i OpenStreetMap. Inget publiceras automatiskt.
+- När en senare Geoapify- eller OSM-träff säkert motsvarar ett providerlöst
+  manuellt ställe kan ägare/admin länka källan till det befintliga stället utan
+  att skapa en dubblett eller skriva om gruppens historik.
 - Flera nya sökträffar kan markeras och läggas till i samma omgång. Providerdata
   används där den finns och osäkra gruppuppgifter kan kompletteras senare.
 - Filter för **Saknar uppgifter** hjälper gruppen hitta ställen utan kök och
@@ -75,8 +80,8 @@ exempelgruppen.
 
 En interaktiv, helt fiktiv grupp som återanvänder produktens vanliga gränssnitt.
 Ändringar sparas endast i den aktuella flikens `sessionStorage` och gör inga
-live-skrivningar. OSM-publicering och statuskontroll simuleras lokalt utan
-externa nätverksanrop.
+live-skrivningar. OSM-publicering, statuskontroll och källkoppling simuleras
+lokalt utan externa nätverksanrop.
 
 ### Intern testsandbox (`?demo=1`)
 
@@ -96,8 +101,12 @@ Gruppen är den primära produkt- och integritetsgränsen.
   normaliserad kanonisk webbplats.
 - `place_sources` kopplar externa Geoapify- och OpenStreetMap-identiteter till
   ett matställe och bevarar observationstid samt aktiv eller ersatt koppling.
+  En bekräftad källkoppling är kanonisk och kan därför hjälpa andra grupper som
+  redan länkar samma verkliga ställe, men får aldrig innehålla ursprungsgrupp,
+  medlemskap eller privata gruppfält.
 - `group_places` innehåller gruppens relation, metadata, eventuell
-  webbplatsöverstyrning och aktiva lista.
+  webbplatsöverstyrning och aktiva lista. En källkoppling skriver inte om dessa
+  gruppprivata uppgifter eller platsens befintliga historik.
 - `group_search_areas` innehåller gruppens verifierade sökcentrum.
 - `group_hidden_place_suggestions` innehåller gruppens spärrlista för externa
   sökträffar utan att radera det kanoniska matstället.
@@ -123,10 +132,10 @@ validerade `SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering,
 medlemskapskontroller och relevanta rollkrav.
 
 Ursprungsgruppens identitet, privata kommentarer och medlemskap lämnar aldrig
-servern vid delning. Vid OSM-publicering lämnar bara den uttryckligt granskade
-offentliga texten, kartpositionen och en neutral Matrundan-referens appen. Endast
-faktiska deltagare får progression; registreraren får ingen extra kredit och
-återbesök räknas.
+servern vid delning eller källkoppling. Vid OSM-publicering lämnar bara den
+uttryckligt granskade offentliga texten, kartpositionen och en neutral
+Matrundan-referens appen. Endast faktiska deltagare får progression;
+registreraren får ingen extra kredit och återbesök räknas.
 
 Den kanoniska arkitekturkällan finns i
 [docs/architecture.md](./docs/architecture.md).
