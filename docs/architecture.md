@@ -150,15 +150,42 @@ Medlemskap har roll och livscykel. Viktiga invariants:
 ### `places`
 
 `places` representerar ett verkligt matställe oberoende av grupp. Ett provider-
-ställe identifieras primärt med `(provider, provider_place_id)`.
+ställe identifieras primärt genom en aktiv rad i `place_sources`, inte genom namn
+eller adress.
 
-Namn/adress kan användas som ett kontrollerat reservfall för manuella ställen,
-men ersätter inte provideridentiteten.
+Namn och adress kan användas som ett kontrollerat reservfall för manuella
+ställen, men ersätter inte en extern källidentitet. `places.website` innehåller
+en normaliserad kanonisk webbplats när en tillförlitlig HTTP- eller HTTPS-adress
+finns.
 
 ### `place_sources`
 
-Providerrelaterad metadata hör till det kanoniska stället. Råa
-providerpayloads är inte en stabil appmodell och ska inte skickas till klienten.
+`place_sources` kopplar externa källidentiteter till ett kanoniskt matställe.
+Geoapifys `place_id` och en underliggande OpenStreetMap-identitet lagras som
+separata källrader när båda finns. OSM-identiteten innehåller objekttyp och ID,
+exempelvis `node:123`, `way:456` eller `relation:789`.
+
+En källrad har en egen livscykel:
+
+- `active` är den identitet som för närvarande kopplar källobjektet till
+  matstället;
+- `superseded` bevarar en äldre koppling utan att den används för nya
+  dedupliceringsbeslut;
+- `first_seen_at` och `last_seen_at` beskriver observationer;
+- `valid_from` och `valid_to` beskriver kopplingens giltighetsperiod.
+
+Samma `(provider, provider_place_id)` får bara ha en aktiv koppling, men äldre
+ersatta kopplingar får bevaras. Ett byte av verksamhet eller källidentitet får
+inte skriva om äldre besök, omdömen eller grupphistorik.
+
+Rå providerdata är serverintern och är inte en stabil appmodell. Klientens
+read-model får endast innehålla begränsad källidentitet och livscykelmetadata som
+behövs av appen; `place_sources.raw` ska inte lämna servern.
+
+Paketet för platsdatagrunden lagrar OSM-identitet för långsiktig spårbarhet men
+gör ingen fuzzy matchning, automatisk sammanslagning av motstridiga kanoniska
+platser eller administrativ ersättningshantering. Osäkra konflikter ska lämnas
+orörda tills ett separat granskningsflöde har godkänts.
 
 ### `group_places`
 
@@ -168,8 +195,13 @@ hör gruppspecifik information hemma:
 - anteckning;
 - kategori, kök och inriktning;
 - upp till två likvärdiga **Passar för**-val;
+- eventuell gruppspecifik `website_override`;
 - vem som lade till stället och hur relationen uppstod;
 - om stället finns i gruppens aktiva lista.
+
+En giltig `website_override` ersätter den kanoniska webbplatsen endast i den
+aktuella gruppens read-model. Överstyrningen är gruppprivat och får inte påverka
+andra grupper eller skriva om `places.website`.
 
 `occasions`-fältet har följande semantik:
 
@@ -199,6 +231,19 @@ val kräver ingen databasrensning eller migration.
 Kända ursprung normaliseras som `manual`, `provider` och `shared`. Okända värden
 ska falla säkert mot delat/importerat, inte manuellt, eftersom ett manuellt
 fallback kan ge felaktig gamification.
+
+### Webbplatslänkar
+
+Webbplatsdata från användare eller leverantör ska normaliseras innan den används:
+
+- endast `http` och `https` accepteras;
+- en domän utan protokoll kompletteras med `https`;
+- credentials, whitespace, ogiltiga värden och andra protokoll avvisas;
+- fragment tas bort;
+- längden begränsas.
+
+Webbplatsen är en sekundär länk på matställets detaljsida bredvid Google Maps.
+Den ska inte göra söklistan tyngre eller konkurrera med gruppens primära flöden.
 
 ### Livscykel i gruppen
 
@@ -377,9 +422,13 @@ eller metadata om ursprungsgruppen.
 
 ## 10. Säker read-model
 
-`get_group_app_state_v5e(_group_id)` är den primära live-läsgränsen. Den bygger
-vidare på v5d och lägger till gruppens `searchAreas` och
-`defaultSearchRadiusKm` utan att öppna direkt tabellåtkomst.
+`get_group_app_state_v5f(_group_id)` är den primära live-läsgränsen. Den bygger
+vidare på v5e och lägger till resolverad webbplats samt begränsad källidentitet
+för gruppens matställen utan att öppna direkt tabellåtkomst.
+
+Klienten får falla tillbaka till `get_group_app_state_v5e(_group_id)` endast när
+PostgREST uttryckligen rapporterar att v5f saknas. Behörighets-, nätverks- och
+datafel får aldrig döljas genom fallback.
 
 Funktionen är `SECURITY DEFINER` med låst `search_path` och ska:
 
@@ -387,6 +436,9 @@ Funktionen är `SECURITY DEFINER` med låst `search_path` och ska:
 - kräva aktivt medlemskap i exakt `_group_id`;
 - returnera endast en grupps data;
 - exponera endast fält som appen behöver;
+- resolvera gruppens webbplatsöverstyrning före den kanoniska webbplatsen;
+- endast lämna ut provider, provider-ID och källans livscykelmetadata;
+- aldrig lämna ut `place_sources.raw`;
 - bevara tillåtna historiska visningsnamn;
 - anonymisera externa deltagare;
 - utelämna ursprungsgruppens identitet;
@@ -436,6 +488,8 @@ begränsat anrop per centrum och:
 - validerar maximalt antal centrum och tillåten radie;
 - normaliserar resultat till en providerneutral modell;
 - deduplicerar primärt på provider + provider place ID;
+- bevarar giltig underliggande OSM-typ och OSM-ID i den begränsade metadata som
+  skickas till skrivgränsen;
 - behåller kortaste avståndet och närmaste områdesetikett;
 - sorterar på kortaste avstånd och därefter namn;
 - begränsar totalen till högst 50 unika resultat;
@@ -447,6 +501,16 @@ sektionen **Redan i gruppen**. Listan och kartan ska använda samma
 deduplicerade resultatmodell. Endast nya och tidigare borttagna kandidater kan
 markeras för masstillägg.
 
+De enskilda och batchbaserade provider-RPC:erna ska:
+
+- slå upp endast aktiva källkopplingar för nya dedupliceringsbeslut;
+- uppdatera senaste observation för en redan känd aktiv källa;
+- bevara webbplats när den saknas på den kanoniska platsen;
+- skapa en separat OpenStreetMap-källrad när giltig typ och ID finns;
+- aldrig skriva över gruppens befintliga metadata vid återaktivering;
+- aldrig automatiskt slå ihop två olika kanoniska platser när källorna pekar
+  motstridigt.
+
 `create_or_link_provider_places_batch_v1` är den godkända skrivgränsen för
 masstillägg:
 
@@ -454,7 +518,7 @@ masstillägg:
 - aktiv autentiserad medlem och aktiv grupp krävs;
 - varje träff valideras och isoleras så att en felaktig post inte rullar tillbaka
   andra lyckade poster;
-- kanoniska platser dedupliceras på provider och provider place ID;
+- kanoniska platser dedupliceras på aktiv provideridentitet;
 - en tidigare borttagen grupprelation återaktiveras utan att befintlig
   gruppmetadata skrivs över;
 - kategori och tillgängliga provideruppgifter om kök/inriktning används vid en
