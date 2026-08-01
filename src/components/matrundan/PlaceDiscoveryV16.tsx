@@ -2,10 +2,7 @@ import * as React from "react";
 import { Check, List, Loader2, Map, Search } from "lucide-react";
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
 import { SearchAreaControlsV16 } from "./SearchAreaControlsV16";
-import {
-  SearchResultSectionsV16,
-  type SourceMatchResult,
-} from "./SearchResultSectionsV16";
+import { SearchResultSectionsV16, type SourceMatchResult } from "./SearchResultSectionsV16";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,7 +116,8 @@ export function PlaceDiscoveryV16({
       setLocalSourceLinks([]);
       return;
     }
-    const load = () => setLocalSourceLinks(listLocalManualSourceLinks(groupId, localStorageKind));
+    const load = () =>
+      setLocalSourceLinks(listLocalManualSourceLinks(groupId, localStorageKind));
     load();
     window.addEventListener("matrundan:manual-place-source-links-changed", load);
     return () => window.removeEventListener("matrundan:manual-place-source-links-changed", load);
@@ -267,7 +265,9 @@ export function PlaceDiscoveryV16({
       if (sourceMatchIds.has(suggestion.externalId)) return "linkable";
       const match = matchingPlace(state.places, suggestion);
       return match && match.collectionStatus !== "archived" ? "existing" : "available";
-    }, [addedResultIds, localSourceLinks, sourceMatchIds, state.places]);
+    },
+    [addedResultIds, localSourceLinks, sourceMatchIds, state.places],
+  );
   const availableResults = React.useMemo(
     () => visibleResults.filter((result) => statusForResult(result) === "available"),
     [statusForResult, visibleResults],
@@ -502,8 +502,8 @@ export function PlaceDiscoveryV16({
           role="status"
         >
           <Check className="h-4 w-4 shrink-0 text-primary" />
-          {addedResultIds.size} {addedResultIds.size === 1 ? "ställe hanterat" : "ställen hanterade"}{" "}
-          i den här omgången
+          {addedResultIds.size}{" "}
+          {addedResultIds.size === 1 ? "ställe hanterat" : "ställen hanterade"} i den här omgången
         </div>
       ) : null}
 
