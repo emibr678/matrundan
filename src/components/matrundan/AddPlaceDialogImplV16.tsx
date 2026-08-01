@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
 import {
   completedBulkExternalIds,
   remainingBulkSelections,
@@ -23,7 +24,6 @@ import { liveCreateOrLinkProviderPlacesBatch } from "@/lib/matrundan/live-mutati
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
-import { emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
 
 type Tab = "sok" | "manuell";
 
@@ -133,10 +133,11 @@ export function AddPlaceDialogV16({
     if (bulkBusy || selectedResults.length === 0) return;
     setBulkBusy(true);
     try {
+      if (mode === "live" && !activeGroupId) throw new Error("Ingen aktiv grupp.");
       const result =
         mode === "live"
           ? await liveCreateOrLinkProviderPlacesBatch(
-              activeGroupId ?? "",
+              activeGroupId!,
               selectedResults.map(toProviderPlaceBatchInput),
             )
           : await addDemoResults(selectedResults);
@@ -153,15 +154,21 @@ export function AddPlaceDialogV16({
       if (result.failed > 0) {
         toast.warning(
           `${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}. ${result.failed} kunde inte läggas till.`,
-          { description: "De misslyckade ställena är fortfarande valda så att du kan försöka igen." },
+          {
+            description:
+              "De misslyckade ställena är fortfarande valda så att du kan försöka igen.",
+          },
         );
       } else if (addedCount > 0) {
-        toast.success(`${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}`, {
-          description:
-            result.existing > 0
-              ? `${result.existing} fanns redan i gruppen. Uppgifter kan kompletteras löpande.`
-              : "Uppgifter kan kompletteras löpande i gruppens lista.",
-        });
+        toast.success(
+          `${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}`,
+          {
+            description:
+              result.existing > 0
+                ? `${result.existing} fanns redan i gruppen. Uppgifter kan kompletteras löpande.`
+                : "Uppgifter kan kompletteras löpande i gruppens lista.",
+          },
+        );
       } else {
         toast.info("De valda ställena finns redan i gruppen.");
       }
