@@ -7,7 +7,6 @@ import { PlaceDiscoveryV16 } from "./PlaceDiscoveryV16";
 import type { SourceMatchResult } from "./SearchResultSectionsV16";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -15,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -333,10 +333,14 @@ export function AddPlaceDialogV16({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={sourceLinkBusy}>Avbryt</AlertDialogCancel>
-            <AlertDialogAction disabled={sourceLinkBusy} onClick={() => void confirmSourceLink()}>
-              {sourceLinkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+            <Button disabled={sourceLinkBusy} onClick={() => void confirmSourceLink()}>
+              {sourceLinkBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Link2 className="h-4 w-4" />
+              )}
               Länka källa
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
