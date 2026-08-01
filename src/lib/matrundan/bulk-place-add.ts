@@ -45,9 +45,7 @@ function parseRawProviderData(raw: string | undefined): unknown {
   }
 }
 
-export function toProviderPlaceBatchInput(
-  suggestion: PlaceSuggestion,
-): ProviderPlaceBatchInput {
+export function toProviderPlaceBatchInput(suggestion: PlaceSuggestion): ProviderPlaceBatchInput {
   return {
     externalId: suggestion.externalId,
     provider: suggestion.provider ?? "geoapify",
@@ -80,17 +78,13 @@ export function remainingBulkSelections(
   result: BulkPlaceAddResult,
 ): PlaceSuggestion[] {
   const failedIds = new Set(
-    result.items
-      .filter((item) => item.status === "failed")
-      .map((item) => item.externalId),
+    result.items.filter((item) => item.status === "failed").map((item) => item.externalId),
   );
   return current.filter((item) => failedIds.has(item.externalId));
 }
 
 export function completedBulkExternalIds(result: BulkPlaceAddResult): string[] {
-  return result.items
-    .filter((item) => item.status !== "failed")
-    .map((item) => item.externalId);
+  return result.items.filter((item) => item.status !== "failed").map((item) => item.externalId);
 }
 
 export function successfulBulkPlaceCount(result: BulkPlaceAddResult): number {
