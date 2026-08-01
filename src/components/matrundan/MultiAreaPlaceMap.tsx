@@ -325,20 +325,10 @@ export function MultiAreaPlaceMap({
         source: SOURCE,
         filter: ["!", ["has", "point_count"]],
         paint: {
-          "circle-radius": [
-            "case",
-            ["boolean", ["get", "bulkSelected"], false],
-            18,
-            14,
-          ],
+          "circle-radius": ["case", ["boolean", ["get", "bulkSelected"], false], 18, 14],
           "circle-color": background,
           "circle-stroke-color": primary,
-          "circle-stroke-width": [
-            "case",
-            ["boolean", ["get", "bulkSelected"], false],
-            5,
-            2,
-          ],
+          "circle-stroke-width": ["case", ["boolean", ["get", "bulkSelected"], false], 5, 2],
         },
       });
       map.addLayer({
