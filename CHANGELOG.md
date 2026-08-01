@@ -11,6 +11,24 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.14.1] – 2026-08-01
+
+### Fixat
+
+- Ett äldre underlag om att ett matställe saknas i OpenStreetMap kan inte
+  publiceras efter att platsen fått en aktiv OSM-koppling.
+- Opublicerade **Saknas i OpenStreetMap**-underlag avslutas automatiskt när en
+  verklig OSM-källa länkas till matstället.
+
+### Databas och säkerhet
+
+- Varje faktiskt OSM-publiceringsförsök sparas i en privat append-only-logg, så
+  misslyckade nätverksförsök fortfarande räknas mot dygnsgränsen.
+- Kvotkontrollen serialiseras per användare och grupp så parallella försök inte
+  kan passera samma gräns.
+- En pågående OSM-publicering blockerar samtidig källkoppling. Publiceringen
+  kontrollerar också den aktuella OSM-källan precis innan reservationen.
+
 ## [1.14.0] – 2026-08-01
 
 ### Lagt till

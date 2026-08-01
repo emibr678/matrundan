@@ -134,8 +134,9 @@ Självbetjänad kontoradering är serverorkestrerad:
 - namn, avatar, kommentarer, favoriter, planeringssvar och privat media tas bort;
 - numeriska omdömen och genomförd deltagandehistorik bevaras anonymt som
   **Tidigare medlem**;
-- kopplingen till den som skickat en offentlig OSM-anteckning tas bort, medan
-  note-ID och offentlig status kan bevaras som neutral grupphistorik;
+- kopplingen till den som skickat en offentlig OSM-anteckning eller startat ett
+  OSM-publiceringsförsök tas bort, medan note-ID, offentlig status och neutral
+  försöksstatistik kan bevaras som grupphistorik;
 - auth-användaren hanteras med service role först efter att databastransaktion
   och privat objektstädning har lyckats.
 
@@ -226,6 +227,13 @@ låser externa identiteter under transaktionen, lägger till Geoapify- och
 eventuell exakt OSM-källa och returnerar samma befintliga `place_id`. Den får
 endast fylla saknad kanonisk kartposition eller webbplats. Den får inte skriva
 över namn, adress, `group_places`, besök, omdömen eller privat historik.
+
+När en aktiv OSM-källa skapas för ett matställe ska ännu opublicerade
+`missing_in_osm`-rapporter för samma kanoniska plats avslutas atomiskt. En
+nyligen startad OSM-publicering blockerar samtidig källkoppling; en inaktuell
+reservation får däremot avslutas tillsammans med rapporten. På så sätt kan inte
+en gammal ögonblicksbild fortsätta som publicerbart underlag efter att den
+kanoniska källstatusen förändrats.
 
 En bekräftad källidentitet är kanonisk och kan därför hjälpa andra grupper som
 redan länkar samma verkliga `places`-rad. Källraden får aldrig innehålla eller
@@ -426,8 +434,15 @@ Publiceringsgränsen har följande invariants:
 
 - endast aktiv ägare/admin i rapportens grupp får starta publiceringen;
 - rapporten måste vara `ready_for_osm` och ha både latitud och longitud;
+- för `missing_in_osm` ska servern kontrollera aktuell aktiv OSM-källa igen
+  precis före reservationen; rapportens äldre ögonblicksbild räcker inte;
 - reservation, försök och slumpmässig offentlig referens sparas atomiskt före
   nätverksanropet;
+- varje faktiskt reservationsförsök sparas i den privata append-only-tabellen
+  `place_data_report_osm_submission_attempts`, även om det externa anropet
+  senare misslyckas;
+- dygnsgränser räknas från försöksloggen, inte från rapportens nuvarande
+  publiceringsstatus, och kvotkontrollen serialiseras per användare och grupp;
 - en rapport kan bara kopplas till ett OSM-note-ID och samma note-ID eller
   offentlig referens får inte kopplas till flera rapporter;
 - låga dygnsgränser per person och grupp motverkar automatiserad fel-dumpning;
@@ -435,7 +450,7 @@ Publiceringsgränsen har följande invariants:
   efter ett osäkert nätverksavbrott;
 - bara `service_role` får bekräfta note-ID, offentlig URL och extern status;
 - den autentiserade klienten får läsa sin grupps OSM-status men inte direkt
-  skriva den;
+  skriva den eller läsa försöksloggen;
 - status kontrolleras manuellt och ingen bakgrundspollning ingår;
 - anonym publicering ger ingen möjlighet att kommentera eller stänga noten från
   Matrundan; appen ska inte lova att OSM-communityn hanterar den inom viss tid;
@@ -443,7 +458,8 @@ Publiceringsgränsen har följande invariants:
 
 Den slutligt publicerade texten sparas för transparens i gruppens privata kö.
 OSM-note-ID, offentlig URL, status och kontrolltid kan bevaras även när den som
-publicerade senare raderar sitt konto, men personkopplingen ska då nollas.
+publicerade senare raderar sitt konto, men personkopplingen i både rapporten och
+försöksloggen ska då nollas.
 
 ## 7. Kanoniska besök
 
@@ -812,6 +828,9 @@ Före merge av en arkitekturpåverkande ändring:
 - Är varje read och write scoperad till rätt grupp?
 - Kan en annan grupps namn, medlem, kommentar eller ursprung exponeras?
 - Lämnar bara uttryckligen godkänd data gruppgränsen vid extern publicering?
+- Kontrolleras aktuell extern källstatus vid publicering i stället för att bara
+  lita på en äldre rapportögonblicksbild?
+- Är publiceringskvoter baserade på faktiska försök och säkra mot samtidighet?
 - Är en kanonisk källkoppling fri från gruppidentitet och privata gruppfält?
 - Avvisas tvetydiga och redan använda externa identiteter utan auto-merge?
 - Nekas tidigare medlemmar aktuell åtkomst?
