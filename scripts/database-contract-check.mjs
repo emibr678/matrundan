@@ -54,7 +54,13 @@ const requiredFunctions = [
   "create_or_link_provider_places_batch_v1",
   "create_place_data_report_v1",
   "list_group_place_data_reports_v1",
+  "list_group_place_data_reports_v2",
   "review_place_data_report_v1",
+  "prepare_place_data_report_osm_submission_v1",
+  "complete_place_data_report_osm_submission_v1",
+  "fail_place_data_report_osm_submission_v1",
+  "get_place_data_report_osm_refresh_v1",
+  "update_place_data_report_osm_status_v1",
 ];
 
 for (const name of requiredFunctions) {
@@ -80,6 +86,14 @@ for (const column of [
   "last_seen_at",
   "valid_from",
   "valid_to",
+  "osm_submission_state",
+  "osm_public_reference",
+  "osm_public_text",
+  "osm_note_id",
+  "osm_note_url",
+  "osm_note_status",
+  "osm_note_last_checked_at",
+  "osm_submitted_by",
 ]) {
   if (!new RegExp(`ADD\\s+COLUMN\\s+IF\\s+NOT\\s+EXISTS\\s+${column}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar den additiva kolumnen ${column}.`);
@@ -89,6 +103,8 @@ for (const index of [
   "place_sources_active_provider_identity_uidx",
   "place_sources_active_place_provider_uidx",
   "place_data_reports_active_reporter_issue_uidx",
+  "place_data_reports_osm_note_id_uidx",
+  "place_data_reports_osm_public_reference_uidx",
 ]) {
   if (!new RegExp(`CREATE\\s+UNIQUE\\s+INDEX\\s+IF\\s+NOT\\s+EXISTS\\s+${index}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar det partiella unika indexet ${index}.`);
@@ -115,6 +131,11 @@ if (!existsSync(preflightPath)) {
     "place_sources_active_provider_identity_uidx",
     "place_sources_active_place_provider_uidx",
     "place_data_reports_active_reporter_issue_uidx",
+    "place_data_reports.osm_submission_state",
+    "place_data_reports.osm_note_id",
+    "place_data_reports.osm_note_status",
+    "place_data_reports_osm_note_id_uidx",
+    "place_data_reports_osm_public_reference_uidx",
   ]) {
     if (!preflight.includes(object)) {
       errors.push(`Produktions-preflight saknar ${object}.`);
