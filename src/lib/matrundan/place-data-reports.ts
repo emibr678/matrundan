@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+import {
+  normalizeOsmPublicText,
+  OSM_NOTE_STATUSES,
+  OSM_SUBMISSION_STATES,
+  type OsmNoteStatus,
+  type OsmSubmissionState,
+} from "./osm-notes";
 import { rpcClient } from "./rpc-client";
 import type { Member, Place } from "./types";
 
@@ -58,6 +65,15 @@ export interface PlaceDataReport {
   reviewedAt: string | null;
   resolutionNote: string | null;
   sources: PlaceDataReportSource[];
+  osmSubmissionState: OsmSubmissionState;
+  osmSubmissionErrorCode: string | null;
+  osmPublicText: string | null;
+  osmNoteId: string | null;
+  osmNoteUrl: string | null;
+  osmNoteStatus: OsmNoteStatus | null;
+  osmNoteCreatedAt: string | null;
+  osmNoteLastCheckedAt: string | null;
+  osmNoteClosedAt: string | null;
 }
 
 export interface CreatePlaceDataReportInput {
@@ -96,6 +112,15 @@ const reportSchema = z.object({
   reviewedAt: z.string().nullable(),
   resolutionNote: z.string().nullable(),
   sources: z.array(sourceSchema),
+  osmSubmissionState: z.enum(OSM_SUBMISSION_STATES).default("not_submitted"),
+  osmSubmissionErrorCode: z.string().nullable().default(null),
+  osmPublicText: z.string().nullable().default(null),
+  osmNoteId: z.string().nullable().default(null),
+  osmNoteUrl: z.string().nullable().default(null),
+  osmNoteStatus: z.enum(OSM_NOTE_STATUSES).nullable().default(null),
+  osmNoteCreatedAt: z.string().nullable().default(null),
+  osmNoteLastCheckedAt: z.string().nullable().default(null),
+  osmNoteClosedAt: z.string().nullable().default(null),
 });
 
 const reportListSchema = z.array(reportSchema);
@@ -103,6 +128,14 @@ const createResultSchema = z.object({ id: z.string().uuid(), created: z.boolean(
 
 const LOCAL_STORAGE_PREFIX = "matrundan.place-data-reports.v1";
 const ACTIVE_STATUSES = new Set<PlaceDataReportStatus>(["open", "ready_for_osm"]);
+
+function shouldFallbackToReportListV1(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : "";
+  return (
+    /could not find the function|schema cache/i.test(message) &&
+    message.toLocaleLowerCase("en-US").includes("list_group_place_data_reports_v2")
+  );
+}
 
 export function normalizePlaceDataReportDescription(value: string): string {
   const normalized = value.trim().replace(/\s+/g, " ");
@@ -143,12 +176,22 @@ export async function createGroupPlaceDataReport(
 }
 
 export async function listGroupPlaceDataReports(groupId: string): Promise<PlaceDataReport[]> {
-  return rpcClient.call(
-    "list_group_place_data_reports_v1",
-    { _group_id: groupId },
-    reportListSchema,
-    "Servern returnerade ett oväntat rapportformat.",
-  );
+  try {
+    return await rpcClient.call(
+      "list_group_place_data_reports_v2",
+      { _group_id: groupId },
+      reportListSchema,
+      "Servern returnerade ett oväntat rapportformat.",
+    );
+  } catch (error) {
+    if (!shouldFallbackToReportListV1(error)) throw error;
+    return rpcClient.call(
+      "list_group_place_data_reports_v1",
+      { _group_id: groupId },
+      reportListSchema,
+      "Servern returnerade ett oväntat rapportformat.",
+    );
+  }
 }
 
 export async function reviewGroupPlaceDataReport(
@@ -245,6 +288,15 @@ export function createLocalPlaceDataReport(
       providerPlaceId: source.providerPlaceId,
       status: source.status,
     })),
+    osmSubmissionState: "not_submitted",
+    osmSubmissionErrorCode: null,
+    osmPublicText: null,
+    osmNoteId: null,
+    osmNoteUrl: null,
+    osmNoteStatus: null,
+    osmNoteCreatedAt: null,
+    osmNoteLastCheckedAt: null,
+    osmNoteClosedAt: null,
   };
   saveLocalPlaceDataReports(groupId, storageKind, [report, ...current]);
   return { id: report.id, created: true };
@@ -270,6 +322,52 @@ export function reviewLocalPlaceDataReport(
           reviewedAt: now,
           updatedAt: now,
         }
+      : report,
+  );
+  saveLocalPlaceDataReports(groupId, storageKind, next);
+}
+
+export function publishLocalOsmNote(
+  groupId: string,
+  reportId: string,
+  publicText: string,
+  storageKind: LocalReportStorage,
+): void {
+  const now = new Date().toISOString();
+  const reports = listLocalPlaceDataReports(groupId, storageKind);
+  const next = reports.map((report) => {
+    if (report.id !== reportId) return report;
+    if (report.status !== "ready_for_osm") {
+      throw new Error("Rapporten måste först förberedas för OpenStreetMap.");
+    }
+    if (report.osmNoteId) throw new Error("Rapporten är redan publicerad.");
+    return {
+      ...report,
+      osmSubmissionState: "published" as const,
+      osmSubmissionErrorCode: null,
+      osmPublicText: normalizeOsmPublicText(publicText),
+      osmNoteId: `demo-${report.id}`,
+      osmNoteUrl: null,
+      osmNoteStatus: "open" as const,
+      osmNoteCreatedAt: now,
+      osmNoteLastCheckedAt: now,
+      osmNoteClosedAt: null,
+      updatedAt: now,
+    };
+  });
+  saveLocalPlaceDataReports(groupId, storageKind, next);
+}
+
+export function refreshLocalOsmNoteStatus(
+  groupId: string,
+  reportId: string,
+  storageKind: LocalReportStorage,
+): void {
+  const now = new Date().toISOString();
+  const reports = listLocalPlaceDataReports(groupId, storageKind);
+  const next = reports.map((report) =>
+    report.id === reportId && report.osmNoteId
+      ? { ...report, osmNoteLastCheckedAt: now, updatedAt: now }
       : report,
   );
   saveLocalPlaceDataReports(groupId, storageKind, next);
