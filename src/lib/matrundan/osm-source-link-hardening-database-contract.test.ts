@@ -31,12 +31,8 @@ describe("OSM-publicering och källkoppling håller samma aktuella sanning", () 
     expect(migration).toContain(
       "CREATE TABLE IF NOT EXISTS public.place_data_report_osm_submission_attempts",
     );
-    expect(migration).toContain(
-      "INSERT INTO public.place_data_report_osm_submission_attempts",
-    );
-    expect(migration).toContain(
-      "FROM public.place_data_report_osm_submission_attempts a",
-    );
+    expect(migration).toContain("INSERT INTO public.place_data_report_osm_submission_attempts");
+    expect(migration).toContain("FROM public.place_data_report_osm_submission_attempts a");
     expect(migration).toContain("a.submitted_by = _uid");
     expect(migration).toContain("a.group_id = _group_id");
     expect(migration).toContain("a.attempted_at >= now() - interval '24 hours'");
@@ -57,9 +53,7 @@ describe("OSM-publicering och källkoppling håller samma aktuella sanning", () 
       "REVOKE ALL ON TABLE public.place_data_report_osm_submission_attempts",
     );
     expect(migration).toContain("FROM PUBLIC, anon, authenticated");
-    expect(migration).toContain(
-      "UPDATE public.place_data_report_osm_submission_attempts",
-    );
+    expect(migration).toContain("UPDATE public.place_data_report_osm_submission_attempts");
     expect(migration).toContain("SET submitted_by = NULL");
   });
 });
