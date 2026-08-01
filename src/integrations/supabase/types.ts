@@ -151,6 +151,54 @@ export type Database = {
           },
         ]
       }
+      group_hidden_place_suggestions: {
+        Row: {
+          address: string
+          city: string
+          group_id: string
+          hidden_at: string
+          hidden_by: string | null
+          name: string
+          provider: string
+          provider_place_id: string
+        }
+        Insert: {
+          address?: string
+          city?: string
+          group_id: string
+          hidden_at?: string
+          hidden_by?: string | null
+          name: string
+          provider: string
+          provider_place_id: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          group_id?: string
+          hidden_at?: string
+          hidden_by?: string | null
+          name?: string
+          provider?: string
+          provider_place_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_hidden_place_suggestions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_hidden_place_suggestions_hidden_by_fkey"
+            columns: ["hidden_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_next_place: {
         Row: {
           group_id: string
@@ -210,6 +258,7 @@ export type Database = {
           place_id: string
           source_group_id: string | null
           updated_at: string
+          website_override: string | null
         }
         Insert: {
           added_by: string
@@ -226,6 +275,7 @@ export type Database = {
           place_id: string
           source_group_id?: string | null
           updated_at?: string
+          website_override?: string | null
         }
         Update: {
           added_by?: string
@@ -242,6 +292,7 @@ export type Database = {
           place_id?: string
           source_group_id?: string | null
           updated_at?: string
+          website_override?: string | null
         }
         Relationships: [
           {
@@ -274,12 +325,60 @@ export type Database = {
           },
         ]
       }
+      group_search_areas: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          label: string
+          lat: number
+          lng: number
+          provider: string
+          provider_place_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          label: string
+          lat: number
+          lng: number
+          provider: string
+          provider_place_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          label?: string
+          lat?: number
+          lng?: number
+          provider?: string
+          provider_place_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_search_areas_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groups: {
         Row: {
           archived_at: string | null
           archived_by: string | null
           created_at: string
           created_by: string
+          default_search_radius_km: number
           emoji: string | null
           home_lat: number | null
           home_lng: number | null
@@ -297,6 +396,7 @@ export type Database = {
           archived_by?: string | null
           created_at?: string
           created_by: string
+          default_search_radius_km?: number
           emoji?: string | null
           home_lat?: number | null
           home_lng?: number | null
@@ -314,6 +414,7 @@ export type Database = {
           archived_by?: string | null
           created_at?: string
           created_by?: string
+          default_search_radius_km?: number
           emoji?: string | null
           home_lat?: number | null
           home_lng?: number | null
@@ -645,30 +746,238 @@ export type Database = {
         }
         Relationships: []
       }
+      place_data_report_osm_submission_attempts: {
+        Row: {
+          attempt_number: number
+          attempted_at: string
+          group_id: string
+          id: string
+          public_reference: string
+          report_id: string
+          submitted_by: string | null
+        }
+        Insert: {
+          attempt_number: number
+          attempted_at?: string
+          group_id: string
+          id?: string
+          public_reference: string
+          report_id: string
+          submitted_by?: string | null
+        }
+        Update: {
+          attempt_number?: number
+          attempted_at?: string
+          group_id?: string
+          id?: string
+          public_reference?: string
+          report_id?: string
+          submitted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_data_report_osm_submission_attempts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_data_report_osm_submission_attempts_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "place_data_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_data_report_osm_submission_attempts_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_data_reports: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          group_id: string
+          id: string
+          osm_note_closed_at: string | null
+          osm_note_created_at: string | null
+          osm_note_id: number | null
+          osm_note_last_checked_at: string | null
+          osm_note_status: string | null
+          osm_note_url: string | null
+          osm_public_reference: string | null
+          osm_public_text: string | null
+          osm_submission_attempts: number
+          osm_submission_error_code: string | null
+          osm_submission_started_at: string | null
+          osm_submission_state: string
+          osm_submitted_by: string | null
+          place_id: string
+          reported_address: string
+          reported_city: string
+          reported_lat: number | null
+          reported_lng: number | null
+          reported_name: string
+          reported_sources: Json
+          reported_website: string | null
+          resolution_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          group_id: string
+          id?: string
+          osm_note_closed_at?: string | null
+          osm_note_created_at?: string | null
+          osm_note_id?: number | null
+          osm_note_last_checked_at?: string | null
+          osm_note_status?: string | null
+          osm_note_url?: string | null
+          osm_public_reference?: string | null
+          osm_public_text?: string | null
+          osm_submission_attempts?: number
+          osm_submission_error_code?: string | null
+          osm_submission_started_at?: string | null
+          osm_submission_state?: string
+          osm_submitted_by?: string | null
+          place_id: string
+          reported_address?: string
+          reported_city?: string
+          reported_lat?: number | null
+          reported_lng?: number | null
+          reported_name: string
+          reported_sources?: Json
+          reported_website?: string | null
+          resolution_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          group_id?: string
+          id?: string
+          osm_note_closed_at?: string | null
+          osm_note_created_at?: string | null
+          osm_note_id?: number | null
+          osm_note_last_checked_at?: string | null
+          osm_note_status?: string | null
+          osm_note_url?: string | null
+          osm_public_reference?: string | null
+          osm_public_text?: string | null
+          osm_submission_attempts?: number
+          osm_submission_error_code?: string | null
+          osm_submission_started_at?: string | null
+          osm_submission_state?: string
+          osm_submitted_by?: string | null
+          place_id?: string
+          reported_address?: string
+          reported_city?: string
+          reported_lat?: number | null
+          reported_lng?: number | null
+          reported_name?: string
+          reported_sources?: Json
+          reported_website?: string | null
+          resolution_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_data_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_data_reports_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_data_reports_osm_submitted_by_fkey"
+            columns: ["osm_submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_data_reports_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_data_reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       place_sources: {
         Row: {
           fetched_at: string
+          first_seen_at: string
           id: string
+          last_seen_at: string
           place_id: string
           provider: string
           provider_place_id: string
           raw: Json
+          status: string
+          valid_from: string
+          valid_to: string | null
         }
         Insert: {
           fetched_at?: string
+          first_seen_at?: string
           id?: string
+          last_seen_at?: string
           place_id: string
           provider: string
           provider_place_id: string
           raw?: Json
+          status?: string
+          valid_from?: string
+          valid_to?: string | null
         }
         Update: {
           fetched_at?: string
+          first_seen_at?: string
           id?: string
+          last_seen_at?: string
           place_id?: string
           provider?: string
           provider_place_id?: string
           raw?: Json
+          status?: string
+          valid_from?: string
+          valid_to?: string | null
         }
         Relationships: [
           {
@@ -695,6 +1004,7 @@ export type Database = {
           name: string
           photo_url: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
           added_by: string
@@ -710,6 +1020,7 @@ export type Database = {
           name: string
           photo_url?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
           added_by?: string
@@ -725,6 +1036,7 @@ export type Database = {
           name?: string
           photo_url?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -1101,6 +1413,18 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      complete_place_data_report_osm_submission_v1: {
+        Args: {
+          _note_closed_at: string
+          _note_created_at: string
+          _note_id: number
+          _note_status: string
+          _public_reference: string
+          _public_text: string
+          _report_id: string
+        }
+        Returns: undefined
+      }
       create_group_invitation: {
         Args: {
           _expires_in_days?: number
@@ -1118,6 +1442,15 @@ export type Database = {
           _home_place_id?: string
           _home_provider?: string
           _name: string
+        }
+        Returns: string
+      }
+      create_group_with_owner_v2: {
+        Args: {
+          _default_radius_km?: number
+          _emoji?: string
+          _name: string
+          _search_areas?: Json
         }
         Returns: string
       }
@@ -1161,6 +1494,30 @@ export type Database = {
         }
         Returns: string
       }
+      create_or_link_provider_place_v5f: {
+        Args: {
+          _address?: string
+          _area?: string
+          _category: string
+          _city?: string
+          _cuisines?: string[]
+          _group_id: string
+          _lat?: number
+          _lng?: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _photo_url?: string
+          _provider: string
+          _provider_place_id: string
+          _raw?: Json
+        }
+        Returns: string
+      }
+      create_or_link_provider_places_batch_v1: {
+        Args: { _group_id: string; _items: Json }
+        Returns: Json
+      }
       create_place: {
         Args: {
           _address?: string
@@ -1177,6 +1534,15 @@ export type Database = {
           _photo_url?: string
         }
         Returns: string
+      }
+      create_place_data_report_v1: {
+        Args: {
+          _category: string
+          _description: string
+          _group_id: string
+          _place_id: string
+        }
+        Returns: Json
       }
       create_place_v4b: {
         Args: {
@@ -1218,13 +1584,27 @@ export type Database = {
         Args: { _group_id: string; _visit_id: string }
         Returns: string
       }
+      fail_place_data_report_osm_submission_v1: {
+        Args: {
+          _error_code: string
+          _public_reference: string
+          _report_id: string
+        }
+        Returns: undefined
+      }
       get_account_deletion_requirements: { Args: never; Returns: Json }
       get_group_app_state: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v4b: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5c: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5d: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5e: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5f: { Args: { _group_id: string }; Returns: Json }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
       get_notification_settings: { Args: never; Returns: Json }
+      get_place_data_report_osm_refresh_v1: {
+        Args: { _group_id: string; _report_id: string }
+        Returns: Json
+      }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
@@ -1234,7 +1614,44 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      hide_group_place_suggestion: {
+        Args: {
+          _address?: string
+          _city?: string
+          _group_id: string
+          _name: string
+          _provider: string
+          _provider_place_id: string
+        }
+        Returns: undefined
+      }
       leave_group: { Args: { _group_id: string }; Returns: undefined }
+      link_provider_source_to_existing_place_v1: {
+        Args: {
+          _address: string
+          _city: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _name: string
+          _place_id: string
+          _provider: string
+          _provider_place_id: string
+          _raw?: Json
+        }
+        Returns: string
+      }
+      list_group_hidden_place_suggestions: {
+        Args: { _group_id: string }
+        Returns: {
+          address: string
+          city: string
+          hidden_at: string
+          name: string
+          provider: string
+          provider_place_id: string
+        }[]
+      }
       list_group_invitations: {
         Args: { _group_id: string }
         Returns: {
@@ -1250,6 +1667,14 @@ export type Database = {
           state: string
         }[]
       }
+      list_group_place_data_reports_v1: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      list_group_place_data_reports_v2: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
       list_own_visits_for_place_on_add: {
         Args: { _place_id: string; _target_group_id: string }
         Returns: Json
@@ -1264,12 +1689,18 @@ export type Database = {
         Args: { _visit_id: string }
         Returns: Json
       }
+      normalize_food_tags: { Args: { _values: string[] }; Returns: string[] }
+      normalize_place_website: { Args: { _value: string }; Returns: string }
       notification_type_enabled: {
         Args: { _type: string; _user_id: string }
         Returns: boolean
       }
       prepare_own_account_deletion: {
         Args: { _confirm_solo_group_deletion?: boolean; _successors?: Json }
+        Returns: Json
+      }
+      prepare_place_data_report_osm_submission_v1: {
+        Args: { _group_id: string; _public_text: string; _report_id: string }
         Returns: Json
       }
       propose_next_stop_date: {
@@ -1311,12 +1742,33 @@ export type Database = {
         Args: { _group_id: string; _visit_id: string }
         Returns: undefined
       }
+      replace_group_search_settings: {
+        Args: { _areas: Json; _default_radius_km: number; _group_id: string }
+        Returns: undefined
+      }
       respond_next_stop_date: {
         Args: { _group_id: string; _proposal_id: string; _response: string }
         Returns: undefined
       }
       restore_group_place: {
         Args: { _group_id: string; _place_id: string }
+        Returns: undefined
+      }
+      restore_group_place_suggestion: {
+        Args: {
+          _group_id: string
+          _provider: string
+          _provider_place_id: string
+        }
+        Returns: undefined
+      }
+      review_place_data_report_v1: {
+        Args: {
+          _group_id: string
+          _report_id: string
+          _resolution_note?: string
+          _status: string
+        }
         Returns: undefined
       }
       revoke_group_invitation: {
@@ -1412,6 +1864,16 @@ export type Database = {
           _service?: number
           _taste?: number
           _value?: number
+        }
+        Returns: undefined
+      }
+      update_place_data_report_osm_status_v1: {
+        Args: {
+          _note_closed_at: string
+          _note_id: number
+          _note_status: string
+          _public_reference: string
+          _report_id: string
         }
         Returns: undefined
       }
