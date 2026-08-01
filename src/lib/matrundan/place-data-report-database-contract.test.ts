@@ -35,10 +35,14 @@ describe("platsdatarapporternas databaskontrakt", () => {
     expect(sql).not.toContain("ps.raw");
   });
 
-  test("kontoradering kan anonymisera rapportören utan kvarvarande namnkopia", () => {
+  test("kontoradering anonymiserar rapportören och tar bort användarskrivet innehåll", () => {
     expect(sql).not.toContain("reporter_name_snapshot");
     expect(sql).toContain("'Tidigare medlem'");
     expect(sql).toContain("LEFT JOIN public.profiles reporter ON reporter.id = r.created_by");
+    expect(sql).toContain("SET description = ''Tidigare medlem rapporterade felaktig platsinformation''");
+    expect(sql).toContain("resolution_note = NULL");
+    expect(sql).toContain("WHERE reviewed_by = _uid");
+    expect(sql).toContain("Kontoraderingen kunde inte utökas för platsdatarapporter");
   });
 
   test("samtliga RPC:er är låsta till autentiserade användare", () => {
