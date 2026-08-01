@@ -18,7 +18,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("gruppen rapporterar och granskar felaktig platsdata privat", async ({ page }) => {
+test("gruppen granskar och simulerar en anonym OSM-anteckning privat", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen/p5?demo=1");
   await page.evaluate(() => {
@@ -49,7 +49,7 @@ test("gruppen rapporterar och granskar felaktig platsdata privat", async ({ page
   const placeDataSection = settings.getByRole("region", { name: "Platsdata" });
 
   await expect(placeDataSection.getByText("1 att granska")).toBeVisible();
-  await expect(placeDataSection.getByText(/publicerar ingenting ännu/)).toBeVisible();
+  await expect(placeDataSection.getByText(/särskilt granskad text och kartposition/)).toBeVisible();
   await placeDataSection.getByText("Glöd & Grönska", { exact: true }).click();
   await placeDataSection.getByLabel("Bedömning").selectOption("ready_for_osm");
   await placeDataSection
@@ -62,5 +62,29 @@ test("gruppen rapporterar och granskar felaktig platsdata privat", async ({ page
     placeDataSection.locator("summary").getByText("Förberedd för OpenStreetMap", { exact: true }),
   ).toBeVisible();
   await expect(placeDataSection.getByText("1 att granska")).toHaveCount(0);
-  await expectNoHorizontalOverflow(page, "Sparad OSM-förberedelse på mobil");
+
+  const publicText = placeDataSection.getByLabel("Offentlig text till OpenStreetMap");
+  await expect(publicText).toHaveValue(/Webbplatsen i kartdatan verkar vara fel/);
+  await publicText.fill(
+    "Webbplatsen i kartdatan verkar vara inaktuell. Verksamhetens skylt visar en annan officiell webbplats.",
+  );
+  await expectNoHorizontalOverflow(page, "Offentlig OSM-text på mobil");
+  await placeDataSection.getByRole("button", { name: "Publicera anonym OSM-anteckning" }).click();
+
+  const confirmation = page.getByRole("alertdialog", {
+    name: "Publicera offentligt till OpenStreetMap?",
+  });
+  await expect(
+    confirmation.getByText(/kan inte redigeras, kommenteras eller stängas/),
+  ).toBeVisible();
+  await confirmation.getByRole("button", { name: "Publicera anonymt" }).click();
+
+  await expect(placeDataSection.getByText(/Simulerad OSM-anteckning/)).toBeVisible();
+  await expect(
+    placeDataSection.locator("summary").getByText("Öppen i OpenStreetMap", { exact: true }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Simulerad OSM-anteckning på mobil");
+
+  await placeDataSection.getByRole("button", { name: "Kontrollera OSM-status" }).click();
+  await expect(placeDataSection.getByText(/Senast kontrollerad/)).toBeVisible();
 });
