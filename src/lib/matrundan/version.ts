@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./versi
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
+const VERSION_1_12_0_CHANGELOG: ChangelogEntry = {
+  version: "1.12.0",
+  date: "2026-08-01",
+  summary: "Privata platsdatarapporter och en tydlig granskningskö för gruppens admin.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Alla aktiva gruppmedlemmar kan rapportera felaktigt namn, adress, webbplats, dubblett eller en stängd och ersatt verksamhet direkt från matställets detaljsida.",
+        "Ägare och administratörer får en privat platsdatakö under Gruppinställningar med rapportens underlag och den platsinformation som gällde när rapporten skapades.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Rapporter kan vänta på granskning, förberedas för OpenStreetMap, markeras som åtgärdade i Matrundan eller avslutas utan åtgärd.",
+        "Förberedd för OpenStreetMap är ett internt tillstånd och publicerar ännu ingen offentlig anteckning.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_11_0_CHANGELOG: ChangelogEntry = {
   version: "1.11.0",
   date: "2026-08-01",
@@ -190,6 +212,7 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_12_0_CHANGELOG,
   VERSION_1_11_0_CHANGELOG,
   VERSION_1_10_1_CHANGELOG,
   VERSION_1_10_0_CHANGELOG,
