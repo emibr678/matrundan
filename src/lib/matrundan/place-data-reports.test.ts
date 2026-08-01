@@ -5,6 +5,8 @@ import {
   listLocalPlaceDataReports,
   normalizePlaceDataReportDescription,
   normalizePlaceDataResolutionNote,
+  publishLocalOsmNote,
+  refreshLocalOsmNoteStatus,
   reviewLocalPlaceDataReport,
 } from "./place-data-reports";
 import type { Member, Place } from "./types";
@@ -120,6 +122,7 @@ describe("platsdatarapporter", () => {
     expect(report?.sources).toEqual([
       { provider: "openstreetmap", providerPlaceId: "node:123", status: "active" },
     ]);
+    expect(report?.osmSubmissionState).toBe("not_submitted");
     expect(listLocalPlaceDataReports("demo-group", "session")).toEqual([]);
   });
 
@@ -150,5 +153,49 @@ describe("platsdatarapporter", () => {
     expect(report?.status).toBe("ready_for_osm");
     expect(report?.reviewerName).toBe("Alex");
     expect(report?.resolutionNote).toBe("Kontrollerad mot verksamhetens egen skyltning.");
+    expect(report?.osmNoteId).toBeNull();
+  });
+
+  test("simulerar publicering och statuskontroll utan extern OSM-trafik", () => {
+    const created = createLocalPlaceDataReport(
+      "demo-group",
+      place,
+      reporter,
+      {
+        category: "wrong_name",
+        description: "Skylten visar ett annat namn än kartan.",
+      },
+      "local",
+    );
+    expect(() =>
+      publishLocalOsmNote(
+        "demo-group",
+        created.id,
+        "Namnet behöver kontrolleras mot skylten på platsen.",
+        "local",
+      ),
+    ).toThrow("Rapporten måste först förberedas för OpenStreetMap.");
+
+    reviewLocalPlaceDataReport(
+      "demo-group",
+      created.id,
+      reviewer,
+      { status: "ready_for_osm", resolutionNote: null },
+      "local",
+    );
+    publishLocalOsmNote(
+      "demo-group",
+      created.id,
+      "Namnet behöver kontrolleras mot skylten på platsen.",
+      "local",
+    );
+    refreshLocalOsmNoteStatus("demo-group", created.id, "local");
+
+    const [report] = listLocalPlaceDataReports("demo-group", "local");
+    expect(report?.osmSubmissionState).toBe("published");
+    expect(report?.osmNoteStatus).toBe("open");
+    expect(report?.osmNoteUrl).toBeNull();
+    expect(report?.osmPublicText).toBe("Namnet behöver kontrolleras mot skylten på platsen.");
+    expect(report?.osmNoteLastCheckedAt).not.toBeNull();
   });
 });
