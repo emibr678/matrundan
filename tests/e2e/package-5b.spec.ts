@@ -70,11 +70,13 @@ test("flera sökträffar markeras i lista och karta och läggs till i samma omg�
   const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
   await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(dialog.locator('[data-bulk-selected-count="1"]:visible')).toBeVisible();
-  await expect(dialog.getByText("Deg & Dagg", { exact: true })).toBeVisible();
-  await dialog.getByRole("button", { name: "Markera", exact: true }).click();
-  await expect(dialog.locator('[data-bulk-selected-count="2"]:visible')).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Avmarkera", exact: true })).toBeVisible();
+  const visibleMap = dialog.locator('[data-bulk-selected-count="1"]:visible');
+  await expect(visibleMap).toBeVisible();
+  await expect(visibleMap.getByText("Deg & Dagg", { exact: true })).toBeVisible();
+  await visibleMap.getByRole("button", { name: "Markera", exact: true }).click();
+  const selectedMap = dialog.locator('[data-bulk-selected-count="2"]:visible');
+  await expect(selectedMap).toBeVisible();
+  await expect(selectedMap.getByRole("button", { name: "Avmarkera", exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Valda sökträffar på kartan");
 
   await dialog.getByRole("button", { name: "Lägg till 2 ställen", exact: true }).click();
