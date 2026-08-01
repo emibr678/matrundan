@@ -31,10 +31,7 @@ import {
   normalizeOsmPublicText,
   OSM_NOTE_STATUS_LABEL,
 } from "@/lib/matrundan/osm-notes";
-import {
-  publishAnonymousOsmNote,
-  refreshOsmNoteStatus,
-} from "@/lib/matrundan/osm-notes.functions";
+import { publishAnonymousOsmNote, refreshOsmNoteStatus } from "@/lib/matrundan/osm-notes.functions";
 import {
   listGroupPlaceDataReports,
   listLocalPlaceDataReports,
@@ -159,7 +156,9 @@ export function PlaceDataReportsSection() {
       await load();
       return true;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte publicera till OpenStreetMap.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte publicera till OpenStreetMap.",
+      );
       await load();
       return false;
     }
@@ -173,7 +172,9 @@ export function PlaceDataReportsSection() {
         refreshLocalOsmNoteStatus(groupId!, report.id, storageKind);
       }
       await load();
-      toast.success(mode === "live" ? "OSM-statusen är uppdaterad." : "Statuskontrollen är simulerad.");
+      toast.success(
+        mode === "live" ? "OSM-statusen är uppdaterad." : "Statuskontrollen är simulerad.",
+      );
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte kontrollera OSM-statusen.");
@@ -400,8 +401,8 @@ function PlaceDataReportCard({
                 id={`place-data-report-osm-help-${report.id}`}
                 className="text-xs leading-relaxed text-muted-foreground"
               >
-                Texten och kartpositionen blir offentliga. Gruppnamn, rapportör och intern anteckning
-                skickas inte. En neutral Matrundan-referens läggs till automatiskt.
+                Texten och kartpositionen blir offentliga. Gruppnamn, rapportör och intern
+                anteckning skickas inte. En neutral Matrundan-referens läggs till automatiskt.
               </p>
             </div>
             <Textarea
@@ -428,7 +429,11 @@ function PlaceDataReportCard({
               disabled={publishing || publicText.trim().length < 20}
               onClick={() => setConfirmPublish(true)}
             >
-              {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {publishing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
               {report.osmSubmissionState === "not_submitted"
                 ? "Publicera anonym OSM-anteckning"
                 : "Kontrollera och försök publicera igen"}
