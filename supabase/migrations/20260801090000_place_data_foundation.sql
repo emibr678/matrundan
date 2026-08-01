@@ -86,8 +86,9 @@ BEGIN
 END
 $block$;
 
--- Den gamla globala unikheten ersätts av en unik aktiv koppling. Därmed kan
--- samma leverantörsobjekt bevaras historiskt när verksamheten på platsen byts.
+-- Ersätt äldre globala unikheter med partiella unika index för aktiva
+-- kopplingar. Då kan en plats eller provideridentitet behålla ersatta
+-- historiska källrader utan att två aktiva kopplingar tillåts.
 DO $block$
 DECLARE
   _constraint record;
@@ -98,7 +99,10 @@ BEGIN
     FROM pg_constraint
     WHERE conrelid = 'public.place_sources'::regclass
       AND contype = 'u'
-      AND pg_get_constraintdef(oid) ~* 'UNIQUE[[:space:]]*\([[:space:]]*provider[[:space:]]*,[[:space:]]*provider_place_id[[:space:]]*\)'
+      AND (
+        pg_get_constraintdef(oid) ~* 'UNIQUE[[:space:]]*\([[:space:]]*provider[[:space:]]*,[[:space:]]*provider_place_id[[:space:]]*\)'
+        OR pg_get_constraintdef(oid) ~* 'UNIQUE[[:space:]]*\([[:space:]]*place_id[[:space:]]*,[[:space:]]*provider[[:space:]]*\)'
+      )
   LOOP
     EXECUTE format('ALTER TABLE public.place_sources DROP CONSTRAINT %I', _constraint.conname);
   END LOOP;
@@ -109,8 +113,14 @@ BEGIN
     WHERE schemaname = 'public'
       AND tablename = 'place_sources'
       AND indexdef ~* '^CREATE UNIQUE INDEX'
-      AND indexdef ~* '\([[:space:]]*provider[[:space:]]*,[[:space:]]*provider_place_id[[:space:]]*\)'
-      AND indexname <> 'place_sources_active_provider_identity_uidx'
+      AND (
+        indexdef ~* '\([[:space:]]*provider[[:space:]]*,[[:space:]]*provider_place_id[[:space:]]*\)'
+        OR indexdef ~* '\([[:space:]]*place_id[[:space:]]*,[[:space:]]*provider[[:space:]]*\)'
+      )
+      AND indexname NOT IN (
+        'place_sources_active_provider_identity_uidx',
+        'place_sources_active_place_provider_uidx'
+      )
   LOOP
     EXECUTE format('DROP INDEX IF EXISTS public.%I', _index.indexname);
   END LOOP;
@@ -119,6 +129,10 @@ $block$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS place_sources_active_provider_identity_uidx
   ON public.place_sources(provider, provider_place_id)
+  WHERE status = 'active';
+
+CREATE UNIQUE INDEX IF NOT EXISTS place_sources_active_place_provider_uidx
+  ON public.place_sources(place_id, provider)
   WHERE status = 'active';
 
 CREATE INDEX IF NOT EXISTS place_sources_place_status_idx
@@ -172,6 +186,9 @@ WHERE p.id = candidate.place_id
   AND p.website IS NULL;
 
 -- Separera OSM-identiteten från Geoapifys place_id när metadata redan finns.
+-- Automatisk backfill sker bara när både platsen och OSM-identiteten har exakt
+-- en entydig koppling. Motstridiga kandidater lämnas till ett senare
+-- granskningsflöde i stället för att länkas godtyckligt.
 WITH osm_candidates AS (
   SELECT
     ps.place_id,
@@ -196,6 +213,26 @@ WITH osm_candidates AS (
   FROM osm_candidates
   WHERE osm_type IS NOT NULL
     AND osm_id ~ '^[1-9][0-9]*$'
+), unambiguous_places AS (
+  SELECT place_id
+  FROM valid_osm_candidates
+  GROUP BY place_id
+  HAVING count(DISTINCT osm_type || ':' || osm_id) = 1
+), unambiguous_identities AS (
+  SELECT osm_type, osm_id
+  FROM valid_osm_candidates
+  GROUP BY osm_type, osm_id
+  HAVING count(DISTINCT place_id) = 1
+), safe_osm_candidates AS (
+  SELECT DISTINCT ON (candidate.place_id)
+    candidate.*
+  FROM valid_osm_candidates candidate
+  JOIN unambiguous_places place_match
+    ON place_match.place_id = candidate.place_id
+  JOIN unambiguous_identities identity_match
+    ON identity_match.osm_type = candidate.osm_type
+   AND identity_match.osm_id = candidate.osm_id
+  ORDER BY candidate.place_id, candidate.last_seen_at DESC
 )
 INSERT INTO public.place_sources (
   place_id,
@@ -218,10 +255,18 @@ SELECT
   candidate.last_seen_at,
   candidate.valid_from,
   NULL
-FROM valid_osm_candidates candidate
+FROM safe_osm_candidates candidate
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM public.place_sources existing
+  WHERE existing.place_id = candidate.place_id
+    AND existing.provider = 'openstreetmap'
+    AND existing.status = 'active'
+)
 ON CONFLICT (provider, provider_place_id) WHERE status = 'active'
 DO UPDATE SET
-  last_seen_at = GREATEST(public.place_sources.last_seen_at, EXCLUDED.last_seen_at);
+  last_seen_at = GREATEST(public.place_sources.last_seen_at, EXCLUDED.last_seen_at)
+WHERE public.place_sources.place_id = EXCLUDED.place_id;
 
 CREATE OR REPLACE FUNCTION public.create_or_link_provider_place_v5f(
   _group_id uuid,
@@ -291,15 +336,19 @@ BEGIN
     ELSE NULL
   END;
   IF _osm_type IS NULL OR _osm_id !~ '^[1-9][0-9]*$' THEN
-    _osm_type := NULL;
-    _osm_id := '';
+    _osm_source_id := NULL;
   ELSE
     _osm_source_id := _osm_type || ':' || _osm_id;
   END IF;
 
+  -- Alla anrop låser först Geoapify-identiteten och därefter OSM-identiteten.
+  -- Den stabila ordningen undviker deadlocks mellan samtidiga tillägg.
   PERFORM pg_advisory_xact_lock(
     hashtextextended(_provider_normalized || ':' || _provider_id_normalized, 0)
   );
+  IF _osm_source_id IS NOT NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtextextended('openstreetmap:' || _osm_source_id, 0));
+  END IF;
 
   SELECT ps.place_id
   INTO _pid
@@ -308,6 +357,23 @@ BEGIN
     AND ps.provider_place_id = _provider_id_normalized
     AND ps.status = 'active'
   LIMIT 1;
+
+  IF _osm_source_id IS NOT NULL THEN
+    SELECT ps.place_id
+    INTO _osm_pid
+    FROM public.place_sources ps
+    WHERE ps.provider = 'openstreetmap'
+      AND ps.provider_place_id = _osm_source_id
+      AND ps.status = 'active'
+    LIMIT 1;
+  END IF;
+
+  -- En exakt OSM-identitet får återanvända en befintlig kanonisk plats när
+  -- Geoapifys ID är nytt. Om Geoapify- och OSM-identiteterna redan pekar på
+  -- olika platser väljs Geoapify-identiteten och konflikten lämnas orörd.
+  IF _pid IS NULL AND _osm_pid IS NOT NULL THEN
+    _pid := _osm_pid;
+  END IF;
 
   IF _pid IS NULL THEN
     INSERT INTO public.places (
@@ -359,13 +425,51 @@ BEGIN
       NULL
     );
   ELSE
-    UPDATE public.place_sources
-    SET raw = COALESCE(_raw, '{}'::jsonb),
-        fetched_at = now(),
-        last_seen_at = now()
-    WHERE provider = _provider_normalized
-      AND provider_place_id = _provider_id_normalized
-      AND status = 'active';
+    IF EXISTS (
+      SELECT 1
+      FROM public.place_sources ps
+      WHERE ps.provider = _provider_normalized
+        AND ps.provider_place_id = _provider_id_normalized
+        AND ps.status = 'active'
+        AND ps.place_id = _pid
+    ) THEN
+      UPDATE public.place_sources
+      SET raw = COALESCE(_raw, '{}'::jsonb),
+          fetched_at = now(),
+          last_seen_at = now()
+      WHERE provider = _provider_normalized
+        AND provider_place_id = _provider_id_normalized
+        AND status = 'active'
+        AND place_id = _pid;
+    ELSIF NOT EXISTS (
+      SELECT 1
+      FROM public.place_sources ps
+      WHERE ps.place_id = _pid
+        AND ps.provider = _provider_normalized
+        AND ps.status = 'active'
+    ) THEN
+      INSERT INTO public.place_sources (
+        place_id,
+        provider,
+        provider_place_id,
+        raw,
+        status,
+        first_seen_at,
+        last_seen_at,
+        valid_from,
+        valid_to
+      ) VALUES (
+        _pid,
+        _provider_normalized,
+        _provider_id_normalized,
+        COALESCE(_raw, '{}'::jsonb),
+        'active',
+        now(),
+        now(),
+        now(),
+        NULL
+      );
+    END IF;
 
     UPDATE public.places
     SET website = COALESCE(website, _website)
@@ -373,17 +477,14 @@ BEGIN
   END IF;
 
   IF _osm_source_id IS NOT NULL THEN
-    PERFORM pg_advisory_xact_lock(hashtextextended('openstreetmap:' || _osm_source_id, 0));
-
-    SELECT ps.place_id
-    INTO _osm_pid
-    FROM public.place_sources ps
-    WHERE ps.provider = 'openstreetmap'
-      AND ps.provider_place_id = _osm_source_id
-      AND ps.status = 'active'
-    LIMIT 1;
-
-    IF _osm_pid IS NULL THEN
+    IF _osm_pid IS NULL
+       AND NOT EXISTS (
+         SELECT 1
+         FROM public.place_sources ps
+         WHERE ps.place_id = _pid
+           AND ps.provider = 'openstreetmap'
+           AND ps.status = 'active'
+       ) THEN
       INSERT INTO public.place_sources (
         place_id,
         provider,
@@ -411,7 +512,8 @@ BEGIN
           last_seen_at = now()
       WHERE provider = 'openstreetmap'
         AND provider_place_id = _osm_source_id
-        AND status = 'active';
+        AND status = 'active'
+        AND place_id = _pid;
     END IF;
   END IF;
 
