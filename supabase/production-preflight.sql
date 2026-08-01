@@ -97,6 +97,10 @@ WITH checks(name, ok) AS (
       to_regclass('public.place_sources_active_provider_identity_uidx') IS NOT NULL
     ),
     (
+      'index:place_sources_active_place_provider_uidx',
+      to_regclass('public.place_sources_active_place_provider_uidx') IS NOT NULL
+    ),
+    (
       'grant:authenticated-current-read',
       has_function_privilege(
         'authenticated',
@@ -151,6 +155,10 @@ WITH checks(name, ok) AS (
         'public.restore_group_place_suggestion(uuid,text,text)',
         'EXECUTE'
       )
+    ),
+    (
+      'isolation:no-authenticated-place-source-table-access',
+      NOT has_table_privilege('authenticated', 'public.place_sources', 'SELECT')
     ),
     (
       'isolation:no-authenticated-search-area-table-access',
