@@ -11,6 +11,39 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.14.0] – 2026-08-01
+
+### Lagt till
+
+- Manuella matställen kan få en verifierad kartposition när de läggs till i
+  live-läge.
+- Medlemmen kan samtidigt skapa ett privat underlag om att stället saknas i
+  OpenStreetMap. Underlaget granskas av gruppens ägare/admin och publiceras
+  aldrig automatiskt.
+- Ägare och administratörer får en separat **Möjlig match i gruppen** när en
+  senare Geoapify- eller OSM-träff säkert motsvarar ett providerlöst manuellt
+  ställe.
+
+### Ändrat
+
+- En bekräftad källkoppling behåller det befintliga plats-ID:t, gruppens privata
+  uppgifter, besök och omdömen i stället för att skapa en kanonisk dubblett.
+- Tvetydiga matchningar, ställen som redan har en aktiv källa och externa
+  identiteter som redan används lämnas orörda.
+- Möjliga matchningar kan inte markeras för masstillägg och kräver en separat
+  administrativ bekräftelse.
+
+### Databas och säkerhet
+
+- `link_provider_source_to_existing_place_v1` kräver autentisering, aktiv grupp
+  och ägare/admin. Målplatsen måste vara ett aktivt manuellt gruppställe utan
+  aktiv extern källa.
+- Servern kräver exakt en konservativ match baserad på namn, adress och högst
+  cirka 100 meters avstånd. Fuzzy auto-merge och sammanslagning av två redan
+  etablerade platser ingår inte.
+- Geoapify- och eventuell exakt OSM-identitet läggs till i `place_sources`.
+  Rå providerdata stannar på serversidan och privata gruppfält skrivs inte om.
+
 ## [1.13.0] – 2026-08-01
 
 ### Lagt till
