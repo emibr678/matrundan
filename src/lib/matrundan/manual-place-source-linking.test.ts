@@ -71,12 +71,11 @@ describe("manuell källmatchning", () => {
 
   test("ignorerar arkiverade, delade och redan källkopplade ställen", () => {
     expect(
-      findManualSourceLinkCandidate(
-        [manualPlace({ collectionStatus: "archived" })],
-        suggestion(),
-      ),
+      findManualSourceLinkCandidate([manualPlace({ collectionStatus: "archived" })], suggestion()),
     ).toBeNull();
-    expect(findManualSourceLinkCandidate([manualPlace({ origin: "shared" })], suggestion())).toBeNull();
+    expect(
+      findManualSourceLinkCandidate([manualPlace({ origin: "shared" })], suggestion()),
+    ).toBeNull();
     expect(
       findManualSourceLinkCandidate(
         [
@@ -100,9 +99,7 @@ describe("manuell källmatchning", () => {
       hasActiveProviderSource(
         manualPlace({
           origin: "provider",
-          sources: [
-            { provider: "geoapify", providerPlaceId: "geo-1", status: "active" },
-          ],
+          sources: [{ provider: "geoapify", providerPlaceId: "geo-1", status: "active" }],
         }),
         suggestion(),
       ),
