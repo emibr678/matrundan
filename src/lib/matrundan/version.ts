@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./versi
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
+const VERSION_1_14_0_CHANGELOG: ChangelogEntry = {
+  version: "1.14.0",
+  date: "2026-08-01",
+  summary: "Manuella matställen kan bidra till OSM utan att gruppens historik dupliceras.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Ett manuellt matställe kan få en verifierad kartposition och ett privat underlag om att verksamheten saknas i OpenStreetMap.",
+        "Ägare och administratörer kan granska och länka en senare Geoapify- eller OSM-träff till gruppens befintliga manuella matställe.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Källkopplingen bevarar samma plats-ID, besök, omdömen och privata gruppuppgifter i stället för att skapa en dubblett.",
+        "Tvetydiga eller redan källkopplade ställen lämnas orörda och kräver separat granskning.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_13_0_CHANGELOG: ChangelogEntry = {
   version: "1.13.0",
   date: "2026-08-01",
@@ -235,6 +257,7 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_14_0_CHANGELOG,
   VERSION_1_13_0_CHANGELOG,
   VERSION_1_12_0_CHANGELOG,
   VERSION_1_11_0_CHANGELOG,
