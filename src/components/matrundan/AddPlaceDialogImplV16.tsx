@@ -1,8 +1,20 @@
 import * as React from "react";
+import { Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogsV16 } from "./AddPlaceResultDialogsV16";
 import { ManualAddPlaceFormV16 } from "./ManualAddPlaceFormV16";
 import { PlaceDiscoveryV16 } from "./PlaceDiscoveryV16";
+import type { SourceMatchResult } from "./SearchResultSectionsV16";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +38,10 @@ import {
   listDemoHiddenPlaceSuggestions,
   listGroupHiddenPlaceSuggestions,
 } from "@/lib/matrundan/hidden-place-suggestions";
+import {
+  linkLiveProviderSourceToManualPlace,
+  linkLocalManualSource,
+} from "@/lib/matrundan/manual-place-source-links";
 import { liveCreateOrLinkProviderPlacesBatch } from "@/lib/matrundan/live-mutations";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
@@ -41,12 +57,14 @@ export function AddPlaceDialogV16({
   onOpenChange: (open: boolean) => void;
 }) {
   const { state, addPlace } = useStore();
-  const { mode, activeGroupId } = useSession();
+  const { mode, activeGroupId, exampleMode } = useSession();
   const [tab, setTab] = React.useState<Tab>("sok");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
+  const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(null);
   const [addedResultIds, setAddedResultIds] = React.useState<Set<string>>(() => new Set());
   const [selectedResults, setSelectedResults] = React.useState<PlaceSuggestion[]>([]);
   const [bulkBusy, setBulkBusy] = React.useState(false);
+  const [sourceLinkBusy, setSourceLinkBusy] = React.useState(false);
 
   React.useEffect(() => {
     const removeHiddenSelections = () => {
@@ -78,8 +96,9 @@ export function AddPlaceDialogV16({
   }, [activeGroupId, mode, state.group.id]);
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && !bulkBusy) {
+    if (!nextOpen && !bulkBusy && !sourceLinkBusy) {
       setPending(null);
+      setPendingSourceMatch(null);
       setSelectedResults([]);
       setAddedResultIds(new Set());
     }
@@ -201,6 +220,46 @@ export function AddPlaceDialogV16({
     }
   }
 
+  async function confirmSourceLink() {
+    if (!pendingSourceMatch || sourceLinkBusy) return;
+    const groupId = mode === "live" ? activeGroupId : state.group.id;
+    if (!groupId) {
+      toast.error("Ingen aktiv grupp.");
+      return;
+    }
+
+    setSourceLinkBusy(true);
+    try {
+      if (mode === "live") {
+        await linkLiveProviderSourceToManualPlace(
+          groupId,
+          pendingSourceMatch.place.id,
+          pendingSourceMatch.result,
+        );
+        window.dispatchEvent(new Event("matrundan:reload"));
+      } else {
+        linkLocalManualSource(
+          groupId,
+          pendingSourceMatch.place.id,
+          pendingSourceMatch.result,
+          exampleMode ? "session" : "local",
+        );
+      }
+      markCompleted([pendingSourceMatch.result.externalId]);
+      setSelectedResults((current) =>
+        current.filter((result) => result.externalId !== pendingSourceMatch.result.externalId),
+      );
+      toast.success("Den externa källan är länkad", {
+        description: `${pendingSourceMatch.place.name} behåller samma historik och gruppuppgifter.`,
+      });
+      setPendingSourceMatch(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Källan kunde inte länkas.");
+    } finally {
+      setSourceLinkBusy(false);
+    }
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -216,13 +275,14 @@ export function AddPlaceDialogV16({
             <PlaceDiscoveryV16
               addedResultIds={addedResultIds}
               selectedResults={selectedResults}
-              bulkBusy={bulkBusy}
+              bulkBusy={bulkBusy || sourceLinkBusy}
               onToggleSelected={(suggestion) =>
                 setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
               }
               onClearSelected={() => setSelectedResults([])}
               onAddSelected={() => void addSelectedResults()}
               onBeginAdd={setPending}
+              onLinkSource={setPendingSourceMatch}
               onClose={() => handleOpenChange(false)}
             />
           ) : (
@@ -236,6 +296,50 @@ export function AddPlaceDialogV16({
         onPendingChange={setPending}
         onAdded={handleSingleAdded}
       />
+      <AlertDialog
+        open={pendingSourceMatch != null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !sourceLinkBusy) setPendingSourceMatch(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Länka till befintligt matställe?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3 text-left">
+              <span className="block">
+                Sökträffen <strong>{pendingSourceMatch?.result.name}</strong> verkar motsvara gruppens
+                manuella ställe <strong>{pendingSourceMatch?.place.name}</strong>.
+              </span>
+              <span className="grid gap-2 rounded-xl bg-muted/50 p-3 text-xs">
+                <span>
+                  <strong>Sökträff:</strong>{" "}
+                  {[pendingSourceMatch?.result.address, pendingSourceMatch?.result.city]
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+                <span>
+                  <strong>I gruppen:</strong>{" "}
+                  {[pendingSourceMatch?.place.address, pendingSourceMatch?.place.city]
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+              </span>
+              <span className="block">
+                Bara den externa källidentiteten länkas. Det befintliga plats-ID:t, besök,
+                omdömen och privata gruppuppgifter bevaras. Åtgärden slår inte ihop två redan
+                etablerade matställen.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sourceLinkBusy}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction disabled={sourceLinkBusy} onClick={() => void confirmSourceLink()}>
+              {sourceLinkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+              Länka källa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
