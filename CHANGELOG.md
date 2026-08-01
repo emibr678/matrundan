@@ -11,6 +11,16 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.10.1] – 2026-08-01
+
+### Ändrat
+
+- Sökresultat använder åter det enkla enskilda tillägget som normalläge.
+- **Välj flera** aktiverar ett separat läge med kryssrutor och en gemensam
+  batchåtgärd. **Avbryt** rensar urvalet och återställer normalläget.
+- Listan och kartan följer samma läge, så masstillägget inte längre konkurrerar
+  visuellt med det vanliga tilläggsflödet.
+
 ## [1.10.0] – 2026-08-01
 
 ### Lagt till
