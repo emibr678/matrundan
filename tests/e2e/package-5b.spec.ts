@@ -21,7 +21,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 }
 
 function suggestionRow(dialog: Locator, name: string) {
-  return dialog.getByRole("button", { name: `Granska ${name}`, exact: true }).locator("..");
+  return dialog.locator("[data-bulk-selected]").filter({ hasText: name }).first();
 }
 
 function existingSection(dialog: Locator, count: number) {
@@ -43,7 +43,7 @@ async function selectForBulk(dialog: Locator, name: string) {
   await dialog.getByRole("checkbox", { name: `Välj ${name} för masstillägg`, exact: true }).click();
 }
 
-test("flera sökträffar markeras i lista och karta och läggs till i samma omgång", async ({
+test("normalläget är enkelt och flera sökträffar kan väljas i ett separat läge", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
@@ -57,15 +57,26 @@ test("flera sökträffar markeras i lista och karta och läggs till i samma omg�
   await radius.click();
   await page.getByRole("option", { name: "Inom 10 km" }).click();
   await expect(radius).toContainText("Inom 10 km");
-  await expect(suggestionRow(dialog, "Päronträdets Trattoria")).toBeVisible();
+  const firstRow = suggestionRow(dialog, "Päronträdets Trattoria");
+  await expect(firstRow).toBeVisible();
+  await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("checkbox")).toHaveCount(0);
   const initialExistingCount = await readExistingCount(dialog);
 
+  await dialog.getByRole("button", { name: "Välj flera", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Avbryt", exact: true })).toBeVisible();
+  await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
   await selectForBulk(dialog, "Päronträdets Trattoria");
   await expect(dialog.getByText("1 ställe valt", { exact: true })).toBeVisible();
-  await expect(suggestionRow(dialog, "Päronträdets Trattoria")).toHaveAttribute(
-    "data-bulk-selected",
-    "true",
-  );
+  await expect(firstRow).toHaveAttribute("data-bulk-selected", "true");
+
+  await dialog.getByRole("button", { name: "Avbryt", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Välj flera", exact: true })).toBeVisible();
+  await expect(dialog.getByText("1 ställe valt", { exact: true })).toHaveCount(0);
+  await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Välj flera", exact: true }).click();
+  await selectForBulk(dialog, "Päronträdets Trattoria");
 
   const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
@@ -84,6 +95,7 @@ test("flera sökträffar markeras i lista och karta och läggs till i samma omg�
     dialog.getByText("2 ställen tillagda i den här omgången", { exact: true }),
   ).toBeVisible();
   await expect(dialog.getByText(/ställen valda/)).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Välj flera", exact: true })).toBeVisible();
   await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
   await expect(radius).toContainText("Inom 10 km");
 

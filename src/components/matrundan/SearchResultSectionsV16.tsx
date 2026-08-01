@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -15,6 +15,7 @@ export function SearchResultSectionsV16({
   onExistingOpenChange,
   selectedId,
   selectedResultIds,
+  bulkMode,
   onSelect,
   onToggleSelected,
   onAdd,
@@ -27,6 +28,7 @@ export function SearchResultSectionsV16({
   onExistingOpenChange: (open: boolean) => void;
   selectedId: string | null;
   selectedResultIds: Set<string>;
+  bulkMode: boolean;
   onSelect: (id: string) => void;
   onToggleSelected: (result: PlaceSuggestion) => void;
   onAdd: (result: PlaceSuggestion) => void;
@@ -36,7 +38,6 @@ export function SearchResultSectionsV16({
   return (
     <div className="space-y-4">
       <section className="space-y-2">
-        <h3 className="text-sm font-medium">Ställen att lägga till</h3>
         {available.length > 0 ? (
           available.map((result) => {
             const bulkSelected = selectedResultIds.has(result.externalId);
@@ -44,34 +45,39 @@ export function SearchResultSectionsV16({
               <SuggestionRowV16
                 key={result.externalId}
                 result={result}
-                selected={selectedId === result.externalId}
+                selected={!bulkMode && selectedId === result.externalId}
                 bulkSelected={bulkSelected}
-                interactionLabel={`Granska ${result.name}`}
+                bulkMode={bulkMode}
+                interactionLabel={
+                  bulkMode
+                    ? `${bulkSelected ? "Avmarkera" : "Välj"} ${result.name} för masstillägg`
+                    : `Visa information om ${result.name}`
+                }
                 onSelect={() => {
                   onSelect(result.externalId);
-                  onAdd(result);
+                  if (bulkMode) onToggleSelected(result);
+                  else onAdd(result);
                 }}
                 action={
-                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border/70 px-3 text-sm font-medium">
+                  bulkMode ? (
+                    <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
                       <Checkbox
                         checked={bulkSelected}
                         onCheckedChange={() => onToggleSelected(result)}
                         disabled={disabled}
                         aria-label={`Välj ${result.name} för masstillägg`}
                       />
-                      Välj
                     </label>
+                  ) : (
                     <Button
                       size="sm"
-                      variant="outline"
                       className="min-h-11 w-full shrink-0 sm:w-auto"
                       disabled={disabled}
                       onClick={() => onAdd(result)}
                     >
-                      Granska
+                      <Plus className="h-4 w-4" /> Lägg till
                     </Button>
-                  </div>
+                  )
                 }
               />
             );
@@ -105,6 +111,7 @@ export function SearchResultSectionsV16({
                   result={result}
                   selected={selectedId === result.externalId}
                   bulkSelected={false}
+                  bulkMode={false}
                   onSelect={() => onSelect(result.externalId)}
                   action={
                     place ? (
@@ -138,6 +145,7 @@ function SuggestionRowV16({
   result,
   selected,
   bulkSelected,
+  bulkMode,
   interactionLabel,
   onSelect,
   action,
@@ -145,23 +153,24 @@ function SuggestionRowV16({
   result: PlaceSuggestion;
   selected: boolean;
   bulkSelected: boolean;
+  bulkMode: boolean;
   interactionLabel?: string;
   onSelect: () => void;
   action: React.ReactNode;
 }) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center ${
+      className={`relative flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center ${
         selected || bulkSelected ? "border-primary/60 bg-primary/5" : "border-border/70"
       }`}
       data-bulk-selected={bulkSelected}
     >
       <button
         type="button"
-        className="flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring"
+        className={`flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring ${bulkMode ? "pr-12" : ""}`}
         onClick={onSelect}
         aria-label={interactionLabel}
-        aria-pressed={selected}
+        aria-pressed={bulkMode ? bulkSelected : selected}
       >
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-xl">
           {emojiForCategory(result.category)}
@@ -188,7 +197,7 @@ function SuggestionRowV16({
           ) : null}
         </span>
       </button>
-      <div className="shrink-0">{action}</div>
+      <div className={bulkMode ? "absolute right-2 top-2" : "shrink-0"}>{action}</div>
     </div>
   );
 }

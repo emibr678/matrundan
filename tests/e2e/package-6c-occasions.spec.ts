@@ -42,7 +42,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
 
   const suggestion = addDialog.getByRole("button", {
-    name: "Granska Päronträdets Trattoria",
+    name: "Visa information om Päronträdets Trattoria",
     exact: true,
   });
   await expect(suggestion).toBeVisible();

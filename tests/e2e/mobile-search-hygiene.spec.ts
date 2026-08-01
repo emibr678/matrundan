@@ -19,8 +19,8 @@ async function expectInsideViewport(page: Page, locator: Locator, context: strin
   expect(box.y + box.height, `${context}: nederkant`).toBeLessThanOrEqual(viewport.height + 1);
 }
 
-function reviewPlaceButton(scope: Locator | Page) {
-  return scope.getByRole("button", { name: `Granska ${PLACE_NAME}`, exact: true });
+function placeSuggestionButton(scope: Locator | Page) {
+  return scope.getByRole("button", { name: `Visa information om ${PLACE_NAME}`, exact: true });
 }
 
 async function openPlaceSearch(page: Page) {
@@ -45,7 +45,7 @@ async function openPlaceSearch(page: Page) {
     ),
   ).toHaveCount(0);
   await searchDialog.getByLabel("Sök", { exact: true }).fill(PLACE_NAME);
-  await expect(reviewPlaceButton(searchDialog)).toBeVisible();
+  await expect(placeSuggestionButton(searchDialog)).toBeVisible();
   return searchDialog;
 }
 
@@ -53,7 +53,7 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await page.setViewportSize({ width: 360, height: 520 });
   await openPlaceSearch(page);
 
-  await reviewPlaceButton(page).click();
+  await placeSuggestionButton(page).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
   await expect(detailsDialog.getByText("Öppna i Google Maps", { exact: true })).toBeVisible();
@@ -109,14 +109,14 @@ test("en dold demoträff försvinner ur sökningen och kan återställas i grupp
   await page.setViewportSize({ width: 360, height: 520 });
   const searchDialog = await openPlaceSearch(page);
 
-  await reviewPlaceButton(searchDialog).click();
+  await placeSuggestionButton(searchDialog).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await detailsDialog
     .getByRole("button", { name: "Dölj från gruppens sökningar", exact: true })
     .click();
 
   await expect(detailsDialog).toBeHidden();
-  await expect(reviewPlaceButton(searchDialog)).toHaveCount(0);
+  await expect(placeSuggestionButton(searchDialog)).toHaveCount(0);
   await expect(
     searchDialog.getByText(
       "Inga matställen hittades. Prova större radie, andra områden eller lägg till manuellt.",
@@ -135,5 +135,5 @@ test("en dold demoträff försvinner ur sökningen och kan återställas i grupp
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
 
   await openPlaceSearch(page);
-  await expect(reviewPlaceButton(page)).toBeVisible();
+  await expect(placeSuggestionButton(page)).toBeVisible();
 });
