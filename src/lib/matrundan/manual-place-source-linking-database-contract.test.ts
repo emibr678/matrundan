@@ -21,7 +21,7 @@ describe("manuell källkopplings databaskontrakt", () => {
     expect(migration).toContain("Matstället har redan en aktiv extern källa");
     expect(migration).toContain("Geoapify-identitet är redan länkad");
     expect(migration).toContain("OpenStreetMap-identitet är redan länkad");
-    expect(migration).toContain("place_sources_active_provider_identity_uidx").toBe(false);
+    expect(migration).not.toContain("UPDATE public.group_places\n  SET origin = 'provider'");
   });
 
   test("servern kräver exakt en konservativ match och bevarar plats-id", () => {
