@@ -78,12 +78,13 @@ for (const column of [
     errors.push(`Migrationerna saknar den additiva kolumnen ${column}.`);
   }
 }
-if (
-  !/CREATE\s+UNIQUE\s+INDEX\s+IF\s+NOT\s+EXISTS\s+place_sources_active_provider_identity_uidx/i.test(
-    sql,
-  )
-) {
-  errors.push("Migrationerna saknar partiell unikhet för aktiva platskällor.");
+for (const index of [
+  "place_sources_active_provider_identity_uidx",
+  "place_sources_active_place_provider_uidx",
+]) {
+  if (!new RegExp(`CREATE\\s+UNIQUE\\s+INDEX\\s+IF\\s+NOT\\s+EXISTS\\s+${index}`, "i").test(sql)) {
+    errors.push(`Migrationerna saknar det partiella unika indexet ${index}.`);
+  }
 }
 
 if (!existsSync(preflightPath)) {
@@ -103,6 +104,7 @@ if (!existsSync(preflightPath)) {
     "group_places.website_override",
     "place_sources.status",
     "place_sources_active_provider_identity_uidx",
+    "place_sources_active_place_provider_uidx",
   ]) {
     if (!preflight.includes(object)) {
       errors.push(`Produktions-preflight saknar ${object}.`);
