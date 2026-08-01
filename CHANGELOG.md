@@ -11,6 +11,36 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.13.0] – 2026-08-01
+
+### Lagt till
+
+- Ägare och administratörer kan granska och redigera den exakta offentliga
+  texten innan en rapport publiceras som en anonym OpenStreetMap-anteckning.
+- Publicerade OSM-anteckningar får en offentlig länk och en status som kan
+  kontrolleras manuellt från gruppens privata granskningskö.
+
+### Ändrat
+
+- **Förberedd för OpenStreetMap** är fortsatt ett internt granskningssteg.
+  Publicering kräver en separat bekräftelse och en giltig kartposition.
+- Exempelgruppen och testsandboxen simulerar hela publicerings- och
+  statusflödet lokalt utan externa nätverksanrop.
+- Matrundan kan läsa om en anonym anteckning är öppen eller stängd, men kan inte
+  kommentera eller stänga den utan ett autentiserat OSM-konto.
+
+### Databas och säkerhet
+
+- Den privata rapporten lagrar OSM-note-ID, offentlig URL, status och
+  kontrolltid. Gruppnamn, rapportör, intern anteckning och interna ID:n skickas
+  inte automatiskt till OpenStreetMap.
+- Publiceringen reserveras atomiskt, blockerar dubbelpublicering och använder
+  låga dygnsgränser per person och grupp.
+- Bara serverrollen får registrera ett bekräftat externt OSM-svar. Klienten får
+  inte direkt skriva note-ID eller extern status.
+- En neutral slumpmässig referens används för att hitta samma anteckning efter
+  ett osäkert nätverksavbrott utan att exponera gruppens identitet.
+
 ## [1.12.0] – 2026-08-01
 
 ### Lagt till
