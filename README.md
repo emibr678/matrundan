@@ -41,8 +41,11 @@ individuell matdagbok, social feed eller global ranking.
   enbart för den aktuella gruppen och återställa den under gruppinställningarna.
 - Alla aktiva medlemmar kan rapportera felaktig platsinformation privat från
   matställets detaljsida. Ägare och administratörer granskar rapporterna under
-  **Gruppinställningar → Platsdata** och kan förbereda ett underlag för en senare
-  OSM-anteckning utan att något publiceras externt ännu.
+  **Gruppinställningar → Platsdata**.
+- En förberedd rapport kan publiceras som en anonym OpenStreetMap-anteckning
+  först efter att admin har granskat den exakta offentliga texten och bekräftat
+  publiceringen. OSM-statusen kan därefter kontrolleras manuellt utan att
+  gruppnamn, rapportör eller intern anteckning skickas automatiskt.
 - Nästa stopp kan väljas manuellt eller slumpas.
 - Gruppen kan föreslå datum och valfri tid, svara **Passar**, **Passar inte**
   eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.
@@ -72,12 +75,13 @@ exempelgruppen.
 
 En interaktiv, helt fiktiv grupp som återanvänder produktens vanliga gränssnitt.
 Ändringar sparas endast i den aktuella flikens `sessionStorage` och gör inga
-live-skrivningar.
+live-skrivningar. OSM-publicering och statuskontroll simuleras lokalt utan
+externa nätverksanrop.
 
 ### Intern testsandbox (`?demo=1`)
 
 En separat skrivbar sandbox för utveckling och regressionstester. Den använder
-lokal testdata och är inte en publik onboardingväg.
+lokal testdata och är inte en publik onboardingväg. Externa OSM-anrop görs inte.
 
 ### Live-läge
 
@@ -97,10 +101,14 @@ Gruppen är den primära produkt- och integritetsgränsen.
 - `group_search_areas` innehåller gruppens verifierade sökcentrum.
 - `group_hidden_place_suggestions` innehåller gruppens spärrlista för externa
   sökträffar utan att radera det kanoniska matstället.
-- `place_data_reports` innehåller gruppprivata rapporter och en begränsad
-  ögonblicksbild av platsinformationen. Tabellen har ingen direkt klientåtkomst;
-  aktiva medlemmar får rapportera och endast ägare/admin får läsa kön och ändra
-  status.
+- `place_data_reports` innehåller gruppprivata rapporter, en begränsad
+  ögonblicksbild av platsinformationen och eventuell OSM-note-status. Tabellen
+  har ingen direkt klientåtkomst; aktiva medlemmar får rapportera och endast
+  ägare/admin får läsa kön, granska den offentliga texten och starta
+  publicering.
+- OSM-publiceringen reserveras gruppscopat i databasen. Bara serverrollen får
+  spara ett bekräftat note-ID eller en extern status. En neutral offentlig
+  referens används för säker återhämtning efter nätverksavbrott.
 - `visits` representerar kanoniska verkliga besök.
 - `visit_group_links` kopplar original- och mottagargrupper till samma besök.
 - `review_group_visibility` styr betygs- och kommentarssynlighet per grupp.
@@ -115,8 +123,10 @@ validerade `SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering,
 medlemskapskontroller och relevanta rollkrav.
 
 Ursprungsgruppens identitet, privata kommentarer och medlemskap lämnar aldrig
-servern vid delning. Endast faktiska deltagare får progression; registreraren
-får ingen extra kredit och återbesök räknas.
+servern vid delning. Vid OSM-publicering lämnar bara den uttryckligt granskade
+offentliga texten, kartpositionen och en neutral Matrundan-referens appen. Endast
+faktiska deltagare får progression; registreraren får ingen extra kredit och
+återbesök räknas.
 
 Den kanoniska arkitekturkällan finns i
 [docs/architecture.md](./docs/architecture.md).
@@ -128,7 +138,7 @@ Den kanoniska arkitekturkällan finns i
 - shadcn/ui och Radix UI
 - Bun som låst pakethanterare och runtime
 - Lovable Cloud och Supabase för autentisering, datalager och privat fillagring
-- Geoapify och MapLibre för plats- och kartfunktioner
+- Geoapify, OpenStreetMap och MapLibre för plats- och kartfunktioner
 - Playwright för mobila och tvärbrowserbaserade regressionstester
 
 ## Kom igång
@@ -191,7 +201,9 @@ privilegierade hemligheter får aldrig exponeras i klientkod eller `VITE_`-
 variabler.
 
 `GEOAPIFY_API_KEY` lagras i Lovable Cloud Secrets och används endast av
-serverkod. Inga produktionshemligheter ska committas till repot.
+serverkod. OSM Notes API kräver ingen ny applikationshemlighet; anropen görs
+serverstyrt med identifierbar User-Agent och referer. Inga produktionshemligheter
+ska committas till repot.
 
 ## Lovable och publicering
 
