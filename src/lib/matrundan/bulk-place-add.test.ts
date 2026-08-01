@@ -69,8 +69,9 @@ describe("masstillägg av matställen", () => {
       failed: 1,
     };
 
-    expect(remainingBulkSelections([suggestion("one"), suggestion("two"), suggestion("three")], result))
-      .toEqual([suggestion("two")]);
+    expect(
+      remainingBulkSelections([suggestion("one"), suggestion("two"), suggestion("three")], result),
+    ).toEqual([suggestion("two")]);
     expect(completedBulkExternalIds(result)).toEqual(["one", "three"]);
     expect(successfulBulkPlaceCount(result)).toBe(1);
   });
