@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
+import { normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
@@ -130,6 +131,7 @@ function PlaceDetail() {
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
+  const websiteUrl = exampleMode ? undefined : normalizeWebsiteUrl(place.website);
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
@@ -164,16 +166,30 @@ function PlaceDetail() {
               </span>
             </div>
             {!exampleMode ? (
-              <a
-                href={googleMapsUrl(place)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                aria-label={`Öppna ${place.name} i Google Maps`}
-              >
-                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                Öppna i Google Maps
-              </a>
+              <div className="mt-1 flex flex-wrap items-center gap-x-4">
+                {websiteUrl ? (
+                  <a
+                    href={websiteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    aria-label={`Öppna webbplatsen för ${place.name}`}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    Webbplats
+                  </a>
+                ) : null}
+                <a
+                  href={googleMapsUrl(place)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  aria-label={`Öppna ${place.name} i Google Maps`}
+                >
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                  Google Maps
+                </a>
+              </div>
             ) : null}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {isNext ? (
