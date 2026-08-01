@@ -24,9 +24,9 @@ describe("platsdatarapporternas databaskontrakt", () => {
   test("bara ägare och admin får läsa kön och ändra status", () => {
     expect(sql).toContain("CREATE OR REPLACE FUNCTION public.list_group_place_data_reports_v1");
     expect(sql).toContain("CREATE OR REPLACE FUNCTION public.review_place_data_report_v1");
-    expect(sql.match(/public\.has_group_role\(_group_id, _uid, ARRAY\['owner', 'admin'\]\)/g)?.length).toBe(
-      2,
-    );
+    expect(
+      sql.match(/public\.has_group_role\(_group_id, _uid, ARRAY\['owner', 'admin'\]\)/g)?.length,
+    ).toBe(2);
   });
 
   test("rå providerdata lämnar aldrig rapportgränsen", () => {
