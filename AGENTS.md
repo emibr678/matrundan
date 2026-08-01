@@ -125,7 +125,8 @@ Inspect the current tree before assuming paths or APIs are unchanged.
 ## Data and security rules
 
 - Sensitive reads remain scoped to one group and require active membership.
-- The primary live read boundary is `get_group_app_state_v5e(_group_id)`.
+- The primary live read boundary is `get_group_app_state_v5f(_group_id)`, with
+  fallback to v5e only when the newer RPC explicitly does not exist.
 - Do not reintroduce direct client `SELECT` access to canonical visits,
   participants, reviews, sharing links, visibility tables or search-area data.
 - Writes use validated `SECURITY DEFINER` RPCs or server functions with locked
@@ -133,11 +134,12 @@ Inspect the current tree before assuming paths or APIs are unchanged.
 - Revoke callable functions from `PUBLIC` and `anon`; grant only intended roles.
 - Never trust client-supplied group, user, author, owner or source-group identity
   without server-side validation.
-- Keep `source_group_id` server-only.
+- Keep `source_group_id` and raw provider payloads server-only.
 - Preserve historical membership data without granting former members current
   access or leaderboard placement.
-- Provider places and search areas deduplicate primarily by provider and
-  provider place ID.
+- Provider places and search areas deduplicate primarily by active provider and
+  provider place ID. Preserve superseded source links instead of rewriting
+  historical visits.
 - Do not guess coordinates from unverified free text.
 - Store secrets only in Lovable Cloud Secrets. Never commit them, expose them
   through `VITE_`, return them to the client or print them in logs.
@@ -161,7 +163,10 @@ Inspect the current tree before assuming paths or APIs are unchanged.
 ## Canonical place and visit invariants
 
 - One real place corresponds to one canonical `places` row.
-- Group notes, occasions and lifecycle belong to `group_places`.
+- External place identities and their lifecycle belong to `place_sources`.
+- Group notes, occasions, website override and lifecycle belong to
+  `group_places`.
+- Raw provider payloads must not be returned in the group read-model.
 - One real visit corresponds to one canonical `visits` row.
 - A visit has exactly one original group link and may have shared links.
 - Sharing or unlinking must not duplicate or delete canonical place, visit,
