@@ -1,4 +1,5 @@
 import * as React from "react";
+import { toast } from "sonner";
 import { AddPlaceResultDialogsV16 } from "./AddPlaceResultDialogsV16";
 import { ManualAddPlaceFormV16 } from "./ManualAddPlaceFormV16";
 import { PlaceDiscoveryV16 } from "./PlaceDiscoveryV16";
@@ -9,7 +10,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  completedBulkExternalIds,
+  remainingBulkSelections,
+  successfulBulkPlaceCount,
+  toProviderPlaceBatchInput,
+  toggleBulkPlaceSelection,
+  type BulkPlaceAddItemResult,
+  type BulkPlaceAddResult,
+} from "@/lib/matrundan/bulk-place-add";
+import { liveCreateOrLinkProviderPlacesBatch } from "@/lib/matrundan/live-mutations";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { useSession } from "@/lib/matrundan/session";
+import { useStore } from "@/lib/matrundan/store";
+import { emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
 
 type Tab = "sok" | "manuell";
 
@@ -20,13 +34,147 @@ export function AddPlaceDialogV16({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { state, addPlace } = useStore();
+  const { mode, activeGroupId } = useSession();
   const [tab, setTab] = React.useState<Tab>("sok");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
   const [addedResultIds, setAddedResultIds] = React.useState<Set<string>>(() => new Set());
+  const [selectedResults, setSelectedResults] = React.useState<PlaceSuggestion[]>([]);
+  const [bulkBusy, setBulkBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    const clearHiddenSelection = () => setSelectedResults([]);
+    window.addEventListener("matrundan:hidden-place-suggestions-changed", clearHiddenSelection);
+    return () =>
+      window.removeEventListener("matrundan:hidden-place-suggestions-changed", clearHiddenSelection);
+  }, []);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && !bulkBusy) {
+      setPending(null);
+      setSelectedResults([]);
+      setAddedResultIds(new Set());
+    }
+    onOpenChange(nextOpen);
+  }
+
+  function markCompleted(externalIds: string[]) {
+    setAddedResultIds((current) => {
+      const next = new Set(current);
+      externalIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  function handleSingleAdded(externalId: string) {
+    markCompleted([externalId]);
+    setSelectedResults((current) =>
+      current.filter((result) => result.externalId !== externalId),
+    );
+  }
+
+  async function addDemoResults(items: PlaceSuggestion[]): Promise<BulkPlaceAddResult> {
+    const results: BulkPlaceAddItemResult[] = [];
+
+    for (const [index, suggestion] of items.entries()) {
+      const existing = state.places.find(
+        (place) =>
+          place.name.trim().toLocaleLowerCase("sv") ===
+            suggestion.name.trim().toLocaleLowerCase("sv") &&
+          place.address.trim().toLocaleLowerCase("sv") ===
+            suggestion.address.trim().toLocaleLowerCase("sv"),
+      );
+      try {
+        const added = await addPlace({
+          name: suggestion.name,
+          category: suggestion.category,
+          cuisines: suggestion.cuisines ?? [],
+          occasions: [],
+          address: suggestion.address,
+          area: suggestion.area,
+          city: suggestion.city,
+          lat: suggestion.lat,
+          lng: suggestion.lng,
+          addedBy: state.currentUserId,
+          photo: emojiForCategory(suggestion.category),
+          notes: undefined,
+          origin: "provider",
+        });
+        results.push({
+          externalId: suggestion.externalId,
+          name: suggestion.name,
+          status: existing?.collectionStatus === "archived" ? "restored" : "added",
+          placeId: added.id,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Kunde inte lägga till stället.";
+        results.push({
+          externalId: suggestion.externalId,
+          name: suggestion.name,
+          status: /redan|already|duplicate|unique/i.test(message) ? "existing" : "failed",
+          message,
+        });
+      }
+      if (index < items.length - 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1));
+      }
+    }
+
+    return {
+      items: results,
+      added: results.filter((item) => item.status === "added").length,
+      restored: results.filter((item) => item.status === "restored").length,
+      existing: results.filter((item) => item.status === "existing").length,
+      failed: results.filter((item) => item.status === "failed").length,
+    };
+  }
+
+  async function addSelectedResults() {
+    if (bulkBusy || selectedResults.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const result =
+        mode === "live"
+          ? await liveCreateOrLinkProviderPlacesBatch(
+              activeGroupId ?? "",
+              selectedResults.map(toProviderPlaceBatchInput),
+            )
+          : await addDemoResults(selectedResults);
+
+      const completedIds = completedBulkExternalIds(result);
+      markCompleted(completedIds);
+      setSelectedResults((current) => remainingBulkSelections(current, result));
+
+      if (mode === "live" && completedIds.length > 0) {
+        window.dispatchEvent(new Event("matrundan:reload"));
+      }
+
+      const addedCount = successfulBulkPlaceCount(result);
+      if (result.failed > 0) {
+        toast.warning(
+          `${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}. ${result.failed} kunde inte läggas till.`,
+          { description: "De misslyckade ställena är fortfarande valda så att du kan försöka igen." },
+        );
+      } else if (addedCount > 0) {
+        toast.success(`${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}`, {
+          description:
+            result.existing > 0
+              ? `${result.existing} fanns redan i gruppen. Uppgifter kan kompletteras löpande.`
+              : "Uppgifter kan kompletteras löpande i gruppens lista.",
+        });
+      } else {
+        toast.info("De valda ställena finns redan i gruppen.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte lägga till ställena.");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
@@ -38,11 +186,18 @@ export function AddPlaceDialogV16({
           {tab === "sok" ? (
             <PlaceDiscoveryV16
               addedResultIds={addedResultIds}
+              selectedResults={selectedResults}
+              bulkBusy={bulkBusy}
+              onToggleSelected={(suggestion) =>
+                setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
+              }
+              onClearSelected={() => setSelectedResults([])}
+              onAddSelected={() => void addSelectedResults()}
               onBeginAdd={setPending}
-              onClose={() => onOpenChange(false)}
+              onClose={() => handleOpenChange(false)}
             />
           ) : (
-            <ManualAddPlaceFormV16 onClose={() => onOpenChange(false)} />
+            <ManualAddPlaceFormV16 onClose={() => handleOpenChange(false)} />
           )}
         </DialogContent>
       </Dialog>
@@ -50,7 +205,7 @@ export function AddPlaceDialogV16({
         parentOpen={open}
         pending={pending}
         onPendingChange={setPending}
-        onAdded={(externalId) => setAddedResultIds((current) => new Set(current).add(externalId))}
+        onAdded={handleSingleAdded}
       />
     </>
   );
