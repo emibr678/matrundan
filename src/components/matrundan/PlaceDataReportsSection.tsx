@@ -1,18 +1,47 @@
 import * as React from "react";
-import { CheckCircle2, ChevronDown, CircleAlert, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  CircleAlert,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  Send,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  buildDefaultOsmPublicText,
+  normalizeOsmPublicText,
+  OSM_NOTE_STATUS_LABEL,
+} from "@/lib/matrundan/osm-notes";
+import {
+  publishAnonymousOsmNote,
+  refreshOsmNoteStatus,
+} from "@/lib/matrundan/osm-notes.functions";
+import {
   listGroupPlaceDataReports,
   listLocalPlaceDataReports,
   PLACE_DATA_REPORT_CATEGORY_LABEL,
   PLACE_DATA_REPORT_STATUS_LABEL,
+  publishLocalOsmNote,
+  refreshLocalOsmNoteStatus,
   reviewGroupPlaceDataReport,
   reviewLocalPlaceDataReport,
   type PlaceDataReport,
@@ -35,6 +64,16 @@ function formatReportDate(value: string): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function publicationErrorText(code: string | null): string | null {
+  if (code === "moderation_zone") {
+    return "OpenStreetMap tillåter inte anonyma anteckningar på den här platsen.";
+  }
+  if (code === "rate_limit") return "OpenStreetMap används mycket. Försök igen senare.";
+  if (code === "rejected") return "OpenStreetMap avvisade texten eller kartpositionen.";
+  if (code) return "Publiceringen misslyckades. Granska texten och försök igen.";
+  return null;
 }
 
 export function PlaceDataReportsSection() {
@@ -105,6 +144,43 @@ export function PlaceDataReportsSection() {
     }
   }
 
+  async function publish(report: PlaceDataReport, publicText: string): Promise<boolean> {
+    try {
+      const normalized = normalizeOsmPublicText(publicText);
+      if (mode === "live") {
+        await publishAnonymousOsmNote({
+          data: { groupId: groupId!, reportId: report.id, publicText: normalized },
+        });
+        toast.success("Den anonyma OSM-anteckningen är publicerad.");
+      } else {
+        publishLocalOsmNote(groupId!, report.id, normalized, storageKind);
+        toast.success("OSM-publiceringen är simulerad i det lokala läget.");
+      }
+      await load();
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte publicera till OpenStreetMap.");
+      await load();
+      return false;
+    }
+  }
+
+  async function refresh(report: PlaceDataReport): Promise<boolean> {
+    try {
+      if (mode === "live") {
+        await refreshOsmNoteStatus({ data: { groupId: groupId!, reportId: report.id } });
+      } else {
+        refreshLocalOsmNoteStatus(groupId!, report.id, storageKind);
+      }
+      await load();
+      toast.success(mode === "live" ? "OSM-statusen är uppdaterad." : "Statuskontrollen är simulerad.");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte kontrollera OSM-statusen.");
+      return false;
+    }
+  }
+
   return (
     <section aria-labelledby={PLACE_DATA_HEADING_ID}>
       <div className="mb-2 flex items-center justify-between gap-3">
@@ -122,12 +198,12 @@ export function PlaceDataReportsSection() {
           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="space-y-1 text-xs leading-relaxed text-muted-foreground">
             <p>
-              Gruppens rapporter är privata. Granska underlaget, rätta det som hör till Matrundan
-              och markera vad som senare kan skickas vidare till OpenStreetMap.
+              Gruppens rapporter är privata. Bara en särskilt granskad text och kartposition kan
+              publiceras anonymt till OpenStreetMap.
             </p>
             <p>
-              <strong className="font-medium text-foreground">Förberedd för OpenStreetMap</strong>{" "}
-              publicerar ingenting ännu.
+              OpenStreetMaps kartläggare avgör om kartan ska ändras. Matrundan kan följa statusen,
+              men inte kommentera eller stänga en anonym anteckning.
             </p>
           </div>
         </div>
@@ -143,7 +219,14 @@ export function PlaceDataReportsSection() {
         ) : (
           <div className="mt-4 space-y-3">
             {active.map((report) => (
-              <PlaceDataReportCard key={report.id} report={report} onSave={save} />
+              <PlaceDataReportCard
+                key={report.id}
+                report={report}
+                live={mode === "live"}
+                onSave={save}
+                onPublish={publish}
+                onRefresh={refresh}
+              />
             ))}
 
             {completed.length > 0 ? (
@@ -154,7 +237,14 @@ export function PlaceDataReportsSection() {
                 </summary>
                 <div className="space-y-3 border-t border-border/60 p-3">
                   {completed.map((report) => (
-                    <PlaceDataReportCard key={report.id} report={report} onSave={save} />
+                    <PlaceDataReportCard
+                      key={report.id}
+                      report={report}
+                      live={mode === "live"}
+                      onSave={save}
+                      onPublish={publish}
+                      onRefresh={refresh}
+                    />
                   ))}
                 </div>
               </details>
@@ -168,23 +258,40 @@ export function PlaceDataReportsSection() {
 
 function PlaceDataReportCard({
   report,
+  live,
   onSave,
+  onPublish,
+  onRefresh,
 }: {
   report: PlaceDataReport;
+  live: boolean;
   onSave: (
     report: PlaceDataReport,
     status: PlaceDataReportStatus,
     resolutionNote: string,
   ) => Promise<boolean>;
+  onPublish: (report: PlaceDataReport, publicText: string) => Promise<boolean>;
+  onRefresh: (report: PlaceDataReport) => Promise<boolean>;
 }) {
   const [status, setStatus] = React.useState<PlaceDataReportStatus>(report.status);
   const [resolutionNote, setResolutionNote] = React.useState(report.resolutionNote ?? "");
+  const [publicText, setPublicText] = React.useState(
+    report.osmPublicText ?? buildDefaultOsmPublicText(report),
+  );
   const [saving, setSaving] = React.useState(false);
+  const [publishing, setPublishing] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [confirmPublish, setConfirmPublish] = React.useState(false);
 
   React.useEffect(() => {
     setStatus(report.status);
     setResolutionNote(report.resolutionNote ?? "");
+    setPublicText(report.osmPublicText ?? buildDefaultOsmPublicText(report));
   }, [report]);
+
+  const published = report.osmSubmissionState === "published" && !!report.osmNoteStatus;
+  const canPublish = report.status === "ready_for_osm" && !published;
+  const publicationError = publicationErrorText(report.osmSubmissionErrorCode);
 
   return (
     <details className="group min-w-0 rounded-xl border border-border/70 bg-background">
@@ -194,12 +301,19 @@ function PlaceDataReportCard({
           <div className="mt-0.5 break-words text-[11px] text-muted-foreground">
             {PLACE_DATA_REPORT_CATEGORY_LABEL[report.category]} · {report.reporterName}
           </div>
-          <Badge
-            variant={report.status === "ready_for_osm" ? "outline" : "secondary"}
-            className="mt-2 max-w-full whitespace-normal rounded-full text-left"
-          >
-            {PLACE_DATA_REPORT_STATUS_LABEL[report.status]}
-          </Badge>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Badge
+              variant={report.status === "ready_for_osm" ? "outline" : "secondary"}
+              className="max-w-full whitespace-normal rounded-full text-left"
+            >
+              {PLACE_DATA_REPORT_STATUS_LABEL[report.status]}
+            </Badge>
+            {report.osmNoteStatus ? (
+              <Badge variant="secondary" className="max-w-full whitespace-normal rounded-full">
+                {OSM_NOTE_STATUS_LABEL[report.osmNoteStatus]}
+              </Badge>
+            ) : null}
+          </div>
         </div>
         <ChevronDown className="mt-1 h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
       </summary>
@@ -275,7 +389,146 @@ function PlaceDataReportCard({
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Spara bedömning
         </Button>
+
+        {canPublish ? (
+          <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3">
+            <div className="space-y-1">
+              <Label htmlFor={`place-data-report-osm-text-${report.id}`}>
+                Offentlig text till OpenStreetMap
+              </Label>
+              <p
+                id={`place-data-report-osm-help-${report.id}`}
+                className="text-xs leading-relaxed text-muted-foreground"
+              >
+                Texten och kartpositionen blir offentliga. Gruppnamn, rapportör och intern anteckning
+                skickas inte. En neutral Matrundan-referens läggs till automatiskt.
+              </p>
+            </div>
+            <Textarea
+              id={`place-data-report-osm-text-${report.id}`}
+              aria-describedby={`place-data-report-osm-help-${report.id}`}
+              value={publicText}
+              onChange={(event) => setPublicText(event.target.value)}
+              maxLength={1000}
+              rows={7}
+              className="resize-y"
+            />
+            {publicationError ? (
+              <p className="text-xs leading-relaxed text-destructive">{publicationError}</p>
+            ) : null}
+            {report.osmSubmissionState === "submitting" ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Ett tidigare försök kunde inte bekräftas. Vänta några minuter innan du kontrollerar
+                och försöker igen; Matrundan söker först efter samma offentliga referens.
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              className="min-h-11 w-full"
+              disabled={publishing || publicText.trim().length < 20}
+              onClick={() => setConfirmPublish(true)}
+            >
+              {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {report.osmSubmissionState === "not_submitted"
+                ? "Publicera anonym OSM-anteckning"
+                : "Kontrollera och försök publicera igen"}
+            </Button>
+          </div>
+        ) : null}
+
+        {published && report.osmNoteStatus ? (
+          <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="rounded-full">
+                {OSM_NOTE_STATUS_LABEL[report.osmNoteStatus]}
+              </Badge>
+              {report.osmNoteCreatedAt ? (
+                <span className="text-[11px] text-muted-foreground">
+                  Publicerad {formatReportDate(report.osmNoteCreatedAt)}
+                </span>
+              ) : null}
+            </div>
+            {live && report.osmNoteUrl ? (
+              <Button asChild variant="outline" className="min-h-11 w-full">
+                <a href={report.osmNoteUrl} target="_blank" rel="noreferrer">
+                  Öppna i OpenStreetMap <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+            ) : (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Simulerad OSM-anteckning. Inget skickades utanför det lokala läget.
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 w-full"
+              disabled={refreshing}
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  await onRefresh(report);
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+            >
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Kontrollera OSM-status
+            </Button>
+            {report.osmNoteLastCheckedAt ? (
+              <p className="text-[11px] text-muted-foreground">
+                Senast kontrollerad {formatReportDate(report.osmNoteLastCheckedAt)}
+              </p>
+            ) : null}
+            {report.osmPublicText ? (
+              <details className="rounded-lg border border-border/60 bg-background">
+                <summary className="min-h-11 cursor-pointer px-3 py-2 text-xs font-medium">
+                  Visa den offentliga texten
+                </summary>
+                <p className="whitespace-pre-wrap break-words border-t border-border/60 p-3 text-xs leading-relaxed">
+                  {report.osmPublicText}
+                </p>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
       </div>
+
+      <AlertDialog open={confirmPublish} onOpenChange={setConfirmPublish}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publicera offentligt till OpenStreetMap?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Texten och kartpositionen blir offentliga i OSM. Anteckningen publiceras anonymt och
+              kan inte redigeras, kommenteras eller stängas från Matrundan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={publishing}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={publishing}
+              onClick={async (event) => {
+                event.preventDefault();
+                setPublishing(true);
+                try {
+                  const success = await onPublish(report, publicText);
+                  if (success) setConfirmPublish(false);
+                } finally {
+                  setPublishing(false);
+                }
+              }}
+            >
+              {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Publicera anonymt
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </details>
   );
 }
