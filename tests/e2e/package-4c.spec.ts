@@ -19,7 +19,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 }
 
 async function removeCurrentPlace(page: Page) {
-  await page.getByRole("button", { name: "Hantera ställe" }).click();
+  await page.getByRole("button", { name: "Redigera uppgifter" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Ta bort från gruppen" }).click();
 }
 
@@ -112,7 +112,6 @@ test("kök och inriktning fungerar med mobilt tangentbord och utan fri text", as
   await expect(drawer).toBeVisible();
   await search.focus();
 
-  // Efterliknar den minskade visuella viewporten när ett mobilt tangentbord öppnas.
   await page.setViewportSize({ width: 360, height: 480 });
   await expect
     .poll(async () => {

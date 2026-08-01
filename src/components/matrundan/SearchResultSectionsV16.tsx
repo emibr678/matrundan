@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
@@ -13,7 +14,9 @@ export function SearchResultSectionsV16({
   existingOpen,
   onExistingOpenChange,
   selectedId,
+  selectedResultIds,
   onSelect,
+  onToggleSelected,
   onAdd,
   places,
   disabled,
@@ -23,7 +26,9 @@ export function SearchResultSectionsV16({
   existingOpen: boolean;
   onExistingOpenChange: (open: boolean) => void;
   selectedId: string | null;
+  selectedResultIds: Set<string>;
   onSelect: (id: string) => void;
+  onToggleSelected: (result: PlaceSuggestion) => void;
   onAdd: (result: PlaceSuggestion) => void;
   places: Place[];
   disabled: boolean;
@@ -33,28 +38,44 @@ export function SearchResultSectionsV16({
       <section className="space-y-2">
         <h3 className="text-sm font-medium">Ställen att lägga till</h3>
         {available.length > 0 ? (
-          available.map((result) => (
-            <SuggestionRowV16
-              key={result.externalId}
-              result={result}
-              selected={selectedId === result.externalId}
-              interactionLabel={`Visa information om ${result.name}`}
-              onSelect={() => {
-                onSelect(result.externalId);
-                onAdd(result);
-              }}
-              action={
-                <Button
-                  size="sm"
-                  className="min-h-11 w-full shrink-0 sm:w-auto"
-                  disabled={disabled}
-                  onClick={() => onAdd(result)}
-                >
-                  <Plus className="h-4 w-4" /> Lägg till
-                </Button>
-              }
-            />
-          ))
+          available.map((result) => {
+            const bulkSelected = selectedResultIds.has(result.externalId);
+            return (
+              <SuggestionRowV16
+                key={result.externalId}
+                result={result}
+                selected={selectedId === result.externalId}
+                bulkSelected={bulkSelected}
+                interactionLabel={`Granska ${result.name}`}
+                onSelect={() => {
+                  onSelect(result.externalId);
+                  onAdd(result);
+                }}
+                action={
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                    <label className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border/70 px-3 text-sm font-medium">
+                      <Checkbox
+                        checked={bulkSelected}
+                        onCheckedChange={() => onToggleSelected(result)}
+                        disabled={disabled}
+                        aria-label={`Välj ${result.name} för masstillägg`}
+                      />
+                      Välj
+                    </label>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="min-h-11 w-full shrink-0 sm:w-auto"
+                      disabled={disabled}
+                      onClick={() => onAdd(result)}
+                    >
+                      Granska
+                    </Button>
+                  </div>
+                }
+              />
+            );
+          })
         ) : (
           <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
             Inga nya ställen i den här sökningen.
@@ -83,6 +104,7 @@ export function SearchResultSectionsV16({
                   key={result.externalId}
                   result={result}
                   selected={selectedId === result.externalId}
+                  bulkSelected={false}
                   onSelect={() => onSelect(result.externalId)}
                   action={
                     place ? (
@@ -115,12 +137,14 @@ export function SearchResultSectionsV16({
 function SuggestionRowV16({
   result,
   selected,
+  bulkSelected,
   interactionLabel,
   onSelect,
   action,
 }: {
   result: PlaceSuggestion;
   selected: boolean;
+  bulkSelected: boolean;
   interactionLabel?: string;
   onSelect: () => void;
   action: React.ReactNode;
@@ -128,8 +152,9 @@ function SuggestionRowV16({
   return (
     <div
       className={`flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center ${
-        selected ? "border-primary/60 bg-primary/5" : "border-border/70"
+        selected || bulkSelected ? "border-primary/60 bg-primary/5" : "border-border/70"
       }`}
+      data-bulk-selected={bulkSelected}
     >
       <button
         type="button"

@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { ExpressionSpecification, MapLayerMouseEvent, StyleSpecification } from "maplibre-gl";
-import { ArrowRight, Minus, Plus } from "lucide-react";
+import { ArrowRight, Check, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   waitForMapLibre,
@@ -27,6 +27,7 @@ export interface MultiAreaMapItem {
   eyebrow?: string;
   description?: string;
   actionable?: boolean;
+  bulkSelected?: boolean;
 }
 
 export interface MultiAreaMapCenter {
@@ -155,6 +156,8 @@ export function MultiAreaPlaceMap({
   selectedId,
   onSelect,
   onAction,
+  onToggleBulkSelection,
+  actionsDisabled = false,
   className,
 }: {
   items: MultiAreaMapItem[];
@@ -163,6 +166,8 @@ export function MultiAreaPlaceMap({
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   onAction?: (item: MultiAreaMapItem) => void;
+  onToggleBulkSelection?: (item: MultiAreaMapItem) => void;
+  actionsDisabled?: boolean;
   className?: string;
 }) {
   const mappedItems = React.useMemo(
@@ -320,10 +325,10 @@ export function MultiAreaPlaceMap({
         source: SOURCE,
         filter: ["!", ["has", "point_count"]],
         paint: {
-          "circle-radius": 14,
+          "circle-radius": ["case", ["boolean", ["get", "bulkSelected"], false], 18, 14],
           "circle-color": background,
           "circle-stroke-color": primary,
-          "circle-stroke-width": 2,
+          "circle-stroke-width": ["case", ["boolean", ["get", "bulkSelected"], false], 5, 2],
         },
       });
       map.addLayer({
@@ -344,10 +349,11 @@ export function MultiAreaPlaceMap({
         type: "circle",
         source: SELECTED_SOURCE,
         paint: {
-          "circle-radius": 18,
+          "circle-radius": 21,
           "circle-color": background,
+          "circle-opacity": 0,
           "circle-stroke-color": primary,
-          "circle-stroke-width": 4,
+          "circle-stroke-width": 3,
         },
       });
       map.addLayer({
@@ -426,7 +432,7 @@ export function MultiAreaPlaceMap({
         new mapLibre.LngLatBounds(points[0], points[0]),
       );
       map.fitBounds(bounds, {
-        padding: { top: 48, right: 48, bottom: selected ? 180 : 72, left: 48 },
+        padding: { top: 48, right: 48, bottom: selected ? 230 : 72, left: 48 },
         maxZoom: 14,
         duration: 0,
       });
@@ -445,6 +451,7 @@ export function MultiAreaPlaceMap({
 
   const ready = status === "ready" && layersReady;
   const tileStatus = mapsKey ? (status === "ready" ? "ready" : status) : "missing";
+  const bulkSelectedCount = mappedItems.filter((item) => item.bulkSelected).length;
 
   return (
     <div
@@ -463,6 +470,7 @@ export function MultiAreaPlaceMap({
       data-map-icon-layer={ready && mapRef.current?.getLayer(POINT_ICONS) ? "ready" : "missing"}
       data-map-category-icon-count="6"
       data-search-center-count={centers.length}
+      data-bulk-selected-count={bulkSelectedCount}
     >
       <div ref={containerRef} className="absolute inset-0" />
       {!ready ? (
@@ -496,29 +504,46 @@ export function MultiAreaPlaceMap({
       </div>
       {selected ? (
         <div className="absolute inset-x-3 bottom-8 z-20 rounded-2xl border bg-background/95 p-3 shadow-lg backdrop-blur">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="min-w-0 flex-1">
-              {selected.eyebrow ? (
-                <div className="truncate text-[11px] font-medium text-primary">
-                  {selected.eyebrow}
-                </div>
-              ) : null}
-              <div className="truncate font-medium">{selected.name}</div>
-              {selected.description ? (
-                <div className="truncate text-xs text-muted-foreground">{selected.description}</div>
-              ) : null}
-            </div>
-            {onAction && selected.actionable !== false ? (
-              <Button
-                type="button"
-                size="sm"
-                className="min-h-11 shrink-0"
-                onClick={() => onAction(selected)}
-              >
-                Lägg till <ArrowRight className="h-4 w-4" />
-              </Button>
+          <div className="min-w-0">
+            {selected.eyebrow ? (
+              <div className="truncate text-[11px] font-medium text-primary">
+                {selected.bulkSelected ? "Vald · " : ""}
+                {selected.eyebrow}
+              </div>
+            ) : null}
+            <div className="truncate font-medium">{selected.name}</div>
+            {selected.description ? (
+              <div className="truncate text-xs text-muted-foreground">{selected.description}</div>
             ) : null}
           </div>
+          {selected.actionable !== false ? (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {onToggleBulkSelection ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selected.bulkSelected ? "secondary" : "outline"}
+                  className="min-h-11"
+                  disabled={actionsDisabled}
+                  onClick={() => onToggleBulkSelection(selected)}
+                >
+                  {selected.bulkSelected ? <Check className="h-4 w-4" /> : null}
+                  {selected.bulkSelected ? "Avmarkera" : "Markera"}
+                </Button>
+              ) : null}
+              {onAction ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="min-h-11"
+                  disabled={actionsDisabled}
+                  onClick={() => onAction(selected)}
+                >
+                  Granska <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-background/85 px-2 py-1 text-center text-[10px] text-muted-foreground backdrop-blur-sm">

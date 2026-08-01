@@ -30,10 +30,20 @@ type ResultStatus = "available" | "existing";
 
 export function PlaceDiscoveryV16({
   addedResultIds,
+  selectedResults,
+  bulkBusy,
+  onToggleSelected,
+  onClearSelected,
+  onAddSelected,
   onBeginAdd,
   onClose,
 }: {
   addedResultIds: Set<string>;
+  selectedResults: PlaceSuggestion[];
+  bulkBusy: boolean;
+  onToggleSelected: (suggestion: PlaceSuggestion) => void;
+  onClearSelected: () => void;
+  onAddSelected: () => void;
   onBeginAdd: (suggestion: PlaceSuggestion) => void;
   onClose: () => void;
 }) {
@@ -42,6 +52,10 @@ export function PlaceDiscoveryV16({
   const isLive = mode === "live";
   const groupId = isLive ? activeGroupId : state.group.id;
   const savedAreas = React.useMemo(() => configuredSearchAreas(state, isLive), [isLive, state]);
+  const selectedResultIds = React.useMemo(
+    () => new Set(selectedResults.map((result) => result.externalId)),
+    [selectedResults],
+  );
   const [query, setQuery] = React.useState("");
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(() =>
     savedAreas.map((area) => area.id),
@@ -61,6 +75,7 @@ export function PlaceDiscoveryV16({
   const [error, setError] = React.useState<string | null>(null);
   const [retry, setRetry] = React.useState(0);
   const requestRef = React.useRef(0);
+  const interactionsDisabled = submitting || bulkBusy;
 
   const activeAreas = React.useMemo(() => {
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
@@ -210,6 +225,7 @@ export function PlaceDiscoveryV16({
     lng: result.lng,
     category: result.category,
     actionable: statusForResult(result) === "available",
+    bulkSelected: selectedResultIds.has(result.externalId),
     eyebrow: `${CATEGORY_LABEL[result.category]}${
       result.distanceKm != null
         ? ` · ~${result.distanceKm} km${
@@ -229,10 +245,12 @@ export function PlaceDiscoveryV16({
       existingOpen={existingOpen}
       onExistingOpenChange={setExistingOpen}
       selectedId={selectedId}
+      selectedResultIds={selectedResultIds}
       onSelect={setSelectedId}
+      onToggleSelected={onToggleSelected}
       onAdd={onBeginAdd}
       places={state.places}
-      disabled={submitting}
+      disabled={interactionsDisabled}
     />
   );
   const map = (
@@ -247,10 +265,15 @@ export function PlaceDiscoveryV16({
       radiusKm={radiusKm}
       selectedId={selectedId}
       onSelect={setSelectedId}
+      onToggleBulkSelection={(item) => {
+        const result = availableResults.find((candidate) => candidate.externalId === item.id);
+        if (result) onToggleSelected(result);
+      }}
       onAction={(item) => {
         const result = availableResults.find((candidate) => candidate.externalId === item.id);
         if (result) onBeginAdd(result);
       }}
+      actionsDisabled={interactionsDisabled}
       className="h-[55vh] min-h-[340px] lg:h-[52vh] lg:min-h-[390px]"
     />
   );
@@ -332,6 +355,36 @@ export function PlaceDiscoveryV16({
         </>
       )}
 
+      {selectedResults.length > 0 ? (
+        <div className="sticky bottom-2 z-30 rounded-2xl border border-primary/25 bg-background/95 p-2 shadow-lg backdrop-blur">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 flex-1 text-sm font-medium">
+              {selectedResults.length}{" "}
+              {selectedResults.length === 1 ? "ställe valt" : "ställen valda"}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-11 shrink-0"
+              disabled={interactionsDisabled}
+              onClick={onClearSelected}
+            >
+              Rensa
+            </Button>
+          </div>
+          <Button
+            type="button"
+            className="mt-1 min-h-11 w-full"
+            disabled={interactionsDisabled}
+            onClick={onAddSelected}
+          >
+            {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Lägg till {selectedResults.length} {selectedResults.length === 1 ? "ställe" : "ställen"}
+          </Button>
+        </div>
+      ) : null}
+
       {addedResultIds.size > 0 ? (
         <div
           className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm"
@@ -349,7 +402,7 @@ export function PlaceDiscoveryV16({
           : "Fiktiv demodata för utveckling."}
       </p>
       <div className="flex justify-end">
-        <Button className="min-h-11" onClick={onClose}>
+        <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
           Klar
         </Button>
       </div>

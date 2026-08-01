@@ -27,6 +27,13 @@ individuell matdagbok, social feed eller global ranking.
 - Deduplicerade sökresultat i lista och karta. Nya och tidigare borttagna
   ställen visas som möjliga att lägga till, medan aktiva gruppställen samlas i
   den stängda sektionen **Redan i gruppen**.
+- Flera nya sökträffar kan markeras och läggas till i samma omgång. Providerdata
+  används där den finns och osäkra gruppuppgifter kan kompletteras senare.
+- Filter för **Saknar uppgifter** hjälper gruppen hitta ställen utan kök och
+  inriktning eller Passar för.
+- Alla aktiva medlemmar kan komplettera gruppens platsuppgifter. Ägare och
+  administratörer behåller ansvar för borttagning, återställning och dolda
+  sökträffar.
 - Ägare och administratörer kan dölja en felaktig eller inaktuell providerträff
   enbart för den aktuella gruppen och återställa den under gruppinställningarna.
 - Nästa stopp kan väljas manuellt eller slumpas.

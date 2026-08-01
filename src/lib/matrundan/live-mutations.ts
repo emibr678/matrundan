@@ -7,6 +7,8 @@
  * så aktivitetsflödet håller sig konsekvent med gruppens data.
  */
 import { z } from "zod";
+import type { BulkPlaceAddResult, ProviderPlaceBatchInput } from "./bulk-place-add";
+import { MAX_BULK_PLACE_COUNT } from "./bulk-place-add";
 import type { NextStopDateResponseValue, Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 import { flushNotificationOutbox } from "./notifications.functions";
@@ -23,6 +25,21 @@ function scheduleNotificationFlush(): void {
 }
 
 const ID_SCHEMA = z.string().min(1);
+const BULK_PLACE_ADD_RESULT_SCHEMA = z.object({
+  items: z.array(
+    z.object({
+      externalId: z.string().min(1),
+      name: z.string(),
+      status: z.enum(["added", "restored", "existing", "failed"]),
+      placeId: z.string().nullable().optional(),
+      message: z.string().nullable().optional(),
+    }),
+  ),
+  added: z.number().int().nonnegative(),
+  restored: z.number().int().nonnegative(),
+  existing: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+});
 
 /** Utelämna null-fält så RPC-argumenten blir konsekventa. */
 function nn<T>(value: T | null | undefined): T | undefined {
@@ -207,5 +224,38 @@ export async function liveCreateOrLinkProviderPlace(
     },
     ID_SCHEMA,
     "Kunde inte lägga till matstället.",
+  );
+}
+
+export async function liveCreateOrLinkProviderPlacesBatch(
+  groupId: string,
+  items: ProviderPlaceBatchInput[],
+): Promise<BulkPlaceAddResult> {
+  if (items.length === 0) throw new Error("Välj minst ett matställe.");
+  if (items.length > MAX_BULK_PLACE_COUNT) {
+    throw new Error(`Högst ${MAX_BULK_PLACE_COUNT} matställen kan läggas till samtidigt.`);
+  }
+
+  return rpcClient.call(
+    "create_or_link_provider_places_batch_v1",
+    {
+      _group_id: groupId,
+      _items: items.map((item) => ({
+        externalId: item.externalId,
+        provider: item.provider,
+        providerPlaceId: item.providerPlaceId,
+        name: item.name,
+        category: item.category,
+        cuisines: item.cuisines,
+        address: item.address,
+        area: nn(item.area),
+        city: item.city,
+        lat: nn(item.lat),
+        lng: nn(item.lng),
+        raw: item.raw ?? {},
+      })),
+    },
+    BULK_PLACE_ADD_RESULT_SCHEMA,
+    "Kunde inte tolka resultatet från masstillägget.",
   );
 }
