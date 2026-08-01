@@ -52,7 +52,8 @@ Landningen får aldrig framstå som medlemskap i en grupp.
 - Ändringar sparas endast i en dedikerad `sessionStorage`-nyckel i aktuell flik.
 - Exempelläget får aldrig nå live-mutationer, Supabase eller permanent Storage.
 - Besöksfoton lagras lokalt som komprimerad data endast i sessionen.
-- OSM-publicering och statuskontroll simuleras lokalt utan externa nätverksanrop.
+- OSM-publicering, statuskontroll och källkoppling simuleras lokalt utan externa
+  nätverksanrop.
 
 En ny flik börjar från fast exempeldata. Omladdning i samma flik behåller
 sessionens ändringar tills användaren återställer eller lämnar exemplet.
@@ -61,8 +62,8 @@ sessionens ändringar tills användaren återställer eller lämnar exemplet.
 
 `?demo=1` är en separat skrivbar sandbox för utveckling och regressionstester.
 Den använder egen `localStorage`, får inte dela data med exempelgruppen och ska
-inte presenteras som användarens riktiga grupp. OSM-flödet simuleras och får
-inte göra externa anrop.
+inte presenteras som användarens riktiga grupp. OSM-flödet och källkopplingar
+simuleras och får inte göra externa anrop.
 
 ### Live-läge
 
@@ -194,6 +195,47 @@ Paketet för platsdatagrunden lagrar OSM-identitet för långsiktig spårbarhet 
 gör ingen fuzzy matchning, automatisk sammanslagning av motstridiga kanoniska
 platser eller administrativ ersättningshantering. Osäkra konflikter ska lämnas
 orörda tills ett separat granskningsflöde har godkänts.
+
+### Källkoppling för manuella ställen
+
+Ett manuellt matställe kan få en verifierad kartposition genom ett uttryckligt
+Geoapify-val i live-läge. En medlem kan därefter skapa ett gruppprivat underlag
+med kategorin `missing_in_osm` när verksamheten har kontrollerats men saknas i
+OpenStreetMap. Rapporten kräver kartposition och får inte skapas om platsen redan
+har en aktiv OSM-identitet. Inget publiceras automatiskt.
+
+När en senare Geoapify- eller OSM-träff verkar motsvara ett providerlöst
+manuellt ställe gäller följande:
+
+- bara ägare/admin i en aktiv grupp får bekräfta länken;
+- målplatsen måste vara ett aktivt manuellt `group_places`-ställe och sakna alla
+  aktiva externa källor;
+- träffen visas som **Möjlig match i gruppen**, separat från vanliga kandidater,
+  och får inte markeras för masstillägg;
+- UI:t får föreslå en länk endast när exakt ett manuellt ställe matchar;
+- servern ska oberoende kräva exakt en konservativ match: samma normaliserade
+  namn och adress, eller samma namn/adress tillsammans med högst cirka 100
+  meters avstånd;
+- Geoapify-identiteten och eventuell exakt OSM-identitet får inte redan vara
+  aktivt kopplade till en annan plats;
+- den administrativa bekräftelsen ska visa både sökträffen och gruppens
+  befintliga plats samt förklara vad som bevaras.
+
+`link_provider_source_to_existing_place_v1` är den godkända skrivgränsen. Den
+låser externa identiteter under transaktionen, lägger till Geoapify- och
+eventuell exakt OSM-källa och returnerar samma befintliga `place_id`. Den får
+endast fylla saknad kanonisk kartposition eller webbplats. Den får inte skriva
+över namn, adress, `group_places`, besök, omdömen eller privat historik.
+
+En bekräftad källidentitet är kanonisk och kan därför hjälpa andra grupper som
+redan länkar samma verkliga `places`-rad. Källraden får aldrig innehålla eller
+avslöja vilken grupp som fattade beslutet, medlemskap, gruppanteckning eller
+annan privat gruppkontext.
+
+Tvetydiga matchningar innebär alltid ingen åtgärd. Flödet slår inte ihop två
+redan etablerade kanoniska platser, avgör inte verksamhetsersättning och gör
+ingen fuzzy auto-merge. Exempelgruppen och testsandboxen simulerar motsvarande
+koppling i isolerad webbläsarlagring utan att ändra `place_sources`.
 
 ### `group_places`
 
@@ -331,11 +373,13 @@ eller inaktuella träffar från en extern platsleverantör. Identiteten är
 ### Privata platsdatarapporter
 
 `place_data_reports` är gruppens privata granskningskö för observationer om
-felaktigt eller inaktuellt namn, adress, webbplats, dubblett eller en stängd och
-ersatt verksamhet.
+felaktigt eller inaktuellt namn, adress, webbplats, dubblett, en stängd och
+ersatt verksamhet eller att en verifierad verksamhet saknas i OpenStreetMap.
 
 - Alla aktiva gruppmedlemmar får skapa en rapport för ett ställe som redan hör
   till gruppen.
+- `missing_in_osm` kräver verifierad kartposition och får inte användas när
+  platsen redan har en aktiv OSM-identitet.
 - Endast gruppens ägare och administratörer får läsa den samlade kön och ändra
   rapportens status.
 - Direkt klientåtkomst till tabellen är spärrad. Skapande, listning och
@@ -583,7 +627,8 @@ begränsat anrop per centrum och:
 - visar Geoapify/OpenStreetMap-attribution i liveflödet.
 
 Aktiva gruppställen separeras från kandidater och visas i den kollapsade
-sektionen **Redan i gruppen**. Listan och kartan ska använda samma
+sektionen **Redan i gruppen**. En möjlig källmatchning visas separat och kan
+inte markeras som ny kandidat. Listan och kartan ska använda samma
 deduplicerade resultatmodell. Endast nya och tidigare borttagna kandidater kan
 markeras för masstillägg.
 
@@ -613,11 +658,16 @@ masstillägg:
   träff;
 - en lyckad omgång skapar en sammanfattad aktivitetsrad, inte en rad per ställe.
 
+`link_provider_source_to_existing_place_v1` är separat från tilläggs-RPC:erna.
+Den får inte skapa en ny `places`-rad eller återanvändas som generell merge-
+funktion. Den ska bara lägga en verifierad extern identitet på ett befintligt,
+providerlöst manuellt ställe efter separat adminbekräftelse.
+
 Providerkök och inriktningar mappas genom den centrala `food-tags.ts`-taxonomin.
 Okända råkategorier får inte bli en okontrollerad användartaxonomi.
 
 Exempelgruppen anropar inte Geoapify vid runtime och länkar inte fiktiva ställen
-till externa karttjänster.
+till externa karttjänster. Källkopplingen simuleras enbart lokalt.
 
 ## 13. Karta
 
@@ -687,6 +737,8 @@ besök och historik prioriteras före statistik och gamification.
   ska vara sekundära och bekräftas lämpligt.
 - En offentlig extern handling ska förklara exakt vilken data som lämnar gruppen
   och kräva separat bekräftelse.
+- En kanonisk källkoppling ska visa både extern träff och befintligt ställe,
+  förklara att historiken bevaras och kräva separat adminbekräftelse.
 - Bevara tangentbord och ARIA-semantik i dialoger, sheets, tabs, comboboxar och
   kollapsade sektioner.
 - Interaktiva mål bör vara minst cirka 44 px.
@@ -748,6 +800,8 @@ Utöver automatisk verifiering kräver ändringar:
 - kontroll av exempel, demo och live när runtime-gränsen berörs;
 - för extern publicering: verifiering av offentlig payload, felklassificering,
   dubblettskydd och service-role-gräns utan att skapa testdata i produktion;
+- för kanonisk källkoppling: verifiering av entydighetskrav, identitetskonflikter
+  och att befintligt `place_id`, besök och gruppfält bevaras;
 - ärlig redovisning när autentiserat live-test eller verklig enhet saknas.
 
 ## 19. Arkitekturchecklista
@@ -758,6 +812,8 @@ Före merge av en arkitekturpåverkande ändring:
 - Är varje read och write scoperad till rätt grupp?
 - Kan en annan grupps namn, medlem, kommentar eller ursprung exponeras?
 - Lämnar bara uttryckligen godkänd data gruppgränsen vid extern publicering?
+- Är en kanonisk källkoppling fri från gruppidentitet och privata gruppfält?
+- Avvisas tvetydiga och redan använda externa identiteter utan auto-merge?
 - Nekas tidigare medlemmar aktuell åtkomst?
 - Förblir externa deltagare anonyma?
 - Är hemligheter server-only?
