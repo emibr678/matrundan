@@ -60,7 +60,9 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
     name: "Länka till befintligt matställe?",
   });
   await expect(confirmation.getByText(/Bara den externa källidentiteten länkas/)).toBeVisible();
-  await expect(confirmation.getByText(/besök, omdömen och privata gruppuppgifter bevaras/)).toBeVisible();
+  await expect(
+    confirmation.getByText(/besök, omdömen och privata gruppuppgifter bevaras/),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Bekräftelse av källkoppling på mobil");
   await confirmation.getByRole("button", { name: "Länka källa" }).click();
   await expect(confirmation).toBeHidden();
