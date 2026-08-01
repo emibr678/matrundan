@@ -13,7 +13,7 @@ describe("OSM Notes-servergränsen", () => {
   test("identifierar Matrundan och använder JSON-formatet för en ny note", () => {
     expect(source).toContain('"user-agent": `Matrundan/${APP_VERSION} (+${APP_URL})`');
     expect(source).toContain("referer: APP_URL");
-    expect(source).toContain('new URL(`${OSM_API_BASE}/notes.json`)');
+    expect(source).toContain("new URL(`${OSM_API_BASE}/notes.json`)");
     expect(source).toContain("JSON.stringify({ lat, lon: lng, text: publicText })");
   });
 
