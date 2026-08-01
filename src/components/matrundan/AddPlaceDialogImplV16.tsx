@@ -46,7 +46,10 @@ export function AddPlaceDialogV16({
     const clearHiddenSelection = () => setSelectedResults([]);
     window.addEventListener("matrundan:hidden-place-suggestions-changed", clearHiddenSelection);
     return () =>
-      window.removeEventListener("matrundan:hidden-place-suggestions-changed", clearHiddenSelection);
+      window.removeEventListener(
+        "matrundan:hidden-place-suggestions-changed",
+        clearHiddenSelection,
+      );
   }, []);
 
   function handleOpenChange(nextOpen: boolean) {
@@ -68,9 +71,7 @@ export function AddPlaceDialogV16({
 
   function handleSingleAdded(externalId: string) {
     markCompleted([externalId]);
-    setSelectedResults((current) =>
-      current.filter((result) => result.externalId !== externalId),
-    );
+    setSelectedResults((current) => current.filter((result) => result.externalId !== externalId));
   }
 
   async function addDemoResults(items: PlaceSuggestion[]): Promise<BulkPlaceAddResult> {
@@ -155,20 +156,16 @@ export function AddPlaceDialogV16({
         toast.warning(
           `${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}. ${result.failed} kunde inte läggas till.`,
           {
-            description:
-              "De misslyckade ställena är fortfarande valda så att du kan försöka igen.",
+            description: "De misslyckade ställena är fortfarande valda så att du kan försöka igen.",
           },
         );
       } else if (addedCount > 0) {
-        toast.success(
-          `${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}`,
-          {
-            description:
-              result.existing > 0
-                ? `${result.existing} fanns redan i gruppen. Uppgifter kan kompletteras löpande.`
-                : "Uppgifter kan kompletteras löpande i gruppens lista.",
-          },
-        );
+        toast.success(`${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}`, {
+          description:
+            result.existing > 0
+              ? `${result.existing} fanns redan i gruppen. Uppgifter kan kompletteras löpande.`
+              : "Uppgifter kan kompletteras löpande i gruppens lista.",
+        });
       } else {
         toast.info("De valda ställena finns redan i gruppen.");
       }
