@@ -64,7 +64,7 @@ test("gruppen granskar och simulerar en anonym OSM-anteckning privat", async ({ 
   await expect(placeDataSection.getByText("1 att granska")).toHaveCount(0);
 
   const publicText = placeDataSection.getByLabel("Offentlig text till OpenStreetMap");
-  await expect(publicText).toContainText("Webbplatsen i kartdatan verkar vara fel");
+  await expect(publicText).toHaveValue(/Webbplatsen i kartdatan verkar vara fel/);
   await publicText.fill(
     "Webbplatsen i kartdatan verkar vara inaktuell. Verksamhetens skylt visar en annan officiell webbplats.",
   );
