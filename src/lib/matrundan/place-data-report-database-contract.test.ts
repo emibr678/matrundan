@@ -35,6 +35,12 @@ describe("platsdatarapporternas databaskontrakt", () => {
     expect(sql).not.toContain("ps.raw");
   });
 
+  test("kontoradering kan anonymisera rapportören utan kvarvarande namnkopia", () => {
+    expect(sql).not.toContain("reporter_name_snapshot");
+    expect(sql).toContain("'Tidigare medlem'");
+    expect(sql).toContain("LEFT JOIN public.profiles reporter ON reporter.id = r.created_by");
+  });
+
   test("samtliga RPC:er är låsta till autentiserade användare", () => {
     for (const signature of [
       "public.create_place_data_report_v1(uuid, uuid, text, text)",
