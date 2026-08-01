@@ -58,6 +58,10 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
       toast.error("Välj först en verifierad adress och kartposition.");
       return;
     }
+    if (reportMissingInOsm && isLive && !activeGroupId) {
+      toast.error("Ingen aktiv grupp kunde hittas.");
+      return;
+    }
 
     setBusy(true);
     try {
@@ -88,7 +92,9 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
           window.dispatchEvent(new Event("matrundan:place-data-reports-changed"));
         } catch (error) {
           reportError =
-            error instanceof Error ? error.message : "Det privata OSM-underlaget kunde inte skapas.";
+            error instanceof Error
+              ? error.message
+              : "Det privata OSM-underlaget kunde inte skapas.";
         }
       }
 
