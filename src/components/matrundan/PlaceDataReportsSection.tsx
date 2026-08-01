@@ -76,6 +76,7 @@ export function PlaceDataReportsSection() {
 
   const active = reports.filter((report) => ACTIVE_STATUSES.has(report.status));
   const completed = reports.filter((report) => !ACTIVE_STATUSES.has(report.status));
+  const pendingReviewCount = reports.filter((report) => report.status === "open").length;
 
   async function save(
     report: PlaceDataReport,
@@ -107,9 +108,9 @@ export function PlaceDataReportsSection() {
     <section>
       <div className="mb-2 flex items-center justify-between gap-3">
         <h3 className="text-sm font-medium">Platsdata</h3>
-        {active.length > 0 ? (
+        {pendingReviewCount > 0 ? (
           <Badge variant="secondary" className="rounded-full">
-            {active.length} att granska
+            {pendingReviewCount} att granska
           </Badge>
         ) : null}
       </div>
