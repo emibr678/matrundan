@@ -86,7 +86,7 @@ export function PlaceDataReportsSection() {
     report: PlaceDataReport,
     status: PlaceDataReportStatus,
     resolutionNote: string,
-  ) {
+  ): Promise<boolean> {
     try {
       if (mode === "live") {
         await reviewGroupPlaceDataReport(groupId!, report.id, { status, resolutionNote });
@@ -101,9 +101,10 @@ export function PlaceDataReportsSection() {
       }
       await load();
       toast.success("Bedömningen är sparad.");
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte spara bedömningen.");
-      throw error;
+      return false;
     }
   }
 
@@ -175,7 +176,7 @@ function PlaceDataReportCard({
     report: PlaceDataReport,
     status: PlaceDataReportStatus,
     resolutionNote: string,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 }) {
   const [status, setStatus] = React.useState<PlaceDataReportStatus>(report.status);
   const [resolutionNote, setResolutionNote] = React.useState(report.resolutionNote ?? "");
