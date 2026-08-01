@@ -11,6 +11,35 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.11.0] – 2026-08-01
+
+### Lagt till
+
+- Matställets egen webbplats visas på detaljsidan när Geoapify och
+  OpenStreetMap har en giltig adress.
+- Geoapify- och OpenStreetMap-identiteter lagras separat med första och senaste
+  observation samt aktiv eller ersatt källkoppling.
+
+### Ändrat
+
+- Webbplatslänkar normaliseras till säkra HTTP- eller HTTPS-adresser och visas
+  diskret bredvid Google Maps utan att göra söklistan tyngre.
+- En leverantörsidentitet är bara unik bland aktiva källkopplingar. Historiska
+  kopplingar kan därmed bevaras när en ny restaurang tar över samma plats utan
+  att äldre besök eller omdömen skrivs om.
+- Den nya read-modelen lämnar ut webbplats och begränsad källidentitet, men
+  aldrig rå leverantörsdata.
+
+### Databas och säkerhet
+
+- Migrationen lägger additivt till `places.website`,
+  `group_places.website_override` och livscykelfält på `place_sources`.
+- Befintliga källrader markeras som aktiva och tidigare hämtningstid används
+  som första observation. Befintliga platser, gruppkopplingar och besök
+  bevaras.
+- Nuvarande och äldre provider-RPC:er går genom samma rollkontrollerade
+  implementation, så en databasdriftsättning kan ske före klientpublicering.
+
 ## [1.9.0] – 2026-08-01
 
 ### Ändrat
