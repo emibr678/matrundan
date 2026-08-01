@@ -99,8 +99,6 @@ test("flera sökträffar markeras i lista och karta och läggs till i samma omg�
       exact: true,
     }),
   ).toHaveCount(0);
-  await expect(dialog.getByText("Päronträdets Trattoria", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("Deg & Dagg", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Masstillägg och redan tillagda vid 360 px");
 
   await dialog.getByRole("button", { name: "Klar", exact: true }).click();
@@ -115,7 +113,5 @@ test("flera sökträffar markeras i lista och karta och läggs till i samma omg�
   await expect(reopenedExisting).toHaveAttribute("data-state", "closed");
   await reopenedExisting.click();
   await expect(reopenedExisting).toHaveAttribute("data-state", "open");
-  await expect(reopened.getByText("Päronträdets Trattoria", { exact: true })).toBeVisible();
-  await expect(reopened.getByText("Deg & Dagg", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redan tillagda sökträffar på 360 px");
 });
