@@ -6,7 +6,8 @@ export type { ChangelogEntry };
 const VERSION_1_10_1_CHANGELOG: ChangelogEntry = {
   version: "1.10.1",
   date: "2026-08-01",
-  summary: "Ett tydligt Välj flera-läge gör masstillägg snabbare utan att tynga det vanliga flödet.",
+  summary:
+    "Ett tydligt Välj flera-läge gör masstillägg snabbare utan att tynga det vanliga flödet.",
   sections: [
     {
       kind: "Förbättrat",
