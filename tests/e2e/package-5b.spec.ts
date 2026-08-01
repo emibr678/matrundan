@@ -43,7 +43,9 @@ async function selectForBulk(dialog: Locator, name: string) {
   await dialog.getByRole("checkbox", { name: `Välj ${name} för masstillägg`, exact: true }).click();
 }
 
-test("flera sökträffar markeras och läggs till i samma omgång", async ({ page }) => {
+test("flera sökträffar markeras i lista och karta och läggs till i samma omgång", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
@@ -59,8 +61,7 @@ test("flera sökträffar markeras och läggs till i samma omgång", async ({ pag
   const initialExistingCount = await readExistingCount(dialog);
 
   await selectForBulk(dialog, "Päronträdets Trattoria");
-  await selectForBulk(dialog, "Hagabackens Kafferum");
-  await expect(dialog.getByText("2 ställen valda", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("1 ställe valt", { exact: true })).toBeVisible();
   await expect(suggestionRow(dialog, "Päronträdets Trattoria")).toHaveAttribute(
     "data-bulk-selected",
     "true",
@@ -69,6 +70,9 @@ test("flera sökträffar markeras och läggs till i samma omgång", async ({ pag
   const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
   await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.locator('[data-bulk-selected-count="1"]:visible')).toBeVisible();
+  await expect(dialog.getByText("Deg & Dagg", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Markera", exact: true }).click();
   await expect(dialog.locator('[data-bulk-selected-count="2"]:visible')).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Avmarkera", exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Valda sökträffar på kartan");
@@ -94,7 +98,7 @@ test("flera sökträffar markeras och läggs till i samma omgång", async ({ pag
     }),
   ).toHaveCount(0);
   await expect(dialog.getByText("Päronträdets Trattoria", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("Hagabackens Kafferum", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Deg & Dagg", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Masstillägg och redan tillagda vid 360 px");
 
   await dialog.getByRole("button", { name: "Klar", exact: true }).click();
@@ -110,6 +114,6 @@ test("flera sökträffar markeras och läggs till i samma omgång", async ({ pag
   await reopenedExisting.click();
   await expect(reopenedExisting).toHaveAttribute("data-state", "open");
   await expect(reopened.getByText("Päronträdets Trattoria", { exact: true })).toBeVisible();
-  await expect(reopened.getByText("Hagabackens Kafferum", { exact: true })).toBeVisible();
+  await expect(reopened.getByText("Deg & Dagg", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redan tillagda sökträffar på 360 px");
 });
