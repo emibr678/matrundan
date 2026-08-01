@@ -40,6 +40,46 @@ Inga ändringar ännu.
 - Nuvarande och äldre provider-RPC:er går genom samma rollkontrollerade
   implementation, så en databasdriftsättning kan ske före klientpublicering.
 
+## [1.10.1] – 2026-08-01
+
+### Ändrat
+
+- Sökresultat använder åter det enkla enskilda tillägget som normalläge.
+- **Välj flera** aktiverar ett separat läge med kryssrutor och en gemensam
+  batchåtgärd. **Avbryt** rensar urvalet och återställer normalläget.
+- Listan och kartan följer samma läge, så masstillägget inte längre konkurrerar
+  visuellt med det vanliga tilläggsflödet.
+
+## [1.10.0] – 2026-08-01
+
+### Lagt till
+
+- Flera nya sökträffar kan markeras i listan eller på kartan och läggas till i
+  gruppen i samma omgång.
+- Filtergruppen **Saknar uppgifter** hittar ställen utan **Kök/inriktning**,
+  **Passar för** eller båda.
+
+### Ändrat
+
+- Masstillägg använder providerkategori och tillgängliga uppgifter om kök och
+  inriktning, medan osäkra gruppuppgifter lämnas tomma för senare komplettering.
+- Alla aktiva medlemmar kan redigera kategori, kök och inriktning, Passar för
+  och gruppens privata anteckning.
+- Ägare och administratörer behåller ensamrätt på att ta bort och lägga tillbaka
+  ställen samt dölja felaktiga providersökträffar.
+- Ett masstillägg ger en sammanfattad aktivitet i stället för en aktivitet per
+  ställe.
+
+### Teknik och säkerhet
+
+- `create_or_link_provider_places_batch_v1` behandlar högst 50 validerade
+  providerträffar per anrop, deduplicerar på provideridentitet och isolerar fel
+  per träff.
+- Batch-RPC:n och metadata-RPC:n kräver autentisering, aktiv grupp och aktivt
+  medlemskap. Direkt anonym åtkomst är spärrad.
+- Migrationen bevarar befintliga kanoniska platser, gruppkopplingar, metadata
+  och historik.
+
 ## [1.9.0] – 2026-08-01
 
 ### Ändrat
