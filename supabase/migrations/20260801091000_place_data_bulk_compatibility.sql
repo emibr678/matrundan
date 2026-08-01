@@ -66,6 +66,7 @@ BEGIN
     _name := trim(COALESCE(_item->>'name', ''));
     _place_id := NULL;
     _osm_place_id := NULL;
+    _osm_source_id := NULL;
     _status := NULL;
     _message := NULL;
 
@@ -94,9 +95,7 @@ BEGIN
         WHEN 'relation' THEN 'relation'
         ELSE NULL
       END;
-      IF _osm_type IS NULL OR _osm_id !~ '^[1-9][0-9]*$' THEN
-        _osm_source_id := NULL;
-      ELSE
+      IF _osm_type IS NOT NULL AND _osm_id ~ '^[1-9][0-9]*$' THEN
         _osm_source_id := _osm_type || ':' || _osm_id;
       END IF;
       _cuisines := public.normalize_food_tags(
@@ -122,9 +121,14 @@ BEGIN
         RAISE EXCEPTION 'Ogiltig kartposition';
       END IF;
 
+      -- Samma låsordning som den enskilda skrivgränsen: Geoapify först, OSM
+      -- därefter. Då kan samtidiga enskilda och batchbaserade tillägg samverka.
       PERFORM pg_advisory_xact_lock(
         hashtextextended(_provider || ':' || _provider_place_id, 0)
       );
+      IF _osm_source_id IS NOT NULL THEN
+        PERFORM pg_advisory_xact_lock(hashtextextended('openstreetmap:' || _osm_source_id, 0));
+      END IF;
 
       SELECT ps.place_id
       INTO _place_id
@@ -133,6 +137,20 @@ BEGIN
         AND ps.provider_place_id = _provider_place_id
         AND ps.status = 'active'
       LIMIT 1;
+
+      IF _osm_source_id IS NOT NULL THEN
+        SELECT ps.place_id
+        INTO _osm_place_id
+        FROM public.place_sources ps
+        WHERE ps.provider = 'openstreetmap'
+          AND ps.provider_place_id = _osm_source_id
+          AND ps.status = 'active'
+        LIMIT 1;
+      END IF;
+
+      IF _place_id IS NULL AND _osm_place_id IS NOT NULL THEN
+        _place_id := _osm_place_id;
+      END IF;
 
       IF _place_id IS NULL THEN
         INSERT INTO public.places (
@@ -184,13 +202,51 @@ BEGIN
           NULL
         );
       ELSE
-        UPDATE public.place_sources
-        SET raw = _raw,
-            fetched_at = now(),
-            last_seen_at = now()
-        WHERE provider = _provider
-          AND provider_place_id = _provider_place_id
-          AND status = 'active';
+        IF EXISTS (
+          SELECT 1
+          FROM public.place_sources ps
+          WHERE ps.provider = _provider
+            AND ps.provider_place_id = _provider_place_id
+            AND ps.status = 'active'
+            AND ps.place_id = _place_id
+        ) THEN
+          UPDATE public.place_sources
+          SET raw = _raw,
+              fetched_at = now(),
+              last_seen_at = now()
+          WHERE provider = _provider
+            AND provider_place_id = _provider_place_id
+            AND status = 'active'
+            AND place_id = _place_id;
+        ELSIF NOT EXISTS (
+          SELECT 1
+          FROM public.place_sources ps
+          WHERE ps.place_id = _place_id
+            AND ps.provider = _provider
+            AND ps.status = 'active'
+        ) THEN
+          INSERT INTO public.place_sources (
+            place_id,
+            provider,
+            provider_place_id,
+            raw,
+            status,
+            first_seen_at,
+            last_seen_at,
+            valid_from,
+            valid_to
+          ) VALUES (
+            _place_id,
+            _provider,
+            _provider_place_id,
+            _raw,
+            'active',
+            now(),
+            now(),
+            now(),
+            NULL
+          );
+        END IF;
 
         UPDATE public.places
         SET website = COALESCE(website, _website)
@@ -198,17 +254,14 @@ BEGIN
       END IF;
 
       IF _osm_source_id IS NOT NULL THEN
-        PERFORM pg_advisory_xact_lock(hashtextextended('openstreetmap:' || _osm_source_id, 0));
-
-        SELECT ps.place_id
-        INTO _osm_place_id
-        FROM public.place_sources ps
-        WHERE ps.provider = 'openstreetmap'
-          AND ps.provider_place_id = _osm_source_id
-          AND ps.status = 'active'
-        LIMIT 1;
-
-        IF _osm_place_id IS NULL THEN
+        IF _osm_place_id IS NULL
+           AND NOT EXISTS (
+             SELECT 1
+             FROM public.place_sources ps
+             WHERE ps.place_id = _place_id
+               AND ps.provider = 'openstreetmap'
+               AND ps.status = 'active'
+           ) THEN
           INSERT INTO public.place_sources (
             place_id,
             provider,
@@ -236,7 +289,8 @@ BEGIN
               last_seen_at = now()
           WHERE provider = 'openstreetmap'
             AND provider_place_id = _osm_source_id
-            AND status = 'active';
+            AND status = 'active'
+            AND place_id = _place_id;
         END IF;
       END IF;
 
