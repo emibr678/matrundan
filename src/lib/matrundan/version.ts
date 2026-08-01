@@ -25,6 +25,46 @@ const VERSION_1_11_0_CHANGELOG: ChangelogEntry = {
   ],
 };
 
+const VERSION_1_10_1_CHANGELOG: ChangelogEntry = {
+  version: "1.10.1",
+  date: "2026-08-01",
+  summary:
+    "Ett tydligt Välj flera-läge gör masstillägg snabbare utan att tynga det vanliga flödet.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Sökresultat använder åter det enkla enskilda tillägget som normalläge.",
+        "Masstillägg aktiveras uttryckligen med Välj flera och visar först då kryssrutor och batchåtgärden.",
+        "Listan och kartan följer samma läge, och Avbryt återställer normalläget utan kvarvarande val.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_10_0_CHANGELOG: ChangelogEntry = {
+  version: "1.10.0",
+  date: "2026-08-01",
+  summary: "Flera matställen kan samlas in snabbt och kompletteras tillsammans efteråt.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Flera nya sökträffar kan markeras i listan eller på kartan och läggas till i samma omgång.",
+        "Matställen kan filtreras fram när de saknar kök och inriktning eller Passar för.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Alla aktiva gruppmedlemmar kan komplettera kategori, kök och inriktning, Passar för och gruppens privata anteckning.",
+        "Ägare och administratörer behåller ansvaret för att ta bort och lägga tillbaka ställen.",
+        "Masstillägg använder befintlig platsinformation och lämnar osäkra gruppuppgifter tomma för senare komplettering.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_9_0_CHANGELOG: ChangelogEntry = {
   version: "1.9.0",
   date: "2026-08-01",
@@ -151,6 +191,8 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   VERSION_1_11_0_CHANGELOG,
+  VERSION_1_10_1_CHANGELOG,
+  VERSION_1_10_0_CHANGELOG,
   VERSION_1_9_0_CHANGELOG,
   VERSION_1_8_1_CHANGELOG,
   VERSION_1_8_0_CHANGELOG,
