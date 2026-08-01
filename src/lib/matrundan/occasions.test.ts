@@ -1,10 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   normalizeOccasionClassification,
-  occasionClassification,
-  primaryOccasion,
   rankPlacesForOccasion,
-  secondaryOccasion,
+  toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
 import { OCCASION_DESCRIPTION, OCCASION_LABEL, OCCASION_VALUES } from "@/lib/matrundan/types";
 import type { Place } from "@/lib/matrundan/types";
@@ -28,21 +26,31 @@ describe("sammanhangskategorier", () => {
     expect(OCCASION_DESCRIPTION.middag).toContain("finkrog");
   });
 
-  test("tolkar första valet som primärt och högst ett val som sekundärt", () => {
+  test("normaliserar till högst två likvärdiga val i stabil ordning", () => {
     expect(normalizeOccasionClassification(["middag", "avslappnat", "snabbt", "middag"])).toEqual([
-      "middag",
+      "snabbt",
       "avslappnat",
     ]);
-    expect(occasionClassification("snabbt", "snabbt")).toEqual(["snabbt"]);
-    expect(occasionClassification("avslappnat", "middag")).toEqual(["avslappnat", "middag"]);
-    expect(primaryOccasion(["avslappnat", "middag"])).toBe("avslappnat");
-    expect(secondaryOccasion(["avslappnat", "middag"])).toBe("middag");
+    expect(normalizeOccasionClassification(["middag", "avslappnat"])).toEqual([
+      "avslappnat",
+      "middag",
+    ]);
   });
 
-  test("topplistan jämför bara ställen där sammanhanget är primärt", () => {
+  test("direkt flerval lägger till, tar bort och stoppar ett tredje val", () => {
+    expect(toggleOccasionSelection([], "avslappnat")).toEqual(["avslappnat"]);
+    expect(toggleOccasionSelection(["avslappnat"], "middag")).toEqual(["avslappnat", "middag"]);
+    expect(toggleOccasionSelection(["avslappnat", "middag"], "snabbt")).toEqual([
+      "avslappnat",
+      "middag",
+    ]);
+    expect(toggleOccasionSelection(["avslappnat", "middag"], "avslappnat")).toEqual(["middag"]);
+  });
+
+  test("topplistan inkluderar stället för vart och ett av dess val", () => {
     const places = [
-      place("Primär vardag", ["avslappnat"], "p1"),
-      place("Sekundär vardag", ["snabbt", "avslappnat"], "p2"),
+      place("Bara avslappnat", ["avslappnat"], "p1"),
+      place("Snabbt och avslappnat", ["snabbt", "avslappnat"], "p2"),
       place("Delad etta", ["avslappnat"], "p3"),
     ];
     const ratings = {
@@ -51,12 +59,15 @@ describe("sammanhangskategorier", () => {
       p3: { overall: 4.5, count: 1 },
     };
 
-    const ranked = rankPlacesForOccasion(places, "avslappnat", (id) => ratings[id]);
+    const relaxed = rankPlacesForOccasion(places, "avslappnat", (id) => ratings[id]);
+    const quick = rankPlacesForOccasion(places, "snabbt", (id) => ratings[id]);
 
-    expect(ranked.map(({ place: item, rank }) => [item.id, rank])).toEqual([
-      ["p1", 1],
-      ["p3", 1],
+    expect(relaxed.map(({ place: item, rank }) => [item.id, rank])).toEqual([
+      ["p2", 1],
+      ["p1", 2],
+      ["p3", 2],
     ]);
+    expect(quick.map(({ place: item, rank }) => [item.id, rank])).toEqual([["p2", 1]]);
   });
 });
 

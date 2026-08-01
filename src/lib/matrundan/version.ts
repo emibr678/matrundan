@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./versi
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
+const VERSION_1_9_0_CHANGELOG: ChangelogEntry = {
+  version: "1.9.0",
+  date: "2026-08-01",
+  summary: "Enklare och likvärdiga Passar för-val som fungerar i flera topplistor.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Passar för väljs direkt med en eller två likvärdiga kategorier utan ett separat steg för bäst och också.",
+        "Ett ställe med två val kan visas i topplistan för båda kategorierna.",
+        "Detaljsidan och administrationen visar alla val under en gemensam Passar för-rubrik.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_8_1_CHANGELOG: ChangelogEntry = {
   version: "1.8.1",
   date: "2026-07-31",
@@ -112,6 +128,7 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_9_0_CHANGELOG,
   VERSION_1_8_1_CHANGELOG,
   VERSION_1_8_0_CHANGELOG,
   VERSION_1_7_1_CHANGELOG,

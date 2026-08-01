@@ -34,6 +34,8 @@ individuell matdagbok, social feed eller global ranking.
   eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.
 - Besök registreras med datum, måltid, faktiska deltagare, omdömen och ett
   valfritt privat foto.
+- **Passar för** kan lämnas tomt eller anges med upp till två likvärdiga val. Ett
+  ställe med två val kan visas i båda gruppens privata topplistor.
 - Kanoniska platser och besök kan delas mellan användarens grupper utan att
   dupliceras eller avslöja ursprungsgrupp, privata kommentarer eller medlemskap.
 - Personliga favoriter, privata topplistor, medlemsprofiler och diskret
