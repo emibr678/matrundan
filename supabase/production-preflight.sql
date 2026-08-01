@@ -49,12 +49,44 @@ WITH checks(name, ok) AS (
       to_regprocedure('public.create_place_data_report_v1(uuid,uuid,text,text)') IS NOT NULL
     ),
     (
-      'place_data_report_rpc:list',
+      'place_data_report_rpc:list-v1',
       to_regprocedure('public.list_group_place_data_reports_v1(uuid)') IS NOT NULL
+    ),
+    (
+      'place_data_report_rpc:list-v2',
+      to_regprocedure('public.list_group_place_data_reports_v2(uuid)') IS NOT NULL
     ),
     (
       'place_data_report_rpc:review',
       to_regprocedure('public.review_place_data_report_v1(uuid,uuid,text,text)') IS NOT NULL
+    ),
+    (
+      'osm_note_rpc:prepare',
+      to_regprocedure(
+        'public.prepare_place_data_report_osm_submission_v1(uuid,uuid,text)'
+      ) IS NOT NULL
+    ),
+    (
+      'osm_note_rpc:complete',
+      to_regprocedure(
+        'public.complete_place_data_report_osm_submission_v1(uuid,text,bigint,text,timestamptz,timestamptz,text)'
+      ) IS NOT NULL
+    ),
+    (
+      'osm_note_rpc:fail',
+      to_regprocedure(
+        'public.fail_place_data_report_osm_submission_v1(uuid,text,text)'
+      ) IS NOT NULL
+    ),
+    (
+      'osm_note_rpc:get-refresh',
+      to_regprocedure('public.get_place_data_report_osm_refresh_v1(uuid,uuid)') IS NOT NULL
+    ),
+    (
+      'osm_note_rpc:update-status',
+      to_regprocedure(
+        'public.update_place_data_report_osm_status_v1(uuid,text,bigint,text,timestamptz)'
+      ) IS NOT NULL
     ),
     (
       'account_deletion:place_data_report_scrub',
@@ -67,6 +99,18 @@ WITH checks(name, ok) AS (
         ) > 0
         AND position(
           'resolution_note = NULL'
+          IN pg_get_functiondef(
+            to_regprocedure('public.prepare_own_account_deletion(jsonb,boolean)')
+          )
+        ) > 0,
+        false
+      )
+    ),
+    (
+      'account_deletion:osm_submitter_scrub',
+      COALESCE(
+        position(
+          'osm_submitted_by = NULL'
           IN pg_get_functiondef(
             to_regprocedure('public.prepare_own_account_deletion(jsonb,boolean)')
           )
@@ -127,6 +171,86 @@ WITH checks(name, ok) AS (
       )
     ),
     (
+      'column:place_data_reports.osm_submission_state',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_data_reports'
+          AND column_name = 'osm_submission_state'
+      )
+    ),
+    (
+      'column:place_data_reports.osm_public_reference',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_data_reports'
+          AND column_name = 'osm_public_reference'
+      )
+    ),
+    (
+      'column:place_data_reports.osm_public_text',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_data_reports'
+          AND column_name = 'osm_public_text'
+      )
+    ),
+    (
+      'column:place_data_reports.osm_note_id',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_data_reports'
+          AND column_name = 'osm_note_id'
+      )
+    ),
+    (
+      'column:place_data_reports.osm_note_url',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_data_reports'
+          AND column_name = 'osm_note_url'
+      )
+    ),
+    (
+      'column:place_data_reports.osm_note_status',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_data_reports'
+          AND column_name = 'osm_note_status'
+      )
+    ),
+    (
+      'column:place_data_reports.osm_note_last_checked_at',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_data_reports'
+          AND column_name = 'osm_note_last_checked_at'
+      )
+    ),
+    (
+      'column:place_data_reports.osm_submitted_by',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_data_reports'
+          AND column_name = 'osm_submitted_by'
+      )
+    ),
+    (
       'index:place_sources_active_provider_identity_uidx',
       to_regclass('public.place_sources_active_provider_identity_uidx') IS NOT NULL
     ),
@@ -137,6 +261,14 @@ WITH checks(name, ok) AS (
     (
       'index:place_data_reports_active_reporter_issue_uidx',
       to_regclass('public.place_data_reports_active_reporter_issue_uidx') IS NOT NULL
+    ),
+    (
+      'index:place_data_reports_osm_note_id_uidx',
+      to_regclass('public.place_data_reports_osm_note_id_uidx') IS NOT NULL
+    ),
+    (
+      'index:place_data_reports_osm_public_reference_uidx',
+      to_regclass('public.place_data_reports_osm_public_reference_uidx') IS NOT NULL
     ),
     (
       'grant:authenticated-current-read',
@@ -203,10 +335,18 @@ WITH checks(name, ok) AS (
       )
     ),
     (
-      'grant:authenticated-place-data-report-list',
+      'grant:authenticated-place-data-report-list-v1',
       has_function_privilege(
         'authenticated',
         'public.list_group_place_data_reports_v1(uuid)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:authenticated-place-data-report-list-v2',
+      has_function_privilege(
+        'authenticated',
+        'public.list_group_place_data_reports_v2(uuid)',
         'EXECUTE'
       )
     ),
@@ -215,6 +355,70 @@ WITH checks(name, ok) AS (
       has_function_privilege(
         'authenticated',
         'public.review_place_data_report_v1(uuid,uuid,text,text)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:authenticated-osm-prepare',
+      has_function_privilege(
+        'authenticated',
+        'public.prepare_place_data_report_osm_submission_v1(uuid,uuid,text)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:authenticated-osm-refresh-context',
+      has_function_privilege(
+        'authenticated',
+        'public.get_place_data_report_osm_refresh_v1(uuid,uuid)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:service-osm-complete',
+      has_function_privilege(
+        'service_role',
+        'public.complete_place_data_report_osm_submission_v1(uuid,text,bigint,text,timestamptz,timestamptz,text)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:service-osm-fail',
+      has_function_privilege(
+        'service_role',
+        'public.fail_place_data_report_osm_submission_v1(uuid,text,text)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:service-osm-update-status',
+      has_function_privilege(
+        'service_role',
+        'public.update_place_data_report_osm_status_v1(uuid,text,bigint,text,timestamptz)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'isolation:no-authenticated-osm-complete',
+      NOT has_function_privilege(
+        'authenticated',
+        'public.complete_place_data_report_osm_submission_v1(uuid,text,bigint,text,timestamptz,timestamptz,text)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'isolation:no-authenticated-osm-fail',
+      NOT has_function_privilege(
+        'authenticated',
+        'public.fail_place_data_report_osm_submission_v1(uuid,text,text)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'isolation:no-authenticated-osm-update-status',
+      NOT has_function_privilege(
+        'authenticated',
+        'public.update_place_data_report_osm_status_v1(uuid,text,bigint,text,timestamptz)',
         'EXECUTE'
       )
     ),
