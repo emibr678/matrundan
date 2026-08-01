@@ -7,12 +7,12 @@
 WITH checks(name, ok) AS (
   VALUES
     (
-      'read_rpc_current:get_group_app_state_v5e',
-      to_regprocedure('public.get_group_app_state_v5e(uuid)') IS NOT NULL
+      'read_rpc_current:get_group_app_state_v5f',
+      to_regprocedure('public.get_group_app_state_v5f(uuid)') IS NOT NULL
     ),
     (
-      'read_rpc_fallback:get_group_app_state_v5d',
-      to_regprocedure('public.get_group_app_state_v5d(uuid)') IS NOT NULL
+      'read_rpc_fallback:get_group_app_state_v5e',
+      to_regprocedure('public.get_group_app_state_v5e(uuid)') IS NOT NULL
     ),
     (
       'settings_rpc:replace_group_search_settings',
@@ -21,6 +21,16 @@ WITH checks(name, ok) AS (
     (
       'create_rpc:create_group_with_owner_v2',
       to_regprocedure('public.create_group_with_owner_v2(text,text,jsonb,integer)') IS NOT NULL
+    ),
+    (
+      'place_rpc:create_or_link_provider_place_v5f',
+      to_regprocedure(
+        'public.create_or_link_provider_place_v5f(uuid,text,text,text,text,text[],text[],text,text,text,double precision,double precision,text,text,jsonb)'
+      ) IS NOT NULL
+    ),
+    (
+      'place_rpc:create_or_link_provider_places_batch_v1',
+      to_regprocedure('public.create_or_link_provider_places_batch_v1(uuid,jsonb)') IS NOT NULL
     ),
     (
       'hidden_rpc:list',
@@ -53,10 +63,48 @@ WITH checks(name, ok) AS (
       )
     ),
     (
+      'column:places.website',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'places'
+          AND column_name = 'website'
+      )
+    ),
+    (
+      'column:group_places.website_override',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'group_places'
+          AND column_name = 'website_override'
+      )
+    ),
+    (
+      'column:place_sources.status',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'place_sources'
+          AND column_name = 'status'
+      )
+    ),
+    (
+      'index:place_sources_active_provider_identity_uidx',
+      to_regclass('public.place_sources_active_provider_identity_uidx') IS NOT NULL
+    ),
+    (
+      'index:place_sources_active_place_provider_uidx',
+      to_regclass('public.place_sources_active_place_provider_uidx') IS NOT NULL
+    ),
+    (
       'grant:authenticated-current-read',
       has_function_privilege(
         'authenticated',
-        'public.get_group_app_state_v5e(uuid)',
+        'public.get_group_app_state_v5f(uuid)',
         'EXECUTE'
       )
     ),
@@ -65,6 +113,22 @@ WITH checks(name, ok) AS (
       has_function_privilege(
         'authenticated',
         'public.replace_group_search_settings(uuid,jsonb,integer)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:authenticated-provider-link',
+      has_function_privilege(
+        'authenticated',
+        'public.create_or_link_provider_place_v5f(uuid,text,text,text,text,text[],text[],text,text,text,double precision,double precision,text,text,jsonb)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:authenticated-provider-batch-link',
+      has_function_privilege(
+        'authenticated',
+        'public.create_or_link_provider_places_batch_v1(uuid,jsonb)',
         'EXECUTE'
       )
     ),
@@ -91,6 +155,10 @@ WITH checks(name, ok) AS (
         'public.restore_group_place_suggestion(uuid,text,text)',
         'EXECUTE'
       )
+    ),
+    (
+      'isolation:no-authenticated-place-source-table-access',
+      NOT has_table_privilege('authenticated', 'public.place_sources', 'SELECT')
     ),
     (
       'isolation:no-authenticated-search-area-table-access',

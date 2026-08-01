@@ -5,6 +5,7 @@ export type Occasion = "snabbt" | "avslappnat" | "middag";
 export type Role = "ägare" | "admin" | "medlem";
 export type GroupLifecycleStatus = "active" | "archived";
 export type PlaceCollectionStatus = "active" | "archived";
+export type PlaceSourceStatus = "active" | "superseded";
 export type SearchRadiusKm = 1 | 2 | 3 | 5 | 10 | 25 | 50;
 
 export interface Member {
@@ -15,6 +16,16 @@ export interface Member {
   /** Valfri bildavatar (t.ex. Google-profilbild). Prioriteras när emoji saknas. */
   avatarImage?: string;
   role: Role;
+}
+
+export interface PlaceSource {
+  provider: string;
+  providerPlaceId: string;
+  status: PlaceSourceStatus;
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+  validFrom?: string;
+  validTo?: string | null;
 }
 
 export interface Place {
@@ -38,6 +49,14 @@ export interface Place {
   area?: string;
   lat?: number;
   lng?: number;
+  /** Resolverad webbplats för den aktiva gruppen. */
+  website?: string;
+  /** Webbplats på det kanoniska matstället. */
+  canonicalWebsite?: string;
+  /** Null/undefined betyder att gruppen använder den kanoniska webbplatsen. */
+  websiteOverride?: string | null;
+  /** Externa källkopplingar utan rå leverantörsdata. */
+  sources?: PlaceSource[];
   addedBy: string;
   addedAt: string;
   notes?: string;

@@ -70,7 +70,7 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
     });
   });
 
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5e", async (route) => {
+  await page.route("**/rest/v1/rpc/get_group_app_state_v5f", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",

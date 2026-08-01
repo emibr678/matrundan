@@ -24,6 +24,7 @@ import type {
   Visit,
 } from "./types";
 import { normalizeOccasionClassification } from "./occasions";
+import { normalizeWebsiteUrl } from "./place-links";
 import {
   CURRENT_GROUP_STATE_RPC,
   PREVIOUS_GROUP_STATE_RPC,
@@ -155,6 +156,18 @@ type Payload = {
     city: string;
     lat: number | null;
     lng: number | null;
+    website?: string | null;
+    canonicalWebsite?: string | null;
+    websiteOverride?: string | null;
+    sources?: {
+      provider: string;
+      providerPlaceId: string;
+      status: string;
+      firstSeenAt?: string | null;
+      lastSeenAt?: string | null;
+      validFrom?: string | null;
+      validTo?: string | null;
+    }[];
     photo: string | null;
     notes: string | null;
     addedBy: string;
@@ -288,34 +301,53 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     role: ROLE_LABEL[m.role] ?? "medlem",
   }));
 
-  const places: Place[] = p.places.map((pl) => ({
-    id: pl.id,
-    name: pl.name,
-    category: pl.category as PlaceCategory,
-    canonicalCategory: (pl.canonicalCategory ?? pl.category) as PlaceCategory,
-    categoryOverride: pl.categoryOverride ? (pl.categoryOverride as PlaceCategory) : null,
-    cuisines: pl.cuisines ?? [],
-    canonicalCuisines: pl.canonicalCuisines ?? pl.cuisines ?? [],
-    cuisinesOverride: pl.cuisinesOverride ?? null,
-    occasions: normalizeOccasionClassification(pl.occasions ?? []),
-    address: pl.address ?? "",
-    city: pl.city ?? "",
-    area: pl.area ?? undefined,
-    lat: pl.lat ?? undefined,
-    lng: pl.lng ?? undefined,
-    addedBy: pl.addedBy,
-    addedAt: pl.addedAt,
-    notes: pl.notes ?? undefined,
-    photo: pl.photo ?? undefined,
-    collectionStatus: (pl.collectionStatus ?? "active") as PlaceCollectionStatus,
-    archivedAt: pl.archivedAt ?? null,
-    archivedBy: pl.archivedBy ?? null,
-    // group_places.origin i DB använder värdena 'manual', 'provider' och
-    // 'shared_visit' (delning via visits). Vi normaliserar till Place.origin
-    // och behandlar okända värden som "shared" så att Fullträff-badgen inte
-    // felaktigt utlöses av importerade eller delade platser.
-    origin: pl.origin === "manual" || pl.origin === "provider" ? pl.origin : "shared",
-  }));
+  const places: Place[] = p.places.map((pl) => {
+    const canonicalWebsite = normalizeWebsiteUrl(pl.canonicalWebsite);
+    const websiteOverride = normalizeWebsiteUrl(pl.websiteOverride);
+    const website = normalizeWebsiteUrl(pl.website) ?? websiteOverride ?? canonicalWebsite;
+    return {
+      id: pl.id,
+      name: pl.name,
+      category: pl.category as PlaceCategory,
+      canonicalCategory: (pl.canonicalCategory ?? pl.category) as PlaceCategory,
+      categoryOverride: pl.categoryOverride ? (pl.categoryOverride as PlaceCategory) : null,
+      cuisines: pl.cuisines ?? [],
+      canonicalCuisines: pl.canonicalCuisines ?? pl.cuisines ?? [],
+      cuisinesOverride: pl.cuisinesOverride ?? null,
+      occasions: normalizeOccasionClassification(pl.occasions ?? []),
+      address: pl.address ?? "",
+      city: pl.city ?? "",
+      area: pl.area ?? undefined,
+      lat: pl.lat ?? undefined,
+      lng: pl.lng ?? undefined,
+      website,
+      canonicalWebsite,
+      websiteOverride: websiteOverride ?? null,
+      sources: (pl.sources ?? [])
+        .filter((source) => source.provider?.trim() && source.providerPlaceId?.trim())
+        .map((source) => ({
+          provider: source.provider,
+          providerPlaceId: source.providerPlaceId,
+          status: source.status === "superseded" ? ("superseded" as const) : ("active" as const),
+          firstSeenAt: source.firstSeenAt ?? undefined,
+          lastSeenAt: source.lastSeenAt ?? undefined,
+          validFrom: source.validFrom ?? undefined,
+          validTo: source.validTo ?? null,
+        })),
+      addedBy: pl.addedBy,
+      addedAt: pl.addedAt,
+      notes: pl.notes ?? undefined,
+      photo: pl.photo ?? undefined,
+      collectionStatus: (pl.collectionStatus ?? "active") as PlaceCollectionStatus,
+      archivedAt: pl.archivedAt ?? null,
+      archivedBy: pl.archivedBy ?? null,
+      // group_places.origin i DB använder värdena 'manual', 'provider' och
+      // 'shared_visit' (delning via visits). Vi normaliserar till Place.origin
+      // och behandlar okända värden som "shared" så att Fullträff-badgen inte
+      // felaktigt utlöses av importerade eller delade platser.
+      origin: pl.origin === "manual" || pl.origin === "provider" ? pl.origin : "shared",
+    };
+  });
 
   const signedPhotoUrls = await createSignedVisitPhotoUrls(
     p.visits.flatMap((visit) => (visit.photo?.storagePath ? [visit.photo.storagePath] : [])),

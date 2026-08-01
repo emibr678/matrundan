@@ -69,6 +69,8 @@ interface GeoapifyProperties {
       amenity?: string;
       website?: string;
       phone?: string;
+      osm_id?: string | number;
+      osm_type?: string;
     };
   };
 }
@@ -77,8 +79,34 @@ interface GeoapifyFeature {
   properties?: GeoapifyProperties;
 }
 
+type OsmType = "node" | "way" | "relation";
+
 function hasCategory(categories: string[], prefix: string): boolean {
   return categories.some((category) => category === prefix || category.startsWith(`${prefix}.`));
+}
+
+function normalizedOsmType(value: unknown): OsmType | undefined {
+  if (typeof value !== "string") return undefined;
+  switch (value.trim().toLocaleLowerCase("en-US")) {
+    case "n":
+    case "node":
+      return "node";
+    case "w":
+    case "way":
+      return "way";
+    case "r":
+    case "relation":
+      return "relation";
+    default:
+      return undefined;
+  }
+}
+
+function normalizedOsmId(value: unknown): string | undefined {
+  if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) return String(value);
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return /^\d+$/.test(trimmed) && trimmed !== "0" ? trimmed : undefined;
 }
 
 function explicitLifecycleValue(value: unknown): boolean {
@@ -202,10 +230,14 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
   const providerRaw = properties.datasource?.raw;
   const website = properties.website || providerRaw?.website;
   const phone = properties.contact?.phone || providerRaw?.phone;
+  const osmType = normalizedOsmType(providerRaw?.osm_type);
+  const osmId = normalizedOsmId(providerRaw?.osm_id);
   const categories = properties.categories ?? [];
   const metadata = {
     provider: "geoapify",
     providerPlaceId: externalId,
+    osmType: osmType && osmId ? osmType : undefined,
+    osmId: osmType && osmId ? osmId : undefined,
     cuisine: typeof providerRaw?.cuisine === "string" ? providerRaw.cuisine : undefined,
     categories,
     website: typeof website === "string" ? website : undefined,

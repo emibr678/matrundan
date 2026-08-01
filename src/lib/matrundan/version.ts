@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./versi
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
+const VERSION_1_11_0_CHANGELOG: ChangelogEntry = {
+  version: "1.11.0",
+  date: "2026-08-01",
+  summary: "Tydligare webbplatslänkar och en hållbar grund för aktuell platsdata.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Matställets egen webbplats visas på detaljsidan när Geoapify och OpenStreetMap har en giltig adress.",
+        "Geoapify- och OpenStreetMap-identiteter lagras separat med en livscykel som kan bevara historik när en ny restaurang tar över samma plats.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Webbplatslänkar normaliseras till säkra HTTP- eller HTTPS-adresser och visas diskret bredvid Google Maps.",
+        "Den nya read-modelen lämnar bara ut begränsad källidentitet och aldrig rå leverantörsdata till klienten.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_10_1_CHANGELOG: ChangelogEntry = {
   version: "1.10.1",
   date: "2026-08-01",
@@ -168,6 +190,7 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_11_0_CHANGELOG,
   VERSION_1_10_1_CHANGELOG,
   VERSION_1_10_0_CHANGELOG,
   VERSION_1_9_0_CHANGELOG,
