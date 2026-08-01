@@ -31,8 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { normalizeFoodTags } from "@/lib/matrundan/food-tags";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
@@ -44,43 +44,48 @@ import {
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as PlaceCategory[];
 
+function sameFoodTags(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 export function PlaceAdminDialog({ place }: { place: Place }) {
   const { activeGroupRole } = useSession();
   const { state, submitting, archivePlace, restorePlace, updatePlaceMetadata, visitsFor } =
     useStore();
+  const canEdit =
+    activeGroupRole === "owner" || activeGroupRole === "admin" || activeGroupRole === "member";
   const canAdmin = activeGroupRole === "owner" || activeGroupRole === "admin";
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const hasVisits = visitsFor(place.id).length > 0;
-  const baseCuisines = place.canonicalCuisines ?? place.cuisines;
+  const baseCuisines = normalizeFoodTags(place.canonicalCuisines ?? place.cuisines);
   const [open, setOpen] = React.useState(false);
   const [confirmRemove, setConfirmRemove] = React.useState(false);
   const [category, setCategory] = React.useState<PlaceCategory | "inherit">(
     place.categoryOverride ?? "inherit",
   );
-  const [useCuisineOverride, setUseCuisineOverride] = React.useState(
-    place.cuisinesOverride != null,
-  );
-  const [cuisines, setCuisines] = React.useState<string[]>(place.cuisinesOverride ?? baseCuisines);
+  const [cuisines, setCuisines] = React.useState<string[]>(place.cuisines);
   const [occasions, setOccasions] = React.useState<Occasion[]>(place.occasions);
   const [notes, setNotes] = React.useState(place.notes ?? "");
 
   React.useEffect(() => {
     if (!open) return;
     setCategory(place.categoryOverride ?? "inherit");
-    setUseCuisineOverride(place.cuisinesOverride != null);
-    setCuisines(place.cuisinesOverride ?? place.canonicalCuisines ?? place.cuisines);
+    setCuisines(place.cuisines);
     setOccasions(place.occasions);
     setNotes(place.notes ?? "");
   }, [open, place]);
 
-  if (!canAdmin || groupArchived) return null;
+  if (!canEdit || groupArchived || (placeRemoved && !canAdmin)) return null;
 
   async function save() {
     try {
+      const normalizedCuisines = normalizeFoodTags(cuisines);
       await updatePlaceMetadata(place.id, {
         categoryOverride: category === "inherit" ? null : category,
-        cuisinesOverride: useCuisineOverride ? cuisines : null,
+        cuisinesOverride: sameFoodTags(normalizedCuisines, baseCuisines)
+          ? null
+          : normalizedCuisines,
         occasions,
         notes: notes.trim() || null,
       });
@@ -92,6 +97,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
   }
 
   async function changeCollectionState(action: "remove" | "restore") {
+    if (!canAdmin) return;
     try {
       if (action === "remove") await archivePlace(place.id);
       else await restorePlace(place.id);
@@ -116,12 +122,12 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
             size="sm"
             className="min-h-11 shrink-0 rounded-full px-3 text-muted-foreground hover:text-foreground"
           >
-            <Settings2 className="h-4 w-4" /> Hantera ställe
+            <Settings2 className="h-4 w-4" /> Redigera uppgifter
           </Button>
         </DialogTrigger>
         <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Hantera {place.name}</DialogTitle>
+            <DialogTitle>Redigera {place.name}</DialogTitle>
             <DialogDescription>
               Ändringarna gäller bara i {state.group.name}. Namn och adress påverkas inte.
             </DialogDescription>
@@ -139,8 +145,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="inherit">
-                    Återställ till grundkategorin:{" "}
-                    {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
+                    Grundkategori: {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
                   </SelectItem>
                   {CATEGORIES.map((item) => (
                     <SelectItem key={item} value={item}>
@@ -151,33 +156,14 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
               </Select>
             </div>
 
-            <div className="min-w-0 space-y-3 rounded-2xl border border-border/70 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="place-cuisine-override" className="min-w-0 font-normal">
-                  Anpassa kök och inriktning för {state.group.name}
-                </Label>
-                <Switch
-                  id="place-cuisine-override"
-                  checked={useCuisineOverride}
-                  onCheckedChange={(checked) => {
-                    setUseCuisineOverride(checked);
-                    if (checked && cuisines.length === 0) setCuisines(baseCuisines);
-                  }}
-                />
-              </div>
-              <FoodTagMultiSelect
-                id="place-food-tags"
-                value={cuisines}
-                onChange={setCuisines}
-                disabled={!useCuisineOverride}
-                label="Kök och inriktning"
-                description={
-                  useCuisineOverride
-                    ? "Valen gäller bara för den här gruppen."
-                    : `Grunduppgifterna används: ${baseCuisines.join(", ") || "inga val"}.`
-                }
-              />
-            </div>
+            <FoodTagMultiSelect
+              id="place-food-tags"
+              value={cuisines}
+              onChange={setCuisines}
+              disabled={submitting}
+              label="Kök och inriktning"
+              description="Valen gäller bara för den här gruppen."
+            />
 
             <OccasionPicker
               id="place-admin-occasions"
@@ -197,37 +183,39 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
               />
             </div>
 
-            <div className="rounded-2xl border border-border/70 p-3">
-              <div className="font-medium">
-                {placeRemoved ? "Inte längre i gruppens lista" : "I gruppens lista"}
+            {canAdmin ? (
+              <div className="rounded-2xl border border-border/70 p-3">
+                <div className="font-medium">
+                  {placeRemoved ? "Inte längre i gruppens lista" : "I gruppens lista"}
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {placeRemoved
+                    ? "Tidigare besök och omdömen finns kvar i historiken. Lägg tillbaka stället för nya besök och planering."
+                    : "Du kan ta bort stället från gruppens lista utan att radera tidigare besök eller omdömen."}
+                </p>
+                {placeRemoved ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3 w-full"
+                    disabled={submitting}
+                    onClick={() => void changeCollectionState("restore")}
+                  >
+                    <RotateCcw className="h-4 w-4" /> Lägg tillbaka i gruppen
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="mt-3 w-full text-destructive hover:text-destructive"
+                    disabled={submitting}
+                    onClick={() => setConfirmRemove(true)}
+                  >
+                    <Trash2 className="h-4 w-4" /> Ta bort från gruppen
+                  </Button>
+                )}
               </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                {placeRemoved
-                  ? "Tidigare besök och omdömen finns kvar i historiken. Lägg tillbaka stället för nya besök och planering."
-                  : "Du kan ta bort stället från gruppens lista utan att radera tidigare besök eller omdömen."}
-              </p>
-              {placeRemoved ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-3 w-full"
-                  disabled={submitting}
-                  onClick={() => void changeCollectionState("restore")}
-                >
-                  <RotateCcw className="h-4 w-4" /> Lägg tillbaka i gruppen
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="mt-3 w-full text-destructive hover:text-destructive"
-                  disabled={submitting}
-                  onClick={() => setConfirmRemove(true)}
-                >
-                  <Trash2 className="h-4 w-4" /> Ta bort från gruppen
-                </Button>
-              )}
-            </div>
+            ) : null}
           </div>
 
           <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
@@ -241,27 +229,29 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
-        <AlertDialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort {place.name} från gruppen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {hasVisits
-                ? "Stället tas bort från gruppens lista. Tidigare besök och omdömen finns kvar i historiken, och du kan lägga till stället igen senare."
-                : "Stället tas bort från gruppens lista. Du kan lägga till det igen senare."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => void changeCollectionState("remove")}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Ta bort från gruppen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {canAdmin ? (
+        <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+          <AlertDialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Ta bort {place.name} från gruppen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {hasVisits
+                  ? "Stället tas bort från gruppens lista. Tidigare besök och omdömen finns kvar i historiken, och du kan lägga till stället igen senare."
+                  : "Stället tas bort från gruppens lista. Du kan lägga till det igen senare."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Avbryt</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => void changeCollectionState("remove")}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Ta bort från gruppen
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
     </>
   );
 }

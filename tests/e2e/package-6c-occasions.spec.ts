@@ -29,10 +29,11 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
 
   await page.getByRole("button", { name: "Öppna filter och sortering" }).click();
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
-  await expect(filterSheet.getByText("Passar för", { exact: true })).toBeVisible();
+  await expect(filterSheet.getByText("Passar för", { exact: true }).first()).toBeVisible();
   await expect(filterSheet.getByText("Avslappnat", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Något extra", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Snabbt och enkelt", { exact: true })).toBeVisible();
+  await expect(filterSheet.getByText("Saknar uppgifter", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Trevlig middag", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Kategorifilter");
   await filterSheet.getByRole("button", { name: /Visa \d+/ }).click();
@@ -126,8 +127,8 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(page.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Detaljsida med flera val");
 
-  await page.getByRole("button", { name: "Hantera ställe" }).click();
-  const adminDialog = page.getByRole("dialog", { name: "Hantera Testköket" });
+  await page.getByRole("button", { name: "Redigera uppgifter" }).click();
+  const adminDialog = page.getByRole("dialog", { name: "Redigera Testköket" });
   await expect(
     adminDialog.getByRole("button", {
       name: "Passar för: Avslappnat",
@@ -141,5 +142,5 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
     }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(adminDialog.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Administration med typer av besök");
+  await expectNoHorizontalOverflow(page, "Redigering med typer av besök");
 });

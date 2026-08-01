@@ -30,10 +30,20 @@ type ResultStatus = "available" | "existing";
 
 export function PlaceDiscoveryV16({
   addedResultIds,
+  selectedResults,
+  bulkBusy,
+  onToggleSelected,
+  onClearSelected,
+  onAddSelected,
   onBeginAdd,
   onClose,
 }: {
   addedResultIds: Set<string>;
+  selectedResults: PlaceSuggestion[];
+  bulkBusy: boolean;
+  onToggleSelected: (suggestion: PlaceSuggestion) => void;
+  onClearSelected: () => void;
+  onAddSelected: () => void;
   onBeginAdd: (suggestion: PlaceSuggestion) => void;
   onClose: () => void;
 }) {
@@ -42,6 +52,10 @@ export function PlaceDiscoveryV16({
   const isLive = mode === "live";
   const groupId = isLive ? activeGroupId : state.group.id;
   const savedAreas = React.useMemo(() => configuredSearchAreas(state, isLive), [isLive, state]);
+  const selectedResultIds = React.useMemo(
+    () => new Set(selectedResults.map((result) => result.externalId)),
+    [selectedResults],
+  );
   const [query, setQuery] = React.useState("");
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(() =>
     savedAreas.map((area) => area.id),
@@ -57,15 +71,30 @@ export function PlaceDiscoveryV16({
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [resultView, setResultView] = React.useState<ResultView>("lista");
   const [existingOpen, setExistingOpen] = React.useState(false);
+  const [bulkMode, setBulkMode] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [retry, setRetry] = React.useState(0);
   const requestRef = React.useRef(0);
+  const previousBulkBusyRef = React.useRef(false);
+  const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
+  const interactionsDisabled = submitting || bulkBusy;
 
   const activeAreas = React.useMemo(() => {
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
     return [...selected, ...temporaryAreas].slice(0, 5);
   }, [savedAreas, selectedAreaIds, temporaryAreas]);
+
+  React.useEffect(() => {
+    if (previousBulkBusyRef.current && !bulkBusy && selectedResults.length === 0) {
+      setBulkMode(false);
+    }
+    previousBulkBusyRef.current = bulkBusy;
+  }, [bulkBusy, selectedResults.length]);
+
+  React.useEffect(() => {
+    if (!bulkMode && !bulkBusy && selectedResults.length > 0) onClearSelected();
+  }, [bulkBusy, bulkMode, onClearSelected, selectedResults.length]);
 
   const loadHiddenSuggestions = React.useCallback(async () => {
     if (!groupId) {
@@ -202,6 +231,31 @@ export function PlaceDiscoveryV16({
     }
   }, [availableResults, existingOpen, selectedId, visibleResults]);
 
+  function toggleBulkMode() {
+    if (bulkMode) {
+      onClearSelected();
+      setBulkMode(false);
+      return;
+    }
+    setExistingOpen(false);
+    setBulkMode(true);
+  }
+
+  function handleMapSelect(id: string) {
+    setSelectedId(id);
+    const result = availableResults.find((candidate) => candidate.externalId === id);
+    if (!result || interactionsDisabled) return;
+    if (bulkMode) {
+      const now = performance.now();
+      const previous = lastMapToggleRef.current;
+      if (previous?.id === id && now - previous.at < 150) return;
+      lastMapToggleRef.current = { id, at: now };
+      onToggleSelected(result);
+    } else {
+      onBeginAdd(result);
+    }
+  }
+
   const mapResults = existingOpen ? visibleResults : availableResults;
   const mapItems: MultiAreaMapItem[] = mapResults.map((result) => ({
     id: result.externalId,
@@ -210,6 +264,7 @@ export function PlaceDiscoveryV16({
     lng: result.lng,
     category: result.category,
     actionable: statusForResult(result) === "available",
+    bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
     eyebrow: `${CATEGORY_LABEL[result.category]}${
       result.distanceKm != null
         ? ` · ~${result.distanceKm} km${
@@ -229,10 +284,13 @@ export function PlaceDiscoveryV16({
       existingOpen={existingOpen}
       onExistingOpenChange={setExistingOpen}
       selectedId={selectedId}
+      selectedResultIds={selectedResultIds}
+      bulkMode={bulkMode}
       onSelect={setSelectedId}
+      onToggleSelected={onToggleSelected}
       onAdd={onBeginAdd}
       places={state.places}
-      disabled={submitting}
+      disabled={interactionsDisabled}
     />
   );
   const map = (
@@ -246,11 +304,16 @@ export function PlaceDiscoveryV16({
       }))}
       radiusKm={radiusKm}
       selectedId={selectedId}
-      onSelect={setSelectedId}
-      onAction={(item) => {
-        const result = availableResults.find((candidate) => candidate.externalId === item.id);
-        if (result) onBeginAdd(result);
-      }}
+      onSelect={handleMapSelect}
+      onToggleBulkSelection={
+        bulkMode
+          ? (item) => {
+              const result = availableResults.find((candidate) => candidate.externalId === item.id);
+              if (result) onToggleSelected(result);
+            }
+          : undefined
+      }
+      actionsDisabled={interactionsDisabled}
       className="h-[55vh] min-h-[340px] lg:h-[52vh] lg:min-h-[390px]"
     />
   );
@@ -313,6 +376,21 @@ export function PlaceDiscoveryV16({
             <Empty text="Inga matställen hittades. Prova större radie, andra områden eller lägg till manuellt." />
           ) : (
             <>
+              <div className="flex min-h-11 items-center justify-between gap-3">
+                <h3 className="text-sm font-medium">Ställen att lägga till</h3>
+                {availableResults.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-11 shrink-0"
+                    disabled={interactionsDisabled}
+                    onClick={toggleBulkMode}
+                  >
+                    {bulkMode ? "Avbryt" : "Välj flera"}
+                  </Button>
+                ) : null}
+              </div>
               <div className="lg:hidden">
                 <ResultToggle value={resultView} onChange={setResultView} />
                 <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
@@ -332,6 +410,36 @@ export function PlaceDiscoveryV16({
         </>
       )}
 
+      {bulkMode && selectedResults.length > 0 ? (
+        <div className="sticky bottom-2 z-30 rounded-2xl border border-primary/25 bg-background/95 p-2 shadow-lg backdrop-blur">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 flex-1 text-sm font-medium">
+              {selectedResults.length}{" "}
+              {selectedResults.length === 1 ? "ställe valt" : "ställen valda"}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-11 shrink-0"
+              disabled={interactionsDisabled}
+              onClick={onClearSelected}
+            >
+              Rensa
+            </Button>
+          </div>
+          <Button
+            type="button"
+            className="mt-1 min-h-11 w-full"
+            disabled={interactionsDisabled}
+            onClick={onAddSelected}
+          >
+            {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Lägg till {selectedResults.length} {selectedResults.length === 1 ? "ställe" : "ställen"}
+          </Button>
+        </div>
+      ) : null}
+
       {addedResultIds.size > 0 ? (
         <div
           className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm"
@@ -349,7 +457,7 @@ export function PlaceDiscoveryV16({
           : "Fiktiv demodata för utveckling."}
       </p>
       <div className="flex justify-end">
-        <Button className="min-h-11" onClick={onClose}>
+        <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
           Klar
         </Button>
       </div>
