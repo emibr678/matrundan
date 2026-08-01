@@ -63,6 +63,6 @@ test("gruppen rapporterar och granskar felaktig platsdata privat", async ({ page
   await expect(
     placeDataSection.getByText("Förberedd för OpenStreetMap", { exact: true }),
   ).toBeVisible();
-  await expect(placeDataSection.getByText("1 att granska")).toBeVisible();
+  await expect(placeDataSection.getByText("1 att granska")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Sparad OSM-förberedelse på mobil");
 });
