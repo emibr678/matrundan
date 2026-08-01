@@ -47,7 +47,7 @@ test("ställen med saknade uppgifter kan filtreras fram och kompletteras", async
   await editDialog.getByRole("button", { name: "Spara ändringar" }).click();
   await expect(editDialog).toBeHidden();
 
-  await page.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await page.getByRole("button", { name: "Gå tillbaka till matställen", exact: true }).click();
   await applyMissingFilters(page);
   await expect(page.getByRole("link", { name: /Ofullständiga Hörnet/ })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Kompletterat ställe lämnar underhållsfiltret");
