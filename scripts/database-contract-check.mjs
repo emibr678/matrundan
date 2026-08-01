@@ -51,6 +51,7 @@ const requiredFunctions = [
   "hide_group_place_suggestion",
   "restore_group_place_suggestion",
   "create_or_link_provider_place_v5f",
+  "create_or_link_provider_places_batch_v1",
 ];
 
 for (const name of requiredFunctions) {
