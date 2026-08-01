@@ -39,6 +39,10 @@ individuell matdagbok, social feed eller global ranking.
   sökträffar.
 - Ägare och administratörer kan dölja en felaktig eller inaktuell providerträff
   enbart för den aktuella gruppen och återställa den under gruppinställningarna.
+- Alla aktiva medlemmar kan rapportera felaktig platsinformation privat från
+  matställets detaljsida. Ägare och administratörer granskar rapporterna under
+  **Gruppinställningar → Platsdata** och kan förbereda ett underlag för en senare
+  OSM-anteckning utan att något publiceras externt ännu.
 - Nästa stopp kan väljas manuellt eller slumpas.
 - Gruppen kan föreslå datum och valfri tid, svara **Passar**, **Passar inte**
   eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.
@@ -93,6 +97,10 @@ Gruppen är den primära produkt- och integritetsgränsen.
 - `group_search_areas` innehåller gruppens verifierade sökcentrum.
 - `group_hidden_place_suggestions` innehåller gruppens spärrlista för externa
   sökträffar utan att radera det kanoniska matstället.
+- `place_data_reports` innehåller gruppprivata rapporter och en begränsad
+  ögonblicksbild av platsinformationen. Tabellen har ingen direkt klientåtkomst;
+  aktiva medlemmar får rapportera och endast ägare/admin får läsa kön och ändra
+  status.
 - `visits` representerar kanoniska verkliga besök.
 - `visit_group_links` kopplar original- och mottagargrupper till samma besök.
 - `review_group_visibility` styr betygs- och kommentarssynlighet per grupp.

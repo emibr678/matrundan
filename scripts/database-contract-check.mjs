@@ -52,6 +52,9 @@ const requiredFunctions = [
   "restore_group_place_suggestion",
   "create_or_link_provider_place_v5f",
   "create_or_link_provider_places_batch_v1",
+  "create_place_data_report_v1",
+  "list_group_place_data_reports_v1",
+  "review_place_data_report_v1",
 ];
 
 for (const name of requiredFunctions) {
@@ -59,7 +62,11 @@ for (const name of requiredFunctions) {
     errors.push(`Migrationerna saknar funktionen public.${name}.`);
   }
 }
-for (const table of ["group_search_areas", "group_hidden_place_suggestions"]) {
+for (const table of [
+  "group_search_areas",
+  "group_hidden_place_suggestions",
+  "place_data_reports",
+]) {
   if (!new RegExp(`CREATE\\s+TABLE\\s+IF\\s+NOT\\s+EXISTS\\s+public\\.${table}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar tabellen public.${table}.`);
   }
@@ -81,6 +88,7 @@ for (const column of [
 for (const index of [
   "place_sources_active_provider_identity_uidx",
   "place_sources_active_place_provider_uidx",
+  "place_data_reports_active_reporter_issue_uidx",
 ]) {
   if (!new RegExp(`CREATE\\s+UNIQUE\\s+INDEX\\s+IF\\s+NOT\\s+EXISTS\\s+${index}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar det partiella unika indexet ${index}.`);
@@ -99,12 +107,14 @@ if (!existsSync(preflightPath)) {
   for (const object of [
     "group_search_areas",
     "group_hidden_place_suggestions",
+    "place_data_reports",
     "default_search_radius_km",
     "places.website",
     "group_places.website_override",
     "place_sources.status",
     "place_sources_active_provider_identity_uidx",
     "place_sources_active_place_provider_uidx",
+    "place_data_reports_active_reporter_issue_uidx",
   ]) {
     if (!preflight.includes(object)) {
       errors.push(`Produktions-preflight saknar ${object}.`);

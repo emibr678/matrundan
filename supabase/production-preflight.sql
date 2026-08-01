@@ -45,12 +45,46 @@ WITH checks(name, ok) AS (
       to_regprocedure('public.restore_group_place_suggestion(uuid,text,text)') IS NOT NULL
     ),
     (
+      'place_data_report_rpc:create',
+      to_regprocedure('public.create_place_data_report_v1(uuid,uuid,text,text)') IS NOT NULL
+    ),
+    (
+      'place_data_report_rpc:list',
+      to_regprocedure('public.list_group_place_data_reports_v1(uuid)') IS NOT NULL
+    ),
+    (
+      'place_data_report_rpc:review',
+      to_regprocedure('public.review_place_data_report_v1(uuid,uuid,text,text)') IS NOT NULL
+    ),
+    (
+      'account_deletion:place_data_report_scrub',
+      COALESCE(
+        position(
+          'UPDATE public.place_data_reports'
+          IN pg_get_functiondef(
+            to_regprocedure('public.prepare_own_account_deletion(jsonb,boolean)')
+          )
+        ) > 0
+        AND position(
+          'resolution_note = NULL'
+          IN pg_get_functiondef(
+            to_regprocedure('public.prepare_own_account_deletion(jsonb,boolean)')
+          )
+        ) > 0,
+        false
+      )
+    ),
+    (
       'table:group_search_areas',
       to_regclass('public.group_search_areas') IS NOT NULL
     ),
     (
       'table:group_hidden_place_suggestions',
       to_regclass('public.group_hidden_place_suggestions') IS NOT NULL
+    ),
+    (
+      'table:place_data_reports',
+      to_regclass('public.place_data_reports') IS NOT NULL
     ),
     (
       'column:groups.default_search_radius_km',
@@ -99,6 +133,10 @@ WITH checks(name, ok) AS (
     (
       'index:place_sources_active_place_provider_uidx',
       to_regclass('public.place_sources_active_place_provider_uidx') IS NOT NULL
+    ),
+    (
+      'index:place_data_reports_active_reporter_issue_uidx',
+      to_regclass('public.place_data_reports_active_reporter_issue_uidx') IS NOT NULL
     ),
     (
       'grant:authenticated-current-read',
@@ -157,6 +195,30 @@ WITH checks(name, ok) AS (
       )
     ),
     (
+      'grant:authenticated-place-data-report-create',
+      has_function_privilege(
+        'authenticated',
+        'public.create_place_data_report_v1(uuid,uuid,text,text)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:authenticated-place-data-report-list',
+      has_function_privilege(
+        'authenticated',
+        'public.list_group_place_data_reports_v1(uuid)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:authenticated-place-data-report-review',
+      has_function_privilege(
+        'authenticated',
+        'public.review_place_data_report_v1(uuid,uuid,text,text)',
+        'EXECUTE'
+      )
+    ),
+    (
       'isolation:no-authenticated-place-source-table-access',
       NOT has_table_privilege('authenticated', 'public.place_sources', 'SELECT')
     ),
@@ -171,6 +233,10 @@ WITH checks(name, ok) AS (
         'public.group_hidden_place_suggestions',
         'SELECT'
       )
+    ),
+    (
+      'isolation:no-authenticated-place-data-report-table-access',
+      NOT has_table_privilege('authenticated', 'public.place_data_reports', 'SELECT')
     )
 )
 SELECT name, ok

@@ -11,6 +11,37 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.12.0] – 2026-08-01
+
+### Lagt till
+
+- Alla aktiva gruppmedlemmar kan rapportera felaktigt namn, adress, webbplats,
+  dubblett eller en stängd och ersatt verksamhet direkt från matställets
+  detaljsida.
+- Ägare och administratörer får en privat granskningskö under
+  **Gruppinställningar → Platsdata** med rapportens beskrivning och en
+  ögonblicksbild av platsinformationen som gällde när rapporten skapades.
+
+### Ändrat
+
+- Rapporter kan vänta på granskning, förberedas för OpenStreetMap, markeras som
+  åtgärdade i Matrundan eller avslutas utan åtgärd.
+- **Förberedd för OpenStreetMap** är endast ett internt tillstånd i detta paket
+  och skapar ingen offentlig OSM-anteckning.
+- Exempelgruppen och den interna testsandboxen använder samma rapportflöde men
+  sparar endast i respektive webbläsarsession eller lokala testlagring.
+
+### Databas och säkerhet
+
+- `place_data_reports` lagrar gruppprivata rapporter och en begränsad
+  ögonblicksbild av platsen och dess källidentiteter. Rå providerdata sparas
+  inte i rapporten och lämnas aldrig till klienten.
+- Aktiva medlemmar får skapa rapporter endast för ställen som tillhör gruppen.
+  Bara ägare och administratörer får läsa gruppens samlade kö eller ändra
+  rapportstatus.
+- Direkt klientåtkomst till rapporttabellen är spärrad. Läsning och skrivning går
+  genom autentiserade, gruppscopade RPC-funktioner med låst `search_path`.
+
 ## [1.11.0] – 2026-08-01
 
 ### Lagt till

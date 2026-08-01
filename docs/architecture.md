@@ -320,6 +320,40 @@ eller inaktuella träffar från en extern platsleverantör. Identiteten är
   eller borttagna filtreras före sökresultatet. Avsaknad av webbplats eller
   öppettider räcker inte som grund för automatisk bortfiltrering.
 
+### Privata platsdatarapporter
+
+`place_data_reports` är gruppens privata granskningskö för observationer om
+felaktigt eller inaktuellt namn, adress, webbplats, dubblett eller en stängd och
+ersatt verksamhet.
+
+- Alla aktiva gruppmedlemmar får skapa en rapport för ett ställe som redan hör
+  till gruppen.
+- Endast gruppens ägare och administratörer får läsa den samlade kön och ändra
+  rapportens status.
+- Direkt klientåtkomst till tabellen är spärrad. Skapande, listning och
+  granskning går genom autentiserade och gruppscopade RPC-funktioner med låst
+  `search_path`.
+- En rapport bevarar en ögonblicksbild av namn, adress, webbplats, koordinater
+  och begränsad källidentitet som gällde när underlaget skickades in.
+- `place_sources.raw`, privata gruppanteckningar, medlemskap och annan intern
+  providerdata får aldrig kopieras till rapportens källöversikt eller lämna
+  servern.
+- Samma medlem får högst en aktiv rapport per ställe och rapportkategori.
+  Separata medlemmar får lämna egna observationer.
+- Statusarna är `open`, `ready_for_osm`, `resolved` och `dismissed`.
+  `ready_for_osm` betyder bara att en gruppadmin har granskat underlaget; det
+  skapar ingen offentlig OpenStreetMap-anteckning och skickar ingen data utanför
+  Matrundan.
+- En rapport får inte automatiskt skriva om `places`, `place_sources` eller en
+  annan grupps `group_places`. Rättning och framtida extern publicering är
+  separata, uttryckliga handlingar.
+- Exempelgruppen använder `sessionStorage` och testsandboxen använder egen
+  `localStorage`. Inget lokalt körläge får nå live-RPC:erna.
+
+En framtida OSM-handoff ska utgå från ett uttryckligen granskat underlag och
+måste ha separat datamodell för offentlig text, OSM note-ID och extern status.
+Den får aldrig publicera automatiskt när en medlem skapar en intern rapport.
+
 ## 7. Kanoniska besök
 
 ### `visits` och `visit_group_links`
