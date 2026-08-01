@@ -179,6 +179,18 @@ hör gruppspecifik information hemma:
   kanonisk ordning i klientens domänlogik;
 - äldre extra värden ignoreras tills en behörig användare sparar om.
 
+Aktiva medlemmar får löpande underhålla gruppens icke-destruktiva platsuppgifter:
+
+- kategoriöverstyrning;
+- kök och inriktning;
+- **Passar för**;
+- gruppens privata anteckning.
+
+Namn, adress, provideridentitet och andra kanoniska platsfält ändras inte i
+samma flöde. Att ta bort eller lägga tillbaka ett ställe samt att dölja en
+providersökträff är administrativa livscykelåtgärder och förblir begränsade till
+ägare och admin.
+
 Interna värden är stabila även om svensk copy utvecklas. Gruppens topplista
 inkluderar ett ställe i vart och ett av dess valda sammanhang. Samma befintliga
 arrayfält används vidare, så övergången från primärt/sekundärt till likvärdiga
@@ -395,7 +407,8 @@ En skrivgräns ska normalt:
 2. verifiera aktivt medlemskap och roll;
 3. verifiera att alla ID:n hör till avsedd gruppkontext;
 4. validera enums, längder, intervall och immutabla identiteter;
-5. utföra hela operationen atomiskt;
+5. utföra hela operationen atomiskt, eller uttryckligen isolera varje post när
+   en godkänd batchfunktion ska ge partiella resultat;
 6. använda `SECURITY DEFINER` och låst `search_path` när lämpligt;
 7. återkalla exekvering från `PUBLIC` och `anon`;
 8. ge endast avsedd roll, normalt `authenticated`, rätt att anropa.
@@ -431,7 +444,24 @@ begränsat anrop per centrum och:
 
 Aktiva gruppställen separeras från kandidater och visas i den kollapsade
 sektionen **Redan i gruppen**. Listan och kartan ska använda samma
-deduplicerade resultatmodell.
+deduplicerade resultatmodell. Endast nya och tidigare borttagna kandidater kan
+markeras för masstillägg.
+
+`create_or_link_provider_places_batch_v1` är den godkända skrivgränsen för
+masstillägg:
+
+- högst 50 normaliserade providerträffar per anrop;
+- aktiv autentiserad medlem och aktiv grupp krävs;
+- varje träff valideras och isoleras så att en felaktig post inte rullar tillbaka
+  andra lyckade poster;
+- kanoniska platser dedupliceras på provider och provider place ID;
+- en tidigare borttagen grupprelation återaktiveras utan att befintlig
+  gruppmetadata skrivs över;
+- kategori och tillgängliga provideruppgifter om kök/inriktning används vid en
+  ny relation, medan **Passar för** och anteckning lämnas tomma;
+- resultatet redovisar tillagt, återlagt, redan befintligt eller misslyckat per
+  träff;
+- en lyckad omgång skapar en sammanfattad aktivitetsrad, inte en rad per ställe.
 
 Providerkök och inriktningar mappas genom den centrala `food-tags.ts`-taxonomin.
 Okända råkategorier får inte bli en okontrollerad användartaxonomi.
@@ -480,6 +510,10 @@ enhetstester. De ska inte dupliceras som en separat muterbar datakälla.
 Aktivitet är en privat, användarorienterad historik över meningsfulla
 händelser. Mutationer som redan skapar aktivitet ska göra det atomiskt på
 servern.
+
+Ett masstillägg av matställen ska sammanfattas som en meningsfull aktivitet för
+hela omgången. Administrativ arbetsvolym ska inte ge progression eller skapa ett
+brusigt aktivitetsflöde med en rad per tillagd träff.
 
 Gamification skapar inte lagrade aktivitetsrader. Härledda nivåer och badges ska
 inte skrivas till aktivitet bara för att göras persistenta.
