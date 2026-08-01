@@ -79,7 +79,8 @@ function isProviderlessManualPlace(place: Place): boolean {
 function matchOne(place: Place, suggestion: PlaceSuggestion): ManualSourceLinkCandidate | null {
   if (!isProviderlessManualPlace(place)) return null;
 
-  const sameName = normalize(place.name) !== "" && normalize(place.name) === normalize(suggestion.name);
+  const sameName =
+    normalize(place.name) !== "" && normalize(place.name) === normalize(suggestion.name);
   const sameAddress =
     normalize(place.address) !== "" &&
     normalize(place.address) === normalize(suggestion.address) &&
