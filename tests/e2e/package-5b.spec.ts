@@ -69,7 +69,7 @@ test("flera sökträffar markeras och läggs till i samma omgång", async ({ pag
   const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
   await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(dialog.locator('[data-bulk-selected-count="2"]')).toBeVisible();
+  await expect(dialog.locator('[data-bulk-selected-count="2"]:visible')).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Avmarkera", exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Valda sökträffar på kartan");
 
