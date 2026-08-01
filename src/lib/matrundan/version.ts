@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./versi
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
+const VERSION_1_14_1_CHANGELOG: ChangelogEntry = {
+  version: "1.14.1",
+  date: "2026-08-01",
+  summary: "Säkrare OSM-publicering när platsdata och källkoppling förändras samtidigt.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Ett äldre underlag om att ett matställe saknas i OpenStreetMap kan inte publiceras efter att platsen fått en aktiv OSM-koppling.",
+        "Opublicerade underlag avslutas automatiskt när en verklig OSM-källa länkas till matstället.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Dygnsgränser för OSM-publicering räknar nu varje faktiskt försök även när nätverksanropet misslyckas.",
+        "Samtidiga publiceringar serialiseras per användare och grupp så samma kvot inte kan passeras parallellt.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_14_0_CHANGELOG: ChangelogEntry = {
   version: "1.14.0",
   date: "2026-08-01",
@@ -257,6 +279,7 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_14_1_CHANGELOG,
   VERSION_1_14_0_CHANGELOG,
   VERSION_1_13_0_CHANGELOG,
   VERSION_1_12_0_CHANGELOG,
