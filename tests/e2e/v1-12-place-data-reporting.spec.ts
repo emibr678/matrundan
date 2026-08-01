@@ -59,9 +59,7 @@ test("gruppen rapporterar och granskar felaktig platsdata privat", async ({ page
   await placeDataSection.getByRole("button", { name: "Spara bedömning" }).click();
 
   await expect(
-    placeDataSection
-      .locator("summary")
-      .getByText("Förberedd för OpenStreetMap", { exact: true }),
+    placeDataSection.locator("summary").getByText("Förberedd för OpenStreetMap", { exact: true }),
   ).toBeVisible();
   await expect(placeDataSection.getByText("1 att granska")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Sparad OSM-förberedelse på mobil");
