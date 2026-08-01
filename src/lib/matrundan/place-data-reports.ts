@@ -11,6 +11,7 @@ import { rpcClient } from "./rpc-client";
 import type { Member, Place } from "./types";
 
 export const PLACE_DATA_REPORT_CATEGORIES = [
+  "missing_in_osm",
   "closed_or_replaced",
   "wrong_name",
   "wrong_address",
@@ -24,6 +25,7 @@ export type PlaceDataReportStatus = "open" | "ready_for_osm" | "resolved" | "dis
 export type LocalReportStorage = "local" | "session";
 
 export const PLACE_DATA_REPORT_CATEGORY_LABEL: Record<PlaceDataReportCategory, string> = {
+  missing_in_osm: "Saknas i OpenStreetMap",
   closed_or_replaced: "Stängt eller ersatt",
   wrong_name: "Fel namn",
   wrong_address: "Fel adress eller kartposition",
