@@ -92,7 +92,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
 
   await dialog.getByRole("button", { name: "Lägg till 2 ställen", exact: true }).click();
   await expect(
-    dialog.getByText("2 ställen tillagda i den här omgången", { exact: true }),
+    dialog.getByText("2 ställen hanterade i den här omgången", { exact: true }),
   ).toBeVisible();
   await expect(dialog.getByText(/ställen valda/)).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Välj flera", exact: true })).toBeVisible();
