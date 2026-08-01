@@ -102,6 +102,10 @@ export async function linkLiveProviderSourceToManualPlace(
   placeId: string,
   suggestion: PlaceSuggestion,
 ): Promise<string> {
+  if (!Number.isFinite(suggestion.lat) || !Number.isFinite(suggestion.lng)) {
+    throw new Error("Sökträffen saknar en verifierad kartposition.");
+  }
+
   return rpcClient.call(
     "link_provider_source_to_existing_place_v1",
     {
