@@ -359,7 +359,8 @@ export function PlaceDiscoveryV16({
         <div className="sticky bottom-2 z-30 rounded-2xl border border-primary/25 bg-background/95 p-2 shadow-lg backdrop-blur">
           <div className="flex min-w-0 items-center gap-2">
             <span className="min-w-0 flex-1 text-sm font-medium">
-              {selectedResults.length} {selectedResults.length === 1 ? "ställe valt" : "ställen valda"}
+              {selectedResults.length}{" "}
+              {selectedResults.length === 1 ? "ställe valt" : "ställen valda"}
             </span>
             <Button
               type="button"
