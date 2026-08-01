@@ -78,6 +78,8 @@ WITH checks(name, ok) AS (
     ('grant:service-osm-fail', has_function_privilege('service_role', 'public.fail_place_data_report_osm_submission_v1(uuid,text,text)', 'EXECUTE')),
     ('grant:service-osm-update-status', has_function_privilege('service_role', 'public.update_place_data_report_osm_status_v1(uuid,text,bigint,text,timestamptz)', 'EXECUTE')),
     ('isolation:no-anon-manual-source-link', NOT has_function_privilege('anon', 'public.link_provider_source_to_existing_place_v1(uuid,uuid,text,text,text,text,text,double precision,double precision,jsonb)', 'EXECUTE')),
+    ('isolation:no-anon-osm-source-trigger-function', NOT has_function_privilege('anon', 'public.resolve_missing_in_osm_reports_for_active_source_v1()', 'EXECUTE')),
+    ('isolation:no-authenticated-osm-source-trigger-function', NOT has_function_privilege('authenticated', 'public.resolve_missing_in_osm_reports_for_active_source_v1()', 'EXECUTE')),
     ('isolation:no-authenticated-osm-complete', NOT has_function_privilege('authenticated', 'public.complete_place_data_report_osm_submission_v1(uuid,text,bigint,text,timestamptz,timestamptz,text)', 'EXECUTE')),
     ('isolation:no-authenticated-osm-fail', NOT has_function_privilege('authenticated', 'public.fail_place_data_report_osm_submission_v1(uuid,text,text)', 'EXECUTE')),
     ('isolation:no-authenticated-osm-update-status', NOT has_function_privilege('authenticated', 'public.update_place_data_report_osm_status_v1(uuid,text,bigint,text,timestamptz)', 'EXECUTE')),
