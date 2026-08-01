@@ -31,6 +31,22 @@ interface PlaceDataReportDialogProps {
   compact?: boolean;
 }
 
+function canReportMissingInOsm(place: Place): boolean {
+  return (
+    Number.isFinite(place.lat) &&
+    Number.isFinite(place.lng) &&
+    !(place.sources ?? []).some(
+      (source) => source.provider === "openstreetmap" && source.status === "active",
+    )
+  );
+}
+
+function defaultCategory(place: Place): PlaceDataReportCategory {
+  return place.origin === "manual" && canReportMissingInOsm(place)
+    ? "missing_in_osm"
+    : "closed_or_replaced";
+}
+
 export function PlaceDataReportDialog({
   place,
   disabled = false,
@@ -39,14 +55,19 @@ export function PlaceDataReportDialog({
   const { mode, activeGroupId, exampleMode } = useSession();
   const { state, submitting } = useStore();
   const [open, setOpen] = React.useState(false);
-  const [category, setCategory] = React.useState<PlaceDataReportCategory>("closed_or_replaced");
+  const [category, setCategory] = React.useState<PlaceDataReportCategory>(() =>
+    defaultCategory(place),
+  );
   const [description, setDescription] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const groupId = mode === "live" ? activeGroupId : state.group.id;
   const reporter = state.members.find((member) => member.id === state.currentUserId);
+  const categories = PLACE_DATA_REPORT_CATEGORIES.filter(
+    (value) => value !== "missing_in_osm" || canReportMissingInOsm(place),
+  );
 
   function reset() {
-    setCategory("closed_or_replaced");
+    setCategory(defaultCategory(place));
     setDescription("");
   }
 
@@ -125,7 +146,7 @@ export function PlaceDataReportDialog({
               onChange={(event) => setCategory(event.target.value as PlaceDataReportCategory)}
               className="flex min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
-              {PLACE_DATA_REPORT_CATEGORIES.map((value) => (
+              {categories.map((value) => (
                 <option key={value} value={value}>
                   {PLACE_DATA_REPORT_CATEGORY_LABEL[value]}
                 </option>
@@ -144,7 +165,11 @@ export function PlaceDataReportDialog({
               required
               rows={5}
               className="min-h-28 resize-y"
-              placeholder="Exempel: Skylten visar att restaurangen har stängt och en ny verksamhet finns på adressen."
+              placeholder={
+                category === "missing_in_osm"
+                  ? "Exempel: Jag kontrollerade platsen och verksamhetens officiella information men hittade inget motsvarande objekt i OpenStreetMap."
+                  : "Exempel: Skylten visar att restaurangen har stängt och en ny verksamhet finns på adressen."
+              }
             />
             <div className="flex items-start justify-between gap-3 text-[11px] leading-relaxed text-muted-foreground">
               <p>
