@@ -116,8 +116,7 @@ export function PlaceDiscoveryV16({
       setLocalSourceLinks([]);
       return;
     }
-    const load = () =>
-      setLocalSourceLinks(listLocalManualSourceLinks(groupId, localStorageKind));
+    const load = () => setLocalSourceLinks(listLocalManualSourceLinks(groupId, localStorageKind));
     load();
     window.addEventListener("matrundan:manual-place-source-links-changed", load);
     return () => window.removeEventListener("matrundan:manual-place-source-links-changed", load);
