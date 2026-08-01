@@ -77,7 +77,11 @@ for (const column of [
     errors.push(`Migrationerna saknar den additiva kolumnen ${column}.`);
   }
 }
-if (!/CREATE\s+UNIQUE\s+INDEX\s+IF\s+NOT\s+EXISTS\s+place_sources_active_provider_identity_uidx/i.test(sql)) {
+if (
+  !/CREATE\s+UNIQUE\s+INDEX\s+IF\s+NOT\s+EXISTS\s+place_sources_active_provider_identity_uidx/i.test(
+    sql,
+  )
+) {
   errors.push("Migrationerna saknar partiell unikhet för aktiva platskällor.");
 }
 
