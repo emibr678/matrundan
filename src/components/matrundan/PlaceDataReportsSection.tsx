@@ -22,12 +22,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
 const ACTIVE_STATUSES = new Set<PlaceDataReportStatus>(["open", "ready_for_osm"]);
-const STATUS_OPTIONS: PlaceDataReportStatus[] = [
-  "open",
-  "ready_for_osm",
-  "resolved",
-  "dismissed",
-];
+const STATUS_OPTIONS: PlaceDataReportStatus[] = ["open", "ready_for_osm", "resolved", "dismissed"];
 
 function formatReportDate(value: string): string {
   const date = new Date(value);
@@ -123,12 +118,12 @@ export function PlaceDataReportsSection() {
           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="space-y-1 text-xs leading-relaxed text-muted-foreground">
             <p>
-              Gruppens rapporter är privata. Granska underlaget, rätta det som hör till Matrundan och
-              markera vad som senare kan skickas vidare till OpenStreetMap.
+              Gruppens rapporter är privata. Granska underlaget, rätta det som hör till Matrundan
+              och markera vad som senare kan skickas vidare till OpenStreetMap.
             </p>
             <p>
-              <strong className="font-medium text-foreground">Förberedd för OpenStreetMap</strong>
-              {" "}publicerar ingenting ännu.
+              <strong className="font-medium text-foreground">Förberedd för OpenStreetMap</strong>{" "}
+              publicerar ingenting ännu.
             </p>
           </div>
         </div>
@@ -260,7 +255,10 @@ function PlaceDataReportCard({
         <Button
           type="button"
           className="min-h-11 w-full"
-          disabled={saving || (status === report.status && resolutionNote.trim() === (report.resolutionNote ?? ""))}
+          disabled={
+            saving ||
+            (status === report.status && resolutionNote.trim() === (report.resolutionNote ?? ""))
+          }
           onClick={async () => {
             setSaving(true);
             try {
