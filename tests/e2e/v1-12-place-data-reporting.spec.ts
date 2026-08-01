@@ -46,9 +46,7 @@ test("gruppen rapporterar och granskar felaktig platsdata privat", async ({ page
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  const placeDataSection = settings.locator("section").filter({
-    has: settings.getByRole("heading", { name: "Platsdata", exact: true }),
-  });
+  const placeDataSection = settings.getByRole("region", { name: "Platsdata" });
 
   await expect(placeDataSection.getByText("1 att granska")).toBeVisible();
   await expect(placeDataSection.getByText(/publicerar ingenting ännu/)).toBeVisible();
