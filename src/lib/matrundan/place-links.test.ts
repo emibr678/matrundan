@@ -39,9 +39,7 @@ describe("Webbplatslänkar", () => {
     expect(normalizeWebsiteUrl(" www.gamlaenskedematbod.se/meny#middag ")).toBe(
       "https://www.gamlaenskedematbod.se/meny",
     );
-    expect(websiteLabel("https://www.gamlaenskedematbod.se/meny")).toBe(
-      "gamlaenskedematbod.se",
-    );
+    expect(websiteLabel("https://www.gamlaenskedematbod.se/meny")).toBe("gamlaenskedematbod.se");
   });
 
   test("behåller http när leverantören uttryckligen använder det", () => {
