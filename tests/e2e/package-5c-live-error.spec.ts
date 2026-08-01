@@ -107,15 +107,15 @@ test("ett RPC-fel lämnar laddningsläget och kan återförsökas", async ({ pag
   });
 
   let attempts = 0;
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5e", async (route) => {
+  await page.route("**/rest/v1/rpc/get_group_app_state_v5f", async (route) => {
     attempts += 1;
     if (attempts === 1) {
       await route.fulfill({
-        status: 404,
+        status: 500,
         contentType: "application/json",
         body: JSON.stringify({
-          code: "PGRST202",
-          message: "Could not find the function public.get_group_app_state_v5e",
+          code: "XX000",
+          message: "Tillfälligt fel vid läsning av gruppens data",
         }),
       });
       return;
