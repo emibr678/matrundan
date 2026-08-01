@@ -32,9 +32,9 @@ describe("anonyma OSM-anteckningar", () => {
     expect(composeOsmNoteText("Platsinformationen behöver kontrolleras.", "MR-ABC123XYZ9")).toBe(
       "Platsinformationen behöver kontrolleras.\n\nRapporterat via Matrundan. Referens: MR-ABC123XYZ9",
     );
-    expect(() => composeOsmNoteText("Platsinformationen behöver kontrolleras.", "intern-id")).toThrow(
-      "Ogiltig offentlig OSM-referens.",
-    );
+    expect(() =>
+      composeOsmNoteText("Platsinformationen behöver kontrolleras.", "intern-id"),
+    ).toThrow("Ogiltig offentlig OSM-referens.");
   });
 
   test("tolkar OSM-svar och hittar samma note efter ett osäkert nätverksavbrott", () => {
