@@ -28,9 +28,14 @@ import type { Place } from "@/lib/matrundan/types";
 interface PlaceDataReportDialogProps {
   place: Place;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-export function PlaceDataReportDialog({ place, disabled = false }: PlaceDataReportDialogProps) {
+export function PlaceDataReportDialog({
+  place,
+  disabled = false,
+  compact = false,
+}: PlaceDataReportDialogProps) {
   const { mode, activeGroupId, exampleMode } = useSession();
   const { state, submitting } = useStore();
   const [open, setOpen] = React.useState(false);
@@ -91,11 +96,16 @@ export function PlaceDataReportDialog({ place, disabled = false }: PlaceDataRepo
         <Button
           type="button"
           variant="ghost"
-          className="min-h-11 w-full justify-start whitespace-normal px-3 text-left text-muted-foreground"
+          size={compact ? "sm" : "default"}
+          className={
+            compact
+              ? "min-h-11 shrink-0 rounded-full px-3 text-muted-foreground hover:text-foreground"
+              : "min-h-11 w-full justify-start whitespace-normal px-3 text-left text-muted-foreground"
+          }
           disabled={disabled}
         >
           <CircleAlert className="h-4 w-4 shrink-0" />
-          Rapportera felaktig platsinfo
+          {compact ? "Rapportera fel" : "Rapportera felaktig platsinfo"}
         </Button>
       </DialogTrigger>
       <DialogContent aria-describedby="place-data-report-description">
