@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-const migration = await Bun.file(
-  "supabase/migrations/20260801190000_osm_submission_hardening.sql",
-).text();
+const migration = (
+  await Promise.all([
+    Bun.file("supabase/migrations/20260801190000_osm_submission_hardening.sql").text(),
+    Bun.file("supabase/migrations/20260801190500_osm_trigger_function_grants.sql").text(),
+  ])
+).join("\n");
 
 describe("OSM-publicering och källkoppling håller samma aktuella sanning", () => {
   test("ett saknas-i-OSM-underlag kan inte reserveras efter aktiv källkoppling", () => {
@@ -45,14 +48,20 @@ describe("OSM-publicering och källkoppling håller samma aktuella sanning", () 
     expect(migration).toContain("'osm-submit-group:' || _group_id::text");
   });
 
-  test("försöksloggen är privat och anonymiseras vid kontoradering", () => {
+  test("försöksloggen och triggerfunktionen är privata", () => {
     expect(migration).toContain(
       "ALTER TABLE public.place_data_report_osm_submission_attempts ENABLE ROW LEVEL SECURITY",
     );
     expect(migration).toContain(
       "REVOKE ALL ON TABLE public.place_data_report_osm_submission_attempts",
     );
+    expect(migration).toContain(
+      "REVOKE ALL ON FUNCTION public.resolve_missing_in_osm_reports_for_active_source_v1()",
+    );
     expect(migration).toContain("FROM PUBLIC, anon, authenticated");
+  });
+
+  test("försöksloggen anonymiseras vid kontoradering", () => {
     expect(migration).toContain("UPDATE public.place_data_report_osm_submission_attempts");
     expect(migration).toContain("SET submitted_by = NULL");
   });
