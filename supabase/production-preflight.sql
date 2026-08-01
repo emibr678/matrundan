@@ -57,6 +57,24 @@ WITH checks(name, ok) AS (
       to_regprocedure('public.review_place_data_report_v1(uuid,uuid,text,text)') IS NOT NULL
     ),
     (
+      'account_deletion:place_data_report_scrub',
+      COALESCE(
+        position(
+          'UPDATE public.place_data_reports'
+          IN pg_get_functiondef(
+            to_regprocedure('public.prepare_own_account_deletion(jsonb,boolean)')
+          )
+        ) > 0
+        AND position(
+          'resolution_note = NULL'
+          IN pg_get_functiondef(
+            to_regprocedure('public.prepare_own_account_deletion(jsonb,boolean)')
+          )
+        ) > 0,
+        false
+      )
+    ),
+    (
       'table:group_search_areas',
       to_regclass('public.group_search_areas') IS NOT NULL
     ),
