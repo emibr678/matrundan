@@ -29,6 +29,10 @@ WITH checks(name, ok) AS (
       ) IS NOT NULL
     ),
     (
+      'place_rpc:create_or_link_provider_places_batch_v1',
+      to_regprocedure('public.create_or_link_provider_places_batch_v1(uuid,jsonb)') IS NOT NULL
+    ),
+    (
       'hidden_rpc:list',
       to_regprocedure('public.list_group_hidden_place_suggestions(uuid)') IS NOT NULL
     ),
@@ -113,6 +117,14 @@ WITH checks(name, ok) AS (
       has_function_privilege(
         'authenticated',
         'public.create_or_link_provider_place_v5f(uuid,text,text,text,text,text[],text[],text,text,text,double precision,double precision,text,text,jsonb)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'grant:authenticated-provider-batch-link',
+      has_function_privilege(
+        'authenticated',
+        'public.create_or_link_provider_places_batch_v1(uuid,jsonb)',
         'EXECUTE'
       )
     ),
