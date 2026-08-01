@@ -9,6 +9,7 @@ export type MultiAreaItemProperties = {
   id: string;
   name: string;
   actionable: boolean;
+  bulkSelected: boolean;
   category: PlaceCategory;
 };
 
@@ -43,6 +44,7 @@ export function multiAreaItemsCollection(
           id: item.id,
           name: item.name,
           actionable: item.actionable !== false,
+          bulkSelected: item.bulkSelected === true,
           category: item.category ?? "restaurang",
         },
       })),
@@ -63,6 +65,7 @@ export function multiAreaSelectedCollection(
           id: item.id,
           name: item.name,
           actionable: item.actionable !== false,
+          bulkSelected: item.bulkSelected === true,
           category: item.category ?? "restaurang",
         },
       },
