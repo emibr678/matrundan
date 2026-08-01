@@ -63,8 +63,7 @@ export function hasLocalManualSourceLink(
 ): boolean {
   const provider = (suggestion.provider ?? "geoapify").trim().toLocaleLowerCase("en-US");
   return links.some(
-    (link) =>
-      link.provider === provider && link.providerPlaceId === suggestion.externalId.trim(),
+    (link) => link.provider === provider && link.providerPlaceId === suggestion.externalId.trim(),
   );
 }
 
