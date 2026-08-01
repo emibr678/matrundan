@@ -73,7 +73,9 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
     .first();
   await expect(existingSection).toBeVisible();
   await existingSection.click();
-  await expect(addDialog.getByText("Päronträdets Trattoria", { exact: true })).toBeVisible();
+  await expect(
+    addDialog.getByRole("button", { name: /Päronträdets Trattoria/ }).first(),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Länkad källa i sökresultatet på mobil");
   await addDialog.getByRole("button", { name: "Klar" }).click();
 
