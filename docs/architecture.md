@@ -52,6 +52,7 @@ Landningen får aldrig framstå som medlemskap i en grupp.
 - Ändringar sparas endast i en dedikerad `sessionStorage`-nyckel i aktuell flik.
 - Exempelläget får aldrig nå live-mutationer, Supabase eller permanent Storage.
 - Besöksfoton lagras lokalt som komprimerad data endast i sessionen.
+- OSM-publicering och statuskontroll simuleras lokalt utan externa nätverksanrop.
 
 En ny flik börjar från fast exempeldata. Omladdning i samma flik behåller
 sessionens ändringar tills användaren återställer eller lämnar exemplet.
@@ -60,7 +61,8 @@ sessionens ändringar tills användaren återställer eller lämnar exemplet.
 
 `?demo=1` är en separat skrivbar sandbox för utveckling och regressionstester.
 Den använder egen `localStorage`, får inte dela data med exempelgruppen och ska
-inte presenteras som användarens riktiga grupp.
+inte presenteras som användarens riktiga grupp. OSM-flödet simuleras och får
+inte göra externa anrop.
 
 ### Live-läge
 
@@ -105,6 +107,10 @@ Serverfunktioner kapslar hemligheter och tredjepartsanrop. Geoapify-anrop finns
 i `src/lib/matrundan/geoapify.functions.ts`; klienten får endast normaliserade
 svar och aldrig API-nyckeln eller råa providerpayloads.
 
+OSM Notes-anrop finns i `src/lib/matrundan/osm-notes.functions.ts`. De görs
+serverstyrt med identifierbar User-Agent och referer. Klienten får aldrig själv
+skriva ett externt note-ID eller påstå att ett OSM-anrop lyckades.
+
 ### Databas
 
 Supabase/PostgreSQL lagrar kanoniska entiteter, grupprelationer, medlemskap,
@@ -127,6 +133,8 @@ Självbetjänad kontoradering är serverorkestrerad:
 - namn, avatar, kommentarer, favoriter, planeringssvar och privat media tas bort;
 - numeriska omdömen och genomförd deltagandehistorik bevaras anonymt som
   **Tidigare medlem**;
+- kopplingen till den som skickat en offentlig OSM-anteckning tas bort, medan
+  note-ID och offentlig status kan bevaras som neutral grupphistorik;
 - auth-användaren hanteras med service role först efter att databastransaktion
   och privat objektstädning har lyckats.
 
@@ -341,18 +349,57 @@ ersatt verksamhet.
 - Samma medlem får högst en aktiv rapport per ställe och rapportkategori.
   Separata medlemmar får lämna egna observationer.
 - Statusarna är `open`, `ready_for_osm`, `resolved` och `dismissed`.
-  `ready_for_osm` betyder bara att en gruppadmin har granskat underlaget; det
-  skapar ingen offentlig OpenStreetMap-anteckning och skickar ingen data utanför
-  Matrundan.
+  `ready_for_osm` betyder att en gruppadmin har granskat underlaget, men får
+  aldrig i sig skapa en extern anteckning.
 - En rapport får inte automatiskt skriva om `places`, `place_sources` eller en
-  annan grupps `group_places`. Rättning och framtida extern publicering är
-  separata, uttryckliga handlingar.
+  annan grupps `group_places`. Rättning och extern publicering är separata,
+  uttryckliga handlingar.
 - Exempelgruppen använder `sessionStorage` och testsandboxen använder egen
-  `localStorage`. Inget lokalt körläge får nå live-RPC:erna.
+  `localStorage`. Inget lokalt körläge får nå live-RPC:erna eller OSM.
 
-En framtida OSM-handoff ska utgå från ett uttryckligen granskat underlag och
-måste ha separat datamodell för offentlig text, OSM note-ID och extern status.
-Den får aldrig publicera automatiskt när en medlem skapar en intern rapport.
+### Offentlig OSM-handoff
+
+En OSM-anteckning är offentlig och ligger utanför gruppens integritetsgräns.
+Den får därför endast skapas genom ett separat, bekräftat adminflöde efter
+statusen `ready_for_osm`.
+
+Följande får skickas till OpenStreetMap:
+
+- verifierad kartposition från rapportens ögonblicksbild;
+- den offentliga text som ägare/admin uttryckligen har granskat och kan redigera;
+- en slumpmässig neutral referens av formen `MR-XXXXXXXXXX`;
+- en generell upplysning om att underlaget kom via Matrundan.
+
+Följande får aldrig läggas till automatiskt i den offentliga anteckningen:
+
+- gruppens namn eller identitet;
+- rapportörens eller granskarens namn;
+- medlemskap, privata kommentarer eller intern granskningsanteckning;
+- grupp-ID, rapport-ID, användar-ID eller annan intern identifierare;
+- rå Geoapify- eller OSM-providerpayload.
+
+Publiceringsgränsen har följande invariants:
+
+- endast aktiv ägare/admin i rapportens grupp får starta publiceringen;
+- rapporten måste vara `ready_for_osm` och ha både latitud och longitud;
+- reservation, försök och slumpmässig offentlig referens sparas atomiskt före
+  nätverksanropet;
+- en rapport kan bara kopplas till ett OSM-note-ID och samma note-ID eller
+  offentlig referens får inte kopplas till flera rapporter;
+- låga dygnsgränser per person och grupp motverkar automatiserad fel-dumpning;
+- servern söker efter samma referens och kartposition före ett nytt POST-försök
+  efter ett osäkert nätverksavbrott;
+- bara `service_role` får bekräfta note-ID, offentlig URL och extern status;
+- den autentiserade klienten får läsa sin grupps OSM-status men inte direkt
+  skriva den;
+- status kontrolleras manuellt och ingen bakgrundspollning ingår;
+- anonym publicering ger ingen möjlighet att kommentera eller stänga noten från
+  Matrundan; appen ska inte lova att OSM-communityn hanterar den inom viss tid;
+- exempel och demo simulerar hela flödet lokalt utan externa anrop.
+
+Den slutligt publicerade texten sparas för transparens i gruppens privata kö.
+OSM-note-ID, offentlig URL, status och kontrolltid kan bevaras även när den som
+publicerade senare raderar sitt konto, men personkopplingen ska då nollas.
 
 ## 7. Kanoniska besök
 
@@ -502,6 +549,11 @@ En skrivgräns ska normalt:
 Klientangiven användare, författare, ägare, medlem, grupp eller ursprungsgrupp
 får aldrig litas på utan servervalidering.
 
+När en serverfunktion måste bekräfta resultat från en extern tjänst ska den
+privilegierade färdigställande-RPC:n ges enbart till `service_role`, inte till
+`authenticated`. Den användarstyrda förberedelse-RPC:n och den serverstyrda
+bekräftelsen ska vara separata steg.
+
 Arkiverade live-grupper är centralt skrivskyddade. Att bara dölja knappar är
 inte behörighetskontroll.
 
@@ -633,6 +685,8 @@ besök och historik prioriteras före statistik och gamification.
 - Undvik konkurrerande representationer av samma information.
 - Primära handlingar ska vara tydliga; avancerade och destruktiva handlingar
   ska vara sekundära och bekräftas lämpligt.
+- En offentlig extern handling ska förklara exakt vilken data som lämnar gruppen
+  och kräva separat bekräftelse.
 - Bevara tangentbord och ARIA-semantik i dialoger, sheets, tabs, comboboxar och
   kollapsade sektioner.
 - Interaktiva mål bör vara minst cirka 44 px.
@@ -692,6 +746,8 @@ Utöver automatisk verifiering kräver ändringar:
 - tangentbordstest för viewportkänsliga väljare;
 - explicit granskning av migrationer, grants och gruppisolering;
 - kontroll av exempel, demo och live när runtime-gränsen berörs;
+- för extern publicering: verifiering av offentlig payload, felklassificering,
+  dubblettskydd och service-role-gräns utan att skapa testdata i produktion;
 - ärlig redovisning när autentiserat live-test eller verklig enhet saknas.
 
 ## 19. Arkitekturchecklista
@@ -701,10 +757,12 @@ Före merge av en arkitekturpåverkande ändring:
 - Bevaras kanonisk plats- och besöksidentitet?
 - Är varje read och write scoperad till rätt grupp?
 - Kan en annan grupps namn, medlem, kommentar eller ursprung exponeras?
+- Lämnar bara uttryckligen godkänd data gruppgränsen vid extern publicering?
 - Nekas tidigare medlemmar aktuell åtkomst?
 - Förblir externa deltagare anonyma?
 - Är hemligheter server-only?
 - Är RPC-grants och `search_path` korrekta?
+- Är service-role-funktioner spärrade för `authenticated`?
 - Bevaras befintliga produktionsrader?
 - Undviker den publika landningen privat gruppstate?
 - Är exempelgruppen isolerad från live och intern demo?
