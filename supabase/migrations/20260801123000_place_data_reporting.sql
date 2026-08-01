@@ -332,4 +332,48 @@ REVOKE ALL ON FUNCTION public.review_place_data_report_v1(uuid, uuid, text, text
 GRANT EXECUTE ON FUNCTION public.review_place_data_report_v1(uuid, uuid, text, text)
   TO authenticated;
 
+-- Självbetjänad kontoradering ska även rensa användarskrivet rapportunderlag.
+-- Platsens neutrala ögonblicksbild och rapportstatus får ligga kvar som anonym
+-- operativ historik för gruppen.
+DO $do$
+DECLARE
+  _source text;
+  _patched text;
+BEGIN
+  SELECT pg_get_functiondef(p.oid)
+  INTO _source
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname = 'prepare_own_account_deletion';
+
+  IF _source IS NULL THEN
+    RAISE EXCEPTION 'prepare_own_account_deletion saknas';
+  END IF;
+
+  _patched := replace(
+    _source,
+    'DELETE FROM public.next_stop_date_responses WHERE member_id = _uid;',
+    'DELETE FROM public.next_stop_date_responses WHERE member_id = _uid;' || E'\n\n' ||
+    '  UPDATE public.place_data_reports' || E'\n' ||
+    '  SET description = ''Tidigare medlem rapporterade felaktig platsinformation'',' || E'\n' ||
+    '      created_by = NULL,' || E'\n' ||
+    '      updated_at = now()' || E'\n' ||
+    '  WHERE created_by = _uid;' || E'\n\n' ||
+    '  UPDATE public.place_data_reports' || E'\n' ||
+    '  SET resolution_note = NULL,' || E'\n' ||
+    '      reviewed_by = NULL,' || E'\n' ||
+    '      reviewed_at = NULL,' || E'\n' ||
+    '      updated_at = now()' || E'\n' ||
+    '  WHERE reviewed_by = _uid;'
+  );
+
+  IF _patched = _source THEN
+    RAISE EXCEPTION 'Kontoraderingen kunde inte utökas för platsdatarapporter';
+  END IF;
+
+  EXECUTE _patched;
+END
+$do$;
+
 COMMIT;
