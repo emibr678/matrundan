@@ -23,6 +23,7 @@ import { useStore } from "@/lib/matrundan/store";
 
 const ACTIVE_STATUSES = new Set<PlaceDataReportStatus>(["open", "ready_for_osm"]);
 const STATUS_OPTIONS: PlaceDataReportStatus[] = ["open", "ready_for_osm", "resolved", "dismissed"];
+const PLACE_DATA_HEADING_ID = "group-place-data-heading";
 
 function formatReportDate(value: string): string {
   const date = new Date(value);
@@ -105,9 +106,11 @@ export function PlaceDataReportsSection() {
   }
 
   return (
-    <section>
+    <section aria-labelledby={PLACE_DATA_HEADING_ID}>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-medium">Platsdata</h3>
+        <h3 id={PLACE_DATA_HEADING_ID} className="text-sm font-medium">
+          Platsdata
+        </h3>
         {pendingReviewCount > 0 ? (
           <Badge variant="secondary" className="rounded-full">
             {pendingReviewCount} att granska
