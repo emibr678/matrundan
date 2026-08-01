@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS public.place_data_reports (
   reported_lng double precision,
   reported_sources jsonb NOT NULL DEFAULT '[]'::jsonb,
   created_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
-  reporter_name_snapshot text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   reviewed_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -89,7 +88,6 @@ DECLARE
   _report_id uuid;
   _created boolean := false;
   _description_normalized text := regexp_replace(trim(COALESCE(_description, '')), '[[:space:]]+', ' ', 'g');
-  _reporter_name text;
   _reported_name text;
   _reported_address text;
   _reported_city text;
@@ -160,12 +158,6 @@ BEGIN
   FROM public.place_sources ps
   WHERE ps.place_id = _place_id;
 
-  SELECT COALESCE(NULLIF(trim(p.display_name), ''), 'Medlem')
-  INTO _reporter_name
-  FROM public.profiles p
-  WHERE p.id = _uid;
-  _reporter_name := COALESCE(_reporter_name, 'Medlem');
-
   INSERT INTO public.place_data_reports (
     group_id,
     place_id,
@@ -179,8 +171,7 @@ BEGIN
     reported_lat,
     reported_lng,
     reported_sources,
-    created_by,
-    reporter_name_snapshot
+    created_by
   ) VALUES (
     _group_id,
     _place_id,
@@ -194,8 +185,7 @@ BEGIN
     _reported_lat,
     _reported_lng,
     _reported_sources,
-    _uid,
-    _reporter_name
+    _uid
   )
   ON CONFLICT (group_id, place_id, category, created_by)
     WHERE status IN ('open', 'ready_for_osm') AND created_by IS NOT NULL
@@ -251,7 +241,7 @@ BEGIN
         'description', r.description,
         'status', r.status,
         'reporterId', COALESCE(r.created_by::text, ''),
-        'reporterName', COALESCE(NULLIF(trim(reporter.display_name), ''), r.reporter_name_snapshot),
+        'reporterName', COALESCE(NULLIF(trim(reporter.display_name), ''), 'Tidigare medlem'),
         'createdAt', r.created_at,
         'updatedAt', r.updated_at,
         'reviewedBy', r.reviewed_by,
