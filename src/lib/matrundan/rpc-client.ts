@@ -1,4 +1,4 @@
-import type { ZodType } from "zod";
+import type { ZodType, ZodTypeDef } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RpcErrorLike {
@@ -43,7 +43,7 @@ export function createRpcClient(execute: RpcExecutor) {
     async call<T>(
       functionName: string,
       args: Record<string, unknown>,
-      schema: ZodType<T>,
+      schema: ZodType<T, ZodTypeDef, unknown>,
       invalidResponseMessage = INVALID_SERVER_RESPONSE,
     ): Promise<T> {
       const parsed = schema.safeParse(await read(functionName, args));
