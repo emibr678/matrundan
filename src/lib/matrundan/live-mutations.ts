@@ -7,10 +7,7 @@
  * så aktivitetsflödet håller sig konsekvent med gruppens data.
  */
 import { z } from "zod";
-import type {
-  BulkPlaceAddResult,
-  ProviderPlaceBatchInput,
-} from "./bulk-place-add";
+import type { BulkPlaceAddResult, ProviderPlaceBatchInput } from "./bulk-place-add";
 import { MAX_BULK_PLACE_COUNT } from "./bulk-place-add";
 import type { NextStopDateResponseValue, Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
