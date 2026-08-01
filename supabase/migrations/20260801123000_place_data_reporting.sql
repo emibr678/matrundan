@@ -46,10 +46,13 @@ CREATE TABLE IF NOT EXISTS public.place_data_reports (
     jsonb_typeof(reported_sources) = 'array'
   ),
   CONSTRAINT place_data_reports_coordinates_check CHECK (
-    (reported_lat IS NULL AND reported_lng IS NULL)
-    OR (
-      reported_lat BETWEEN -90 AND 90
-      AND reported_lng BETWEEN -180 AND 180
+    (reported_lat IS NULL) = (reported_lng IS NULL)
+    AND (
+      reported_lat IS NULL
+      OR (
+        reported_lat BETWEEN -90 AND 90
+        AND reported_lng BETWEEN -180 AND 180
+      )
     )
   )
 );
