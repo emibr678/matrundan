@@ -139,37 +139,39 @@ function PlaceDetail() {
       </Button>
 
       <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
-        <div className="flex items-start gap-3 bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:gap-4 sm:p-5">
-          <PlaceThumb place={place} size="lg" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
-              {CATEGORY_LABEL[place.category]}
-            </div>
-            <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
-              {place.name}
-            </h1>
-            <div className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span className="min-w-0 [overflow-wrap:anywhere]">
-                {place.address}, {place.city}
-              </span>
-            </div>
-            <PlaceExternalInfo place={place} groupId={state.group.id} canReport={writable} />
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              {isNext ? (
-                <Badge variant="secondary" className="rounded-full">
-                  <Flag className="mr-1 h-3 w-3" /> Nästa stopp
-                </Badge>
-              ) : null}
-              {placeRemoved ? (
-                <Badge variant="outline" className="rounded-full">
-                  <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
-                </Badge>
-              ) : (
-                <StatusBadge placeId={place.id} />
-              )}
+        <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <PlaceThumb place={place} size="lg" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
+                {CATEGORY_LABEL[place.category]}
+              </div>
+              <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
+                {place.name}
+              </h1>
+              <div className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  {place.address}, {place.city}
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                {isNext ? (
+                  <Badge variant="secondary" className="rounded-full">
+                    <Flag className="mr-1 h-3 w-3" /> Nästa stopp
+                  </Badge>
+                ) : null}
+                {placeRemoved ? (
+                  <Badge variant="outline" className="rounded-full">
+                    <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
+                  </Badge>
+                ) : (
+                  <StatusBadge placeId={place.id} />
+                )}
+              </div>
             </div>
           </div>
+          <PlaceExternalInfo place={place} groupId={state.group.id} canReport={writable} />
         </div>
 
         {rating.count > 0 ? (
