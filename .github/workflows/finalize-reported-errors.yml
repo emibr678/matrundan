@@ -1,0 +1,83 @@
+name: Finalize reported errors branch
+
+on:
+  push:
+    branches:
+      - feature/rapporterade-fel-ux
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/rapporterade-fel-ux
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Generate route tree
+        run: bunx vite build || true
+      - name: Fix route typing and update documentation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          route = Path('src/routes/rapporterade-fel.tsx')
+          text = route.read_text()
+          old = '''function ReportLinks({
+            report,
+            websiteUrl,
+          }: {
+            report: PlaceDataReport;
+            websiteUrl: string | null;
+          }) {'''
+          new = '''function ReportLinks({
+            report,
+            websiteUrl,
+          }: {
+            report: PlaceDataReport;
+            websiteUrl: string | undefined;
+          }) {'''
+          if old not in text:
+              raise SystemExit('Kunde inte hitta ReportLinks-typen')
+          route.write_text(text.replace(old, new, 1))
+
+          readme = Path('README.md')
+          text = readme.read_text()
+          old = '''- Alla aktiva medlemmar kan rapportera felaktig platsinformation privat både
+            från matställets detaljsida och från en sökträff innan den läggs till.
+            Ägare och administratörer granskar rapporterna under
+            **Gruppinställningar → Platsdata**.'''
+          new = '''- Alla aktiva medlemmar kan rapportera felaktig platsinformation privat både
+            från matställets detaljsida och från en sökträff innan den läggs till.
+            Ägare och administratörer hanterar rapporterna på den separata sidan
+            **Rapporterade fel**, som nås från gruppinställningarna.'''
+          if old not in text:
+              raise SystemExit('Kunde inte hitta README-texten om rapportkön')
+          text = text.replace(old, new, 1)
+          old = '''- En förberedd rapport kan publiceras som en anonym OpenStreetMap-anteckning
+            först efter att admin har granskat den exakta offentliga texten och bekräftat
+            publiceringen. OSM-statusen kan därefter kontrolleras manuellt utan att
+            gruppnamn, rapportör eller intern anteckning skickas automatiskt.'''
+          new = '''- Efter granskning kan en administratör skicka ett rättelseförslag till
+            OpenStreetMap. Matrundan förklarar först vad tjänsten är och visar exakt
+            vilken text och kartposition som blir offentliga. Ditt namn, gruppens namn och
+            den interna anteckningen skickas inte, och ärendets status kan följas i appen.'''
+          if old not in text:
+              raise SystemExit('Kunde inte hitta README-texten om OSM-publicering')
+          readme.write_text(text.replace(old, new, 1))
+          PY
+          bunx prettier --write src/routes/rapporterade-fel.tsx README.md
+      - name: Commit generated and documented changes
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/routeTree.gen.ts src/routes/rapporterade-fel.tsx README.md
+          git commit -m "fix: register reported errors route"
+          git push origin HEAD:feature/rapporterade-fel-ux
