@@ -39,14 +39,12 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   );
 
   const selectedAreas = page.getByRole("list", { name: "Valda sökområden" });
-  const pillHeights = await selectedAreas.getByRole("listitem").evaluateAll((items) =>
-    items.map((item) => item.getBoundingClientRect().height),
-  );
+  const pillHeights = await selectedAreas
+    .getByRole("listitem")
+    .evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
   expect(Math.max(...pillHeights)).toBeLessThanOrEqual(40);
 
-  await page
-    .getByRole("button", { name: /Ta bort Majorna.*från sökningen/i })
-    .click();
+  await page.getByRole("button", { name: /Ta bort Majorna.*från sökningen/i }).click();
   await expect(page.getByRole("status")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Sökområden", exact: true })).toHaveAttribute(
     "placeholder",
