@@ -10,7 +10,6 @@ import {
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
   ArrowLeft,
-  ExternalLink,
   Flag,
   Heart,
   ListX,
@@ -21,6 +20,7 @@ import {
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
+import { PlaceExternalInfo } from "@/components/matrundan/PlaceExternalInfo";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { RatingStars } from "@/components/matrundan/Rating";
@@ -31,9 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
-import { normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
-import { useSession } from "@/lib/matrundan/session";
-import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
+import { formatDate, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -83,7 +81,6 @@ function NotFound() {
 }
 
 function PlaceDetail() {
-  const { exampleMode } = useSession();
   const { placeId } = useParams({ from: "/matstallen/$placeId" });
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/matstallen/$placeId" });
@@ -132,7 +129,6 @@ function PlaceDetail() {
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
-  const websiteUrl = exampleMode ? undefined : normalizeWebsiteUrl(place.website);
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
@@ -166,32 +162,7 @@ function PlaceDetail() {
                 {place.address}, {place.city}
               </span>
             </div>
-            {!exampleMode ? (
-              <div className="mt-1 flex flex-wrap items-center gap-x-4">
-                {websiteUrl ? (
-                  <a
-                    href={websiteUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    aria-label={`Öppna webbplatsen för ${place.name}`}
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                    Webbplats
-                  </a>
-                ) : null}
-                <a
-                  href={googleMapsUrl(place)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                  aria-label={`Öppna ${place.name} i Google Maps`}
-                >
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                  Google Maps
-                </a>
-              </div>
-            ) : null}
+            <PlaceExternalInfo place={place} groupId={state.group.id} canReport={writable} />
             <div className="mt-1 flex flex-wrap items-center gap-2">
               {isNext ? (
                 <Badge variant="secondary" className="rounded-full">
@@ -422,8 +393,8 @@ function PlaceDetail() {
             <div className="border-t border-border/60 pt-3">
               <div className="text-sm font-medium">Felaktig platsinformation?</div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Rapportera namn, adress, webbplats, dubblett eller att verksamheten kan ha stängt
-                permanent. Rapporten går först till gruppens admin.
+                Rapportera namn, adress, webbplats, öppettider, dubblett eller att verksamheten kan
+                ha stängt permanent. Rapporten går först till gruppens admin.
               </p>
               <PlaceDataReportDialog place={place} />
             </div>
