@@ -17,7 +17,7 @@ async function seedAuthenticatedSession(page: Page, details: unknown) {
     },
     {
       storageKey: SUPABASE_AUTH_STORAGE_KEY,
-      cacheKey: `matrundan.place-external-info.v1.${PROVIDER_PLACE_ID}`,
+      cacheKey: `matrundan.place-external-info.v2.${PROVIDER_PLACE_ID}`,
       cacheValue: { cachedAt: now, details },
       session: {
         access_token: `test.${btoa(
@@ -72,80 +72,120 @@ async function mockLiveGroup(page: Page, website: string | null) {
     });
   });
 
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5f", async (route) => {
+  const appState = {
+    currentUserId: USER_ID,
+    group: {
+      id: GROUP_ID,
+      name: "Testgruppen",
+      emoji: "🍽️",
+      city: "Stockholm",
+      createdAt: now,
+      ownerId: USER_ID,
+      lifecycleStatus: "active",
+      archivedAt: null,
+      archivedBy: null,
+      sharedVisitsCountForProgression: true,
+      defaultSearchRadiusKm: 1,
+      searchAreas: [],
+      homeLocation: null,
+    },
+    members: [
+      {
+        id: USER_ID,
+        name: "Testanvändare",
+        avatar: "🙂",
+        avatarImage: null,
+        role: "owner",
+      },
+    ],
+    places: [
+      {
+        id: PLACE_ID,
+        name: "Testköket",
+        category: "restaurang",
+        canonicalCategory: "restaurang",
+        categoryOverride: null,
+        cuisines: ["Svenskt"],
+        canonicalCuisines: ["Svenskt"],
+        cuisinesOverride: null,
+        occasions: [],
+        address: "Testgatan 1",
+        area: "Enskede",
+        city: "Stockholm",
+        lat: 59.283,
+        lng: 18.07,
+        website,
+        canonicalWebsite: website,
+        websiteOverride: null,
+        openingHoursOverride: null,
+        practicalInfoSourceUrl: null,
+        practicalInfoSourceNote: null,
+        practicalInfoUpdatedBy: null,
+        practicalInfoUpdatedByName: null,
+        practicalInfoUpdatedAt: null,
+        sources: [
+          {
+            provider: "geoapify",
+            providerPlaceId: PROVIDER_PLACE_ID,
+            status: "active",
+          },
+        ],
+        photo: null,
+        notes: null,
+        addedBy: USER_ID,
+        addedAt: now,
+        origin: "provider",
+        collectionStatus: "active",
+        archivedAt: null,
+        archivedBy: null,
+      },
+    ],
+    visits: [],
+    favorites: [],
+    activity: [],
+    nextPlaceId: null,
+    nextStopDateProposal: null,
+  };
+
+  for (const rpc of ["get_group_app_state_v5g", "get_group_app_state_v5f"]) {
+    await page.route(`**/rest/v1/rpc/${rpc}`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(appState),
+      });
+    });
+  }
+
+  await page.route("**/rest/v1/rpc/get_group_place_practical_info_v1", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        currentUserId: USER_ID,
-        group: {
-          id: GROUP_ID,
-          name: "Testgruppen",
-          emoji: "🍽️",
-          city: "Stockholm",
-          createdAt: now,
-          ownerId: USER_ID,
-          lifecycleStatus: "active",
-          archivedAt: null,
-          archivedBy: null,
-          sharedVisitsCountForProgression: true,
-          defaultSearchRadiusKm: 1,
-          searchAreas: [],
-          homeLocation: null,
-        },
-        members: [
-          {
-            id: USER_ID,
-            name: "Testanvändare",
-            avatar: "🙂",
-            avatarImage: null,
-            role: "owner",
-          },
-        ],
-        places: [
-          {
-            id: PLACE_ID,
-            name: "Testköket",
-            category: "restaurang",
-            canonicalCategory: "restaurang",
-            categoryOverride: null,
-            cuisines: ["Svenskt"],
-            canonicalCuisines: ["Svenskt"],
-            cuisinesOverride: null,
-            occasions: [],
-            address: "Testgatan 1",
-            area: "Enskede",
-            city: "Stockholm",
-            lat: 59.283,
-            lng: 18.07,
-            website,
-            canonicalWebsite: website,
-            websiteOverride: null,
-            sources: [
-              {
-                provider: "geoapify",
-                providerPlaceId: PROVIDER_PLACE_ID,
-                status: "active",
-              },
-            ],
-            photo: null,
-            notes: null,
-            addedBy: USER_ID,
-            addedAt: now,
-            origin: "provider",
-            collectionStatus: "active",
-            archivedAt: null,
-            archivedBy: null,
-          },
-        ],
-        visits: [],
-        favorites: [],
-        activity: [],
-        nextPlaceId: null,
-        nextStopDateProposal: null,
+        websiteOverride: null,
+        openingHoursOverride: null,
+        sourceUrl: null,
+        sourceNote: null,
+        updatedBy: null,
+        updatedByName: null,
+        updatedAt: null,
       }),
     });
   });
+
+  await page.route(
+    "**/rest/v1/rpc/get_cross_group_practical_info_suggestions_v1",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          website: { status: "none" },
+          openingHours: { status: "none" },
+        }),
+      });
+    },
+  );
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -174,6 +214,7 @@ function weeklyDetails(now: string) {
       partiallyParsed: false,
     },
     website: "https://www.testkoket.se/",
+    timezone: "Europe/Stockholm",
     fetchedAt: now,
     attribution: "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
   };
@@ -196,12 +237,15 @@ test("detaljsidan visar ett kompakt veckoschema utan Öppet nu-status", async ({
   await expectNoHorizontalOverflow(page);
 });
 
-test("saknad webbplats och öppettider får lugna kompletteringsåtgärder", async ({ page }) => {
+test("saknad webbplats och öppettider kan redigeras utan stor tom informationsruta", async ({
+  page,
+}) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, {
     openingHours: null,
     website: null,
+    timezone: "Europe/Stockholm",
     fetchedAt: now,
     attribution: "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
   });
@@ -209,9 +253,10 @@ test("saknad webbplats och öppettider får lugna kompletteringsåtgärder", asy
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  await expect(page.getByText("Webbplats saknas", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Lägg till", exact: true })).toBeVisible();
-  await expect(page.getByText("Öppettider saknas i kartdatan", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Komplettera", exact: true })).toBeVisible();
+  await expect(page.getByText("Praktisk information", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Redigera", exact: true })).toBeVisible();
+  await expect(page.getByText("Webbplats", { exact: true })).toBeVisible();
+  await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
+  await expect(page.getByText("Saknas", { exact: true })).toHaveCount(2);
   await expectNoHorizontalOverflow(page);
 });
