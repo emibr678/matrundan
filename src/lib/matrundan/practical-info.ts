@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-import {
-  isOpeningHoursSchedule,
-  type OpeningHoursSchedule,
-} from "./opening-hours";
+import { isOpeningHoursSchedule, type OpeningHoursSchedule } from "./opening-hours";
 import { normalizeWebsiteUrl } from "./place-links";
 import { rpcClient } from "./rpc-client";
 
@@ -81,13 +78,21 @@ const suggestionStatusSchema = z.enum(["none", "available", "conflicting"]);
 const crossGroupSuggestionsSchema = z.object({
   website: z.object({
     status: suggestionStatusSchema,
-    fingerprint: z.string().regex(/^[0-9a-f]{32}$/).nullable().default(null),
+    fingerprint: z
+      .string()
+      .regex(/^[0-9a-f]{32}$/)
+      .nullable()
+      .default(null),
     website: z.string().nullable().default(null),
     changedAt: z.string().nullable().default(null),
   }),
   openingHours: z.object({
     status: suggestionStatusSchema,
-    fingerprint: z.string().regex(/^[0-9a-f]{32}$/).nullable().default(null),
+    fingerprint: z
+      .string()
+      .regex(/^[0-9a-f]{32}$/)
+      .nullable()
+      .default(null),
     openingHours: openingHoursSchema.nullable().default(null),
     changedAt: z.string().nullable().default(null),
   }),
