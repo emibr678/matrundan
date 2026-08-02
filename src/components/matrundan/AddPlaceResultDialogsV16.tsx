@@ -3,9 +3,7 @@ import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
-import {
-  PlaceDataLimitedInfoNotice,
-} from "./PlaceDataSignalNotice";
+import { PlaceDataLimitedInfoNotice } from "./PlaceDataSignalNotice";
 import { PlaceSuggestionReportDialog } from "./PlaceSuggestionReportDialog";
 import { PlaceSuggestionSignalPanel } from "./PlaceSuggestionSignalPanel";
 import { Button } from "@/components/ui/button";
