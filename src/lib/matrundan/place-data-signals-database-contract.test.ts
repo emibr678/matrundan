@@ -37,7 +37,7 @@ describe("platsdatasignalernas databaskontrakt", () => {
     expect(readBody).toContain("FROM public.group_places gp");
     expect(confirmBody).toContain("public.group_is_active(_group_id)");
     expect(confirmBody).toContain("public.has_membership(_group_id, _uid)");
-    expect(confirmBody).toContain("Högst 50").toBe(false);
+    expect(confirmBody).toContain(">= 50");
     expect(confirmBody).toContain("dygnsgränsen för platsdatabekräftelser");
   });
 
