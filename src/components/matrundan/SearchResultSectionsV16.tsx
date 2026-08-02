@@ -1,14 +1,24 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
-import { PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
+import {
+  PlaceDataLimitedInfoIndicator,
+  PlaceDataSignalBadge,
+} from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
 import type { ManualSourceMatchReason } from "@/lib/matrundan/manual-place-source-linking";
 import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-source-linking";
-import { placeSignalKey } from "@/lib/matrundan/place-data-signals";
+import {
+  placeSignalKey,
+  type PlaceDataSignal,
+} from "@/lib/matrundan/place-data-signals";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { usePlaceDataSignalsForSuggestions } from "@/lib/matrundan/use-place-data-signals";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
@@ -87,37 +97,43 @@ export function SearchResultSectionsV16({
               ligger kvar på samma matställe.
             </p>
           </div>
-          {sourceMatches.map((match) => (
-            <SuggestionRowV16
-              key={match.result.externalId}
-              result={match.result}
-              selected={selectedId === match.result.externalId}
-              bulkSelected={false}
-              bulkMode={false}
-              interactionLabel={`Visa möjlig matchning för ${match.result.name}`}
-              onSelect={() => onSelect(match.result.externalId)}
-              footer={
-                <div className="space-y-2">
-                  <span className="block text-[11px] text-muted-foreground">
-                    Matchar {match.place.name}: {MANUAL_SOURCE_MATCH_REASON_LABEL[match.reason]}
-                  </span>
-                  <PlaceDataSignalBadge signal={signalFor(match.result)} />
-                </div>
-              }
-              action={
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="min-h-11 w-full sm:w-auto"
-                  disabled={disabled}
-                  onClick={() => onLinkSource(match)}
-                >
-                  <Link2 className="h-4 w-4" /> Granska länk
-                </Button>
-              }
-            />
-          ))}
+          {sourceMatches.map((match) => {
+            const signal = signalFor(match.result);
+            return (
+              <SuggestionRowV16
+                key={match.result.externalId}
+                result={match.result}
+                signal={signal}
+                selected={selectedId === match.result.externalId}
+                bulkSelected={false}
+                bulkMode={false}
+                interactionLabel={`Visa möjlig matchning för ${match.result.name}`}
+                onSelect={() => onSelect(match.result.externalId)}
+                footer={
+                  <div className="space-y-2">
+                    <span className="block text-[11px] text-muted-foreground">
+                      Matchar {match.place.name}: {MANUAL_SOURCE_MATCH_REASON_LABEL[match.reason]}
+                    </span>
+                    {signal?.closureStatus !== "none" ? (
+                      <PlaceDataSignalBadge signal={signal} />
+                    ) : null}
+                  </div>
+                }
+                action={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={disabled}
+                    onClick={() => onLinkSource(match)}
+                  >
+                    <Link2 className="h-4 w-4" /> Granska länk
+                  </Button>
+                }
+              />
+            );
+          })}
         </section>
       ) : null}
 
@@ -125,10 +141,12 @@ export function SearchResultSectionsV16({
         {available.length > 0 ? (
           available.map((result) => {
             const bulkSelected = selectedResultIds.has(result.externalId);
+            const signal = signalFor(result);
             return (
               <SuggestionRowV16
                 key={result.externalId}
                 result={result}
+                signal={signal}
                 selected={!bulkMode && selectedId === result.externalId}
                 bulkSelected={bulkSelected}
                 bulkMode={bulkMode}
@@ -142,7 +160,11 @@ export function SearchResultSectionsV16({
                   if (bulkMode) onToggleSelected(result);
                   else onAdd(result);
                 }}
-                footer={<PlaceDataSignalBadge signal={signalFor(result)} />}
+                footer={
+                  signal?.closureStatus !== "none" ? (
+                    <PlaceDataSignalBadge signal={signal} />
+                  ) : undefined
+                }
                 action={
                   bulkMode ? (
                     <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
@@ -190,15 +212,21 @@ export function SearchResultSectionsV16({
           <CollapsibleContent className="mt-2 space-y-2">
             {existing.map((result) => {
               const place = matchingPlace(places, result);
+              const signal = signalFor(result);
               return (
                 <SuggestionRowV16
                   key={result.externalId}
                   result={result}
+                  signal={signal}
                   selected={selectedId === result.externalId}
                   bulkSelected={false}
                   bulkMode={false}
                   onSelect={() => onSelect(result.externalId)}
-                  footer={<PlaceDataSignalBadge signal={signalFor(result)} />}
+                  footer={
+                    signal?.closureStatus !== "none" ? (
+                      <PlaceDataSignalBadge signal={signal} />
+                    ) : undefined
+                  }
                   action={
                     place ? (
                       <Button
@@ -229,6 +257,7 @@ export function SearchResultSectionsV16({
 
 function SuggestionRowV16({
   result,
+  signal,
   selected,
   bulkSelected,
   bulkMode,
@@ -238,6 +267,7 @@ function SuggestionRowV16({
   footer,
 }: {
   result: PlaceSuggestion;
+  signal?: PlaceDataSignal;
   selected: boolean;
   bulkSelected: boolean;
   bulkMode: boolean;
@@ -269,14 +299,17 @@ function SuggestionRowV16({
             {CATEGORY_LABEL[result.category]}
             {result.cuisines?.length ? ` · ${result.cuisines.join(", ")}` : ""}
           </span>
-          <span className="block break-words text-[11px] text-muted-foreground">
-            {result.area ? `${result.area} · ` : ""}
-            {result.city}
-            {result.distanceKm != null
-              ? ` · ~${result.distanceKm} km${
-                  result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""
-                }`
-              : ""}
+          <span className="flex flex-wrap items-center gap-x-1 text-[11px] text-muted-foreground">
+            <span className="break-words">
+              {result.area ? `${result.area} · ` : ""}
+              {result.city}
+              {result.distanceKm != null
+                ? ` · ~${result.distanceKm} km${
+                    result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""
+                  }`
+                : ""}
+            </span>
+            <PlaceDataLimitedInfoIndicator signal={signal} />
           </span>
           {result.address ? (
             <span className="block break-words text-[11px] text-muted-foreground">
