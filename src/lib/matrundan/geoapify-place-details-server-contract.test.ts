@@ -19,7 +19,8 @@ describe("Geoapifys platsdetaljer", () => {
     expect(source).toContain("process.env.GEOAPIFY_API_KEY");
     expect(source).toContain('new URL("https://api.geoapify.com/v2/place-details")');
     expect(source).toContain("openingHours: parseOpeningHours(openingHours)");
-    expect(source).not.toContain("raw:");
+    expect(source).not.toContain("return properties");
+    expect(source).not.toContain("return parsed.data");
   });
 
   test("svaret är begränsat till produktens användbara uppgifter", () => {
