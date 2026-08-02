@@ -5,7 +5,7 @@ async function openDemo(page: import("@playwright/test").Page) {
   await expect(page.getByRole("heading", { name: "Matställen" })).toBeVisible();
 }
 
-test("flera sökområden läggs till i samma fält utan horisontell overflow på 360 px", async ({
+test("flera sökområden använder kompakta chips utan horisontell overflow på 360 px", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
@@ -21,11 +21,6 @@ test("flera sökområden läggs till i samma fält utan horisontell overflow på
   await expect(
     page.getByText("Ändringar här gäller bara den här sökningen.", { exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByText(
-      "Högst fem områden kan användas samtidigt. Ta bort ett för att välja ett annat.",
-    ),
-  ).toHaveCount(0);
 
   const areaInput = page.getByRole("textbox", { name: "Sökområden", exact: true });
   await expect(areaInput).toHaveAttribute("placeholder", "Sök ort, stadsdel eller adress");
@@ -36,10 +31,27 @@ test("flera sökområden läggs till i samma fält utan horisontell overflow på
 
   await areaInput.fill("Södermalm, Stockholm");
   await areaInput.press("Enter");
-  await expect(areaInput).toHaveValue("");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Södermalm");
-  await expect(areaInput).toBeDisabled();
-  await expect(areaInput).toHaveAttribute("placeholder", "Max 5 områden valda");
+  await expect(areaInput).toHaveCount(0);
+  await expect(page.getByRole("status")).toContainText("5 av 5 områden valda.");
+  await expect(page.getByRole("status")).toContainText(
+    "Ta bort ett område för att söka efter ett annat.",
+  );
+
+  const selectedAreas = page.getByRole("list", { name: "Valda sökområden" });
+  const pillHeights = await selectedAreas.getByRole("listitem").evaluateAll((items) =>
+    items.map((item) => item.getBoundingClientRect().height),
+  );
+  expect(Math.max(...pillHeights)).toBeLessThanOrEqual(40);
+
+  await page
+    .getByRole("button", { name: /Ta bort Majorna.*från sökningen/i })
+    .click();
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Sökområden", exact: true })).toHaveAttribute(
+    "placeholder",
+    "Sök ort, stadsdel eller adress",
+  );
 
   const mapToggle = page.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
