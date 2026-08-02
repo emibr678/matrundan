@@ -237,8 +237,8 @@ export function SearchAreaControlsV16({
           >
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>
-              <span className="font-medium text-foreground">5 av 5 områden valda.</span>{" "}
-              Ta bort ett område för att söka efter ett annat.
+              <span className="font-medium text-foreground">5 av 5 områden valda.</span> Ta bort ett
+              område för att söka efter ett annat.
             </span>
           </div>
         ) : (
