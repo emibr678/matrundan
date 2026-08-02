@@ -264,7 +264,10 @@ export function AddPlaceDialogV16({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog
+        open={open && pending == null && pendingSourceMatch == null}
+        onOpenChange={handleOpenChange}
+      >
         <DialogContent className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
