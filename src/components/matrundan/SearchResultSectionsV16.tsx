@@ -1,13 +1,16 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
+import { PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
 import type { ManualSourceMatchReason } from "@/lib/matrundan/manual-place-source-linking";
 import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-source-linking";
+import { placeSignalKey } from "@/lib/matrundan/place-data-signals";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { usePlaceDataSignalsForSuggestions } from "@/lib/matrundan/use-place-data-signals";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
 
 export interface SourceMatchResult {
@@ -47,6 +50,32 @@ export function SearchResultSectionsV16({
   places: Place[];
   disabled: boolean;
 }) {
+  const signalSuggestions = React.useMemo(() => {
+    const seen = new Set<string>();
+    return [...sourceMatches.map((match) => match.result), ...available, ...existing].filter(
+      (suggestion) => {
+        const key = placeSignalKey({
+          provider: suggestion.provider,
+          providerPlaceId: suggestion.externalId,
+        });
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      },
+    );
+  }, [available, existing, sourceMatches]);
+  const signals = usePlaceDataSignalsForSuggestions(signalSuggestions);
+  const signalFor = React.useCallback(
+    (suggestion: PlaceSuggestion) =>
+      signals[
+        placeSignalKey({
+          provider: suggestion.provider,
+          providerPlaceId: suggestion.externalId,
+        })
+      ],
+    [signals],
+  );
+
   return (
     <div className="space-y-4">
       {sourceMatches.length > 0 ? (
@@ -68,9 +97,12 @@ export function SearchResultSectionsV16({
               interactionLabel={`Visa möjlig matchning för ${match.result.name}`}
               onSelect={() => onSelect(match.result.externalId)}
               footer={
-                <span className="text-[11px] text-muted-foreground">
-                  Matchar {match.place.name}: {MANUAL_SOURCE_MATCH_REASON_LABEL[match.reason]}
-                </span>
+                <div className="space-y-2">
+                  <span className="block text-[11px] text-muted-foreground">
+                    Matchar {match.place.name}: {MANUAL_SOURCE_MATCH_REASON_LABEL[match.reason]}
+                  </span>
+                  <PlaceDataSignalBadge signal={signalFor(match.result)} />
+                </div>
               }
               action={
                 <Button
@@ -110,6 +142,7 @@ export function SearchResultSectionsV16({
                   if (bulkMode) onToggleSelected(result);
                   else onAdd(result);
                 }}
+                footer={<PlaceDataSignalBadge signal={signalFor(result)} />}
                 action={
                   bulkMode ? (
                     <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
@@ -165,6 +198,7 @@ export function SearchResultSectionsV16({
                   bulkSelected={false}
                   bulkMode={false}
                   onSelect={() => onSelect(result.externalId)}
+                  footer={<PlaceDataSignalBadge signal={signalFor(result)} />}
                   action={
                     place ? (
                       <Button
