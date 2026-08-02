@@ -29,6 +29,8 @@ interface PlaceDataReportDialogProps {
   place: Place;
   disabled?: boolean;
   compact?: boolean;
+  initialCategory?: PlaceDataReportCategory;
+  triggerLabel?: string;
 }
 
 function canReportMissingInOsm(place: Place): boolean {
@@ -41,22 +43,43 @@ function canReportMissingInOsm(place: Place): boolean {
   );
 }
 
-function defaultCategory(place: Place): PlaceDataReportCategory {
+function defaultCategory(
+  place: Place,
+  preferred?: PlaceDataReportCategory,
+): PlaceDataReportCategory {
+  if (preferred && (preferred !== "missing_in_osm" || canReportMissingInOsm(place))) {
+    return preferred;
+  }
   return place.origin === "manual" && canReportMissingInOsm(place)
     ? "missing_in_osm"
     : "closed_or_replaced";
+}
+
+function placeholderForCategory(category: PlaceDataReportCategory): string {
+  switch (category) {
+    case "missing_in_osm":
+      return "Exempel: Jag kontrollerade platsen och verksamhetens officiella information men hittade inget motsvarande objekt i OpenStreetMap.";
+    case "wrong_website":
+      return "Exempel: Verksamhetens officiella webbplats är https://… eller den nuvarande länken leder fel.";
+    case "wrong_opening_hours":
+      return "Exempel: Verksamhetens officiella sida visar andra öppettider, eller öppettider saknas trots att de finns på platsen.";
+    default:
+      return "Exempel: Skylten visar att restaurangen har stängt permanent och en ny verksamhet finns på adressen.";
+  }
 }
 
 export function PlaceDataReportDialog({
   place,
   disabled = false,
   compact = false,
+  initialCategory,
+  triggerLabel,
 }: PlaceDataReportDialogProps) {
   const { mode, activeGroupId, exampleMode } = useSession();
   const { state, submitting } = useStore();
   const [open, setOpen] = React.useState(false);
   const [category, setCategory] = React.useState<PlaceDataReportCategory>(() =>
-    defaultCategory(place),
+    defaultCategory(place, initialCategory),
   );
   const [description, setDescription] = React.useState("");
   const [saving, setSaving] = React.useState(false);
@@ -67,7 +90,7 @@ export function PlaceDataReportDialog({
   );
 
   function reset() {
-    setCategory(defaultCategory(place));
+    setCategory(defaultCategory(place, initialCategory));
     setDescription("");
   }
 
@@ -120,27 +143,27 @@ export function PlaceDataReportDialog({
           size={compact ? "sm" : "default"}
           className={
             compact
-              ? "min-h-11 shrink-0 rounded-full px-3 text-muted-foreground hover:text-foreground"
+              ? "min-h-11 shrink-0 rounded-full px-2.5 text-primary hover:text-primary"
               : "min-h-11 w-full justify-start whitespace-normal px-3 text-left text-muted-foreground"
           }
           disabled={disabled}
         >
           <CircleAlert className="h-4 w-4 shrink-0" />
-          {compact ? "Något stämmer inte" : "Rapportera felaktig uppgift"}
+          {triggerLabel ?? (compact ? "Något stämmer inte" : "Rapportera felaktig uppgift")}
         </Button>
       </DialogTrigger>
       <DialogContent aria-describedby="place-data-report-description">
         <DialogHeader>
-          <DialogTitle>Rapportera felaktig uppgift</DialogTitle>
+          <DialogTitle>Rapportera eller komplettera uppgift</DialogTitle>
           <DialogDescription id="place-data-report-description">
-            Rapporten går till gruppens ägare och administratörer. Inget publiceras automatiskt.
+            Underlaget går till gruppens ägare och administratörer. Inget publiceras automatiskt.
             Gruppens namn, medlemmar och privata kommentarer skickas inte vidare.
           </DialogDescription>
         </DialogHeader>
 
         <form className="space-y-4" onSubmit={submit}>
           <div className="space-y-2">
-            <Label htmlFor="place-data-report-category">Vad verkar vara fel?</Label>
+            <Label htmlFor="place-data-report-category">Vad gäller uppgiften?</Label>
             <select
               id="place-data-report-category"
               value={category}
@@ -166,11 +189,7 @@ export function PlaceDataReportDialog({
               required
               rows={5}
               className="min-h-28 resize-y"
-              placeholder={
-                category === "missing_in_osm"
-                  ? "Exempel: Jag kontrollerade platsen och verksamhetens officiella information men hittade inget motsvarande objekt i OpenStreetMap."
-                  : "Exempel: Skylten visar att restaurangen har stängt permanent och en ny verksamhet finns på adressen."
-              }
+              placeholder={placeholderForCategory(category)}
             />
             <div className="flex items-start justify-between gap-3 text-[11px] leading-relaxed text-muted-foreground">
               <p>
@@ -187,7 +206,7 @@ export function PlaceDataReportDialog({
             </Button>
             <Button type="submit" disabled={saving || submitting || description.trim().length < 10}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Skicka rapport
+              Skicka underlag
             </Button>
           </DialogFooter>
         </form>
