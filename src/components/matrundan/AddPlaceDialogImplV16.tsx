@@ -3,7 +3,10 @@ import { Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogsV16 } from "./AddPlaceResultDialogsV16";
 import { ManualAddPlaceFormV16 } from "./ManualAddPlaceFormV16";
-import { PlaceDiscoveryV16 } from "./PlaceDiscoveryV16";
+import {
+  PlaceDiscoveryV16,
+  type PlaceDiscoverySnapshot,
+} from "./PlaceDiscoveryV16";
 import type { SourceMatchResult } from "./SearchResultSectionsV16";
 import {
   AlertDialog,
@@ -65,8 +68,12 @@ export function AddPlaceDialogV16({
   );
   const [addedResultIds, setAddedResultIds] = React.useState<Set<string>>(() => new Set());
   const [selectedResults, setSelectedResults] = React.useState<PlaceSuggestion[]>([]);
+  const [discoverySnapshot, setDiscoverySnapshot] =
+    React.useState<PlaceDiscoverySnapshot | null>(null);
   const [bulkBusy, setBulkBusy] = React.useState(false);
   const [sourceLinkBusy, setSourceLinkBusy] = React.useState(false);
+  const searchDialogRef = React.useRef<HTMLDivElement | null>(null);
+  const searchScrollTopRef = React.useRef(0);
 
   React.useEffect(() => {
     const removeHiddenSelections = () => {
@@ -104,8 +111,24 @@ export function AddPlaceDialogV16({
       setPendingSourceMatch(null);
       setSelectedResults([]);
       setAddedResultIds(new Set());
+      setDiscoverySnapshot(null);
+      searchScrollTopRef.current = 0;
     }
     onOpenChange(nextOpen);
+  }
+
+  function rememberSearchPosition() {
+    searchScrollTopRef.current = searchDialogRef.current?.scrollTop ?? 0;
+  }
+
+  function beginAdd(suggestion: PlaceSuggestion) {
+    rememberSearchPosition();
+    setPending(suggestion);
+  }
+
+  function beginSourceMatch(match: SourceMatchResult) {
+    rememberSearchPosition();
+    setPendingSourceMatch(match);
   }
 
   function markCompleted(externalIds: string[]) {
@@ -265,16 +288,22 @@ export function AddPlaceDialogV16({
 
   const searchDialogOpen = open && pending == null && pendingSourceMatch == null;
 
+  React.useLayoutEffect(() => {
+    if (!searchDialogOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (searchDialogRef.current) {
+        searchDialogRef.current.scrollTop = searchScrollTopRef.current;
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [searchDialogOpen]);
+
   return (
     <>
-      <Dialog open={open} modal={searchDialogOpen} onOpenChange={handleOpenChange}>
+      <Dialog open={searchDialogOpen} onOpenChange={handleOpenChange}>
         <DialogContent
-          forceMount
-          overlayClassName={searchDialogOpen ? undefined : "hidden"}
-          aria-hidden={!searchDialogOpen}
-          className={`max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl ${
-            searchDialogOpen ? "" : "invisible pointer-events-none"
-          }`}
+          ref={searchDialogRef}
+          className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
         >
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
@@ -288,13 +317,15 @@ export function AddPlaceDialogV16({
               addedResultIds={addedResultIds}
               selectedResults={selectedResults}
               bulkBusy={bulkBusy || sourceLinkBusy}
+              snapshot={discoverySnapshot}
+              onSnapshotChange={setDiscoverySnapshot}
               onToggleSelected={(suggestion) =>
                 setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
               }
               onClearSelected={() => setSelectedResults([])}
               onAddSelected={() => void addSelectedResults()}
-              onBeginAdd={setPending}
-              onLinkSource={setPendingSourceMatch}
+              onBeginAdd={beginAdd}
+              onLinkSource={beginSourceMatch}
               onClose={() => handleOpenChange(false)}
             />
           ) : (
