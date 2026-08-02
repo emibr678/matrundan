@@ -23,10 +23,11 @@ describe("öppettider från OSM", () => {
     expect(schedule?.days.every((day) => day.intervals[0] === "Dygnet runt")).toBe(true);
   });
 
-  test("markerar specialregler utan falsk säkerhet", () => {
+  test("markerar specialregler utan att lämna dem vidare som rådata", () => {
     const schedule = parseOpeningHours("Mo-Fr 11:00-22:00; PH off");
-    expect(schedule?.specialRules).toEqual(["PH off"]);
     expect(schedule?.partiallyParsed).toBe(true);
+    expect(schedule).not.toHaveProperty("raw");
+    expect(schedule).not.toHaveProperty("specialRules");
   });
 
   test("ger dagens sammanfattning utan realtidsstatus", () => {
