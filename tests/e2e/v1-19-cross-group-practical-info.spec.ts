@@ -252,7 +252,9 @@ test("visar och tillämpar fältvisa förslag utan privat ursprungsdata", async 
   await expect(page.getByText("Föreslagen webbplats", { exact: true })).toBeVisible();
   await expect(page.getByText("Föreslagna öppettider", { exact: true })).toBeVisible();
   await expect(page.getByText("nya-testkoket.se", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Grupp, medlem, källa och privata anteckningar visas aldrig/)).toBeVisible();
+  await expect(
+    page.getByText(/Grupp, medlem, källa och privata anteckningar visas aldrig/),
+  ).toBeVisible();
   await expect(page.getByText("Hemliga gruppen", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Anna Andersson", { exact: true })).toHaveCount(0);
   await expect(page.getByText("https://privat-kalla.example", { exact: true })).toHaveCount(0);
