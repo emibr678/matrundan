@@ -26,6 +26,7 @@ describe("Geoapifys platsdetaljer", () => {
   test("svaret är begränsat till produktens användbara uppgifter", () => {
     expect(source).toContain("openingHours: OpeningHoursSchedule | null");
     expect(source).toContain("website: string | null");
+    expect(source).toContain("timezone: string | null");
     expect(source).toContain("fetchedAt: string");
     expect(source).toContain("attribution: string");
   });
