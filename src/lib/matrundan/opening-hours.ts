@@ -38,7 +38,8 @@ function normalizedInterval(value: string): string | null {
   const match = value.trim().match(/^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/);
   if (!match) return null;
   const [, fromHour, fromMinute, toHour, toMinute] = match;
-  const valid = [fromHour, toHour].every((hour) => Number(hour) >= 0 && Number(hour) <= 24) &&
+  const valid =
+    [fromHour, toHour].every((hour) => Number(hour) >= 0 && Number(hour) <= 24) &&
     [fromMinute, toMinute].every((minute) => Number(minute) >= 0 && Number(minute) <= 59);
   if (!valid) return null;
   return `${normalizedTime(`${fromHour}:${fromMinute}`)}–${normalizedTime(`${toHour}:${toMinute}`)}`;
@@ -48,15 +49,10 @@ function expandDayToken(token: string): OpeningHoursDayCode[] | null {
   const range = token.trim().match(/^(Mo|Tu|We|Th|Fr|Sa|Su)(?:-(Mo|Tu|We|Th|Fr|Sa|Su))?$/);
   if (!range) return null;
   const start = OPENING_HOURS_DAY_CODES.indexOf(range[1] as OpeningHoursDayCode);
-  const end = range[2]
-    ? OPENING_HOURS_DAY_CODES.indexOf(range[2] as OpeningHoursDayCode)
-    : start;
+  const end = range[2] ? OPENING_HOURS_DAY_CODES.indexOf(range[2] as OpeningHoursDayCode) : start;
   if (start < 0 || end < 0) return null;
   if (end >= start) return OPENING_HOURS_DAY_CODES.slice(start, end + 1);
-  return [
-    ...OPENING_HOURS_DAY_CODES.slice(start),
-    ...OPENING_HOURS_DAY_CODES.slice(0, end + 1),
-  ];
+  return [...OPENING_HOURS_DAY_CODES.slice(start), ...OPENING_HOURS_DAY_CODES.slice(0, end + 1)];
 }
 
 function expandDays(value: string): OpeningHoursDayCode[] | null {
@@ -87,15 +83,25 @@ export function parseOpeningHours(value: string | null | undefined): OpeningHour
     for (const day of OPENING_HOURS_DAY_CODES) {
       days[day] = { ...days[day], intervals: ["Dygnet runt"], known: true };
     }
-    return { raw, days: OPENING_HOURS_DAY_CODES.map((day) => days[day]), specialRules: [], partiallyParsed: false };
+    return {
+      raw,
+      days: OPENING_HOURS_DAY_CODES.map((day) => days[day]),
+      specialRules: [],
+      partiallyParsed: false,
+    };
   }
 
   const specialRules: string[] = [];
   let parsedClauseCount = 0;
-  const clauses = raw.split(";").map((clause) => clause.trim()).filter(Boolean);
+  const clauses = raw
+    .split(";")
+    .map((clause) => clause.trim())
+    .filter(Boolean);
 
   for (const clause of clauses) {
-    const match = clause.match(/^((?:Mo|Tu|We|Th|Fr|Sa|Su)(?:(?:-|,)(?:Mo|Tu|We|Th|Fr|Sa|Su))*)\s+(.+)$/);
+    const match = clause.match(
+      /^((?:Mo|Tu|We|Th|Fr|Sa|Su)(?:(?:-|,)(?:Mo|Tu|We|Th|Fr|Sa|Su))*)\s+(.+)$/,
+    );
     if (!match) {
       specialRules.push(clause);
       continue;
