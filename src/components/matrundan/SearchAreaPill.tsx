@@ -14,17 +14,19 @@ export function SearchAreaPill({
   return (
     <div
       role="listitem"
-      className="flex min-h-11 max-w-full items-center gap-1 rounded-full border border-primary/40 bg-primary/10 pl-3 pr-1 text-sm"
+      className="flex h-10 max-w-full items-center gap-0.5 rounded-full border border-primary/40 bg-primary/10 pl-3 pr-0.5 text-sm"
       title={area.label}
     >
-      <span className="min-w-0 break-words">{shortSearchAreaLabel(area.label)}</span>
+      <span className="min-w-0 max-w-[min(14rem,calc(100vw-5rem))] truncate whitespace-nowrap">
+        {shortSearchAreaLabel(area.label)}
+      </span>
       <button
         type="button"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-background/70"
+        className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-background/70 after:absolute after:-inset-1 after:content-['']"
         onClick={onRemove}
         aria-label={removeAriaLabel}
       >
-        <X className="h-4 w-4" />
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );
