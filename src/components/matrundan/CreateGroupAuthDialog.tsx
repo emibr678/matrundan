@@ -57,7 +57,7 @@ export function CreateGroupAuthDialog({
           <div className="space-y-2">
             <Button
               type="button"
-              className="min-h-11 w-full"
+              className="min-h-12 w-full"
               disabled={signingIn}
               onClick={() => void continueWithGoogle()}
             >
@@ -67,7 +67,7 @@ export function CreateGroupAuthDialog({
             <Button
               type="button"
               variant="outline"
-              className="min-h-11 w-full"
+              className="min-h-12 w-full"
               onClick={continueWithEmail}
             >
               <Mail className="h-4 w-4" />
