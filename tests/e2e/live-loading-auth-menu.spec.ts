@@ -70,45 +70,49 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
     });
   });
 
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5f", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        currentUserId: userId,
-        group: {
-          id: groupId,
-          name: "Testgruppen",
-          emoji: "🍽️",
-          city: "",
-          createdAt: now,
-          ownerId: userId,
-          lifecycleStatus: "active",
-          archivedAt: null,
-          archivedBy: null,
-          sharedVisitsCountForProgression: true,
-          defaultSearchRadiusKm: 1,
-          searchAreas: [],
-          homeLocation: null,
-        },
-        members: [
-          {
-            id: userId,
-            name: "Testanvändare",
-            avatar: "🙂",
-            avatarImage: null,
-            role: "owner",
-          },
-        ],
-        places: [],
-        visits: [],
-        favorites: [],
-        activity: [],
-        nextPlaceId: null,
-        nextStopDateProposal: null,
-      }),
+  const appState = {
+    currentUserId: userId,
+    group: {
+      id: groupId,
+      name: "Testgruppen",
+      emoji: "🍽️",
+      city: "",
+      createdAt: now,
+      ownerId: userId,
+      lifecycleStatus: "active",
+      archivedAt: null,
+      archivedBy: null,
+      sharedVisitsCountForProgression: true,
+      defaultSearchRadiusKm: 1,
+      searchAreas: [],
+      homeLocation: null,
+    },
+    members: [
+      {
+        id: userId,
+        name: "Testanvändare",
+        avatar: "🙂",
+        avatarImage: null,
+        role: "owner",
+      },
+    ],
+    places: [],
+    visits: [],
+    favorites: [],
+    activity: [],
+    nextPlaceId: null,
+    nextStopDateProposal: null,
+  };
+
+  for (const rpc of ["get_group_app_state_v5g", "get_group_app_state_v5f"]) {
+    await page.route(`**/rest/v1/rpc/${rpc}`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(appState),
+      });
     });
-  });
+  }
 
   await page.goto("/");
 
