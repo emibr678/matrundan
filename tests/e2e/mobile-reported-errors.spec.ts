@@ -129,6 +129,7 @@ test("Rapporterade fel är överskådligt och stegstyrt", async ({ page }, testI
   await expect(page.getByRole("button", { name: /Avslutade 1/ })).toBeVisible();
   await expect(page.getByText("Lilla Myntans Matrum")).toBeVisible();
   await expectNoHorizontalOverflow(page, "rapportlistan");
+  await page.waitForTimeout(600);
 
   await testInfo.attach("rapporterade-fel-lista", {
     body: await page.screenshot({ fullPage: true }),
@@ -164,6 +165,7 @@ test("Rapporterade fel är överskådligt och stegstyrt", async ({ page }, testI
     correctionSheet.getByRole("button", { name: "Skicka rättelseförslag" }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "panelen för rättelseförslag");
+  await page.waitForTimeout(600);
 
   await testInfo.attach("rapporterade-fel-rattelseforslag", {
     body: await page.screenshot({ fullPage: true }),

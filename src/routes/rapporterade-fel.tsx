@@ -303,14 +303,17 @@ function ReportedErrorsPage() {
         </div>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filtrera rapporterade fel">
+      <div
+        className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap"
+        aria-label="Filtrera rapporterade fel"
+      >
         {REPORTED_ERROR_FILTERS.map((filter) => (
           <Button
             key={filter}
             type="button"
             size="sm"
             variant={activeFilter === filter ? "default" : "outline"}
-            className="shrink-0 rounded-full"
+            className="w-full justify-between rounded-full sm:w-auto sm:justify-center"
             onClick={() => setFilter(filter)}
           >
             {REPORTED_ERROR_FILTER_LABEL[filter]}
@@ -500,7 +503,10 @@ function ReportedErrorDetailsSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetContent
+          side="right"
+          className="w-full max-w-none overflow-y-auto p-4 sm:max-w-xl sm:p-6"
+        >
           <SheetHeader className="text-left">
             <SheetTitle className="break-words">{report.placeName}</SheetTitle>
             <SheetDescription>{CATEGORY_LABEL[report.category]}</SheetDescription>

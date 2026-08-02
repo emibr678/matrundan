@@ -110,9 +110,7 @@ test("gruppen granskar och simulerar ett rättelseförslag privat", async ({ pag
       { exact: true },
     ),
   ).toBeVisible();
-  await expect(
-    reportSheet.getByRole("button", { name: "Skicka rättelseförslag" }),
-  ).toHaveCount(0);
+  await expect(reportSheet.getByRole("button", { name: "Skicka rättelseförslag" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Simulerat rättelseförslag på mobil");
 
   await reportSheet.getByRole("button", { name: "Uppdatera status" }).click();
