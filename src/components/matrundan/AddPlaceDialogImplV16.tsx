@@ -267,8 +267,15 @@ export function AddPlaceDialogV16({
 
   return (
     <>
-      <Dialog open={searchDialogOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl">
+      <Dialog open={open} modal={searchDialogOpen} onOpenChange={handleOpenChange}>
+        <DialogContent
+          forceMount
+          overlayClassName={searchDialogOpen ? undefined : "hidden"}
+          aria-hidden={!searchDialogOpen}
+          className={`max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl ${
+            searchDialogOpen ? "" : "invisible pointer-events-none"
+          }`}
+        >
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
             <DialogDescription className="sr-only">
