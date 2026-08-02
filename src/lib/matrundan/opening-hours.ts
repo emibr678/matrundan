@@ -26,6 +26,15 @@ const DAY_LABEL: Record<OpeningHoursDayCode, string> = {
 };
 
 const JS_DAY_TO_OSM: OpeningHoursDayCode[] = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const WEEKDAY_TO_OSM: Record<string, OpeningHoursDayCode> = {
+  Mon: "Mo",
+  Tue: "Tu",
+  Wed: "We",
+  Thu: "Th",
+  Fri: "Fr",
+  Sat: "Sa",
+  Sun: "Su",
+};
 
 function normalizedTime(value: string): string {
   const [hours, minutes] = value.split(":");
@@ -151,11 +160,29 @@ export function parseOpeningHours(value: string | null | undefined): OpeningHour
   };
 }
 
+function dayCodeForDate(date: Date, timezone?: string | null): OpeningHoursDayCode {
+  if (timezone) {
+    try {
+      const weekday = new Intl.DateTimeFormat("en-US", {
+        weekday: "short",
+        timeZone: timezone,
+      }).format(date);
+      const code = WEEKDAY_TO_OSM[weekday];
+      if (code) return code;
+    } catch {
+      /* Ogiltig tidszon faller tillbaka till enhetens lokala datum. */
+    }
+  }
+  return JS_DAY_TO_OSM[date.getDay()];
+}
+
 export function openingHoursForDate(
   schedule: OpeningHoursSchedule,
   date = new Date(),
+  timezone?: string | null,
 ): OpeningHoursDay {
-  return schedule.days.find((day) => day.code === JS_DAY_TO_OSM[date.getDay()]) ?? schedule.days[0];
+  const dayCode = dayCodeForDate(date, timezone);
+  return schedule.days.find((day) => day.code === dayCode) ?? schedule.days[0];
 }
 
 export function openingHoursDaySummary(day: OpeningHoursDay): string {
