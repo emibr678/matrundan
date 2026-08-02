@@ -50,8 +50,7 @@ function usePlaceDataSignalsForTargets(
   React.useEffect(() => {
     const handleChanged = () => setRevision((value) => value + 1);
     window.addEventListener("matrundan:place-data-signals-changed", handleChanged);
-    return () =>
-      window.removeEventListener("matrundan:place-data-signals-changed", handleChanged);
+    return () => window.removeEventListener("matrundan:place-data-signals-changed", handleChanged);
   }, []);
 
   React.useEffect(() => {
@@ -99,27 +98,21 @@ function usePlaceDataSignalsForTargets(
 export function usePlaceDataSignalsForSuggestions(
   suggestions: PlaceSuggestion[],
 ): Record<string, PlaceDataSignal> {
-  const targets = React.useMemo(
-    () => suggestions.map(signalTargetFromSuggestion),
-    [suggestions],
-  );
+  const targets = React.useMemo(() => suggestions.map(signalTargetFromSuggestion), [suggestions]);
   return usePlaceDataSignalsForTargets(targets, true);
 }
 
-export function usePlaceDataSignalForReportableSuggestion(
-  suggestion: ReportablePlaceSuggestion,
-): {
+export function usePlaceDataSignalForReportableSuggestion(suggestion: ReportablePlaceSuggestion): {
   signal: PlaceDataSignal | undefined;
   target: PlaceDataSignalTarget;
 } {
   const target = React.useMemo(
     () => signalTargetFromReportableSuggestion(suggestion),
-    [
-      suggestion.provider,
-      suggestion.providerPlaceId,
-      suggestion.website,
-    ],
+    [suggestion.provider, suggestion.providerPlaceId, suggestion.website],
   );
-  const signals = usePlaceDataSignalsForTargets(React.useMemo(() => [target], [target]), false);
+  const signals = usePlaceDataSignalsForTargets(
+    React.useMemo(() => [target], [target]),
+    false,
+  );
   return { signal: signals[target.key], target };
 }
