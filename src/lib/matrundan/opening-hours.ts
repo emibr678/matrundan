@@ -11,9 +11,7 @@ export interface OpeningHoursDay {
 }
 
 export interface OpeningHoursSchedule {
-  raw: string;
   days: OpeningHoursDay[];
-  specialRules: string[];
   partiallyParsed: boolean;
 }
 
@@ -94,14 +92,12 @@ export function parseOpeningHours(value: string | null | undefined): OpeningHour
       days[day] = { ...days[day], intervals: ["Dygnet runt"], known: true };
     }
     return {
-      raw,
       days: OPENING_HOURS_DAY_CODES.map((day) => days[day]),
-      specialRules: [],
       partiallyParsed: false,
     };
   }
 
-  const specialRules: string[] = [];
+  let unparsedClauseCount = 0;
   let parsedClauseCount = 0;
   const clauses = raw
     .split(";")
@@ -113,13 +109,13 @@ export function parseOpeningHours(value: string | null | undefined): OpeningHour
       /^((?:Mo|Tu|We|Th|Fr|Sa|Su)(?:(?:-|,)(?:Mo|Tu|We|Th|Fr|Sa|Su))*)\s+(.+)$/,
     );
     if (!match) {
-      specialRules.push(clause);
+      unparsedClauseCount += 1;
       continue;
     }
 
     const expandedDays = expandDays(match[1]);
     if (!expandedDays) {
-      specialRules.push(clause);
+      unparsedClauseCount += 1;
       continue;
     }
 
@@ -134,7 +130,7 @@ export function parseOpeningHours(value: string | null | undefined): OpeningHour
 
     const intervals = hours.split(",").map(normalizedInterval);
     if (intervals.some((interval) => interval == null)) {
-      specialRules.push(clause);
+      unparsedClauseCount += 1;
       continue;
     }
 
@@ -149,20 +145,9 @@ export function parseOpeningHours(value: string | null | undefined): OpeningHour
     parsedClauseCount += 1;
   }
 
-  if (parsedClauseCount === 0) {
-    return {
-      raw,
-      days: OPENING_HOURS_DAY_CODES.map((day) => days[day]),
-      specialRules: specialRules.length ? specialRules : [raw],
-      partiallyParsed: true,
-    };
-  }
-
   return {
-    raw,
     days: OPENING_HOURS_DAY_CODES.map((day) => days[day]),
-    specialRules,
-    partiallyParsed: specialRules.length > 0,
+    partiallyParsed: parsedClauseCount === 0 || unparsedClauseCount > 0,
   };
 }
 
