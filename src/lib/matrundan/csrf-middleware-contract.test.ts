@@ -8,8 +8,6 @@ describe("TanStack Starts CSRF-skydd", () => {
   test("skyddar globala serverfunktioner när projektet har en egen startfil", () => {
     expect(source).toContain("createCsrfMiddleware");
     expect(source).toContain('context.handlerType === "serverFn"');
-    expect(source).toMatch(
-      /requestMiddleware:\s*\[csrfMiddleware,\s*errorMiddleware\]/,
-    );
+    expect(source).toMatch(/requestMiddleware:\s*\[csrfMiddleware,\s*errorMiddleware\]/);
   });
 });
