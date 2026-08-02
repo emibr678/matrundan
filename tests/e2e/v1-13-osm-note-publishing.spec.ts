@@ -63,17 +63,21 @@ test("gruppen granskar och simulerar en anonym OSM-anteckning privat", async ({ 
   await expect(placeDataSection.getByText("1 att granska")).toBeVisible();
   await expect(placeDataSection.getByText(/särskilt granskad text och kartposition/)).toBeVisible();
   await placeDataSection.getByText("Glöd & Grönska", { exact: true }).click();
-  await placeDataSection.getByLabel("Bedömning").selectOption("ready_for_osm");
+  await expect(placeDataSection.getByLabel("Bedömning")).toHaveCount(0);
+  await expect(placeDataSection.getByText("Välj nästa steg", { exact: true })).toBeVisible();
   await placeDataSection
     .getByLabel("Intern anteckning (valfri)")
     .fill("Kontrollerad mot verksamhetens officiella information.");
   await expectNoHorizontalOverflow(page, "Granskningskö på mobil");
-  await placeDataSection.getByRole("button", { name: "Spara bedömning" }).click();
+  await placeDataSection.getByRole("button", { name: "Förbered för OpenStreetMap" }).click();
 
   await expect(
     placeDataSection.locator("summary").getByText("Förberedd för OpenStreetMap", { exact: true }),
   ).toBeVisible();
   await expect(placeDataSection.getByText("1 att granska")).toHaveCount(0);
+  await expect(
+    placeDataSection.getByText(/Rapporten är förberedd för OpenStreetMap/),
+  ).toBeVisible();
 
   const publicText = placeDataSection.getByLabel("Offentlig text till OpenStreetMap");
   await expect(publicText).toHaveValue(/Webbplatsen i kartdatan verkar vara fel/);
