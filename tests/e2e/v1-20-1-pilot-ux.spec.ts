@@ -148,6 +148,8 @@ test("exempelgruppen använder konsekvent ort och erbjuder båda inloggningssät
   await expect(page.getByText(/påhittat kompisgäng i Stockholm/)).toBeVisible();
   await expect(page.getByText(/påhittat kompisgäng i Göteborg/)).toHaveCount(0);
 
+  await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await page.goto("/matstallen/p8");
   await page.getByRole("button", { name: "Markera som favorit", exact: true }).click();
   await expect(page.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
