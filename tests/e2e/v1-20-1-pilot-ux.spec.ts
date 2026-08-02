@@ -207,7 +207,10 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
 
   await expect(page.getByText("Robin är nu administratör.", { exact: true })).toBeVisible();
   await expect
-    .poll(async () => (await page.getByRole("button", { name: "Hantera Robin" }).locator("..").innerText()))
+    .poll(
+      async () =>
+        await page.getByRole("button", { name: "Hantera Robin" }).locator("..").innerText(),
+    )
     .toContain("admin");
 
   await page.getByRole("button", { name: "Hantera Robin" }).click();
