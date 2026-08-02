@@ -34,14 +34,17 @@ function normalizedTime(value: string): string {
   return minutes === "00" ? String(Number(hours)) : `${Number(hours)}:${minutes}`;
 }
 
+function validClockTime(hours: string, minutes: string): boolean {
+  const hour = Number(hours);
+  const minute = Number(minutes);
+  return hour >= 0 && hour <= 24 && minute >= 0 && minute <= 59 && (hour < 24 || minute === 0);
+}
+
 function normalizedInterval(value: string): string | null {
   const match = value.trim().match(/^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/);
   if (!match) return null;
   const [, fromHour, fromMinute, toHour, toMinute] = match;
-  const valid =
-    [fromHour, toHour].every((hour) => Number(hour) >= 0 && Number(hour) <= 24) &&
-    [fromMinute, toMinute].every((minute) => Number(minute) >= 0 && Number(minute) <= 59);
-  if (!valid) return null;
+  if (!validClockTime(fromHour, fromMinute) || !validClockTime(toHour, toMinute)) return null;
   return `${normalizedTime(`${fromHour}:${fromMinute}`)}–${normalizedTime(`${toHour}:${toMinute}`)}`;
 }
 
@@ -66,12 +69,19 @@ function expandDays(value: string): OpeningHoursDayCode[] | null {
 }
 
 function emptyDays(): Record<OpeningHoursDayCode, OpeningHoursDay> {
-  return Object.fromEntries(
-    OPENING_HOURS_DAY_CODES.map((code) => [
-      code,
-      { code, label: DAY_LABEL[code], intervals: [], closed: false, known: false },
-    ]),
-  ) as Record<OpeningHoursDayCode, OpeningHoursDay>;
+  return OPENING_HOURS_DAY_CODES.reduce<Record<OpeningHoursDayCode, OpeningHoursDay>>(
+    (result, code) => {
+      result[code] = {
+        code,
+        label: DAY_LABEL[code],
+        intervals: [],
+        closed: false,
+        known: false,
+      };
+      return result;
+    },
+    {} as Record<OpeningHoursDayCode, OpeningHoursDay>,
+  );
 }
 
 export function parseOpeningHours(value: string | null | undefined): OpeningHoursSchedule | null {
