@@ -23,6 +23,7 @@ import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { AboutDialog } from "@/components/matrundan/AboutDialog";
 import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
+import { MemberManagementSection } from "@/components/matrundan/MemberManagementSection";
 import { GroupHighlights } from "@/components/matrundan/GroupHighlights";
 import { GroupSettingsSectionV16 } from "@/components/matrundan/GroupSettingsSectionV16";
 import { HiddenPlaceSuggestionsSection } from "@/components/matrundan/HiddenPlaceSuggestionsSection";
@@ -292,7 +293,7 @@ function SettingsSheet() {
 
             {mode === "demo" ? <HiddenPlaceSuggestionsSection /> : null}
 
-            <MembersSection
+            <MemberManagementSection
               members={state.members}
               currentUserId={state.currentUserId}
               isOwner={isOwner}
