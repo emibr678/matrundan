@@ -93,7 +93,7 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
     detailsDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
   ).toBeVisible();
   await expect(
-    detailsDialog.getByRole("button", { name: "Stämmer inte uppgifterna?" }),
+    detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }),
   ).toBeVisible();
   await expect(
     detailsDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
@@ -146,9 +146,9 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
 
   await placeSuggestionButton(searchDialog).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
-  await detailsDialog.getByRole("button", { name: "Stämmer inte uppgifterna?" }).click();
+  await detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }).click();
 
-  const issueDialog = page.getByRole("dialog", { name: "Stämmer inte uppgifterna?" });
+  const issueDialog = page.getByRole("dialog", { name: "Stängt eller fel uppgifter?" });
   await issueDialog.getByRole("button", { name: /Rapportera felaktiga uppgifter/ }).click();
 
   const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktiga uppgifter" });
