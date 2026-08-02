@@ -3,10 +3,7 @@ import { Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogsV16 } from "./AddPlaceResultDialogsV16";
 import { ManualAddPlaceFormV16 } from "./ManualAddPlaceFormV16";
-import {
-  PlaceDiscoveryV16,
-  type PlaceDiscoverySnapshot,
-} from "./PlaceDiscoveryV16";
+import { PlaceDiscoveryV16, type PlaceDiscoverySnapshot } from "./PlaceDiscoveryV16";
 import type { SourceMatchResult } from "./SearchResultSectionsV16";
 import {
   AlertDialog,
@@ -68,8 +65,9 @@ export function AddPlaceDialogV16({
   );
   const [addedResultIds, setAddedResultIds] = React.useState<Set<string>>(() => new Set());
   const [selectedResults, setSelectedResults] = React.useState<PlaceSuggestion[]>([]);
-  const [discoverySnapshot, setDiscoverySnapshot] =
-    React.useState<PlaceDiscoverySnapshot | null>(null);
+  const [discoverySnapshot, setDiscoverySnapshot] = React.useState<PlaceDiscoverySnapshot | null>(
+    null,
+  );
   const [bulkBusy, setBulkBusy] = React.useState(false);
   const [sourceLinkBusy, setSourceLinkBusy] = React.useState(false);
   const searchDialogRef = React.useRef<HTMLDivElement | null>(null);
