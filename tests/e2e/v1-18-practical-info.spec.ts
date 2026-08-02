@@ -192,16 +192,13 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
     });
   });
 
-  await page.route(
-    "**/rest/v1/rpc/list_group_place_practical_info_history_v1",
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(history),
-      });
-    },
-  );
+  await page.route("**/rest/v1/rpc/list_group_place_practical_info_history_v1", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(history),
+    });
+  });
 
   await page.route("**/rest/v1/rpc/update_group_place_practical_info_v1", async (route) => {
     const body = route.request().postDataJSON() as Record<string, unknown>;
