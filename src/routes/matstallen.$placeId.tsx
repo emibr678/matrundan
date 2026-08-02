@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
+import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { RatingStars } from "@/components/matrundan/Rating";
@@ -150,7 +151,7 @@ function PlaceDetail() {
       </Button>
 
       <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
-        <div className="flex items-start gap-4 bg-gradient-to-br from-secondary to-secondary/40 p-5">
+        <div className="flex items-start gap-3 bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:gap-4 sm:p-5">
           <PlaceThumb place={place} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
@@ -191,7 +192,7 @@ function PlaceDetail() {
                 </a>
               </div>
             ) : null}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               {isNext ? (
                 <Badge variant="secondary" className="rounded-full">
                   <Flag className="mr-1 h-3 w-3" /> Nästa stopp
@@ -203,12 +204,6 @@ function PlaceDetail() {
                 </Badge>
               ) : (
                 <StatusBadge placeId={place.id} />
-              )}
-              {placeRemoved ? null : (
-                <p className="w-full text-xs text-muted-foreground">
-                  Stället räknas som provat så fort någon i gänget varit här — alla behöver inte gå
-                  hit.
-                </p>
               )}
             </div>
           </div>
@@ -299,14 +294,13 @@ function PlaceDetail() {
       </Card>
 
       <section>
-        <h2 className="mb-2 font-display text-lg">Besök ({visits.length})</h2>
+        <h2 className="mb-2 font-display text-lg">
+          {visits.length > 0 ? `Besök (${visits.length})` : "Besök"}
+        </h2>
         {visits.length === 0 ? (
-          <Card className="rounded-2xl border-dashed p-6 text-center">
-            <div className="text-4xl">✨</div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {writable
-                ? "Här är det tomt än. Blir ni först får gänget minnet för alltid."
-                : "Inga registrerade besök finns i historiken."}
+          <Card className="rounded-2xl border-dashed p-5 text-center">
+            <p className="text-sm text-muted-foreground">
+              {writable ? "Ingen har varit här än." : "Inga registrerade besök finns i historiken."}
             </p>
           </Card>
         ) : (
@@ -380,18 +374,20 @@ function PlaceDetail() {
       </section>
 
       <section>
-        <div className="mb-2 flex min-h-11 items-center justify-between gap-2">
-          <h2 className="font-display text-lg">Om stället</h2>
+        <div className="mb-2 grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <h2 className="min-w-0 font-display text-lg">Om stället</h2>
           {!demoReadOnly ? <PlaceAdminDialog place={place} /> : null}
         </div>
         <Card className="space-y-3 rounded-2xl border-border/70 p-4">
-          <div className="flex flex-wrap gap-1.5">
-            {place.cuisines.map((cuisine) => (
-              <Badge key={cuisine} variant="secondary" className="rounded-full">
-                {cuisine}
-              </Badge>
-            ))}
-          </div>
+          {place.cuisines.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {place.cuisines.map((cuisine) => (
+                <Badge key={cuisine} variant="secondary" className="rounded-full">
+                  {cuisine}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
           {occasions.length > 0 ? (
             <div className="space-y-1.5">
               <div className="flex min-h-11 items-center gap-1">
@@ -422,6 +418,16 @@ function PlaceDetail() {
           <div className="text-xs text-muted-foreground">
             Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
           </div>
+          {!demoReadOnly && !groupArchived ? (
+            <div className="border-t border-border/60 pt-3">
+              <div className="text-sm font-medium">Felaktig platsinformation?</div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Rapportera namn, adress, webbplats, dubblett eller att verksamheten kan ha stängt
+                permanent. Rapporten går först till gruppens admin.
+              </p>
+              <PlaceDataReportDialog place={place} />
+            </div>
+          ) : null}
         </Card>
       </section>
 
