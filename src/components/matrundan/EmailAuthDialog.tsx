@@ -160,7 +160,7 @@ export function EmailAuthDialog({
 
   const description =
     mode === "signup"
-      ? "Kontot skapas direkt – ingen bekräftelse via mejl behövs. Att gå med i en grupp är ett separat steg via gruppens inbjudningslänk."
+      ? "Skapa kontot med e-post och lösenord. I vissa fall behöver du först bekräfta e-postadressen via ett mejl. Att gå med i en grupp är ett separat steg via gruppens inbjudningslänk."
       : mode === "reset"
         ? "Skriv din e-postadress så skickar vi en länk där du kan välja ett nytt lösenord. Kolla även skräpposten."
         : "Använd samma e-postadress varje gång så behåller du din historik.";
