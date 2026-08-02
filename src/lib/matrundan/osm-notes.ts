@@ -38,6 +38,7 @@ const categoryIntro: Record<PlaceDataReportCategory, string> = {
   wrong_name: "Namnet i kartdatan verkar vara inaktuellt.",
   wrong_address: "Adressen eller kartpositionen verkar vara fel.",
   wrong_website: "Webbplatsen i kartdatan verkar vara fel eller inaktuell.",
+  wrong_opening_hours: "Öppettiderna i kartdatan verkar saknas eller vara inaktuella.",
   duplicate: "Det verkar finnas en dubblett av verksamheten i kartdatan.",
   other: "Platsinformationen verkar behöva kontrolleras.",
 };
