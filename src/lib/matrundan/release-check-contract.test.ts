@@ -46,6 +46,7 @@ Inga ändringar ännu.
 ## [1.0.0] – 2026-07-31
 `,
   );
+  writeFixtureFile(root, "docs/archive/changelog-v1.6.1-through-v1.15.md", "# Arkiv\n");
   writeFixtureFile(root, "docs/archive/changelog-through-v1.6.md", "# Arkiv\n");
   writeFixtureFile(
     root,

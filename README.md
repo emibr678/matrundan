@@ -53,6 +53,16 @@ individuell matdagbok, social feed eller global ranking.
 - Rapportering och döljning är separata handlingar. En rapport går till gruppens
   admin, medan döljning bara påverkar den aktuella gruppens sökningar och kan
   ångras när som helst.
+- Anonyma och åldrande platsdatasignaler kan varna om att ett ställe kan ha
+  stängt permanent utan att ursprungsgrupp, medlem, rapporttext, antal eller
+  interna identifierare lämnas ut. Den aktuella gruppens privata underlag
+  används inte som signal tillbaka till vanliga medlemmar i samma grupp.
+- Aktiva live-medlemmar kan lämna en enkel med- eller motbekräftelse utan
+  fritext. Motstridiga uppgifter visas som osäkra och nyliga verkliga besök kan
+  fungera som anonym motbevisning.
+- **Begränsad platsinformation** visas separat när både webbplats och
+  öppettider uttryckligen saknas i providerträffen. Det betyder inte att
+  verksamheten har stängt.
 - En förberedd rapport kan publiceras som en anonym OpenStreetMap-anteckning
   först efter att admin har granskat den exakta offentliga texten och bekräftat
   publiceringen. OSM-statusen kan därefter kontrolleras manuellt utan att
@@ -124,6 +134,10 @@ Gruppen är den primära produkt- och integritetsgränsen.
   att en tom platsrad skapas. Tabellen har ingen direkt klientåtkomst; aktiva
   medlemmar får rapportera och endast ägare/admin får läsa kön, granska den
   offentliga texten och starta publicering.
+- `place_data_signal_confirmations` innehåller privata, fritextfria
+  bekräftelser. Den klientexponerade RPC:n lämnar bara en härledd neutral status
+  och kvalitetsflaggor; grupp, medlem, rapporttext, antal och interna ID:n
+  lämnar aldrig servern.
 - OSM-publiceringen reserveras gruppscopat i databasen. Bara serverrollen får
   spara ett bekräftat note-ID eller en extern status. En neutral offentlig
   referens används för säker återhämtning efter nätverksavbrott.

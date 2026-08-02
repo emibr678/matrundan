@@ -164,6 +164,54 @@ returnera den bevaras en begränsad säker ögonblicksbild:
 Äldre dolda rader utan de nya fälten förblir giltiga och kan återställas. Rå
 providerdata får inte lagras i den gruppprivata spärrlistan.
 
+### Anonyma platsdatasignaler
+
+Privata rapporter får hjälpa andra grupper endast genom en härledd och neutral
+slutsats. De får aldrig bli en global rapportfeed eller en väg runt gruppens
+integritetsgräns.
+
+`place_data_signal_confirmations` lagrar en medlems enkla bekräftelse för exakt
+ett kanoniskt ställe eller en provideridentitet. Tabellen är privat och saknar
+direkt klientåtkomst. Bekräftelsen innehåller ingen fritext och är separat från:
+
+- gruppens privata rapportkö;
+- gruppens reversibla döljning;
+- eventuell OSM-publicering.
+
+Läs-RPC:n för en grupp får bara använda evidens från **andra grupper**. Den
+aktuella gruppens privata rapporter eller bekräftelser får inte ens återkomma som
+en anonym signal till vanliga medlemmar i samma grupp.
+
+Klienten får endast följande härledda fält per mål:
+
+- `closureStatus`: `none`, `unverified`, `reviewed` eller `uncertain`;
+- `limitedInformation`: båda webbplats och öppettider saknas uttryckligen;
+- `recentlyConfirmedOpen`: det finns aktuell anonym motbevisning.
+
+Följande får aldrig lämnas av signal-RPC:n:
+
+- ursprungsgrupp;
+- medlem eller rapportör;
+- rapporttext eller intern anteckning;
+- antal rapporter, grupper eller bekräftelser;
+- rapport-, grupp- eller användar-ID.
+
+Evidensmodellen är konservativ:
+
+- en ensam ogranskad rapport ger endast `unverified`;
+- en adminbedömd rapport eller stöd från minst två oberoende grupper kan ge
+  `reviewed`;
+- en positiv signal tillsammans med motbevisning ger `uncertain`;
+- nyliga verkliga besök räknas som anonym motbevisning;
+- ogranskade rapporter, bekräftelser och granskade underlag har separata
+  tidsfönster och tappar automatiskt tyngd.
+
+**Begränsad platsinformation** är en kvalitetsflagga, inte en stängningssignal.
+Den får bara visas när leverantörens aktuella data uttryckligen saknar både
+webbplats och öppettider. Okänd eller äldre data får inte tolkas som frånvaro.
+Geoapifys fulla öppettidsschema lämnas inte till klienten; endast en neutral
+boolesk indikator normaliseras.
+
 ### Besök
 
 `visits` representerar verkliga besök. Ett besök ska vara kanoniskt även när det
@@ -251,6 +299,7 @@ Aktiva medlemmar får:
 - registrera och redigera egna besök inom produktens regler;
 - rapportera felaktig platsinformation för ett kanoniskt ställe eller en exakt
   providerträff;
+- bekräfta eller motsäga en anonym stängningssignal utan fritext;
 - föreslå datum och svara på förslag.
 
 Ägare och administratörer får dessutom:
@@ -416,10 +465,11 @@ Platsdatarapporter behandlas särskilt:
 - intern anteckning skriven av den raderade användaren tas bort;
 - OSM-publicerarens personkoppling tas bort;
 - append-only-försöksloggen anonymiseras genom `submitted_by = NULL`;
+- användarens aktiva platsdatasignalbekräftelser raderas;
 - neutral platsöversikt och operativ status kan bevaras.
 
-Kontoradering får inte lämna gamla personnamn i rapportöversikter eller externa
-OSM-referenser.
+Kontoradering får inte lämna gamla personnamn i rapportöversikter, aktiva
+platsdatasignaler eller externa OSM-referenser.
 
 ## Notiser
 
@@ -447,6 +497,8 @@ Geoapify-resultat normaliseras till Matrundans domänmodell. Normaliseringen ska
 - filtrera explicit nedlagda, rivna eller övergivna objekt;
 - separera Geoapify-ID från eventuell OSM-identitet;
 - normalisera webbplats till säker URL;
+- härleda endast en boolesk indikator för om öppettider finns, inte exponera hela
+  schemat till klienten;
 - begränsa rå metadata;
 - deduplicera sökresultat konservativt.
 
@@ -466,13 +518,15 @@ I lokala lägen ska följande simuleras eller sparas lokalt:
 - platsdatarapporter;
 - rapporter om providerträffar;
 - dolda sökträffar och deras säkra ögonblicksbilder;
+- kvalitetsflaggan för begränsad platsinformation;
 - OSM-publicering;
 - OSM-statuskontroll;
 - källkoppling;
 - privata gruppändringar.
 
 Lokala lägen får aldrig använda service-role, skriva produktion eller publicera
-en verklig OSM-note.
+en verklig OSM-note. Cross-group-bekräftelser är live-only och får inte skriva
+från demo eller exempelgrupp.
 
 ## Databasmigrationer
 
@@ -501,9 +555,10 @@ Alla rader måste returnera `ok = true`. Kontrollen omfattar minst:
 - obligatoriska tabeller, kolumner, constraints, index och triggers;
 - grupp- och rapport-RPC:er;
 - providerträffsrapporter och dolda träffars säkra ögonblicksbild;
+- anonyma platsdatasignaler, negativa behörigheter och cross-group-isolering;
 - OSM-publiceringsfunktioner;
 - grants och negativa behörighetskontroller;
-- kontoraderingens rapport- och OSM-städning;
+- kontoraderingens rapport-, signal- och OSM-städning;
 - frånvaro av direkt klientåtkomst till privata tabeller.
 
 Efter preflight görs en autentiserad läsning av en verklig aktiv grupp. Riktade

@@ -148,10 +148,12 @@ export function toPlaceSuggestion(row: MultiAreaPlaceSuggestion): PlaceSuggestio
     lat: row.lat,
     lng: row.lng,
     distanceKm: row.distanceKm,
+    website: row.website,
+    hasOpeningHours: row.hasOpeningHours,
     raw: row.raw,
     nearestAreaLabel: row.nearestAreaLabel,
     matchingAreaLabels: row.matchingAreaLabels,
-  };
+  } as PlaceSuggestion & { hasOpeningHours: boolean };
 }
 
 export function safeParse(raw?: string): unknown {
