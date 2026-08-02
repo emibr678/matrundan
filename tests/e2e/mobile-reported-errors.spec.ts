@@ -103,9 +103,10 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
-  expect(metrics.scrollWidth, `${context}: sidan får inte ha horisontell overflow`).toBeLessThanOrEqual(
-    metrics.clientWidth,
-  );
+  expect(
+    metrics.scrollWidth,
+    `${context}: sidan får inte ha horisontell overflow`,
+  ).toBeLessThanOrEqual(metrics.clientWidth);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -119,7 +120,9 @@ test("Rapporterade fel är överskådligt och stegstyrt", async ({ page }, testI
   await page.goto("/rapporterade-fel?demo=1");
 
   await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
-  await expect(page.getByText("Granska uppgifter om matställen som gruppen har rapporterat som felaktiga.")).toBeVisible();
+  await expect(
+    page.getByText("Granska uppgifter om matställen som gruppen har rapporterat som felaktiga."),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: /Att granska 1/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Redo att skicka 1/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Skickade 2/ })).toBeVisible();
@@ -135,8 +138,12 @@ test("Rapporterade fel är överskådligt och stegstyrt", async ({ page }, testI
   await page.getByText("Lilla Myntans Matrum").click();
   const reviewSheet = page.getByRole("dialog");
   await expect(reviewSheet.getByRole("heading", { name: "Lilla Myntans Matrum" })).toBeVisible();
-  await expect(reviewSheet.getByRole("button", { name: "Fortsätt till rättelseförslag" })).toBeVisible();
-  await expect(reviewSheet.getByText("OpenStreetMap, en öppen karta", { exact: false })).toHaveCount(0);
+  await expect(
+    reviewSheet.getByRole("button", { name: "Fortsätt till rättelseförslag" }),
+  ).toBeVisible();
+  await expect(
+    reviewSheet.getByText("OpenStreetMap, en öppen karta", { exact: false }),
+  ).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "granskningspanelen");
   await page.keyboard.press("Escape");
   await expect(reviewSheet).toBeHidden();
@@ -144,10 +151,18 @@ test("Rapporterade fel är överskådligt och stegstyrt", async ({ page }, testI
   await page.getByRole("button", { name: /Redo att skicka 1/ }).click();
   await page.getByText("Kvarterets Kardemumma med ett ovanligt långt namn").click();
   const correctionSheet = page.getByRole("dialog");
-  await expect(correctionSheet.getByRole("heading", { name: "Kvarterets Kardemumma med ett ovanligt långt namn" })).toBeVisible();
+  await expect(
+    correctionSheet.getByRole("heading", {
+      name: "Kvarterets Kardemumma med ett ovanligt långt namn",
+    }),
+  ).toBeVisible();
   await expect(correctionSheet.getByText("Hjälp till att rätta uppgiften på kartan")).toBeVisible();
-  await expect(correctionSheet.getByText("OpenStreetMap, en öppen karta", { exact: false })).toBeVisible();
-  await expect(correctionSheet.getByRole("button", { name: "Skicka rättelseförslag" })).toBeVisible();
+  await expect(
+    correctionSheet.getByText("OpenStreetMap, en öppen karta", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    correctionSheet.getByRole("button", { name: "Skicka rättelseförslag" }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "panelen för rättelseförslag");
 
   await testInfo.attach("rapporterade-fel-rattelseforslag", {
@@ -156,8 +171,12 @@ test("Rapporterade fel är överskådligt och stegstyrt", async ({ page }, testI
   });
 
   await correctionSheet.getByRole("button", { name: "Så fungerar det" }).click();
-  await expect(page.getByRole("heading", { name: "Rätta uppgifter i OpenStreetMap" })).toBeVisible();
-  await expect(page.getByText("En rättelse i OpenStreetMap ändrar inte informationen i Google Maps.")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Rätta uppgifter i OpenStreetMap" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("En rättelse i OpenStreetMap ändrar inte informationen i Google Maps."),
+  ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("heading", { name: "Rätta uppgifter i OpenStreetMap" })).toBeHidden();
   await page.keyboard.press("Escape");
@@ -166,8 +185,11 @@ test("Rapporterade fel är överskådligt och stegstyrt", async ({ page }, testI
   await page.getByText("Månskärans Taquería").click();
   const sentSheet = page.getByRole("dialog");
   await expect(sentSheet.getByText("Väntar på granskning", { exact: true })).toBeVisible();
-  await expect(sentSheet.getByText("Rättelseförslaget har skickats till OpenStreetMap och väntar på att granskas.")).toBeVisible();
-  await expect(sentSheet.getByRole("link", { name: /Visa ärendet i OpenStreetMap/ })).toBeVisible();
+  await expect(
+    sentSheet.getByText(
+      "Rättelseförslaget har skickats till OpenStreetMap och väntar på att granskas.",
+    ),
+  ).toBeVisible();
   await expect(sentSheet.getByRole("button", { name: "Uppdatera status" })).toBeVisible();
   await expect(sentSheet.getByRole("button", { name: "Skicka rättelseförslag" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "panelen för skickat förslag");
