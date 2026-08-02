@@ -8,10 +8,7 @@ import { spawnSync } from "node:child_process";
 const root = process.cwd();
 const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const changelogPath = resolve(root, "CHANGELOG.md");
-const recentArchivedChangelogPath = resolve(
-  root,
-  "docs/archive/changelog-v1.6.1-through-v1.15.md",
-);
+const recentArchivedChangelogPath = resolve(root, "docs/archive/changelog-v1.6.1-through-v1.15.md");
 const archivedChangelogPath = resolve(root, "docs/archive/changelog-through-v1.6.md");
 const versionPath = resolve(root, "src/lib/matrundan/version.ts");
 const errors = [];
