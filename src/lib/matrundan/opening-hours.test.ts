@@ -38,4 +38,14 @@ describe("öppettider från OSM", () => {
     expect(openingHoursDaySummary(monday)).toBe("11–22");
     expect(openingHoursDaySummary(tuesday)).toBe("Stängt");
   });
+
+  test("använder matställets tidszon när datumet skiljer sig från enheten", () => {
+    const schedule = parseOpeningHours("Mo 11:00-22:00; Su off");
+    expect(schedule).not.toBeNull();
+    const instant = new Date("2026-08-03T00:30:00+02:00");
+    const stockholm = openingHoursForDate(schedule!, instant, "Europe/Stockholm");
+    const newYork = openingHoursForDate(schedule!, instant, "America/New_York");
+    expect(openingHoursDaySummary(stockholm)).toBe("11–22");
+    expect(openingHoursDaySummary(newYork)).toBe("Stängt");
+  });
 });
