@@ -3,6 +3,29 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_15, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-15";
 export type { ChangelogEntry };
 
+const VERSION_1_17_0_CHANGELOG: ChangelogEntry = {
+  version: "1.17.0",
+  date: "2026-08-02",
+  summary: "Öppettider och saknade platsuppgifter är tydligare på matställets detaljsida.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Matställen med en aktiv Geoapify-källa kan visa dagens tider och ett utfällbart veckoschema från kartdatan.",
+        "Saknad webbplats eller saknade öppettider visas som lugna, tydliga rader med möjlighet att lämna underlag till gruppens admin.",
+        "Felaktiga eller saknade öppettider kan rapporteras som en egen typ av platsdatafel.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Öppettider presenteras utan en osäker Öppet nu-status och med tydlig reservation för specialdagar och inaktuell kartdata.",
+        "Extern platsdata hämtas bakom en autentiserad och gruppskyddad servergräns utan att rå leverantörsdata exponeras i klienten.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_16_3_CHANGELOG: ChangelogEntry = {
   version: "1.16.3",
   date: "2026-08-02",
@@ -77,6 +100,7 @@ const VERSION_1_16_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_17_0_CHANGELOG,
   VERSION_1_16_3_CHANGELOG,
   VERSION_1_16_2_CHANGELOG,
   VERSION_1_16_1_CHANGELOG,
