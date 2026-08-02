@@ -44,6 +44,7 @@ import {
   type PlaceDataReport,
   type PlaceDataReportStatus,
 } from "@/lib/matrundan/place-data-reports";
+import { googleMapsSearchUrl, normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
@@ -293,6 +294,7 @@ function PlaceDataReportCard({
   const published = report.osmSubmissionState === "published" && !!report.osmNoteStatus;
   const canPublish = report.status === "ready_for_osm" && !published;
   const publicationError = publicationErrorText(report.osmSubmissionErrorCode);
+  const websiteUrl = normalizeWebsiteUrl(report.placeWebsite);
 
   return (
     <details className="group min-w-0 rounded-xl border border-border/70 bg-background">
@@ -303,6 +305,11 @@ function PlaceDataReportCard({
             {PLACE_DATA_REPORT_CATEGORY_LABEL[report.category]} · {report.reporterName}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
+            {report.targetKind === "suggestion" ? (
+              <Badge variant="outline" className="rounded-full">
+                Sökträff
+              </Badge>
+            ) : null}
             <Badge
               variant={report.status === "ready_for_osm" ? "outline" : "secondary"}
               className="max-w-full whitespace-normal rounded-full text-left"
@@ -336,11 +343,36 @@ function PlaceDataReportCard({
           </p>
         </div>
 
-        <Button asChild variant="outline" size="sm" className="min-h-11 w-full">
-          <Link to="/matstallen/$placeId" params={{ placeId: report.placeId }}>
-            Öppna stället
-          </Link>
-        </Button>
+        {report.targetKind === "place" && report.placeId ? (
+          <Button asChild variant="outline" size="sm" className="min-h-11 w-full">
+            <Link to="/matstallen/$placeId" params={{ placeId: report.placeId }}>
+              Öppna stället
+            </Link>
+          </Button>
+        ) : (
+          <div className={websiteUrl ? "grid grid-cols-2 gap-2" : "grid grid-cols-1"}>
+            {websiteUrl ? (
+              <Button asChild variant="outline" className="min-h-11 min-w-0 px-2">
+                <a href={websiteUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-4 w-4 shrink-0" /> Webbplats
+                </a>
+              </Button>
+            ) : null}
+            <Button asChild variant="outline" className="min-h-11 min-w-0 px-2">
+              <a
+                href={googleMapsSearchUrl({
+                  name: report.placeName,
+                  address: report.placeAddress,
+                  city: report.placeCity,
+                })}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <ExternalLink className="h-4 w-4 shrink-0" /> Google Maps
+              </a>
+            </Button>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor={`place-data-report-status-${report.id}`}>Bedömning</Label>
