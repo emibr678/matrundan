@@ -77,11 +77,7 @@ export function CreateGroupAuthDialog({
         </DialogContent>
       </Dialog>
 
-      <EmailAuthDialog
-        open={emailOpen}
-        onOpenChange={setEmailOpen}
-        onSignedIn={exitExampleMode}
-      />
+      <EmailAuthDialog open={emailOpen} onOpenChange={setEmailOpen} onSignedIn={exitExampleMode} />
     </>
   );
 }
