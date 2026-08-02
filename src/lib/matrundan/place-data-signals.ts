@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { ReportablePlaceSuggestion } from "./place-data-reports";
 import type { PlaceSuggestion } from "./places-provider";
 import { rpcClient } from "./rpc-client";
 
@@ -20,7 +21,7 @@ export interface PlaceDataSignalTarget {
   provider?: string | null;
   providerPlaceId?: string | null;
   hasWebsite: boolean;
-  hasOpeningHours: boolean;
+  hasOpeningHours: boolean | null;
 }
 
 const signalSchema = z.object({
@@ -42,6 +43,11 @@ export function placeSignalKey(input: {
   return `provider:${provider}:${input.providerPlaceId?.trim() ?? ""}`;
 }
 
+function openingHoursFromSuggestion(suggestion: PlaceSuggestion): boolean | null {
+  const value = (suggestion as PlaceSuggestion & { hasOpeningHours?: boolean }).hasOpeningHours;
+  return typeof value === "boolean" ? value : null;
+}
+
 export function signalTargetFromSuggestion(suggestion: PlaceSuggestion): PlaceDataSignalTarget {
   return {
     key: placeSignalKey({
@@ -51,7 +57,38 @@ export function signalTargetFromSuggestion(suggestion: PlaceSuggestion): PlaceDa
     provider: suggestion.provider?.trim().toLocaleLowerCase("en-US") || "unknown",
     providerPlaceId: suggestion.externalId,
     hasWebsite: Boolean(suggestion.website),
-    hasOpeningHours: suggestion.hasOpeningHours === true,
+    hasOpeningHours: openingHoursFromSuggestion(suggestion),
+  };
+}
+
+export function signalTargetFromReportableSuggestion(
+  suggestion: ReportablePlaceSuggestion,
+): PlaceDataSignalTarget {
+  const openingHours = (
+    suggestion as ReportablePlaceSuggestion & { hasOpeningHours?: boolean }
+  ).hasOpeningHours;
+  return {
+    key: placeSignalKey({
+      provider: suggestion.provider,
+      providerPlaceId: suggestion.providerPlaceId,
+    }),
+    provider: suggestion.provider.trim().toLocaleLowerCase("en-US"),
+    providerPlaceId: suggestion.providerPlaceId,
+    hasWebsite: Boolean(suggestion.website),
+    hasOpeningHours: typeof openingHours === "boolean" ? openingHours : null,
+  };
+}
+
+export function mergePlaceDataSignalTarget(
+  current: PlaceDataSignalTarget | undefined,
+  incoming: PlaceDataSignalTarget,
+  authoritative: boolean,
+): PlaceDataSignalTarget {
+  if (!current || authoritative) return incoming;
+  return {
+    ...incoming,
+    hasWebsite: incoming.hasWebsite || current.hasWebsite,
+    hasOpeningHours: incoming.hasOpeningHours ?? current.hasOpeningHours,
   };
 }
 
@@ -59,7 +96,7 @@ export function localPlaceDataSignal(target: PlaceDataSignalTarget): PlaceDataSi
   return {
     key: target.key,
     closureStatus: "none",
-    limitedInformation: !target.hasWebsite && !target.hasOpeningHours,
+    limitedInformation: !target.hasWebsite && target.hasOpeningHours === false,
     recentlyConfirmedOpen: false,
   };
 }
