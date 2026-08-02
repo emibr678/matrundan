@@ -93,7 +93,9 @@ export function PlaceSuggestionReportDialog({
       toast.success(`${suggestion.name} döljs från gruppens sökningar.`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Kunde inte dölja träffen från gruppens sökningar.",
+        error instanceof Error
+          ? error.message
+          : "Kunde inte dölja träffen från gruppens sökningar.",
       );
     } finally {
       setSaving(false);
@@ -224,8 +226,7 @@ export function PlaceSuggestionReportDialog({
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">Dölj från gruppens sökningar</span>
                   <span className="mt-1 block text-xs font-normal leading-relaxed text-muted-foreground">
-                    Bara den här gruppen påverkas. Träffen kan återställas i
-                    gruppinställningarna.
+                    Bara den här gruppen påverkas. Träffen kan återställas i gruppinställningarna.
                   </span>
                 </span>
               </Button>
@@ -307,8 +308,7 @@ export function PlaceSuggestionReportDialog({
                   <span className="text-sm">
                     Dölj även träffen för gruppen tills det är utrett
                     <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                      Bara den här gruppen påverkas. Träffen kan återställas i
-                      gruppinställningarna.
+                      Bara den här gruppen påverkas. Träffen kan återställas i gruppinställningarna.
                     </span>
                   </span>
                 </label>
