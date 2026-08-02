@@ -83,7 +83,7 @@ test("ställe med besök behåller historiken när det tas bort", async ({ page 
   await removeCurrentPlace(page);
   const confirm = page.getByRole("alertdialog");
   await expect(confirm).toContainText(
-    "Stället tas bort från gruppens lista. Tidigare besök och omdömen finns kvar i historiken, och du kan lägga till det igen senare.",
+    "Stället tas bort från gruppens lista. Tidigare besök och omdömen finns kvar i historiken, och du kan lägga till stället igen senare.",
   );
   await confirm.getByRole("button", { name: "Ta bort från gruppen" }).click();
 
