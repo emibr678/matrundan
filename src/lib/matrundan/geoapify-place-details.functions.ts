@@ -22,6 +22,12 @@ const geoapifyPropertiesSchema = z
   .object({
     opening_hours: z.string().optional(),
     website: z.string().optional(),
+    timezone: z
+      .object({
+        name: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
     datasource: z
       .object({
         raw: z
@@ -50,6 +56,7 @@ const geoapifyResponseSchema = z.object({
 export interface PlaceExternalDetails {
   openingHours: OpeningHoursSchedule | null;
   website: string | null;
+  timezone: string | null;
   fetchedAt: string;
   attribution: string;
 }
@@ -89,6 +96,7 @@ async function fetchPlaceDetails(providerPlaceId: string): Promise<PlaceExternal
     return {
       openingHours: parseOpeningHours(openingHours),
       website,
+      timezone: properties?.timezone?.name?.trim() || null,
       fetchedAt: new Date().toISOString(),
       attribution: "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
     };
