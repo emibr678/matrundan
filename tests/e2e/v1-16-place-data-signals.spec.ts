@@ -29,7 +29,7 @@ test("begränsad platsinformation förklaras utan closure-bekräftelser i demo",
   await expect(resultDialog.getByText("Begränsad platsinformation", { exact: true })).toBeVisible();
   await expect(
     resultDialog.getByText(
-      "Platskällan saknar både webbplats och öppettider. Det betyder inte att verksamheten har stängt.",
+      "Webbplats och öppettider saknas i platsdatan. Det betyder inte att verksamheten har stängt, men uppgifterna bör kontrolleras före ett besök.",
       { exact: true },
     ),
   ).toBeVisible();
