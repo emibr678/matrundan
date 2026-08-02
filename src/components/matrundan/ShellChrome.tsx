@@ -1,8 +1,10 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Archive, Home, Info, MapPin, RotateCcw, Users } from "lucide-react";
+import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
+import { CreateGroupAuthDialog } from "@/components/matrundan/CreateGroupAuthDialog";
+import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
@@ -16,8 +18,9 @@ type NavTarget = "/" | "/exempel" | "/matstallen" | "/gruppen";
 
 export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
   const { state, resetDemo } = useStore();
-  const { signInWithGoogle, exitExampleMode } = useSession();
+  const { exitExampleMode } = useSession();
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
+  const [createGroupOpen, setCreateGroupOpen] = React.useState(false);
   const homeTarget: NavTarget = exampleMode ? "/exempel" : "/";
   const targetFor = (to: (typeof NAV)[number]["to"]): NavTarget => (to === "/" ? homeTarget : to);
   const isActive = (to: string) =>
@@ -31,14 +34,6 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
       <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
     </>
   );
-
-  async function createOwnGroup() {
-    try {
-      await signInWithGoogle();
-    } catch {
-      toast.error("Kunde inte starta Google-inloggningen.");
-    }
-  }
 
   function resetExample() {
     resetDemo();
@@ -119,7 +114,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
                   variant="outline"
                   size="sm"
                   className="min-h-10"
-                  onClick={() => void createOwnGroup()}
+                  onClick={() => setCreateGroupOpen(true)}
                 >
                   Skapa egen grupp
                 </Button>
@@ -169,6 +164,8 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
           })}
         </div>
       </nav>
+
+      <CreateGroupAuthDialog open={createGroupOpen} onOpenChange={setCreateGroupOpen} />
     </div>
   );
 }
