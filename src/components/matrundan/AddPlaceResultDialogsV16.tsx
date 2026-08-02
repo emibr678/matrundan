@@ -1,9 +1,11 @@
 import * as React from "react";
-import { ArrowLeft, ExternalLink, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
+import { PlaceDataLimitedInfoNotice } from "./PlaceDataSignalNotice";
 import { PlaceSuggestionReportDialog } from "./PlaceSuggestionReportDialog";
+import { PlaceSuggestionSignalPanel } from "./PlaceSuggestionSignalPanel";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -42,9 +44,71 @@ import {
 } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type Occasion } from "@/lib/matrundan/types";
+import { usePlaceDataSignalForReportableSuggestion } from "@/lib/matrundan/use-place-data-signals";
 
 function suggestionWebsite(suggestion: PlaceSuggestion): string | undefined {
   return normalizeWebsiteUrl((suggestion as PlaceSuggestion & { website?: string | null }).website);
+}
+
+function PendingPlaceSummary({
+  pending,
+  reportablePending,
+  disabled,
+}: {
+  pending: PlaceSuggestion;
+  reportablePending: ReportablePlaceSuggestion;
+  disabled: boolean;
+}) {
+  const websiteUrl = suggestionWebsite(pending);
+  const { signal, target } = usePlaceDataSignalForReportableSuggestion(reportablePending);
+
+  return (
+    <>
+      <div className="rounded-2xl border border-border/70 bg-card p-3">
+        <div className="flex items-start gap-3">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-secondary text-2xl">
+            {emojiForCategory(pending.category)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="break-words font-medium">{pending.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {CATEGORY_LABEL[pending.category]}
+              {pending.cuisines?.length ? ` · ${pending.cuisines.join(", ")}` : ""}
+            </div>
+            <div className="break-words text-[11px] text-muted-foreground">
+              {[pending.address, pending.area, pending.city].filter(Boolean).join(" · ")}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4">
+              {websiteUrl ? (
+                <a
+                  href={websiteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  aria-label={`Öppna webbplatsen för ${pending.name}`}
+                >
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                  Webbplats
+                </a>
+              ) : null}
+              <a
+                href={googleMapsSearchUrl(pending)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                aria-label={`Öppna ${pending.name} i Google Maps`}
+              >
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                Google Maps
+              </a>
+              <PlaceDataLimitedInfoNotice signal={signal} />
+            </div>
+          </div>
+        </div>
+      </div>
+      <PlaceSuggestionSignalPanel signal={signal} target={target} disabled={disabled} />
+    </>
+  );
 }
 
 export function AddPlaceResultDialogsV16({
@@ -111,23 +175,6 @@ export function AddPlaceResultDialogsV16({
     if (isLive) await hideGroupPlaceSuggestion(groupId, suggestion);
     else hideDemoPlaceSuggestion(groupId, suggestion);
     window.dispatchEvent(new Event("matrundan:hidden-place-suggestions-changed"));
-  }
-
-  async function hidePendingSuggestion() {
-    if (!pending || isBusy || !canHideSuggestion) return;
-    setHideBusy(true);
-    try {
-      const hiddenName = pending.name;
-      await hideSuggestionForGroup(pending);
-      resetPending();
-      toast.success(`${hiddenName} döljs från gruppens sökningar.`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte dölja sökträffen från gruppen.",
-      );
-    } finally {
-      setHideBusy(false);
-    }
   }
 
   async function hideFromReport(suggestion: PlaceSuggestion): Promise<void> {
@@ -253,7 +300,6 @@ export function AddPlaceResultDialogsV16({
   const reportablePending: ReportablePlaceSuggestion | null = pending
     ? reportableSuggestionFromPlaceSuggestion(pending)
     : null;
-  const websiteUrl = pending ? suggestionWebsite(pending) : undefined;
 
   return (
     <>
@@ -271,76 +317,13 @@ export function AddPlaceResultDialogsV16({
                 Granska och lägg till {pending.name} i gruppen.
               </DialogDescription>
             </DialogHeader>
-            <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-card p-3">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-secondary text-2xl">
-                {emojiForCategory(pending.category)}
-              </div>
-              <div className="min-w-0">
-                <div className="break-words font-medium">{pending.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {CATEGORY_LABEL[pending.category]}
-                  {pending.cuisines?.length ? ` · ${pending.cuisines.join(", ")}` : ""}
-                </div>
-                <div className="break-words text-[11px] text-muted-foreground">
-                  {[pending.address, pending.area, pending.city].filter(Boolean).join(" · ")}
-                </div>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <div className={websiteUrl ? "grid grid-cols-2 gap-2" : "grid grid-cols-1"}>
-                {websiteUrl ? (
-                  <Button asChild variant="outline" className="min-h-11 min-w-0 px-2">
-                    <a
-                      href={websiteUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={`Öppna webbplatsen för ${pending.name}`}
-                    >
-                      <ExternalLink className="h-4 w-4 shrink-0" />
-                      Webbplats
-                    </a>
-                  </Button>
-                ) : null}
-                <Button asChild variant="outline" className="min-h-11 min-w-0 px-2">
-                  <a
-                    href={googleMapsSearchUrl(pending)}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`Öppna ${pending.name} i Google Maps`}
-                  >
-                    <ExternalLink className="h-4 w-4 shrink-0" />
-                    Google Maps
-                  </a>
-                </Button>
-              </div>
-              {canHideSuggestion ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-11 w-full justify-start text-muted-foreground"
-                  disabled={isBusy || state.group.lifecycleStatus === "archived"}
-                  onClick={() => void hidePendingSuggestion()}
-                >
-                  {hideBusy ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <EyeOff className="h-4 w-4" />
-                  )}
-                  Dölj från gruppens sökningar
-                </Button>
-              ) : null}
-              <PlaceSuggestionReportDialog
-                suggestion={reportablePending}
-                canHide={canHideSuggestion}
-                disabled={isBusy || state.group.lifecycleStatus === "archived"}
-                onHide={() => hideFromReport(pending)}
-                onHidden={resetPending}
-              />
-              <p className="px-3 text-[11px] leading-relaxed text-muted-foreground">
-                Döljning påverkar bara den här gruppen. En rapport går till gruppens admin och
-                publiceras aldrig automatiskt.
-              </p>
-            </div>
+
+            <PendingPlaceSummary
+              pending={pending}
+              reportablePending={reportablePending}
+              disabled={isBusy || state.group.lifecycleStatus === "archived"}
+            />
+
             <FoodTagMultiSelect
               id="pending-food-tags"
               label="Kök och inriktning (valfritt)"
@@ -362,6 +345,17 @@ export function AddPlaceResultDialogsV16({
                 rows={2}
               />
             </div>
+
+            <div className="border-t border-border/60 pt-1">
+              <PlaceSuggestionReportDialog
+                suggestion={reportablePending}
+                canHide={canHideSuggestion}
+                disabled={isBusy || state.group.lifecycleStatus === "archived"}
+                onHide={() => hideFromReport(pending)}
+                onHidden={resetPending}
+              />
+            </div>
+
             <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={closePending}>
                 <ArrowLeft className="h-4 w-4" /> Tillbaka

@@ -12,12 +12,18 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.clientWidth);
 }
 
-test("begränsad platsinformation förklaras utan closure-bekräftelser i demo", async ({ page }) => {
+test("begränsad platsinformation visas diskret och undantagsflödet är separat i demo", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(
+    addDialog.locator('[aria-label="Begränsad platsinformation"]').first(),
+  ).toBeVisible();
+
   await addDialog
     .getByRole("button", {
       name: "Visa information om Päronträdets Trattoria",
@@ -26,10 +32,22 @@ test("begränsad platsinformation förklaras utan closure-bekräftelser i demo",
     .click();
 
   const resultDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
-  await expect(resultDialog.getByText("Begränsad platsinformation", { exact: true })).toBeVisible();
+  const limitedInfo = resultDialog.getByRole("button", {
+    name: "Begränsad platsinformation",
+    exact: true,
+  });
+  await expect(limitedInfo).toBeVisible();
   await expect(
-    resultDialog.getByText(
-      "Webbplats och öppettider saknas i platsdatan. Det betyder inte att verksamheten har stängt, men uppgifterna bör kontrolleras före ett besök.",
+    page.getByText(
+      "Webbplats och öppettider saknas i kartdatan. Det säger inget om huruvida stället är öppet – kontrollera gärna Google Maps före besöket.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
+
+  await limitedInfo.click();
+  await expect(
+    page.getByText(
+      "Webbplats och öppettider saknas i kartdatan. Det säger inget om huruvida stället är öppet – kontrollera gärna Google Maps före besöket.",
       { exact: true },
     ),
   ).toBeVisible();
@@ -39,5 +57,22 @@ test("begränsad platsinformation förklaras utan closure-bekräftelser i demo",
   await expect(
     resultDialog.getByRole("button", { name: "Bekräfta permanent stängt", exact: true }),
   ).toHaveCount(0);
-  await expectNoHorizontalOverflow(page, "Begränsad platsinformation före tillägg");
+  await expect(
+    resultDialog.getByText(
+      "Döljning påverkar bara den här gruppen. En rapport går till gruppens admin och publiceras aldrig automatiskt.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
+
+  await resultDialog
+    .getByRole("button", { name: "Stämmer inte uppgifterna?", exact: true })
+    .click();
+  const issueDialog = page.getByRole("dialog", { name: "Stämmer inte uppgifterna?" });
+  await expect(
+    issueDialog.getByRole("button", { name: /Rapportera felaktiga uppgifter/ }),
+  ).toBeVisible();
+  await expect(
+    issueDialog.getByRole("button", { name: /Dölj från gruppens sökningar/ }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Kompakt platsinformation och undantagsflöde");
 });

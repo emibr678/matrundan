@@ -1,8 +1,7 @@
 import * as React from "react";
-import { CircleAlert, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, CircleAlert, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { PlaceSuggestionSignalPanel } from "./PlaceSuggestionSignalPanel";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -38,6 +37,8 @@ interface PlaceSuggestionReportDialogProps {
   onReported?: () => void;
 }
 
+type DialogStep = "choices" | "report";
+
 function shouldSuggestHide(category: PlaceDataReportCategory): boolean {
   return category === "closed_or_replaced" || category === "duplicate";
 }
@@ -47,7 +48,7 @@ export function PlaceSuggestionReportDialog({
   canHide = false,
   alreadyHidden = false,
   disabled = false,
-  triggerLabel = "Rapportera felaktig träff",
+  triggerLabel = "Stämmer inte uppgifterna?",
   onHide,
   onHidden,
   onReported,
@@ -55,10 +56,13 @@ export function PlaceSuggestionReportDialog({
   const { mode, activeGroupId, exampleMode } = useSession();
   const { state, submitting } = useStore();
   const formId = React.useId();
+  const canChooseHide = canHide && !alreadyHidden && Boolean(onHide);
+  const initialStep: DialogStep = canChooseHide ? "choices" : "report";
   const [open, setOpen] = React.useState(false);
+  const [step, setStep] = React.useState<DialogStep>(initialStep);
   const [category, setCategory] = React.useState<PlaceDataReportCategory>("closed_or_replaced");
   const [description, setDescription] = React.useState("");
-  const [hideAlso, setHideAlso] = React.useState(canHide && !alreadyHidden);
+  const [hideAlso, setHideAlso] = React.useState(canChooseHide);
   const [saving, setSaving] = React.useState(false);
   const groupId = mode === "live" ? activeGroupId : state.group.id;
   const reporter = state.members.find((member) => member.id === state.currentUserId);
@@ -67,14 +71,35 @@ export function PlaceSuggestionReportDialog({
   );
 
   function reset() {
+    setStep(canChooseHide ? "choices" : "report");
     setCategory("closed_or_replaced");
     setDescription("");
-    setHideAlso(canHide && !alreadyHidden);
+    setHideAlso(canChooseHide);
   }
 
   function changeCategory(value: PlaceDataReportCategory) {
     setCategory(value);
-    if (canHide && !alreadyHidden) setHideAlso(shouldSuggestHide(value));
+    if (canChooseHide) setHideAlso(shouldSuggestHide(value));
+  }
+
+  async function hideOnly() {
+    if (!onHide || saving) return;
+    setSaving(true);
+    try {
+      await onHide();
+      setOpen(false);
+      reset();
+      onHidden?.();
+      toast.success(`${suggestion.name} döljs från gruppens sökningar.`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Kunde inte dölja träffen från gruppens sökningar.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -137,33 +162,91 @@ export function PlaceSuggestionReportDialog({
   }
 
   return (
-    <>
-      <PlaceSuggestionSignalPanel suggestion={suggestion} disabled={disabled || submitting} />
-      <Dialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          setOpen(nextOpen);
-          if (!nextOpen) reset();
-        }}
-      >
-        <DialogTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            className="min-h-11 w-full justify-start whitespace-normal px-3 text-left text-muted-foreground"
-            disabled={disabled}
-          >
-            <CircleAlert className="h-4 w-4 shrink-0" />
-            {triggerLabel}
-          </Button>
-        </DialogTrigger>
-        <DialogContent aria-describedby={`${formId}-description`}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) setStep(canChooseHide ? "choices" : "report");
+        else reset();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          className="min-h-11 w-full justify-start whitespace-normal px-3 text-left text-muted-foreground"
+          disabled={disabled}
+        >
+          <CircleAlert className="h-4 w-4 shrink-0" />
+          {triggerLabel}
+        </Button>
+      </DialogTrigger>
+
+      {step === "choices" ? (
+        <DialogContent aria-describedby={`${formId}-choices-description`}>
           <DialogHeader>
-            <DialogTitle>Rapportera felaktig träff</DialogTitle>
-            <DialogDescription id={`${formId}-description`}>
+            <DialogTitle>Stämmer inte uppgifterna?</DialogTitle>
+            <DialogDescription id={`${formId}-choices-description`}>
+              Välj vad du vill göra med uppgifterna om {suggestion.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-auto min-h-16 w-full justify-start whitespace-normal p-3 text-left"
+              disabled={saving || submitting}
+              onClick={() => setStep("report")}
+            >
+              <CircleAlert className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">Rapportera felaktiga uppgifter</span>
+                <span className="mt-1 block text-xs font-normal leading-relaxed text-muted-foreground">
+                  Rapporten går till gruppens admin. Inget publiceras automatiskt till
+                  OpenStreetMap.
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </Button>
+
+            {canChooseHide ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-auto min-h-16 w-full justify-start whitespace-normal p-3 text-left"
+                disabled={saving || submitting}
+                onClick={() => void hideOnly()}
+              >
+                {saving ? (
+                  <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
+                ) : (
+                  <EyeOff className="h-5 w-5 shrink-0" />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">Dölj från gruppens sökningar</span>
+                  <span className="mt-1 block text-xs font-normal leading-relaxed text-muted-foreground">
+                    Bara den här gruppen påverkas. Träffen kan återställas i gruppinställningarna.
+                  </span>
+                </span>
+              </Button>
+            ) : null}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setOpen(false)}>
+              Stäng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      ) : (
+        <DialogContent aria-describedby={`${formId}-report-description`}>
+          <DialogHeader>
+            <DialogTitle>Rapportera felaktiga uppgifter</DialogTitle>
+            <DialogDescription id={`${formId}-report-description`}>
               Rapporten granskas av gruppens admin. Om felet finns i kartdatan kan admin senare
-              skicka en anonym anteckning till OpenStreetMap. Gruppens namn, medlemmar och privata
-              kommentarer följer aldrig med.
+              skicka en anonym anteckning till OpenStreetMap. Gruppens namn och privata uppgifter
+              följer aldrig med.
             </DialogDescription>
           </DialogHeader>
 
@@ -213,7 +296,7 @@ export function PlaceSuggestionReportDialog({
               </div>
             </div>
 
-            {canHide && !alreadyHidden && onHide ? (
+            {canChooseHide ? (
               <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
                 <label className="flex cursor-pointer items-start gap-3">
                   <Checkbox
@@ -225,8 +308,7 @@ export function PlaceSuggestionReportDialog({
                   <span className="text-sm">
                     Dölj även träffen för gruppen tills det är utrett
                     <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                      Bara den här gruppen påverkas. Träffen kan återställas när som helst i
-                      gruppinställningarna.
+                      Bara den här gruppen påverkas. Träffen kan återställas i gruppinställningarna.
                     </span>
                   </span>
                 </label>
@@ -242,10 +324,11 @@ export function PlaceSuggestionReportDialog({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setOpen(false)}
+                onClick={() => (canChooseHide ? setStep("choices") : setOpen(false))}
                 disabled={saving}
               >
-                Avbryt
+                {canChooseHide ? <ArrowLeft className="h-4 w-4" /> : null}
+                {canChooseHide ? "Tillbaka" : "Avbryt"}
               </Button>
               <Button
                 type="submit"
@@ -257,7 +340,7 @@ export function PlaceSuggestionReportDialog({
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
-    </>
+      )}
+    </Dialog>
   );
 }

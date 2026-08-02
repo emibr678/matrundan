@@ -1,4 +1,5 @@
 import * as React from "react";
+import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoapifyLocationInput } from "./GeoapifyLocationInput";
 import { SearchAreaPill } from "./SearchAreaPill";
@@ -18,7 +19,6 @@ import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
 const SEARCH_PLACEHOLDER = "Sök ort, stadsdel eller adress";
-const LIMIT_PLACEHOLDER = "Max 5 områden valda";
 
 interface SearchAreaControlsProps {
   savedAreas: SearchArea[];
@@ -107,7 +107,11 @@ function SelectedAreas({
   }
 
   return (
-    <div className="flex min-w-0 flex-wrap gap-2" role="list" aria-label="Valda sökområden">
+    <div
+      className="flex min-w-0 flex-wrap gap-x-1.5 gap-y-2"
+      role="list"
+      aria-label="Valda sökområden"
+    >
       {savedAreas.map((area) => (
         <SearchAreaPill
           key={area.id}
@@ -172,7 +176,6 @@ export function SearchAreaControlsV16({
   const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
-  const placeholder = atLimit ? LIMIT_PLACEHOLDER : SEARCH_PLACEHOLDER;
 
   function addArea(area: SearchArea) {
     if (activeAreas.some((current) => sameSearchArea(current, area))) {
@@ -227,15 +230,28 @@ export function SearchAreaControlsV16({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="search-area-query">Sökområden</Label>
-        <SearchAreaField
-          isLive={isLive}
-          query={areaQuery}
-          placeholder={placeholder}
-          disabled={atLimit}
-          onQueryChange={setAreaQuery}
-          onSelect={addVerifiedArea}
-          onDemoSubmit={addDemoArea}
-        />
+        {atLimit ? (
+          <div
+            role="status"
+            className="flex min-h-10 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm text-muted-foreground"
+          >
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>
+              <span className="font-medium text-foreground">5 av 5 områden valda.</span> Ta bort ett
+              område för att söka efter ett annat.
+            </span>
+          </div>
+        ) : (
+          <SearchAreaField
+            isLive={isLive}
+            query={areaQuery}
+            placeholder={SEARCH_PLACEHOLDER}
+            disabled={false}
+            onQueryChange={setAreaQuery}
+            onSelect={addVerifiedArea}
+            onDemoSubmit={addDemoArea}
+          />
+        )}
         <p className="text-xs leading-relaxed text-muted-foreground">
           Ändringar här gäller bara den här sökningen.
         </p>
