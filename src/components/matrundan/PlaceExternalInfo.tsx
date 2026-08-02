@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { CrossGroupPracticalInfoSuggestions } from "./CrossGroupPracticalInfoSuggestions";
 import { PlacePracticalInfoDialog } from "./PlacePracticalInfoDialog";
 import {
   AlertDialog,
@@ -362,6 +363,13 @@ export function PlaceExternalInfo({
             </span>
           </button>
         ) : null}
+
+        <CrossGroupPracticalInfoSuggestions
+          groupId={groupId}
+          placeId={place.id}
+          enabled={canEdit}
+          onApplied={loadPracticalInfo}
+        />
 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-relaxed text-muted-foreground">
           {practicalInfo.updatedAt ? (
