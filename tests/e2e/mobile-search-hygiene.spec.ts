@@ -185,15 +185,29 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await expectNoHorizontalOverflow(page, "Dold sökträff");
   await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).click();
 
-  const placeDataSection = settings.getByRole("region", { name: "Platsdata" });
-  await expect(placeDataSection.getByText("1 att granska")).toBeVisible();
-  await placeDataSection.getByText(PLACE_NAME, { exact: true }).click();
-  await expect(placeDataSection.getByText("Sökträff", { exact: true })).toBeVisible();
-  await expect(placeDataSection.getByText("Kan ha stängt permanent eller ersatts")).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Sökträffsrapport i adminöversikten");
+  const reportedErrorsSection = settings.getByRole("region", { name: "Rapporterade fel" });
+  await expect(reportedErrorsSection.getByText("1 att granska")).toBeVisible();
 
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
+
+  await reportedErrorsSection.getByRole("link", { name: /Hantera rapporterade fel/ }).click();
+  await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Att granska 1/ })).toBeVisible();
+  await page.getByText(PLACE_NAME, { exact: true }).click();
+
+  const reportSheet = page.getByRole("dialog");
+  await expect(reportSheet.getByRole("heading", { name: PLACE_NAME })).toBeVisible();
+  await expect(reportSheet.getByText("Stängt eller ersatt", { exact: true })).toBeVisible();
+  await expect(
+    reportSheet.getByText(
+      "Skylten visar att restaurangen har stängt permanent och lokalen står tom.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(reportSheet.getByRole("link", { name: "Google Maps" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Sökträffsrapport i adminöversikten");
+  await page.keyboard.press("Escape");
 
   await openPlaceSearch(page);
   await expect(placeSuggestionButton(page)).toBeVisible();
