@@ -56,15 +56,12 @@ test("begränsad platsinformation visas först i öppnad träff och undantagsfl�
     resultDialog.getByRole("button", { name: "Bekräfta permanent stängt", exact: true }),
   ).toHaveCount(0);
   await expect(
-    resultDialog.getByText(
-      "Rapportera till gruppens admin eller dölj träffen för gruppen.",
-      { exact: true },
-    ),
+    resultDialog.getByText("Rapportera till gruppens admin eller dölj träffen för gruppen.", {
+      exact: true,
+    }),
   ).toBeVisible();
 
-  await resultDialog
-    .getByRole("button", { name: /Stängt eller fel uppgifter\?/ })
-    .click();
+  await resultDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }).click();
   const issueDialog = page.getByRole("dialog", { name: "Stängt eller fel uppgifter?" });
   await expect(
     issueDialog.getByRole("button", { name: /Rapportera felaktiga uppgifter/ }),
