@@ -213,6 +213,7 @@ test("visar och tillämpar fältvisa förslag utan privat ursprungsdata", async 
   await seedSession(page);
   await mockGroup(page);
 
+  let websiteApplied = false;
   await page.route(
     "**/rest/v1/rpc/get_cross_group_practical_info_suggestions_v1",
     async (route) => {
@@ -220,12 +221,14 @@ test("visar och tillämpar fältvisa förslag utan privat ursprungsdata", async 
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          website: {
-            status: "available",
-            fingerprint: WEBSITE_FINGERPRINT,
-            website: "https://www.nya-testkoket.se/",
-            changedAt: "2026-08-02T17:00:00Z",
-          },
+          website: websiteApplied
+            ? { status: "none" }
+            : {
+                status: "available",
+                fingerprint: WEBSITE_FINGERPRINT,
+                website: "https://www.nya-testkoket.se/",
+                changedAt: "2026-08-02T17:00:00Z",
+              },
           openingHours: {
             status: "available",
             fingerprint: HOURS_FINGERPRINT,
@@ -242,6 +245,7 @@ test("visar och tillämpar fältvisa förslag utan privat ursprungsdata", async 
     "**/rest/v1/rpc/apply_cross_group_practical_info_suggestion_v1",
     async (route) => {
       applyBody = JSON.parse(route.request().postData() ?? "{}") as Record<string, unknown>;
+      websiteApplied = true;
       await route.fulfill({ status: 204, body: "" });
     },
   );
