@@ -15,7 +15,9 @@ describe("anonyma förslag för praktisk information", () => {
     expect(migration).toContain("website_cross_group_proposal_at timestamptz");
     expect(migration).toContain("opening_hours_cross_group_proposal_at timestamptz");
     expect(migration).toContain("interval '90 days'");
-    expect(migration).not.toContain("CREATE TABLE IF NOT EXISTS public.place_practical_info_proposals");
+    expect(migration).not.toContain(
+      "CREATE TABLE IF NOT EXISTS public.place_practical_info_proposals",
+    );
   });
 
   test("delar bara källstödda fält och lämnar privat källa på servern", () => {
