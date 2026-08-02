@@ -28,7 +28,6 @@ export const PLACE_SUGGESTION_REPORT_CATEGORIES = [
   "wrong_name",
   "wrong_address",
   "wrong_website",
-  "wrong_opening_hours",
   "duplicate",
   "other",
 ] as const;
