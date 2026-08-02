@@ -211,7 +211,7 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
       async () =>
         await page.getByRole("button", { name: "Hantera Robin" }).locator("..").innerText(),
     )
-    .toContain("admin");
+    .toMatch(/admin/i);
 
   await page.getByRole("button", { name: "Hantera Robin" }).click();
   await expect(page.getByRole("menuitem", { name: "Gör till medlem" })).toBeVisible();
