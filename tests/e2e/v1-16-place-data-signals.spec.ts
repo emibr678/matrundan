@@ -81,8 +81,12 @@ test("begränsad platsinformation visas först i öppnad träff och egen rapport
 
   await resultDialog.getByRole("button", { name: "Tillbaka", exact: true }).click();
   await expect(addDialog).toBeVisible();
+  const reportedSuggestion = addDialog.getByRole("button", {
+    name: "Visa information om Päronträdets Trattoria",
+    exact: true,
+  });
   await expect(
-    addDialog.getByText("Din rapport väntar på granskning", { exact: true }),
+    reportedSuggestion.getByText("Din rapport väntar på granskning", { exact: true }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Kompakt platsinformation och privat rapportstatus");
 });
