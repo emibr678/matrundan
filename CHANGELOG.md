@@ -13,6 +13,35 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.19.0] – 2026-08-02
+
+### Lagt till
+
+- Källstödda ändringar av webbplats och öppettider kan visas som fältvisa
+  förslag i andra grupper som använder samma kanoniska matställe.
+- Varje grupp väljer uttryckligen om ett förslag ska användas. Ingen befintlig
+  gruppuppgift skrivs över automatiskt.
+- Motstridiga uppgifter visas som osäkra i stället för att Matrundan väljer en
+  vinnare.
+
+### Ändrat
+
+- Förslag som redan motsvarar gruppens eller kartdatans aktuella uppgift visas
+  inte, och äldre underlag slutar föreslås efter 90 dagar.
+- Ett godkänt förslag sparas som en ny gruppspecifik ändring och blir inte
+  automatiskt ett nytt förslag till fler grupper.
+
+### Databas och integritet
+
+- Förslags-RPC:n lämnar endast neutral status, fältvärde, anonymt
+  innehållsfingeravtryck och tidpunkt. Ursprungsgrupp, medlem, privat källa,
+  anteckning, antal och interna identifierare lämnar aldrig servern.
+- Endast ändringar med en uttrycklig källänk kan bli anonyma förslag. Källänken
+  används enbart som serverintern behörighets- och kvalitetsmarkör och delas
+  inte vidare.
+- Globala Geoapify-snapshots kan endast skrivas av serverrollen efter en
+  gruppverifierad hämtning. Vanliga autentiserade klienter saknar skrivbehörighet.
+
 ## [1.18.0] – 2026-08-02
 
 ### Lagt till
