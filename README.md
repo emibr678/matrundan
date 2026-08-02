@@ -31,6 +31,13 @@ individuell matdagbok, social feed eller global ranking.
   tillägg när en säker länk finns. Geoapify- och OpenStreetMap-identiteter
   bevaras separat så platsdata kan följas över tid utan att äldre besök skrivs
   om.
+- Matställen med en aktiv Geoapify-källa kan visa **Öppettider idag** och ett
+  utfällbart veckoschema på detaljsidan. Tiderna visas som kartdata med
+  hämtningstid och reservation för specialdagar eller inaktuella uppgifter;
+  Matrundan ger inte ett osäkert **Öppet nu**-besked.
+- Saknad webbplats eller saknade öppettider visas som lugna, tydliga rader på
+  detaljsidan. En medlem kan lämna ett privat underlag till gruppens admin utan
+  att kompletteringsflödet tar över söklistan eller publicerar något automatiskt.
 - Manuella matställen kan få en verifierad kartposition och ett privat underlag
   om att verksamheten saknas i OpenStreetMap. Inget publiceras automatiskt.
 - När en senare Geoapify- eller OSM-träff säkert motsvarar ett providerlöst
@@ -120,6 +127,12 @@ Gruppen är den primära produkt- och integritetsgränsen.
   En bekräftad källkoppling är kanonisk och kan därför hjälpa andra grupper som
   redan länkar samma verkliga ställe, men får aldrig innehålla ursprungsgrupp,
   medlemskap eller privata gruppfält.
+- Öppettidsdetaljer hämtas på begäran genom en autentiserad serverfunktion.
+  Databasen verifierar först aktivt medlemskap, gruppens platskoppling och en
+  aktiv Geoapify-källa. Klienten får bara ett normaliserat veckoschema, säker
+  webbplats, hämtningstid och källangivelse; rå providerpayload och interna
+  kopplingar stannar på servern. Resultatet mellanlagras endast i den aktuella
+  webbläsarsessionen och blir inte en ny global sanning i `places`.
 - `group_places` innehåller gruppens relation, metadata, eventuell
   webbplatsöverstyrning och aktiva lista. En källkoppling skriver inte om dessa
   gruppprivata uppgifter eller platsens befintliga historik.
@@ -233,9 +246,9 @@ privilegierade hemligheter får aldrig exponeras i klientkod eller `VITE_`-
 variabler.
 
 `GEOAPIFY_API_KEY` lagras i Lovable Cloud Secrets och används endast av
-serverkod. OSM Notes API kräver ingen ny applikationshemlighet; anropen görs
-serverstyrt med identifierbar User-Agent och referer. Inga produktionshemligheter
-ska committas till repot.
+serverkod för sökning och platsdetaljer. OSM Notes API kräver ingen ny
+applikationshemlighet; anropen görs serverstyrt med identifierbar User-Agent och
+referer. Inga produktionshemligheter ska committas till repot.
 
 ## Lovable och publicering
 
