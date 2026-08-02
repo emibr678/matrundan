@@ -1,24 +1,14 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
-import {
-  PlaceDataLimitedInfoIndicator,
-  PlaceDataSignalBadge,
-} from "./PlaceDataSignalNotice";
+import { PlaceDataLimitedInfoIndicator, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
 import type { ManualSourceMatchReason } from "@/lib/matrundan/manual-place-source-linking";
 import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-source-linking";
-import {
-  placeSignalKey,
-  type PlaceDataSignal,
-} from "@/lib/matrundan/place-data-signals";
+import { placeSignalKey, type PlaceDataSignal } from "@/lib/matrundan/place-data-signals";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { usePlaceDataSignalsForSuggestions } from "@/lib/matrundan/use-place-data-signals";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
