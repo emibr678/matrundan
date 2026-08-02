@@ -1,10 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
-import {
-  OwnPlaceSuggestionReportBadge,
-  PlaceDataSignalBadge,
-} from "./PlaceDataSignalNotice";
+import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -291,6 +288,7 @@ function SuggestionRowV16({
         selected || bulkSelected ? "border-primary/60 bg-primary/5" : "border-border/70"
       }`}
       data-bulk-selected={bulkSelected}
+      data-closure-status={signal?.closureStatus ?? "none"}
     >
       <button
         type="button"
