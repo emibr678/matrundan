@@ -21,9 +21,7 @@ function isMissingOwnReportRpc(error: unknown): boolean {
   const message = error instanceof Error ? error.message : "";
   return (
     /could not find the function|schema cache/i.test(message) &&
-    message
-      .toLocaleLowerCase("en-US")
-      .includes("list_own_open_place_suggestion_report_keys_v1")
+    message.toLocaleLowerCase("en-US").includes("list_own_open_place_suggestion_report_keys_v1")
   );
 }
 
@@ -86,11 +84,7 @@ export function useOwnOpenPlaceSuggestionReportKeys(): Set<string> {
       const storageKind: LocalReportStorage = exampleMode ? "session" : "local";
       setKeys(
         new Set(
-          listOwnOpenLocalPlaceSuggestionReportKeys(
-            groupId,
-            state.currentUserId,
-            storageKind,
-          ),
+          listOwnOpenLocalPlaceSuggestionReportKeys(groupId, state.currentUserId, storageKind),
         ),
       );
       return;
