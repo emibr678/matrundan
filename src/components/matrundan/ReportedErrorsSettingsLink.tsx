@@ -68,7 +68,7 @@ export function ReportedErrorsSettingsLink() {
       <Card className="rounded-2xl border-border/70 p-0">
         <Link
           to="/rapporterade-fel"
-          search={{ filter: undefined, query: "", report: "" }}
+          search={{ filter: "", query: "", report: "" }}
           className="flex min-h-16 w-full items-center gap-3 rounded-2xl p-4 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring"
         >
           <CircleAlert className="h-4 w-4 shrink-0 text-muted-foreground" />
