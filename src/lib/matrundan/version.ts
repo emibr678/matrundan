@@ -26,10 +26,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [
-  VERSION_1_20_0_CHANGELOG,
-  ...CHANGELOG_THROUGH_1_19,
-];
+export const CHANGELOG: ChangelogEntry[] = [VERSION_1_20_0_CHANGELOG, ...CHANGELOG_THROUGH_1_19];
 
 const currentRelease = CHANGELOG[0];
 if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");

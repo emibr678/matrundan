@@ -143,9 +143,7 @@ export function countReportsByFilter(
   );
 }
 
-export function chooseDefaultReportedErrorFilter(
-  reports: PlaceDataReport[],
-): ReportedErrorFilter {
+export function chooseDefaultReportedErrorFilter(reports: PlaceDataReport[]): ReportedErrorFilter {
   const counts = countReportsByFilter(reports);
   return REPORTED_ERROR_FILTERS.find((filter) => counts[filter] > 0) ?? "review";
 }

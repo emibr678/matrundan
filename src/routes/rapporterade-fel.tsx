@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  createFileRoute,
-  Link,
-  stripSearchParams,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import {
@@ -51,14 +46,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  buildDefaultOsmPublicText,
-  normalizeOsmPublicText,
-} from "@/lib/matrundan/osm-notes";
-import {
-  publishAnonymousOsmNote,
-  refreshOsmNoteStatus,
-} from "@/lib/matrundan/osm-notes.functions";
+import { buildDefaultOsmPublicText, normalizeOsmPublicText } from "@/lib/matrundan/osm-notes";
+import { publishAnonymousOsmNote, refreshOsmNoteStatus } from "@/lib/matrundan/osm-notes.functions";
 import {
   chooseDefaultReportedErrorFilter,
   countReportsByFilter,
@@ -153,8 +142,7 @@ function ReportedErrorsPage() {
   const groupId = mode === "live" ? activeGroupId : state.group.id;
   const storageKind = exampleMode ? "session" : "local";
   const reviewer = state.members.find((member) => member.id === state.currentUserId);
-  const authorized =
-    mode !== "live" || activeGroupRole === "owner" || activeGroupRole === "admin";
+  const authorized = mode !== "live" || activeGroupRole === "owner" || activeGroupRole === "admin";
 
   const load = React.useCallback(async () => {
     if (!groupId || !authorized) {
@@ -520,7 +508,9 @@ function ReportedErrorDetailsSheet({
 
           <div className="space-y-5 py-5">
             <div className="space-y-2 text-sm">
-              <p className="whitespace-pre-wrap break-words leading-relaxed">{report.description}</p>
+              <p className="whitespace-pre-wrap break-words leading-relaxed">
+                {report.description}
+              </p>
               <p className="break-words text-xs text-muted-foreground">
                 {[report.placeAddress, report.placeCity].filter(Boolean).join(" · ")}
               </p>
@@ -719,7 +709,13 @@ function ReviewStep({
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           Fortsätt till rättelseförslag
         </Button>
-        <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={onResolve}>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={busy}
+          onClick={onResolve}
+        >
           <CheckCircle2 className="h-4 w-4" /> Markera som åtgärdad
         </Button>
         <Button
@@ -829,7 +825,13 @@ function CorrectionStep({
           >
             Spara intern anteckning
           </Button>
-          <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={onResolve}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={busy}
+            onClick={onResolve}
+          >
             Markera som åtgärdad
           </Button>
           <Button
@@ -899,7 +901,13 @@ function SentStep({
         </Button>
       ) : null}
 
-      <Button type="button" variant="outline" className="w-full" disabled={refreshing} onClick={onRefresh}>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={refreshing}
+        onClick={onRefresh}
+      >
         {refreshing ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
@@ -972,7 +980,13 @@ function ClosedStep({
         ) : null}
       </div>
       <InternalNoteField value={resolutionNote} onChange={onResolutionNoteChange} />
-      <Button type="button" variant="outline" className="w-full" disabled={busy || !noteChanged} onClick={onSave}>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={busy || !noteChanged}
+        onClick={onSave}
+      >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         Spara intern anteckning
       </Button>
@@ -992,9 +1006,7 @@ function OpenStreetMapHelpDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Rätta uppgifter i OpenStreetMap</DialogTitle>
-          <DialogDescription>
-            Så fungerar ett rättelseförslag utanför Matrundan.
-          </DialogDescription>
+          <DialogDescription>Så fungerar ett rättelseförslag utanför Matrundan.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
           <p>

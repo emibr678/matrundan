@@ -111,10 +111,9 @@ describe("presentation av rapporterade fel", () => {
       createdAt: "2026-08-01T10:00:00.000Z",
     });
 
-    expect(filterAndSortPlaceDataReports([newer, older], "review", "").map((item) => item.id)).toEqual([
-      older.id,
-      newer.id,
-    ]);
+    expect(
+      filterAndSortPlaceDataReports([newer, older], "review", "").map((item) => item.id),
+    ).toEqual([older.id, newer.id]);
     expect(filterAndSortPlaceDataReports([newer, older], "review", "bistro")).toEqual([older]);
   });
 });
