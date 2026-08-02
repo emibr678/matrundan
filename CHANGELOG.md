@@ -13,6 +13,18 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.16.2] – 2026-08-02
+
+### Ändrat
+
+- **Begränsad platsinformation** ligger på en kompakt egen rad under Webbplats
+  och Google Maps utan det tidigare stora glappet.
+- Ingången till det sekundära underhållsflödet heter **Stängt eller fel
+  uppgifter?** och förklarar kort att användaren kan rapportera till gruppens
+  admin eller dölja träffen för gruppen.
+- Den neutrala informationsikonen har tagits bort ur söklistan. Signalen **Kan ha
+  stängt permanent** visas fortfarande där när underlag för den finns.
+
 ## [1.16.1] – 2026-08-02
 
 ### Ändrat
