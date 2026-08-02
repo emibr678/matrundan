@@ -126,14 +126,15 @@ export function PlaceDataReportDialog({
           disabled={disabled}
         >
           <CircleAlert className="h-4 w-4 shrink-0" />
-          {compact ? "Rapportera fel" : "Rapportera felaktig platsinfo"}
+          {compact ? "Något stämmer inte" : "Rapportera felaktig uppgift"}
         </Button>
       </DialogTrigger>
       <DialogContent aria-describedby="place-data-report-description">
         <DialogHeader>
-          <DialogTitle>Rapportera platsinformation</DialogTitle>
+          <DialogTitle>Rapportera felaktig uppgift</DialogTitle>
           <DialogDescription id="place-data-report-description">
-            Rapporten är privat inom gruppen och granskas av gruppens ägare eller administratörer.
+            Rapporten går till gruppens ägare och administratörer. Inget publiceras automatiskt.
+            Gruppens namn, medlemmar och privata kommentarer skickas inte vidare.
           </DialogDescription>
         </DialogHeader>
 
@@ -168,7 +169,7 @@ export function PlaceDataReportDialog({
               placeholder={
                 category === "missing_in_osm"
                   ? "Exempel: Jag kontrollerade platsen och verksamhetens officiella information men hittade inget motsvarande objekt i OpenStreetMap."
-                  : "Exempel: Skylten visar att restaurangen har stängt och en ny verksamhet finns på adressen."
+                  : "Exempel: Skylten visar att restaurangen har stängt permanent och en ny verksamhet finns på adressen."
               }
             />
             <div className="flex items-start justify-between gap-3 text-[11px] leading-relaxed text-muted-foreground">
