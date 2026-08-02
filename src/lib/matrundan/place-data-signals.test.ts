@@ -61,4 +61,19 @@ describe("anonyma platsdatasignaler", () => {
       hasOpeningHours: false,
     });
   });
+
+  test("behandlar den fiktiva demo-providerns utelämnade uppgifter som uttryckligt saknade", () => {
+    const suggestion: PlaceSuggestion = {
+      externalId: "demo-1",
+      provider: "demo",
+      name: "Demoköket",
+      category: "restaurang",
+      address: "Testgatan 2",
+      city: "Stockholm",
+    };
+
+    const demoTarget = signalTargetFromSuggestion(suggestion);
+    expect(demoTarget.hasOpeningHours).toBe(false);
+    expect(localPlaceDataSignal(demoTarget).limitedInformation).toBe(true);
+  });
 });
