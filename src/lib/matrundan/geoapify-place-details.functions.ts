@@ -67,6 +67,13 @@ function readKey(): string {
   return key;
 }
 
+function externalInfoContextError(message?: string): Error {
+  if (/could not find the function|schema cache/i.test(message ?? "")) {
+    return new Error("Öppettider är tillfälligt otillgängliga. Försök igen senare.");
+  }
+  return new Error("Matstället kunde inte verifieras för gruppen.");
+}
+
 async function fetchPlaceDetails(providerPlaceId: string): Promise<PlaceExternalDetails> {
   const url = new URL("https://api.geoapify.com/v2/place-details");
   url.searchParams.set("id", providerPlaceId);
@@ -126,9 +133,7 @@ export const geoapifyPlaceDetails = createServerFn({ method: "POST" })
       _group_id: data.groupId,
       _place_id: data.placeId,
     });
-    if (result.error) {
-      throw new Error(result.error.message ?? "Matstället kunde inte verifieras för gruppen.");
-    }
+    if (result.error) throw externalInfoContextError(result.error.message);
     const verified = contextSchema.parse(result.data);
     return fetchPlaceDetails(verified.providerPlaceId);
   });
