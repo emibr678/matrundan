@@ -13,6 +13,8 @@ import {
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
+const REPORTED_ERRORS_SETTINGS_HEADING_ID = "reported-errors-settings-heading";
+
 export function ReportedErrorsSettingsLink() {
   const { mode, activeGroupId, exampleMode } = useSession();
   const { state } = useStore();
@@ -63,8 +65,10 @@ export function ReportedErrorsSettingsLink() {
     .join(" · ");
 
   return (
-    <section>
-      <h3 className="mb-2 text-sm font-medium">Rapporterade fel</h3>
+    <section aria-labelledby={REPORTED_ERRORS_SETTINGS_HEADING_ID}>
+      <h3 id={REPORTED_ERRORS_SETTINGS_HEADING_ID} className="mb-2 text-sm font-medium">
+        Rapporterade fel
+      </h3>
       <Card className="rounded-2xl border-border/70 p-0">
         <Link
           to="/rapporterade-fel"
