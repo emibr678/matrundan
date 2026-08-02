@@ -54,9 +54,12 @@ export function PlaceDataLimitedInfoNotice({ signal }: { signal?: PlaceDataSigna
           <HelpCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[min(18rem,calc(100vw-2rem))] text-xs leading-relaxed">
-        Webbplats och öppettider saknas i kartdatan. Det säger inget om huruvida stället är öppet
-        – kontrollera gärna Google Maps före besöket.
+      <PopoverContent
+        align="start"
+        className="w-[min(18rem,calc(100vw-2rem))] text-xs leading-relaxed"
+      >
+        Webbplats och öppettider saknas i kartdatan. Det säger inget om huruvida stället är öppet –
+        kontrollera gärna Google Maps före besöket.
       </PopoverContent>
     </Popover>
   );
