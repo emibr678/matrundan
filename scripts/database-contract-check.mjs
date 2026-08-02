@@ -69,6 +69,11 @@ const requiredFunctions = [
   "resolve_missing_in_osm_reports_for_active_source_v1",
   "get_place_data_signals_v1",
   "confirm_place_data_signal_v1",
+  "update_group_place_practical_info_v1",
+  "get_group_place_practical_info_v1",
+  "list_group_place_practical_info_history_v1",
+  "get_place_external_info_context_v2",
+  "save_place_external_info_snapshot_v1",
 ];
 
 for (const name of requiredFunctions) {
@@ -82,6 +87,8 @@ for (const table of [
   "place_data_reports",
   "place_data_report_osm_submission_attempts",
   "place_data_signal_confirmations",
+  "group_place_practical_info_history",
+  "place_external_info_snapshots",
 ]) {
   if (!new RegExp(`CREATE\\s+TABLE\\s+IF\\s+NOT\\s+EXISTS\\s+public\\.${table}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar tabellen public.${table}.`);
@@ -91,6 +98,11 @@ for (const column of [
   "default_search_radius_km",
   "website",
   "website_override",
+  "opening_hours_override",
+  "practical_info_source_url",
+  "practical_info_source_note",
+  "practical_info_updated_by",
+  "practical_info_updated_at",
   "status",
   "first_seen_at",
   "last_seen_at",
@@ -135,6 +147,8 @@ for (const index of [
   "place_data_report_osm_attempts_report_idx",
   "place_data_signal_confirmations_place_idx",
   "place_data_signal_confirmations_provider_idx",
+  "group_place_practical_info_history_lookup_idx",
+  "place_external_info_snapshots_provider_idx",
 ]) {
   if (!new RegExp(`CREATE\\s+INDEX\\s+IF\\s+NOT\\s+EXISTS\\s+${index}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar indexet ${index}.`);
@@ -156,9 +170,16 @@ if (!existsSync(preflightPath)) {
     "place_data_reports",
     "place_data_report_osm_submission_attempts",
     "place_data_signal_confirmations",
+    "group_place_practical_info_history",
+    "place_external_info_snapshots",
     "default_search_radius_km",
     "places.website",
     "group_places.website_override",
+    "group_places.opening_hours_override",
+    "group_places.practical_info_source_url",
+    "group_places.practical_info_source_note",
+    "group_places.practical_info_updated_by",
+    "group_places.practical_info_updated_at",
     "place_sources.status",
     "place_sources_active_provider_identity_uidx",
     "place_sources_active_place_provider_uidx",
@@ -178,6 +199,8 @@ if (!existsSync(preflightPath)) {
     "place_data_report_osm_attempts_report_idx",
     "place_data_signal_confirmations_user_place_uidx",
     "place_data_signal_confirmations_user_provider_uidx",
+    "group_place_practical_info_history_lookup_idx",
+    "place_external_info_snapshots_provider_idx",
     "place_sources_resolve_missing_in_osm_reports",
   ]) {
     if (!preflight.includes(object)) {

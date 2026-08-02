@@ -3,6 +3,30 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_15, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-15";
 export type { ChangelogEntry };
 
+const VERSION_1_18_0_CHANGELOG: ChangelogEntry = {
+  version: "1.18.0",
+  date: "2026-08-02",
+  summary: "Gruppen kan underhålla webbplats och öppettider utan att tappa kopplingen till kartdatan.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Alla aktiva medlemmar kan lägga till eller rätta gruppens webbplats och öppettider med en privat källa eller observation.",
+        "Praktisk information har ändringshistorik och kan återställas till den senaste kartdatan utan att andra grupper påverkas.",
+        "Kartdata mellanlagras säkert på servern och kan hämtas på nytt från detaljsidan.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Detaljsidan visar webbplats och öppettider i en kompakt sektion i stället för en stor tom informationsruta.",
+        "En gruppöverstyrning skrivs aldrig över tyst när kartdatan ändras; gruppen får jämföra och välja.",
+        "Ändringar kan skapa privata granskningsunderlag för admin innan något förs vidare till OpenStreetMap.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_17_1_CHANGELOG: ChangelogEntry = {
   version: "1.17.1",
   date: "2026-08-02",
@@ -116,6 +140,7 @@ const VERSION_1_16_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_18_0_CHANGELOG,
   VERSION_1_17_1_CHANGELOG,
   VERSION_1_17_0_CHANGELOG,
   VERSION_1_16_3_CHANGELOG,

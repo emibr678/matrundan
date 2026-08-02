@@ -13,6 +13,38 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.18.0] – 2026-08-02
+
+### Lagt till
+
+- Alla aktiva medlemmar kan lägga till eller rätta gruppens webbplats och
+  öppettider med en privat källänk eller observation.
+- Praktisk information har en gruppskyddad ändringshistorik med vem som gjorde
+  ändringen och när.
+- Detaljsidan kan hämta senaste kartdata på nytt. En säker normaliserad snapshot
+  delas mellan grupper som använder samma kanoniska matställe utan att exponera
+  privata gruppuppgifter.
+
+### Ändrat
+
+- Webbplats och öppettider visas i en kompakt sektion **Praktisk information** i
+  stället för en stor tom informationsruta.
+- Gruppens egen uppgift används direkt i gruppen men skriver aldrig tyst över
+  andra grupper eller den kanoniska platsen.
+- När kartdatan skiljer sig från gruppens uppgift visas en jämförelse. Gruppen
+  väljer själv om den vill behålla sin uppgift eller återgå till kartdatan.
+- En medlems ändring kan skapa ett privat granskningsunderlag för ägare och
+  administratörer innan något publiceras till OpenStreetMap.
+
+### Databas och integritet
+
+- `group_places` får en gruppspecifik öppettidsöverstyrning och privat metadata
+  för källa, ändrare och ändringstid.
+- Historik och externa snapshots saknar direkt klientåtkomst och nås endast via
+  medlemskapskontrollerade RPC:er.
+- Geoapifys rådata och API-nyckel stannar på servern. Klienten får endast
+  normaliserad webbplats, öppettider, tidszon, källangivelse och hämtningstid.
+
 ## [1.17.1] – 2026-08-02
 
 ### Ändrat

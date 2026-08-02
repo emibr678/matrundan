@@ -1,6 +1,24 @@
 import { describe, expect, test } from "bun:test";
 
-import { openingHoursDaySummary, openingHoursForDate, parseOpeningHours } from "./opening-hours";
+import {
+  buildOpeningHoursScheduleFromInputs,
+  OPENING_HOURS_DAY_CODES,
+  openingHoursDayInput,
+  openingHoursDaySummary,
+  openingHoursForDate,
+  parseOpeningHours,
+  type OpeningHoursDayCode,
+} from "./opening-hours";
+
+function inputs(overrides: Partial<Record<OpeningHoursDayCode, string>>) {
+  return OPENING_HOURS_DAY_CODES.reduce<Record<OpeningHoursDayCode, string>>(
+    (result, code) => {
+      result[code] = overrides[code] ?? "";
+      return result;
+    },
+    {} as Record<OpeningHoursDayCode, string>,
+  );
+}
 
 describe("öppettider från OSM", () => {
   test("normaliserar vanliga veckointervall och stängda dagar", () => {
@@ -47,5 +65,27 @@ describe("öppettider från OSM", () => {
     const newYork = openingHoursForDate(schedule!, instant, "America/New_York");
     expect(openingHoursDaySummary(stockholm)).toBe("11–22");
     expect(openingHoursDaySummary(newYork)).toBe("Stängt");
+  });
+});
+
+describe("gruppens öppettider", () => {
+  test("normaliserar enkel medlemstext, flera intervall och stängda dagar", () => {
+    const schedule = buildOpeningHoursScheduleFromInputs(
+      inputs({ Mo: "11-22", Tu: "11:30–14, 17–22", Su: "Stängt" }),
+    );
+    expect(schedule?.days[0].intervals).toEqual(["11–22"]);
+    expect(schedule?.days[1].intervals).toEqual(["11:30–14", "17–22"]);
+    expect(schedule?.days[6].closed).toBe(true);
+    expect(openingHoursDayInput(schedule!.days[1])).toBe("11:30–14, 17–22");
+  });
+
+  test("tomma fält innebär att gruppen använder kartdatan", () => {
+    expect(buildOpeningHoursScheduleFromInputs(inputs({}))).toBeNull();
+  });
+
+  test("avvisar otydliga tidsformat", () => {
+    expect(() => buildOpeningHoursScheduleFromInputs(inputs({ Mo: "lunch till sent" }))).toThrow(
+      /Måndag har ett ogiltigt tidsformat/,
+    );
   });
 });
