@@ -222,7 +222,9 @@ export function PlaceExternalInfo({
           toast.success("Senaste kartdatan är hämtad.");
         }
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Platsinformationen kunde inte hämtas.");
+        setError(
+          caught instanceof Error ? caught.message : "Platsinformationen kunde inte hämtas.",
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -259,14 +261,8 @@ export function PlaceExternalInfo({
     const nextInput = {
       websiteOverride: websiteConflict ? null : practicalInfo.websiteOverride,
       openingHoursOverride: openingHoursConflict ? null : practicalInfo.openingHoursOverride,
-      sourceUrl:
-        websiteConflict && openingHoursConflict
-          ? null
-          : practicalInfo.sourceUrl,
-      sourceNote:
-        websiteConflict && openingHoursConflict
-          ? null
-          : practicalInfo.sourceNote,
+      sourceUrl: websiteConflict && openingHoursConflict ? null : practicalInfo.sourceUrl,
+      sourceNote: websiteConflict && openingHoursConflict ? null : practicalInfo.sourceNote,
     };
     try {
       let next: GroupPlacePracticalInfo;
@@ -280,13 +276,7 @@ export function PlaceExternalInfo({
         };
         window.dispatchEvent(new Event("matrundan:reload"));
       } else {
-        next = updateLocalGroupPlacePracticalInfo(
-          groupId,
-          place.id,
-          nextInput,
-          actor,
-          storageKind,
-        );
+        next = updateLocalGroupPlacePracticalInfo(groupId, place.id, nextInput, actor, storageKind);
       }
       setPracticalInfo(next);
       setCompareOpen(false);
@@ -305,7 +295,9 @@ export function PlaceExternalInfo({
             place={place}
             groupId={groupId}
             practicalInfo={practicalInfo}
-            externalWebsite={details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null}
+            externalWebsite={
+              details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null
+            }
             externalOpeningHours={details?.openingHours ?? null}
             disabled={!canEdit}
             onSaved={setPracticalInfo}
