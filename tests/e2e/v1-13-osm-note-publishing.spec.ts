@@ -18,7 +18,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("gruppen granskar och simulerar en anonym OSM-anteckning privat", async ({ page }) => {
+test("gruppen granskar och simulerar ett rättelseförslag privat", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen/p5?demo=1");
   await page.evaluate(() => {
@@ -58,49 +58,63 @@ test("gruppen granskar och simulerar en anonym OSM-anteckning privat", async ({ 
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  const placeDataSection = settings.getByRole("region", { name: "Platsdata" });
+  const reportedErrorsSection = settings.getByRole("region", { name: "Rapporterade fel" });
 
-  await expect(placeDataSection.getByText("1 att granska")).toBeVisible();
-  await expect(placeDataSection.getByText(/särskilt granskad text och kartposition/)).toBeVisible();
-  await placeDataSection.getByText("Glöd & Grönska", { exact: true }).click();
-  await expect(placeDataSection.getByLabel("Bedömning")).toHaveCount(0);
-  await expect(placeDataSection.getByText("Välj nästa steg", { exact: true })).toBeVisible();
-  await placeDataSection
-    .getByLabel("Intern anteckning (valfri)")
+  await expect(reportedErrorsSection.getByText("1 att granska")).toBeVisible();
+  await expect(
+    reportedErrorsSection.getByText(/Stängda matställen, fel namn, adresser/),
+  ).toBeVisible();
+  await reportedErrorsSection.getByRole("link", { name: /Hantera rapporterade fel/ }).click();
+
+  await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Att granska 1/ })).toBeVisible();
+  await page.getByText("Glöd & Grönska", { exact: true }).click();
+
+  const reportSheet = page.getByRole("dialog");
+  await expect(reportSheet.getByRole("heading", { name: "Glöd & Grönska" })).toBeVisible();
+  await expect(reportSheet.getByText("Välj nästa steg", { exact: true })).toBeVisible();
+  await expect(
+    reportSheet.getByText("OpenStreetMap, en öppen karta", { exact: false }),
+  ).toHaveCount(0);
+  await reportSheet
+    .getByLabel("Intern anteckning")
     .fill("Kontrollerad mot verksamhetens officiella information.");
   await expectNoHorizontalOverflow(page, "Granskningskö på mobil");
-  await placeDataSection.getByRole("button", { name: "Förbered för OpenStreetMap" }).click();
+  await reportSheet.getByRole("button", { name: "Fortsätt till rättelseförslag" }).click();
 
+  await expect(reportSheet.getByText("Hjälp till att rätta uppgiften på kartan")).toBeVisible();
   await expect(
-    placeDataSection.locator("summary").getByText("Förberedd för OpenStreetMap", { exact: true }),
-  ).toBeVisible();
-  await expect(placeDataSection.getByText("1 att granska")).toHaveCount(0);
-  await expect(
-    placeDataSection.getByText(/Rapporten är förberedd för OpenStreetMap/),
+    reportSheet.getByText("OpenStreetMap, en öppen karta", { exact: false }),
   ).toBeVisible();
 
-  const publicText = placeDataSection.getByLabel("Offentlig text till OpenStreetMap");
+  const publicText = reportSheet.getByLabel("Text som skickas till OpenStreetMap");
   await expect(publicText).toHaveValue(/Webbplatsen i kartdatan verkar vara fel/);
   await publicText.fill(
     "Webbplatsen i kartdatan verkar vara inaktuell. Verksamhetens skylt visar en annan officiell webbplats.",
   );
-  await expectNoHorizontalOverflow(page, "Offentlig OSM-text på mobil");
-  await placeDataSection.getByRole("button", { name: "Publicera anonym OSM-anteckning" }).click();
+  await expectNoHorizontalOverflow(page, "Text för rättelseförslag på mobil");
+  await reportSheet.getByRole("button", { name: "Skicka rättelseförslag" }).click();
 
   const confirmation = page.getByRole("alertdialog", {
-    name: "Publicera offentligt till OpenStreetMap?",
+    name: "Skicka rättelseförslaget?",
   });
   await expect(
-    confirmation.getByText(/kan inte redigeras, kommenteras eller stängas/),
+    confirmation.getByText(/kan inte redigeras eller tas bort från Matrundan/),
   ).toBeVisible();
-  await confirmation.getByRole("button", { name: "Publicera anonymt" }).click();
+  await confirmation.getByRole("button", { name: "Skicka förslaget" }).click();
 
-  await expect(placeDataSection.getByText(/Simulerad OSM-anteckning/)).toBeVisible();
+  await expect(reportSheet.getByText("Väntar på granskning", { exact: true })).toBeVisible();
   await expect(
-    placeDataSection.locator("summary").getByText("Öppen i OpenStreetMap", { exact: true }),
+    reportSheet.getByText(
+      "Rättelseförslaget har skickats till OpenStreetMap och väntar på att granskas.",
+      { exact: true },
+    ),
   ).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Simulerad OSM-anteckning på mobil");
+  await expect(
+    reportSheet.getByRole("button", { name: "Skicka rättelseförslag" }),
+  ).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Simulerat rättelseförslag på mobil");
 
-  await placeDataSection.getByRole("button", { name: "Kontrollera OSM-status" }).click();
-  await expect(placeDataSection.getByText(/Senast kontrollerad/)).toBeVisible();
+  await reportSheet.getByRole("button", { name: "Uppdatera status" }).click();
+  await expect(reportSheet.getByText(/Senast uppdaterad/)).toBeVisible();
 });
