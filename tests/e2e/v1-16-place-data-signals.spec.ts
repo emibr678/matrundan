@@ -12,7 +12,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.clientWidth);
 }
 
-test("begränsad platsinformation visas först i öppnad träff och undantagsflödet är separat", async ({
+test("begränsad platsinformation visas först i öppnad träff och egen rapport får privat status", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
@@ -69,5 +69,24 @@ test("begränsad platsinformation visas först i öppnad träff och undantagsfl�
   await expect(
     issueDialog.getByRole("button", { name: /Dölj från gruppens sökningar/ }),
   ).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Kompakt platsinformation och undantagsflöde");
+
+  await issueDialog.getByRole("button", { name: /Rapportera felaktiga uppgifter/ }).click();
+  const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktiga uppgifter" });
+  await reportDialog.getByLabel("Dölj även träffen för gruppen").uncheck();
+  await reportDialog
+    .getByLabel("Vad har du sett?")
+    .fill("Restaurangen har stängt permanent och lokalen står tom.");
+  await reportDialog.getByRole("button", { name: "Skicka rapport" }).click();
+  await expect(reportDialog).toBeHidden();
+
+  await resultDialog.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await expect(addDialog).toBeVisible();
+  const reportedSuggestion = addDialog.getByRole("button", {
+    name: "Visa information om Päronträdets Trattoria",
+    exact: true,
+  });
+  await expect(
+    reportedSuggestion.getByText("Din rapport väntar på granskning", { exact: true }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Kompakt platsinformation och privat rapportstatus");
 });

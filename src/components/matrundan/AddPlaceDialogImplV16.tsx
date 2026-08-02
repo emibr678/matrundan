@@ -98,6 +98,7 @@ export function AddPlaceDialogV16({
   }, [activeGroupId, mode, state.group.id]);
 
   function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && (pending != null || pendingSourceMatch != null)) return;
     if (!nextOpen && !bulkBusy && !sourceLinkBusy) {
       setPending(null);
       setPendingSourceMatch(null);

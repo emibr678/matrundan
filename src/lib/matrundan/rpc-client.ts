@@ -17,9 +17,18 @@ export type RpcExecutor = (
 
 const DEFAULT_SERVER_ERROR = "Något gick fel mot servern. Försök igen.";
 const INVALID_SERVER_RESPONSE = "Servern svarade med ett oväntat format.";
+const RPC_UNAVAILABLE_MESSAGES: Partial<Record<string, string>> = {
+  create_place_data_report_from_suggestion_v1:
+    "Platsdatarapportering är tillfälligt otillgänglig. Ladda om appen och försök igen.",
+};
 
-function toRpcError(error: RpcErrorLike | null): Error {
-  return new Error(error?.message ?? DEFAULT_SERVER_ERROR);
+function toRpcError(functionName: string, error: RpcErrorLike | null): Error {
+  const message = error?.message ?? DEFAULT_SERVER_ERROR;
+  const unavailableMessage = RPC_UNAVAILABLE_MESSAGES[functionName];
+  if (unavailableMessage && /could not find the function|schema cache/i.test(message)) {
+    return new Error(unavailableMessage);
+  }
+  return new Error(message);
 }
 
 async function executeSupabaseRpc(
@@ -35,7 +44,7 @@ async function executeSupabaseRpc(
 export function createRpcClient(execute: RpcExecutor) {
   async function read(functionName: string, args?: Record<string, unknown>): Promise<unknown> {
     const { data, error } = await execute(functionName, args);
-    if (error) throw toRpcError(error);
+    if (error) throw toRpcError(functionName, error);
     return data;
   }
 

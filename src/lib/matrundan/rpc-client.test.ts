@@ -20,6 +20,23 @@ describe("rpc-client", () => {
     await expect(client.callVoid("archive_group", {})).rejects.toThrow("Du saknar behörighet.");
   });
 
+  test("döljer teknisk funktionssignatur när sökträffsrapporteringen saknas", async () => {
+    const execute: RpcExecutor = async () => ({
+      data: null,
+      error: {
+        message:
+          "Could not find the function public.create_place_data_report_from_suggestion_v1(_group_id) in the schema cache",
+      },
+    });
+    const client = createRpcClient(execute);
+
+    await expect(
+      client.callVoid("create_place_data_report_from_suggestion_v1", {}),
+    ).rejects.toThrow(
+      "Platsdatarapportering är tillfälligt otillgänglig. Ladda om appen och försök igen.",
+    );
+  });
+
   test("stoppar oväntade returvärden vid integrationsgränsen", async () => {
     const execute: RpcExecutor = async () => ({ data: { id: "fel format" }, error: null });
     const client = createRpcClient(execute);

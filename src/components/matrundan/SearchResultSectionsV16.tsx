@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
-import { PlaceDataLimitedInfoIndicator, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
+import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -10,6 +10,7 @@ import type { ManualSourceMatchReason } from "@/lib/matrundan/manual-place-sourc
 import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-source-linking";
 import { placeSignalKey, type PlaceDataSignal } from "@/lib/matrundan/place-data-signals";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { useOwnOpenPlaceSuggestionReportKeys } from "@/lib/matrundan/use-own-place-suggestion-reports";
 import { usePlaceDataSignalsForSuggestions } from "@/lib/matrundan/use-place-data-signals";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
 
@@ -65,6 +66,7 @@ export function SearchResultSectionsV16({
     );
   }, [available, existing, sourceMatches]);
   const signals = usePlaceDataSignalsForSuggestions(signalSuggestions);
+  const ownOpenReportKeys = useOwnOpenPlaceSuggestionReportKeys();
   const signalFor = React.useCallback(
     (suggestion: PlaceSuggestion) =>
       signals[
@@ -74,6 +76,29 @@ export function SearchResultSectionsV16({
         })
       ],
     [signals],
+  );
+  const hasOwnOpenReport = React.useCallback(
+    (suggestion: PlaceSuggestion) =>
+      ownOpenReportKeys.has(
+        placeSignalKey({
+          provider: suggestion.provider,
+          providerPlaceId: suggestion.externalId,
+        }),
+      ),
+    [ownOpenReportKeys],
+  );
+  const statusFooterFor = React.useCallback(
+    (suggestion: PlaceSuggestion, signal?: PlaceDataSignal): React.ReactNode | undefined => {
+      const ownReportOpen = hasOwnOpenReport(suggestion);
+      if ((!signal || signal.closureStatus === "none") && !ownReportOpen) return undefined;
+      return (
+        <div className="space-y-1.5">
+          {signal?.closureStatus !== "none" ? <PlaceDataSignalBadge signal={signal} /> : null}
+          <OwnPlaceSuggestionReportBadge active={ownReportOpen} />
+        </div>
+      );
+    },
+    [hasOwnOpenReport],
   );
 
   return (
@@ -89,6 +114,7 @@ export function SearchResultSectionsV16({
           </div>
           {sourceMatches.map((match) => {
             const signal = signalFor(match.result);
+            const statusFooter = statusFooterFor(match.result, signal);
             return (
               <SuggestionRowV16
                 key={match.result.externalId}
@@ -104,9 +130,7 @@ export function SearchResultSectionsV16({
                     <span className="block text-[11px] text-muted-foreground">
                       Matchar {match.place.name}: {MANUAL_SOURCE_MATCH_REASON_LABEL[match.reason]}
                     </span>
-                    {signal?.closureStatus !== "none" ? (
-                      <PlaceDataSignalBadge signal={signal} />
-                    ) : null}
+                    {statusFooter}
                   </div>
                 }
                 action={
@@ -150,11 +174,7 @@ export function SearchResultSectionsV16({
                   if (bulkMode) onToggleSelected(result);
                   else onAdd(result);
                 }}
-                footer={
-                  signal?.closureStatus !== "none" ? (
-                    <PlaceDataSignalBadge signal={signal} />
-                  ) : undefined
-                }
+                footer={statusFooterFor(result, signal)}
                 action={
                   bulkMode ? (
                     <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
@@ -212,11 +232,7 @@ export function SearchResultSectionsV16({
                   bulkSelected={false}
                   bulkMode={false}
                   onSelect={() => onSelect(result.externalId)}
-                  footer={
-                    signal?.closureStatus !== "none" ? (
-                      <PlaceDataSignalBadge signal={signal} />
-                    ) : undefined
-                  }
+                  footer={statusFooterFor(result, signal)}
                   action={
                     place ? (
                       <Button
@@ -272,6 +288,7 @@ function SuggestionRowV16({
         selected || bulkSelected ? "border-primary/60 bg-primary/5" : "border-border/70"
       }`}
       data-bulk-selected={bulkSelected}
+      data-closure-status={signal?.closureStatus ?? "none"}
     >
       <button
         type="button"
@@ -289,17 +306,14 @@ function SuggestionRowV16({
             {CATEGORY_LABEL[result.category]}
             {result.cuisines?.length ? ` · ${result.cuisines.join(", ")}` : ""}
           </span>
-          <span className="flex flex-wrap items-center gap-x-1 text-[11px] text-muted-foreground">
-            <span className="break-words">
-              {result.area ? `${result.area} · ` : ""}
-              {result.city}
-              {result.distanceKm != null
-                ? ` · ~${result.distanceKm} km${
-                    result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""
-                  }`
-                : ""}
-            </span>
-            <PlaceDataLimitedInfoIndicator signal={signal} />
+          <span className="block break-words text-[11px] text-muted-foreground">
+            {result.area ? `${result.area} · ` : ""}
+            {result.city}
+            {result.distanceKm != null
+              ? ` · ~${result.distanceKm} km${
+                  result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""
+                }`
+              : ""}
           </span>
           {result.address ? (
             <span className="block break-words text-[11px] text-muted-foreground">
