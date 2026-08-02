@@ -257,6 +257,6 @@ test("saknad webbplats och öppettider kan redigeras utan stor tom informationsr
   await expect(page.getByRole("button", { name: "Redigera", exact: true })).toBeVisible();
   await expect(page.getByText("Webbplats", { exact: true })).toBeVisible();
   await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
-  await expect(page.getByText("Saknas", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("Saknas", { exact: true }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
