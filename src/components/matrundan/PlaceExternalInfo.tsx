@@ -121,6 +121,13 @@ export function PlaceExternalInfo({
   const [retry, setRetry] = React.useState(0);
 
   React.useEffect(() => {
+    setDetails(key ? readCache(key) : null);
+    setLoading(false);
+    setError(null);
+    setRetry(0);
+  }, [key]);
+
+  React.useEffect(() => {
     if (mode !== "live" || exampleMode || !key || details) return;
     let cancelled = false;
     setLoading(true);
@@ -133,7 +140,7 @@ export function PlaceExternalInfo({
       })
       .catch((caught) => {
         if (cancelled) return;
-        setError(caught instanceof Error ? caught.message : "Öppettider kunde inte hämtas.");
+        setError(caught instanceof Error ? caught.message : "Platsinformationen kunde inte hämtas.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -147,6 +154,8 @@ export function PlaceExternalInfo({
 
   const websiteUrl = normalizeWebsiteUrl(place.website) ?? normalizeWebsiteUrl(details?.website);
   const hasGeoapifySource = Boolean(key);
+  const sourceDetailsPending = hasGeoapifySource && !details && loading;
+  const sourceDetailsFailed = hasGeoapifySource && !details && Boolean(error);
   const fetchedLabel = details ? formattedFetchedAt(details.fetchedAt) : "";
 
   return (
@@ -162,6 +171,14 @@ export function PlaceExternalInfo({
           >
             <Globe2 className="h-3.5 w-3.5 shrink-0" /> Webbplats
           </a>
+        ) : sourceDetailsPending ? (
+          <div className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" /> Hämtar webbplats…
+          </div>
+        ) : sourceDetailsFailed ? (
+          <div className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground">
+            <Globe2 className="h-3.5 w-3.5 shrink-0" /> Webbplats kunde inte hämtas
+          </div>
         ) : (
           <div className="inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground">
             <Globe2 className="h-3.5 w-3.5 shrink-0" />
@@ -193,6 +210,28 @@ export function PlaceExternalInfo({
         <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Hämtar öppettider…
         </div>
+      ) : error ? (
+        <div className="rounded-xl border border-dashed border-border/70 px-3 py-2.5">
+          <div className="flex min-h-8 items-center gap-2 text-sm text-muted-foreground">
+            <Clock3 className="h-4 w-4 shrink-0" /> Öppettider kunde inte hämtas
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[11px] leading-relaxed text-muted-foreground">
+            <span>{error}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => {
+                setDetails(null);
+                setError(null);
+                setRetry((value) => value + 1);
+              }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Försök igen
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="rounded-xl border border-dashed border-border/70 px-3 py-2.5">
           <div className="flex min-h-8 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
@@ -209,24 +248,6 @@ export function PlaceExternalInfo({
               />
             ) : null}
           </div>
-          {error ? (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[11px] leading-relaxed text-muted-foreground">
-              <span>{error}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs"
-                onClick={() => {
-                  setDetails(null);
-                  setError(null);
-                  setRetry((value) => value + 1);
-                }}
-              >
-                <RefreshCw className="h-3.5 w-3.5" /> Försök igen
-              </Button>
-            </div>
-          ) : null}
         </div>
       )}
 
