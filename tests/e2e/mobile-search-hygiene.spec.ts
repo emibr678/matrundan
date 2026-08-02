@@ -19,8 +19,41 @@ async function expectInsideViewport(page: Page, locator: Locator, context: strin
   expect(box.y + box.height, `${context}: nederkant`).toBeLessThanOrEqual(viewport.height + 1);
 }
 
+async function expectNoHorizontalOverflow(page: Page, context: string) {
+  const metrics = await page.evaluate(() => ({
+    documentClientWidth: document.documentElement.clientWidth,
+    documentScrollWidth: document.documentElement.scrollWidth,
+    bodyClientWidth: document.body.clientWidth,
+    bodyScrollWidth: document.body.scrollWidth,
+  }));
+  expect(metrics.documentScrollWidth, `${context}: dokument`).toBeLessThanOrEqual(
+    metrics.documentClientWidth,
+  );
+  expect(metrics.bodyScrollWidth, `${context}: body`).toBeLessThanOrEqual(metrics.bodyClientWidth);
+}
+
 function placeSuggestionButton(scope: Locator | Page) {
   return scope.getByRole("button", { name: `Visa information om ${PLACE_NAME}`, exact: true });
+}
+
+async function resetPlaceData(page: Page) {
+  await page.evaluate(() => {
+    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.localStorage.key(index);
+      if (
+        key?.startsWith("matrundan.place-data-reports.") ||
+        key?.startsWith("matrundan.hidden-place-suggestions.")
+      ) {
+        window.localStorage.removeItem(key);
+      }
+    }
+    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.sessionStorage.key(index);
+      if (key?.startsWith("matrundan.hidden-place-suggestions.")) {
+        window.sessionStorage.removeItem(key);
+      }
+    }
+  });
 }
 
 async function openPlaceSearch(page: Page) {
@@ -56,16 +89,16 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await placeSuggestionButton(page).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
-  await expect(detailsDialog.getByText("Öppna i Google Maps", { exact: true })).toBeVisible();
   await expect(
-    detailsDialog.getByText(
-      "Google Maps söker efter namn, adress och vid behov kartposition. Kontrollera att rätt verksamhet har öppnats.",
-      { exact: true },
-    ),
-  ).toHaveCount(0);
+    detailsDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
+  ).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("button", { name: "Rapportera felaktig träff" }),
+  ).toBeVisible();
   await expect(
     detailsDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
   ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Sökträffens detaljdialog");
 
   const foodTagTrigger = detailsDialog.getByRole("combobox", {
     name: "Kök och inriktning (valfritt)",
@@ -103,26 +136,29 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await expect(guideDialog).toBeHidden();
 });
 
-test("en dold demoträff försvinner ur sökningen och kan återställas i gruppinställningar", async ({
+test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 360, height: 520 });
+  await page.setViewportSize({ width: 360, height: 620 });
+  await page.goto("/matstallen?demo=1");
+  await resetPlaceData(page);
   const searchDialog = await openPlaceSearch(page);
 
   await placeSuggestionButton(searchDialog).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
-  await detailsDialog
-    .getByRole("button", { name: "Dölj från gruppens sökningar", exact: true })
-    .click();
+  await detailsDialog.getByRole("button", { name: "Rapportera felaktig träff" }).click();
+
+  const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktig träff" });
+  await expect(reportDialog.getByText(/granskas av gruppens admin/)).toBeVisible();
+  await expect(reportDialog.getByLabel("Dölj även träffen för gruppen")).toBeChecked();
+  await reportDialog
+    .getByLabel("Vad har du sett?")
+    .fill("Skylten visar att restaurangen har stängt permanent och lokalen står tom.");
+  await expectNoHorizontalOverflow(page, "Rapport om sökträff");
+  await reportDialog.getByRole("button", { name: "Skicka rapport" }).click();
 
   await expect(detailsDialog).toBeHidden();
   await expect(placeSuggestionButton(searchDialog)).toHaveCount(0);
-  await expect(
-    searchDialog.getByText(
-      "Inga matställen hittades. Prova större radie, andra områden eller lägg till manuellt.",
-    ),
-  ).toBeVisible();
-  await expect(searchDialog.getByRole("button", { name: "Karta", exact: true })).toHaveCount(0);
   await searchDialog.getByRole("button", { name: "Klar", exact: true }).click();
 
   await page.goto("/gruppen?demo=1");
@@ -131,6 +167,28 @@ test("en dold demoträff försvinner ur sökningen och kan återställas i grupp
   const hiddenHeading = settings.getByRole("heading", { name: "Dolda sökträffar" });
   const hiddenSection = hiddenHeading.locator("..");
   await expect(hiddenSection.getByText(PLACE_NAME)).toBeVisible();
+  await hiddenSection
+    .getByRole("button", { name: `Öppna den dolda sökträffen ${PLACE_NAME}` })
+    .click();
+
+  const hiddenDialog = page.getByRole("dialog", { name: PLACE_NAME });
+  await expect(hiddenDialog.getByText(/Dold för den här gruppen/)).toBeVisible();
+  await expect(
+    hiddenDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
+  ).toBeVisible();
+  await expect(
+    hiddenDialog.getByRole("button", { name: "Rapportera felaktig uppgift" }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Dold sökträff");
+  await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).click();
+
+  const placeDataSection = settings.getByRole("region", { name: "Platsdata" });
+  await expect(placeDataSection.getByText("1 att granska")).toBeVisible();
+  await placeDataSection.getByText(PLACE_NAME, { exact: true }).click();
+  await expect(placeDataSection.getByText("Sökträff", { exact: true })).toBeVisible();
+  await expect(placeDataSection.getByText("Kan ha stängt permanent eller ersatts")).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Sökträffsrapport i adminöversikten");
+
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
 

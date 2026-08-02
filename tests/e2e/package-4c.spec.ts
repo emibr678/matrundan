@@ -19,8 +19,11 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 }
 
 async function removeCurrentPlace(page: Page) {
-  await page.getByRole("button", { name: "Redigera uppgifter" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Ta bort från gruppen" }).click();
+  await page.getByRole("button", { name: "Hantera gruppens uppgifter om stället" }).click();
+  await page
+    .getByRole("dialog", { name: "Redigera gruppens uppgifter" })
+    .getByRole("button", { name: "Ta bort från gruppen" })
+    .click();
 }
 
 test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka utan tappad metadata", async ({

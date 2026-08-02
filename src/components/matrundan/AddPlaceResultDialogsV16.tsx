@@ -3,6 +3,7 @@ import { ArrowLeft, ExternalLink, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
+import { PlaceSuggestionReportDialog } from "./PlaceSuggestionReportDialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -26,7 +27,11 @@ import {
   shareVisitToGroup,
   type OwnVisitForPlace,
 } from "@/lib/matrundan/live-sharing";
-import { googleMapsSearchUrl } from "@/lib/matrundan/place-links";
+import {
+  reportableSuggestionFromPlaceSuggestion,
+  type ReportablePlaceSuggestion,
+} from "@/lib/matrundan/place-data-reports";
+import { googleMapsSearchUrl, normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
 import {
@@ -37,6 +42,10 @@ import {
 } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type Occasion } from "@/lib/matrundan/types";
+
+function suggestionWebsite(suggestion: PlaceSuggestion): string | undefined {
+  return normalizeWebsiteUrl((suggestion as PlaceSuggestion & { website?: string | null }).website);
+}
 
 export function AddPlaceResultDialogsV16({
   parentOpen,
@@ -96,23 +105,35 @@ export function AddPlaceResultDialogsV16({
     setSyncShareComment(false);
   }
 
+  async function hideSuggestionForGroup(suggestion: PlaceSuggestion): Promise<void> {
+    const groupId = isLive ? activeGroupId : state.group.id;
+    if (!groupId) throw new Error("Sökträffen kunde inte kopplas till gruppen.");
+    if (isLive) await hideGroupPlaceSuggestion(groupId, suggestion);
+    else hideDemoPlaceSuggestion(groupId, suggestion);
+    window.dispatchEvent(new Event("matrundan:hidden-place-suggestions-changed"));
+  }
+
   async function hidePendingSuggestion() {
     if (!pending || isBusy || !canHideSuggestion) return;
-    const groupId = isLive ? activeGroupId : state.group.id;
-    if (!groupId) return;
-
     setHideBusy(true);
     try {
-      if (isLive) await hideGroupPlaceSuggestion(groupId, pending);
-      else hideDemoPlaceSuggestion(groupId, pending);
       const hiddenName = pending.name;
+      await hideSuggestionForGroup(pending);
       resetPending();
-      window.dispatchEvent(new Event("matrundan:hidden-place-suggestions-changed"));
       toast.success(`${hiddenName} döljs från gruppens sökningar.`);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Kunde inte dölja sökträffen från gruppen.",
       );
+    } finally {
+      setHideBusy(false);
+    }
+  }
+
+  async function hideFromReport(suggestion: PlaceSuggestion): Promise<void> {
+    setHideBusy(true);
+    try {
+      await hideSuggestionForGroup(suggestion);
     } finally {
       setHideBusy(false);
     }
@@ -229,6 +250,11 @@ export function AddPlaceResultDialogsV16({
     );
   }
 
+  const reportablePending: ReportablePlaceSuggestion | null = pending
+    ? reportableSuggestionFromPlaceSuggestion(pending)
+    : null;
+  const websiteUrl = pending ? suggestionWebsite(pending) : undefined;
+
   return (
     <>
       <Dialog
@@ -237,7 +263,7 @@ export function AddPlaceResultDialogsV16({
           if (!nextOpen) closePending();
         }}
       >
-        {pending ? (
+        {pending && reportablePending ? (
           <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
@@ -261,16 +287,32 @@ export function AddPlaceResultDialogsV16({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Button asChild variant="outline" className="min-h-11 w-full">
-                <a
-                  href={googleMapsSearchUrl(pending)}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Öppna ${pending.name} i Google Maps`}
-                >
-                  <ExternalLink className="h-4 w-4" /> Öppna i Google Maps
-                </a>
-              </Button>
+              <div className={websiteUrl ? "grid grid-cols-2 gap-2" : "grid grid-cols-1"}>
+                {websiteUrl ? (
+                  <Button asChild variant="outline" className="min-h-11 min-w-0 px-2">
+                    <a
+                      href={websiteUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Öppna webbplatsen för ${pending.name}`}
+                    >
+                      <ExternalLink className="h-4 w-4 shrink-0" />
+                      Webbplats
+                    </a>
+                  </Button>
+                ) : null}
+                <Button asChild variant="outline" className="min-h-11 min-w-0 px-2">
+                  <a
+                    href={googleMapsSearchUrl(pending)}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Öppna ${pending.name} i Google Maps`}
+                  >
+                    <ExternalLink className="h-4 w-4 shrink-0" />
+                    Google Maps
+                  </a>
+                </Button>
+              </div>
               {canHideSuggestion ? (
                 <Button
                   type="button"
@@ -287,6 +329,17 @@ export function AddPlaceResultDialogsV16({
                   Dölj från gruppens sökningar
                 </Button>
               ) : null}
+              <PlaceSuggestionReportDialog
+                suggestion={reportablePending}
+                canHide={canHideSuggestion}
+                disabled={isBusy || state.group.lifecycleStatus === "archived"}
+                onHide={() => hideFromReport(pending)}
+                onHidden={resetPending}
+              />
+              <p className="px-3 text-[11px] leading-relaxed text-muted-foreground">
+                Döljning påverkar bara den här gruppen. En rapport går till gruppens admin och
+                publiceras aldrig automatiskt.
+              </p>
             </div>
             <FoodTagMultiSelect
               id="pending-food-tags"

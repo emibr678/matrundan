@@ -11,6 +11,43 @@ Den fullständiga historiken till och med version 1.6.0 är bevarad i
 
 Inga ändringar ännu.
 
+## [1.15.0] – 2026-08-02
+
+### Lagt till
+
+- Felaktiga Geoapify-/OSM-sökträffar kan rapporteras privat till gruppens ägare
+  och administratörer innan de läggs till i gruppen.
+- Ägare och administratörer kan samtidigt dölja en rapporterad träff för den
+  egna gruppen. Rapporten och döljningen förblir separata och reversibla
+  handlingar.
+- Dolda sökträffar kan öppnas i Gruppinställningar för att kontrollera
+  platsunderlaget, använda Webbplats eller Google Maps, rapportera fel och
+  återställa träffen.
+
+### Ändrat
+
+- Matställets detaljsida är kompaktare: den permanenta statusförklaringen är
+  borttagen och rubriken **Om stället** behåller en tydlig enradig hierarki på
+  mobil.
+- Rapportknappen heter **Rapportera felaktig uppgift** och förklarar att
+  rapporten först granskas privat inom gruppen och aldrig publiceras
+  automatiskt.
+- Webbplats och Google Maps visas konsekvent före och efter tillägg när en säker
+  webbplatslänk finns.
+- **Kan ha stängt permanent eller ersatts** skiljs tydligt från att ett ställe
+  bara är stängt för dagen.
+
+### Databas och säkerhet
+
+- Sökträffsrapporter identifieras med exakt provider och provider-ID och skapar
+  ingen tom kanonisk platsrad.
+- Den privata adminöversikten kan hantera både rapporter om tillagda platser och
+  providerträffar. Ursprunglig grupp, rapportör och fritext delas inte med andra
+  grupper.
+- Dolda träffar bevarar en begränsad säker ögonblicksbild av kategori,
+  kartposition och normaliserad webbplats. Rå providerdata lämnar inte
+  serversidan.
+
 ## [1.14.1] – 2026-08-01
 
 ### Fixat

@@ -25,16 +25,26 @@ test("gruppen granskar och simulerar en anonym OSM-anteckning privat", async ({ 
     window.localStorage.removeItem("matrundan.state.v1");
     for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
       const key = window.localStorage.key(index);
-      if (key?.startsWith("matrundan.place-data-reports.v1.")) {
+      if (
+        key?.startsWith("matrundan.place-data-reports.v1.") ||
+        key?.startsWith("matrundan.place-data-reports.v2.")
+      ) {
         window.localStorage.removeItem(key);
       }
     }
   });
   await page.goto("/matstallen/p5?demo=1");
 
-  await page.getByRole("button", { name: "Rapportera fel" }).click();
-  const reportDialog = page.getByRole("dialog", { name: "Rapportera platsinformation" });
-  await expect(reportDialog.getByText(/privat inom gruppen/)).toBeVisible();
+  await expect(
+    page.getByText(
+      "Stället räknas som provat så fort någon i gänget varit här — alla behöver inte gå hit.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Om stället", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Rapportera felaktig uppgift" }).click();
+  const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktig uppgift" });
+  await expect(reportDialog.getByText(/går till gruppens ägare och administratörer/)).toBeVisible();
   await reportDialog.getByLabel("Vad verkar vara fel?").selectOption("wrong_website");
   await reportDialog
     .getByLabel("Vad har du sett?")

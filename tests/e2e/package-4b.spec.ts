@@ -35,8 +35,8 @@ test("demo-läget visar lokala inställningar utan livegruppens statuskontroller
 test("adminflödet tar bort och lägger tillbaka bara gruppens platskoppling", async ({ page }) => {
   await page.goto("/matstallen/p5?demo=1");
 
-  await page.getByRole("button", { name: "Redigera uppgifter" }).click();
-  const dialog = page.getByRole("dialog", { name: /Redigera Glöd & Grönska/ });
+  await page.getByRole("button", { name: "Hantera gruppens uppgifter om stället" }).click();
+  const dialog = page.getByRole("dialog", { name: "Redigera gruppens uppgifter" });
   await expect(dialog.getByText(/gäller bara i Fredagsgänget/)).toBeVisible();
   await dialog.getByRole("button", { name: "Ta bort från gruppen" }).click();
 
@@ -47,9 +47,9 @@ test("adminflödet tar bort och lägger tillbaka bara gruppens platskoppling", a
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Redigera uppgifter" }).click();
+  await page.getByRole("button", { name: "Hantera gruppens uppgifter om stället" }).click();
   await page
-    .getByRole("dialog", { name: /Redigera Glöd & Grönska/ })
+    .getByRole("dialog", { name: "Redigera gruppens uppgifter" })
     .getByRole("button", { name: "Lägg tillbaka i gruppen" })
     .click();
   await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();

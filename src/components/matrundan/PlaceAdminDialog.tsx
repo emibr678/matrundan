@@ -3,7 +3,6 @@ import { RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
 import { OccasionPicker } from "@/components/matrundan/OccasionPicker";
-import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -78,7 +77,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     setNotes(place.notes ?? "");
   }, [open, place]);
 
-  if (!canEdit || groupArchived) return null;
+  if (!canEdit || groupArchived || !canOpenEditor) return null;
 
   async function save() {
     try {
@@ -117,127 +116,124 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
 
   return (
     <>
-      <div className="flex min-w-0 flex-wrap justify-end gap-1">
-        <PlaceDataReportDialog place={place} disabled={submitting} compact />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11 shrink-0 rounded-full px-3 text-muted-foreground hover:text-foreground"
+            aria-label="Hantera gruppens uppgifter om stället"
+          >
+            <Settings2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Redigera</span>
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Redigera gruppens uppgifter</DialogTitle>
+            <DialogDescription>
+              Ändringarna gäller bara i {state.group.name}. Matställets kanoniska namn och adress
+              påverkas inte.
+            </DialogDescription>
+          </DialogHeader>
 
-        {canOpenEditor ? (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="min-h-11 shrink-0 rounded-full px-3 text-muted-foreground hover:text-foreground"
+          <div className="min-w-0 space-y-5">
+            <div className="space-y-1.5">
+              <Label>Kategori i gruppen</Label>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value as PlaceCategory | "inherit")}
               >
-                <Settings2 className="h-4 w-4" /> Redigera uppgifter
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Redigera {place.name}</DialogTitle>
-                <DialogDescription>
-                  Ändringarna gäller bara i {state.group.name}. Namn och adress påverkas inte.
-                </DialogDescription>
-              </DialogHeader>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inherit">
+                    Grundkategori: {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
+                  </SelectItem>
+                  {CATEGORIES.map((item) => (
+                    <SelectItem key={item} value={item}>
+                      {CATEGORY_LABEL[item]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="min-w-0 space-y-5">
-                <div className="space-y-1.5">
-                  <Label>Kategori i gruppen</Label>
-                  <Select
-                    value={category}
-                    onValueChange={(value) => setCategory(value as PlaceCategory | "inherit")}
+            <FoodTagMultiSelect
+              id="place-food-tags"
+              value={cuisines}
+              onChange={setCuisines}
+              disabled={submitting}
+              label="Kök och inriktning"
+              description="Valen gäller bara för den här gruppen."
+            />
+
+            <OccasionPicker
+              id="place-admin-occasions"
+              value={occasions}
+              onChange={setOccasions}
+              disabled={submitting}
+            />
+
+            <div className="space-y-1.5">
+              <Label htmlFor="place-group-note">Gruppens anteckning</Label>
+              <Textarea
+                id="place-group-note"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                rows={3}
+                placeholder="En privat anteckning för gruppen…"
+              />
+            </div>
+
+            {canAdmin ? (
+              <div className="rounded-2xl border border-border/70 p-3">
+                <div className="font-medium">
+                  {placeRemoved ? "Inte längre i gruppens lista" : "I gruppens lista"}
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {placeRemoved
+                    ? "Tidigare besök och omdömen finns kvar i historiken. Lägg tillbaka stället för nya besök och planering."
+                    : "Du kan ta bort stället från gruppens lista utan att radera tidigare besök eller omdömen."}
+                </p>
+                {placeRemoved ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3 w-full"
+                    disabled={submitting}
+                    onClick={() => void changeCollectionState("restore")}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="inherit">
-                        Grundkategori: {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
-                      </SelectItem>
-                      {CATEGORIES.map((item) => (
-                        <SelectItem key={item} value={item}>
-                          {CATEGORY_LABEL[item]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <FoodTagMultiSelect
-                  id="place-food-tags"
-                  value={cuisines}
-                  onChange={setCuisines}
-                  disabled={submitting}
-                  label="Kök och inriktning"
-                  description="Valen gäller bara för den här gruppen."
-                />
-
-                <OccasionPicker
-                  id="place-admin-occasions"
-                  value={occasions}
-                  onChange={setOccasions}
-                  disabled={submitting}
-                />
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="place-group-note">Gruppens anteckning</Label>
-                  <Textarea
-                    id="place-group-note"
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    rows={3}
-                    placeholder="En privat anteckning för gruppen…"
-                  />
-                </div>
-
-                {canAdmin ? (
-                  <div className="rounded-2xl border border-border/70 p-3">
-                    <div className="font-medium">
-                      {placeRemoved ? "Inte längre i gruppens lista" : "I gruppens lista"}
-                    </div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {placeRemoved
-                        ? "Tidigare besök och omdömen finns kvar i historiken. Lägg tillbaka stället för nya besök och planering."
-                        : "Du kan ta bort stället från gruppens lista utan att radera tidigare besök eller omdömen."}
-                    </p>
-                    {placeRemoved ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="mt-3 w-full"
-                        disabled={submitting}
-                        onClick={() => void changeCollectionState("restore")}
-                      >
-                        <RotateCcw className="h-4 w-4" /> Lägg tillbaka i gruppen
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="mt-3 w-full text-destructive hover:text-destructive"
-                        disabled={submitting}
-                        onClick={() => setConfirmRemove(true)}
-                      >
-                        <Trash2 className="h-4 w-4" /> Ta bort från gruppen
-                      </Button>
-                    )}
-                  </div>
-                ) : null}
+                    <RotateCcw className="h-4 w-4" /> Lägg tillbaka i gruppen
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="mt-3 w-full text-destructive hover:text-destructive"
+                    disabled={submitting}
+                    onClick={() => setConfirmRemove(true)}
+                  >
+                    <Trash2 className="h-4 w-4" /> Ta bort från gruppen
+                  </Button>
+                )}
               </div>
+            ) : null}
+          </div>
 
-              <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
-                <Button variant="ghost" onClick={() => setOpen(false)}>
-                  Avbryt
-                </Button>
-                <Button disabled={submitting} onClick={() => void save()}>
-                  Spara ändringar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        ) : null}
-      </div>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Avbryt
+            </Button>
+            <Button disabled={submitting} onClick={() => void save()}>
+              Spara ändringar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {canAdmin && canOpenEditor ? (
+      {canAdmin ? (
         <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
           <AlertDialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
             <AlertDialogHeader>

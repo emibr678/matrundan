@@ -7,8 +7,10 @@ import {
   type OsmNoteStatus,
   type OsmSubmissionState,
 } from "./osm-notes";
+import { normalizeWebsiteUrl } from "./place-links";
+import type { PlaceSuggestion } from "./places-provider";
 import { rpcClient } from "./rpc-client";
-import type { Member, Place } from "./types";
+import type { Member, Place, PlaceCategory } from "./types";
 
 export const PLACE_DATA_REPORT_CATEGORIES = [
   "missing_in_osm",
@@ -20,13 +22,23 @@ export const PLACE_DATA_REPORT_CATEGORIES = [
   "other",
 ] as const;
 
+export const PLACE_SUGGESTION_REPORT_CATEGORIES = [
+  "closed_or_replaced",
+  "wrong_name",
+  "wrong_address",
+  "wrong_website",
+  "duplicate",
+  "other",
+] as const;
+
 export type PlaceDataReportCategory = (typeof PLACE_DATA_REPORT_CATEGORIES)[number];
 export type PlaceDataReportStatus = "open" | "ready_for_osm" | "resolved" | "dismissed";
+export type PlaceDataReportTargetKind = "place" | "suggestion";
 export type LocalReportStorage = "local" | "session";
 
 export const PLACE_DATA_REPORT_CATEGORY_LABEL: Record<PlaceDataReportCategory, string> = {
   missing_in_osm: "Saknas i OpenStreetMap",
-  closed_or_replaced: "Stängt eller ersatt",
+  closed_or_replaced: "Kan ha stängt permanent eller ersatts",
   wrong_name: "Fel namn",
   wrong_address: "Fel adress eller kartposition",
   wrong_website: "Fel webbplats",
@@ -47,10 +59,26 @@ export interface PlaceDataReportSource {
   status: "active" | "superseded";
 }
 
+export interface ReportablePlaceSuggestion {
+  provider: string;
+  providerPlaceId: string;
+  name: string;
+  category?: PlaceCategory | null;
+  address: string;
+  area?: string | null;
+  city: string;
+  lat?: number | null;
+  lng?: number | null;
+  website?: string | null;
+}
+
 export interface PlaceDataReport {
   id: string;
   groupId: string;
-  placeId: string;
+  targetKind: PlaceDataReportTargetKind;
+  placeId: string | null;
+  provider: string | null;
+  providerPlaceId: string | null;
   placeName: string;
   placeAddress: string;
   placeCity: string;
@@ -97,7 +125,10 @@ const sourceSchema = z.object({
 const reportSchema = z.object({
   id: z.string().uuid(),
   groupId: z.string().min(1),
-  placeId: z.string().min(1),
+  targetKind: z.enum(["place", "suggestion"]).default("place"),
+  placeId: z.string().nullable().default(null),
+  provider: z.string().nullable().default(null),
+  providerPlaceId: z.string().nullable().default(null),
   placeName: z.string(),
   placeAddress: z.string(),
   placeCity: z.string(),
@@ -128,8 +159,17 @@ const reportSchema = z.object({
 const reportListSchema = z.array(reportSchema);
 const createResultSchema = z.object({ id: z.string().uuid(), created: z.boolean() });
 
-const LOCAL_STORAGE_PREFIX = "matrundan.place-data-reports.v1";
+const LOCAL_STORAGE_PREFIX = "matrundan.place-data-reports.v2";
+const LEGACY_LOCAL_STORAGE_PREFIX = "matrundan.place-data-reports.v1";
 const ACTIVE_STATUSES = new Set<PlaceDataReportStatus>(["open", "ready_for_osm"]);
+
+function shouldFallbackFromReportListV3(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : "";
+  return (
+    /could not find the function|schema cache/i.test(message) &&
+    message.toLocaleLowerCase("en-US").includes("list_group_place_data_reports_v3")
+  );
+}
 
 function shouldFallbackToReportListV1(error: unknown): boolean {
   const message = error instanceof Error ? error.message : "";
@@ -159,6 +199,23 @@ export function normalizePlaceDataResolutionNote(value: string | null): string |
   return normalized;
 }
 
+export function reportableSuggestionFromPlaceSuggestion(
+  suggestion: PlaceSuggestion,
+): ReportablePlaceSuggestion {
+  return {
+    provider: suggestion.provider?.trim().toLocaleLowerCase("en-US") || "unknown",
+    providerPlaceId: suggestion.externalId.trim(),
+    name: suggestion.name.trim(),
+    category: suggestion.category,
+    address: suggestion.address.trim(),
+    area: suggestion.area?.trim() || null,
+    city: suggestion.city.trim(),
+    lat: Number.isFinite(suggestion.lat) ? suggestion.lat : null,
+    lng: Number.isFinite(suggestion.lng) ? suggestion.lng : null,
+    website: normalizeWebsiteUrl(suggestion.website) ?? null,
+  };
+}
+
 export async function createGroupPlaceDataReport(
   groupId: string,
   placeId: string,
@@ -177,7 +234,32 @@ export async function createGroupPlaceDataReport(
   );
 }
 
-export async function listGroupPlaceDataReports(groupId: string): Promise<PlaceDataReport[]> {
+export async function createGroupPlaceSuggestionReport(
+  groupId: string,
+  suggestion: ReportablePlaceSuggestion,
+  input: CreatePlaceDataReportInput,
+): Promise<{ id: string; created: boolean }> {
+  return rpcClient.call(
+    "create_place_data_report_from_suggestion_v1",
+    {
+      _group_id: groupId,
+      _provider: suggestion.provider,
+      _provider_place_id: suggestion.providerPlaceId,
+      _name: suggestion.name,
+      _address: suggestion.address,
+      _city: suggestion.city,
+      _website: normalizeWebsiteUrl(suggestion.website) ?? null,
+      _lat: suggestion.lat ?? null,
+      _lng: suggestion.lng ?? null,
+      _category: input.category,
+      _description: normalizePlaceDataReportDescription(input.description),
+    },
+    createResultSchema,
+    "Servern kunde inte bekräfta rapporten om sökträffen.",
+  );
+}
+
+async function listGroupPlaceDataReportsV2OrV1(groupId: string): Promise<PlaceDataReport[]> {
   try {
     return await rpcClient.call(
       "list_group_place_data_reports_v2",
@@ -193,6 +275,20 @@ export async function listGroupPlaceDataReports(groupId: string): Promise<PlaceD
       reportListSchema,
       "Servern returnerade ett oväntat rapportformat.",
     );
+  }
+}
+
+export async function listGroupPlaceDataReports(groupId: string): Promise<PlaceDataReport[]> {
+  try {
+    return await rpcClient.call(
+      "list_group_place_data_reports_v3",
+      { _group_id: groupId },
+      reportListSchema,
+      "Servern returnerade ett oväntat rapportformat.",
+    );
+  } catch (error) {
+    if (!shouldFallbackFromReportListV3(error)) throw error;
+    return listGroupPlaceDataReportsV2OrV1(groupId);
   }
 }
 
@@ -218,6 +314,10 @@ function storageKey(groupId: string): string {
   return `${LOCAL_STORAGE_PREFIX}.${groupId}`;
 }
 
+function legacyStorageKey(groupId: string): string {
+  return `${LEGACY_LOCAL_STORAGE_PREFIX}.${groupId}`;
+}
+
 export function listLocalPlaceDataReports(
   groupId: string,
   storageKind: LocalReportStorage,
@@ -225,7 +325,7 @@ export function listLocalPlaceDataReports(
   const storage = storageFor(storageKind);
   if (!storage) return [];
   try {
-    const raw = storage.getItem(storageKey(groupId));
+    const raw = storage.getItem(storageKey(groupId)) ?? storage.getItem(legacyStorageKey(groupId));
     if (!raw) return [];
     const parsed = reportListSchema.safeParse(JSON.parse(raw));
     return parsed.success ? parsed.data : [];
@@ -248,6 +348,55 @@ function localId(): string {
     : "00000000-0000-4000-8000-" + Math.random().toString(16).slice(2).padEnd(12, "0").slice(0, 12);
 }
 
+function baseLocalReport(input: {
+  groupId: string;
+  placeId: string | null;
+  provider: string | null;
+  providerPlaceId: string | null;
+  placeName: string;
+  placeAddress: string;
+  placeCity: string;
+  placeWebsite: string | null;
+  sources: PlaceDataReportSource[];
+  reporter: Member;
+  reportInput: CreatePlaceDataReportInput;
+}): PlaceDataReport {
+  const now = new Date().toISOString();
+  return {
+    id: localId(),
+    groupId: input.groupId,
+    targetKind: input.placeId ? "place" : "suggestion",
+    placeId: input.placeId,
+    provider: input.provider,
+    providerPlaceId: input.providerPlaceId,
+    placeName: input.placeName,
+    placeAddress: input.placeAddress,
+    placeCity: input.placeCity,
+    placeWebsite: input.placeWebsite,
+    category: input.reportInput.category,
+    description: normalizePlaceDataReportDescription(input.reportInput.description),
+    status: "open",
+    reporterId: input.reporter.id,
+    reporterName: input.reporter.name,
+    createdAt: now,
+    updatedAt: now,
+    reviewedBy: null,
+    reviewerName: null,
+    reviewedAt: null,
+    resolutionNote: null,
+    sources: input.sources,
+    osmSubmissionState: "not_submitted",
+    osmSubmissionErrorCode: null,
+    osmPublicText: null,
+    osmNoteId: null,
+    osmNoteUrl: null,
+    osmNoteStatus: null,
+    osmNoteCreatedAt: null,
+    osmNoteLastCheckedAt: null,
+    osmNoteClosedAt: null,
+  };
+}
+
 export function createLocalPlaceDataReport(
   groupId: string,
   place: Place,
@@ -265,41 +414,65 @@ export function createLocalPlaceDataReport(
   );
   if (existing) return { id: existing.id, created: false };
 
-  const now = new Date().toISOString();
-  const report: PlaceDataReport = {
-    id: localId(),
+  const report = baseLocalReport({
     groupId,
     placeId: place.id,
+    provider: null,
+    providerPlaceId: null,
     placeName: place.name,
     placeAddress: place.address,
     placeCity: place.city,
     placeWebsite: place.website ?? null,
-    category: input.category,
-    description: normalizePlaceDataReportDescription(input.description),
-    status: "open",
-    reporterId: reporter.id,
-    reporterName: reporter.name,
-    createdAt: now,
-    updatedAt: now,
-    reviewedBy: null,
-    reviewerName: null,
-    reviewedAt: null,
-    resolutionNote: null,
     sources: (place.sources ?? []).map((source) => ({
       provider: source.provider,
       providerPlaceId: source.providerPlaceId,
       status: source.status,
     })),
-    osmSubmissionState: "not_submitted",
-    osmSubmissionErrorCode: null,
-    osmPublicText: null,
-    osmNoteId: null,
-    osmNoteUrl: null,
-    osmNoteStatus: null,
-    osmNoteCreatedAt: null,
-    osmNoteLastCheckedAt: null,
-    osmNoteClosedAt: null,
-  };
+    reporter,
+    reportInput: input,
+  });
+  saveLocalPlaceDataReports(groupId, storageKind, [report, ...current]);
+  return { id: report.id, created: true };
+}
+
+export function createLocalPlaceSuggestionReport(
+  groupId: string,
+  suggestion: ReportablePlaceSuggestion,
+  reporter: Member,
+  input: CreatePlaceDataReportInput,
+  storageKind: LocalReportStorage,
+): { id: string; created: boolean } {
+  const current = listLocalPlaceDataReports(groupId, storageKind);
+  const existing = current.find(
+    (report) =>
+      report.targetKind === "suggestion" &&
+      report.provider === suggestion.provider &&
+      report.providerPlaceId === suggestion.providerPlaceId &&
+      report.reporterId === reporter.id &&
+      report.category === input.category &&
+      ACTIVE_STATUSES.has(report.status),
+  );
+  if (existing) return { id: existing.id, created: false };
+
+  const report = baseLocalReport({
+    groupId,
+    placeId: null,
+    provider: suggestion.provider,
+    providerPlaceId: suggestion.providerPlaceId,
+    placeName: suggestion.name,
+    placeAddress: suggestion.address,
+    placeCity: suggestion.city,
+    placeWebsite: normalizeWebsiteUrl(suggestion.website) ?? null,
+    sources: [
+      {
+        provider: suggestion.provider,
+        providerPlaceId: suggestion.providerPlaceId,
+        status: "active",
+      },
+    ],
+    reporter,
+    reportInput: input,
+  });
   saveLocalPlaceDataReports(groupId, storageKind, [report, ...current]);
   return { id: report.id, created: true };
 }

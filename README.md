@@ -27,9 +27,10 @@ individuell matdagbok, social feed eller global ranking.
 - Deduplicerade sökresultat i lista och karta. Nya och tidigare borttagna
   ställen visas som möjliga att lägga till, medan aktiva gruppställen samlas i
   den stängda sektionen **Redan i gruppen**.
-- Matställets egen webbplats visas diskret på detaljsidan när en giltig adress
-  finns. Geoapify- och OpenStreetMap-identiteter bevaras separat så platsdata kan
-  följas över tid utan att äldre besök skrivs om.
+- Matställets egen webbplats och Google Maps visas konsekvent före och efter
+  tillägg när en säker länk finns. Geoapify- och OpenStreetMap-identiteter
+  bevaras separat så platsdata kan följas över tid utan att äldre besök skrivs
+  om.
 - Manuella matställen kan få en verifierad kartposition och ett privat underlag
   om att verksamheten saknas i OpenStreetMap. Inget publiceras automatiskt.
 - När en senare Geoapify- eller OSM-träff säkert motsvarar ett providerlöst
@@ -43,10 +44,15 @@ individuell matdagbok, social feed eller global ranking.
   administratörer behåller ansvar för borttagning, återställning och dolda
   sökträffar.
 - Ägare och administratörer kan dölja en felaktig eller inaktuell providerträff
-  enbart för den aktuella gruppen och återställa den under gruppinställningarna.
-- Alla aktiva medlemmar kan rapportera felaktig platsinformation privat från
-  matställets detaljsida. Ägare och administratörer granskar rapporterna under
+  enbart för den aktuella gruppen. Dolda träffar kan öppnas under
+  gruppinställningarna för kontroll, rapportering och återställning.
+- Alla aktiva medlemmar kan rapportera felaktig platsinformation privat både
+  från matställets detaljsida och från en sökträff innan den läggs till.
+  Ägare och administratörer granskar rapporterna under
   **Gruppinställningar → Platsdata**.
+- Rapportering och döljning är separata handlingar. En rapport går till gruppens
+  admin, medan döljning bara påverkar den aktuella gruppens sökningar och kan
+  ångras när som helst.
 - En förberedd rapport kan publiceras som en anonym OpenStreetMap-anteckning
   först efter att admin har granskat den exakta offentliga texten och bekräftat
   publiceringen. OSM-statusen kan därefter kontrolleras manuellt utan att
@@ -109,12 +115,15 @@ Gruppen är den primära produkt- och integritetsgränsen.
   gruppprivata uppgifter eller platsens befintliga historik.
 - `group_search_areas` innehåller gruppens verifierade sökcentrum.
 - `group_hidden_place_suggestions` innehåller gruppens spärrlista för externa
-  sökträffar utan att radera det kanoniska matstället.
+  sökträffar och en begränsad säker ögonblicksbild av kategori, kartposition och
+  normaliserad webbplats. Döljningen raderar inte det kanoniska matstället och
+  påverkar aldrig andra grupper.
 - `place_data_reports` innehåller gruppprivata rapporter, en begränsad
-  ögonblicksbild av platsinformationen och eventuell OSM-note-status. Tabellen
-  har ingen direkt klientåtkomst; aktiva medlemmar får rapportera och endast
-  ägare/admin får läsa kön, granska den offentliga texten och starta
-  publicering.
+  ögonblicksbild av platsinformationen och eventuell OSM-note-status. En rapport
+  kan rikta sig mot ett kanoniskt ställe eller en exakt provideridentitet utan
+  att en tom platsrad skapas. Tabellen har ingen direkt klientåtkomst; aktiva
+  medlemmar får rapportera och endast ägare/admin får läsa kön, granska den
+  offentliga texten och starta publicering.
 - OSM-publiceringen reserveras gruppscopat i databasen. Bara serverrollen får
   spara ett bekräftat note-ID eller en extern status. En neutral offentlig
   referens används för säker återhämtning efter nätverksavbrott.
