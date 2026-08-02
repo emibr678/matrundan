@@ -13,6 +13,19 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.17.1] – 2026-08-02
+
+### Ändrat
+
+- Kryss och **Tillbaka** från granskningen av en sökträff återgår till samma
+  sökning med bevarad söktext, urval och position. Bara ett synligt och aktivt
+  modalt lager används åt gången.
+- Ägare och administratörer granskar platsdatarapporter med tydliga handlingar:
+  **Förbered för OpenStreetMap**, **Markera som åtgärdad** och **Avsluta utan
+  åtgärd**.
+- Den offentliga OSM-texten visas först efter att rapporten uttryckligen har
+  förberetts för OpenStreetMap. Interna anteckningar förblir privata.
+
 ## [1.17.0] – 2026-08-02
 
 ### Lagt till
