@@ -116,6 +116,16 @@ Global skrivande formattering är avsiktligt explicit:
 bun run format:all
 ```
 
+## Personabaserade UX-tester
+
+Det deterministiska browserlagret ligger fortsatt under `tests/e2e/` och är den relevanta mergegrinden. Öppna personabaserade testuppdrag finns under [`docs/ux-testing/`](docs/ux-testing/README.md).
+
+Personatesterna används för att upptäcka begriplighets-, navigations- och förtroendeproblem som inte kan beskrivas med en stabil selector eller en förutbestämd klickväg. De ska köras i en separat browserkontext per persona och kräver visuell input, exempelvis skärmbilder genom Computer Use eller ett motsvarande browserverktyg.
+
+En Codex-session som endast har terminal och Playwright-selectors får förbereda eller analysera tester, men får inte påstå att den genomfört ett visuellt black-box-test. Projektets roller under `.codex/agents/` är read-only och ska följa rapportkontraktet i `docs/ux-testing/report-schema.md`.
+
+Personatester blockerar inte merge initialt. Reproducerbara och entydiga fynd ska omvandlas till vanliga Playwright-regressionstester innan de används som releasekrav.
+
 ## Hur ändrade filer bestäms
 
 `scripts/repo-tools.mjs` använder i denna ordning:
