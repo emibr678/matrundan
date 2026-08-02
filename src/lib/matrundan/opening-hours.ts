@@ -242,7 +242,10 @@ export function isOpeningHoursSchedule(value: unknown): value is OpeningHoursSch
     const day = rawDay as Partial<OpeningHoursDay>;
     if (!OPENING_HOURS_DAY_CODES.includes(day.code as OpeningHoursDayCode)) return false;
     if (seen.has(day.code as OpeningHoursDayCode)) return false;
-    if (!Array.isArray(day.intervals) || !day.intervals.every((item) => typeof item === "string")) {
+    if (
+      !Array.isArray(day.intervals) ||
+      !day.intervals.every((item) => typeof item === "string")
+    ) {
       return false;
     }
     if (typeof day.closed !== "boolean" || typeof day.known !== "boolean") return false;
