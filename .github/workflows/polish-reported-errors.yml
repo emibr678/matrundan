@@ -1,3 +1,4 @@
+# Temporary workflow for branch-local text replacements.
 name: Polish reported errors branch
 
 on:
