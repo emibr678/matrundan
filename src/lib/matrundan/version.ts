@@ -3,6 +3,30 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_15, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-15";
 export type { ChangelogEntry };
 
+const VERSION_1_19_0_CHANGELOG: ChangelogEntry = {
+  version: "1.19.0",
+  date: "2026-08-02",
+  summary: "Grupper som delar samma matställe kan granska anonyma förslag på webbplats och öppettider.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Källstödda ändringar av webbplats och öppettider kan visas som fältvisa förslag i andra grupper som använder samma kanoniska matställe.",
+        "Varje grupp väljer uttryckligen om ett förslag ska användas; ingen gruppuppgift skrivs över automatiskt.",
+        "Motstridiga uppgifter visas som osäkra utan att Matrundan väljer en vinnare.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Förslagen avslöjar aldrig ursprungsgrupp, medlem, privat källa, anteckning eller antal grupper.",
+        "Globala Geoapify-snapshots kan endast skrivas av serverrollen efter en gruppverifierad hämtning.",
+        "Förslag försvinner när samma uppgift redan används och äldre underlag slutar föreslås efter 90 dagar.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_18_0_CHANGELOG: ChangelogEntry = {
   version: "1.18.0",
   date: "2026-08-02",
@@ -140,6 +164,7 @@ const VERSION_1_16_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_19_0_CHANGELOG,
   VERSION_1_18_0_CHANGELOG,
   VERSION_1_17_1_CHANGELOG,
   VERSION_1_17_0_CHANGELOG,
