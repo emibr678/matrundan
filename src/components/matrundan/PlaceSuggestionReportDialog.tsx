@@ -33,6 +33,7 @@ interface PlaceSuggestionReportDialogProps {
   disabled?: boolean;
   triggerLabel?: string;
   onHide?: () => Promise<void>;
+  onHidden?: () => void;
   onReported?: () => void;
 }
 
@@ -47,10 +48,12 @@ export function PlaceSuggestionReportDialog({
   disabled = false,
   triggerLabel = "Rapportera felaktig träff",
   onHide,
+  onHidden,
   onReported,
 }: PlaceSuggestionReportDialogProps) {
   const { mode, activeGroupId, exampleMode } = useSession();
   const { state, submitting } = useStore();
+  const formId = React.useId();
   const [open, setOpen] = React.useState(false);
   const [category, setCategory] = React.useState<PlaceDataReportCategory>("closed_or_replaced");
   const [description, setDescription] = React.useState("");
@@ -124,6 +127,7 @@ export function PlaceSuggestionReportDialog({
             : "Tack! Rapporten går till gruppens admin. Träffen visas fortfarande i sökningen.",
         );
       }
+      if (hidden && !alreadyHidden && !hideFailed) onHidden?.();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte skicka rapporten.");
     } finally {
@@ -150,10 +154,10 @@ export function PlaceSuggestionReportDialog({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent aria-describedby="suggestion-report-description">
+      <DialogContent aria-describedby={`${formId}-description`}>
         <DialogHeader>
           <DialogTitle>Rapportera felaktig träff</DialogTitle>
-          <DialogDescription id="suggestion-report-description">
+          <DialogDescription id={`${formId}-description`}>
             Rapporten granskas av gruppens admin. Om felet finns i kartdatan kan admin senare
             skicka en anonym anteckning till OpenStreetMap. Gruppens namn, medlemmar och privata
             kommentarer följer aldrig med.
@@ -169,11 +173,9 @@ export function PlaceSuggestionReportDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={`suggestion-report-category-${suggestion.providerPlaceId}`}>
-              Vad verkar vara fel?
-            </Label>
+            <Label htmlFor={`${formId}-category`}>Vad verkar vara fel?</Label>
             <select
-              id={`suggestion-report-category-${suggestion.providerPlaceId}`}
+              id={`${formId}-category`}
               value={category}
               onChange={(event) => changeCategory(event.target.value as PlaceDataReportCategory)}
               className="flex min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -187,11 +189,9 @@ export function PlaceSuggestionReportDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={`suggestion-report-description-${suggestion.providerPlaceId}`}>
-              Vad har du sett?
-            </Label>
+            <Label htmlFor={`${formId}-description-input`}>Vad har du sett?</Label>
             <Textarea
-              id={`suggestion-report-description-${suggestion.providerPlaceId}`}
+              id={`${formId}-description-input`}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               minLength={10}
