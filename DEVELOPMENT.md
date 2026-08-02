@@ -126,6 +126,12 @@ En Codex-session som endast har terminal och Playwright-selectors får förbered
 
 Personatester blockerar inte merge initialt. Reproducerbara och entydiga fynd ska omvandlas till vanliga Playwright-regressionstester innan de används som releasekrav.
 
+## Serverfunktioner och CSRF
+
+Projektets egen `src/start.ts` ska behålla TanStack Starts CSRF-middleware för alla serverfunktioner. Bearer-token, medlemskap och rollkontroller är separata behörighetsskydd och ersätter inte origin-skyddet.
+
+Det normerande beslutet och verifieringskraven finns i [`docs/security/server-functions-and-csrf.md`](docs/security/server-functions-and-csrf.md).
+
 ## Hur ändrade filer bestäms
 
 `scripts/repo-tools.mjs` använder i denna ordning:
