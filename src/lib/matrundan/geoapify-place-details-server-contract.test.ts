@@ -10,9 +10,19 @@ const source = readFileSync(
 describe("Geoapifys platsdetaljer", () => {
   test("hämtas endast bakom autentisering och gruppskyddad RPC", () => {
     expect(source).toContain(".middleware([requireSupabaseAuth])");
+    expect(source).toContain('rpc("get_place_external_info_context_v2"');
     expect(source).toContain('rpc("get_place_external_info_context_v1"');
     expect(source).toContain("groupId: z.string().uuid()");
     expect(source).toContain("placeId: z.string().uuid()");
+    expect(source).toContain("forceRefresh: z.boolean().optional().default(false)");
+  });
+
+  test("återanvänder en färsk snapshot och begränsar manuell omhämtning", () => {
+    expect(source).toContain("SNAPSHOT_MAX_AGE_MS");
+    expect(source).toContain("MANUAL_REFRESH_MIN_AGE_MS");
+    expect(source).toContain("if (!data.forceRefresh && snapshotAge <= SNAPSHOT_MAX_AGE_MS)");
+    expect(source).toContain("if (data.forceRefresh && snapshotAge <= MANUAL_REFRESH_MIN_AGE_MS)");
+    expect(source).toContain('rpc("save_place_external_info_snapshot_v1"');
   });
 
   test("API-nyckeln stannar på servern och rådata returneras inte", () => {
