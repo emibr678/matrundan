@@ -4,25 +4,26 @@ import { toast } from "sonner";
 
 import { PlaceDataSignalNotice } from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
-import type { ReportablePlaceSuggestion } from "@/lib/matrundan/place-data-reports";
 import {
   confirmPlaceDataSignal,
+  type PlaceDataSignal,
+  type PlaceDataSignalTarget,
   type PlaceDataSignalVerdict,
 } from "@/lib/matrundan/place-data-signals";
-import { usePlaceDataSignalForReportableSuggestion } from "@/lib/matrundan/use-place-data-signals";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
 export function PlaceSuggestionSignalPanel({
-  suggestion,
+  signal,
+  target,
   disabled = false,
 }: {
-  suggestion: ReportablePlaceSuggestion;
+  signal?: PlaceDataSignal;
+  target: PlaceDataSignalTarget;
   disabled?: boolean;
 }) {
   const { mode, activeGroupId } = useSession();
   const { state } = useStore();
-  const { signal, target } = usePlaceDataSignalForReportableSuggestion(suggestion);
   const [busyVerdict, setBusyVerdict] = React.useState<PlaceDataSignalVerdict | null>(null);
   const canConfirm =
     mode === "live" &&
@@ -30,7 +31,7 @@ export function PlaceSuggestionSignalPanel({
     state.group.lifecycleStatus !== "archived" &&
     signal?.closureStatus !== "none";
 
-  if (!signal || (signal.closureStatus === "none" && !signal.limitedInformation)) return null;
+  if (!signal || signal.closureStatus === "none") return null;
 
   async function confirm(verdict: PlaceDataSignalVerdict) {
     if (!activeGroupId || busyVerdict) return;
@@ -87,8 +88,7 @@ export function PlaceSuggestionSignalPanel({
       ) : null}
       {canConfirm ? (
         <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-          Bekräftelsen delas bara som en anonym slutsats. Grupp, medlem och privata kommentarer
-          lämnas aldrig ut.
+          Din bekräftelse delas anonymt. Grupp, medlem och privata kommentarer visas aldrig.
         </p>
       ) : null}
     </div>
