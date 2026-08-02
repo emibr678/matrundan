@@ -37,10 +37,26 @@ import { CATEGORY_LABEL, type SearchArea, type SearchRadiusKm } from "@/lib/matr
 type ResultView = "lista" | "karta";
 type ResultStatus = "available" | "linkable" | "existing";
 
+export interface PlaceDiscoverySnapshot {
+  query: string;
+  selectedAreaIds: string[];
+  temporaryAreas: SearchArea[];
+  radiusKm: SearchRadiusKm;
+  results: PlaceSuggestion[];
+  failedAreas: string[];
+  selectedId: string | null;
+  resultView: ResultView;
+  existingOpen: boolean;
+  bulkMode: boolean;
+  error: string | null;
+}
+
 export function PlaceDiscoveryV16({
   addedResultIds,
   selectedResults,
   bulkBusy,
+  snapshot,
+  onSnapshotChange,
   onToggleSelected,
   onClearSelected,
   onAddSelected,
@@ -51,6 +67,8 @@ export function PlaceDiscoveryV16({
   addedResultIds: Set<string>;
   selectedResults: PlaceSuggestion[];
   bulkBusy: boolean;
+  snapshot?: PlaceDiscoverySnapshot | null;
+  onSnapshotChange?: (snapshot: PlaceDiscoverySnapshot) => void;
   onToggleSelected: (suggestion: PlaceSuggestion) => void;
   onClearSelected: () => void;
   onAddSelected: () => void;
@@ -70,30 +88,61 @@ export function PlaceDiscoveryV16({
     () => new Set(selectedResults.map((result) => result.externalId)),
     [selectedResults],
   );
-  const [query, setQuery] = React.useState("");
-  const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(() =>
-    savedAreas.map((area) => area.id),
+  const [query, setQuery] = React.useState(snapshot?.query ?? "");
+  const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(
+    snapshot?.selectedAreaIds ?? savedAreas.map((area) => area.id),
   );
-  const [temporaryAreas, setTemporaryAreas] = React.useState<SearchArea[]>([]);
+  const [temporaryAreas, setTemporaryAreas] = React.useState<SearchArea[]>(
+    snapshot?.temporaryAreas ?? [],
+  );
   const [radiusKm, setRadiusKm] = React.useState<SearchRadiusKm>(
-    state.group.defaultSearchRadiusKm ?? 1,
+    snapshot?.radiusKm ?? state.group.defaultSearchRadiusKm ?? 1,
   );
-  const [results, setResults] = React.useState<PlaceSuggestion[]>([]);
+  const [results, setResults] = React.useState<PlaceSuggestion[]>(snapshot?.results ?? []);
   const [hiddenKeys, setHiddenKeys] = React.useState<Set<string>>(() => new Set());
   const [localSourceLinks, setLocalSourceLinks] = React.useState<LocalManualSourceLink[]>([]);
   const [hiddenLoading, setHiddenLoading] = React.useState(true);
-  const [failedAreas, setFailedAreas] = React.useState<string[]>([]);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [resultView, setResultView] = React.useState<ResultView>("lista");
-  const [existingOpen, setExistingOpen] = React.useState(false);
-  const [bulkMode, setBulkMode] = React.useState(false);
+  const [failedAreas, setFailedAreas] = React.useState<string[]>(snapshot?.failedAreas ?? []);
+  const [selectedId, setSelectedId] = React.useState<string | null>(snapshot?.selectedId ?? null);
+  const [resultView, setResultView] = React.useState<ResultView>(snapshot?.resultView ?? "lista");
+  const [existingOpen, setExistingOpen] = React.useState(snapshot?.existingOpen ?? false);
+  const [bulkMode, setBulkMode] = React.useState(snapshot?.bulkMode ?? false);
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(snapshot?.error ?? null);
   const [retry, setRetry] = React.useState(0);
   const requestRef = React.useRef(0);
   const previousBulkBusyRef = React.useRef(false);
   const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
+
+  React.useEffect(() => {
+    onSnapshotChange?.({
+      query,
+      selectedAreaIds,
+      temporaryAreas,
+      radiusKm,
+      results,
+      failedAreas,
+      selectedId,
+      resultView,
+      existingOpen,
+      bulkMode,
+      error,
+    });
+  }, [
+    bulkMode,
+    error,
+    existingOpen,
+    failedAreas,
+    onSnapshotChange,
+    query,
+    radiusKm,
+    resultView,
+    results,
+    selectedAreaIds,
+    selectedId,
+    temporaryAreas,
+  ]);
 
   const activeAreas = React.useMemo(() => {
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
