@@ -35,9 +35,13 @@ individuell matdagbok, social feed eller global ranking.
   utfällbart veckoschema på detaljsidan. Tiderna visas som kartdata med
   hämtningstid och reservation för specialdagar eller inaktuella uppgifter;
   Matrundan ger inte ett osäkert **Öppet nu**-besked.
-- Saknad webbplats eller saknade öppettider visas som lugna, tydliga rader på
-  detaljsidan. En medlem kan lämna ett privat underlag till gruppens admin utan
-  att kompletteringsflödet tar över söklistan eller publicerar något automatiskt.
+- Alla aktiva medlemmar kan lägga till eller rätta gruppens webbplats och
+  öppettider med en privat källänk eller observation. Ändringen används direkt
+  i gruppen och skapar vid behov ett privat granskningsunderlag för admin; inget
+  publiceras automatiskt till OpenStreetMap.
+- Gruppens praktiska information har ändringshistorik och kan återställas till
+  kartdatan. Senaste Geoapify/OSM-data kan hämtas på nytt utan att en aktiv
+  gruppöverstyrning skrivs över tyst.
 - Manuella matställen kan få en verifierad kartposition och ett privat underlag
   om att verksamheten saknas i OpenStreetMap. Inget publiceras automatiskt.
 - När en senare Geoapify- eller OSM-träff säkert motsvarar ett providerlöst
@@ -127,15 +131,20 @@ Gruppen är den primära produkt- och integritetsgränsen.
   En bekräftad källkoppling är kanonisk och kan därför hjälpa andra grupper som
   redan länkar samma verkliga ställe, men får aldrig innehålla ursprungsgrupp,
   medlemskap eller privata gruppfält.
-- Öppettidsdetaljer hämtas på begäran genom en autentiserad serverfunktion.
-  Databasen verifierar först aktivt medlemskap, gruppens platskoppling och en
-  aktiv Geoapify-källa. Klienten får bara ett normaliserat veckoschema, säker
+- Öppettidsdetaljer hämtas genom en autentiserad serverfunktion. Databasen
+  verifierar aktivt medlemskap, gruppens platskoppling och en aktiv
+  Geoapify-källa. Klienten får bara ett normaliserat veckoschema, säker
   webbplats, hämtningstid och källangivelse; rå providerpayload och interna
-  kopplingar stannar på servern. Resultatet mellanlagras endast i den aktuella
-  webbläsarsessionen och blir inte en ny global sanning i `places`.
-- `group_places` innehåller gruppens relation, metadata, eventuell
-  webbplatsöverstyrning och aktiva lista. En källkoppling skriver inte om dessa
-  gruppprivata uppgifter eller platsens befintliga historik.
+  kopplingar stannar på servern.
+- `place_external_info_snapshots` innehåller den senaste normaliserade externa
+  ögonblicksbilden för ett kanoniskt matställe. Tabellen saknar direkt
+  klientåtkomst och kan hjälpa flera grupper att undvika onödiga provideranrop
+  utan att dela gruppprivata uppgifter.
+- `group_places` innehåller gruppens relation, metadata, webbplats- och
+  öppettidsöverstyrning samt privat källa, ändrare och ändringstid. En
+  källuppdatering skriver aldrig tyst över dessa gruppspecifika uppgifter.
+- `group_place_practical_info_history` bevarar gruppens revisionshistorik och
+  nås endast genom medlemskapskontrollerade RPC:er.
 - `group_search_areas` innehåller gruppens verifierade sökcentrum.
 - `group_hidden_place_suggestions` innehåller gruppens spärrlista för externa
   sökträffar och en begränsad säker ögonblicksbild av kategori, kartposition och
@@ -161,8 +170,8 @@ Gruppen är den primära produkt- och integritetsgränsen.
 - `next_stop_date_proposals` och `next_stop_date_responses` innehåller gruppens
   privata planering.
 
-Den primära live-läsningen går genom `get_group_app_state_v5f` med strikt
-fallback till `get_group_app_state_v5e` endast när den nya funktionen uttryckligen
+Den primära live-läsningen går genom `get_group_app_state_v5g` med strikt
+fallback till `get_group_app_state_v5f` endast när den nya funktionen uttryckligen
 saknas. Rå providerdata stannar på serversidan. Känsliga skrivningar använder
 validerade `SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering,
 medlemskapskontroller och relevanta rollkrav.
