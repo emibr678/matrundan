@@ -21,6 +21,7 @@ export interface NormalizedPlaceSuggestion {
   distanceKm?: number;
   website?: string;
   phone?: string;
+  hasOpeningHours: boolean;
   externalUrl?: string;
   attribution: string;
   /** Begränsad, JSON-serialiserad metadata för place_sources.raw. */
@@ -62,6 +63,7 @@ interface GeoapifyProperties {
   result_type?: string;
   categories?: string[];
   website?: string;
+  opening_hours?: string;
   contact?: { phone?: string };
   datasource?: {
     raw?: Record<string, unknown> & {
@@ -69,6 +71,7 @@ interface GeoapifyProperties {
       amenity?: string;
       website?: string;
       phone?: string;
+      opening_hours?: string;
       osm_id?: string | number;
       osm_type?: string;
     };
@@ -220,6 +223,11 @@ export function addressFromGeoapify(props: GeoapifyProperties): string {
   return props.formatted?.split(",")[0]?.trim() ?? "";
 }
 
+function hasOpeningHours(properties: GeoapifyProperties): boolean {
+  const value = properties.opening_hours ?? properties.datasource?.raw?.opening_hours;
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlaceSuggestion | null {
   const properties = feature.properties;
   const externalId = properties?.place_id?.trim();
@@ -230,6 +238,7 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
   const providerRaw = properties.datasource?.raw;
   const website = properties.website || providerRaw?.website;
   const phone = properties.contact?.phone || providerRaw?.phone;
+  const openingHoursKnown = hasOpeningHours(properties);
   const osmType = normalizedOsmType(providerRaw?.osm_type);
   const osmId = normalizedOsmId(providerRaw?.osm_id);
   const categories = properties.categories ?? [];
@@ -242,6 +251,7 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
     categories,
     website: typeof website === "string" ? website : undefined,
     phone: typeof phone === "string" ? phone : undefined,
+    hasOpeningHours: openingHoursKnown,
     attribution: GEOAPIFY_ATTRIBUTION,
   };
 
@@ -262,6 +272,7 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
     distanceKm: typeof properties.distance === "number" ? properties.distance / 1000 : undefined,
     website: typeof website === "string" ? website : undefined,
     phone: typeof phone === "string" ? phone : undefined,
+    hasOpeningHours: openingHoursKnown,
     externalUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
       [name, addressFromGeoapify(properties), cityFromGeoapify(properties)]
         .filter(Boolean)
