@@ -16,7 +16,7 @@ describe("Geoapifys platsdetaljer", () => {
   });
 
   test("API-nyckeln stannar på servern och rådata returneras inte", () => {
-    expect(source).toContain('process.env.GEOAPIFY_API_KEY');
+    expect(source).toContain("process.env.GEOAPIFY_API_KEY");
     expect(source).toContain('new URL("https://api.geoapify.com/v2/place-details")');
     expect(source).toContain("openingHours: parseOpeningHours(openingHours)");
     expect(source).not.toContain("raw:");
