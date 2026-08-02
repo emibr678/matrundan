@@ -2,10 +2,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { parseOpeningHours, type OpeningHoursSchedule } from "./opening-hours";
+import {
+  isOpeningHoursSchedule,
+  parseOpeningHours,
+  type OpeningHoursSchedule,
+} from "./opening-hours";
 import { normalizeWebsiteUrl } from "./place-links";
 
 const REQUEST_TIMEOUT_MS = 10_000;
+const SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const MANUAL_REFRESH_MIN_AGE_MS = 5 * 60 * 1000;
 
 interface RpcResponse {
   data: unknown;
@@ -14,8 +20,17 @@ interface RpcResponse {
 
 type RpcCall = (fn: string, args?: Record<string, unknown>) => Promise<RpcResponse>;
 
+const externalDetailsSchema = z.object({
+  openingHours: z.custom<OpeningHoursSchedule>(isOpeningHoursSchedule).nullable(),
+  website: z.string().nullable(),
+  timezone: z.string().nullable(),
+  fetchedAt: z.string(),
+  attribution: z.string(),
+});
+
 const contextSchema = z.object({
   providerPlaceId: z.string().min(1),
+  snapshot: externalDetailsSchema.nullable().optional(),
 });
 
 const geoapifyPropertiesSchema = z
@@ -67,11 +82,24 @@ function readKey(): string {
   return key;
 }
 
+function missingRpc(message?: string, functionName?: string): boolean {
+  const text = message ?? "";
+  return (
+    /could not find the function|schema cache/i.test(text) &&
+    (!functionName || text.toLocaleLowerCase("en-US").includes(functionName.toLocaleLowerCase("en-US")))
+  );
+}
+
 function externalInfoContextError(message?: string): Error {
   if (/could not find the function|schema cache/i.test(message ?? "")) {
     return new Error("Öppettider är tillfälligt otillgängliga. Försök igen senare.");
   }
   return new Error("Matstället kunde inte verifieras för gruppen.");
+}
+
+function ageMs(value: string): number {
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? Date.now() - parsed : Number.POSITIVE_INFINITY;
 }
 
 async function fetchPlaceDetails(providerPlaceId: string): Promise<PlaceExternalDetails> {
@@ -117,6 +145,30 @@ async function fetchPlaceDetails(providerPlaceId: string): Promise<PlaceExternal
   }
 }
 
+async function verifiedContext(
+  rpc: RpcCall,
+  groupId: string,
+  placeId: string,
+): Promise<{ context: z.infer<typeof contextSchema>; supportsSnapshots: boolean }> {
+  const current = await rpc("get_place_external_info_context_v2", {
+    _group_id: groupId,
+    _place_id: placeId,
+  });
+  if (!current.error) {
+    return { context: contextSchema.parse(current.data), supportsSnapshots: true };
+  }
+  if (!missingRpc(current.error.message, "get_place_external_info_context_v2")) {
+    throw externalInfoContextError(current.error.message);
+  }
+
+  const previous = await rpc("get_place_external_info_context_v1", {
+    _group_id: groupId,
+    _place_id: placeId,
+  });
+  if (previous.error) throw externalInfoContextError(previous.error.message);
+  return { context: contextSchema.parse(previous.data), supportsSnapshots: false };
+}
+
 export const geoapifyPlaceDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) =>
@@ -124,16 +176,34 @@ export const geoapifyPlaceDetails = createServerFn({ method: "POST" })
       .object({
         groupId: z.string().uuid(),
         placeId: z.string().uuid(),
+        forceRefresh: z.boolean().optional().default(false),
       })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<PlaceExternalDetails> => {
     const rpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
-    const result = await rpc("get_place_external_info_context_v1", {
-      _group_id: data.groupId,
-      _place_id: data.placeId,
-    });
-    if (result.error) throw externalInfoContextError(result.error.message);
-    const verified = contextSchema.parse(result.data);
-    return fetchPlaceDetails(verified.providerPlaceId);
+    const verified = await verifiedContext(rpc, data.groupId, data.placeId);
+    const snapshot = verified.context.snapshot ?? null;
+    if (snapshot) {
+      const snapshotAge = ageMs(snapshot.fetchedAt);
+      if (!data.forceRefresh && snapshotAge <= SNAPSHOT_MAX_AGE_MS) return snapshot;
+      if (data.forceRefresh && snapshotAge <= MANUAL_REFRESH_MIN_AGE_MS) return snapshot;
+    }
+
+    const details = await fetchPlaceDetails(verified.context.providerPlaceId);
+    if (verified.supportsSnapshots) {
+      const saved = await rpc("save_place_external_info_snapshot_v1", {
+        _group_id: data.groupId,
+        _place_id: data.placeId,
+        _provider_place_id: verified.context.providerPlaceId,
+        _website: details.website,
+        _opening_hours: details.openingHours,
+        _timezone: details.timezone,
+        _fetched_at: details.fetchedAt,
+      });
+      if (saved.error && !missingRpc(saved.error.message, "save_place_external_info_snapshot_v1")) {
+        console.warn("[Matrundan] kunde inte spara platsdatasnapshot:", saved.error.message);
+      }
+    }
+    return details;
   });
