@@ -29,7 +29,6 @@ import {
 } from "@/lib/matrundan/place-data-reports";
 import { normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
 import {
-  getLocalGroupPlacePracticalInfo,
   listGroupPlacePracticalInfoHistory,
   listLocalGroupPlacePracticalInfoHistory,
   updateGroupPlacePracticalInfo,
@@ -60,7 +59,9 @@ function scheduleInputs(schedule: OpeningHoursSchedule | null): Record<OpeningHo
 function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium", timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium", timeStyle: "short" }).format(
+    date,
+  );
 }
 
 function reportDescription(
@@ -289,7 +290,13 @@ export function PlacePracticalInfoDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="ghost" size="sm" disabled={cannotEdit} className="h-9 px-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={cannotEdit}
+          className="h-9 px-2"
+        >
           <Pencil className="h-3.5 w-3.5" /> Redigera
         </Button>
       </DialogTrigger>
@@ -333,7 +340,10 @@ export function PlacePracticalInfoDialog({
             </div>
             <div className="grid gap-2 rounded-xl border border-border/70 p-3">
               {OPENING_HOURS_DAY_CODES.map((code) => (
-                <div key={code} className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2">
+                <div
+                  key={code}
+                  className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2"
+                >
                   <Label htmlFor={`practical-hours-${code}`} className="text-sm font-normal">
                     {OPENING_HOURS_DAY_LABEL[code]}
                   </Label>
@@ -399,7 +409,9 @@ export function PlacePracticalInfoDialog({
                     <div className="font-medium">
                       {entry.changedByName} · {formatDate(entry.changedAt)}
                     </div>
-                    {entry.sourceNote ? <p className="mt-1 text-muted-foreground">{entry.sourceNote}</p> : null}
+                    {entry.sourceNote ? (
+                      <p className="mt-1 text-muted-foreground">{entry.sourceNote}</p>
+                    ) : null}
                     {entry.sourceUrl ? (
                       <a
                         href={entry.sourceUrl}
