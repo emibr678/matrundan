@@ -96,17 +96,23 @@ function mapLegacyRows(data: unknown): HiddenPlaceSuggestion[] {
 export async function listGroupHiddenPlaceSuggestions(
   groupId: string,
 ): Promise<HiddenPlaceSuggestion[]> {
-  const v2 = await supabase.rpc("list_group_hidden_place_suggestions_v2" as never, {
-    _group_id: groupId,
-  } as never);
+  const v2 = await supabase.rpc(
+    "list_group_hidden_place_suggestions_v2" as never,
+    {
+      _group_id: groupId,
+    } as never,
+  );
   if (!v2.error) return (v2.data ?? []) as unknown as HiddenPlaceSuggestion[];
   if (!rpcIsMissing(v2.error, "list_group_hidden_place_suggestions_v2")) {
     throw toError(v2.error);
   }
 
-  const legacy = await supabase.rpc("list_group_hidden_place_suggestions" as never, {
-    _group_id: groupId,
-  } as never);
+  const legacy = await supabase.rpc(
+    "list_group_hidden_place_suggestions" as never,
+    {
+      _group_id: groupId,
+    } as never,
+  );
   if (legacy.error) throw toError(legacy.error);
   return mapLegacyRows(legacy.data);
 }
