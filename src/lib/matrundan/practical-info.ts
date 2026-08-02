@@ -34,6 +34,28 @@ export interface UpdateGroupPlacePracticalInfoInput {
   sourceNote: string | null;
 }
 
+export type CrossGroupPracticalInfoSuggestionStatus = "none" | "available" | "conflicting";
+export type CrossGroupPracticalInfoField = "website" | "opening_hours";
+
+export interface CrossGroupWebsiteSuggestion {
+  status: CrossGroupPracticalInfoSuggestionStatus;
+  fingerprint: string | null;
+  website: string | null;
+  changedAt: string | null;
+}
+
+export interface CrossGroupOpeningHoursSuggestion {
+  status: CrossGroupPracticalInfoSuggestionStatus;
+  fingerprint: string | null;
+  openingHours: OpeningHoursSchedule | null;
+  changedAt: string | null;
+}
+
+export interface CrossGroupPracticalInfoSuggestions {
+  website: CrossGroupWebsiteSuggestion;
+  openingHours: CrossGroupOpeningHoursSuggestion;
+}
+
 const openingHoursSchema = z.custom<OpeningHoursSchedule>(isOpeningHoursSchedule);
 const practicalInfoSchema = z.object({
   websiteOverride: z.string().nullable().default(null),
@@ -55,6 +77,21 @@ const historySchema = z.array(
     changedAt: z.string(),
   }),
 );
+const suggestionStatusSchema = z.enum(["none", "available", "conflicting"]);
+const crossGroupSuggestionsSchema = z.object({
+  website: z.object({
+    status: suggestionStatusSchema,
+    fingerprint: z.string().regex(/^[0-9a-f]{32}$/).nullable().default(null),
+    website: z.string().nullable().default(null),
+    changedAt: z.string().nullable().default(null),
+  }),
+  openingHours: z.object({
+    status: suggestionStatusSchema,
+    fingerprint: z.string().regex(/^[0-9a-f]{32}$/).nullable().default(null),
+    openingHours: openingHoursSchema.nullable().default(null),
+    changedAt: z.string().nullable().default(null),
+  }),
+});
 
 const LOCAL_PREFIX = "matrundan.group-place-practical-info.v1";
 const LOCAL_HISTORY_PREFIX = "matrundan.group-place-practical-info-history.v1";
@@ -81,6 +118,23 @@ export function emptyGroupPlacePracticalInfo(): GroupPlacePracticalInfo {
     updatedBy: null,
     updatedByName: null,
     updatedAt: null,
+  };
+}
+
+export function emptyCrossGroupPracticalInfoSuggestions(): CrossGroupPracticalInfoSuggestions {
+  return {
+    website: {
+      status: "none",
+      fingerprint: null,
+      website: null,
+      changedAt: null,
+    },
+    openingHours: {
+      status: "none",
+      fingerprint: null,
+      openingHours: null,
+      changedAt: null,
+    },
   };
 }
 
@@ -122,6 +176,32 @@ export async function listGroupPlacePracticalInfoHistory(
     historySchema,
     "Servern returnerade ett oväntat format för ändringshistoriken.",
   );
+}
+
+export async function getCrossGroupPracticalInfoSuggestions(
+  groupId: string,
+  placeId: string,
+): Promise<CrossGroupPracticalInfoSuggestions> {
+  return rpcClient.call(
+    "get_cross_group_practical_info_suggestions_v1",
+    { _group_id: groupId, _place_id: placeId },
+    crossGroupSuggestionsSchema,
+    "Servern returnerade ett oväntat format för anonyma platsförslag.",
+  );
+}
+
+export async function applyCrossGroupPracticalInfoSuggestion(
+  groupId: string,
+  placeId: string,
+  field: CrossGroupPracticalInfoField,
+  fingerprint: string,
+): Promise<void> {
+  await rpcClient.callVoid("apply_cross_group_practical_info_suggestion_v1", {
+    _group_id: groupId,
+    _place_id: placeId,
+    _field: field,
+    _fingerprint: fingerprint,
+  });
 }
 
 export function getLocalGroupPlacePracticalInfo(
