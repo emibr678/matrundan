@@ -152,8 +152,6 @@ export function PlaceExternalInfo({
     };
   }, [details, exampleMode, groupId, key, mode, place.id, retry]);
 
-  if (exampleMode) return null;
-
   const websiteUrl = normalizeWebsiteUrl(place.website) ?? normalizeWebsiteUrl(details?.website);
   const hasGeoapifySource = Boolean(key);
   const sourceDetailsPending = hasGeoapifySource && !details && loading;
@@ -173,7 +171,7 @@ export function PlaceExternalInfo({
           >
             <Globe2 className="h-3.5 w-3.5 shrink-0" /> Webbplats
           </a>
-        ) : sourceDetailsPending ? (
+        ) : exampleMode ? null : sourceDetailsPending ? (
           <div className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" /> Hämtar webbplats…
           </div>
@@ -206,7 +204,7 @@ export function PlaceExternalInfo({
         </a>
       </div>
 
-      {details?.openingHours ? (
+      {exampleMode ? null : details?.openingHours ? (
         <OpeningHoursDetails schedule={details.openingHours} />
       ) : loading ? (
         <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
@@ -253,7 +251,7 @@ export function PlaceExternalInfo({
         </div>
       )}
 
-      {details ? (
+      {details && !exampleMode ? (
         <p className="text-[11px] leading-relaxed text-muted-foreground">
           {details.attribution}
           {fetchedLabel ? ` Hämtat ${fetchedLabel}.` : ""} Uppgifterna kan vara inaktuella.
