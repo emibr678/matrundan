@@ -239,7 +239,12 @@ export function PlaceSuggestionReportDialog({
             ) : null}
 
             <DialogFooter className="gap-2 sm:gap-0">
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={saving}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setOpen(false)}
+                disabled={saving}
+              >
                 Avbryt
               </Button>
               <Button
