@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  openingHoursDaySummary,
-  openingHoursForDate,
-  parseOpeningHours,
-} from "./opening-hours";
+import { openingHoursDaySummary, openingHoursForDate, parseOpeningHours } from "./opening-hours";
 
 describe("öppettider från OSM", () => {
   test("normaliserar vanliga veckointervall och stängda dagar", () => {
