@@ -189,8 +189,7 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await expect(placeDataSection.getByText("Kan ha stängt permanent eller ersatts")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Sökträffsrapport i adminöversikten");
 
-  const hiddenRow = hiddenSection.getByText(PLACE_NAME).locator("..");
-  await hiddenRow.getByRole("button", { name: "Återställ", exact: true }).click();
+  await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
 
   await openPlaceSearch(page);
