@@ -158,8 +158,8 @@ export function PlaceSuggestionReportDialog({
         <DialogHeader>
           <DialogTitle>Rapportera felaktig träff</DialogTitle>
           <DialogDescription id={`${formId}-description`}>
-            Rapporten granskas av gruppens admin. Om felet finns i kartdatan kan admin senare
-            skicka en anonym anteckning till OpenStreetMap. Gruppens namn, medlemmar och privata
+            Rapporten granskas av gruppens admin. Om felet finns i kartdatan kan admin senare skicka
+            en anonym anteckning till OpenStreetMap. Gruppens namn, medlemmar och privata
             kommentarer följer aldrig med.
           </DialogDescription>
         </DialogHeader>
