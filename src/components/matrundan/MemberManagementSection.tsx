@@ -55,8 +55,7 @@ function actionCopy(action: PendingAction | null): {
     case "make-member":
       return {
         title: `Gör ${action.member.name} till medlem?`,
-        description:
-          "Personen behåller gruppåtkomsten men förlorar administratörens behörigheter.",
+        description: "Personen behåller gruppåtkomsten men förlorar administratörens behörigheter.",
         confirmLabel: "Gör till medlem",
       };
     case "transfer-owner":
