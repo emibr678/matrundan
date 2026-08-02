@@ -263,9 +263,11 @@ export function AddPlaceDialogV16({
     }
   }
 
+  const searchDialogOpen = open && pending == null && pendingSourceMatch == null;
+
   return (
     <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={searchDialogOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
@@ -300,7 +302,7 @@ export function AddPlaceDialogV16({
         onAdded={handleSingleAdded}
       />
       <AlertDialog
-        open={pendingSourceMatch != null}
+        open={open && pendingSourceMatch != null}
         onOpenChange={(nextOpen) => {
           if (!nextOpen && !sourceLinkBusy) setPendingSourceMatch(null);
         }}
