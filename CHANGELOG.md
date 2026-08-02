@@ -13,6 +13,21 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.16.1] – 2026-08-02
+
+### Ändrat
+
+- Granskningen före tillägg visar **Webbplats** och **Google Maps** som kompakta
+  länkar tillsammans med matställets uppgifter, på samma sätt som detaljsidan.
+- **Begränsad platsinformation** visas som en diskret förklaring och en liten
+  indikator i söklistan. En möjlig permanent stängning behåller en tydlig
+  varning och möjlighet till anonym bekräftelse.
+- Rapportering och gruppens reversibla döljning ligger bakom den gemensamma
+  ingången **Stämmer inte uppgifterna?** i stället för att belasta det vanliga
+  tilläggsflödet.
+- Sökområden visas som kompaktare chips. När fem områden är valda ersätts det
+  avstängda sökfältet med en tydlig status och vägledning.
+
 ## [1.16.0] – 2026-08-02
 
 ### Lagt till
