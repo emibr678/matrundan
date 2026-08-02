@@ -211,7 +211,8 @@ export function PlaceExternalInfo({
   const loadExternalDetails = React.useCallback(
     async (forceRefresh = false) => {
       if (mode !== "live" || exampleMode || !key) return;
-      forceRefresh ? setRefreshing(true) : setLoading(true);
+      if (forceRefresh) setRefreshing(true);
+      else setLoading(true);
       setError(null);
       try {
         const nextDetails = await geoapifyPlaceDetails({
@@ -257,7 +258,7 @@ export function PlaceExternalInfo({
   const fetchedLabel = details ? formattedFetchedAt(details.fetchedAt) : "";
   const canEdit = canReport && !demoReadOnly && !practicalInfoError;
 
-  async function useMapDataForConflicts() {
+  async function applyMapDataForConflicts() {
     if (!actor) return;
     const nextInput = {
       websiteOverride: websiteConflict ? null : practicalInfo.websiteOverride,
@@ -461,7 +462,7 @@ export function PlaceExternalInfo({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Behåll gruppens uppgift</AlertDialogCancel>
-            <AlertDialogAction disabled={!canEdit} onClick={() => void useMapDataForConflicts()}>
+            <AlertDialogAction disabled={!canEdit} onClick={() => void applyMapDataForConflicts()}>
               Använd kartdatan
             </AlertDialogAction>
           </AlertDialogFooter>
