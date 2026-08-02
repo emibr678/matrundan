@@ -18,6 +18,7 @@ export const PLACE_DATA_REPORT_CATEGORIES = [
   "wrong_name",
   "wrong_address",
   "wrong_website",
+  "wrong_opening_hours",
   "duplicate",
   "other",
 ] as const;
@@ -41,7 +42,8 @@ export const PLACE_DATA_REPORT_CATEGORY_LABEL: Record<PlaceDataReportCategory, s
   closed_or_replaced: "Kan ha stängt permanent eller ersatts",
   wrong_name: "Fel namn",
   wrong_address: "Fel adress eller kartposition",
-  wrong_website: "Fel webbplats",
+  wrong_website: "Webbplats saknas eller är fel",
+  wrong_opening_hours: "Öppettider saknas eller är fel",
   duplicate: "Dubblett",
   other: "Annat platsdatafel",
 };

@@ -13,6 +13,33 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.17.0] – 2026-08-02
+
+### Lagt till
+
+- Matställen med en aktiv Geoapify-källa kan visa **Öppettider idag** och ett
+  utfällbart veckoschema på detaljsidan.
+- Saknad webbplats eller saknade öppettider visas som lugna rader med en
+  sekundär åtgärd för att lämna underlag till gruppens admin.
+- Felaktiga eller saknade öppettider kan rapporteras som en egen typ av
+  platsdatafel.
+
+### Ändrat
+
+- Öppettider visas utan en osäker **Öppet nu**-status. Specialdagar och ovanliga
+  regler får en tydlig reservation, och kartdata anges som potentiellt
+  inaktuell.
+- Platsdetaljer hämtas bakom en autentiserad, gruppskyddad servergräns och
+  mellanlagras endast i den aktuella webbläsarsessionen.
+
+### Databas och integritet
+
+- En ny RPC verifierar aktivt medlemskap och att matstället hör till gruppen
+  innan servern får använda dess aktiva Geoapify-källa.
+- Klienten får bara normaliserade öppettider, säker webbplats, hämtningstid och
+  källangivelse. Rå leverantörsdata, gruppmedlemskap och interna databaskopplingar
+  exponeras inte.
+
 ## [1.16.3] – 2026-08-02
 
 ### Ändrat

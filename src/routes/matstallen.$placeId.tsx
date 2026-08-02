@@ -8,19 +8,11 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import {
-  ArrowLeft,
-  ExternalLink,
-  Flag,
-  Heart,
-  ListX,
-  MapPin,
-  MessageCircle,
-  Plus,
-} from "lucide-react";
+import { ArrowLeft, Flag, Heart, ListX, MapPin, MessageCircle, Plus } from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
+import { PlaceExternalInfo } from "@/components/matrundan/PlaceExternalInfo";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { RatingStars } from "@/components/matrundan/Rating";
@@ -31,9 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
-import { normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
-import { useSession } from "@/lib/matrundan/session";
-import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
+import { formatDate, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -83,7 +73,6 @@ function NotFound() {
 }
 
 function PlaceDetail() {
-  const { exampleMode } = useSession();
   const { placeId } = useParams({ from: "/matstallen/$placeId" });
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/matstallen/$placeId" });
@@ -132,7 +121,6 @@ function PlaceDetail() {
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
-  const websiteUrl = exampleMode ? undefined : normalizeWebsiteUrl(place.website);
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
@@ -151,62 +139,39 @@ function PlaceDetail() {
       </Button>
 
       <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
-        <div className="flex items-start gap-3 bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:gap-4 sm:p-5">
-          <PlaceThumb place={place} size="lg" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
-              {CATEGORY_LABEL[place.category]}
-            </div>
-            <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
-              {place.name}
-            </h1>
-            <div className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span className="min-w-0 [overflow-wrap:anywhere]">
-                {place.address}, {place.city}
-              </span>
-            </div>
-            {!exampleMode ? (
-              <div className="mt-1 flex flex-wrap items-center gap-x-4">
-                {websiteUrl ? (
-                  <a
-                    href={websiteUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    aria-label={`Öppna webbplatsen för ${place.name}`}
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                    Webbplats
-                  </a>
-                ) : null}
-                <a
-                  href={googleMapsUrl(place)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                  aria-label={`Öppna ${place.name} i Google Maps`}
-                >
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                  Google Maps
-                </a>
+        <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <PlaceThumb place={place} size="lg" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
+                {CATEGORY_LABEL[place.category]}
               </div>
-            ) : null}
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              {isNext ? (
-                <Badge variant="secondary" className="rounded-full">
-                  <Flag className="mr-1 h-3 w-3" /> Nästa stopp
-                </Badge>
-              ) : null}
-              {placeRemoved ? (
-                <Badge variant="outline" className="rounded-full">
-                  <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
-                </Badge>
-              ) : (
-                <StatusBadge placeId={place.id} />
-              )}
+              <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
+                {place.name}
+              </h1>
+              <div className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  {place.address}, {place.city}
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                {isNext ? (
+                  <Badge variant="secondary" className="rounded-full">
+                    <Flag className="mr-1 h-3 w-3" /> Nästa stopp
+                  </Badge>
+                ) : null}
+                {placeRemoved ? (
+                  <Badge variant="outline" className="rounded-full">
+                    <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
+                  </Badge>
+                ) : (
+                  <StatusBadge placeId={place.id} />
+                )}
+              </div>
             </div>
           </div>
+          <PlaceExternalInfo place={place} groupId={state.group.id} canReport={writable} />
         </div>
 
         {rating.count > 0 ? (
@@ -422,8 +387,8 @@ function PlaceDetail() {
             <div className="border-t border-border/60 pt-3">
               <div className="text-sm font-medium">Felaktig platsinformation?</div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Rapportera namn, adress, webbplats, dubblett eller att verksamheten kan ha stängt
-                permanent. Rapporten går först till gruppens admin.
+                Rapportera namn, adress, webbplats, öppettider, dubblett eller att verksamheten kan
+                ha stängt permanent. Rapporten går först till gruppens admin.
               </p>
               <PlaceDataReportDialog place={place} />
             </div>
