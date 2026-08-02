@@ -72,6 +72,7 @@ export function AddPlaceDialogV16({
   const [sourceLinkBusy, setSourceLinkBusy] = React.useState(false);
   const searchDialogRef = React.useRef<HTMLDivElement | null>(null);
   const searchScrollTopRef = React.useRef(0);
+  const returningToSearchRef = React.useRef(false);
 
   React.useEffect(() => {
     const removeHiddenSelections = () => {
@@ -111,12 +112,14 @@ export function AddPlaceDialogV16({
       setAddedResultIds(new Set());
       setDiscoverySnapshot(null);
       searchScrollTopRef.current = 0;
+      returningToSearchRef.current = false;
     }
     onOpenChange(nextOpen);
   }
 
   function rememberSearchPosition() {
     searchScrollTopRef.current = searchDialogRef.current?.scrollTop ?? 0;
+    returningToSearchRef.current = true;
   }
 
   function beginAdd(suggestion: PlaceSuggestion) {
@@ -287,13 +290,28 @@ export function AddPlaceDialogV16({
   const searchDialogOpen = open && pending == null && pendingSourceMatch == null;
 
   React.useLayoutEffect(() => {
-    if (!searchDialogOpen) return;
-    const frame = window.requestAnimationFrame(() => {
+    if (!searchDialogOpen || !returningToSearchRef.current) return;
+
+    const restore = () => {
       if (searchDialogRef.current) {
         searchDialogRef.current.scrollTop = searchScrollTopRef.current;
       }
+    };
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      restore();
+      secondFrame = window.requestAnimationFrame(restore);
     });
-    return () => window.cancelAnimationFrame(frame);
+    const timeout = window.setTimeout(() => {
+      restore();
+      returningToSearchRef.current = false;
+    }, 120);
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+      window.clearTimeout(timeout);
+    };
   }, [searchDialogOpen]);
 
   return (
@@ -301,6 +319,11 @@ export function AddPlaceDialogV16({
       <Dialog open={searchDialogOpen} onOpenChange={handleOpenChange}>
         <DialogContent
           ref={searchDialogRef}
+          onOpenAutoFocus={(event) => {
+            if (!returningToSearchRef.current) return;
+            event.preventDefault();
+            searchDialogRef.current?.focus({ preventScroll: true });
+          }}
           className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
         >
           <DialogHeader>
