@@ -20,6 +20,7 @@ export interface PlaceSuggestion {
   lng?: number;
   distanceKm?: number;
   provider?: string;
+  website?: string;
   raw?: string;
   nearestAreaLabel?: string;
   matchingAreaLabels?: string[];
