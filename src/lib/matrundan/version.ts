@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_15, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-15";
 export type { ChangelogEntry };
 
+const VERSION_1_17_1_CHANGELOG: ChangelogEntry = {
+  version: "1.17.1",
+  date: "2026-08-02",
+  summary: "Tilläggsflödet och granskningen av platsdata är tydligare på mobil.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Kryss och Tillbaka från en sökträff återgår till samma sökning med bevarad söktext och position, samtidigt som bara ett dialoglager är aktivt.",
+        "Ägare och administratörer granskar platsdatarapporter med tydliga handlingar för OpenStreetMap, åtgärdad rapport eller avslut utan åtgärd.",
+        "Den offentliga OSM-texten visas först när rapporten uttryckligen har förberetts för OpenStreetMap.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_17_0_CHANGELOG: ChangelogEntry = {
   version: "1.17.0",
   date: "2026-08-02",
@@ -100,6 +116,7 @@ const VERSION_1_16_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_17_1_CHANGELOG,
   VERSION_1_17_0_CHANGELOG,
   VERSION_1_16_3_CHANGELOG,
   VERSION_1_16_2_CHANGELOG,
