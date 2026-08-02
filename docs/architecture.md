@@ -116,6 +116,22 @@ Verifierad webbplats kan lagras på `places.website`. En grupp kan ha en separat
 `group_places.website_override`. URL:er måste normaliseras till säker HTTP eller
 HTTPS innan de visas eller sparas i en klientexponerad ögonblicksbild.
 
+Öppettidsdetaljer är aktuell extern källdata, inte en varaktig global sanning i
+`places`. Detaljsidan får hämta dem på begäran endast genom en autentiserad
+serverfunktion efter att en gruppskyddad RPC har verifierat:
+
+- aktivt medlemskap i gruppen;
+- att matstället är kopplat till gruppen;
+- att matstället har en aktiv Geoapify-källa.
+
+Klienten får därefter endast ett normaliserat veckoschema, normaliserad säker
+webbplats, hämtningstid och källangivelse. Rå providerpayload, gruppmedlemskap,
+interna källkopplingar och databasidentifierare lämnar inte servergränsen.
+Resultatet får mellanlagras i den aktuella webbläsarsessionen för att minska
+onödiga leverantörsanrop, men ska inte skrivas tillbaka som kanonisk öppettid.
+Matrundan ska inte visa **Öppet nu** när specialdagar, tidszon eller ofullständig
+kartdata gör beskedet osäkert.
+
 ### Providerträffar och privata rapporter
 
 En sökträff är inte automatiskt ett kanoniskt matställe. En felaktig eller
@@ -207,10 +223,12 @@ Evidensmodellen är konservativ:
   tidsfönster och tappar automatiskt tyngd.
 
 **Begränsad platsinformation** är en kvalitetsflagga, inte en stängningssignal.
-Den får bara visas när leverantörens aktuella data uttryckligen saknar både
+Den får bara visas när leverantörens aktuella sökdata uttryckligen saknar både
 webbplats och öppettider. Okänd eller äldre data får inte tolkas som frånvaro.
-Geoapifys fulla öppettidsschema lämnas inte till klienten; endast en neutral
-boolesk indikator normaliseras.
+Söklistans signalmodell får fortsatt bara en neutral boolesk indikator. Ett
+normaliserat öppettidsschema får endast lämnas separat till den autentiserade
+detaljsidan genom den gruppverifierade servergränsen ovan och får aldrig påverka
+cross-group-signalen med råa tider eller specialregler.
 
 ### Besök
 
@@ -497,8 +515,9 @@ Geoapify-resultat normaliseras till Matrundans domänmodell. Normaliseringen ska
 - filtrera explicit nedlagda, rivna eller övergivna objekt;
 - separera Geoapify-ID från eventuell OSM-identitet;
 - normalisera webbplats till säker URL;
-- härleda endast en boolesk indikator för om öppettider finns, inte exponera hela
-  schemat till klienten;
+- härleda en boolesk indikator för om öppettider finns i sökresultatet;
+- tillåta att detaljsidan på begäran får ett konservativt normaliserat
+  veckoschema genom den autentiserade och gruppverifierade servergränsen;
 - begränsa rå metadata;
 - deduplicera sökresultat konservativt.
 
@@ -554,6 +573,7 @@ Alla rader måste returnera `ok = true`. Kontrollen omfattar minst:
 - aktuella och kompatibla read-models;
 - obligatoriska tabeller, kolumner, constraints, index och triggers;
 - grupp- och rapport-RPC:er;
+- den gruppskyddade kontext-RPC:n för externa platsdetaljer;
 - providerträffsrapporter och dolda träffars säkra ögonblicksbild;
 - anonyma platsdatasignaler, negativa behörigheter och cross-group-isolering;
 - OSM-publiceringsfunktioner;
