@@ -13,6 +13,28 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.20.0] – 2026-08-02
+
+### Lagt till
+
+- Ägare och administratörer hanterar rapporterade fel på en egen sida med
+  kompakta filter för **Att granska**, **Redo att skicka**, **Skickade** och
+  **Avslutade**.
+- Varje rapport öppnas i en fokuserad detaljpanel som bara visar det steg och de
+  handlingar som är relevanta för rapportens aktuella läge.
+
+### Ändrat
+
+- Den tidigare långa platsdatasektionen i gruppinställningarna har ersatts av en
+  kompakt ingång med räknare.
+- OpenStreetMap förklaras först när ett rättelseförslag faktiskt kan skickas,
+  tillsammans med tydlig information om vad som blir offentligt.
+- Tekniska OSM-statusar har ersatts med begriplig copy som **Att granska**,
+  **Redo att skicka**, **Väntar på granskning** och **Granskad i OpenStreetMap**.
+- Skickade rättelseförslag visar en tydlig länk till ärendet och en separat
+  statusuppdatering utan att upprepa tidigare gransknings- och
+  publiceringskontroller.
+
 ## [1.19.0] – 2026-08-02
 
 ### Lagt till
