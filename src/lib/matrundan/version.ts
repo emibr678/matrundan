@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_20_1_CHANGELOG: ChangelogEntry = {
+  version: "1.20.1",
+  date: "2026-08-03",
+  summary: "Tydligare vägar från exempelgruppen och säkrare medlemshantering.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Exempelgruppen använder Stockholm konsekvent och låter användaren välja mellan Google och e-post innan en egen grupp skapas.",
+        "Ägare och administratörer hanterar medlemmar genom tydliga textval med stora tryckytor och bekräftelse före roll- eller åtkomständringar.",
+        "Kontoregistreringen lovar inte längre att e-postbekräftelse alltid kan hoppas över.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "TanStack Starts standardiserade CSRF-skydd används för serverfunktioner när projektets egen startkonfiguration är aktiv.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
   version: "1.20.0",
   date: "2026-08-02",
@@ -26,7 +48,11 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [VERSION_1_20_0_CHANGELOG, ...CHANGELOG_THROUGH_1_19];
+export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_20_1_CHANGELOG,
+  VERSION_1_20_0_CHANGELOG,
+  ...CHANGELOG_THROUGH_1_19,
+];
 
 const currentRelease = CHANGELOG[0];
 if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");
