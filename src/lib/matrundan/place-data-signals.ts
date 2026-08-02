@@ -45,7 +45,8 @@ export function placeSignalKey(input: {
 
 function openingHoursFromSuggestion(suggestion: PlaceSuggestion): boolean | null {
   const value = (suggestion as PlaceSuggestion & { hasOpeningHours?: boolean }).hasOpeningHours;
-  return typeof value === "boolean" ? value : null;
+  if (typeof value === "boolean") return value;
+  return suggestion.provider === "demo" ? false : null;
 }
 
 export function signalTargetFromSuggestion(suggestion: PlaceSuggestion): PlaceDataSignalTarget {
