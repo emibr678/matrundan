@@ -170,6 +170,28 @@ async function verifiedContext(
   return { context: contextSchema.parse(previous.data), supportsSnapshots: false };
 }
 
+async function saveVerifiedSnapshot(
+  groupId: string,
+  placeId: string,
+  providerPlaceId: string,
+  details: PlaceExternalDetails,
+): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const rpc = supabaseAdmin.rpc.bind(supabaseAdmin) as unknown as RpcCall;
+  const saved = await rpc("save_place_external_info_snapshot_v1", {
+    _group_id: groupId,
+    _place_id: placeId,
+    _provider_place_id: providerPlaceId,
+    _website: details.website,
+    _opening_hours: details.openingHours,
+    _timezone: details.timezone,
+    _fetched_at: details.fetchedAt,
+  });
+  if (saved.error && !missingRpc(saved.error.message, "save_place_external_info_snapshot_v1")) {
+    console.warn("[Matrundan] kunde inte spara platsdatasnapshot:", saved.error.message);
+  }
+}
+
 export const geoapifyPlaceDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) =>
@@ -193,21 +215,12 @@ export const geoapifyPlaceDetails = createServerFn({ method: "POST" })
 
     const details = await fetchPlaceDetails(verified.context.providerPlaceId);
     if (verified.supportsSnapshots) {
-      const saved = await rpc("save_place_external_info_snapshot_v1", {
-        _group_id: data.groupId,
-        _place_id: data.placeId,
-        _provider_place_id: verified.context.providerPlaceId,
-        _website: details.website,
-        _opening_hours: details.openingHours,
-        _timezone: details.timezone,
-        _fetched_at: details.fetchedAt,
-      });
-      if (
-        saved.error &&
-        !missingRpc(saved.error.message, "save_place_external_info_snapshot_v1")
-      ) {
-        console.warn("[Matrundan] kunde inte spara platsdatasnapshot:", saved.error.message);
-      }
+      await saveVerifiedSnapshot(
+        data.groupId,
+        data.placeId,
+        verified.context.providerPlaceId,
+        details,
+      );
     }
     return details;
   });

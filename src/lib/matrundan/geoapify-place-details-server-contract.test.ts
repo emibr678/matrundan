@@ -22,7 +22,13 @@ describe("Geoapifys platsdetaljer", () => {
     expect(source).toContain("MANUAL_REFRESH_MIN_AGE_MS");
     expect(source).toContain("if (!data.forceRefresh && snapshotAge <= SNAPSHOT_MAX_AGE_MS)");
     expect(source).toContain("if (data.forceRefresh && snapshotAge <= MANUAL_REFRESH_MIN_AGE_MS)");
+  });
+
+  test("sparar en verifierad global snapshot endast genom serverrollen", () => {
+    expect(source).toContain('import("@/integrations/supabase/client.server")');
+    expect(source).toContain("supabaseAdmin.rpc.bind(supabaseAdmin)");
     expect(source).toContain('rpc("save_place_external_info_snapshot_v1"');
+    expect(source).toContain("await saveVerifiedSnapshot(");
   });
 
   test("API-nyckeln stannar på servern och rådata returneras inte", () => {

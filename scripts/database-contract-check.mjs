@@ -74,6 +74,8 @@ const requiredFunctions = [
   "list_group_place_practical_info_history_v1",
   "get_place_external_info_context_v2",
   "save_place_external_info_snapshot_v1",
+  "get_cross_group_practical_info_suggestions_v1",
+  "apply_cross_group_practical_info_suggestion_v1",
 ];
 
 for (const name of requiredFunctions) {
@@ -103,6 +105,8 @@ for (const column of [
   "practical_info_source_note",
   "practical_info_updated_by",
   "practical_info_updated_at",
+  "website_cross_group_proposal_at",
+  "opening_hours_cross_group_proposal_at",
   "status",
   "first_seen_at",
   "last_seen_at",
@@ -149,6 +153,7 @@ for (const index of [
   "place_data_signal_confirmations_provider_idx",
   "group_place_practical_info_history_lookup_idx",
   "place_external_info_snapshots_provider_idx",
+  "group_places_cross_group_practical_info_idx",
 ]) {
   if (!new RegExp(`CREATE\\s+INDEX\\s+IF\\s+NOT\\s+EXISTS\\s+${index}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar indexet ${index}.`);
@@ -180,6 +185,8 @@ if (!existsSync(preflightPath)) {
     "group_places.practical_info_source_note",
     "group_places.practical_info_updated_by",
     "group_places.practical_info_updated_at",
+    "group_places.website_cross_group_proposal_at",
+    "group_places.opening_hours_cross_group_proposal_at",
     "place_sources.status",
     "place_sources_active_provider_identity_uidx",
     "place_sources_active_place_provider_uidx",
@@ -201,6 +208,7 @@ if (!existsSync(preflightPath)) {
     "place_data_signal_confirmations_user_provider_uidx",
     "group_place_practical_info_history_lookup_idx",
     "place_external_info_snapshots_provider_idx",
+    "group_places_cross_group_practical_info_idx",
     "place_sources_resolve_missing_in_osm_reports",
   ]) {
     if (!preflight.includes(object)) {

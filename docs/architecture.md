@@ -88,7 +88,9 @@ Gruppspecifika uppgifter ligger i `group_places`, exempelvis:
 - gruppens kategori- eller köksöverstyrning;
 - Passar för;
 - privat gruppanteckning;
-- eventuell webbplatsöverstyrning.
+- webbplats- och öppettidsöverstyrning;
+- privat källa eller observation för praktisk information;
+- ändrare, ändringstid och fältvisa förslagsmarkörer.
 
 En gruppspecifik uppgift får inte tyst skrivas in som global sanning.
 
@@ -127,10 +129,82 @@ serverfunktion efter att en gruppskyddad RPC har verifierat:
 Klienten får därefter endast ett normaliserat veckoschema, normaliserad säker
 webbplats, hämtningstid och källangivelse. Rå providerpayload, gruppmedlemskap,
 interna källkopplingar och databasidentifierare lämnar inte servergränsen.
-Resultatet får mellanlagras i den aktuella webbläsarsessionen för att minska
-onödiga leverantörsanrop, men ska inte skrivas tillbaka som kanonisk öppettid.
 Matrundan ska inte visa **Öppet nu** när specialdagar, tidszon eller ofullständig
 kartdata gör beskedet osäkert.
+
+`place_external_info_snapshots` innehåller den senaste normaliserade externa
+ögonblicksbilden för ett kanoniskt matställe. Den kan återanvändas av grupper som
+redan använder samma ställe för att minska onödiga provideranrop, men innehåller
+aldrig grupp, medlem, privat källa eller privat anteckning. Tabellen saknar
+direkt klientåtkomst.
+
+En vanlig autentiserad klient får aldrig skriva en global extern snapshot.
+Serverfunktionen måste först verifiera användarens gruppåtkomst och aktiva
+Geoapify-källa genom den gruppscopade kontext-RPC:n. Därefter får endast
+`service_role` spara den normaliserade snapshoten. Skrivfunktionen validerar
+plats, aktiv provideridentitet, URL, öppettidsschema och hämtningstid på nytt.
+
+### Gruppens praktiska information
+
+Webbplats och öppettider som en medlem rättar är gruppspecifika uppgifter i
+`group_places`. Alla aktiva medlemmar får underhålla dem när gruppen är aktiv.
+En icke-tom överstyrning måste ha antingen en normaliserad HTTP-/HTTPS-källänk
+eller en tillräckligt konkret privat observation.
+
+Varje faktisk förändring sparas i
+`group_place_practical_info_history`. Historiken är gruppskyddad, saknar direkt
+klientåtkomst och visar bara ändringar för medlemmar i den aktuella gruppen.
+
+Extern kartdata och gruppens uppgift är två separata lager:
+
+- kartdatan kan hämtas på nytt och jämföras;
+- gruppens uppgift används i gruppen tills gruppen själv väljer något annat;
+- ingen omhämtning får tyst skriva över en gruppöverstyrning;
+- återgång till kartdata är en uttrycklig grupphandling.
+
+### Anonyma förslag på praktisk information
+
+En källstödd gruppändring kan hjälpa andra grupper som redan använder samma
+kanoniska matställe, men bara som ett anonymt och fältvist förslag. Detta är inte
+en offentlig feed och inte en ny global sanning.
+
+Endast följande fält kan föreslås:
+
+- normaliserad säker webbplats;
+- validerat normaliserat veckoschema för öppettider.
+
+En ändring blir föreslagbar endast när medlemmen har angett en uttrycklig
+källänk. Källänken fungerar som en serverintern kvalitetsmarkör men lämnas aldrig
+till den mottagande gruppen. Enbart en privat observation räcker för den egna
+gruppen men får inte skapa ett cross-group-förslag.
+
+Förslags-RPC:n får endast lämna:
+
+- neutral status: `none`, `available` eller `conflicting`;
+- det föreslagna fältvärdet när status är `available`;
+- ett innehållsfingeravtryck för ny validering vid godkännande;
+- tidpunkten för den källstödda fältändringen.
+
+Följande får aldrig lämnas:
+
+- ursprungsgrupp eller gruppnamn;
+- medlem, ändrare eller rapportör;
+- källänk eller privat observation;
+- antal grupper, förslag eller stöd;
+- grupp-, användar-, historik- eller andra interna ID:n.
+
+Modellen är konservativ:
+
+- bara andra aktiva grupper som har samma aktiva kanoniska matställe används;
+- förslag äldre än 90 dagar ignoreras;
+- ett värde som redan motsvarar gruppens eller aktuell extern uppgift visas inte;
+- flera olika aktuella värden ger `conflicting`, utan vinnare eller
+  tillämpningsknapp;
+- ett förslag skrivs aldrig in automatiskt;
+- mottagande grupp måste godkänna ett fält uttryckligen;
+- servern räknar om kandidaten och jämför fingeravtrycket vid godkännande;
+- ett godkänt förslag blir gruppens egen uppgift och sprids inte automatiskt
+  vidare som nytt förslag.
 
 ### Providerträffar och privata rapporter
 
@@ -277,8 +351,8 @@ ersättning.
 
 ## Read-model och klientexponering
 
-Den primära live-läsningen går genom `get_group_app_state_v5f`.
-`get_group_app_state_v5e` är en strikt kompatibilitetsfallback och används endast
+Den primära live-läsningen går genom `get_group_app_state_v5g`.
+`get_group_app_state_v5f` är en strikt kompatibilitetsfallback och används endast
 när den aktuella RPC:n uttryckligen saknas i PostgRESTs schema-cache.
 
 Read-modelen ska:
@@ -290,6 +364,11 @@ Read-modelen ska:
 - aldrig lämna ut ursprungsgrupp för delade besök;
 - aldrig lämna ut en kommentar som inte är synlig i gruppen;
 - aldrig lämna ut privata media från annan grupp.
+
+Cross-group-förslag för praktisk information ligger utanför den vanliga
+read-modelen och hämtas endast på detaljsidan genom en separat gruppverifierad
+RPC. Det förhindrar att förslagsvärden eller signaler sprids till listor där de
+inte behövs.
 
 Fallback får inte användas för andra fel än uttryckligen saknad ny RPC. Ett
 behörighetsfel, nätverksfel eller valideringsfel får inte döljas genom fallback.
@@ -314,6 +393,10 @@ Aktiva medlemmar får:
 
 - lägga till ställen;
 - komplettera gruppens kategori, kök, Passar för och privata anteckning;
+- underhålla gruppens webbplats och öppettider med privat källa eller
+  observation;
+- granska och uttryckligen godkänna ett anonymt fältvist förslag för samma
+  kanoniska matställe;
 - registrera och redigera egna besök inom produktens regler;
 - rapportera felaktig platsinformation för ett kanoniskt ställe eller en exakt
   providerträff;
@@ -333,10 +416,12 @@ Aktiva medlemmar får:
 En klientroll får inte:
 
 - läsa privata bastabeller direkt när en RPC-gräns finns;
+- skriva globala externa snapshots;
+- läsa ursprung, källa eller antal bakom ett anonymt praktiskt förslag;
 - registrera ett bekräftat externt OSM-note-ID;
 - ändra extern OSM-status;
 - läsa OSM-försöksloggen;
-- anropa interna triggerfunktioner direkt.
+- anropa interna trigger- eller hjälpfunktioner direkt.
 
 ## Platsdatarapporter och OSM-handoff
 
@@ -470,6 +555,10 @@ Servern ansvarar för att:
 En gruppspecifik borttagning av ett ställe raderar inte det kanoniska stället,
 andras grupprelationer eller historiska besök.
 
+Anonyma förslag på praktisk information använder samma kanoniska `place_id` som
+matchningsnyckel men är inte generell gruppdelning. De får bara leverera det
+fältvisa, källstödda värdet under de begränsningar som anges ovan.
+
 ## Kontoradering
 
 Självbetjänad kontoradering orkestreras serverstyrt. Personliga uppgifter tas bort
@@ -486,8 +575,12 @@ Platsdatarapporter behandlas särskilt:
 - användarens aktiva platsdatasignalbekräftelser raderas;
 - neutral platsöversikt och operativ status kan bevaras.
 
+Praktisk informationshistorik får visa **Tidigare medlem** efter kontoradering.
+Ett aktivt anonymt förslag får inte innehålla eller förlita sig på den raderade
+användarens identitet, privata källänk eller observation.
+
 Kontoradering får inte lämna gamla personnamn i rapportöversikter, aktiva
-platsdatasignaler eller externa OSM-referenser.
+platsdatasignaler, praktiska cross-group-förslag eller externa OSM-referenser.
 
 ## Notiser
 
@@ -521,6 +614,10 @@ Geoapify-resultat normaliseras till Matrundans domänmodell. Normaliseringen ska
 - begränsa rå metadata;
 - deduplicera sökresultat konservativt.
 
+En normaliserad extern snapshot är ett cache- och jämförelseunderlag, inte en
+permanent gruppsanning. Den skrivs endast serverstyrt och får inte automatiskt
+skriva över `group_places`.
+
 OpenStreetMap Notes används för konkreta kartdatafel efter mänsklig granskning.
 Notes får inte användas som automatisk fel-dump, privat kommentarssystem eller
 masspubliceringskanal.
@@ -544,8 +641,9 @@ I lokala lägen ska följande simuleras eller sparas lokalt:
 - privata gruppändringar.
 
 Lokala lägen får aldrig använda service-role, skriva produktion eller publicera
-en verklig OSM-note. Cross-group-bekräftelser är live-only och får inte skriva
-från demo eller exempelgrupp.
+en verklig OSM-note. Cross-group-bekräftelser och anonyma praktiska förslag är
+live-only. Demo och exempelgrupp får varken läsa eller tillämpa verkliga förslag
+från andra grupper.
 
 ## Databasmigrationer
 
@@ -574,6 +672,9 @@ Alla rader måste returnera `ok = true`. Kontrollen omfattar minst:
 - obligatoriska tabeller, kolumner, constraints, index och triggers;
 - grupp- och rapport-RPC:er;
 - den gruppskyddade kontext-RPC:n för externa platsdetaljer;
+- service-role-only-skrivning av normaliserade externa snapshots;
+- anonyma praktiska förslag, konflikthantering, ny validering och negativa
+  behörigheter;
 - providerträffsrapporter och dolda träffars säkra ögonblicksbild;
 - anonyma platsdatasignaler, negativa behörigheter och cross-group-isolering;
 - OSM-publiceringsfunktioner;

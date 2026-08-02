@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { CrossGroupPracticalInfoSuggestions } from "./CrossGroupPracticalInfoSuggestions";
 import { PlacePracticalInfoDialog } from "./PlacePracticalInfoDialog";
 import {
   AlertDialog,
@@ -210,7 +211,8 @@ export function PlaceExternalInfo({
   const loadExternalDetails = React.useCallback(
     async (forceRefresh = false) => {
       if (mode !== "live" || exampleMode || !key) return;
-      forceRefresh ? setRefreshing(true) : setLoading(true);
+      if (forceRefresh) setRefreshing(true);
+      else setLoading(true);
       setError(null);
       try {
         const nextDetails = await geoapifyPlaceDetails({
@@ -243,20 +245,20 @@ export function PlaceExternalInfo({
   const openingHours = practicalInfo.openingHoursOverride ?? details?.openingHours ?? null;
   const websiteConflict = Boolean(
     practicalInfo.websiteOverride &&
-      details?.website &&
-      practicalInfo.websiteOverride !== details.website,
+    details?.website &&
+    practicalInfo.websiteOverride !== details.website,
   );
   const openingHoursConflict = Boolean(
     practicalInfo.openingHoursOverride &&
-      details?.openingHours &&
-      !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
+    details?.openingHours &&
+    !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
   );
   const hasConflict = websiteConflict || openingHoursConflict;
   const hasGeoapifySource = Boolean(key);
   const fetchedLabel = details ? formattedFetchedAt(details.fetchedAt) : "";
   const canEdit = canReport && !demoReadOnly && !practicalInfoError;
 
-  async function useMapDataForConflicts() {
+  async function applyMapDataForConflicts() {
     if (!actor) return;
     const nextInput = {
       websiteOverride: websiteConflict ? null : practicalInfo.websiteOverride,
@@ -363,6 +365,13 @@ export function PlaceExternalInfo({
           </button>
         ) : null}
 
+        <CrossGroupPracticalInfoSuggestions
+          groupId={groupId}
+          placeId={place.id}
+          enabled={canEdit}
+          onApplied={loadPracticalInfo}
+        />
+
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-relaxed text-muted-foreground">
           {practicalInfo.updatedAt ? (
             <span>
@@ -453,7 +462,7 @@ export function PlaceExternalInfo({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Behåll gruppens uppgift</AlertDialogCancel>
-            <AlertDialogAction disabled={!canEdit} onClick={() => void useMapDataForConflicts()}>
+            <AlertDialogAction disabled={!canEdit} onClick={() => void applyMapDataForConflicts()}>
               Använd kartdatan
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -5,11 +5,27 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const GROUP_ID = "22222222-2222-4222-8222-222222222222";
 const PLACE_ID = "33333333-3333-4333-8333-333333333333";
 const PROVIDER_PLACE_ID = "geo-testkoket";
+const WEBSITE_FINGERPRINT = "11111111111111111111111111111111";
+const HOURS_FINGERPRINT = "22222222222222222222222222222222";
 
-async function seedAuthenticatedSession(page: Page, details: unknown) {
+function openingHours() {
+  return {
+    days: [
+      { code: "Mo", label: "Måndag", intervals: ["10–21"], closed: false, known: true },
+      { code: "Tu", label: "Tisdag", intervals: ["10–21"], closed: false, known: true },
+      { code: "We", label: "Onsdag", intervals: ["10–21"], closed: false, known: true },
+      { code: "Th", label: "Torsdag", intervals: ["10–21"], closed: false, known: true },
+      { code: "Fr", label: "Fredag", intervals: ["10–22"], closed: false, known: true },
+      { code: "Sa", label: "Lördag", intervals: ["11–22"], closed: false, known: true },
+      { code: "Su", label: "Söndag", intervals: [], closed: true, known: true },
+    ],
+    partiallyParsed: false,
+  };
+}
+
+async function seedSession(page: Page) {
   const now = new Date().toISOString();
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60;
-
   await page.addInitScript(
     ({ storageKey, session, cacheKey, cacheValue }) => {
       window.localStorage.setItem(storageKey, JSON.stringify(session));
@@ -18,7 +34,16 @@ async function seedAuthenticatedSession(page: Page, details: unknown) {
     {
       storageKey: SUPABASE_AUTH_STORAGE_KEY,
       cacheKey: `matrundan.place-external-info.v2.${PROVIDER_PLACE_ID}`,
-      cacheValue: { cachedAt: now, details },
+      cacheValue: {
+        cachedAt: now,
+        details: {
+          openingHours: null,
+          website: null,
+          timezone: "Europe/Stockholm",
+          fetchedAt: now,
+          attribution: "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
+        },
+      },
       session: {
         access_token: `test.${btoa(
           JSON.stringify({
@@ -54,24 +79,8 @@ async function seedAuthenticatedSession(page: Page, details: unknown) {
   );
 }
 
-async function mockLiveGroup(page: Page, website: string | null) {
+async function mockGroup(page: Page) {
   const now = new Date().toISOString();
-  await page.route("**/rest/v1/rpc/list_user_groups_v4b", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify([
-        {
-          id: GROUP_ID,
-          name: "Testgruppen",
-          emoji: "🍽️",
-          role: "owner",
-          lifecycleStatus: "active",
-        },
-      ]),
-    });
-  });
-
   const appState = {
     currentUserId: USER_ID,
     group: {
@@ -95,7 +104,7 @@ async function mockLiveGroup(page: Page, website: string | null) {
         name: "Testanvändare",
         avatar: "🙂",
         avatarImage: null,
-        role: "owner",
+        role: "member",
       },
     ],
     places: [
@@ -114,8 +123,8 @@ async function mockLiveGroup(page: Page, website: string | null) {
         city: "Stockholm",
         lat: 59.283,
         lng: 18.07,
-        website,
-        canonicalWebsite: website,
+        website: null,
+        canonicalWebsite: null,
         websiteOverride: null,
         openingHoursOverride: null,
         practicalInfoSourceUrl: null,
@@ -147,6 +156,21 @@ async function mockLiveGroup(page: Page, website: string | null) {
     nextStopDateProposal: null,
   };
 
+  await page.route("**/rest/v1/rpc/list_user_groups_v4b", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          id: GROUP_ID,
+          name: "Testgruppen",
+          emoji: "🍽️",
+          role: "member",
+          lifecycleStatus: "active",
+        },
+      ]),
+    });
+  });
   for (const rpc of ["get_group_app_state_v5g", "get_group_app_state_v5f"]) {
     await page.route(`**/rest/v1/rpc/${rpc}`, async (route) => {
       await route.fulfill({
@@ -156,7 +180,6 @@ async function mockLiveGroup(page: Page, website: string | null) {
       });
     });
   }
-
   await page.route("**/rest/v1/rpc/get_group_place_practical_info_v1", async (route) => {
     await route.fulfill({
       status: 200,
@@ -172,20 +195,6 @@ async function mockLiveGroup(page: Page, website: string | null) {
       }),
     });
   });
-
-  await page.route(
-    "**/rest/v1/rpc/get_cross_group_practical_info_suggestions_v1",
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          website: { status: "none" },
-          openingHours: { status: "none" },
-        }),
-      });
-    },
-  );
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -199,64 +208,95 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(widths.bodyScroll).toBeLessThanOrEqual(widths.bodyClient);
 }
 
-function weeklyDetails(now: string) {
-  return {
-    openingHours: {
-      days: [
-        { code: "Mo", label: "Måndag", intervals: ["11–22"], closed: false, known: true },
-        { code: "Tu", label: "Tisdag", intervals: ["11–22"], closed: false, known: true },
-        { code: "We", label: "Onsdag", intervals: ["11–22"], closed: false, known: true },
-        { code: "Th", label: "Torsdag", intervals: ["11–22"], closed: false, known: true },
-        { code: "Fr", label: "Fredag", intervals: ["11–22"], closed: false, known: true },
-        { code: "Sa", label: "Lördag", intervals: ["12–23"], closed: false, known: true },
-        { code: "Su", label: "Söndag", intervals: [], closed: true, known: true },
-      ],
-      partiallyParsed: false,
-    },
-    website: "https://www.testkoket.se/",
-    timezone: "Europe/Stockholm",
-    fetchedAt: now,
-    attribution: "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
-  };
-}
-
-test("detaljsidan visar ett kompakt veckoschema utan Öppet nu-status", async ({ page }) => {
-  const now = new Date().toISOString();
+test("visar och tillämpar fältvisa förslag utan privat ursprungsdata", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await seedAuthenticatedSession(page, weeklyDetails(now));
-  await mockLiveGroup(page, "https://www.testkoket.se/");
+  await seedSession(page);
+  await mockGroup(page);
+
+  let websiteApplied = false;
+  await page.route(
+    "**/rest/v1/rpc/get_cross_group_practical_info_suggestions_v1",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          website: websiteApplied
+            ? { status: "none" }
+            : {
+                status: "available",
+                fingerprint: WEBSITE_FINGERPRINT,
+                website: "https://www.nya-testkoket.se/",
+                changedAt: "2026-08-02T17:00:00Z",
+              },
+          openingHours: {
+            status: "available",
+            fingerprint: HOURS_FINGERPRINT,
+            openingHours: openingHours(),
+            changedAt: "2026-08-02T17:00:00Z",
+          },
+        }),
+      });
+    },
+  );
+
+  let applyBody: Record<string, unknown> | null = null;
+  await page.route(
+    "**/rest/v1/rpc/apply_cross_group_practical_info_suggestion_v1",
+    async (route) => {
+      applyBody = JSON.parse(route.request().postData() ?? "{}") as Record<string, unknown>;
+      websiteApplied = true;
+      await route.fulfill({ status: 204, body: "" });
+    },
+  );
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  await expect(page.getByRole("heading", { name: "Testköket" })).toBeVisible();
-  await expect(page.getByText("Öppettider idag", { exact: true })).toBeVisible();
-  await expect(page.getByText("Öppet nu", { exact: true })).toHaveCount(0);
-  await page.getByText("Öppettider idag", { exact: true }).click();
-  await expect(page.getByText("Måndag", { exact: true })).toBeVisible();
-  await expect(page.getByText("Söndag", { exact: true })).toBeVisible();
+  await expect(page.getByText("Förslag från andra grupper", { exact: true })).toBeVisible();
+  await expect(page.getByText("Föreslagen webbplats", { exact: true })).toBeVisible();
+  await expect(page.getByText("Föreslagna öppettider", { exact: true })).toBeVisible();
+  await expect(page.getByText("nya-testkoket.se", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(/Grupp, medlem, källa och privata anteckningar visas aldrig/),
+  ).toBeVisible();
+  await expect(page.getByText("Hemliga gruppen", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Anna Andersson", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("https://privat-kalla.example", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
+
+  await page.getByRole("button", { name: "Använd för gruppen" }).first().click();
+  await expect.poll(() => applyBody).not.toBeNull();
+  expect(applyBody).toEqual({
+    _group_id: GROUP_ID,
+    _place_id: PLACE_ID,
+    _field: "website",
+    _fingerprint: WEBSITE_FINGERPRINT,
+  });
+  await expect(page.getByText("Föreslagen webbplats", { exact: true })).toHaveCount(0);
 });
 
-test("saknad webbplats och öppettider kan redigeras utan stor tom informationsruta", async ({
-  page,
-}) => {
-  const now = new Date().toISOString();
+test("motstridiga förslag visas utan vinnare eller tillämpningsknapp", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await seedAuthenticatedSession(page, {
-    openingHours: null,
-    website: null,
-    timezone: "Europe/Stockholm",
-    fetchedAt: now,
-    attribution: "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
-  });
-  await mockLiveGroup(page, null);
+  await seedSession(page);
+  await mockGroup(page);
+  await page.route(
+    "**/rest/v1/rpc/get_cross_group_practical_info_suggestions_v1",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          website: { status: "conflicting" },
+          openingHours: { status: "conflicting" },
+        }),
+      });
+    },
+  );
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  await expect(page.getByText("Praktisk information", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Redigera", exact: true })).toBeVisible();
-  await expect(page.getByText("Webbplats", { exact: true })).toBeVisible();
-  await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
-  await expect(page.getByText("Saknas", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Andra grupper har olika webbplatser/)).toBeVisible();
+  await expect(page.getByText(/Andra grupper har olika öppettider/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Använd för gruppen" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 });

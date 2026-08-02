@@ -42,6 +42,10 @@ individuell matdagbok, social feed eller global ranking.
 - Gruppens praktiska information har ändringshistorik och kan återställas till
   kartdatan. Senaste Geoapify/OSM-data kan hämtas på nytt utan att en aktiv
   gruppöverstyrning skrivs över tyst.
+- En källstödd ändring av webbplats eller öppettider kan visas som ett anonymt,
+  fältvist förslag i andra grupper som redan använder samma kanoniska
+  matställe. Varje grupp väljer själv om förslaget ska användas. Motstridiga
+  uppgifter visas som osäkra och ingen gruppuppgift skrivs över automatiskt.
 - Manuella matställen kan få en verifierad kartposition och ett privat underlag
   om att verksamheten saknas i OpenStreetMap. Inget publiceras automatiskt.
 - När en senare Geoapify- eller OSM-träff säkert motsvarar ett providerlöst
@@ -139,10 +143,19 @@ Gruppen är den primära produkt- och integritetsgränsen.
 - `place_external_info_snapshots` innehåller den senaste normaliserade externa
   ögonblicksbilden för ett kanoniskt matställe. Tabellen saknar direkt
   klientåtkomst och kan hjälpa flera grupper att undvika onödiga provideranrop
-  utan att dela gruppprivata uppgifter.
+  utan att dela gruppprivata uppgifter. Endast serverrollen får skriva en
+  snapshot efter att användarens gruppåtkomst och aktiva Geoapify-källa har
+  verifierats.
 - `group_places` innehåller gruppens relation, metadata, webbplats- och
   öppettidsöverstyrning samt privat källa, ändrare och ändringstid. En
   källuppdatering skriver aldrig tyst över dessa gruppspecifika uppgifter.
+  Fältvisa, tidsbegränsade markörer avgör om en uttryckligen källstödd ändring
+  får bli ett anonymt förslag till andra grupper.
+- Förslags-RPC:n för praktisk information lämnar endast neutral status,
+  fältvärde, anonymt innehållsfingeravtryck och tidpunkt. Ursprunglig grupp,
+  medlem, privat källänk, observation, antal och interna ID:n lämnar aldrig
+  servern. Ett förslag måste godkännas uttryckligen och valideras på nytt innan
+  det sparas i den mottagande gruppen.
 - `group_place_practical_info_history` bevarar gruppens revisionshistorik och
   nås endast genom medlemskapskontrollerade RPC:er.
 - `group_search_areas` innehåller gruppens verifierade sökcentrum.
