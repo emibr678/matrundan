@@ -1,0 +1,93 @@
+name: Polish reported errors branch
+
+on:
+  push:
+    branches:
+      - feature/rapporterade-fel-ux
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/rapporterade-fel-ux
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Apply visual polish from browser review
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          route = Path('src/routes/rapporterade-fel.tsx')
+          text = route.read_text()
+          old = '''      <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Filtrera rapporterade fel">
+                {REPORTED_ERROR_FILTERS.map((filter) => (
+                  <Button
+                    key={filter}
+                    type="button"
+                    size="sm"
+                    variant={activeFilter === filter ? "default" : "outline"}
+                    className="shrink-0 rounded-full"
+                    onClick={() => setFilter(filter)}
+                  >'''
+          new = '''      <div
+                className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap"
+                aria-label="Filtrera rapporterade fel"
+              >
+                {REPORTED_ERROR_FILTERS.map((filter) => (
+                  <Button
+                    key={filter}
+                    type="button"
+                    size="sm"
+                    variant={activeFilter === filter ? "default" : "outline"}
+                    className="w-full justify-between rounded-full sm:w-auto sm:justify-center"
+                    onClick={() => setFilter(filter)}
+                  >'''
+          if old not in text:
+              raise SystemExit('Kunde inte hitta filterraden')
+          text = text.replace(old, new, 1)
+          old = '<SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">'
+          new = '<SheetContent side="right" className="w-full max-w-none overflow-y-auto p-4 sm:max-w-xl sm:p-6">'
+          if old not in text:
+              raise SystemExit('Kunde inte hitta detaljpanelen')
+          route.write_text(text.replace(old, new, 1))
+
+          test = Path('tests/e2e/mobile-reported-errors.spec.ts')
+          text = test.read_text()
+          old = '''  await expectNoHorizontalOverflow(page, "rapportlistan");
+
+          await testInfo.attach("rapporterade-fel-lista", {'''
+          new = '''  await expectNoHorizontalOverflow(page, "rapportlistan");
+          await page.waitForTimeout(600);
+
+          await testInfo.attach("rapporterade-fel-lista", {'''
+          if old not in text:
+              raise SystemExit('Kunde inte hitta skärmbilden för listan')
+          text = text.replace(old, new, 1)
+          old = '''  await expectNoHorizontalOverflow(page, "panelen för rättelseförslag");
+
+          await testInfo.attach("rapporterade-fel-rattelseforslag", {'''
+          new = '''  await expectNoHorizontalOverflow(page, "panelen för rättelseförslag");
+          await page.waitForTimeout(600);
+
+          await testInfo.attach("rapporterade-fel-rattelseforslag", {'''
+          if old not in text:
+              raise SystemExit('Kunde inte hitta skärmbilden för rättelseförslaget')
+          test.write_text(text.replace(old, new, 1))
+          PY
+          bunx prettier --write src/routes/rapporterade-fel.tsx tests/e2e/mobile-reported-errors.spec.ts tests/e2e/mobile-search-hygiene.spec.ts tests/e2e/v1-13-osm-note-publishing.spec.ts src/components/matrundan/ReportedErrorsSettingsLink.tsx
+      - name: Commit polish
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/routes/rapporterade-fel.tsx tests/e2e/mobile-reported-errors.spec.ts tests/e2e/mobile-search-hygiene.spec.ts tests/e2e/v1-13-osm-note-publishing.spec.ts src/components/matrundan/ReportedErrorsSettingsLink.tsx
+          git commit -m "fix: polish reported errors mobile UX"
+          git push origin HEAD:feature/rapporterade-fel-ux
