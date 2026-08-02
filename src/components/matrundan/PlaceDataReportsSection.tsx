@@ -49,7 +49,6 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
 const ACTIVE_STATUSES = new Set<PlaceDataReportStatus>(["open", "ready_for_osm"]);
-const STATUS_OPTIONS: PlaceDataReportStatus[] = ["open", "ready_for_osm", "resolved", "dismissed"];
 const PLACE_DATA_HEADING_ID = "group-place-data-heading";
 
 function formatReportDate(value: string): string {
@@ -275,7 +274,6 @@ function PlaceDataReportCard({
   onPublish: (report: PlaceDataReport, publicText: string) => Promise<boolean>;
   onRefresh: (report: PlaceDataReport) => Promise<boolean>;
 }) {
-  const [status, setStatus] = React.useState<PlaceDataReportStatus>(report.status);
   const [resolutionNote, setResolutionNote] = React.useState(report.resolutionNote ?? "");
   const [publicText, setPublicText] = React.useState(
     report.osmPublicText ?? buildDefaultOsmPublicText(report),
@@ -286,7 +284,6 @@ function PlaceDataReportCard({
   const [confirmPublish, setConfirmPublish] = React.useState(false);
 
   React.useEffect(() => {
-    setStatus(report.status);
     setResolutionNote(report.resolutionNote ?? "");
     setPublicText(report.osmPublicText ?? buildDefaultOsmPublicText(report));
   }, [report]);
@@ -295,6 +292,17 @@ function PlaceDataReportCard({
   const canPublish = report.status === "ready_for_osm" && !published;
   const publicationError = publicationErrorText(report.osmSubmissionErrorCode);
   const websiteUrl = normalizeWebsiteUrl(report.placeWebsite);
+  const noteChanged = resolutionNote.trim() !== (report.resolutionNote ?? "");
+
+  async function saveAs(status: PlaceDataReportStatus): Promise<void> {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onSave(report, status, resolutionNote);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <details className="group min-w-0 rounded-xl border border-border/70 bg-background">
@@ -375,22 +383,6 @@ function PlaceDataReportCard({
         )}
 
         <div className="space-y-2">
-          <Label htmlFor={`place-data-report-status-${report.id}`}>Bedömning</Label>
-          <select
-            id={`place-data-report-status-${report.id}`}
-            value={status}
-            onChange={(event) => setStatus(event.target.value as PlaceDataReportStatus)}
-            className="flex min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {STATUS_OPTIONS.map((value) => (
-              <option key={value} value={value}>
-                {PLACE_DATA_REPORT_STATUS_LABEL[value]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor={`place-data-report-note-${report.id}`}>Intern anteckning (valfri)</Label>
           <Textarea
             id={`place-data-report-note-${report.id}`}
@@ -403,25 +395,94 @@ function PlaceDataReportCard({
           />
         </div>
 
-        <Button
-          type="button"
-          className="min-h-11 w-full"
-          disabled={
-            saving ||
-            (status === report.status && resolutionNote.trim() === (report.resolutionNote ?? ""))
-          }
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onSave(report, status, resolutionNote);
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Spara bedömning
-        </Button>
+        {report.status === "open" ? (
+          <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3">
+            <div className="space-y-1">
+              <div className="text-sm font-medium">Välj nästa steg</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Förbered rapporten för OpenStreetMap när underlaget verkar stämma. Annars kan den
+                markeras som åtgärdad i Matrundan eller avslutas utan åtgärd.
+              </p>
+            </div>
+            <Button
+              type="button"
+              className="min-h-11 w-full"
+              disabled={saving}
+              onClick={() => void saveAs("ready_for_osm")}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Förbered för OpenStreetMap
+            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 whitespace-normal"
+                disabled={saving}
+                onClick={() => void saveAs("resolved")}
+              >
+                <CheckCircle2 className="h-4 w-4" /> Markera som åtgärdad
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 whitespace-normal text-muted-foreground"
+                disabled={saving}
+                onClick={() => void saveAs("dismissed")}
+              >
+                <CircleAlert className="h-4 w-4" /> Avsluta utan åtgärd
+              </Button>
+            </div>
+          </div>
+        ) : report.status === "ready_for_osm" ? (
+          <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Rapporten är förberedd för OpenStreetMap. Granska den offentliga texten nedan innan
+              något publiceras. Gruppnamn, rapportör och den interna anteckningen skickas inte.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 w-full"
+              disabled={saving || !noteChanged}
+              onClick={() => void saveAs("ready_for_osm")}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Spara intern anteckning
+            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 whitespace-normal"
+                disabled={saving}
+                onClick={() => void saveAs("resolved")}
+              >
+                <CheckCircle2 className="h-4 w-4" /> Markera som åtgärdad
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 whitespace-normal text-muted-foreground"
+                disabled={saving}
+                onClick={() => void saveAs("dismissed")}
+              >
+                <CircleAlert className="h-4 w-4" /> Avsluta utan åtgärd
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-full"
+            disabled={saving || !noteChanged}
+            onClick={() => void saveAs(report.status)}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Spara intern anteckning
+          </Button>
+        )}
 
         {canPublish ? (
           <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3">
