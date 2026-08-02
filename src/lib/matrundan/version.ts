@@ -3,6 +3,29 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_6, type ChangelogEntry } from "./versi
 export { APP_NAME, formatRating } from "./version-history";
 export type { ChangelogEntry };
 
+const VERSION_1_15_0_CHANGELOG: ChangelogEntry = {
+  version: "1.15.0",
+  date: "2026-08-02",
+  summary: "Tydligare platsdataflöde före och efter att ett matställe läggs till.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Felaktiga sökträffar kan rapporteras privat till gruppens admin innan de läggs till i gruppen.",
+        "Dolda sökträffar kan öppnas för kontroll, rapportering, webbplats, Google Maps och återställning.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Webbplats och Google Maps visas konsekvent när säkra länkar finns, både före och efter tillägg.",
+        "Rapportering och privat gruppdöljning förklaras som två separata handlingar och kan kombineras för permanent stängning eller dubbletter.",
+        "Matställets detaljsida är kompaktare och Om stället behåller en tydlig enradig rubrik på mobil.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_14_1_CHANGELOG: ChangelogEntry = {
   version: "1.14.1",
   date: "2026-08-01",
@@ -279,6 +302,7 @@ const VERSION_1_6_1_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_15_0_CHANGELOG,
   VERSION_1_14_1_CHANGELOG,
   VERSION_1_14_0_CHANGELOG,
   VERSION_1_13_0_CHANGELOG,
