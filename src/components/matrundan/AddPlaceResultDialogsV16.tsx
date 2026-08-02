@@ -44,9 +44,7 @@ import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type Occasion } from "@/lib/matrundan/types";
 
 function suggestionWebsite(suggestion: PlaceSuggestion): string | undefined {
-  return normalizeWebsiteUrl(
-    (suggestion as PlaceSuggestion & { website?: string | null }).website,
-  );
+  return normalizeWebsiteUrl((suggestion as PlaceSuggestion & { website?: string | null }).website);
 }
 
 export function AddPlaceResultDialogsV16({
