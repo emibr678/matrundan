@@ -127,8 +127,8 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(page.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Detaljsida med flera val");
 
-  await page.getByRole("button", { name: "Redigera uppgifter" }).click();
-  const adminDialog = page.getByRole("dialog", { name: "Redigera Testköket" });
+  await page.getByRole("button", { name: "Hantera gruppens uppgifter om stället" }).click();
+  const adminDialog = page.getByRole("dialog", { name: "Redigera gruppens uppgifter" });
   await expect(
     adminDialog.getByRole("button", {
       name: "Passar för: Avslappnat",
