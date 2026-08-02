@@ -244,13 +244,13 @@ export function PlaceExternalInfo({
   const openingHours = practicalInfo.openingHoursOverride ?? details?.openingHours ?? null;
   const websiteConflict = Boolean(
     practicalInfo.websiteOverride &&
-      details?.website &&
-      practicalInfo.websiteOverride !== details.website,
+    details?.website &&
+    practicalInfo.websiteOverride !== details.website,
   );
   const openingHoursConflict = Boolean(
     practicalInfo.openingHoursOverride &&
-      details?.openingHours &&
-      !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
+    details?.openingHours &&
+    !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
   );
   const hasConflict = websiteConflict || openingHoursConflict;
   const hasGeoapifySource = Boolean(key);
