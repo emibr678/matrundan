@@ -8,6 +8,10 @@ import { spawnSync } from "node:child_process";
 const root = process.cwd();
 const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const changelogPath = resolve(root, "CHANGELOG.md");
+const recentArchivedChangelogPath = resolve(
+  root,
+  "docs/archive/changelog-v1.6.1-through-v1.15.md",
+);
 const archivedChangelogPath = resolve(root, "docs/archive/changelog-through-v1.6.md");
 const versionPath = resolve(root, "src/lib/matrundan/version.ts");
 const errors = [];
@@ -65,6 +69,7 @@ function isUserFacing(file) {
   if (isTestFile(file)) return false;
   if (file === "src/lib/matrundan/version.ts") return false;
   if (file === "src/lib/matrundan/version-through-1-6.ts") return false;
+  if (file === "src/lib/matrundan/version-through-1-15.ts") return false;
   return (
     file.startsWith("src/components/matrundan/") ||
     file.startsWith("src/routes/") ||
@@ -83,9 +88,14 @@ const { APP_VERSION, APP_VERSION_DATE, CHANGELOG } = await import(
   `${pathToFileURL(versionPath).href}?release-check=${Date.now()}`
 );
 const markdown = readFileSync(changelogPath, "utf8");
+const recentArchivedMarkdown = readFileSync(recentArchivedChangelogPath, "utf8");
 const archivedMarkdown = readFileSync(archivedChangelogPath, "utf8");
 const markdownEntries = markdownReleases(markdown);
-const allMarkdownEntries = [...markdownEntries, ...markdownReleases(archivedMarkdown)];
+const allMarkdownEntries = [
+  ...markdownEntries,
+  ...markdownReleases(recentArchivedMarkdown),
+  ...markdownReleases(archivedMarkdown),
+];
 
 if (!markdown.includes("## [Unreleased]")) {
   errors.push("CHANGELOG.md måste innehålla sektionen [Unreleased].");
