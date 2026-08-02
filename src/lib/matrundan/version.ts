@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_15, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-15";
 export type { ChangelogEntry };
 
+const VERSION_1_16_3_CHANGELOG: ChangelogEntry = {
+  version: "1.16.3",
+  date: "2026-08-02",
+  summary: "Rapportering och återgång i sökflödet fungerar tydligare och robustare.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Kryss och Tillbaka från granskningen av en sökträff återgår till samma sökning i stället för att stänga hela tilläggsflödet.",
+        "Den som själv har rapporterat en sökträff kan se att rapporten väntar på granskning utan att andra medlemmars rapporter exponeras.",
+        "Ett saknat serverstöd för sökträffsrapportering visas med ett begripligt meddelande i stället för en teknisk funktionssignatur.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_16_2_CHANGELOG: ChangelogEntry = {
   version: "1.16.2",
   date: "2026-08-02",
@@ -61,6 +77,7 @@ const VERSION_1_16_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_16_3_CHANGELOG,
   VERSION_1_16_2_CHANGELOG,
   VERSION_1_16_1_CHANGELOG,
   VERSION_1_16_0_CHANGELOG,
