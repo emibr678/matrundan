@@ -15,7 +15,7 @@ export interface OpeningHoursSchedule {
   partiallyParsed: boolean;
 }
 
-const DAY_LABEL: Record<OpeningHoursDayCode, string> = {
+export const OPENING_HOURS_DAY_LABEL: Record<OpeningHoursDayCode, string> = {
   Mo: "Måndag",
   Tu: "Tisdag",
   We: "Onsdag",
@@ -55,6 +55,17 @@ function normalizedInterval(value: string): string | null {
   return `${normalizedTime(`${fromHour}:${fromMinute}`)}–${normalizedTime(`${toHour}:${toMinute}`)}`;
 }
 
+function normalizedUserInterval(value: string): string | null {
+  const match = value
+    .trim()
+    .replace(/[−—-]/g, "–")
+    .match(/^(\d{1,2})(?::(\d{2}))?\s*–\s*(\d{1,2})(?::(\d{2}))?$/);
+  if (!match) return null;
+  const [, fromHour, fromMinute = "00", toHour, toMinute = "00"] = match;
+  if (!validClockTime(fromHour, fromMinute) || !validClockTime(toHour, toMinute)) return null;
+  return `${normalizedTime(`${fromHour}:${fromMinute}`)}–${normalizedTime(`${toHour}:${toMinute}`)}`;
+}
+
 function expandDayToken(token: string): OpeningHoursDayCode[] | null {
   const range = token.trim().match(/^(Mo|Tu|We|Th|Fr|Sa|Su)(?:-(Mo|Tu|We|Th|Fr|Sa|Su))?$/);
   if (!range) return null;
@@ -80,7 +91,7 @@ function emptyDays(): Record<OpeningHoursDayCode, OpeningHoursDay> {
     (result, code) => {
       result[code] = {
         code,
-        label: DAY_LABEL[code],
+        label: OPENING_HOURS_DAY_LABEL[code],
         intervals: [],
         closed: false,
         known: false,
@@ -158,6 +169,86 @@ export function parseOpeningHours(value: string | null | undefined): OpeningHour
     days: OPENING_HOURS_DAY_CODES.map((day) => days[day]),
     partiallyParsed: parsedClauseCount === 0 || unparsedClauseCount > 0,
   };
+}
+
+export function openingHoursDayInput(day: OpeningHoursDay): string {
+  if (!day.known) return "";
+  if (day.closed) return "Stängt";
+  return day.intervals.join(", ");
+}
+
+export function buildOpeningHoursScheduleFromInputs(
+  inputs: Record<OpeningHoursDayCode, string>,
+): OpeningHoursSchedule | null {
+  const hasAnyValue = OPENING_HOURS_DAY_CODES.some((code) => inputs[code].trim().length > 0);
+  if (!hasAnyValue) return null;
+
+  const days = OPENING_HOURS_DAY_CODES.map<OpeningHoursDay>((code) => {
+    const value = inputs[code].trim();
+    if (!value) {
+      return {
+        code,
+        label: OPENING_HOURS_DAY_LABEL[code],
+        intervals: [],
+        closed: false,
+        known: false,
+      };
+    }
+    if (/^(stängt|stangd|stang|closed|off)$/i.test(value)) {
+      return {
+        code,
+        label: OPENING_HOURS_DAY_LABEL[code],
+        intervals: [],
+        closed: true,
+        known: true,
+      };
+    }
+    if (/^(dygnet runt|24\/7)$/i.test(value)) {
+      return {
+        code,
+        label: OPENING_HOURS_DAY_LABEL[code],
+        intervals: ["Dygnet runt"],
+        closed: false,
+        known: true,
+      };
+    }
+
+    const intervals = value.split(",").map(normalizedUserInterval);
+    if (intervals.some((interval) => interval == null)) {
+      throw new Error(
+        `${OPENING_HOURS_DAY_LABEL[code]} har ett ogiltigt tidsformat. Använd till exempel 11–22, 11:30–14 eller Stängt.`,
+      );
+    }
+    return {
+      code,
+      label: OPENING_HOURS_DAY_LABEL[code],
+      intervals: intervals as string[],
+      closed: false,
+      known: true,
+    };
+  });
+
+  return { days, partiallyParsed: false };
+}
+
+export function isOpeningHoursSchedule(value: unknown): value is OpeningHoursSchedule {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<OpeningHoursSchedule>;
+  if (!Array.isArray(candidate.days) || candidate.days.length !== 7) return false;
+  if (typeof candidate.partiallyParsed !== "boolean") return false;
+  const seen = new Set<OpeningHoursDayCode>();
+  for (const rawDay of candidate.days) {
+    if (!rawDay || typeof rawDay !== "object") return false;
+    const day = rawDay as Partial<OpeningHoursDay>;
+    if (!OPENING_HOURS_DAY_CODES.includes(day.code as OpeningHoursDayCode)) return false;
+    if (seen.has(day.code as OpeningHoursDayCode)) return false;
+    if (!Array.isArray(day.intervals) || !day.intervals.every((item) => typeof item === "string")) {
+      return false;
+    }
+    if (typeof day.closed !== "boolean" || typeof day.known !== "boolean") return false;
+    seen.add(day.code as OpeningHoursDayCode);
+  }
+  return seen.size === 7;
 }
 
 function dayCodeForDate(date: Date, timezone?: string | null): OpeningHoursDayCode {
