@@ -44,13 +44,15 @@ test("gruppen granskar och simulerar en anonym OSM-anteckning privat", async ({ 
   await expect(page.getByRole("heading", { name: "Om stället", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Rapportera felaktig uppgift" }).click();
   const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktig uppgift" });
-  await expect(reportDialog.getByText(/går till gruppens ägare och administratörer/)).toBeVisible();
-  await reportDialog.getByLabel("Vad verkar vara fel?").selectOption("wrong_website");
+  await expect(
+    reportDialog.getByText(/Du lämnar ett underlag till gruppens ägare och administratörer/),
+  ).toBeVisible();
+  await reportDialog.getByLabel("Vad gäller uppgiften?").selectOption("wrong_website");
   await reportDialog
     .getByLabel("Vad har du sett?")
     .fill("Verksamhetens egen skylt visar en annan webbplats än den som är sparad.");
   await expectNoHorizontalOverflow(page, "Rapportdialog på mobil");
-  await reportDialog.getByRole("button", { name: "Skicka rapport" }).click();
+  await reportDialog.getByRole("button", { name: "Skicka underlag" }).click();
   await expect(reportDialog).toBeHidden();
 
   await page.goto("/gruppen?demo=1");
