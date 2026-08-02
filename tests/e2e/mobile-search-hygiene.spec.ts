@@ -29,9 +29,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   expect(metrics.documentScrollWidth, `${context}: dokument`).toBeLessThanOrEqual(
     metrics.documentClientWidth,
   );
-  expect(metrics.bodyScrollWidth, `${context}: body`).toBeLessThanOrEqual(
-    metrics.bodyClientWidth,
-  );
+  expect(metrics.bodyScrollWidth, `${context}: body`).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
 function placeSuggestionButton(scope: Locator | Page) {
@@ -91,8 +89,12 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await placeSuggestionButton(page).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
-  await expect(detailsDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` })).toBeVisible();
-  await expect(detailsDialog.getByRole("button", { name: "Rapportera felaktig träff" })).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
+  ).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("button", { name: "Rapportera felaktig träff" }),
+  ).toBeVisible();
   await expect(
     detailsDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
   ).toBeVisible();
@@ -165,12 +167,18 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   const hiddenHeading = settings.getByRole("heading", { name: "Dolda sökträffar" });
   const hiddenSection = hiddenHeading.locator("..");
   await expect(hiddenSection.getByText(PLACE_NAME)).toBeVisible();
-  await hiddenSection.getByRole("button", { name: `Öppna den dolda sökträffen ${PLACE_NAME}` }).click();
+  await hiddenSection
+    .getByRole("button", { name: `Öppna den dolda sökträffen ${PLACE_NAME}` })
+    .click();
 
   const hiddenDialog = page.getByRole("dialog", { name: PLACE_NAME });
   await expect(hiddenDialog.getByText(/Dold för den här gruppen/)).toBeVisible();
-  await expect(hiddenDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` })).toBeVisible();
-  await expect(hiddenDialog.getByRole("button", { name: "Rapportera felaktig uppgift" })).toBeVisible();
+  await expect(
+    hiddenDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
+  ).toBeVisible();
+  await expect(
+    hiddenDialog.getByRole("button", { name: "Rapportera felaktig uppgift" }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Dold sökträff");
   await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).click();
 
