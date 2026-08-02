@@ -64,9 +64,8 @@ export function signalTargetFromSuggestion(suggestion: PlaceSuggestion): PlaceDa
 export function signalTargetFromReportableSuggestion(
   suggestion: ReportablePlaceSuggestion,
 ): PlaceDataSignalTarget {
-  const openingHours = (
-    suggestion as ReportablePlaceSuggestion & { hasOpeningHours?: boolean }
-  ).hasOpeningHours;
+  const openingHours = (suggestion as ReportablePlaceSuggestion & { hasOpeningHours?: boolean })
+    .hasOpeningHours;
   return {
     key: placeSignalKey({
       provider: suggestion.provider,
