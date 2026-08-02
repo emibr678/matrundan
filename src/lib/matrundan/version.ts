@@ -6,7 +6,8 @@ export type { ChangelogEntry };
 const VERSION_1_19_0_CHANGELOG: ChangelogEntry = {
   version: "1.19.0",
   date: "2026-08-02",
-  summary: "Grupper som delar samma matställe kan granska anonyma förslag på webbplats och öppettider.",
+  summary:
+    "Grupper som delar samma matställe kan granska anonyma förslag på webbplats och öppettider.",
   sections: [
     {
       kind: "Nytt",
@@ -30,7 +31,8 @@ const VERSION_1_19_0_CHANGELOG: ChangelogEntry = {
 const VERSION_1_18_0_CHANGELOG: ChangelogEntry = {
   version: "1.18.0",
   date: "2026-08-02",
-  summary: "Gruppen kan underhålla webbplats och öppettider utan att tappa kopplingen till kartdatan.",
+  summary:
+    "Gruppen kan underhålla webbplats och öppettider utan att tappa kopplingen till kartdatan.",
   sections: [
     {
       kind: "Nytt",
