@@ -140,7 +140,9 @@ export function PlaceExternalInfo({
       })
       .catch((caught) => {
         if (cancelled) return;
-        setError(caught instanceof Error ? caught.message : "Platsinformationen kunde inte hämtas.");
+        setError(
+          caught instanceof Error ? caught.message : "Platsinformationen kunde inte hämtas.",
+        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
