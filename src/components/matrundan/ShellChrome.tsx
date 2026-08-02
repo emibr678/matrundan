@@ -107,13 +107,13 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
                 </div>
               </div>
               <div className="grid w-full shrink-0 grid-cols-2 gap-2 lg:flex lg:w-auto">
-                <Button variant="ghost" size="sm" className="min-h-10" onClick={resetExample}>
+                <Button variant="ghost" size="sm" className="min-h-11" onClick={resetExample}>
                   <RotateCcw className="h-4 w-4" /> Återställ
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="min-h-10"
+                  className="min-h-11"
                   onClick={() => setCreateGroupOpen(true)}
                 >
                   Skapa egen grupp
