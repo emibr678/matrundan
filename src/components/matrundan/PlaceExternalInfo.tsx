@@ -64,8 +64,14 @@ function formattedFetchedAt(value: string): string {
   }).format(date);
 }
 
-function OpeningHoursDetails({ schedule }: { schedule: OpeningHoursSchedule }) {
-  const today = openingHoursForDate(schedule);
+function OpeningHoursDetails({
+  schedule,
+  timezone,
+}: {
+  schedule: OpeningHoursSchedule;
+  timezone: string | null;
+}) {
+  const today = openingHoursForDate(schedule, new Date(), timezone);
   const todaySummary = openingHoursDaySummary(today);
 
   return (
@@ -205,7 +211,7 @@ export function PlaceExternalInfo({
       </div>
 
       {exampleMode ? null : details?.openingHours ? (
-        <OpeningHoursDetails schedule={details.openingHours} />
+        <OpeningHoursDetails schedule={details.openingHours} timezone={details.timezone} />
       ) : loading ? (
         <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Hämtar öppettider…
