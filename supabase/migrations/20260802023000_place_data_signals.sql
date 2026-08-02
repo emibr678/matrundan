@@ -1,8 +1,8 @@
 BEGIN;
 
--- v1.16.0: privat evidens får hjälpa andra grupper endast genom en neutral,
--- härledd signal. Ursprunglig grupp, användare, rapporttext och interna ID:n
--- lämnas aldrig av läs-RPC:n.
+-- v1.16.0: gruppprivat evidens får hjälpa andra grupper endast genom en
+-- neutral, härledd signal. Ursprunglig grupp, användare, rapporttext, antal och
+-- interna ID:n lämnas aldrig av läs-RPC:n.
 
 CREATE TABLE IF NOT EXISTS public.place_data_signal_confirmations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.place_data_signal_confirmations (
   signal_kind text NOT NULL DEFAULT 'permanent_closure',
   verdict text NOT NULL,
   group_id uuid NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
-  user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT place_data_signal_confirmations_target_check CHECK (
@@ -42,7 +42,7 @@ REVOKE ALL ON TABLE public.place_data_signal_confirmations
 
 CREATE UNIQUE INDEX IF NOT EXISTS place_data_signal_confirmations_user_place_uidx
   ON public.place_data_signal_confirmations(user_id, place_id, signal_kind)
-  WHERE user_id IS NOT NULL AND place_id IS NOT NULL;
+  WHERE place_id IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS place_data_signal_confirmations_user_provider_uidx
   ON public.place_data_signal_confirmations(
@@ -51,7 +51,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS place_data_signal_confirmations_user_provider_
     target_provider_place_id,
     signal_kind
   )
-  WHERE user_id IS NOT NULL AND place_id IS NULL;
+  WHERE place_id IS NULL;
 
 CREATE INDEX IF NOT EXISTS place_data_signal_confirmations_place_idx
   ON public.place_data_signal_confirmations(place_id, updated_at DESC)
@@ -136,6 +136,26 @@ BEGIN
     )
   FOR UPDATE;
 
+  IF _existing_id IS NULL
+     AND (
+       SELECT count(*)
+       FROM public.place_data_signal_confirmations c
+       WHERE c.user_id = _uid
+         AND c.created_at >= now() - interval '24 hours'
+     ) >= 50 THEN
+    RAISE EXCEPTION 'Du har nått dygnsgränsen för platsdatabekräftelser';
+  END IF;
+
+  IF _existing_id IS NULL
+     AND (
+       SELECT count(*)
+       FROM public.place_data_signal_confirmations c
+       WHERE c.group_id = _group_id
+         AND c.created_at >= now() - interval '24 hours'
+     ) >= 200 THEN
+    RAISE EXCEPTION 'Gruppen har nått dygnsgränsen för platsdatabekräftelser';
+  END IF;
+
   IF _existing_id IS NOT NULL THEN
     UPDATE public.place_data_signal_confirmations
     SET verdict = _verdict,
@@ -201,8 +221,29 @@ BEGIN
       NULLIF(lower(trim(target ->> 'provider')), '') AS provider,
       NULLIF(trim(target ->> 'providerPlaceId'), '') AS provider_place_id,
       COALESCE((target ->> 'hasWebsite')::boolean, false) AS has_website,
-      COALESCE((target ->> 'hasOpeningHours')::boolean, false) AS has_opening_hours
+      CASE
+        WHEN jsonb_typeof(target -> 'hasOpeningHours') = 'boolean'
+        THEN (target ->> 'hasOpeningHours')::boolean
+        ELSE NULL
+      END AS has_opening_hours
     FROM jsonb_array_elements(_targets) WITH ORDINALITY AS items(target, ordinality)
+  ),
+  authorized AS (
+    SELECT r.*
+    FROM requested r
+    WHERE r.target_key IS NOT NULL
+      AND (
+        (
+          r.requested_place_id IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM public.group_places gp
+            WHERE gp.group_id = _group_id
+              AND gp.place_id = r.requested_place_id
+          )
+        )
+        OR (r.provider IS NOT NULL AND r.provider_place_id IS NOT NULL)
+      )
   ),
   resolved AS (
     SELECT
@@ -219,12 +260,7 @@ BEGIN
           LIMIT 1
         )
       ) AS resolved_place_id
-    FROM requested r
-    WHERE r.target_key IS NOT NULL
-      AND (
-        r.requested_place_id IS NOT NULL
-        OR (r.provider IS NOT NULL AND r.provider_place_id IS NOT NULL)
-      )
+    FROM authorized r
   ),
   evidence AS (
     SELECT
@@ -232,7 +268,8 @@ BEGIN
       EXISTS (
         SELECT 1
         FROM public.place_data_reports report
-        WHERE report.category = 'closed_or_replaced'
+        WHERE report.group_id <> _group_id
+          AND report.category = 'closed_or_replaced'
           AND report.created_at >= now() - interval '90 days'
           AND report.status = 'open'
           AND (
@@ -261,7 +298,8 @@ BEGIN
       EXISTS (
         SELECT 1
         FROM public.place_data_reports report
-        WHERE report.category = 'closed_or_replaced'
+        WHERE report.group_id <> _group_id
+          AND report.category = 'closed_or_replaced'
           AND report.created_at >= now() - interval '365 days'
           AND (
             report.status = 'ready_for_osm'
@@ -293,7 +331,8 @@ BEGIN
       (
         SELECT count(DISTINCT confirmation.group_id)
         FROM public.place_data_signal_confirmations confirmation
-        WHERE confirmation.signal_kind = 'permanent_closure'
+        WHERE confirmation.group_id <> _group_id
+          AND confirmation.signal_kind = 'permanent_closure'
           AND confirmation.verdict = 'closed_permanently'
           AND confirmation.updated_at >= now() - interval '180 days'
           AND (
@@ -322,7 +361,8 @@ BEGIN
       (
         SELECT count(DISTINCT confirmation.group_id)
         FROM public.place_data_signal_confirmations confirmation
-        WHERE confirmation.signal_kind = 'permanent_closure'
+        WHERE confirmation.group_id <> _group_id
+          AND confirmation.signal_kind = 'permanent_closure'
           AND confirmation.verdict = 'appears_open'
           AND confirmation.updated_at >= now() - interval '180 days'
           AND (
@@ -352,7 +392,6 @@ BEGIN
         SELECT 1
         FROM public.visits visit
         WHERE visit.place_id = r.resolved_place_id
-          AND visit.deleted_at IS NULL
           AND visit.visited_on >= current_date - 90
       ) AS has_recent_visit
     FROM resolved r
@@ -360,19 +399,13 @@ BEGIN
   classified AS (
     SELECT
       e.*,
-      (
-        e.has_reviewed_report
-        OR e.closed_group_count >= 2
-      ) AS has_strong_positive,
+      (e.has_reviewed_report OR e.closed_group_count >= 2) AS has_strong_positive,
       (
         e.has_reviewed_report
         OR e.has_unreviewed_report
         OR e.closed_group_count >= 1
       ) AS has_any_positive,
-      (
-        e.open_group_count >= 1
-        OR e.has_recent_visit
-      ) AS has_counter_evidence
+      (e.open_group_count >= 1 OR e.has_recent_visit) AS has_counter_evidence
     FROM evidence e
   )
   SELECT COALESCE(
@@ -385,7 +418,7 @@ BEGIN
           WHEN c.has_any_positive THEN 'unverified'
           ELSE 'none'
         END,
-        'limitedInformation', NOT c.has_website AND NOT c.has_opening_hours,
+        'limitedInformation', NOT c.has_website AND c.has_opening_hours IS FALSE,
         'recentlyConfirmedOpen', c.has_recent_visit OR c.open_group_count >= 2
       )
       ORDER BY c.ordinality
