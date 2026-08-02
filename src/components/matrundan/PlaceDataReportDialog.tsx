@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CircleAlert, Loader2 } from "lucide-react";
+import { CircleAlert, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -148,16 +148,22 @@ export function PlaceDataReportDialog({
           }
           disabled={disabled}
         >
-          <CircleAlert className="h-4 w-4 shrink-0" />
-          {triggerLabel ?? (compact ? "Något stämmer inte" : "Rapportera felaktig uppgift")}
+          {compact ? (
+            <Plus className="h-4 w-4 shrink-0" />
+          ) : (
+            <CircleAlert className="h-4 w-4 shrink-0" />
+          )}
+          {triggerLabel ?? (compact ? "Komplettera" : "Rapportera felaktig uppgift")}
         </Button>
       </DialogTrigger>
       <DialogContent aria-describedby="place-data-report-description">
         <DialogHeader>
-          <DialogTitle>Rapportera eller komplettera uppgift</DialogTitle>
+          <DialogTitle>
+            {compact ? "Komplettera platsinformation" : "Rapportera felaktig uppgift"}
+          </DialogTitle>
           <DialogDescription id="place-data-report-description">
-            Underlaget går till gruppens ägare och administratörer. Inget publiceras automatiskt.
-            Gruppens namn, medlemmar och privata kommentarer skickas inte vidare.
+            Du lämnar ett underlag till gruppens ägare och administratörer. Inget publiceras
+            automatiskt. Gruppens namn, medlemmar och privata kommentarer skickas inte vidare.
           </DialogDescription>
         </DialogHeader>
 
