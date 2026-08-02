@@ -185,12 +185,23 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
   });
 
   await page.route("**/rest/v1/rpc/get_group_place_practical_info_v1", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(practical) });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(practical),
+    });
   });
 
-  await page.route("**/rest/v1/rpc/list_group_place_practical_info_history_v1", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(history) });
-  });
+  await page.route(
+    "**/rest/v1/rpc/list_group_place_practical_info_history_v1",
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(history),
+      });
+    },
+  );
 
   await page.route("**/rest/v1/rpc/update_group_place_practical_info_v1", async (route) => {
     const body = route.request().postDataJSON() as Record<string, unknown>;
@@ -273,9 +284,10 @@ test("en aktiv medlem uppdaterar gruppens praktiska information med källa", asy
 
   await page.getByRole("button", { name: "Redigera", exact: true }).click();
   const reopened = page.getByRole("dialog", { name: "Redigera praktisk information" });
-  await reopened.getByText("Tidigare ändringar", { exact: true }).click();
+  const history = reopened.locator("details");
+  await history.getByText("Tidigare ändringar", { exact: true }).click();
   await expect(
-    reopened.getByText("Tiderna kontrollerades på restaurangens dörr idag.", { exact: true }),
+    history.getByText("Tiderna kontrollerades på restaurangens dörr idag.", { exact: true }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
