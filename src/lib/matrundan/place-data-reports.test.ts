@@ -2,13 +2,16 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import {
   createLocalPlaceDataReport,
+  createLocalPlaceSuggestionReport,
   listLocalPlaceDataReports,
   normalizePlaceDataReportDescription,
   normalizePlaceDataResolutionNote,
   publishLocalOsmNote,
   refreshLocalOsmNoteStatus,
+  reportableSuggestionFromPlaceSuggestion,
   reviewLocalPlaceDataReport,
 } from "./place-data-reports";
+import type { PlaceSuggestion } from "./places-provider";
 import type { Member, Place } from "./types";
 
 class MemoryStorage implements Storage {
@@ -76,6 +79,19 @@ const place: Place = {
   ],
 };
 
+const suggestion: PlaceSuggestion = {
+  externalId: "geoapify:test-123",
+  provider: "geoapify",
+  name: "Testterrassen",
+  category: "restaurang",
+  address: "Terrassgatan 2",
+  area: "Johanneshov",
+  city: "Stockholm",
+  lat: 59.29,
+  lng: 18.08,
+  website: "testterrassen.example/meny",
+};
+
 const reporter: Member = { id: "m1", name: "Emilia", role: "ägare" };
 const reviewer: Member = { id: "m2", name: "Alex", role: "admin" };
 
@@ -117,6 +133,7 @@ describe("platsdatarapporter", () => {
     expect(duplicate).toEqual({ id: first.id, created: false });
 
     const [report] = listLocalPlaceDataReports("demo-group", "local");
+    expect(report?.targetKind).toBe("place");
     expect(report?.placeId).toBe("p-demo");
     expect(report?.placeName).toBe("Testköket");
     expect(report?.sources).toEqual([
@@ -124,6 +141,49 @@ describe("platsdatarapporter", () => {
     ]);
     expect(report?.osmSubmissionState).toBe("not_submitted");
     expect(listLocalPlaceDataReports("demo-group", "session")).toEqual([]);
+  });
+
+  test("bevarar en säker providerträff utan att skapa en kanonisk plats", () => {
+    const reportable = reportableSuggestionFromPlaceSuggestion(suggestion);
+    expect(reportable.website).toBe("https://testterrassen.example/meny");
+
+    const first = createLocalPlaceSuggestionReport(
+      "demo-group",
+      reportable,
+      reporter,
+      {
+        category: "closed_or_replaced",
+        description: "Skylten visar att verksamheten har stängt permanent.",
+      },
+      "session",
+    );
+    const duplicate = createLocalPlaceSuggestionReport(
+      "demo-group",
+      reportable,
+      reporter,
+      {
+        category: "closed_or_replaced",
+        description: "Samma medlem försöker rapportera samma problem igen.",
+      },
+      "session",
+    );
+
+    expect(first.created).toBe(true);
+    expect(duplicate).toEqual({ id: first.id, created: false });
+
+    const [report] = listLocalPlaceDataReports("demo-group", "session");
+    expect(report?.targetKind).toBe("suggestion");
+    expect(report?.placeId).toBeNull();
+    expect(report?.provider).toBe("geoapify");
+    expect(report?.providerPlaceId).toBe("geoapify:test-123");
+    expect(report?.placeWebsite).toBe("https://testterrassen.example/meny");
+    expect(report?.sources).toEqual([
+      {
+        provider: "geoapify",
+        providerPlaceId: "geoapify:test-123",
+        status: "active",
+      },
+    ]);
   });
 
   test("låter admin förbereda rapporten för OSM utan att publicera den", () => {
