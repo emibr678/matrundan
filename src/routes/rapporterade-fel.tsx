@@ -616,7 +616,7 @@ function ReportLinks({
   websiteUrl,
 }: {
   report: PlaceDataReport;
-  websiteUrl: string | null;
+  websiteUrl: string | undefined;
 }) {
   if (report.targetKind === "place" && report.placeId) {
     return (

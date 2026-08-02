@@ -63,8 +63,8 @@ individuell matdagbok, social feed eller global ranking.
   gruppinställningarna för kontroll, rapportering och återställning.
 - Alla aktiva medlemmar kan rapportera felaktig platsinformation privat både
   från matställets detaljsida och från en sökträff innan den läggs till.
-  Ägare och administratörer granskar rapporterna under
-  **Gruppinställningar → Platsdata**.
+  Ägare och administratörer hanterar rapporterna på den separata sidan
+  **Rapporterade fel**, som nås från gruppinställningarna.
 - Rapportering och döljning är separata handlingar. En rapport går till gruppens
   admin, medan döljning bara påverkar den aktuella gruppens sökningar och kan
   ångras när som helst.
@@ -78,10 +78,10 @@ individuell matdagbok, social feed eller global ranking.
 - **Begränsad platsinformation** visas separat när både webbplats och
   öppettider uttryckligen saknas i providerträffen. Det betyder inte att
   verksamheten har stängt.
-- En förberedd rapport kan publiceras som en anonym OpenStreetMap-anteckning
-  först efter att admin har granskat den exakta offentliga texten och bekräftat
-  publiceringen. OSM-statusen kan därefter kontrolleras manuellt utan att
-  gruppnamn, rapportör eller intern anteckning skickas automatiskt.
+- Efter granskning kan en administratör skicka ett rättelseförslag till
+  OpenStreetMap. Matrundan förklarar först vad tjänsten är och visar exakt
+  vilken text och kartposition som blir offentliga. Ditt namn, gruppens namn och
+  den interna anteckningen skickas inte, och ärendets status kan följas i appen.
 - Nästa stopp kan väljas manuellt eller slumpas.
 - Gruppen kan föreslå datum och valfri tid, svara **Passar**, **Passar inte**
   eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.

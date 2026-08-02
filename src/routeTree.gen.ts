@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RapporteradeFelRouteImport } from './routes/rapporterade-fel'
 import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnostik'
 import { Route as NyttLosenordRouteImport } from './routes/nytt-losenord'
 import { Route as MatstallenRouteImport } from './routes/matstallen'
@@ -21,6 +22,11 @@ import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$plac
 import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
 import { Route as ApiPublicHooksPushDispatchRouteImport } from './routes/api/public/hooks/push-dispatch'
 
+const RapporteradeFelRoute = RapporteradeFelRouteImport.update({
+  id: '/rapporterade-fel',
+  path: '/rapporterade-fel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlacemapdiagnostikRoute = PlacemapdiagnostikRouteImport.update({
   id: '/placemapdiagnostik',
   path: '/placemapdiagnostik',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/matstallen': typeof MatstallenRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
+  '/rapporterade-fel': typeof RapporteradeFelRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/matstallen': typeof MatstallenRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
+  '/rapporterade-fel': typeof RapporteradeFelRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/matstallen': typeof MatstallenRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
+  '/rapporterade-fel': typeof RapporteradeFelRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/matstallen'
     | '/nytt-losenord'
     | '/placemapdiagnostik'
+    | '/rapporterade-fel'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/api/public/hooks/push-dispatch'
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/matstallen'
     | '/nytt-losenord'
     | '/placemapdiagnostik'
+    | '/rapporterade-fel'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/api/public/hooks/push-dispatch'
@@ -155,6 +166,7 @@ export interface FileRouteTypes {
     | '/matstallen'
     | '/nytt-losenord'
     | '/placemapdiagnostik'
+    | '/rapporterade-fel'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/api/public/hooks/push-dispatch'
@@ -169,12 +181,20 @@ export interface RootRouteChildren {
   MatstallenRoute: typeof MatstallenRouteWithChildren
   NyttLosenordRoute: typeof NyttLosenordRoute
   PlacemapdiagnostikRoute: typeof PlacemapdiagnostikRoute
+  RapporteradeFelRoute: typeof RapporteradeFelRoute
   InbjudanTokenRoute: typeof InbjudanTokenRoute
   ApiPublicHooksPushDispatchRoute: typeof ApiPublicHooksPushDispatchRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/rapporterade-fel': {
+      id: '/rapporterade-fel'
+      path: '/rapporterade-fel'
+      fullPath: '/rapporterade-fel'
+      preLoaderRoute: typeof RapporteradeFelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/placemapdiagnostik': {
       id: '/placemapdiagnostik'
       path: '/placemapdiagnostik'
@@ -276,6 +296,7 @@ const rootRouteChildren: RootRouteChildren = {
   MatstallenRoute: MatstallenRouteWithChildren,
   NyttLosenordRoute: NyttLosenordRoute,
   PlacemapdiagnostikRoute: PlacemapdiagnostikRoute,
+  RapporteradeFelRoute: RapporteradeFelRoute,
   InbjudanTokenRoute: InbjudanTokenRoute,
   ApiPublicHooksPushDispatchRoute: ApiPublicHooksPushDispatchRoute,
 }
