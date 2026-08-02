@@ -162,7 +162,6 @@ async function expectNoHorizontalOverflow(page: Page) {
 function weeklyDetails(now: string) {
   return {
     openingHours: {
-      raw: "Mo-Fr 11:00-22:00; Sa 12:00-23:00; Su off",
       days: [
         { code: "Mo", label: "Måndag", intervals: ["11–22"], closed: false, known: true },
         { code: "Tu", label: "Tisdag", intervals: ["11–22"], closed: false, known: true },
@@ -172,7 +171,6 @@ function weeklyDetails(now: string) {
         { code: "Sa", label: "Lördag", intervals: ["12–23"], closed: false, known: true },
         { code: "Su", label: "Söndag", intervals: [], closed: true, known: true },
       ],
-      specialRules: [],
       partiallyParsed: false,
     },
     website: "https://www.testkoket.se/",
