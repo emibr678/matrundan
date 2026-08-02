@@ -13,6 +13,23 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.16.3] – 2026-08-02
+
+### Ändrat
+
+- Kryss och **Tillbaka** från granskningen av en sökträff återgår till samma
+  sökning i stället för att stänga hela tilläggsflödet.
+- Den som själv har rapporterat en sökträff ser den diskreta statusen **Din
+  rapport väntar på granskning** om träffen inte samtidigt döljs.
+- Ett saknat serverstöd för sökträffsrapportering visas med begriplig svensk
+  copy i stället för en teknisk PostgREST-funktionssignatur.
+
+### Databas och integritet
+
+- En ny gruppscopad RPC returnerar endast nycklar för den inloggade användarens
+  egna aktiva providerträffsrapporter. Andra medlemmars rapporter, rapporttext,
+  användaridentitet och interna ID:n exponeras inte.
+
 ## [1.16.2] – 2026-08-02
 
 ### Ändrat
