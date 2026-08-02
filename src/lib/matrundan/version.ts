@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_15, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-15";
 export type { ChangelogEntry };
 
+const VERSION_1_16_2_CHANGELOG: ChangelogEntry = {
+  version: "1.16.2",
+  date: "2026-08-02",
+  summary: "Platsdatakontrollerna är tätare, tydligare och lugnare i söklistan.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Begränsad platsinformation ligger på en kompakt egen rad utan onödigt glapp under Webbplats och Google Maps.",
+        "Ingången till rapportering och döljning heter Stängt eller fel uppgifter? och förklarar kort vad som händer.",
+        "Den neutrala informationsikonen har tagits bort ur söklistan, medan varningen Kan ha stängt permanent fortfarande visas där när en sådan signal finns.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_16_1_CHANGELOG: ChangelogEntry = {
   version: "1.16.1",
   date: "2026-08-02",
@@ -45,6 +61,7 @@ const VERSION_1_16_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_16_2_CHANGELOG,
   VERSION_1_16_1_CHANGELOG,
   VERSION_1_16_0_CHANGELOG,
   ...CHANGELOG_THROUGH_1_15,

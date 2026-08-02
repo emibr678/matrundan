@@ -1,4 +1,4 @@
-import { CircleAlert, HelpCircle, Info, ShieldQuestion } from "lucide-react";
+import { CircleAlert, Info, ShieldQuestion } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,44 +24,40 @@ export function PlaceDataSignalBadge({ signal }: { signal?: PlaceDataSignal }) {
   );
 }
 
+/**
+ * Behålls som kompatibilitet för äldre listkomponenter. Begränsad platsinformation
+ * visas avsiktligt först när användaren öppnar sökträffen.
+ */
 export function PlaceDataLimitedInfoIndicator({ signal }: { signal?: PlaceDataSignal }) {
-  if (!signal?.limitedInformation || signal.closureStatus !== "none") return null;
-
-  return (
-    <span
-      className="inline-grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted-foreground"
-      title="Begränsad platsinformation"
-      aria-label="Begränsad platsinformation"
-    >
-      <Info className="h-3.5 w-3.5" aria-hidden />
-    </span>
-  );
+  void signal;
+  return null;
 }
 
 export function PlaceDataLimitedInfoNotice({ signal }: { signal?: PlaceDataSignal }) {
   if (!signal?.limitedInformation || signal.closureStatus !== "none") return null;
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex min-h-11 items-center gap-1.5 py-2 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          aria-label="Begränsad platsinformation"
+    <div className="basis-full border-t border-border/60 pt-0.5">
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex min-h-9 w-full items-center justify-start gap-1.5 py-1.5 text-[11px] font-medium text-muted-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-4 hover:text-foreground"
+            aria-label="Begränsad platsinformation"
+          >
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            Begränsad platsinformation
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-[min(18rem,calc(100vw-2rem))] text-xs leading-relaxed"
         >
-          <Info className="h-3.5 w-3.5 shrink-0" />
-          Begränsad platsinformation
-          <HelpCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-[min(18rem,calc(100vw-2rem))] text-xs leading-relaxed"
-      >
-        Webbplats och öppettider saknas i kartdatan. Det säger inget om huruvida stället är öppet –
-        kontrollera gärna Google Maps före besöket.
-      </PopoverContent>
-    </Popover>
+          Webbplats och öppettider saknas i kartdatan. Det säger inget om huruvida stället är öppet
+          – kontrollera gärna Google Maps före besöket.
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
 

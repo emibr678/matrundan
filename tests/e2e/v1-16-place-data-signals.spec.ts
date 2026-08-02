@@ -12,7 +12,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.clientWidth);
 }
 
-test("begränsad platsinformation visas diskret och undantagsflödet är separat i demo", async ({
+test("begränsad platsinformation visas först i öppnad träff och undantagsflödet är separat", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
@@ -20,9 +20,7 @@ test("begränsad platsinformation visas diskret och undantagsflödet är separat
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await expect(
-    addDialog.locator('[aria-label="Begränsad platsinformation"]').first(),
-  ).toBeVisible();
+  await expect(addDialog.locator('[aria-label="Begränsad platsinformation"]')).toHaveCount(0);
 
   await addDialog
     .getByRole("button", {
@@ -58,16 +56,13 @@ test("begränsad platsinformation visas diskret och undantagsflödet är separat
     resultDialog.getByRole("button", { name: "Bekräfta permanent stängt", exact: true }),
   ).toHaveCount(0);
   await expect(
-    resultDialog.getByText(
-      "Döljning påverkar bara den här gruppen. En rapport går till gruppens admin och publiceras aldrig automatiskt.",
-      { exact: true },
-    ),
-  ).toHaveCount(0);
+    resultDialog.getByText("Rapportera till gruppens admin eller dölj träffen för gruppen.", {
+      exact: true,
+    }),
+  ).toBeVisible();
 
-  await resultDialog
-    .getByRole("button", { name: "Stämmer inte uppgifterna?", exact: true })
-    .click();
-  const issueDialog = page.getByRole("dialog", { name: "Stämmer inte uppgifterna?" });
+  await resultDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }).click();
+  const issueDialog = page.getByRole("dialog", { name: "Stängt eller fel uppgifter?" });
   await expect(
     issueDialog.getByRole("button", { name: /Rapportera felaktiga uppgifter/ }),
   ).toBeVisible();

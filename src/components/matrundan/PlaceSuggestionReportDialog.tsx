@@ -39,6 +39,8 @@ interface PlaceSuggestionReportDialogProps {
 
 type DialogStep = "choices" | "report";
 
+const DEFAULT_TRIGGER_LABEL = "Stängt eller fel uppgifter?";
+
 function shouldSuggestHide(category: PlaceDataReportCategory): boolean {
   return category === "closed_or_replaced" || category === "duplicate";
 }
@@ -48,7 +50,7 @@ export function PlaceSuggestionReportDialog({
   canHide = false,
   alreadyHidden = false,
   disabled = false,
-  triggerLabel = "Stämmer inte uppgifterna?",
+  triggerLabel = DEFAULT_TRIGGER_LABEL,
   onHide,
   onHidden,
   onReported,
@@ -57,6 +59,7 @@ export function PlaceSuggestionReportDialog({
   const { state, submitting } = useStore();
   const formId = React.useId();
   const canChooseHide = canHide && !alreadyHidden && Boolean(onHide);
+  const showDefaultTriggerDescription = triggerLabel === DEFAULT_TRIGGER_LABEL;
   const initialStep: DialogStep = canChooseHide ? "choices" : "report";
   const [open, setOpen] = React.useState(false);
   const [step, setStep] = React.useState<DialogStep>(initialStep);
@@ -174,18 +177,27 @@ export function PlaceSuggestionReportDialog({
         <Button
           type="button"
           variant="ghost"
-          className="min-h-11 w-full justify-start whitespace-normal px-3 text-left text-muted-foreground"
+          className="h-auto min-h-11 w-full justify-start whitespace-normal px-3 py-2 text-left text-muted-foreground"
           disabled={disabled}
         >
           <CircleAlert className="h-4 w-4 shrink-0" />
-          {triggerLabel}
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{triggerLabel}</span>
+            {showDefaultTriggerDescription ? (
+              <span className="mt-0.5 block text-xs font-normal leading-relaxed text-muted-foreground/90">
+                {canChooseHide
+                  ? "Rapportera till gruppens admin eller dölj träffen för gruppen."
+                  : "Rapportera till gruppens admin."}
+              </span>
+            ) : null}
+          </span>
         </Button>
       </DialogTrigger>
 
       {step === "choices" ? (
         <DialogContent aria-describedby={`${formId}-choices-description`}>
           <DialogHeader>
-            <DialogTitle>Stämmer inte uppgifterna?</DialogTitle>
+            <DialogTitle>Stängt eller fel uppgifter?</DialogTitle>
             <DialogDescription id={`${formId}-choices-description`}>
               Välj vad du vill göra med uppgifterna om {suggestion.name}.
             </DialogDescription>
