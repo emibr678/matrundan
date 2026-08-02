@@ -205,10 +205,7 @@ export function CrossGroupPracticalInfoSuggestions({
                     </summary>
                     <dl className="space-y-1.5 pb-1 text-sm">
                       {openingHours.openingHours.days.map((day) => (
-                        <div
-                          key={day.code}
-                          className="grid grid-cols-[minmax(0,1fr)_auto] gap-3"
-                        >
+                        <div key={day.code} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
                           <dt className="text-muted-foreground">{day.label}</dt>
                           <dd className="max-w-[11rem] text-right [overflow-wrap:anywhere]">
                             {openingHoursDaySummary(day)}
