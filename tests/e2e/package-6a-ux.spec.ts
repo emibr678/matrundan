@@ -81,7 +81,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     page
       .getByRole("heading", { name: "Om stället" })
       .locator("..")
-      .getByRole("button", { name: "Redigera uppgifter" }),
+      .getByRole("button", { name: "Hantera gruppens uppgifter om stället" }),
   ).toBeVisible();
   const visitHistoryTop = await page
     .getByRole("heading", { name: /^Besök/ })
