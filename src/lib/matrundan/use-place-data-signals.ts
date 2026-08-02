@@ -106,10 +106,7 @@ export function usePlaceDataSignalForReportableSuggestion(suggestion: Reportable
   signal: PlaceDataSignal | undefined;
   target: PlaceDataSignalTarget;
 } {
-  const target = React.useMemo(
-    () => signalTargetFromReportableSuggestion(suggestion),
-    [suggestion.provider, suggestion.providerPlaceId, suggestion.website],
-  );
+  const target = React.useMemo(() => signalTargetFromReportableSuggestion(suggestion), [suggestion]);
   const signals = usePlaceDataSignalsForTargets(
     React.useMemo(() => [target], [target]),
     false,
