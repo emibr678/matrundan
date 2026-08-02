@@ -86,7 +86,8 @@ function missingRpc(message?: string, functionName?: string): boolean {
   const text = message ?? "";
   return (
     /could not find the function|schema cache/i.test(text) &&
-    (!functionName || text.toLocaleLowerCase("en-US").includes(functionName.toLocaleLowerCase("en-US")))
+    (!functionName ||
+      text.toLocaleLowerCase("en-US").includes(functionName.toLocaleLowerCase("en-US")))
   );
 }
 
@@ -201,7 +202,10 @@ export const geoapifyPlaceDetails = createServerFn({ method: "POST" })
         _timezone: details.timezone,
         _fetched_at: details.fetchedAt,
       });
-      if (saved.error && !missingRpc(saved.error.message, "save_place_external_info_snapshot_v1")) {
+      if (
+        saved.error &&
+        !missingRpc(saved.error.message, "save_place_external_info_snapshot_v1")
+      ) {
         console.warn("[Matrundan] kunde inte spara platsdatasnapshot:", saved.error.message);
       }
     }
