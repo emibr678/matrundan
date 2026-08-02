@@ -1,4 +1,4 @@
-import { CircleAlert, Info, ShieldQuestion } from "lucide-react";
+import { CircleAlert, Clock3, Info, ShieldQuestion } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -20,6 +20,19 @@ export function PlaceDataSignalBadge({ signal }: { signal?: PlaceDataSignal }) {
       className="max-w-full whitespace-normal rounded-full border-amber-500/50 bg-amber-500/10 text-left text-amber-900 dark:text-amber-200"
     >
       <CircleAlert className="mr-1 h-3 w-3 shrink-0" /> {label}
+    </Badge>
+  );
+}
+
+export function OwnPlaceSuggestionReportBadge({ active }: { active: boolean }) {
+  if (!active) return null;
+
+  return (
+    <Badge
+      variant="outline"
+      className="max-w-full whitespace-normal rounded-full border-border/80 bg-muted/50 text-left text-muted-foreground"
+    >
+      <Clock3 className="mr-1 h-3 w-3 shrink-0" /> Din rapport väntar på granskning
     </Badge>
   );
 }
