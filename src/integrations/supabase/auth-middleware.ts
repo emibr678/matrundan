@@ -4,14 +4,12 @@ import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
-type SupabaseFetch = (...args: Parameters<typeof fetch>) => ReturnType<typeof fetch>;
-
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
 }
 
-function createSupabaseFetch(supabaseKey: string): SupabaseFetch {
-  return (input, init) => {
+function createSupabaseFetch(supabaseKey: string): typeof fetch {
+  const supabaseFetch = (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
     const headers = new Headers(
       typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
     );
@@ -31,6 +29,9 @@ function createSupabaseFetch(supabaseKey: string): SupabaseFetch {
     headers.set("apikey", supabaseKey);
     return fetch(input, { ...init, headers });
   };
+
+  // Supabase uses only the call signature. Newer DOM types also place static helpers on `fetch`.
+  return supabaseFetch as typeof fetch;
 }
 
 export const requireSupabaseAuth = createMiddleware({ type: "function" }).server(
