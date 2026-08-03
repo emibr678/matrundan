@@ -18,10 +18,15 @@ const KIND_ICON = {
  * Okända/ofullständiga aktiviteter renderas som icke-klickbar rad.
  */
 export function ActivityRow({ activity }: { activity: Activity }) {
-  const { memberById } = useStore();
+  const { memberById, getPlace } = useStore();
   const member = memberById(activity.memberId);
   const target = resolveActivityTarget(activity);
   const Icon = KIND_ICON[activity.kind] ?? Sparkles;
+  const place = activity.placeId ? getPlace(activity.placeId) : undefined;
+  const text =
+    activity.kind === "next-picked" && place
+      ? `${member?.name ?? "Någon"} föreslog ${place.name} som nästa stopp`
+      : activity.text;
 
   const inner = (
     <div className="flex w-full items-center gap-3 p-3">
@@ -32,7 +37,7 @@ export function ActivityRow({ activity }: { activity: Activity }) {
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-sm leading-snug">{activity.text}</div>
+        <div className="text-sm leading-snug">{text}</div>
         <div className="mt-0.5 text-xs text-muted-foreground">
           {formatDate(activity.at)}
         </div>
@@ -70,7 +75,6 @@ export function ActivityRow({ activity }: { activity: Activity }) {
     );
   }
 
-  // member
   return (
     <Link
       to="/gruppen"
