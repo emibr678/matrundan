@@ -132,7 +132,7 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
     scrollHeight: element.scrollHeight,
   }));
   expect(guideScroll.scrollHeight).toBeGreaterThan(guideScroll.clientHeight);
-  await guideDialog.getByRole("button", { name: "Stäng", exact: true }).click();
+  await guideDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guideDialog).toBeHidden();
 });
 
@@ -183,7 +183,7 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
     hiddenDialog.getByRole("button", { name: "Rapportera felaktig uppgift" }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Dold sökträff");
-  await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).click();
+  await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
 
   const reportedErrorsSection = settings.getByRole("region", { name: "Rapporterade fel" });
   await expect(reportedErrorsSection.getByText("1 att granska")).toBeVisible();
