@@ -5,10 +5,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
   }));
-  expect(
-    overflow.scrollWidth,
-    `${context} ska inte ha horisontell overflow`,
-  ).toBeLessThanOrEqual(overflow.clientWidth + 1);
+  expect(overflow.scrollWidth, `${context} ska inte ha horisontell overflow`).toBeLessThanOrEqual(
+    overflow.clientWidth + 1,
+  );
 }
 
 test.use({ viewport: { width: 360, height: 800 } });
@@ -22,9 +21,7 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expect(page.getByText("Du har inte svarat än").first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Hem i exempelgruppen");
 
-  await page
-    .getByRole("button", { name: /Öppna datumplaneringen/ })
-    .click();
+  await page.getByRole("button", { name: /Öppna datumplaneringen/ }).click();
   await page.getByRole("button", { name: "Passar" }).click();
   await expect(page.getByText("Du har svarat: Passar")).toBeVisible();
   await page.getByRole("button", { name: "Stäng" }).click();
@@ -52,7 +49,9 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await page.getByRole("button", { name: /Öppna besöket på Rundans Bistro/ }).click();
   await expect(page.getByText("Maja")).toBeVisible();
   await expect(page.getByText("Gäst", { exact: true })).toBeVisible();
-  await expect(page.getByText("Gäster hör bara till detta besök och får ingen medlemsprogression.")).toBeVisible();
+  await expect(
+    page.getByText("Gäster hör bara till detta besök och får ingen medlemsprogression."),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Stäng" }).click();
 
   await page.goto("/matstallen");
