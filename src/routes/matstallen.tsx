@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
+import { ExamplePlaceMap } from "@/components/matrundan/ExamplePlaceMap";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceCard, PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
@@ -30,8 +31,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useStore } from "@/lib/matrundan/store";
 import { rankPlacesForOccasion } from "@/lib/matrundan/occasions";
+import { useSession } from "@/lib/matrundan/session";
+import { useStore } from "@/lib/matrundan/store";
 import {
   CATEGORY_LABEL,
   OCCASION_LABEL,
@@ -80,6 +82,7 @@ const QUICK_FILTERS: { key: Filter; label: string }[] = [
 
 function PlacesIndex() {
   const { state, demoReadOnly, avgRating, isFavorite, statusOf } = useStore();
+  const { exampleMode } = useSession();
   const navigate = useNavigate({ from: "/matstallen" });
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
@@ -192,6 +195,7 @@ function PlacesIndex() {
     description: [place.address, place.area, place.city].filter(Boolean).join(" · "),
     markerLabel: place.photo ?? "🍽️",
   }));
+  const MapComponent = exampleMode ? ExamplePlaceMap : PlaceMap;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 pt-2 md:max-w-4xl">
@@ -294,7 +298,7 @@ function PlacesIndex() {
                         <div className="mt-0.5 flex items-center gap-2">
                           <RatingStars value={rating.overall} size={12} />
                           <span className="text-xs text-muted-foreground">
-                            {formatRating(rating.overall)} · {rating.count}
+                            {formatRating(rating.overall)} · {rating.count} besök
                           </span>
                         </div>
                       </div>
@@ -478,7 +482,7 @@ function PlacesIndex() {
         </div>
       ) : (
         <section className="space-y-2 pb-4">
-          <PlaceMap
+          <MapComponent
             items={mapItems}
             selectedId={selectedPlaceId}
             onSelect={setSelectedPlaceId}
@@ -490,7 +494,7 @@ function PlacesIndex() {
             }
             actionLabel="Visa ställe"
             className="h-[62vh] min-h-[420px] max-h-[680px]"
-            ariaLabel={`Karta med ${mappedCount} av ${filtered.length} matställen`}
+            ariaLabel={`${exampleMode ? "Demokarta" : "Karta"} med ${mappedCount} av ${filtered.length} matställen`}
           />
           {unmappedCount > 0 ? (
             <p className="text-xs text-muted-foreground">
