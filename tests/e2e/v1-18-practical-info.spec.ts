@@ -284,7 +284,9 @@ test("en aktiv medlem uppdaterar gruppens praktiska information med källa", asy
   const reopened = page.getByRole("dialog", { name: "Ändra webbplats och öppettider" });
   await reopened.getByText("Tidigare ändringar", { exact: true }).click();
   await expect(
-    reopened.getByText("Tiderna kontrollerades på restaurangens dörr idag.", { exact: true }),
+    reopened
+      .locator("p")
+      .filter({ hasText: /^Tiderna kontrollerades på restaurangens dörr idag\.$/ }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
