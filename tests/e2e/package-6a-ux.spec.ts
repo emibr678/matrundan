@@ -74,14 +74,14 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
 
   await page.goto("/matstallen/p8?demo=1");
   await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Välj som nästa stopp" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Föreslå som nästa stopp" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Markera som favorit" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Öppna .* i Google Maps/ })).toBeVisible();
   await expect(
     page
       .getByRole("heading", { name: "Om stället" })
       .locator("..")
-      .getByRole("button", { name: "Hantera gruppens uppgifter om stället" }),
+      .getByRole("button", { name: "Redigera gruppens uppgifter" }),
   ).toBeVisible();
   const visitHistoryTop = await page
     .getByRole("heading", { name: /^Besök/ })
@@ -91,7 +91,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     .evaluate((element) => element.getBoundingClientRect().top);
   expect(visitHistoryTop).toBeLessThan(aboutPlaceTop);
 
-  await page.getByRole("button", { name: "Välj som nästa stopp" }).click();
+  await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
   await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ta bort som nästa stopp" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Matställets detaljsida");
