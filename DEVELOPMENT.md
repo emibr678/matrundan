@@ -116,18 +116,6 @@ Global skrivande formattering är avsiktligt explicit:
 bun run format:all
 ```
 
-## Personabaserade UX-tester
-
-Det deterministiska browserlagret ligger fortsatt under `tests/e2e/` och är den relevanta mergegrinden. Öppna personabaserade testuppdrag finns under [`docs/ux-testing/`](docs/ux-testing/README.md).
-
-Personatesterna används för att upptäcka begriplighets-, navigations- och förtroendeproblem som inte kan beskrivas med en stabil selector eller en förutbestämd klickväg. De ska köras i en separat browserkontext per persona och kräver visuell input, exempelvis skärmbilder genom Computer Use eller ett motsvarande browserverktyg.
-
-En Codex-session som endast har terminal och Playwright-selectors får förbereda eller analysera tester, men får inte påstå att den genomfört ett visuellt black-box-test. Repot innehåller inga plattformsspecifika personaagenter; mänskliga testare och framtida verktyg ska läsa samma verktygsneutrala personor, uppdrag och rapportkontrakt under `docs/ux-testing/`.
-
-En generell testmotor för flera appar ska senare ligga i ett separat repo. Matrundan behåller sina produktnära underlag här och får först en appnära adapter under `tests/ux-agent/` när det finns en faktisk, reproducerbar motor att anropa.
-
-Personatester blockerar inte merge initialt. Reproducerbara och entydiga fynd ska omvandlas till vanliga Playwright-regressionstester innan de används som releasekrav.
-
 ## Serverfunktioner och CSRF
 
 Projektets egen `src/start.ts` ska behålla TanStack Starts CSRF-middleware för alla serverfunktioner. Bearer-token, medlemskap och rollkontroller är separata behörighetsskydd och ersätter inte origin-skyddet.
