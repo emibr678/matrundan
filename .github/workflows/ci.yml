@@ -134,6 +134,9 @@ jobs:
       - name: TypeScript
         run: bun run typecheck
 
+      - name: Unit test TypeScript
+        run: bun run typecheck:unit
+
       - name: Playwright TypeScript
         run: bun run typecheck:e2e
 
