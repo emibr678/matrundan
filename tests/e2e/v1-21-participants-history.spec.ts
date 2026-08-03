@@ -22,9 +22,9 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expectNoHorizontalOverflow(page, "Hem i exempelgruppen");
 
   await page.getByRole("button", { name: /Öppna datumplaneringen/ }).click();
-  await page.getByRole("button", { name: "Passar" }).click();
+  await page.getByRole("button", { name: /^Passar(?: \d+)?$/ }).click();
   await expect(page.getByText("Du har svarat: Passar")).toBeVisible();
-  await page.getByRole("button", { name: "Stäng" }).click();
+  await page.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(page.getByText("Du har svarat: Passar").first()).toBeVisible();
 
   await page.goto("/matstallen/p1");
@@ -52,7 +52,7 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expect(
     page.getByText("Gäster hör bara till detta besök och får ingen medlemsprogression."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Stäng" }).click();
+  await page.getByRole("button", { name: "Stäng", exact: true }).first().click();
 
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Karta" }).click();
