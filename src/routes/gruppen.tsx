@@ -11,11 +11,7 @@ import {
   Settings,
   Heart,
   ChevronRight,
-  Trash2,
-  Crown,
   LogOut,
-  ShieldCheck,
-  ShieldOff,
   Archive,
   ArchiveRestore,
 } from "lucide-react";
@@ -58,15 +54,11 @@ import {
   createGroupInvitation,
   leaveGroup,
   listGroupInvitations,
-  removeGroupMember,
   revokeGroupInvitation,
-  setMemberRole,
-  transferGroupOwnership,
   type InvitationListItem,
 } from "@/lib/matrundan/live-admin";
 import { APP_VERSION, APP_NAME } from "@/lib/matrundan/version";
 import { formatRating } from "@/lib/matrundan/version";
-import type { Member } from "@/lib/matrundan/types";
 
 const GROUP_SEARCH_DEFAULTS = { member: "" };
 const groupSearchSchema = z.object({
@@ -448,173 +440,6 @@ function GroupStatusSection() {
             >
               Arkivera gruppen
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </section>
-  );
-}
-
-function MembersSection({
-  members,
-  currentUserId,
-  isOwner,
-  isAdmin,
-  groupId,
-  onChanged,
-}: {
-  members: Member[];
-  currentUserId: string;
-  isOwner: boolean;
-  isAdmin: boolean;
-  groupId: string | null;
-  onChanged: () => Promise<void>;
-}) {
-  const [busyId, setBusyId] = React.useState<string | null>(null);
-  const [removeTarget, setRemoveTarget] = React.useState<Member | null>(null);
-  const [transferTarget, setTransferTarget] = React.useState<Member | null>(null);
-
-  async function runRoleChange(m: Member, next: "admin" | "member") {
-    if (!groupId) return;
-    setBusyId(m.id);
-    try {
-      await setMemberRole(groupId, m.id, next);
-      await onChanged();
-      toast.success("Rollen är uppdaterad.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Kunde inte ändra roll.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function confirmRemove() {
-    if (!groupId || !removeTarget) return;
-    setBusyId(removeTarget.id);
-    try {
-      await removeGroupMember(groupId, removeTarget.id);
-      await onChanged();
-      toast.success(`${removeTarget.name} är borttagen.`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Kunde inte ta bort medlem.");
-    } finally {
-      setBusyId(null);
-      setRemoveTarget(null);
-    }
-  }
-
-  async function confirmTransfer() {
-    if (!groupId || !transferTarget) return;
-    setBusyId(transferTarget.id);
-    try {
-      await transferGroupOwnership(groupId, transferTarget.id);
-      await onChanged();
-      toast.success(`Ägarskap överfört till ${transferTarget.name}.`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Kunde inte överföra ägarskap.");
-    } finally {
-      setBusyId(null);
-      setTransferTarget(null);
-    }
-  }
-
-  return (
-    <section>
-      <h3 className="mb-2 text-sm font-medium">Medlemmar & roller</h3>
-      <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-        {members.map((m) => {
-          const isSelf = m.id === currentUserId;
-          const canRemove =
-            !isSelf &&
-            groupId &&
-            m.role !== "ägare" &&
-            (isOwner || (isAdmin && m.role === "medlem"));
-          return (
-            <div key={m.id} className="flex items-center gap-3 p-3">
-              <MemberAvatar member={m} size={40} />
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">
-                  {m.name}
-                  {isSelf ? " (du)" : ""}
-                </div>
-                <div className="text-xs capitalize text-muted-foreground">{m.role}</div>
-              </div>
-              {isOwner && !isSelf && m.role === "medlem" ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busyId === m.id}
-                  onClick={() => runRoleChange(m, "admin")}
-                  title="Gör till admin"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                </Button>
-              ) : null}
-              {isOwner && !isSelf && m.role === "admin" ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busyId === m.id}
-                  onClick={() => runRoleChange(m, "member")}
-                  title="Ta bort admin-roll"
-                >
-                  <ShieldOff className="h-4 w-4" />
-                </Button>
-              ) : null}
-              {isOwner && !isSelf && m.role !== "ägare" ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busyId === m.id}
-                  onClick={() => setTransferTarget(m)}
-                  title="Överför ägarskap"
-                >
-                  <Crown className="h-4 w-4" />
-                </Button>
-              ) : null}
-              {canRemove ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busyId === m.id}
-                  onClick={() => setRemoveTarget(m)}
-                  aria-label={`Ta bort ${m.name}`}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              ) : null}
-            </div>
-          );
-        })}
-      </Card>
-
-      <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort {removeTarget?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Personen förlorar åtkomsten direkt. Historiska besök och betyg finns kvar i gruppen.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRemove}>Ta bort</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!transferTarget} onOpenChange={(o) => !o && setTransferTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Överför ägarskap till {transferTarget?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Du blir admin och {transferTarget?.name} blir gruppens ägare. Endast ägaren kan
-              hantera admins och överföra ägarskap.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmTransfer}>Överför</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
