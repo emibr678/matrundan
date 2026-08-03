@@ -6,13 +6,16 @@ import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { ShellChrome } from "@/components/matrundan/ShellChrome";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  DEMO_STATE_CHANGED_EVENT,
+  EXAMPLE_STATE_STORAGE_KEY,
+} from "@/lib/matrundan/demo-state";
 import { EXAMPLE_STATE } from "@/lib/matrundan/example-data";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
 import { StoreProvider } from "@/lib/matrundan/store";
 import type { AppState } from "@/lib/matrundan/types";
 
-const EXAMPLE_STATE_KEY = "matrundan.exampleState.v1";
 const LIVE_LOAD_ERROR = "Kunde inte läsa gruppens data.";
 
 function requireLiveState(state: AppState | null): AppState {
@@ -37,6 +40,7 @@ function ShellBody() {
   const isPublicInfoRoute = pathname === "/integritet";
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
+  const [demoRevision, setDemoRevision] = React.useState(0);
 
   React.useEffect(() => {
     if (!user) return;
@@ -87,6 +91,13 @@ function ShellBody() {
     window.addEventListener("matrundan:reload", handler);
     return () => window.removeEventListener("matrundan:reload", handler);
   }, [reloadLive]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || mode === "live") return;
+    const handler = () => setDemoRevision((current) => current + 1);
+    window.addEventListener(DEMO_STATE_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(DEMO_STATE_CHANGED_EVENT, handler);
+  }, [mode]);
 
   if (loading) {
     return (
@@ -152,11 +163,11 @@ function ShellBody() {
       key={
         mode === "live"
           ? `live:${activeGroupId ?? ""}`
-          : `demo:${exampleMode ? "example" : "sandbox"}`
+          : `demo:${exampleMode ? "example" : "sandbox"}:${demoRevision}`
       }
       mode={storeMode}
       demoPersistence={exampleMode ? "session" : "local"}
-      demoStorageKey={exampleMode ? EXAMPLE_STATE_KEY : undefined}
+      demoStorageKey={exampleMode ? EXAMPLE_STATE_STORAGE_KEY : undefined}
       initialState={
         mode === "live" ? (liveState ?? undefined) : exampleMode ? EXAMPLE_STATE : undefined
       }
