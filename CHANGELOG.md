@@ -13,6 +13,40 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.21.0] – 2026-08-03
+
+### Lagt till
+
+- Besök kan innehålla namngivna gäster utan att de skapas som gruppmedlemmar
+  eller får medlemsprogression.
+- Gruppen har en gemensam besökshistorik via **Visa alla besök** på Hem. Historiken
+  visar det senaste först och använder samma besöksdetaljer som matställesvyn.
+
+### Ändrat
+
+- Matställen visar hur många av gruppens medlemmar som har varit där, och nästa
+  stopp beskrivs konsekvent som ett förslag.
+- Hem visar om den aktuella medlemmen själv har svarat på datumförslaget, utöver
+  gruppens sammanställning.
+- Exempelgruppen visar en avsiktlig demokarta utan externa kartanrop och
+  förklarar att användaren testar som Alex, gruppens ägare.
+- Topplistan visar antal besök och redigeringsvägarna har mer specifika namn.
+
+### Rättat
+
+- Dialoger och paneler annonserar **Stäng** på svenska, och varje stjärnbetyg är
+  semantiskt kopplat till rubriken för helhet, smak, prisvärdhet eller service.
+- Samma kommentar visas inte längre både som gemensam besökskommentar och som
+  användarens eget omdöme.
+
+### Databas och integritet
+
+- Besöksgäster lagras privat och besökslokalt. Gästnamn visas bara i besökets
+  ursprungsgrupp; andra grupper som får besöket delat ser endast ett anonymt
+  antal personer utanför gruppen.
+- Endast valda faktiska gruppmedlemmar får deltagarprogression. Registreraren får
+  ingen automatisk kredit och gäster påverkar inte medlemsstatistik.
+
 ## [1.20.2] – 2026-08-03
 
 ### Rättat
