@@ -23,7 +23,9 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
 
   await page.getByRole("button", { name: /Öppna datumplaneringen/ }).click();
   await page.getByRole("button", { name: /^Passar(?: \d+)?$/ }).click();
-  await expect(page.getByText("Du har svarat: Passar")).toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "Planera nästa stopp" }).getByRole("status"),
+  ).toHaveText("Du har svarat: Passar");
   await page.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(page.getByText("Du har svarat: Passar").first()).toBeVisible();
 
