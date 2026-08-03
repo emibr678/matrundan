@@ -242,11 +242,7 @@ export function PlacePracticalInfoDialog({
       return;
     }
     const normalizedSourceNote = hasOverride ? sourceNote.trim() || null : null;
-    if (
-      hasOverride &&
-      !normalizedSourceUrl &&
-      (normalizedSourceNote?.length ?? 0) < 10
-    ) {
+    if (hasOverride && !normalizedSourceUrl && (normalizedSourceNote?.length ?? 0) < 10) {
       setEvidenceOpen(true);
       toast.error("Ange en källänk eller en kort observation med minst 10 tecken.");
       return;
@@ -329,12 +325,7 @@ export function PlacePracticalInfoDialog({
             <div className="flex items-center justify-between gap-2">
               <Label htmlFor="practical-website">Webbplats</Label>
               {externalWebsite || practicalInfo.websiteOverride ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setWebsite("")}
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={() => setWebsite("")}>
                   Använd kartdatan
                 </Button>
               ) : null}
@@ -435,8 +426,8 @@ export function PlacePracticalInfoDialog({
                 />
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Underlaget stannar i gruppen. En administratör avgör separat om kartdatan också
-                bör uppdateras.
+                Underlaget stannar i gruppen. En administratör avgör separat om kartdatan också bör
+                uppdateras.
               </p>
             </div>
           </details>
