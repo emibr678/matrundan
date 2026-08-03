@@ -67,7 +67,9 @@ function VisitHistory() {
       {visits.length === 0 ? (
         <Card className="rounded-2xl border-dashed p-6 text-center">
           <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">Gruppen har inga registrerade besök än.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Gruppen har inga registrerade besök än.
+          </p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -112,7 +114,9 @@ function VisitHistory() {
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h2 className="truncate font-display text-lg font-semibold">{place.name}</h2>
+                          <h2 className="truncate font-display text-lg font-semibold">
+                            {place.name}
+                          </h2>
                           <p className="text-xs text-muted-foreground">
                             {formatDate(visit.date)} · {MEAL_LABEL[visit.meal] ?? visit.meal}
                           </p>
@@ -137,8 +141,8 @@ function VisitHistory() {
                         ))}
                         {(visit.externalParticipantCount ?? 0) > 0 ? (
                           <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                            <Users2 className="mr-1 h-3 w-3" />+{visit.externalParticipantCount} utanför
-                            gruppen
+                            <Users2 className="mr-1 h-3 w-3" />+{visit.externalParticipantCount}{" "}
+                            utanför gruppen
                           </span>
                         ) : null}
                       </div>
@@ -146,7 +150,9 @@ function VisitHistory() {
                       {visit.comment ? (
                         <p className="mt-2 flex min-w-0 items-start gap-1.5 text-sm text-muted-foreground">
                           <MessageCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                          <span className="line-clamp-2 [overflow-wrap:anywhere]">{visit.comment}</span>
+                          <span className="line-clamp-2 [overflow-wrap:anywhere]">
+                            {visit.comment}
+                          </span>
                         </p>
                       ) : null}
                     </div>
