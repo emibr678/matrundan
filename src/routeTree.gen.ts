@@ -17,6 +17,7 @@ import { Route as MapdiagnostikRouteImport } from './routes/mapdiagnostik'
 import { Route as IntegritetRouteImport } from './routes/integritet'
 import { Route as GruppenRouteImport } from './routes/gruppen'
 import { Route as ExempelRouteImport } from './routes/exempel'
+import { Route as BesokRouteImport } from './routes/besok'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
 import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
@@ -62,6 +63,11 @@ const ExempelRoute = ExempelRouteImport.update({
   path: '/exempel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BesokRoute = BesokRouteImport.update({
+  id: '/besok',
+  path: '/besok',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -86,6 +92,7 @@ const ApiPublicHooksPushDispatchRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/besok': typeof BesokRoute
   '/exempel': typeof ExempelRoute
   '/gruppen': typeof GruppenRoute
   '/integritet': typeof IntegritetRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/besok': typeof BesokRoute
   '/exempel': typeof ExempelRoute
   '/gruppen': typeof GruppenRoute
   '/integritet': typeof IntegritetRoute
@@ -115,6 +123,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/besok': typeof BesokRoute
   '/exempel': typeof ExempelRoute
   '/gruppen': typeof GruppenRoute
   '/integritet': typeof IntegritetRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/besok'
     | '/exempel'
     | '/gruppen'
     | '/integritet'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/besok'
     | '/exempel'
     | '/gruppen'
     | '/integritet'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/besok'
     | '/exempel'
     | '/gruppen'
     | '/integritet'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BesokRoute: typeof BesokRoute
   ExempelRoute: typeof ExempelRoute
   GruppenRoute: typeof GruppenRoute
   IntegritetRoute: typeof IntegritetRoute
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExempelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/besok': {
+      id: '/besok'
+      path: '/besok'
+      fullPath: '/besok'
+      preLoaderRoute: typeof BesokRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -289,6 +309,7 @@ const MatstallenRouteWithChildren = MatstallenRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BesokRoute: BesokRoute,
   ExempelRoute: ExempelRoute,
   GruppenRoute: GruppenRoute,
   IntegritetRoute: IntegritetRoute,
