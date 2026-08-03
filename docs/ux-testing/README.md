@@ -108,6 +108,6 @@ Personatester ska initialt köras manuellt eller vid särskilda UX-rundor. De sk
 
 Det här repot versionshanterar Matrundans egna personor, uppdrag, rapportkontrakt och deterministiska regressionstester. Det innehåller inte repobundna roller för Codex eller någon annan specifik agentplattform och påstår inte att en automatiserad visuell testmotor finns.
 
-Ett mänskligt testupplägg, Computer Use eller ett framtida agentramverk kan läsa samma underlag. Om en generell testmotor senare byggs för flera appar bör den ligga i ett separat repo, medan Matrundans produktnära personor och uppdrag stannar här.
+Ett mänskligt testupplägg, Computer Use eller ett framtida agentramverk kan läsa samma underlag. Om en generell testmotor senare byggs för flera appar bör den ligga i ett separat repo, medan Matrundans produktnära personor och uppdrag stannar här. En appnära adapter eller körkonfiguration kan då läggas under `tests/ux-agent/` i Matrundan först när det finns en faktisk, reproducerbar motor att anropa.
 
 Utan ett verktyg som faktiskt ger skärmbilder tillbaka till testaren eller modellen får en körning endast förbereda uppdrag eller analysera redan insamlade artefakter, inte påstå att ett visuellt användartest har genomförts.
