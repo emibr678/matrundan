@@ -30,12 +30,6 @@ Inga ändringar ännu.
 - Projektets egen TanStack Start-konfiguration registrerar ramverkets
   CSRF-middleware för serverfunktioner.
 
-### Utveckling och verifiering
-
-- Ett lätt, verktygsneutralt personatestpaket beskriver sex användarprofiler,
-  sex öppna uppdrag och ett gemensamt rapportformat för framtida visuella
-  black-box-rundor.
-
 ## [1.20.0] – 2026-08-02
 
 ### Lagt till
