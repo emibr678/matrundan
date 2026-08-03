@@ -9,7 +9,7 @@ const REPORT_ID = "44444444-4444-4444-8444-444444444444";
 
 interface PracticalInfoState {
   websiteOverride: string | null;
-  openingHoursOverride: ReturnType<typeof weeklySchedule> | null;
+  openingHoursOverride: unknown | null;
   sourceUrl: string | null;
   sourceNote: string | null;
   updatedBy: string | null;
@@ -203,8 +203,7 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
   await page.route("**/rest/v1/rpc/update_group_place_practical_info_v1", async (route) => {
     const body = route.request().postDataJSON() as Record<string, unknown>;
     practical.websiteOverride = (body._website_override as string | null) ?? null;
-    practical.openingHoursOverride =
-      (body._opening_hours_override as ReturnType<typeof weeklySchedule> | null) ?? null;
+    practical.openingHoursOverride = body._opening_hours_override ?? null;
     practical.sourceUrl = (body._source_url as string | null) ?? null;
     practical.sourceNote = (body._source_note as string | null) ?? null;
     practical.updatedBy = USER_ID;
