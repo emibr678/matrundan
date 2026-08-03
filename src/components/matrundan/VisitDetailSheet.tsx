@@ -85,6 +85,11 @@ export function VisitDetailSheet({
     () => visit?.visibleReviews?.find((review) => review.userId === state.currentUserId),
     [visit, state.currentUserId],
   );
+  const ownCommentDuplicatesVisitComment = Boolean(
+    visit?.comment?.trim() &&
+    myReview?.comment?.trim() &&
+    visit.comment.trim() === myReview.comment.trim(),
+  );
 
   const [shareOpen, setShareOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
@@ -235,7 +240,13 @@ export function VisitDetailSheet({
                         key={participant.id}
                         variant="outline"
                         className="max-w-full rounded-full border-border/70 bg-secondary/60 px-2.5 py-1 text-xs font-normal"
-                        title={participant.status === "left" ? "Tidigare medlem" : undefined}
+                        title={
+                          participant.status === "left"
+                            ? "Tidigare medlem"
+                            : participant.status === "guest"
+                              ? "Gäst på detta besök"
+                              : undefined
+                        }
                       >
                         <span className="mr-1">{participant.avatar ?? "🙂"}</span>
                         <span className="truncate">{participant.name}</span>
@@ -243,6 +254,8 @@ export function VisitDetailSheet({
                           <span className="ml-1 text-[10px] text-muted-foreground">
                             · Tidigare medlem
                           </span>
+                        ) : participant.status === "guest" ? (
+                          <span className="ml-1 text-[10px] text-muted-foreground">· Gäst</span>
                         ) : null}
                       </Badge>
                     ))}
@@ -257,6 +270,11 @@ export function VisitDetailSheet({
                       </Badge>
                     ) : null}
                   </div>
+                  {visit.participants?.some((participant) => participant.status === "guest") ? (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Gäster hör bara till detta besök och får ingen medlemsprogression.
+                    </p>
+                  ) : null}
                 </section>
 
                 {(visit.taste || visit.value || visit.service) && (
@@ -270,9 +288,9 @@ export function VisitDetailSheet({
                   </section>
                 )}
 
-                {visit.comment ? (
+                {visit.comment && !ownCommentDuplicatesVisitComment ? (
                   <section>
-                    <h3 className="mb-2 text-sm font-medium">Kommentar</h3>
+                    <h3 className="mb-2 text-sm font-medium">Kommentar från gänget</h3>
                     <Card className="flex items-start gap-2 rounded-2xl border-border/70 p-3 text-sm text-muted-foreground">
                       <MessageCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                       <span>{visit.comment}</span>

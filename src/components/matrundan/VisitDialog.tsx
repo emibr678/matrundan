@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -31,6 +32,7 @@ import {
 import { useSession } from "@/lib/matrundan/session";
 import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
+import type { VisitParticipant } from "@/lib/matrundan/types";
 import { RatingInput } from "./Rating";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitPhotoField } from "./VisitPhotoField";
@@ -43,6 +45,15 @@ const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
   middag: "Middag",
   kväll: "Kväll",
 };
+
+interface DraftGuest {
+  id: string;
+  name: string;
+}
+
+function normalizeGuestName(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
 
 export function VisitDialog({
   open,
@@ -77,6 +88,9 @@ export function VisitDialog({
   const [date, setDate] = React.useState<string>(new Date().toISOString().slice(0, 10));
   const [overall, setOverall] = React.useState(0);
   const [participants, setParticipants] = React.useState<string[]>([state.currentUserId]);
+  const [guests, setGuests] = React.useState<DraftGuest[]>([]);
+  const [guestInputOpen, setGuestInputOpen] = React.useState(false);
+  const [guestName, setGuestName] = React.useState("");
   const [taste, setTaste] = React.useState(0);
   const [value, setValue] = React.useState(0);
   const [service, setService] = React.useState(0);
@@ -96,6 +110,9 @@ export function VisitDialog({
       setDate(new Date().toISOString().slice(0, 10));
       setOverall(0);
       setParticipants([state.currentUserId]);
+      setGuests([]);
+      setGuestInputOpen(false);
+      setGuestName("");
       setTaste(0);
       setValue(0);
       setService(0);
@@ -142,16 +159,54 @@ export function VisitDialog({
   const toggleShareGroup = (id: string) =>
     setShareGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
+  function addGuest() {
+    const name = normalizeGuestName(guestName);
+    if (!name) {
+      toast.error("Skriv gästens namn.");
+      return;
+    }
+    if (name.length > 60) {
+      toast.error("Gästnamnet får vara högst 60 tecken.");
+      return;
+    }
+    if (guests.length >= 10) {
+      toast.error("Högst 10 gäster kan läggas till.");
+      return;
+    }
+    setGuests((current) => [...current, { id: `guest-${Date.now()}-${current.length}`, name }]);
+    setGuestName("");
+  }
+
   const submit = async () => {
     if (isBusy) return;
     if (participants.length === 0) {
-      toast.error("Välj minst en deltagare");
+      toast.error("Välj minst en gruppmedlem som faktiskt deltog.");
       return;
     }
     if (overall < 1) {
       toast.error("Ge ett helhetsbetyg");
       return;
     }
+
+    const participantSnapshots: VisitParticipant[] = [
+      ...state.members
+        .filter((member) => participants.includes(member.id))
+        .map((member) => ({
+          id: member.id,
+          name: member.name,
+          avatar: member.avatar ?? null,
+          avatarImage: member.avatarImage ?? null,
+          status: "active" as const,
+        })),
+      ...guests.map((guest) => ({
+        id: guest.id,
+        name: guest.name,
+        avatar: "👤",
+        avatarImage: null,
+        status: "guest" as const,
+      })),
+    ];
+
     setBusy(true);
     try {
       const created = await addVisit({
@@ -159,6 +214,7 @@ export function VisitDialog({
         date: new Date(date).toISOString(),
         meal,
         participantIds: participants,
+        participants: participantSnapshots,
         overall,
         taste: taste || undefined,
         value: value || undefined,
@@ -261,8 +317,11 @@ export function VisitDialog({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Deltagare</Label>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Deltagare</legend>
+            <p className="text-xs text-muted-foreground">
+              Välj vilka som faktiskt deltog. Du är förvald.
+            </p>
             <div className="flex flex-wrap gap-2">
               {state.members.map((member) => {
                 const active = participants.includes(member.id);
@@ -273,19 +332,89 @@ export function VisitDialog({
                     onClick={() => toggleParticipant(member.id)}
                     aria-pressed={active}
                     aria-label={`${active ? "Ta bort" : "Lägg till"} ${member.name} som deltagare`}
+                    className="min-h-11 rounded-full"
                   >
                     <Badge
                       variant={active ? "default" : "outline"}
-                      className="cursor-pointer gap-1 rounded-full px-3 py-1"
+                      className="min-h-9 cursor-pointer gap-1 rounded-full px-3 py-1"
                     >
-                      <span>{member.avatar}</span>
+                      <span aria-hidden>{member.avatar}</span>
                       <span>{member.name}</span>
                     </Badge>
                   </button>
                 );
               })}
             </div>
-          </div>
+
+            {guests.length > 0 ? (
+              <div className="flex flex-wrap gap-2" aria-label="Tillagda gäster">
+                {guests.map((guest) => (
+                  <Badge
+                    key={guest.id}
+                    variant="secondary"
+                    className="min-h-9 max-w-full gap-1 rounded-full pl-3 pr-1"
+                  >
+                    <span aria-hidden>👤</span>
+                    <span className="truncate">{guest.name}</span>
+                    <button
+                      type="button"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() =>
+                        setGuests((current) => current.filter((item) => item.id !== guest.id))
+                      }
+                      aria-label={`Ta bort gästen ${guest.name}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
+
+            {guestInputOpen ? (
+              <div className="flex min-w-0 gap-2">
+                <Label htmlFor="visit-guest-name" className="sr-only">
+                  Gästens namn
+                </Label>
+                <Input
+                  id="visit-guest-name"
+                  value={guestName}
+                  maxLength={60}
+                  placeholder="Gästens namn"
+                  autoFocus
+                  onChange={(event) => setGuestName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addGuest();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addGuest}
+                  disabled={guests.length >= 10}
+                >
+                  Lägg till
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-11 w-fit rounded-full px-3 text-primary"
+                onClick={() => setGuestInputOpen(true)}
+              >
+                <UserPlus className="h-4 w-4" /> Lägg till gäst
+              </Button>
+            )}
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              Gästen kopplas bara till besöket och blir inte medlem i gruppen. Vid delning visas
+              gäster anonymt som ett antal.
+            </p>
+          </fieldset>
 
           <div className="rounded-2xl bg-secondary/60 p-4">
             <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
@@ -356,7 +485,7 @@ export function VisitDialog({
                   <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
                   <p className="text-xs text-muted-foreground">
                     Besöket och matstället läggs till i de valda grupperna. Ursprungsgrupp, privata
-                    kommentarer och andra gruppers medlemmar syns aldrig.
+                    kommentarer, gästnamn och andra gruppers medlemmar syns aldrig.
                   </p>
                 </div>
                 <button

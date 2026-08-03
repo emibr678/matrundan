@@ -95,6 +95,12 @@ function responseSummary(counts: Record<NextStopDateResponseValue, number>) {
     .join(" · ");
 }
 
+function ownResponseSummary(response: NextStopDateResponseValue | undefined) {
+  return response
+    ? `Du har svarat: ${NEXT_STOP_DATE_RESPONSE_LABEL[response]}`
+    : "Du har inte svarat än";
+}
+
 export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWrite: boolean }) {
   const { state, mode } = useStore();
   const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -386,14 +392,15 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
   )?.response;
   const proposer = state.members.find((member) => member.id === proposal.createdBy);
   const summary = responseSummary(counts);
+  const ownSummary = ownResponseSummary(currentResponse);
 
   return (
     <>
       <button
         type="button"
-        className="flex min-h-16 w-full items-center gap-3 border-t border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/30"
+        className="flex min-h-20 w-full items-center gap-3 border-t border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/30"
         onClick={() => setPlanningOpen(true)}
-        aria-label={`Öppna datumplaneringen för ${formatNextStopDate(proposal.date, proposal.time)}`}
+        aria-label={`Öppna datumplaneringen för ${formatNextStopDate(proposal.date, proposal.time)}. ${ownSummary}`}
       >
         <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
         <span className="min-w-0 flex-1">
@@ -407,9 +414,14 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
               </Badge>
             ) : null}
           </span>
-          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-            {proposal.status === "confirmed" ? "Visa planering" : summary}
+          <span
+            className={`mt-0.5 block text-xs ${
+              currentResponse ? "text-muted-foreground" : "font-medium text-primary"
+            }`}
+          >
+            {ownSummary}
           </span>
+          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{summary}</span>
         </span>
         {busy ? (
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
@@ -449,6 +461,14 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
                 Föreslaget av {proposer.avatar} {proposer.name}
               </p>
             ) : null}
+            <p
+              className={`mt-2 text-sm ${
+                currentResponse ? "text-muted-foreground" : "font-medium text-primary"
+              }`}
+              role="status"
+            >
+              {ownSummary}
+            </p>
           </div>
 
           {proposal.status === "active" && canWrite ? (

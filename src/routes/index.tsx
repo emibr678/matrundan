@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Flag, Heart, Shuffle, Plus, MapPin, Star } from "lucide-react";
+import { ChevronRight, Flag, Heart, Shuffle, Plus, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -66,10 +66,22 @@ export function Home() {
   }, [state.visits]);
   const lastVisitPlace = lastVisit ? getPlace(lastVisit.placeId) : undefined;
   const lastVisitNames = lastVisit
-    ? lastVisit.participantIds
-        .map((id) => memberById(id)?.name)
-        .filter((name): name is string => Boolean(name))
+    ? lastVisit.participants && lastVisit.participants.length > 0
+      ? lastVisit.participants.map((participant) => participant.name)
+      : lastVisit.participantIds
+          .map((id) => memberById(id)?.name)
+          .filter((name): name is string => Boolean(name))
     : [];
+  const lastVisitParticipantSummary = lastVisit
+    ? [
+        ...lastVisitNames,
+        (lastVisit.externalParticipantCount ?? 0) > 0
+          ? `+${lastVisit.externalParticipantCount} utanför gruppen`
+          : null,
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(", ")
+    : "";
 
   const shuffle = () => {
     if (!canWrite) return;
@@ -148,9 +160,9 @@ export function Home() {
               {groupArchived
                 ? "Gruppen är arkiverad, men allt ni har varit med om finns kvar att bläddra i."
                 : demoReadOnly
-                  ? "Exempelgruppen visar hur ett nästa stopp ser ut när gänget har valt ett."
+                  ? "Exempelgruppen visar hur ett föreslaget nästa stopp ser ut."
                   : activePlaces.length > 0
-                    ? "Slumpa fram ett ställe eller välj ett ur listan – ni bestämmer tillsammans."
+                    ? "Slumpa fram ett ställe eller föreslå ett ur listan – ni bestämmer tillsammans."
                     : "Lägg till ert första ställe så börjar rundan här."}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -186,9 +198,17 @@ export function Home() {
 
       {lastVisit && lastVisitPlace ? (
         <section>
-          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
-            <Heart className="h-3.5 w-3.5" />
-            Senast tillsammans
+          <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
+              <Heart className="h-3.5 w-3.5" />
+              Senast tillsammans
+            </div>
+            <Link
+              to="/besok"
+              className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-xs font-medium text-primary hover:underline"
+            >
+              Visa alla besök <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
           <Card className="rounded-2xl border-border/70 p-4">
             <Link
@@ -203,7 +223,7 @@ export function Home() {
                 day: "numeric",
                 month: "long",
               })}
-              {lastVisitNames.length > 0 ? ` · ${lastVisitNames.join(", ")}` : ""}
+              {lastVisitParticipantSummary ? ` · ${lastVisitParticipantSummary}` : ""}
             </p>
             {lastVisit.comment ? (
               <p className="mt-2 text-sm [overflow-wrap:anywhere]">”{lastVisit.comment}”</p>

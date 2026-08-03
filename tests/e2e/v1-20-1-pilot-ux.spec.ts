@@ -80,7 +80,11 @@ async function installOwnerSession(page: Page) {
       return;
     }
 
-    if (rpc === "get_group_app_state_v5g" || rpc === "get_group_app_state_v5f") {
+    if (
+      rpc === "get_group_app_state_v5h" ||
+      rpc === "get_group_app_state_v5g" ||
+      rpc === "get_group_app_state_v5f"
+    ) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -164,7 +168,7 @@ test("exempelgruppen använder konsekvent ort och erbjuder båda inloggningssät
     expect(box?.height ?? 0, `${name} ska ha minst 44 px tryckyta`).toBeGreaterThanOrEqual(44);
   }
 
-  await choice.getByRole("button", { name: "Close" }).click();
+  await choice.getByRole("button", { name: "Stäng" }).click();
   await expect(page.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Skapa egen grupp" }).click();

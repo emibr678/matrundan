@@ -147,7 +147,11 @@ async function mockLiveGroup(page: Page, website: string | null) {
     nextStopDateProposal: null,
   };
 
-  for (const rpc of ["get_group_app_state_v5g", "get_group_app_state_v5f"]) {
+  for (const rpc of [
+    "get_group_app_state_v5h",
+    "get_group_app_state_v5g",
+    "get_group_app_state_v5f",
+  ]) {
     await page.route(`**/rest/v1/rpc/${rpc}`, async (route) => {
       await route.fulfill({
         status: 200,
@@ -254,7 +258,9 @@ test("saknad webbplats och öppettider kan redigeras utan stor tom informationsr
   await page.goto(`/matstallen/${PLACE_ID}`);
 
   await expect(page.getByText("Praktisk information", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Redigera", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Redigera praktisk information", exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("Webbplats", { exact: true })).toBeVisible();
   await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
   await expect(page.getByText("Saknas", { exact: true }).first()).toBeVisible();

@@ -25,9 +25,10 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
   const targetFor = (to: (typeof NAV)[number]["to"]): NavTarget => (to === "/" ? homeTarget : to);
   const isActive = (to: string) =>
     to === "/"
-      ? pathname === "/" || (exampleMode && pathname === "/exempel")
+      ? pathname === "/" || pathname === "/besok" || (exampleMode && pathname === "/exempel")
       : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
+  const currentMember = state.members.find((member) => member.id === state.currentUserId);
   const brand = (
     <>
       <span className="text-2xl">🍽️</span>
@@ -103,6 +104,9 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                     Allt innehåll i Fredagsgänget är fiktivt. Dina ändringar sparas bara tillfälligt
                     i den här fliken.
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-foreground">
+                    Du testar gruppen som {currentMember?.name ?? "Alex"}, gruppens ägare.
                   </p>
                 </div>
               </div>

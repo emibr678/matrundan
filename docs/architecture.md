@@ -315,6 +315,18 @@ grupp.
 
 `visit_participants` innehåller faktiska deltagare. Progression och privata
 medlemsmeriter ska baseras på dessa rader, inte på vem som registrerade besöket.
+Registreraren är endast förvald i klienten och får ingen serverstyrd deltagarrad
+om medlemmen väljs bort.
+
+`visit_guests` innehåller frivilliga, besökslokala visningsnamn för personer som
+inte är gruppmedlemmar. En gäst är inte ett konto, en profil eller en medlem och
+får därför ingen progression, medlemsstatistik eller annan medlemsmerit. En gäst
+kopplas inte automatiskt till en person som senare går med i gruppen.
+
+Gästtabellen saknar direkt klientåtkomst och raderas tillsammans med besöket.
+Gästnamn får endast lämnas till besökets ursprungsgrupp. När samma besök visas i
+en mottagande grupp får read-modelen endast lämna ett anonymt antal personer
+utanför gruppen, aldrig namn, ursprungsgrupp eller intern gästidentitet.
 
 `review_group_visibility` styr vilka betyg och kommentarer som får visas i varje
 grupp. En kommentar från en annan grupp delas bara efter ett uttryckligt val av
@@ -351,8 +363,8 @@ ersättning.
 
 ## Read-model och klientexponering
 
-Den primära live-läsningen går genom `get_group_app_state_v5g`.
-`get_group_app_state_v5f` är en strikt kompatibilitetsfallback och används endast
+Den primära live-läsningen går genom `get_group_app_state_v5h`.
+`get_group_app_state_v5g` är en strikt kompatibilitetsfallback och används endast
 när den aktuella RPC:n uttryckligen saknas i PostgRESTs schema-cache.
 
 Read-modelen ska:
@@ -362,6 +374,7 @@ Read-modelen ska:
 - lämna ut effektiv gruppmetadata, inte privata fält från andra grupper;
 - aldrig lämna ut rå providerpayload;
 - aldrig lämna ut ursprungsgrupp för delade besök;
+- aldrig lämna ut gästnamn för ett delat besök;
 - aldrig lämna ut en kommentar som inte är synlig i gruppen;
 - aldrig lämna ut privata media från annan grupp.
 
@@ -550,6 +563,7 @@ Servern ansvarar för att:
 - aldrig lämna ut ursprungsgruppen till mottagaren;
 - aldrig dela privat kommentar utan uttryckligt medgivande;
 - aldrig dela privat foto till mottagargruppen;
+- aldrig dela gästnamn till mottagargruppen;
 - behålla faktiska deltagare som progressionens källa.
 
 En gruppspecifik borttagning av ett ställe raderar inte det kanoniska stället,
@@ -669,6 +683,7 @@ efter migration och före publicering.
 Alla rader måste returnera `ok = true`. Kontrollen omfattar minst:
 
 - aktuella och kompatibla read-models;
+- privata besöksgäster, anonym delning och negativa behörigheter;
 - obligatoriska tabeller, kolumner, constraints, index och triggers;
 - grupp- och rapport-RPC:er;
 - den gruppskyddade kontext-RPC:n för externa platsdetaljer;

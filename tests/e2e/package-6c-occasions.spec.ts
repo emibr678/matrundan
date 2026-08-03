@@ -89,7 +89,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(guide).toContainText("båda topplistorna");
   await expect(guide).toContainText("lämna valet tomt");
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
-  await guide.getByRole("button", { name: "Stäng", exact: true }).click();
+  await guide.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guide).toBeHidden();
 
   const relaxedButton = addDialog.getByRole("button", {
@@ -127,7 +127,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(page.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Detaljsida med flera val");
 
-  await page.getByRole("button", { name: "Hantera gruppens uppgifter om stället" }).click();
+  await page.getByRole("button", { name: "Redigera gruppens uppgifter" }).click();
   const adminDialog = page.getByRole("dialog", { name: "Redigera gruppens uppgifter" });
   await expect(
     adminDialog.getByRole("button", {

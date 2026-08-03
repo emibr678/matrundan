@@ -3,6 +3,38 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_21_0_CHANGELOG: ChangelogEntry = {
+  version: "1.21.0",
+  date: "2026-08-03",
+  summary: "Besök får korrekta gäster, tydligare nästa handling och en samlad historik.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Besök kan innehålla namngivna gäster utan att de blir gruppmedlemmar eller får progression.",
+        "Gruppens alla besök kan öppnas från Hem i en gemensam historik med det senaste först.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Matställen visar hur många av gruppens medlemmar som har varit där, nästa stopp beskrivs som ett förslag och Hem visar om du själv har svarat på datumet.",
+        "Exempelgruppen visar en avsiktlig demokarta och förklarar att användaren testar som Alex, gruppens ägare.",
+        "Topplistan visar antal besök och redigeringsvägarna har mer specifika namn.",
+        "Gästnamn visas bara i besökets ursprungsgrupp. Vid delning ser andra grupper endast ett anonymt antal personer utanför gruppen.",
+        "Endast valda faktiska gruppmedlemmar får deltagarprogression; registreraren får ingen automatisk kredit.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Dialoger och paneler annonserar Stäng på svenska och varje stjärnbetyg är kopplat till sin kategori.",
+        "Samma kommentar visas inte längre både som gemensam kommentar och som användarens eget omdöme.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_20_2_CHANGELOG: ChangelogEntry = {
   version: "1.20.2",
   date: "2026-08-03",
@@ -71,6 +103,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_21_0_CHANGELOG,
   VERSION_1_20_2_CHANGELOG,
   VERSION_1_20_1_CHANGELOG,
   VERSION_1_20_0_CHANGELOG,

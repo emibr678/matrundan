@@ -12,7 +12,10 @@ export function RatingStars({
   className?: string;
 }) {
   return (
-    <div className={["flex items-center gap-0.5", className].filter(Boolean).join(" ")}>
+    <div
+      className={["flex items-center gap-0.5", className].filter(Boolean).join(" ")}
+      aria-hidden="true"
+    >
       {Array.from({ length: max }).map((_, i) => {
         const filled = i + 1 <= Math.round(value);
         return (
@@ -43,11 +46,13 @@ export function RatingInput({
   size?: number;
   label?: string;
 }) {
+  const accessibleLabel = label ?? "Betyg";
+
   return (
-    <div className="space-y-1.5">
-      {label ? (
-        <div className="text-sm font-medium text-foreground">{label}</div>
-      ) : null}
+    <fieldset className="space-y-1.5">
+      <legend className={label ? "text-sm font-medium text-foreground" : "sr-only"}>
+        {accessibleLabel}
+      </legend>
       <div className="flex items-center gap-1">
         {Array.from({ length: 5 }).map((_, i) => {
           const v = i + 1;
@@ -58,9 +63,11 @@ export function RatingInput({
               type="button"
               onClick={() => onChange(value === v ? 0 : v)}
               className="rounded-md p-1 transition-transform hover:scale-110"
-              aria-label={`${v} av 5`}
+              aria-label={`${accessibleLabel}: ${v} av 5`}
+              aria-pressed={value === v}
             >
               <Star
+                aria-hidden="true"
                 width={size}
                 height={size}
                 className={
@@ -73,6 +80,6 @@ export function RatingInput({
           );
         })}
       </div>
-    </div>
+    </fieldset>
   );
 }

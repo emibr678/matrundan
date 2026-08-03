@@ -82,15 +82,20 @@ individuell matdagbok, social feed eller global ranking.
   OpenStreetMap. Matrundan förklarar först vad tjänsten är och visar exakt
   vilken text och kartposition som blir offentliga. Ditt namn, gruppens namn och
   den interna anteckningen skickas inte, och ärendets status kan följas i appen.
-- Nästa stopp kan väljas manuellt eller slumpas.
+- Nästa stopp kan föreslås manuellt eller slumpas.
 - Gruppen kan föreslå datum och valfri tid, svara **Passar**, **Passar inte**
   eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.
 - Besök registreras med datum, måltid, faktiska deltagare, omdömen och ett
-  valfritt privat foto.
+  valfritt privat foto. Namngivna besöksgäster kan läggas till utan att bli
+  gruppmedlemmar eller få progression; vid delning visas de endast som ett
+  anonymt antal.
+- Gruppens gemensamma besökshistorik nås via **Visa alla besök** på Hem och visar
+  det senaste först med samma privata besöksdetaljer som matställesvyn.
 - **Passar för** kan lämnas tomt eller anges med upp till två likvärdiga val. Ett
   ställe med två val kan visas i båda gruppens privata topplistor.
 - Kanoniska platser och besök kan delas mellan användarens grupper utan att
-  dupliceras eller avslöja ursprungsgrupp, privata kommentarer eller medlemskap.
+  dupliceras eller avslöja ursprungsgrupp, privata kommentarer, gästnamn eller
+  medlemskap.
 - Personliga favoriter, privata topplistor, medlemsprofiler och diskret
   gamification som räknar verkligt deltagande och återbesök.
 - Push-notiser, installation på hemskärmen, publik integritetssida och
@@ -178,20 +183,26 @@ Gruppen är den primära produkt- och integritetsgränsen.
   referens används för säker återhämtning efter nätverksavbrott.
 - `visits` representerar kanoniska verkliga besök.
 - `visit_group_links` kopplar original- och mottagargrupper till samma besök.
+- `visit_participants` innehåller de faktiska gruppmedlemmar som deltog och är
+  den enda källan till medlemsprogression; registreraren får ingen automatisk
+  deltagarkredit.
+- `visit_guests` innehåller privata, besökslokala visningsnamn. Gäster blir inte
+  medlemmar eller profiler, får ingen progression och visas bara med namn i
+  ursprungsgruppen. Mottagande grupper ser endast ett anonymt antal.
 - `review_group_visibility` styr betygs- och kommentarssynlighet per grupp.
 - `visit_media` kopplar ett privat foto till besökets ursprungsgrupp.
 - `next_stop_date_proposals` och `next_stop_date_responses` innehåller gruppens
   privata planering.
 
-Den primära live-läsningen går genom `get_group_app_state_v5g` med strikt
-fallback till `get_group_app_state_v5f` endast när den nya funktionen uttryckligen
+Den primära live-läsningen går genom `get_group_app_state_v5h` med strikt
+fallback till `get_group_app_state_v5g` endast när den nya funktionen uttryckligen
 saknas. Rå providerdata stannar på serversidan. Känsliga skrivningar använder
 validerade `SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering,
 medlemskapskontroller och relevanta rollkrav.
 
-Ursprungsgruppens identitet, privata kommentarer och medlemskap lämnar aldrig
-servern vid delning eller källkoppling. Vid OSM-publicering lämnar bara den
-uttryckligt granskade offentliga texten, kartpositionen och en neutral
+Ursprungsgruppens identitet, privata kommentarer, gästnamn och medlemskap lämnar
+aldrig servern vid delning eller källkoppling. Vid OSM-publicering lämnar bara
+den uttryckligt granskade offentliga texten, kartpositionen och en neutral
 Matrundan-referens appen. Endast faktiska deltagare får progression;
 registreraren får ingen extra kredit och återbesök räknas.
 

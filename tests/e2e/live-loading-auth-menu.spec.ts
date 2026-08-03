@@ -104,7 +104,11 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
     nextStopDateProposal: null,
   };
 
-  for (const rpc of ["get_group_app_state_v5g", "get_group_app_state_v5f"]) {
+  for (const rpc of [
+    "get_group_app_state_v5h",
+    "get_group_app_state_v5g",
+    "get_group_app_state_v5f",
+  ]) {
     await page.route(`**/rest/v1/rpc/${rpc}`, async (route) => {
       await route.fulfill({
         status: 200,
