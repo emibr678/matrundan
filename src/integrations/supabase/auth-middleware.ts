@@ -9,7 +9,10 @@ function isNewSupabaseApiKey(value: string): boolean {
 }
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
-  const supabaseFetch = (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+  const supabaseFetch = (
+    input: Parameters<typeof fetch>[0],
+    init?: Parameters<typeof fetch>[1],
+  ) => {
     const headers = new Headers(
       typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
     );
