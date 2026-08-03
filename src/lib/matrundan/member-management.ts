@@ -1,8 +1,4 @@
-import {
-  removeGroupMember,
-  setMemberRole,
-  transferGroupOwnership,
-} from "./live-admin";
+import { removeGroupMember, setMemberRole, transferGroupOwnership } from "./live-admin";
 import type { AppState, Member, Role } from "./types";
 
 export type MemberManagementAction =
@@ -23,7 +19,10 @@ function requireMutableGroup(state: AppState): void {
   }
 }
 
-function requireManageableTarget(state: AppState, memberId: string): {
+function requireManageableTarget(
+  state: AppState,
+  memberId: string,
+): {
   actor: Member;
   target: Member;
 } {
@@ -37,9 +36,7 @@ function requireManageableTarget(state: AppState, memberId: string): {
 function withRole(state: AppState, memberId: string, role: Role): AppState {
   return {
     ...state,
-    members: state.members.map((member) =>
-      member.id === memberId ? { ...member, role } : member,
-    ),
+    members: state.members.map((member) => (member.id === memberId ? { ...member, role } : member)),
   };
 }
 
