@@ -124,6 +124,8 @@ Personatesterna används för att upptäcka begriplighets-, navigations- och fö
 
 En Codex-session som endast har terminal och Playwright-selectors får förbereda eller analysera tester, men får inte påstå att den genomfört ett visuellt black-box-test. Repot innehåller inga plattformsspecifika personaagenter; mänskliga testare och framtida verktyg ska läsa samma verktygsneutrala personor, uppdrag och rapportkontrakt under `docs/ux-testing/`.
 
+En generell testmotor för flera appar ska senare ligga i ett separat repo. Matrundan behåller sina produktnära underlag här och får först en appnära adapter under `tests/ux-agent/` när det finns en faktisk, reproducerbar motor att anropa.
+
 Personatester blockerar inte merge initialt. Reproducerbara och entydiga fynd ska omvandlas till vanliga Playwright-regressionstester innan de används som releasekrav.
 
 ## Serverfunktioner och CSRF
