@@ -13,6 +13,19 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.23.0] – 2026-08-03
+
+### Ändrat
+
+- Gruppinställningarna öppnar en kompakt meny för **Grupp och sökning**,
+  **Medlemmar och inbjudningar**, **Underhåll av matställen**,
+  **Inställningar och status** samt information om appen.
+- Långa formulär och administrativa verktyg ligger på egna undersidor med
+  tillbaka-navigering och rollanpassad synlighet.
+- Osparade ändringar i grupp- och sökinställningarna skyddas innan användaren
+  lämnar vyn.
+- Gruppens aktivitet har en tydlig väg till den gemensamma besökshistoriken.
+
 ## [1.22.0] – 2026-08-03
 
 ### Ändrat
