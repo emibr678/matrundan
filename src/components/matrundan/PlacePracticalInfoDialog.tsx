@@ -297,7 +297,7 @@ export function PlacePracticalInfoDialog({
           disabled={cannotEdit}
           className="h-9 px-2"
         >
-          <Pencil className="h-3.5 w-3.5" /> Redigera
+          <Pencil className="h-3.5 w-3.5" /> Redigera praktisk information
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-xl">
