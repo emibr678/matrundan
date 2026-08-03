@@ -76,8 +76,12 @@ export async function liveCreateVisitWithReview(
   input: Omit<Visit, "id">,
 ): Promise<string> {
   const visitedOn = input.date.length >= 10 ? input.date.slice(0, 10) : input.date;
+  const guestNames = (input.participants ?? [])
+    .filter((participant) => participant.status === "guest")
+    .map((participant) => participant.name.trim())
+    .filter(Boolean);
   const visitId = await rpcClient.call(
-    "create_visit_with_review",
+    "create_visit_with_review_v2",
     {
       _group_id: groupId,
       _place_id: input.placeId,
@@ -89,6 +93,7 @@ export async function liveCreateVisitWithReview(
       _value: nn(input.value),
       _service: nn(input.service),
       _comment: nn(input.comment),
+      _guest_names: guestNames,
     },
     ID_SCHEMA,
     "Kunde inte registrera besöket.",
