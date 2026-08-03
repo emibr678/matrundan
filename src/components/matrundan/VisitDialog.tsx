@@ -173,10 +173,7 @@ export function VisitDialog({
       toast.error("Högst 10 gäster kan läggas till.");
       return;
     }
-    setGuests((current) => [
-      ...current,
-      { id: `guest-${Date.now()}-${current.length}`, name },
-    ]);
+    setGuests((current) => [...current, { id: `guest-${Date.now()}-${current.length}`, name }]);
     setGuestName("");
   }
 
@@ -393,7 +390,12 @@ export function VisitDialog({
                     }
                   }}
                 />
-                <Button type="button" variant="outline" onClick={addGuest} disabled={guests.length >= 10}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addGuest}
+                  disabled={guests.length >= 10}
+                >
                   Lägg till
                 </Button>
               </div>
