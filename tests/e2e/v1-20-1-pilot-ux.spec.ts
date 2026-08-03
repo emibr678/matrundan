@@ -194,8 +194,11 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
 
   await expect(page.getByRole("heading", { name: "Testgruppen" })).toBeVisible();
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
+  const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
+  await settings.getByRole("button", { name: /Medlemmar och inbjudningar/ }).click();
 
-  const manage = page.getByRole("button", { name: "Hantera Robin" });
+  const members = page.getByRole("dialog", { name: "Medlemmar och inbjudningar" });
+  const manage = members.getByRole("button", { name: "Hantera Robin" });
   await expect(manage).toBeVisible();
   const box = await manage.boundingBox();
   expect(box?.height ?? 0, "Hantera ska ha minst 44 px tryckyta").toBeGreaterThanOrEqual(44);
@@ -213,11 +216,11 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
   await expect
     .poll(
       async () =>
-        await page.getByRole("button", { name: "Hantera Robin" }).locator("..").innerText(),
+        await members.getByRole("button", { name: "Hantera Robin" }).locator("..").innerText(),
     )
     .toMatch(/admin/i);
 
-  await page.getByRole("button", { name: "Hantera Robin" }).click();
+  await members.getByRole("button", { name: "Hantera Robin" }).click();
   await expect(page.getByRole("menuitem", { name: "Gör till medlem" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Överför ägarskap" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "medlemshanteringen");
