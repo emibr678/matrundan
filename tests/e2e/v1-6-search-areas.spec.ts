@@ -46,9 +46,10 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
 
   const removeTarget = page.getByRole("button", { name: /Ta bort Majorna.*från sökningen/i });
   const removeBox = await removeTarget.boundingBox();
-  expect(removeBox?.height ?? 0, "krysset ska behålla minst 44 px effektiv tryckyta").toBeGreaterThanOrEqual(
-    32,
-  );
+  expect(
+    removeBox?.height ?? 0,
+    "krysset ska behålla minst 44 px effektiv tryckyta",
+  ).toBeGreaterThanOrEqual(32);
   await removeTarget.click();
   await expect(page.getByRole("status")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Sökområden", exact: true })).toHaveAttribute(
