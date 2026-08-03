@@ -421,9 +421,7 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
           >
             {ownSummary}
           </span>
-          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-            {summary}
-          </span>
+          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{summary}</span>
         </span>
         {busy ? (
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
