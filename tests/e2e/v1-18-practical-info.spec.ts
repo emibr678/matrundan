@@ -109,7 +109,7 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
     });
   });
 
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5g", async (route) => {
+  await page.route("**/rest/v1/rpc/get_group_app_state_v5h", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -260,7 +260,7 @@ test("en aktiv medlem uppdaterar gruppens praktiska information med källa", asy
 
   await page.goto(`/matstallen/${PLACE_ID}`);
   await expect(page.getByText("Praktisk information", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Redigera", exact: true }).click();
+  await page.getByRole("button", { name: "Redigera praktisk information", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "Redigera praktisk information" });
   await dialog.getByLabel("Gruppens webbplats").fill("https://gruppen.example");
@@ -279,7 +279,7 @@ test("en aktiv medlem uppdaterar gruppens praktiska information med källa", asy
   await expect(page.getByText("12–23", { exact: true }).first()).toBeVisible();
   expect(mocked.reportCount()).toBe(2);
 
-  await page.getByRole("button", { name: "Redigera", exact: true }).click();
+  await page.getByRole("button", { name: "Redigera praktisk information", exact: true }).click();
   const reopened = page.getByRole("dialog", { name: "Redigera praktisk information" });
   const history = reopened.locator("details");
   await history.getByText("Tidigare ändringar", { exact: true }).click();
