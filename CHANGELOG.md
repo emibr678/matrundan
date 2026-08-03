@@ -13,6 +13,20 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.22.0] – 2026-08-03
+
+### Ändrat
+
+- Webbplats, öppettider och Google Maps visas som jämbördiga rader under
+  **Praktiskt** med samma visuella hierarki och externa länkbeteende.
+- Redigeringen använder kortare copy, fältvis återgång till kartdata och ett
+  kompakt privat underlag för ändringen.
+
+### Rättat
+
+- Öppettider är inte längre visuellt indragna under webbplatsen.
+- Återgång till kartdata skapar inte längre ett nytt granskningsunderlag.
+
 ## [1.21.1] – 2026-08-03
 
 ### Ändrat

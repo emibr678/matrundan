@@ -3,6 +3,27 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_22_0_CHANGELOG: ChangelogEntry = {
+  version: "1.22.0",
+  date: "2026-08-03",
+  summary: "Webbplats, öppettider och Google Maps samlas i ett tydligare praktiskt flöde.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Webbplats, öppettider och Google Maps visas som jämbördiga rader under Praktiskt.",
+        "Redigeringen använder kortare copy, fältvis återgång till kartdata och ett kompakt privat underlag för ändringen.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Öppettider är inte längre visuellt indragna under webbplatsen, och återgång till kartdata skapar inget nytt granskningsunderlag.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_21_1_CHANGELOG: ChangelogEntry = {
   version: "1.21.1",
   date: "2026-08-03",
@@ -44,7 +65,7 @@ const VERSION_1_21_0_CHANGELOG: ChangelogEntry = {
       kind: "Rättat",
       items: [
         "Dialoger och paneler annonserar Stäng på svenska och varje stjärnbetyg är kopplat till sin kategori.",
-        "Samma kommentar visas inte längre både som gemensam kommentar och som användarens eget omdöme.",
+        "Samma kommentar visas inte längre både som gemensam besökskommentar och som användarens eget omdöme.",
       ],
     },
   ],
@@ -118,6 +139,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_22_0_CHANGELOG,
   VERSION_1_21_1_CHANGELOG,
   VERSION_1_21_0_CHANGELOG,
   VERSION_1_20_2_CHANGELOG,

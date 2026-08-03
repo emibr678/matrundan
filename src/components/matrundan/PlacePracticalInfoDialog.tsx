@@ -58,6 +58,13 @@ function scheduleInputs(
   return result;
 }
 
+function scheduleEqual(
+  left: OpeningHoursSchedule | null,
+  right: OpeningHoursSchedule | null,
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -104,6 +111,7 @@ export function PlacePracticalInfoDialog({
     React.useState<Record<OpeningHoursDayCode, string>>(emptyDayInputs);
   const [sourceUrl, setSourceUrl] = React.useState("");
   const [sourceNote, setSourceNote] = React.useState("");
+  const [evidenceOpen, setEvidenceOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [history, setHistory] = React.useState<GroupPlacePracticalInfoHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = React.useState(false);
@@ -116,6 +124,7 @@ export function PlacePracticalInfoDialog({
     setDayInputs(scheduleInputs(practicalInfo.openingHoursOverride));
     setSourceUrl(practicalInfo.sourceUrl ?? "");
     setSourceNote(practicalInfo.sourceNote ?? "");
+    setEvidenceOpen(Boolean(practicalInfo.sourceUrl || practicalInfo.sourceNote));
     setHistoryLoading(true);
     void Promise.resolve(
       mode === "live"
@@ -132,22 +141,23 @@ export function PlacePracticalInfoDialog({
     setDayInputs(emptyDayInputs());
     setSourceUrl("");
     setSourceNote("");
+    setEvidenceOpen(false);
   }
 
-  function copyExternalHours() {
-    if (!externalOpeningHours) return;
-    setDayInputs(scheduleInputs(externalOpeningHours));
+  function suggestSource(candidate: string | null) {
+    if (!candidate) return;
+    setSourceUrl((current) => (current.trim() ? current : candidate));
   }
 
   async function createReviewUnderlays(
-    websiteChanged: boolean,
-    openingHoursChanged: boolean,
+    websiteNeedsReview: boolean,
+    openingHoursNeedReview: boolean,
     normalizedSourceUrl: string | null,
     normalizedSourceNote: string | null,
   ) {
     if (!reporter) return;
     const reports: Promise<unknown>[] = [];
-    if (websiteChanged && normalizeWebsiteUrl(website)) {
+    if (websiteNeedsReview) {
       const description = reportDescription(
         "Webbplatsen",
         normalizedSourceUrl,
@@ -170,7 +180,7 @@ export function PlacePracticalInfoDialog({
             ),
       );
     }
-    if (openingHoursChanged) {
+    if (openingHoursNeedReview) {
       const description = reportDescription(
         "Öppettiderna",
         normalizedSourceUrl,
@@ -204,37 +214,52 @@ export function PlacePracticalInfoDialog({
 
   async function save() {
     if (saving) return;
-    let openingHoursOverride: OpeningHoursSchedule | null;
+    let parsedOpeningHours: OpeningHoursSchedule | null;
     try {
-      openingHoursOverride = buildOpeningHoursScheduleFromInputs(dayInputs);
+      parsedOpeningHours = buildOpeningHoursScheduleFromInputs(dayInputs);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kontrollera öppettiderna.");
       return;
     }
 
-    const websiteOverride = normalizeWebsiteUrl(website) ?? null;
-    if (website.trim() && !websiteOverride) {
+    const normalizedWebsite = normalizeWebsiteUrl(website) ?? null;
+    if (website.trim() && !normalizedWebsite) {
       toast.error("Ange en giltig webbplats.");
       return;
     }
-    const normalizedSourceUrl = normalizeWebsiteUrl(sourceUrl) ?? null;
-    if (sourceUrl.trim() && !normalizedSourceUrl) {
+
+    const websiteOverride =
+      normalizedWebsite && normalizedWebsite !== externalWebsite ? normalizedWebsite : null;
+    const openingHoursOverride =
+      parsedOpeningHours && !scheduleEqual(parsedOpeningHours, externalOpeningHours)
+        ? parsedOpeningHours
+        : null;
+    const hasOverride = Boolean(websiteOverride || openingHoursOverride);
+    const normalizedSourceUrl = hasOverride ? (normalizeWebsiteUrl(sourceUrl) ?? null) : null;
+    if (hasOverride && sourceUrl.trim() && !normalizedSourceUrl) {
+      setEvidenceOpen(true);
       toast.error("Ange en giltig källänk.");
       return;
     }
-    const normalizedSourceNote = sourceNote.trim() || null;
-    if (
-      (websiteOverride || openingHoursOverride) &&
-      !normalizedSourceUrl &&
-      (normalizedSourceNote?.length ?? 0) < 10
-    ) {
+    const normalizedSourceNote = hasOverride ? sourceNote.trim() || null : null;
+    if (hasOverride && !normalizedSourceUrl && (normalizedSourceNote?.length ?? 0) < 10) {
+      setEvidenceOpen(true);
       toast.error("Ange en källänk eller en kort observation med minst 10 tecken.");
       return;
     }
 
     const websiteChanged = websiteOverride !== practicalInfo.websiteOverride;
-    const openingHoursChanged =
-      JSON.stringify(openingHoursOverride) !== JSON.stringify(practicalInfo.openingHoursOverride);
+    const openingHoursChanged = !scheduleEqual(
+      openingHoursOverride,
+      practicalInfo.openingHoursOverride,
+    );
+    const sourceUrlChanged = normalizedSourceUrl !== practicalInfo.sourceUrl;
+    const sourceNoteChanged = normalizedSourceNote !== practicalInfo.sourceNote;
+    if (!websiteChanged && !openingHoursChanged && !sourceUrlChanged && !sourceNoteChanged) {
+      toast.info("Inga ändringar att spara.");
+      return;
+    }
+
     setSaving(true);
     try {
       const input = {
@@ -259,16 +284,15 @@ export function PlacePracticalInfoDialog({
       }
       onSaved(next);
       await createReviewUnderlays(
-        websiteChanged,
-        openingHoursChanged,
+        websiteChanged && Boolean(websiteOverride),
+        openingHoursChanged && Boolean(openingHoursOverride),
         normalizedSourceUrl,
         normalizedSourceNote,
       );
-      toast.success("Gruppens praktiska information är uppdaterad.", {
-        description:
-          websiteOverride || openingHoursOverride
-            ? "Ändringen syns direkt i gruppen. Admin kan granska om kartdatan också bör uppdateras."
-            : "Gruppen använder nu kartdatan igen.",
+      toast.success("Webbplats och öppettider är uppdaterade.", {
+        description: hasOverride
+          ? "Ändringen syns direkt i gruppen. En administratör kan granska om kartdatan också bör uppdateras."
+          : "Gruppen använder nu kartdatan igen.",
       });
       setOpen(false);
     } catch (error) {
@@ -284,44 +308,63 @@ export function PlacePracticalInfoDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button type="button" variant="ghost" size="sm" disabled={cannotEdit} className="h-9 px-2">
-          <Pencil className="h-3.5 w-3.5" /> Redigera praktisk information
+          <Pencil className="h-3.5 w-3.5" /> Ändra
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Redigera praktisk information</DialogTitle>
+          <DialogTitle>Ändra webbplats och öppettider</DialogTitle>
           <DialogDescription>
-            Ändringarna visas direkt för {state.group.name}. Gruppens admin kan sedan granska om
-            uppgifterna även bör föras vidare till kartdatan.
+            Uppgifterna visas direkt för {state.group.name}. Om de skiljer sig från kartdatan får
+            gruppens administratörer ett underlag att granska.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
           <div className="space-y-1.5">
-            <Label htmlFor="practical-website">Gruppens webbplats</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="practical-website">Webbplats</Label>
+              {externalWebsite || practicalInfo.websiteOverride ? (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setWebsite("")}>
+                  Använd kartdatan
+                </Button>
+              ) : null}
+            </div>
             <Input
               id="practical-website"
               inputMode="url"
               value={website}
-              onChange={(event) => setWebsite(event.target.value)}
+              onChange={(event) => {
+                setWebsite(event.target.value);
+                setEvidenceOpen(true);
+              }}
+              onBlur={() => suggestSource(normalizeWebsiteUrl(website) ?? null)}
               placeholder={externalWebsite ?? "https://…"}
             />
             <p className="text-xs text-muted-foreground">
-              Lämna tomt för att använda webbplatsen från kartdatan.
+              {externalWebsite
+                ? `Kartdata: ${externalWebsite}`
+                : "Lämna tomt för att använda webbplatsen från kartdatan."}
             </p>
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-start justify-between gap-2">
               <div>
-                <Label>Gruppens öppettider</Label>
+                <Label>Öppettider</Label>
                 <p className="text-xs text-muted-foreground">
                   Skriv till exempel 11–22, 11–14, 17–22 eller Stängt.
                 </p>
               </div>
-              {externalOpeningHours ? (
-                <Button type="button" variant="outline" size="sm" onClick={copyExternalHours}>
-                  Utgå från kartdatan
+              {externalOpeningHours || practicalInfo.openingHoursOverride ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => setDayInputs(emptyDayInputs())}
+                >
+                  Använd kartdatan
                 </Button>
               ) : null}
             </div>
@@ -337,47 +380,57 @@ export function PlacePracticalInfoDialog({
                   <Input
                     id={`practical-hours-${code}`}
                     value={dayInputs[code]}
-                    onChange={(event) =>
-                      setDayInputs((current) => ({ ...current, [code]: event.target.value }))
-                    }
+                    onChange={(event) => {
+                      setDayInputs((current) => ({ ...current, [code]: event.target.value }));
+                      setEvidenceOpen(true);
+                      suggestSource(normalizeWebsiteUrl(website) ?? externalWebsite);
+                    }}
                     placeholder="11–22"
                   />
                 </div>
               ))}
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={useMapData}>
-              <RotateCcw className="h-3.5 w-3.5" /> Rensa gruppens uppgifter och använd kartdatan
+              <RotateCcw className="h-3.5 w-3.5" /> Använd kartdata för allt
             </Button>
           </div>
 
-          <div className="space-y-3 rounded-xl bg-muted/35 p-3">
-            <div className="text-sm font-medium">Källa eller observation</div>
-            <div className="space-y-1.5">
-              <Label htmlFor="practical-source-url">Länk (valfri)</Label>
-              <Input
-                id="practical-source-url"
-                inputMode="url"
-                value={sourceUrl}
-                onChange={(event) => setSourceUrl(event.target.value)}
-                placeholder="Verksamhetens officiella webbplats"
-              />
+          <details
+            open={evidenceOpen}
+            onToggle={(event) => setEvidenceOpen(event.currentTarget.open)}
+            className="rounded-xl border border-border/70"
+          >
+            <summary className="flex min-h-11 cursor-pointer items-center px-3 py-2 text-sm font-medium">
+              Underlag för ändringen
+            </summary>
+            <div className="space-y-3 border-t border-border/60 p-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="practical-source-url">Källänk (valfri)</Label>
+                <Input
+                  id="practical-source-url"
+                  inputMode="url"
+                  value={sourceUrl}
+                  onChange={(event) => setSourceUrl(event.target.value)}
+                  placeholder="Verksamhetens officiella webbplats"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="practical-source-note">Vad har du kontrollerat?</Label>
+                <Textarea
+                  id="practical-source-note"
+                  rows={3}
+                  maxLength={1000}
+                  value={sourceNote}
+                  onChange={(event) => setSourceNote(event.target.value)}
+                  placeholder="Exempel: Tiderna står på dörren och kontrollerades idag."
+                />
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Underlaget stannar i gruppen. En administratör avgör separat om kartdatan också bör
+                uppdateras.
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="practical-source-note">Vad har du kontrollerat?</Label>
-              <Textarea
-                id="practical-source-note"
-                rows={3}
-                maxLength={1000}
-                value={sourceNote}
-                onChange={(event) => setSourceNote(event.target.value)}
-                placeholder="Exempel: Tiderna står på dörren och kontrollerades idag."
-              />
-            </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Källan stannar i gruppen. Bara en separat granskad text kan senare publiceras till
-              OpenStreetMap.
-            </p>
-          </div>
+          </details>
 
           <details className="rounded-xl border border-border/70">
             <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 py-2 text-sm font-medium">
