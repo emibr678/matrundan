@@ -21,7 +21,9 @@ function functionBody(name: string): string {
 describe("besöksgäster", () => {
   test("ligger i en privat besökslokal tabell", () => {
     expect(migration).toMatch(/CREATE TABLE IF NOT EXISTS public\.visit_guests/i);
-    expect(migration).toMatch(/visit_id uuid NOT NULL REFERENCES public\.visits\(id\) ON DELETE CASCADE/i);
+    expect(migration).toMatch(
+      /visit_id uuid NOT NULL REFERENCES public\.visits\(id\) ON DELETE CASCADE/i,
+    );
     expect(migration).toMatch(/ALTER TABLE public\.visit_guests ENABLE ROW LEVEL SECURITY/i);
     expect(migration).toMatch(
       /REVOKE ALL ON TABLE public\.visit_guests FROM PUBLIC, anon, authenticated/i,
@@ -39,7 +41,9 @@ describe("besöksgäster", () => {
   test("visar gästnamn bara i besökets ursprungsgrupp", () => {
     const body = functionBody("get_group_app_state_v5h");
     expect(body).toContain("WHEN visit_row.is_original THEN");
-    expect(body).toContain("COALESCE(visit_row.item->'participants', '[]'::jsonb) || visit_row.guests");
+    expect(body).toContain(
+      "COALESCE(visit_row.item->'participants', '[]'::jsonb) || visit_row.guests",
+    );
     expect(body).toContain("CASE WHEN visit_row.is_original THEN 0 ELSE visit_row.guest_count END");
     expect(body).toContain("'status', 'guest'");
   });
