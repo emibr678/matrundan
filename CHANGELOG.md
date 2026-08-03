@@ -13,6 +13,22 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.20.2] – 2026-08-03
+
+### Rättat
+
+- Ägaren i exempelgruppen kan använda samma medlemshantering som i en riktig
+  grupp. Rolländringar, ägarbyte och borttagning sparas lokalt i fliken.
+- Medlemsprofiler kan öppnas direkt från medlemslistan i gruppinställningarna i
+  både exempel- och live-läge.
+
+### Ändrat
+
+- Sökområden visas med mindre gemensamma pills i både **Matställen** och
+  **Gruppinställningar**.
+- När fem vanliga sökområden redan är valda visar gruppinställningarna en kompakt
+  förklaring i stället för ett stort avstängt sökfält.
+
 ## [1.20.1] – 2026-08-03
 
 ### Ändrat
