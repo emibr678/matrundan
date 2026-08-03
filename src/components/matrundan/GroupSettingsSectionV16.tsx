@@ -129,37 +129,22 @@ export function GroupSettingsSectionV16({
             />
           </div>
 
-          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+          <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/20 p-3">
             <div>
-              <div className="text-sm font-medium">Vanliga sökområden</div>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Alla områden är valda när någon söker. De kan tillfälligt avmarkeras i sökningen.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gs-add-area">Lägg till sökområde</Label>
-              <GeoapifyLocationInput
-                id="gs-add-area"
-                value={locationText}
-                onChange={setLocationText}
-                onSelect={addArea}
-                placeholder={
-                  atAreaLimit
-                    ? "Ta bort ett område för att lägga till ett nytt"
-                    : "Sök ort, stadsdel eller adress"
-                }
-                disabled={busy || atAreaLimit}
-              />
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Välj en träff så läggs den direkt till nedan. Ändringarna sparas först när du väljer
-                Spara ändringar.
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-medium">Vanliga sökområden</div>
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {areas.length} av {MAX_SEARCH_AREAS}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                Alla är valda när sökningen öppnas och kan avmarkeras tillfälligt.
               </p>
             </div>
 
             {areas.length > 0 ? (
               <div
-                className="flex min-w-0 flex-wrap gap-2"
+                className="flex min-w-0 flex-wrap gap-1.5"
                 role="list"
                 aria-label="Sparade sökområden"
               >
@@ -175,17 +160,33 @@ export function GroupSettingsSectionV16({
                 ))}
               </div>
             ) : (
-              <p className="rounded-xl border border-dashed p-3 text-xs text-muted-foreground">
-                Gruppen har inga verifierade sökområden ännu. Ni kan fortfarande välja en plats
-                direkt i sökningen.
+              <p className="rounded-xl border border-dashed p-2.5 text-xs text-muted-foreground">
+                Inga vanliga sökområden ännu. Ni kan fortfarande välja en plats direkt i sökningen.
               </p>
             )}
 
             {atAreaLimit ? (
-              <p className="text-xs text-muted-foreground">
-                Gruppen kan ha högst fem vanliga sökområden. Ta bort ett för att välja ett annat.
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Fem områden är valda. Ta bort ett för att lägga till ett annat.
               </p>
-            ) : null}
+            ) : (
+              <div className="space-y-1.5">
+                <Label htmlFor="gs-add-area" className="text-xs">
+                  Lägg till område
+                </Label>
+                <GeoapifyLocationInput
+                  id="gs-add-area"
+                  value={locationText}
+                  onChange={setLocationText}
+                  onSelect={addArea}
+                  placeholder="Sök ort, stadsdel eller adress"
+                  disabled={busy}
+                />
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Välj en träff. Alla ändringar sparas med knappen längst ner.
+                </p>
+              </div>
+            )}
 
             {broadAreas.length > 0 ? (
               <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
@@ -201,8 +202,10 @@ export function GroupSettingsSectionV16({
               </p>
             ) : null}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="gs-radius">Vanlig sökradie</Label>
+            <div className="space-y-1">
+              <Label htmlFor="gs-radius" className="text-xs">
+                Vanlig sökradie
+              </Label>
               <Select
                 value={String(radius)}
                 onValueChange={(value) => setRadius(Number(value) as SearchRadiusKm)}
@@ -219,8 +222,8 @@ export function GroupSettingsSectionV16({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Samma radie används runt alla valda områden och kan ändras för en enskild sökning.
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Samma radie används runt alla områden och kan ändras för en enskild sökning.
               </p>
             </div>
           </div>
