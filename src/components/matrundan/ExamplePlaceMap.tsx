@@ -99,7 +99,9 @@ export function ExamplePlaceMap({
           <MapPin className="h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
             {selected.eyebrow ? (
-              <div className="truncate text-[11px] font-medium text-primary">{selected.eyebrow}</div>
+              <div className="truncate text-[11px] font-medium text-primary">
+                {selected.eyebrow}
+              </div>
             ) : null}
             <div className="truncate font-medium">{selected.name}</div>
             {selected.description ? (
