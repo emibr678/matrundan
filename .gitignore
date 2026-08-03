@@ -16,10 +16,6 @@ dist-ssr
 .nitro
 *.local
 
-# Browser- och personatestartefakter
-playwright-report/
-test-results/
-
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
