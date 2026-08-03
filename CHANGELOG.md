@@ -13,6 +13,15 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.21.1] – 2026-08-03
+
+### Ändrat
+
+- Hela kortet **Senast tillsammans** öppnar det specifika besöket, medan
+  **Alla besök** leder till gruppens samlade historik.
+- Besöksrader i gruppens aktivitet öppnar samma besöksdetalj som Hem och
+  besökshistoriken.
+
 ## [1.21.0] – 2026-08-03
 
 ### Lagt till

@@ -45,12 +45,25 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(page.getByRole("heading", { name: "Senaste aktivitet" })).toHaveCount(0);
   await expect(page.getByText(/^Ni har provat \d+ av \d+ ställen tillsammans$/)).toBeVisible();
   await expect(page.getByText(/^\d+%$/)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Alla besök" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Hem");
+  const latestVisit = page.getByRole("link", { name: /^Öppna besöket på / });
+  await expect(latestVisit).toBeVisible();
+  await latestVisit.click();
+  await expect(page).toHaveURL(/\/besok\?visit=/);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Besöksdetalj från Hem");
 
   await page.goto("/gruppen?demo=1");
   await expect(page.getByRole("heading", { name: "Aktivitet" })).toBeVisible();
   await expect(page.getByText("Nästa stopp", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Gruppen");
+  const visitActivity = page.locator('a[href^="/besok?visit="]').first();
+  await expect(visitActivity).toBeVisible();
+  await visitActivity.click();
+  await expect(page).toHaveURL(/\/besok\?visit=/);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Besöksdetalj från Aktivitet");
 
   await page.goto("/matstallen?demo=1");
   await expect(
