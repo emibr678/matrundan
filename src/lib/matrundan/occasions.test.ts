@@ -53,7 +53,7 @@ describe("sammanhangskategorier", () => {
       place("Snabbt och avslappnat", ["snabbt", "avslappnat"], "p2"),
       place("Delad etta", ["avslappnat"], "p3"),
     ];
-    const ratings = {
+    const ratings: Record<string, { overall: number; count: number }> = {
       p1: { overall: 4.5, count: 2 },
       p2: { overall: 5, count: 4 },
       p3: { overall: 4.5, count: 1 },
