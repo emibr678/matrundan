@@ -6,10 +6,7 @@ import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { ShellChrome } from "@/components/matrundan/ShellChrome";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import {
-  DEMO_STATE_CHANGED_EVENT,
-  EXAMPLE_STATE_STORAGE_KEY,
-} from "@/lib/matrundan/demo-state";
+import { DEMO_STATE_CHANGED_EVENT, EXAMPLE_STATE_STORAGE_KEY } from "@/lib/matrundan/demo-state";
 import { EXAMPLE_STATE } from "@/lib/matrundan/example-data";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
