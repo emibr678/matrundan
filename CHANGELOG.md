@@ -32,8 +32,8 @@ Inga ändringar ännu.
 
 ### Utveckling och verifiering
 
-- Ett lätt personatestpaket beskriver sex användarprofiler, sex öppna uppdrag,
-  ett gemensamt rapportformat och read-only Codex-roller för framtida visuella
+- Ett lätt, verktygsneutralt personatestpaket beskriver sex användarprofiler,
+  sex öppna uppdrag och ett gemensamt rapportformat för framtida visuella
   black-box-rundor.
 
 ## [1.20.0] – 2026-08-02
