@@ -194,8 +194,11 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
 
   await expect(page.getByRole("heading", { name: "Testgruppen" })).toBeVisible();
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
+  const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
+  await settings.getByRole("button", { name: /Medlemmar och inbjudningar/ }).click();
 
-  const manage = page.getByRole("button", { name: "Hantera Robin" });
+  const members = page.getByRole("dialog", { name: "Medlemmar och inbjudningar" });
+  const manage = members.getByRole("button", { name: "Hantera Robin" });
   await expect(manage).toBeVisible();
   const box = await manage.boundingBox();
   expect(box?.height ?? 0, "Hantera ska ha minst 44 px tryckyta").toBeGreaterThanOrEqual(44);
@@ -213,12 +216,51 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
   await expect
     .poll(
       async () =>
-        await page.getByRole("button", { name: "Hantera Robin" }).locator("..").innerText(),
+        await members.getByRole("button", { name: "Hantera Robin" }).locator("..").innerText(),
     )
     .toMatch(/admin/i);
 
-  await page.getByRole("button", { name: "Hantera Robin" }).click();
+  await members.getByRole("button", { name: "Hantera Robin" }).click();
   await expect(page.getByRole("menuitem", { name: "Gör till medlem" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Överför ägarskap" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "medlemshanteringen");
+});
+
+test("gruppinställningarna använder en kompakt meny och skyddar osparade ändringar", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await installOwnerSession(page);
+  await page.goto("/gruppen");
+
+  await page.getByRole("button", { name: "Gruppinställningar" }).click();
+  const menu = page.getByRole("dialog", { name: "Gruppinställningar" });
+  for (const name of [
+    /Grupp och sökning/,
+    /Medlemmar och inbjudningar/,
+    /Underhåll av matställen/,
+    /Inställningar och status/,
+    /Om Matrundan/,
+  ]) {
+    await expect(menu.getByRole("button", { name })).toBeVisible();
+  }
+
+  await menu.getByRole("button", { name: /Grupp och sökning/ }).click();
+  const groupSettings = page.getByRole("dialog", { name: "Grupp och sökning" });
+  await groupSettings.getByLabel("Namn").fill("Ändrat namn");
+  await expect(groupSettings.getByText("Osparade ändringar", { exact: true })).toBeVisible();
+
+  let warning = "";
+  page.once("dialog", async (dialog) => {
+    warning = dialog.message();
+    await dialog.dismiss();
+  });
+  await groupSettings.getByRole("button", { name: "Till inställningar" }).click();
+  expect(warning).toContain("osparade ändringar");
+  await expect(groupSettings).toBeVisible();
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await groupSettings.getByRole("button", { name: "Till inställningar" }).click();
+  await expect(menu).toBeVisible();
+  await expectNoHorizontalOverflow(page, "navigerade gruppinställningar");
 });
