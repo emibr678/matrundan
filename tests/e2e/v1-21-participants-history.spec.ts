@@ -48,7 +48,10 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expect(page.getByText("Maja · Gäst")).toBeVisible();
   await expectNoHorizontalOverflow(page, "besökshistoriken");
 
-  await page.getByRole("button", { name: /Öppna besöket på Rundans Bistro/ }).first().click();
+  await page
+    .getByRole("button", { name: /Öppna besöket på Rundans Bistro/ })
+    .first()
+    .click();
   await expect(page.getByText("Maja")).toBeVisible();
   await expect(page.getByText("Gäst", { exact: true })).toBeVisible();
   await expect(
