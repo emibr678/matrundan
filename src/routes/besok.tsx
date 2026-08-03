@@ -8,6 +8,7 @@ import { RatingStars } from "@/components/matrundan/Rating";
 import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -41,6 +42,7 @@ export const Route = createFileRoute("/besok")({
 
 function VisitHistory() {
   const { state, getPlace, memberById } = useStore();
+  const { exampleMode } = useSession();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/besok" });
   const visits = React.useMemo(
@@ -52,7 +54,7 @@ function VisitHistory() {
     <div className="mx-auto max-w-2xl space-y-5 pb-4 pt-2 md:max-w-3xl">
       <header>
         <Button asChild variant="ghost" className="-ml-2 min-h-11 rounded-full px-3">
-          <Link to="/">
+          <Link to={exampleMode ? "/exempel" : "/"}>
             <ArrowLeft className="h-4 w-4" /> Hem
           </Link>
         </Button>
