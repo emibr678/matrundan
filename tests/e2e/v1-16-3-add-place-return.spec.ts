@@ -33,7 +33,7 @@ test("kryss och Tillbaka återgår till samma sökning med ett aktivt dialoglage
   await expect(resultDialog).toBeVisible();
   await expect(searchDialog).toBeHidden();
   await expect(page.locator('[role="dialog"]:visible')).toHaveCount(1);
-  await resultDialog.getByRole("button", { name: "Close", exact: true }).click();
+  await resultDialog.getByRole("button", { name: "Stäng", exact: true }).click();
 
   await expect(searchDialog).toBeVisible();
   await expect(searchDialog.getByLabel("Sök", { exact: true })).toHaveValue(PLACE_NAME);
