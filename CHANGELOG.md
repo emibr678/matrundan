@@ -13,6 +13,23 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.20.1] – 2026-08-03
+
+### Ändrat
+
+- Exempelgruppen beskriver konsekvent sitt fiktiva Stockholmsgäng och låter
+  användaren välja mellan Google och e-post innan en egen grupp skapas.
+- Kontoregistreringen lovar inte längre att e-postbekräftelse alltid kan hoppas
+  över.
+- Ägare och administratörer hanterar medlemmar genom en textbaserad meny med
+  stora tryckytor och bekräftelse före ändrad roll, överfört ägarskap eller
+  borttagning.
+
+### Säkerhet
+
+- Projektets egen TanStack Start-konfiguration registrerar ramverkets
+  CSRF-middleware för serverfunktioner.
+
 ## [1.20.0] – 2026-08-02
 
 ### Lagt till
