@@ -3,6 +3,21 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_21_1_CHANGELOG: ChangelogEntry = {
+  version: "1.21.1",
+  date: "2026-08-03",
+  summary: "Senaste besöket och besöksaktivitet öppnar samma gemensamma detaljvy.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hela kortet Senast tillsammans öppnar det specifika besöket, medan Alla besök leder till gruppens samlade historik.",
+        "Besöksrader i gruppens aktivitet öppnar samma besöksdetalj som Hem och besökshistoriken.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_21_0_CHANGELOG: ChangelogEntry = {
   version: "1.21.0",
   date: "2026-08-03",
@@ -103,6 +118,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_21_1_CHANGELOG,
   VERSION_1_21_0_CHANGELOG,
   VERSION_1_20_2_CHANGELOG,
   VERSION_1_20_1_CHANGELOG,
