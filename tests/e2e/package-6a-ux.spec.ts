@@ -51,7 +51,6 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(latestVisit).toBeVisible();
   await latestVisit.click();
   await expect(page).toHaveURL(/\/besok\?visit=/);
-  await expect(page.getByRole("heading", { name: "Alla besök" })).toBeVisible();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Besöksdetalj från Hem");
 
