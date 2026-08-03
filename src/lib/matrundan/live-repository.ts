@@ -69,7 +69,7 @@ type VisitRow = {
     name: string;
     avatar: string | null;
     avatarImage: string | null;
-    status: "active" | "left";
+    status: "active" | "left" | "guest";
   }[];
   reviews: ReviewRow[];
   photo: {
