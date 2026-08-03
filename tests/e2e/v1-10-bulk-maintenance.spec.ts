@@ -37,7 +37,7 @@ test("ställen med saknade uppgifter kan filtreras fram och kompletteras", async
   await expectNoHorizontalOverflow(page, "Filter för saknade uppgifter");
   await placeLink.click();
 
-  await page.getByRole("button", { name: "Hantera gruppens uppgifter om stället" }).click();
+  await page.getByRole("button", { name: "Redigera gruppens uppgifter" }).click();
   const editDialog = page.getByRole("dialog", { name: "Redigera gruppens uppgifter" });
   await editDialog.getByRole("combobox", { name: "Kök och inriktning" }).click();
   const foodDialog = page.getByRole("dialog", { name: "Kök och inriktning" });
