@@ -21,6 +21,8 @@ const VERSION_1_21_0_CHANGELOG: ChangelogEntry = {
         "Matställen visar hur många av gruppens medlemmar som har varit där, nästa stopp beskrivs som ett förslag och Hem visar om du själv har svarat på datumet.",
         "Exempelgruppen visar en avsiktlig demokarta och förklarar att användaren testar som Alex, gruppens ägare.",
         "Topplistan visar antal besök och redigeringsvägarna har mer specifika namn.",
+        "Gästnamn visas bara i besökets ursprungsgrupp. Vid delning ser andra grupper endast ett anonymt antal personer utanför gruppen.",
+        "Endast valda faktiska gruppmedlemmar får deltagarprogression; registreraren får ingen automatisk kredit.",
       ],
     },
     {
@@ -28,13 +30,6 @@ const VERSION_1_21_0_CHANGELOG: ChangelogEntry = {
       items: [
         "Dialoger och paneler annonserar Stäng på svenska och varje stjärnbetyg är kopplat till sin kategori.",
         "Samma kommentar visas inte längre både som gemensam kommentar och som användarens eget omdöme.",
-      ],
-    },
-    {
-      kind: "Integritet",
-      items: [
-        "Gästnamn visas bara i besökets ursprungsgrupp. Vid delning ser andra grupper endast ett anonymt antal personer utanför gruppen.",
-        "Endast valda faktiska gruppmedlemmar får deltagarprogression; registreraren får ingen automatisk kredit.",
       ],
     },
   ],
