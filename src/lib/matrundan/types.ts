@@ -91,8 +91,12 @@ export interface VisitParticipant {
   name: string;
   avatar?: string | null;
   avatarImage?: string | null;
-  /** active = fortfarande medlem i gruppen; left = tidigare medlem. */
-  status: "active" | "left";
+  /**
+   * active = fortfarande medlem i gruppen;
+   * left = tidigare medlem;
+   * guest = besökslokal gäst utan gruppmedlemskap eller progression.
+   */
+  status: "active" | "left" | "guest";
 }
 
 export interface VisitPhoto {
@@ -112,6 +116,7 @@ export interface Visit {
   placeId: string;
   date: string;
   meal: "frukost" | "lunch" | "fika" | "middag" | "kväll";
+  /** Endast faktiska gruppmedlemmar. Gäster ligger i participants med status guest. */
   participantIds: string[];
   overall: number;
   taste?: number;
@@ -125,13 +130,13 @@ export interface Visit {
   linkType?: "original" | "shared";
   linkedBy?: string;
   linkedAt?: string;
-  /** Antal deltagare helt utan medlemskapsrad i denna grupp. Visas anonymt. */
+  /** Antal deltagare vars identitet inte får visas i denna grupp. */
   externalParticipantCount?: number;
   /** Räknas mot progression i denna grupp (alltid true för original). */
   countsForProgression?: boolean;
   /** Recensioner som är synliga för denna grupp – bas för aggregat och synlighets-UI. */
   visibleReviews?: VisibleReview[];
-  /** Grupprelevanta deltagare (aktiv eller tidigare medlem) med profildata. */
+  /** Grupprelevanta medlemmar samt privata gäster i besökets ursprungsgrupp. */
   participants?: VisitParticipant[];
 }
 
