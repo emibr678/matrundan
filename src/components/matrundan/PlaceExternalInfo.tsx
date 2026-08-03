@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Globe2,
   Loader2,
+  MapPin,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -113,21 +114,21 @@ function OpeningHoursDetails({
   const todaySummary = openingHoursDaySummary(today);
 
   return (
-    <details className="group rounded-xl border border-border/60 bg-background/55">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm marker:content-none">
+    <details className="group">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 py-1.5 text-sm marker:content-none">
         <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="min-w-0 flex-1">
           <span className="font-medium">Öppettider idag</span>
           <span className="ml-1.5 text-muted-foreground">{todaySummary}</span>
         </span>
         {groupOverride ? (
-          <Badge variant="secondary" className="hidden shrink-0 rounded-full sm:inline-flex">
+          <Badge variant="secondary" className="shrink-0 rounded-full px-2 text-[10px]">
             Gruppens uppgift
           </Badge>
         ) : null}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
-      <div className="border-t border-border/60 px-3 py-2.5">
+      <div className="border-t border-border/50 pb-2 pl-6 pt-2.5">
         <dl className="space-y-1.5 text-sm">
           {schedule.days.map((day) => (
             <div key={day.code} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
@@ -292,7 +293,7 @@ export function PlaceExternalInfo({
     <div className="mt-3 space-y-2">
       <div className="rounded-2xl border border-border/60 bg-background/45 p-3">
         <div className="flex min-h-9 items-center justify-between gap-2">
-          <div className="font-medium">Praktisk information</div>
+          <div className="font-medium">Praktiskt</div>
           <PlacePracticalInfoDialog
             place={place}
             groupId={groupId}
@@ -310,25 +311,25 @@ export function PlaceExternalInfo({
           <div className="flex min-h-11 items-center gap-2 py-1.5 text-sm">
             <Globe2 className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1 font-medium">Webbplats</span>
+            {practicalInfo.websiteOverride ? (
+              <Badge variant="secondary" className="shrink-0 rounded-full px-2 text-[10px]">
+                Gruppens uppgift
+              </Badge>
+            ) : null}
             {websiteUrl ? (
               <a
                 href={websiteUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-9 max-w-[60%] items-center gap-1 truncate text-primary hover:underline"
+                className="inline-flex min-h-9 shrink-0 items-center gap-1 text-primary hover:underline"
                 aria-label={`Öppna webbplatsen för ${place.name}`}
               >
-                <span className="truncate">Öppna</span>
+                Öppna
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
               </a>
             ) : (
-              <span className="text-muted-foreground">Saknas</span>
+              <span className="shrink-0 text-muted-foreground">Saknas</span>
             )}
-            {practicalInfo.websiteOverride ? (
-              <Badge variant="secondary" className="hidden rounded-full sm:inline-flex">
-                Gruppen
-              </Badge>
-            ) : null}
           </div>
 
           <div className="py-1.5">
@@ -350,6 +351,20 @@ export function PlaceExternalInfo({
               </div>
             )}
           </div>
+
+          <a
+            href={googleMapsUrl(place)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex min-h-11 items-center gap-2 py-1.5 text-sm hover:bg-accent/30"
+            aria-label={`Öppna ${place.name} i Google Maps`}
+          >
+            <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 font-medium">Google Maps</span>
+            <span className="inline-flex shrink-0 items-center gap-1 text-primary">
+              Öppna <ExternalLink className="h-3.5 w-3.5" />
+            </span>
+          </a>
         </div>
 
         {hasConflict ? (
@@ -418,16 +433,6 @@ export function PlaceExternalInfo({
           ) : null}
         </div>
       </div>
-
-      <a
-        href={googleMapsUrl(place)}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex min-h-11 items-center gap-1.5 px-1 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
-        aria-label={`Öppna ${place.name} i Google Maps`}
-      >
-        <ExternalLink className="h-3.5 w-3.5 shrink-0" /> Google Maps
-      </a>
 
       <AlertDialog open={compareOpen} onOpenChange={setCompareOpen}>
         <AlertDialogContent>
