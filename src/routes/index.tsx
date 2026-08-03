@@ -207,28 +207,31 @@ export function Home() {
               to="/besok"
               className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-xs font-medium text-primary hover:underline"
             >
-              Visa alla besök <ChevronRight className="h-3.5 w-3.5" />
+              Alla besök <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <Card className="rounded-2xl border-border/70 p-4">
-            <Link
-              to="/matstallen/$placeId"
-              params={{ placeId: lastVisitPlace.id }}
-              className="font-display text-lg [overflow-wrap:anywhere] hover:underline"
-            >
-              {lastVisitPlace.name}
-            </Link>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {new Date(lastVisit.date).toLocaleDateString("sv-SE", {
-                day: "numeric",
-                month: "long",
-              })}
-              {lastVisitParticipantSummary ? ` · ${lastVisitParticipantSummary}` : ""}
-            </p>
-            {lastVisit.comment ? (
-              <p className="mt-2 text-sm [overflow-wrap:anywhere]">”{lastVisit.comment}”</p>
-            ) : null}
-          </Card>
+          <Link
+            to="/besok"
+            search={{ visit: lastVisit.id }}
+            className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`Öppna besöket på ${lastVisitPlace.name}`}
+          >
+            <Card className="rounded-2xl border-border/70 p-4 transition-colors hover:bg-accent/35">
+              <div className="font-display text-lg [overflow-wrap:anywhere]">
+                {lastVisitPlace.name}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {new Date(lastVisit.date).toLocaleDateString("sv-SE", {
+                  day: "numeric",
+                  month: "long",
+                })}
+                {lastVisitParticipantSummary ? ` · ${lastVisitParticipantSummary}` : ""}
+              </p>
+              {lastVisit.comment ? (
+                <p className="mt-2 text-sm [overflow-wrap:anywhere]">”{lastVisit.comment}”</p>
+              ) : null}
+            </Card>
+          </Link>
         </section>
       ) : null}
 
