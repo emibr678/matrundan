@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_20_2_CHANGELOG: ChangelogEntry = {
+  version: "1.20.2",
+  date: "2026-08-03",
+  summary: "Exempelgruppen speglar medlemsflöden och sökområden tar mindre plats.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Ägaren i exempelgruppen kan använda samma medlemshantering som i en riktig grupp, med lokalt sparade rolländringar, ägarbyte och borttagning.",
+        "Medlemsprofiler kan öppnas direkt från medlemslistan i gruppinställningarna i både exempel- och live-läge.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Sökområden visas med mindre gemensamma pills i både Matställen och Gruppinställningar.",
+        "När fem vanliga sökområden redan är valda visar gruppinställningarna en kompakt förklaring i stället för ett stort avstängt sökfält.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_20_1_CHANGELOG: ChangelogEntry = {
   version: "1.20.1",
   date: "2026-08-03",
@@ -49,6 +71,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_20_2_CHANGELOG,
   VERSION_1_20_1_CHANGELOG,
   VERSION_1_20_0_CHANGELOG,
   ...CHANGELOG_THROUGH_1_19,
