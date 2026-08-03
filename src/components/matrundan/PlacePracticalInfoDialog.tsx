@@ -50,7 +50,9 @@ function emptyDayInputs(): Record<OpeningHoursDayCode, string> {
   );
 }
 
-function scheduleInputs(schedule: OpeningHoursSchedule | null): Record<OpeningHoursDayCode, string> {
+function scheduleInputs(
+  schedule: OpeningHoursSchedule | null,
+): Record<OpeningHoursDayCode, string> {
   const result = emptyDayInputs();
   for (const day of schedule?.days ?? []) result[day.code] = openingHoursDayInput(day);
   return result;
@@ -59,9 +61,7 @@ function scheduleInputs(schedule: OpeningHoursSchedule | null): Record<OpeningHo
 function formatDate(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium", timeStyle: "short" }).format(
-    date,
-  );
+  return new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function reportDescription(
@@ -100,9 +100,8 @@ export function PlacePracticalInfoDialog({
   const { state, demoReadOnly } = useStore();
   const [open, setOpen] = React.useState(false);
   const [website, setWebsite] = React.useState("");
-  const [dayInputs, setDayInputs] = React.useState<Record<OpeningHoursDayCode, string>>(
-    emptyDayInputs,
-  );
+  const [dayInputs, setDayInputs] =
+    React.useState<Record<OpeningHoursDayCode, string>>(emptyDayInputs);
   const [sourceUrl, setSourceUrl] = React.useState("");
   const [sourceNote, setSourceNote] = React.useState("");
   const [saving, setSaving] = React.useState(false);
@@ -256,13 +255,7 @@ export function PlacePracticalInfoDialog({
         window.dispatchEvent(new Event("matrundan:reload"));
       } else {
         if (!reporter) throw new Error("Medlemmen kunde inte identifieras.");
-        next = updateLocalGroupPlacePracticalInfo(
-          groupId,
-          place.id,
-          input,
-          reporter,
-          storageKind,
-        );
+        next = updateLocalGroupPlacePracticalInfo(groupId, place.id, input, reporter, storageKind);
       }
       onSaved(next);
       await createReviewUnderlays(
@@ -290,13 +283,7 @@ export function PlacePracticalInfoDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={cannotEdit}
-          className="h-9 px-2"
-        >
+        <Button type="button" variant="ghost" size="sm" disabled={cannotEdit} className="h-9 px-2">
           <Pencil className="h-3.5 w-3.5" /> Redigera praktisk information
         </Button>
       </DialogTrigger>
