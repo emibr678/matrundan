@@ -235,7 +235,7 @@ export function PlacePracticalInfoDialog({
         ? parsedOpeningHours
         : null;
     const hasOverride = Boolean(websiteOverride || openingHoursOverride);
-    const normalizedSourceUrl = hasOverride ? normalizeWebsiteUrl(sourceUrl) : null;
+    const normalizedSourceUrl = hasOverride ? (normalizeWebsiteUrl(sourceUrl) ?? null) : null;
     if (hasOverride && sourceUrl.trim() && !normalizedSourceUrl) {
       setEvidenceOpen(true);
       toast.error("Ange en giltig källänk.");
@@ -338,7 +338,7 @@ export function PlacePracticalInfoDialog({
                 setWebsite(event.target.value);
                 setEvidenceOpen(true);
               }}
-              onBlur={() => suggestSource(normalizeWebsiteUrl(website))}
+              onBlur={() => suggestSource(normalizeWebsiteUrl(website) ?? null)}
               placeholder={externalWebsite ?? "https://…"}
             />
             <p className="text-xs text-muted-foreground">
