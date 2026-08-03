@@ -1,6 +1,6 @@
 # Personabaserade UX-tester
 
-Det här paketet kompletterar Matrundans deterministiska Playwright-tester med öppna uppdrag där en testare eller browseragent försöker förstå gränssnittet utan steg-för-steg-instruktioner.
+Det här paketet kompletterar Matrundans deterministiska Playwright-tester med öppna uppdrag där en mänsklig testare eller ett visuellt browserverktyg försöker förstå gränssnittet utan steg-för-steg-instruktioner.
 
 ## Syfte
 
@@ -21,13 +21,13 @@ De ersätter inte riktiga användartester. De skapar hypoteser och reproducerbar
 2. **Visuell black-box-runda** använder en persona, ett uppdrag och endast det renderade gränssnittet.
 3. **Kodmedveten analys** får efter rundan läsa trace, loggar och kod för att förklara ett observerat problem.
 
-Blanda inte lager 2 och 3. En agent som redan har läst komponenter, test-id:n eller befintliga E2E-tester simulerar inte längre en ny användare.
+Blanda inte lager 2 och 3. En testare eller agent som redan har läst komponenter, test-id:n eller befintliga E2E-tester simulerar inte längre en ny användare.
 
 ## Förutsättningar
 
 För en visuell black-box-runda behövs en browsermiljö som kan:
 
-- visa skärmbilder för modellen;
+- visa skärmbilder för testaren eller modellen;
 - klicka, scrolla och skriva;
 - behålla en separat browserkontext per persona;
 - spara skärmbilder och gärna video eller Playwright-trace;
@@ -37,7 +37,7 @@ Computer Use eller ett motsvarande visuellt browserverktyg är därför lämplig
 
 ## Black-box-regler
 
-Personaagenten ska:
+Testaren eller verktyget ska:
 
 - få en persona och ett uppdrag, inte en klickinstruktion;
 - börja från angiven URL och beskriva sin första tolkning innan första klicket;
@@ -48,14 +48,14 @@ Personaagenten ska:
 - dokumentera felklick, backningar, tvekan och varför nästa handling valdes;
 - stoppa vid uppdragets slutvillkor eller när personans ge-upp-gräns nåtts.
 
-En separat felsökningsagent får därefter läsa kod och tekniska artefakter.
+En separat felsökningsfas får därefter läsa kod och tekniska artefakter.
 
 ## Körning
 
 1. Välj en fil under `personas/`.
 2. Välj en fil under `missions/` som passar personan.
 3. Starta en ny browserkontext i exempelgruppen eller en isolerad staginggrupp.
-4. Ge agenten endast persona, uppdrag, start-URL och rapportformat.
+4. Ge testaren eller verktyget endast persona, uppdrag, start-URL och rapportformat.
 5. Spara en skärmbild före varje viktigt beslut och efter slutläget.
 6. Validera rapporten mot `report-schema.md`.
 7. Kör samma uppdrag med minst två andra relevanta personor innan ett generellt UX-problem antas.
@@ -76,7 +76,7 @@ Inbjudan, roller och gruppisolering kräver senare en separat testmiljö med:
 - blockerad extern publicering till exempelvis OpenStreetMap;
 - automatisk städning.
 
-Personaagenter ska inte skriva mot produktion.
+Personatester ska inte skriva mot produktion.
 
 ## Evidens
 
@@ -100,12 +100,14 @@ Flytta ett fynd till `tests/e2e/` när det:
 1. är reproducerbart;
 2. påverkar en viktig del av gruppens gemensamma matresa;
 3. kan uttryckas som ett entydigt krav;
-4. inte bygger på en enskild agents smakbedömning.
+4. inte bygger på en enskild testares eller agents smakbedömning.
 
 Personatester ska initialt köras manuellt eller vid särskilda UX-rundor. De ska inte blockera merge förrän stabilitet, kostnad och falskpositivnivå är kända.
 
-## Codex-agenter
+## Verktygsneutralitet och ägarskap
 
-Projektets `.codex/agents/` innehåller read-only roller som motsvarar personorna. Modellval anges inte i projektfilerna, eftersom den effektiva modellen kan bero på den aktuella Codex-miljön. Orkestratorn ska verifiera faktisk runtime och ge varje agent en separat, begränsad uppgift.
+Det här repot versionshanterar Matrundans egna personor, uppdrag, rapportkontrakt och deterministiska regressionstester. Det innehåller inte repobundna roller för Codex eller någon annan specifik agentplattform och påstår inte att en automatiserad visuell testmotor finns.
 
-För en genuint visuell runda ska agenten köras med ett browserverktyg som kan ge skärmbilder tillbaka till modellen. Utan ett sådant verktyg ska agenten endast förbereda uppdrag eller analysera redan insamlade artefakter, inte påstå att den har genomfört ett visuellt användartest.
+Ett mänskligt testupplägg, Computer Use eller ett framtida agentramverk kan läsa samma underlag. Om en generell testmotor senare byggs för flera appar bör den ligga i ett separat repo, medan Matrundans produktnära personor och uppdrag stannar här.
+
+Utan ett verktyg som faktiskt ger skärmbilder tillbaka till testaren eller modellen får en körning endast förbereda uppdrag eller analysera redan insamlade artefakter, inte påstå att ett visuellt användartest har genomförts.
