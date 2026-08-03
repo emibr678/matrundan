@@ -96,13 +96,19 @@ bun run format:changed
 
 Prettier och ESLint är separata kontroller. ESLint analyserar kodregler och arkitekturgränser; Prettier verifierar format utan att köras en andra gång genom ESLint.
 
+Typkontrollera Bun-enhetstesterna och deras importerade produktkod:
+
+```bash
+bun run typecheck:unit
+```
+
 Typkontrollera Playwright-konfigurationen och browsertesterna:
 
 ```bash
 bun run typecheck:e2e
 ```
 
-Verifiera ändrade filer, shellscript, dödkodsskydd, enhetstester, app- och browsertypning samt produktionsbygge:
+Verifiera ändrade filer, shellscript, dödkodsskydd, enhetstester, app-, enhetstest- och browsertypning samt produktionsbygge:
 
 ```bash
 bun run verify:changed
@@ -158,7 +164,7 @@ Draft-PR kör:
 - release-, databas- och dödkodskontrakt;
 - Prettier och ESLint på ändrade filer;
 - alla enhetstester under `src`;
-- TypeScript för appkod och Playwright-svit;
+- TypeScript för appkod, Bun-enhetstester och Playwright-svit;
 - produktionsbygge.
 
 När PR:n markeras redo körs dessutom mobil Chromium för UI-ändringar samt WebKit och desktop Chromium för kartrelaterade ändringar.
