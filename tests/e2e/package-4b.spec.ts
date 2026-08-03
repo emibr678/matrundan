@@ -18,17 +18,21 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("demo-läget visar lokala inställningar utan livegruppens statuskontroller", async ({
+test("demo-läget samlar lokala inställningar utan livegruppens statuskontroller", async ({
   page,
 }) => {
   await page.goto("/gruppen?demo=1");
 
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  await expect(settings.getByText("Demo-läge: skrivningar sparas bara lokalt.")).toBeVisible();
-  await expect(settings.getByRole("button", { name: "Återställ demo-data" })).toBeVisible();
-  await expect(settings.getByRole("button", { name: "Arkivera gruppen" })).toHaveCount(0);
-  await expect(settings.getByRole("button", { name: "Återaktivera gruppen" })).toHaveCount(0);
+  await expect(settings.getByRole("button", { name: /Medlemmar och inbjudningar/ })).toBeVisible();
+  await expect(settings.getByRole("button", { name: /Underhåll av matställen/ })).toBeVisible();
+  await settings.getByRole("button", { name: /Inställningar och status/ }).click();
+
+  const status = page.getByRole("dialog", { name: "Inställningar och status" });
+  await expect(status.getByRole("button", { name: "Återställ demo-data" })).toBeVisible();
+  await expect(status.getByRole("button", { name: "Arkivera gruppen" })).toHaveCount(0);
+  await expect(status.getByRole("button", { name: "Återaktivera gruppen" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Gruppinställningar i demo-läget");
 });
 
