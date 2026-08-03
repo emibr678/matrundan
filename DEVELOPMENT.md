@@ -122,7 +122,7 @@ Det deterministiska browserlagret ligger fortsatt under `tests/e2e/` och är den
 
 Personatesterna används för att upptäcka begriplighets-, navigations- och förtroendeproblem som inte kan beskrivas med en stabil selector eller en förutbestämd klickväg. De ska köras i en separat browserkontext per persona och kräver visuell input, exempelvis skärmbilder genom Computer Use eller ett motsvarande browserverktyg.
 
-En Codex-session som endast har terminal och Playwright-selectors får förbereda eller analysera tester, men får inte påstå att den genomfört ett visuellt black-box-test. Projektets roller under `.codex/agents/` är read-only och ska följa rapportkontraktet i `docs/ux-testing/report-schema.md`.
+En Codex-session som endast har terminal och Playwright-selectors får förbereda eller analysera tester, men får inte påstå att den genomfört ett visuellt black-box-test. Repot innehåller inga plattformsspecifika personaagenter; mänskliga testare och framtida verktyg ska läsa samma verktygsneutrala personor, uppdrag och rapportkontrakt under `docs/ux-testing/`.
 
 Personatester blockerar inte merge initialt. Reproducerbara och entydiga fynd ska omvandlas till vanliga Playwright-regressionstester innan de används som releasekrav.
 
