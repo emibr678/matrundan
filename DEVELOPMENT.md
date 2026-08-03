@@ -94,7 +94,15 @@ Formatera endast ändrade filer:
 bun run format:changed
 ```
 
-Verifiera ändrade filer, shellscript, dödkodsskydd, enhetstester, TypeScript och produktionsbygge:
+Prettier och ESLint är separata kontroller. ESLint analyserar kodregler och arkitekturgränser; Prettier verifierar format utan att köras en andra gång genom ESLint.
+
+Typkontrollera Playwright-konfigurationen och browsertesterna:
+
+```bash
+bun run typecheck:e2e
+```
+
+Verifiera ändrade filer, shellscript, dödkodsskydd, enhetstester, app- och browsertypning samt produktionsbygge:
 
 ```bash
 bun run verify:changed
@@ -150,7 +158,7 @@ Draft-PR kör:
 - release-, databas- och dödkodskontrakt;
 - Prettier och ESLint på ändrade filer;
 - alla enhetstester under `src`;
-- TypeScript;
+- TypeScript för appkod och Playwright-svit;
 - produktionsbygge.
 
 När PR:n markeras redo körs dessutom mobil Chromium för UI-ändringar samt WebKit och desktop Chromium för kartrelaterade ändringar.
