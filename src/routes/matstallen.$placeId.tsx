@@ -220,7 +220,7 @@ function PlaceDetail() {
                     className="min-h-11 whitespace-normal"
                   >
                     <Flag className="h-4 w-4 shrink-0" />
-                    Välj som nästa stopp
+                    Föreslå som nästa stopp
                   </Button>
                 )}
                 <Button
@@ -272,6 +272,19 @@ function PlaceDetail() {
           <div className="space-y-2">
             {visits.map((visit) => {
               const author = memberById(visit.createdBy);
+              const visibleParticipants =
+                visit.participants && visit.participants.length > 0
+                  ? visit.participants
+                  : visit.participantIds.map((participantId) => {
+                      const member = memberById(participantId);
+                      return {
+                        id: participantId,
+                        name: member?.name ?? "Okänd",
+                        avatar: member?.avatar ?? null,
+                        avatarImage: member?.avatarImage ?? null,
+                        status: "active" as const,
+                      };
+                    });
               return (
                 <button
                   key={visit.id}
@@ -311,17 +324,20 @@ function PlaceDetail() {
                         <RatingStars value={visit.overall} size={12} />
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {visit.participantIds.map((participantId) => {
-                          const member = memberById(participantId);
-                          return (
-                            <span
-                              key={participantId}
-                              className="rounded-full bg-secondary px-2 py-0.5 text-[11px]"
-                            >
-                              {member?.avatar} {member?.name}
-                            </span>
-                          );
-                        })}
+                        {visibleParticipants.map((participant) => (
+                          <span
+                            key={participant.id}
+                            className="rounded-full bg-secondary px-2 py-0.5 text-[11px]"
+                          >
+                            {participant.avatar ?? "🙂"} {participant.name}
+                            {participant.status === "guest" ? " · Gäst" : ""}
+                          </span>
+                        ))}
+                        {(visit.externalParticipantCount ?? 0) > 0 ? (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            +{visit.externalParticipantCount} utanför gruppen
+                          </span>
+                        ) : null}
                       </div>
                       {visit.comment ? (
                         <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
