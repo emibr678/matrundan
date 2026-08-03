@@ -38,13 +38,9 @@ export function ActivityRow({ activity }: { activity: Activity }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-sm leading-snug">{text}</div>
-        <div className="mt-0.5 text-xs text-muted-foreground">
-          {formatDate(activity.at)}
-        </div>
+        <div className="mt-0.5 text-xs text-muted-foreground">{formatDate(activity.at)}</div>
       </div>
-      {target ? (
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-      ) : null}
+      {target ? <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /> : null}
     </div>
   );
 
