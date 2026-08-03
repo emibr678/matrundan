@@ -52,12 +52,15 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
     .getByRole("button", { name: /Öppna besöket på Rundans Bistro/ })
     .first()
     .click();
-  await expect(page.getByText("Maja")).toBeVisible();
-  await expect(page.getByText("Gäst", { exact: true })).toBeVisible();
+  const visitDialog = page.getByRole("dialog");
+  await expect(visitDialog.getByText("Maja", { exact: true })).toBeVisible();
+  await expect(visitDialog.getByText("Gäst", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("Gäster hör bara till detta besök och får ingen medlemsprogression."),
+    visitDialog.getByText(
+      "Gäster hör bara till detta besök och får ingen medlemsprogression.",
+    ),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Stäng", exact: true }).first().click();
+  await visitDialog.getByRole("button", { name: "Stäng", exact: true }).click();
 
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Karta" }).click();
