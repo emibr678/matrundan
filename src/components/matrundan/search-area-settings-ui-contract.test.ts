@@ -21,7 +21,9 @@ describe("sökområden i gruppinställningar", () => {
     expect(pillSource).toContain('className="flex h-8');
     expect(pillSource).toContain("after:-inset-1.5");
     expect(settingsSource).toContain("{atAreaLimit ? (");
-    expect(settingsSource).toContain("Fem områden är valda. Ta bort ett för att lägga till ett annat.");
+    expect(settingsSource).toContain(
+      "Fem områden är valda. Ta bort ett för att lägga till ett annat.",
+    );
     expect(settingsSource).not.toContain("Ta bort ett område för att lägga till ett nytt");
   });
 
