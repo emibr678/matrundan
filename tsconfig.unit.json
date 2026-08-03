@@ -3,7 +3,7 @@
   "include": ["src/**/*.test.ts", "src/**/*.test.tsx"],
   "exclude": [],
   "compilerOptions": {
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "bun", "node"],
     "noEmit": true
   }
 }
