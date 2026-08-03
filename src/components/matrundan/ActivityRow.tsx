@@ -49,8 +49,7 @@ export function ActivityRow({ activity }: { activity: Activity }) {
   if (target.kind === "visit") {
     return (
       <Link
-        to="/matstallen/$placeId"
-        params={{ placeId: target.placeId }}
+        to="/besok"
         search={{ visit: target.visitId }}
         className="block min-h-11 transition-colors hover:bg-accent focus:bg-accent focus:outline-none"
       >
