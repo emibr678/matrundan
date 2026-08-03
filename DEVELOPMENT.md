@@ -80,13 +80,21 @@ Kontrollera alla shellscript:
 bun run check:shell
 ```
 
+Kontrollera att shadcn/UI-primitiver faktiskt nås från appens entrypoints:
+
+```bash
+bun run check:dead-code
+```
+
+Kontrollen är avsiktligt smal och snabb. Den fångar oanvända filer under `src/components/ui` utan nätverksåtkomst eller en tung generell analyspipeline.
+
 Formatera endast ändrade filer:
 
 ```bash
 bun run format:changed
 ```
 
-Verifiera ändrade filer, shellscript, enhetstester, TypeScript och produktionsbygge:
+Verifiera ändrade filer, shellscript, dödkodsskydd, enhetstester, TypeScript och produktionsbygge:
 
 ```bash
 bun run verify:changed
@@ -139,6 +147,7 @@ Draft-PR kör:
 - miljökontroll;
 - lockfils- och verktygsskydd;
 - syntaxkontroll av shellscript;
+- release-, databas- och dödkodskontrakt;
 - Prettier och ESLint på ändrade filer;
 - alla enhetstester under `src`;
 - TypeScript;
