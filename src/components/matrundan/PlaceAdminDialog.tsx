@@ -122,10 +122,10 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
             variant="ghost"
             size="sm"
             className="min-h-11 shrink-0 rounded-full px-3 text-muted-foreground hover:text-foreground"
-            aria-label="Hantera gruppens uppgifter om stället"
+            aria-label="Redigera gruppens uppgifter"
           >
             <Settings2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Redigera</span>
+            <span className="hidden sm:inline">Redigera gruppens uppgifter</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
