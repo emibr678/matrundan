@@ -1,0 +1,77 @@
+name: Ny funktion eller produktidé
+description: Registrera ett användarbehov i Matrundans produktbacklog
+title: "[Funktion] "
+labels:
+  - status:inbox
+  - type:feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Beskriv behovet kort. En ny idé behöver inte ha en färdig lösning eller implementationsplan.
+        Implementation får inte starta förrän produktinriktning, scope och en aktuell plan har godkänts uttryckligen.
+
+  - type: textarea
+    id: user_need
+    attributes:
+      label: Användarbehov
+      description: Vad försöker personen eller gruppen göra, och varför räcker dagens flöde inte?
+      placeholder: Gruppen behöver kunna…
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Exempel eller nuvarande problem
+      description: Beskriv gärna ett konkret scenario, skärmbild eller nuvarande beteende.
+      placeholder: När vi försöker… händer…
+    validations:
+      required: false
+
+  - type: textarea
+    id: shared_journey
+    attributes:
+      label: Koppling till den gemensamma matresan
+      description: Hur hjälper idén gruppen att hitta, välja, besöka eller minnas matställen tillsammans?
+      placeholder: Funktionen stärker gruppens gemensamma matresa genom att…
+    validations:
+      required: true
+
+  - type: textarea
+    id: initial_scope
+    attributes:
+      label: Första scope eller avgränsning
+      description: Skriv vad som bör ingå eller uttryckligen inte ingå, om det redan är känt.
+      placeholder: Ingår…\nIngår inte…
+    validations:
+      required: false
+
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Integritet, data eller behörighet
+      description: Finns gruppdata, delning, personuppgifter, roller eller kanoniska besök/matställen att ta hänsyn till?
+      placeholder: Gruppen är fortsatt integritetsgräns…
+    validations:
+      required: false
+
+  - type: dropdown
+    id: example_group
+    attributes:
+      label: Exempelgruppen
+      description: Behöver idén sannolikt ett nytt scenario i exempelgruppen?
+      options:
+        - Ja
+        - Nej
+        - Behöver bedömas
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: approval
+    attributes:
+      label: Arbetsfas
+      options:
+        - label: Jag förstår att detta registrerar en idé och inte är ett implementationsgodkännande.
+          required: true
