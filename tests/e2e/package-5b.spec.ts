@@ -63,7 +63,18 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(dialog.getByRole("checkbox")).toHaveCount(0);
   const initialExistingCount = await readExistingCount(dialog);
 
-  await dialog.getByRole("button", { name: "Välj flera", exact: true }).click();
+  const resultHeading = dialog.getByRole("heading", { name: "Ställen att lägga till" });
+  const listToggle = dialog.getByRole("button", { name: "Lista", exact: true });
+  const bulkToggle = dialog.getByRole("button", { name: "Välj flera", exact: true });
+  const [headingBox, listBox, bulkBox] = await Promise.all([
+    resultHeading.boundingBox(),
+    listToggle.boundingBox(),
+    bulkToggle.boundingBox(),
+  ]);
+  expect(headingBox?.y ?? 0).toBeLessThan(listBox?.y ?? 0);
+  expect(listBox?.y ?? 0).toBeLessThan(bulkBox?.y ?? 0);
+
+  await bulkToggle.click();
   await expect(dialog.getByRole("button", { name: "Avbryt", exact: true })).toBeVisible();
   await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
   await selectForBulk(dialog, "Päronträdets Trattoria");
