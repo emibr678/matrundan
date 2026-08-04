@@ -106,10 +106,28 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await page.goto("/matstallen/p8?demo=1");
   await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Föreslå som nästa stopp" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Markera som favorit" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Öppna .* i Google Maps/ })).toBeVisible();
+
+  const favorite = page.getByRole("button", { name: "Markera som favorit" });
+  await expect(favorite).toBeVisible();
+  const favoriteBox = await favorite.boundingBox();
+  expect(favoriteBox?.width).toBeGreaterThanOrEqual(44);
+  expect(favoriteBox?.height).toBeGreaterThanOrEqual(44);
+  await expect(page.getByText("Favorit", { exact: true })).toHaveCount(0);
+
+  const mapsLink = page.getByRole("link", { name: /Öppna .* i Google Maps/ });
+  await expect(mapsLink).toBeVisible();
+  await expect(mapsLink).toHaveClass(/text-primary/);
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
+  await expect(page.getByText("Nytt för gruppen", { exact: true })).toHaveCount(0);
+
+  const openingHours = page.getByText("Öppettider", { exact: true });
+  const groupRelation = page.getByText("Ingen i gruppen har varit här än", { exact: true });
+  await expect(openingHours).toBeVisible();
+  await expect(groupRelation).toBeVisible();
+  const openingHoursTop = await openingHours.evaluate((element) => element.getBoundingClientRect().top);
+  const groupRelationTop = await groupRelation.evaluate((element) => element.getBoundingClientRect().top);
+  expect(openingHoursTop).toBeLessThan(groupRelationTop);
+
   await expect(
     page
       .getByRole("heading", { name: "Om stället" })
