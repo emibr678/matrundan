@@ -190,11 +190,9 @@ function PlaceDetail() {
       <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
           <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
-            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 sm:gap-x-4">
-              <div className="row-span-2">
-                <PlaceThumb place={place} size="detail" />
-              </div>
-              <div className="min-w-0">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <PlaceThumb place={place} size="detail" />
+              <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                   {CATEGORY_LABEL[place.category]}
                 </div>
@@ -215,22 +213,22 @@ function PlaceDetail() {
                     ) : null}
                   </div>
                 ) : null}
-              </div>
-              <div
-                data-testid="place-practical-links"
-                className="mt-0.5 flex min-w-0 flex-wrap items-start gap-x-3 gap-y-0"
-              >
-                <PlaceExternalLink
-                  href={googleMapsUrl(place)}
-                  target="_blank"
-                  rel="noreferrer"
-                  icon={MapPin}
-                  prefix={`${place.address}, `}
-                  tail={place.city}
-                  className="w-fit"
-                  aria-label={`Öppna ${place.name} i Google Maps`}
-                />
-                <PlaceWebsiteInfo />
+                <div
+                  data-testid="place-practical-links"
+                  className="mt-0.5 flex min-w-0 flex-wrap items-start gap-x-3 gap-y-0"
+                >
+                  <PlaceExternalLink
+                    href={googleMapsUrl(place)}
+                    target="_blank"
+                    rel="noreferrer"
+                    icon={MapPin}
+                    prefix={`${place.address}, `}
+                    tail={place.city}
+                    className="w-fit"
+                    aria-label={`Öppna ${place.name} i Google Maps`}
+                  />
+                  <PlaceWebsiteInfo />
+                </div>
               </div>
             </div>
 
