@@ -224,9 +224,7 @@ function weeklyDetails(now: string) {
   };
 }
 
-test("detaljsidan visar webbplats nära adressen och ett kompakt veckoschema", async ({
-  page,
-}) => {
+test("detaljsidan visar webbplats nära adressen och ett kompakt veckoschema", async ({ page }) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, weeklyDetails(now));
@@ -240,7 +238,10 @@ test("detaljsidan visar webbplats nära adressen och ett kompakt veckoschema", a
   await expect(mapsLink).toBeVisible();
   await expect(websiteLink).toBeVisible();
 
-  const [mapsBox, websiteBox] = await Promise.all([mapsLink.boundingBox(), websiteLink.boundingBox()]);
+  const [mapsBox, websiteBox] = await Promise.all([
+    mapsLink.boundingBox(),
+    websiteLink.boundingBox(),
+  ]);
   expect(mapsBox).not.toBeNull();
   expect(websiteBox).not.toBeNull();
   const linkGap = websiteBox!.y - (mapsBox!.y + mapsBox!.height);
