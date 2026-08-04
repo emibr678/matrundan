@@ -79,7 +79,7 @@ GitHub Issues are the concrete backlog. Preserve already documented product
 choices instead of reopening them from chat history alone. Update the issue and,
 when package or priority changes, `docs/product-roadmap.md` before changing an
 agreed direction. New ideas begin in `status:inbox`; implementation begins only
-after an current plan is explicitly approved and the issue is `status:ready`.
+after a current plan is explicitly approved and the issue is `status:ready`.
 
 ## Implementation and diagnostics
 
