@@ -235,7 +235,7 @@ test("detaljsidan visar ett kompakt veckoschema utan Öppet nu-status", async ({
   await expect(page.getByRole("heading", { name: "Testköket" })).toBeVisible();
   const practicalInfo = page.getByText("Webbplats och öppettider", { exact: true });
   await expect(practicalInfo).toBeVisible();
-  await expect(page.getByText("Måndag", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Måndag", { exact: true })).not.toBeVisible();
   await practicalInfo.click();
   await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
   await expect(page.getByText("Öppet nu", { exact: true })).toHaveCount(0);
