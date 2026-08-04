@@ -135,13 +135,13 @@ function PlaceDetail() {
   const latestParticipantNames = latestVisit
     ? Array.from(
         new Set(
-          (latestVisit.participants?.length
+          latestVisit.participants?.length
             ? latestVisit.participants
                 .filter((participant) => participant.status !== "guest")
                 .map((participant) => participant.name)
             : latestVisit.participantIds
                 .map((participantId) => memberById(participantId)?.name)
-                .filter((name): name is string => Boolean(name))),
+                .filter((name): name is string => Boolean(name)),
         ),
       )
     : [];
@@ -224,9 +224,7 @@ function PlaceDetail() {
                       </span>
                     </>
                   ) : null}
-                  <span className="font-medium">
-                    {visits.length} {visits.length === 1 ? "besök" : "besök"}
-                  </span>
+                  <span className="font-medium">{visits.length} besök</span>
                 </div>
                 <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   Senast {formatDate(latestVisit.date)}
