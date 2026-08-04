@@ -1,5 +1,5 @@
 import * as React from "react";
-import { RotateCcw, Settings2, Trash2 } from "lucide-react";
+import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
 import { OccasionPicker } from "@/components/matrundan/OccasionPicker";
@@ -122,15 +122,15 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
             variant="ghost"
             size="sm"
             className="min-h-11 shrink-0 rounded-full px-3 text-muted-foreground hover:text-foreground"
-            aria-label="Redigera gruppens uppgifter"
+            aria-label="Ändra gruppens uppgifter om stället"
           >
-            <Settings2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Redigera gruppens uppgifter</span>
+            <Pencil className="h-4 w-4" />
+            Ändra
           </Button>
         </DialogTrigger>
         <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Redigera gruppens uppgifter</DialogTitle>
+            <DialogTitle>Ändra gruppens uppgifter om stället</DialogTitle>
             <DialogDescription>
               Ändringarna gäller bara i {state.group.name}. Matställets kanoniska namn och adress
               påverkas inte.

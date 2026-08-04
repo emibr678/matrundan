@@ -49,18 +49,13 @@ export function occasionClassification(first: Occasion | undefined, second?: Occ
   return normalizeOccasionClassification([first, second]);
 }
 
-export function rankPlacesForOccasion(
+function rankRatedPlaces(
   places: readonly Place[],
-  occasion: Occasion,
   ratingOf: (placeId: string) => PlaceRating,
-  limit = 3,
+  limit: number,
 ): RankedOccasionPlace[] {
   const sorted = places
-    .filter(
-      (place) =>
-        place.collectionStatus !== "archived" &&
-        normalizeOccasionClassification(place.occasions).includes(occasion),
-    )
+    .filter((place) => place.collectionStatus !== "archived")
     .map((place) => ({ place, rating: ratingOf(place.id) }))
     .filter(({ rating }) => rating.count > 0)
     .sort(
@@ -79,4 +74,25 @@ export function rankPlacesForOccasion(
     previousRank = rank;
     return { ...item, rank };
   });
+}
+
+export function rankPlacesOverall(
+  places: readonly Place[],
+  ratingOf: (placeId: string) => PlaceRating,
+  limit = 3,
+): RankedOccasionPlace[] {
+  return rankRatedPlaces(places, ratingOf, limit);
+}
+
+export function rankPlacesForOccasion(
+  places: readonly Place[],
+  occasion: Occasion,
+  ratingOf: (placeId: string) => PlaceRating,
+  limit = 3,
+): RankedOccasionPlace[] {
+  return rankRatedPlaces(
+    places.filter((place) => normalizeOccasionClassification(place.occasions).includes(occasion)),
+    ratingOf,
+    limit,
+  );
 }

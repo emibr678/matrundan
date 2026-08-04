@@ -90,7 +90,6 @@ async function seedAuthenticatedSession(page: Page, externalHours = "11–22") {
 
 async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
   const now = new Date().toISOString();
-  const history: unknown[] = [];
   let reportCount = 0;
 
   await page.route("**/rest/v1/rpc/list_user_groups_v4b", async (route) => {
@@ -192,14 +191,6 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
     });
   });
 
-  await page.route("**/rest/v1/rpc/list_group_place_practical_info_history_v1", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(history),
-    });
-  });
-
   await page.route("**/rest/v1/rpc/update_group_place_practical_info_v1", async (route) => {
     const body = route.request().postDataJSON() as Record<string, unknown>;
     practical.websiteOverride = (body._website_override as string | null) ?? null;
@@ -209,15 +200,6 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
     practical.updatedBy = USER_ID;
     practical.updatedByName = "Testanvändare";
     practical.updatedAt = new Date().toISOString();
-    history.unshift({
-      id: crypto.randomUUID(),
-      websiteOverride: practical.websiteOverride,
-      openingHoursOverride: practical.openingHoursOverride,
-      sourceUrl: practical.sourceUrl,
-      sourceNote: practical.sourceNote,
-      changedByName: "Testanvändare",
-      changedAt: practical.updatedAt,
-    });
     await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
   });
 
@@ -230,7 +212,7 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
     });
   });
 
-  return { practical, history, reportCount: () => reportCount };
+  return { practical, reportCount: () => reportCount };
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -244,7 +226,9 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(widths.bodyScroll).toBeLessThanOrEqual(widths.bodyClient);
 }
 
-test("en aktiv medlem uppdaterar gruppens praktiska information med källa", async ({ page }) => {
+test("en aktiv medlem uppdaterar gruppens praktiska information med diskret underlag", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page);
   const mocked = await mockLiveGroup(page, {
@@ -263,6 +247,8 @@ test("en aktiv medlem uppdaterar gruppens praktiska information med källa", asy
   await page.getByRole("button", { name: "Ändra", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "Ändra webbplats och öppettider" });
+  await expect(dialog.getByText("Hur vet du det?", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Tidigare ändringar", { exact: true })).toHaveCount(0);
   await dialog.getByLabel("Webbplats").fill("https://gruppen.example");
   for (const code of ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]) {
     await dialog.locator(`#practical-hours-${code}`).fill("12–23");
@@ -278,16 +264,8 @@ test("en aktiv medlem uppdaterar gruppens praktiska information med källa", asy
   await expect(page.getByText("Öppettider idag", { exact: true })).toBeVisible();
   await expect(page.getByText("12–23", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Gruppens uppgift", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("Visa källa", { exact: true })).toHaveCount(0);
   expect(mocked.reportCount()).toBe(2);
-
-  await page.getByRole("button", { name: "Ändra", exact: true }).click();
-  const reopened = page.getByRole("dialog", { name: "Ändra webbplats och öppettider" });
-  await reopened.getByText("Tidigare ändringar", { exact: true }).click();
-  await expect(
-    reopened
-      .locator("p")
-      .filter({ hasText: /^Tiderna kontrollerades på restaurangens dörr idag\.$/ }),
-  ).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 
@@ -305,15 +283,15 @@ test("kartdata skriver inte över gruppens uppgift utan ett uttryckligt val", as
   });
 
   await page.goto(`/matstallen/${PLACE_ID}`);
-  await expect(page.getByText("Kartdatan har ändrats.", { exact: false })).toBeVisible();
-  await page.getByText("Kartdatan har ändrats.", { exact: false }).click();
+  await expect(page.getByText("Ny kartdata finns.", { exact: false })).toBeVisible();
+  await page.getByText("Ny kartdata finns.", { exact: false }).click();
 
-  const comparison = page.getByRole("alertdialog", { name: "Jämför med senaste kartdatan" });
+  const comparison = page.getByRole("alertdialog", { name: "Jämför med kartdatan" });
   await expect(comparison.getByText(/Gruppen: https:\/\/gruppen\.example/)).toBeVisible();
   await expect(comparison.getByText(/Kartdata: https:\/\/kartdata\.example/)).toBeVisible();
   await comparison.getByRole("button", { name: "Använd kartdatan" }).click();
 
-  await expect(page.getByText("Kartdatan har ändrats.", { exact: false })).toHaveCount(0);
+  await expect(page.getByText("Ny kartdata finns.", { exact: false })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Öppna webbplatsen för Testköket" })).toHaveAttribute(
     "href",
     "https://kartdata.example/",

@@ -19,10 +19,14 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   const leaderboard = page.getByTestId("occasion-leaderboard");
   await leaderboard.getByRole("button", { name: "Visa", exact: true }).click();
   await expect(
-    leaderboard.getByRole("button", { name: "Visa topplista för Avslappnat" }),
+    leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(leaderboard.getByText("Månskärans Taquería", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
+  await leaderboard.getByRole("button", { name: /Avslappnat/ }).click();
+  await expect(
+    leaderboard.getByRole("button", { name: "Visa topplista för Avslappnat" }),
+  ).toHaveAttribute("aria-pressed", "true");
   await leaderboard.getByRole("button", { name: /Snabbt och enkelt/ }).click();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Topplista per val");
@@ -127,8 +131,8 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(page.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Detaljsida med flera val");
 
-  await page.getByRole("button", { name: "Redigera gruppens uppgifter" }).click();
-  const adminDialog = page.getByRole("dialog", { name: "Redigera gruppens uppgifter" });
+  await page.getByRole("button", { name: "Ändra gruppens uppgifter om stället" }).click();
+  const adminDialog = page.getByRole("dialog", { name: "Ändra gruppens uppgifter om stället" });
   await expect(
     adminDialog.getByRole("button", {
       name: "Passar för: Avslappnat",

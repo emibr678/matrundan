@@ -39,8 +39,8 @@ test("demo-läget samlar lokala inställningar utan livegruppens statuskontrolle
 test("adminflödet tar bort och lägger tillbaka bara gruppens platskoppling", async ({ page }) => {
   await page.goto("/matstallen/p5?demo=1");
 
-  await page.getByRole("button", { name: "Redigera gruppens uppgifter" }).click();
-  const dialog = page.getByRole("dialog", { name: "Redigera gruppens uppgifter" });
+  await page.getByRole("button", { name: "Ändra gruppens uppgifter om stället" }).click();
+  const dialog = page.getByRole("dialog", { name: "Ändra gruppens uppgifter om stället" });
   await expect(dialog.getByText(/gäller bara i Fredagsgänget/)).toBeVisible();
   await dialog.getByRole("button", { name: "Ta bort från gruppen" }).click();
 
@@ -51,9 +51,9 @@ test("adminflödet tar bort och lägger tillbaka bara gruppens platskoppling", a
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Redigera gruppens uppgifter" }).click();
+  await page.getByRole("button", { name: "Ändra gruppens uppgifter om stället" }).click();
   await page
-    .getByRole("dialog", { name: "Redigera gruppens uppgifter" })
+    .getByRole("dialog", { name: "Ändra gruppens uppgifter om stället" })
     .getByRole("button", { name: "Lägg tillbaka i gruppen" })
     .click();
   await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
@@ -65,7 +65,8 @@ test("en medlem kan redigera endast sitt eget omdöme", async ({ page }) => {
 
   const visitSheet = page.getByRole("dialog");
   await expect(visitSheet.getByRole("heading", { name: "Kvarterets Kardemumma" })).toBeVisible();
-  await visitSheet.getByRole("button", { name: "Redigera mitt omdöme" }).click();
+  await expect(visitSheet.getByRole("link", { name: "Maps" })).toHaveCount(0);
+  await visitSheet.getByRole("button", { name: "Redigera omdöme" }).click();
 
   const editDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
   const comment = editDialog.getByLabel("Kommentar (frivilligt)");

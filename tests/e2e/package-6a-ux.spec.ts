@@ -41,6 +41,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await page.setViewportSize({ width: 360, height: 800 });
 
   await page.goto("/?demo=1");
+  await expect(page.getByText("Fredagsgänget", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Senaste aktivitet" })).toHaveCount(0);
   await expect(page.getByText(/^Ni har provat \d+ av \d+ ställen tillsammans$/)).toBeVisible();
@@ -82,7 +83,12 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(page.getByTestId("occasion-leaderboard")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Kvarterets Kardemumma/ })).toBeVisible();
   await search.fill("");
-  await expect(page.getByTestId("occasion-leaderboard")).toBeVisible();
+  const leaderboard = page.getByTestId("occasion-leaderboard");
+  await expect(leaderboard).toBeVisible();
+  await leaderboard.getByRole("button", { name: "Visa", exact: true }).click();
+  await expect(
+    leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }),
+  ).toHaveAttribute("aria-pressed", "true");
   await expectNoHorizontalOverflow(page, "Matställen");
 
   await page.goto("/matstallen/p8?demo=1");
@@ -94,7 +100,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     page
       .getByRole("heading", { name: "Om stället" })
       .locator("..")
-      .getByRole("button", { name: "Redigera gruppens uppgifter" }),
+      .getByRole("button", { name: "Ändra gruppens uppgifter om stället" }),
   ).toBeVisible();
   const visitHistoryTop = await page
     .getByRole("heading", { name: /^Besök/ })

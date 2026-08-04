@@ -147,7 +147,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
         <DropdownMenuTrigger asChild>
           <Button size="sm" variant="outline" className="rounded-full">
             <UserIcon className="mr-1.5 h-4 w-4" />
-            <span className="max-w-[10rem] truncate">{displayName}</span>
+            <span className="max-w-[7rem] truncate sm:max-w-[10rem]">{displayName}</span>
             {mode === "demo" ? (
               <span className="ml-2 rounded-full bg-mustard/40 px-1.5 py-0.5 text-[10px] font-medium">
                 {exampleMode ? "exempel" : "demo"}

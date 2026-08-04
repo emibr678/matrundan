@@ -31,7 +31,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { rankPlacesForOccasion } from "@/lib/matrundan/occasions";
+import { rankPlacesForOccasion, rankPlacesOverall } from "@/lib/matrundan/occasions";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
@@ -72,12 +72,18 @@ type Sort = "senaste" | "betyg" | "namn";
 type Filter = "alla" | "favoriter" | "nytt-for-gruppen" | "nytt-for-mig";
 type MissingField = "cuisines" | "occasions";
 type View = "lista" | "karta";
+type TopListFilter = Occasion | "alla";
 
 const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "alla", label: "Alla" },
   { key: "favoriter", label: "Favoriter" },
   { key: "nytt-for-mig", label: "Nytt för mig" },
   { key: "nytt-for-gruppen", label: "Nytt för gruppen" },
+];
+
+const TOP_LIST_FILTERS: { key: TopListFilter; label: string }[] = [
+  { key: "alla", label: "Alla" },
+  ...OCCASION_VALUES.map((key) => ({ key, label: OCCASION_LABEL[key] })),
 ];
 
 function PlacesIndex() {
@@ -88,7 +94,7 @@ function PlacesIndex() {
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
   const [missingFields, setMissingFields] = React.useState<MissingField[]>([]);
-  const [topOccasion, setTopOccasion] = React.useState<Occasion>("avslappnat");
+  const [topOccasion, setTopOccasion] = React.useState<TopListFilter>("alla");
   const [topOpen, setTopOpen] = React.useState(false);
 
   const [sort, setSort] = React.useState<Sort>("senaste");
@@ -171,7 +177,10 @@ function PlacesIndex() {
   }, [filtered, selectedPlaceId]);
 
   const topRated = React.useMemo(
-    () => rankPlacesForOccasion(activePlaces, topOccasion, avgRating),
+    () =>
+      topOccasion === "alla"
+        ? rankPlacesOverall(activePlaces, avgRating)
+        : rankPlacesForOccasion(activePlaces, topOccasion, avgRating),
     [activePlaces, avgRating, topOccasion],
   );
   const hasRatings = activePlaces.some((place) => avgRating(place.id).count > 0);
@@ -252,28 +261,30 @@ function PlacesIndex() {
                 </Button>
               </CollapsibleTrigger>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              Gruppens betyg för olika sorters besök
-            </p>
+            <p className="text-[11px] text-muted-foreground">Gruppens högst betygsatta ställen</p>
 
             <CollapsibleContent className="pt-3">
               <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">
-                {OCCASION_VALUES.map((item) => {
-                  const active = topOccasion === item;
+                {TOP_LIST_FILTERS.map((item) => {
+                  const active = topOccasion === item.key;
                   return (
                     <button
-                      key={item}
+                      key={item.key}
                       type="button"
-                      onClick={() => setTopOccasion(item)}
+                      onClick={() => setTopOccasion(item.key)}
                       aria-pressed={active}
-                      aria-label={`Visa topplista för ${OCCASION_LABEL[item]}`}
+                      aria-label={
+                        item.key === "alla"
+                          ? "Visa topplista för alla betyg"
+                          : `Visa topplista för ${item.label}`
+                      }
                       className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Badge
                         variant={active ? "default" : "outline"}
                         className="cursor-pointer rounded-full px-3 py-1 text-xs"
                       >
-                        {OCCASION_LABEL[item]}
+                        {item.label}
                       </Badge>
                     </button>
                   );
@@ -281,13 +292,13 @@ function PlacesIndex() {
               </div>
 
               {topRated.length > 0 ? (
-                <div className="grid gap-2 md:grid-cols-3">
+                <div className="grid min-w-0 gap-2 md:grid-cols-3">
                   {topRated.map(({ place, rating, rank }) => (
                     <Link
                       key={place.id}
                       to="/matstallen/$placeId"
                       params={{ placeId: place.id }}
-                      className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
+                      className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
                     >
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                         {rank}
@@ -308,8 +319,9 @@ function PlacesIndex() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
-                  Inga betyg för {OCCASION_LABEL[topOccasion].toLocaleLowerCase("sv")} ännu — de
-                  kommer när gänget har provat något.
+                  {topOccasion === "alla"
+                    ? "Inga betyg ännu — de kommer när gänget har provat något."
+                    : `Inga betyg för ${OCCASION_LABEL[topOccasion].toLocaleLowerCase("sv")} ännu — de kommer när gänget har provat något.`}
                 </div>
               )}
             </CollapsibleContent>

@@ -3,6 +3,24 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_24_0_CHANGELOG: ChangelogEntry = {
+  version: "1.24.0",
+  date: "2026-08-04",
+  summary: "Mobilvyerna visar tydligare gruppkontext, topplistor och redigeringsvägar.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Aktiv grupp visas diskret under Matrundan i sidhuvudet med stöd för långa grupp- och profilnamn.",
+        "Topplistan visar alla betygsatta ställen som standard och kan sedan filtreras på Passar för.",
+        "Statuspills, redigering av ställesuppgifter, sökresultatens vyval och redigering av eget omdöme är tydligare på mobil.",
+        "Besöksdetaljen leder vidare till stället utan en dubblerad Maps-knapp.",
+        "Praktiska uppgifter använder ett enklare Hur vet du det-flöde och skiljer tydligt på att kontrollera kartdata och att välja att använda den.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_23_0_CHANGELOG: ChangelogEntry = {
   version: "1.23.0",
   date: "2026-08-03",
@@ -156,6 +174,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_24_0_CHANGELOG,
   VERSION_1_23_0_CHANGELOG,
   VERSION_1_22_0_CHANGELOG,
   VERSION_1_21_1_CHANGELOG,

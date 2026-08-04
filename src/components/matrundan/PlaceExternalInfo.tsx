@@ -222,7 +222,9 @@ export function PlaceExternalInfo({
         setDetails(nextDetails);
         writeCache(key, nextDetails);
         if (forceRefresh) {
-          toast.success("Senaste kartdatan är hämtad.");
+          toast.success("Kartdatan är kontrollerad.", {
+            description: "Gruppens uppgift är oförändrad.",
+          });
         }
       } catch (caught) {
         setError(
@@ -375,7 +377,7 @@ export function PlaceExternalInfo({
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              <strong>Kartdatan har ändrats.</strong> Jämför innan gruppens uppgift ersätts.
+              <strong>Ny kartdata finns.</strong> Jämför innan gruppens uppgift ersätts.
             </span>
           </button>
         ) : null}
@@ -404,16 +406,6 @@ export function PlaceExternalInfo({
           ) : (
             <span>Ingen extern platsdata tillgänglig.</span>
           )}
-          {practicalInfo.sourceUrl ? (
-            <a
-              href={practicalInfo.sourceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-primary hover:underline"
-            >
-              Visa källa <ExternalLink className="h-3 w-3" />
-            </a>
-          ) : null}
           {mode === "live" && hasGeoapifySource ? (
             <Button
               type="button"
@@ -428,7 +420,7 @@ export function PlaceExternalInfo({
               ) : (
                 <RefreshCw className="h-3.5 w-3.5" />
               )}
-              Hämta senaste kartdata
+              Kontrollera kartdatan
             </Button>
           ) : null}
         </div>
@@ -437,7 +429,7 @@ export function PlaceExternalInfo({
       <AlertDialog open={compareOpen} onOpenChange={setCompareOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Jämför med senaste kartdatan</AlertDialogTitle>
+            <AlertDialogTitle>Jämför med kartdatan</AlertDialogTitle>
             <AlertDialogDescription>
               Matrundan skriver aldrig över gruppens egen uppgift automatiskt. Välj om gruppen ska
               behålla den eller återgå till kartdatan.

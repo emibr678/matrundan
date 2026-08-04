@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ExternalLink, History, Loader2, Pencil, RotateCcw } from "lucide-react";
+import { Loader2, Pencil, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,9 @@ import {
 } from "@/lib/matrundan/place-data-reports";
 import { normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
 import {
-  listGroupPlacePracticalInfoHistory,
-  listLocalGroupPlacePracticalInfoHistory,
   updateGroupPlacePracticalInfo,
   updateLocalGroupPlacePracticalInfo,
   type GroupPlacePracticalInfo,
-  type GroupPlacePracticalInfoHistoryEntry,
 } from "@/lib/matrundan/practical-info";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -63,12 +60,6 @@ function scheduleEqual(
   right: OpeningHoursSchedule | null,
 ): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function reportDescription(
@@ -113,8 +104,6 @@ export function PlacePracticalInfoDialog({
   const [sourceNote, setSourceNote] = React.useState("");
   const [evidenceOpen, setEvidenceOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [history, setHistory] = React.useState<GroupPlacePracticalInfoHistoryEntry[]>([]);
-  const [historyLoading, setHistoryLoading] = React.useState(false);
   const storageKind = exampleMode ? "session" : "local";
   const reporter = state.members.find((member) => member.id === state.currentUserId);
 
@@ -125,16 +114,7 @@ export function PlacePracticalInfoDialog({
     setSourceUrl(practicalInfo.sourceUrl ?? "");
     setSourceNote(practicalInfo.sourceNote ?? "");
     setEvidenceOpen(Boolean(practicalInfo.sourceUrl || practicalInfo.sourceNote));
-    setHistoryLoading(true);
-    void Promise.resolve(
-      mode === "live"
-        ? listGroupPlacePracticalInfoHistory(groupId, place.id)
-        : listLocalGroupPlacePracticalInfoHistory(groupId, place.id, storageKind),
-    )
-      .then(setHistory)
-      .catch(() => setHistory([]))
-      .finally(() => setHistoryLoading(false));
-  }, [groupId, mode, open, place.id, practicalInfo, storageKind]);
+  }, [open, practicalInfo]);
 
   function useMapData() {
     setWebsite("");
@@ -151,7 +131,7 @@ export function PlacePracticalInfoDialog({
 
   async function createReviewUnderlays(
     websiteNeedsReview: boolean,
-    openingHoursNeedReview: boolean,
+    openingHoursNeedsReview: boolean,
     normalizedSourceUrl: string | null,
     normalizedSourceNote: string | null,
   ) {
@@ -180,7 +160,7 @@ export function PlacePracticalInfoDialog({
             ),
       );
     }
-    if (openingHoursNeedReview) {
+    if (openingHoursNeedsReview) {
       const description = reportDescription(
         "Öppettiderna",
         normalizedSourceUrl,
@@ -238,13 +218,13 @@ export function PlacePracticalInfoDialog({
     const normalizedSourceUrl = hasOverride ? (normalizeWebsiteUrl(sourceUrl) ?? null) : null;
     if (hasOverride && sourceUrl.trim() && !normalizedSourceUrl) {
       setEvidenceOpen(true);
-      toast.error("Ange en giltig källänk.");
+      toast.error("Ange en giltig länk.");
       return;
     }
     const normalizedSourceNote = hasOverride ? sourceNote.trim() || null : null;
     if (hasOverride && !normalizedSourceUrl && (normalizedSourceNote?.length ?? 0) < 10) {
       setEvidenceOpen(true);
-      toast.error("Ange en källänk eller en kort observation med minst 10 tecken.");
+      toast.error("Lägg till en länk eller beskriv kort vad du kontrollerade (minst 10 tecken).");
       return;
     }
 
@@ -401,17 +381,17 @@ export function PlacePracticalInfoDialog({
             className="rounded-xl border border-border/70"
           >
             <summary className="flex min-h-11 cursor-pointer items-center px-3 py-2 text-sm font-medium">
-              Underlag för ändringen
+              Hur vet du det?
             </summary>
             <div className="space-y-3 border-t border-border/60 p-3">
               <div className="space-y-1.5">
-                <Label htmlFor="practical-source-url">Källänk (valfri)</Label>
+                <Label htmlFor="practical-source-url">Länk till informationen</Label>
                 <Input
                   id="practical-source-url"
                   inputMode="url"
                   value={sourceUrl}
                   onChange={(event) => setSourceUrl(event.target.value)}
-                  placeholder="Verksamhetens officiella webbplats"
+                  placeholder="Till exempel ställets webbplats"
                 />
               </div>
               <div className="space-y-1.5">
@@ -426,45 +406,9 @@ export function PlacePracticalInfoDialog({
                 />
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Underlaget stannar i gruppen. En administratör avgör separat om kartdatan också bör
-                uppdateras.
+                Lägg till en länk eller beskriv kort vad du kontrollerade. Underlaget stannar i
+                gruppen och används bara när ändringen behöver granskas.
               </p>
-            </div>
-          </details>
-
-          <details className="rounded-xl border border-border/70">
-            <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 py-2 text-sm font-medium">
-              <History className="h-4 w-4" /> Tidigare ändringar
-            </summary>
-            <div className="space-y-3 border-t border-border/60 p-3">
-              {historyLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Laddar…
-                </div>
-              ) : history.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Inga tidigare ändringar.</p>
-              ) : (
-                history.map((entry) => (
-                  <div key={entry.id} className="text-xs leading-relaxed">
-                    <div className="font-medium">
-                      {entry.changedByName} · {formatDate(entry.changedAt)}
-                    </div>
-                    {entry.sourceNote ? (
-                      <p className="mt-1 text-muted-foreground">{entry.sourceNote}</p>
-                    ) : null}
-                    {entry.sourceUrl ? (
-                      <a
-                        href={entry.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-primary hover:underline"
-                      >
-                        Visa källa <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : null}
-                  </div>
-                ))
-              )}
             </div>
           </details>
         </div>
