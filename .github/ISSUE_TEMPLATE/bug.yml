@@ -1,0 +1,91 @@
+name: Felrapport
+description: Registrera ett reproducerbart fel eller en tydlig avvikelse
+title: "[Bugg] "
+labels:
+  - status:inbox
+  - type:bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Beskriv observerat beteende och lämna gärna runtime-data eller skärmbilder.
+        Lägg aldrig in hemligheter, åtkomsttoken eller privat gruppdata som inte behövs för reproduktion.
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observerat beteende
+      description: Vad händer faktiskt?
+      placeholder: När jag… visas…
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Förväntat beteende
+      description: Vad borde ha hänt?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduktionssteg
+      description: Ange minsta kända steg från ett tydligt startläge.
+      placeholder: |
+        1. Öppna…
+        2. Välj…
+        3. Observera…
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Läge
+      options:
+        - Exempelgrupp
+        - Internt demo-läge
+        - Autentiserat live-läge
+        - Okänt eller flera lägen
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Miljö
+      description: Enhet, webbläsare, skärmstorlek och relevant appversion.
+      placeholder: iPhone…, Safari…, appversion…
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Bevis och diagnostik
+      description: Skärmbilder, feltext, nätverksstatus eller annan observerad data som kan skilja fungerande och trasigt beteende.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: example_group
+    attributes:
+      label: Exempelgruppen
+      description: Går felet att reproducera i exempelgruppen eller behöver ett nytt scenario läggas till?
+      options:
+        - Reproduceras i exempelgruppen
+        - Reproduceras inte i exempelgruppen
+        - Behöver nytt exempeldata-scenario
+        - Inte relevant
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: Rapporten beskriver felet; den godkänner inte en större produktförändring utanför en riktad fix.
+          required: true
