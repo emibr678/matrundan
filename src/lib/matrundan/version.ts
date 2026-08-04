@@ -3,6 +3,23 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_23_0_CHANGELOG: ChangelogEntry = {
+  version: "1.23.0",
+  date: "2026-08-03",
+  summary: "Gruppinställningarna får en lugnare meny med tydliga undersidor.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Gruppinställningarna öppnar en kompakt meny för grupp och sökning, medlemmar och inbjudningar, underhåll, status och appinformation.",
+        "Långa formulär och administrativa verktyg ligger på egna undersidor med tillbaka-navigering och rollanpassad synlighet.",
+        "Osparade ändringar i grupp- och sökinställningarna skyddas innan användaren lämnar vyn.",
+        "Gruppens aktivitet har en tydlig väg till den gemensamma besökshistoriken.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_22_0_CHANGELOG: ChangelogEntry = {
   version: "1.22.0",
   date: "2026-08-03",
@@ -139,6 +156,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_23_0_CHANGELOG,
   VERSION_1_22_0_CHANGELOG,
   VERSION_1_21_1_CHANGELOG,
   VERSION_1_21_0_CHANGELOG,
