@@ -1,63 +1,18 @@
 import * as React from "react";
 import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
-import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import {
-  Copy,
-  Mail,
-  Share2,
-  RotateCcw,
-  Info,
-  Settings,
-  Heart,
-  ChevronRight,
-  LogOut,
-  Archive,
-  ArchiveRestore,
-} from "lucide-react";
-import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
+import { Heart, ChevronRight } from "lucide-react";
+import { z } from "zod";
+
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
-import { AboutDialog } from "@/components/matrundan/AboutDialog";
-import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
-import { MemberManagementSection } from "@/components/matrundan/MemberManagementSection";
 import { GroupHighlights } from "@/components/matrundan/GroupHighlights";
-import { GroupSettingsSectionV16 } from "@/components/matrundan/GroupSettingsSectionV16";
-import { HiddenPlaceSuggestionsSection } from "@/components/matrundan/HiddenPlaceSuggestionsSection";
-import { computeMemberProgression } from "@/lib/matrundan/gamification";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { GroupSettingsSheet } from "@/components/matrundan/GroupSettingsSheet";
+import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
+import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useStore, formatDate } from "@/lib/matrundan/store";
-import { useSession } from "@/lib/matrundan/session";
-import {
-  createGroupInvitation,
-  leaveGroup,
-  listGroupInvitations,
-  revokeGroupInvitation,
-  type InvitationListItem,
-} from "@/lib/matrundan/live-admin";
-import { APP_VERSION, APP_NAME } from "@/lib/matrundan/version";
+import { Card } from "@/components/ui/card";
+import { computeMemberProgression } from "@/lib/matrundan/gamification";
+import { formatDate, useStore } from "@/lib/matrundan/store";
 import { formatRating } from "@/lib/matrundan/version";
 
 const GROUP_SEARCH_DEFAULTS = { member: "" };
@@ -87,34 +42,35 @@ function GroupPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/gruppen" });
   const activeMember = React.useMemo(
-    () => (search.member ? (state.members.find((m) => m.id === search.member) ?? null) : null),
+    () =>
+      search.member ? (state.members.find((member) => member.id === search.member) ?? null) : null,
     [search.member, state.members],
   );
 
   const closeMember = () => navigate({ search: { member: "" } });
   const activity = state.activity.slice(0, 10);
 
-  const memberActivity = state.members.map((m) => {
+  const memberActivity = state.members.map((member) => {
     const lastVisit = state.visits
-      .filter((v) => v.participantIds.includes(m.id))
-      .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
-    const favCount = state.favorites.filter((f) => f.memberId === m.id).length;
-    const progression = computeMemberProgression(state, m.id);
-    return { m, lastVisit, favCount, progression };
+      .filter((visit) => visit.participantIds.includes(member.id))
+      .sort((left, right) => (left.date < right.date ? 1 : -1))[0];
+    const favCount = state.favorites.filter((favorite) => favorite.memberId === member.id).length;
+    const progression = computeMemberProgression(state, member.id);
+    return { member, lastVisit, favCount, progression };
   });
 
   const favByPlace = new Map<string, number>();
-  state.favorites.forEach((f) => {
-    favByPlace.set(f.placeId, (favByPlace.get(f.placeId) ?? 0) + 1);
+  state.favorites.forEach((favorite) => {
+    favByPlace.set(favorite.placeId, (favByPlace.get(favorite.placeId) ?? 0) + 1);
   });
   const sharedFavs = [...favByPlace.entries()]
-    .map(([placeId, n]) => ({ place: getPlace(placeId), n }))
-    .filter((x) => x.place && x.n >= 2)
-    .sort((a, b) => b.n - a.n)
+    .map(([placeId, count]) => ({ place: getPlace(placeId), count }))
+    .filter((entry) => entry.place && entry.count >= 2)
+    .sort((left, right) => right.count - left.count)
     .slice(0, 3);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 pt-2 pb-4 md:max-w-4xl">
+    <div className="mx-auto max-w-2xl space-y-5 pb-4 pt-2 md:max-w-4xl">
       <section>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
           <div className="flex items-center gap-3 bg-gradient-to-br from-sage/50 to-secondary p-4 sm:gap-4 sm:p-5">
@@ -130,7 +86,7 @@ function GroupPage() {
               </div>
             </div>
             <div className="shrink-0">
-              <SettingsSheet />
+              <GroupSettingsSheet />
             </div>
           </div>
         </Card>
@@ -139,26 +95,26 @@ function GroupPage() {
       <section>
         <h2 className="mb-2 font-display text-lg">Gänget</h2>
         <div className="grid gap-2 md:grid-cols-2">
-          {memberActivity.map(({ m, lastVisit, favCount, progression }) => {
+          {memberActivity.map(({ member, lastVisit, favCount, progression }) => {
             const place = lastVisit ? getPlace(lastVisit.placeId) : undefined;
             return (
               <Card
-                key={m.id}
+                key={member.id}
                 className="min-w-0 rounded-2xl border-border/70 p-0 transition-colors focus-within:ring-2 focus-within:ring-ring hover:bg-accent/40"
               >
                 <button
                   type="button"
-                  onClick={() => navigate({ search: { member: m.id } })}
+                  onClick={() => navigate({ search: { member: member.id } })}
                   className="flex w-full items-center gap-2.5 rounded-2xl p-3 text-left outline-none sm:gap-3"
-                  aria-label={`Öppna profil för ${m.name}`}
+                  aria-label={`Öppna profil för ${member.name}`}
                 >
-                  <MemberAvatar member={m} size={40} />
+                  <MemberAvatar member={member} size={40} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="min-w-0 max-w-full truncate font-medium">{m.name}</span>
-                      {m.role !== "medlem" ? (
+                      <span className="min-w-0 max-w-full truncate font-medium">{member.name}</span>
+                      {member.role !== "medlem" ? (
                         <Badge variant="outline" className="shrink-0 rounded-full text-[10px]">
-                          {m.role}
+                          {member.role}
                         </Badge>
                       ) : null}
                     </div>
@@ -188,15 +144,15 @@ function GroupPage() {
 
       <MemberProfileSheet
         member={activeMember}
-        open={!!activeMember}
-        onOpenChange={(o) => !o && closeMember()}
+        open={Boolean(activeMember)}
+        onOpenChange={(nextOpen) => !nextOpen && closeMember()}
       />
 
       {sharedFavs.length > 0 ? (
         <section>
           <h2 className="mb-2 font-display text-lg">Gänget gillar</h2>
           <div className="space-y-2">
-            {sharedFavs.map(({ place, n }) =>
+            {sharedFavs.map(({ place, count }) =>
               place ? (
                 <Link
                   key={place.id}
@@ -210,7 +166,7 @@ function GroupPage() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{place.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      Favorit hos {n} i gänget
+                      Favorit hos {count} i gänget
                       {avgRating(place.id).count > 0
                         ? ` · ${formatRating(avgRating(place.id).overall)} snitt`
                         : ""}
@@ -225,494 +181,21 @@ function GroupPage() {
       ) : null}
 
       <section>
-        <h2 className="mb-2 font-display text-lg">Aktivitet</h2>
+        <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
+          <h2 className="font-display text-lg">Aktivitet</h2>
+          <Link
+            to="/besok"
+            className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-xs font-medium text-primary hover:underline"
+          >
+            Besökshistorik <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
         <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-          {activity.map((a) => (
-            <ActivityRow key={a.id} activity={a} />
+          {activity.map((entry) => (
+            <ActivityRow key={entry.id} activity={entry} />
           ))}
         </Card>
       </section>
     </div>
   );
-}
-
-function SettingsSheet() {
-  const { state, resetDemo } = useStore();
-  const { mode, activeGroupId, activeGroupRole, refreshGroups, user } = useSession();
-  const [open, setOpen] = React.useState(false);
-  const [about, setAbout] = React.useState(false);
-  const isLive = mode === "live" && !!activeGroupId;
-  const ownStoredRole = state.members.find((member) => member.id === state.currentUserId)?.role;
-  const isOwner = isLive && activeGroupRole === "owner";
-  const isAdmin = isLive && (activeGroupRole === "owner" || activeGroupRole === "admin");
-  const canChangeGroupStatus = isLive && ownStoredRole === "ägare";
-
-  return (
-    <>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 shrink-0 rounded-full"
-            aria-label="Gruppinställningar"
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>Gruppinställningar</SheetTitle>
-            <SheetDescription>
-              {isLive
-                ? "Bjud in, hantera roller och profil."
-                : "Demo-läge: skrivningar sparas bara lokalt."}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="space-y-5 py-4">
-            {isAdmin && activeGroupId ? (
-              <GroupSettingsSectionV16
-                groupId={activeGroupId}
-                initialName={state.group.name}
-                initialEmoji={state.group.emoji}
-                initialSearchAreas={state.group.searchAreas ?? []}
-                initialRadius={state.group.defaultSearchRadiusKm ?? 1}
-                initialHome={state.group.homeLocation ?? null}
-                initialShareCounts={state.group.sharedVisitsCountForProgression ?? true}
-              />
-            ) : null}
-
-            {mode === "demo" ? <HiddenPlaceSuggestionsSection /> : null}
-
-            <MemberManagementSection
-              members={state.members}
-              currentUserId={state.currentUserId}
-              isOwner={isOwner}
-              isAdmin={isAdmin}
-              groupId={activeGroupId}
-              onChanged={refreshGroups}
-            />
-
-            {isAdmin && activeGroupId ? <InvitationsSection groupId={activeGroupId} /> : null}
-
-            {isLive && activeGroupId ? (
-              <LeaveGroupSection groupId={activeGroupId} isOwner={isOwner} onLeft={refreshGroups} />
-            ) : null}
-
-            {canChangeGroupStatus ? <GroupStatusSection /> : null}
-
-            {mode === "demo" ? (
-              <section>
-                <h3 className="mb-2 text-sm font-medium">Demo-data</h3>
-                <Card className="rounded-2xl border-border/70 p-4">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-destructive"
-                    onClick={() => {
-                      if (confirm("Nollställ demo-data?")) {
-                        resetDemo();
-                        toast.success("Demo-data återställd");
-                      }
-                    }}
-                  >
-                    <RotateCcw className="h-4 w-4" /> Återställ demo-data
-                  </Button>
-                </Card>
-              </section>
-            ) : null}
-
-            <section>
-              <h3 className="mb-2 text-sm font-medium">Om appen</h3>
-              <Card className="rounded-2xl border-border/70 p-0">
-                <button
-                  type="button"
-                  onClick={() => setAbout(true)}
-                  className="flex w-full items-center gap-3 rounded-2xl p-4 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">Om {APP_NAME}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Version, vad som är nytt och tidigare uppdateringar.
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="rounded-full">
-                    v{APP_VERSION}
-                  </Badge>
-                </button>
-              </Card>
-            </section>
-
-            {isLive && user ? (
-              <div className="text-[11px] text-muted-foreground">Inloggad som {user.email}</div>
-            ) : null}
-          </div>
-        </SheetContent>
-      </Sheet>
-      <AboutDialog open={about} onOpenChange={setAbout} />
-    </>
-  );
-}
-
-// ------- Sections --------
-
-function GroupStatusSection() {
-  const { state, archiveGroup, reactivateGroup, submitting } = useStore();
-  const { refreshGroups } = useSession();
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const archived = state.group.lifecycleStatus === "archived";
-
-  async function archive() {
-    try {
-      await archiveGroup();
-      await refreshGroups();
-      toast.success("Gruppen är arkiverad.");
-      setConfirmOpen(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte arkivera gruppen.");
-    }
-  }
-
-  async function reactivate() {
-    try {
-      await reactivateGroup();
-      await refreshGroups();
-      toast.success("Gruppen är återaktiverad.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte återaktivera gruppen.");
-    }
-  }
-
-  return (
-    <section>
-      <h3 className="mb-2 text-sm font-medium">Gruppstatus</h3>
-      <Card className="rounded-2xl border-border/70 p-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {archived
-            ? "Gruppen är arkiverad och skrivskyddad. Historiken finns kvar."
-            : "Arkivering bevarar historiken men gör gruppen skrivskyddad tills den återaktiveras."}
-        </p>
-        {archived ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-3"
-            disabled={submitting}
-            onClick={() => void reactivate()}
-          >
-            <ArchiveRestore className="h-4 w-4" />
-            Återaktivera gruppen
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-3 text-destructive hover:text-destructive"
-            disabled={submitting}
-            onClick={() => setConfirmOpen(true)}
-          >
-            <Archive className="h-4 w-4" />
-            Arkivera gruppen
-          </Button>
-        )}
-      </Card>
-
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Arkivera {state.group.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Historik, besök, ställen, betyg och kommentarer bevaras. Gruppen blir skrivskyddad,
-              nästa stopp rensas och aktiva inbjudningar återkallas. Du kan återaktivera gruppen
-              senare.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={submitting}
-              onClick={(event) => {
-                event.preventDefault();
-                void archive();
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Arkivera gruppen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </section>
-  );
-}
-
-function InvitationsSection({ groupId }: { groupId: string }) {
-  const [email, setEmail] = React.useState("");
-  const [creating, setCreating] = React.useState(false);
-  const [lastLink, setLastLink] = React.useState<string | null>(null);
-  const [lastEmail, setLastEmail] = React.useState<string | null>(null);
-  const [items, setItems] = React.useState<InvitationListItem[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [busyId, setBusyId] = React.useState<string | null>(null);
-
-  const load = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const rows = await listGroupInvitations(groupId);
-      setItems(rows);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [groupId]);
-
-  React.useEffect(() => {
-    void load();
-  }, [load]);
-
-  async function createInvite(withEmail: boolean) {
-    setCreating(true);
-    try {
-      const trimmed = email.trim();
-      const inv = await createGroupInvitation(groupId, withEmail && trimmed ? trimmed : null);
-      const link =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/inbjudan/${inv.token}`
-          : `/inbjudan/${inv.token}`;
-      setLastLink(link);
-      setLastEmail(withEmail && trimmed ? trimmed : null);
-      if (withEmail) setEmail("");
-      toast.success("Inbjudan skapad – kopiera länken nu.");
-      await load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Kunde inte skapa inbjudan.");
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  async function revoke(id: string) {
-    setBusyId(id);
-    try {
-      await revokeGroupInvitation(id);
-      await load();
-      toast.success("Inbjudan återkallad.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Kunde inte återkalla.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function copyLink() {
-    if (!lastLink) return;
-    try {
-      await navigator.clipboard.writeText(lastLink);
-      toast.success("Länk kopierad");
-    } catch {
-      toast.error("Kunde inte kopiera");
-    }
-  }
-
-  function shareLink() {
-    if (!lastLink) return;
-    const data: ShareData = {
-      title: APP_NAME,
-      text: `Häng med i gruppen på ${APP_NAME}.`,
-      url: lastLink,
-    };
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      void (navigator as Navigator & { share: (d: ShareData) => Promise<void> })
-        .share(data)
-        .catch(() => {});
-    } else {
-      void copyLink();
-    }
-  }
-
-  function openMailClient() {
-    if (!lastLink || !lastEmail) return;
-    const subject = encodeURIComponent(`Inbjudan till ${APP_NAME}`);
-    const body = encodeURIComponent(
-      `Hej!\n\nJag vill bjuda in dig till vår grupp i ${APP_NAME}.\n` +
-        `Gå med här: ${lastLink}\n\nLänken gäller i sju dagar och kan bara användas en gång.`,
-    );
-    window.location.href = `mailto:${lastEmail}?subject=${subject}&body=${body}`;
-  }
-
-  return (
-    <section>
-      <h3 className="mb-2 text-sm font-medium">Bjud in</h3>
-      <Card className="space-y-3 rounded-2xl border-border/70 p-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="inv-email">E-post (valfritt)</Label>
-          <Input
-            id="inv-email"
-            type="email"
-            placeholder="vän@example.se"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Med e-post: bara den adressen kan använda länken.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => createInvite(false)} disabled={creating}>
-            Skapa öppen länk
-          </Button>
-          <Button onClick={() => createInvite(true)} disabled={creating || !email.trim()}>
-            <Mail className="mr-1 h-4 w-4" /> Skapa för e-post
-          </Button>
-        </div>
-
-        {lastLink ? (
-          <div className="rounded-xl border border-border/70 bg-muted/40 p-3 text-sm">
-            <div className="mb-2 text-xs font-medium">Din inbjudningslänk – visas bara nu</div>
-            <div className="break-all rounded-md bg-background p-2 text-xs">{lastLink}</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={copyLink}>
-                <Copy className="h-4 w-4" /> Kopiera
-              </Button>
-              <Button size="sm" variant="outline" onClick={shareLink}>
-                <Share2 className="h-4 w-4" /> Dela…
-              </Button>
-              {lastEmail ? (
-                <Button size="sm" onClick={openMailClient}>
-                  <Mail className="h-4 w-4" /> Öppna e-post
-                </Button>
-              ) : null}
-            </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Vi lagrar inte länken i klartext. Tappar du bort den – skapa en ny.
-              {lastEmail
-                ? " ”Öppna e-post” fyller i ett förslag i din e-postklient; Matrundan skickar inte e-post själv."
-                : ""}
-            </p>
-          </div>
-        ) : null}
-
-        <div>
-          <div className="mb-1 text-xs font-medium text-muted-foreground">
-            Aktiva och nyligen använda inbjudningar
-          </div>
-          {loading ? (
-            <div className="text-xs text-muted-foreground">Laddar…</div>
-          ) : items.length === 0 ? (
-            <div className="text-xs text-muted-foreground">Inga inbjudningar än.</div>
-          ) : (
-            <ul className="divide-y divide-border/60 rounded-xl border border-border/70">
-              {items.map((i) => (
-                <li key={i.id} className="flex items-center gap-2 p-2 text-xs">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{i.invited_email ?? "Öppen länk"}</div>
-                    <div className="text-muted-foreground">
-                      {stateLabel(i.state)} · går ut {formatDateShort(i.expires_at)}
-                    </div>
-                  </div>
-                  {i.state === "active" ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busyId === i.id}
-                      onClick={() => revoke(i.id)}
-                    >
-                      Återkalla
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </Card>
-    </section>
-  );
-}
-
-function LeaveGroupSection({
-  groupId,
-  isOwner,
-  onLeft,
-}: {
-  groupId: string;
-  isOwner: boolean;
-  onLeft: () => Promise<void>;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const [busy, setBusy] = React.useState(false);
-
-  async function confirmLeave() {
-    setBusy(true);
-    try {
-      await leaveGroup(groupId);
-      await onLeft();
-      toast.success("Du har lämnat gruppen.");
-      setOpen(false);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Kunde inte lämna gruppen.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section>
-      <h3 className="mb-2 text-sm font-medium">Lämna gruppen</h3>
-      <Card className="rounded-2xl border-border/70 p-4">
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-destructive"
-          disabled={isOwner}
-          onClick={() => setOpen(true)}
-        >
-          <LogOut className="h-4 w-4" /> Lämna gruppen
-        </Button>
-        {isOwner ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Som ägare kan du inte lämna gruppen förrän du har överfört ägarskapet.
-          </p>
-        ) : null}
-      </Card>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Lämna gruppen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Du förlorar åtkomsten direkt. Dina tidigare besök och betyg finns kvar i gruppen.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Avbryt</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLeave} disabled={busy}>
-              {busy ? "Lämnar…" : "Lämna"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </section>
-  );
-}
-
-function stateLabel(s: InvitationListItem["state"]): string {
-  switch (s) {
-    case "active":
-      return "Aktiv";
-    case "accepted":
-      return "Använd";
-    case "expired":
-      return "Utgången";
-    case "revoked":
-      return "Återkallad";
-  }
-}
-
-function formatDateShort(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("sv-SE");
-  } catch {
-    return iso;
-  }
 }
