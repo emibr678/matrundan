@@ -19,9 +19,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 }
 
 async function removeCurrentPlace(page: Page) {
-  await page.getByRole("button", { name: "Redigera gruppens uppgifter" }).click();
+  await page.getByRole("button", { name: "Ändra gruppens uppgifter om stället" }).click();
   await page
-    .getByRole("dialog", { name: "Redigera gruppens uppgifter" })
+    .getByRole("dialog", { name: "Ändra gruppens uppgifter om stället" })
     .getByRole("button", { name: "Ta bort från gruppen" })
     .click();
 }
