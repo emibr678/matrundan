@@ -131,7 +131,7 @@ export function PlacePracticalInfoDialog({
 
   async function createReviewUnderlays(
     websiteNeedsReview: boolean,
-    openingHoursNeedReview: boolean,
+    openingHoursNeedsReview: boolean,
     normalizedSourceUrl: string | null,
     normalizedSourceNote: string | null,
   ) {
@@ -224,9 +224,7 @@ export function PlacePracticalInfoDialog({
     const normalizedSourceNote = hasOverride ? sourceNote.trim() || null : null;
     if (hasOverride && !normalizedSourceUrl && (normalizedSourceNote?.length ?? 0) < 10) {
       setEvidenceOpen(true);
-      toast.error(
-        "Lägg till en länk eller beskriv kort vad du kontrollerade (minst 10 tecken).",
-      );
+      toast.error("Lägg till en länk eller beskriv kort vad du kontrollerade (minst 10 tecken).");
       return;
     }
 
