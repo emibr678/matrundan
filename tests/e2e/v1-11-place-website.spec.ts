@@ -198,6 +198,10 @@ test("matställets webbplats visas diskret utan mobil overflow", async ({ page }
   await page.goto(`/matstallen/${PLACE_ID}`);
 
   await expect(page.getByRole("heading", { name: "Testköket" })).toBeVisible();
+  const practicalInfo = page.getByText("Webbplats och öppettider", { exact: true });
+  await expect(practicalInfo).toBeVisible();
+  await practicalInfo.click();
+
   const website = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
   await expect(website).toBeVisible();
   await expect(website).toHaveAttribute("href", "https://www.testkoket.se/meny");
