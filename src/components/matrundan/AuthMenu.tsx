@@ -159,9 +159,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
   const activeGroup = userGroups.find((group) => group.id === activeGroupId);
   const useStoreGroup = exampleMode || mode === "demo" || !activeGroup;
   const groupName = useStoreGroup ? state.group.name : (activeGroup?.name ?? state.group.name);
-  const groupEmoji = useStoreGroup
-    ? (state.group.emoji ?? "🍽️")
-    : (activeGroup?.emoji ?? "🍽️");
+  const groupEmoji = useStoreGroup ? (state.group.emoji ?? "🍽️") : (activeGroup?.emoji ?? "🍽️");
   const groupArchived = useStoreGroup
     ? state.group.lifecycleStatus === "archived"
     : activeGroup?.lifecycleStatus === "archived";
