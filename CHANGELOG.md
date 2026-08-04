@@ -13,6 +13,20 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.24.0] – 2026-08-04
+
+### Ändrat
+
+- Aktiv grupp visas diskret under Matrundan i sidhuvudet med stöd för långa
+  grupp- och profilnamn.
+- Topplistan visar alla betygsatta ställen som standard och kan sedan filtreras
+  på **Passar för**.
+- Statuspills, redigering av ställesuppgifter, sökresultatens vyval och
+  redigering av eget omdöme är tydligare på mobil.
+- Besöksdetaljen leder vidare till stället utan en dubblerad Maps-knapp.
+- Praktiska uppgifter använder ett enklare **Hur vet du det?**-flöde och skiljer
+  tydligt på att kontrollera kartdata och att välja att använda den.
+
 ## [1.23.0] – 2026-08-03
 
 ### Ändrat
