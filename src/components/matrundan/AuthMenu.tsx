@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
-import { useStore } from "@/lib/matrundan/store";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
@@ -47,7 +46,17 @@ function GroupMenuItem({
   );
 }
 
-export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
+export function AuthMenu({
+  exampleMode = false,
+  groupName: suppliedGroupName,
+  groupEmoji: suppliedGroupEmoji,
+  groupLifecycleStatus: suppliedGroupLifecycleStatus = "active",
+}: {
+  exampleMode?: boolean;
+  groupName?: string;
+  groupEmoji?: string | null;
+  groupLifecycleStatus?: "active" | "archived";
+}) {
   const {
     user,
     mode,
@@ -59,7 +68,6 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
     exitExampleMode,
     refreshGroups,
   } = useSession();
-  const { state } = useStore();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -100,8 +108,8 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
   }
 
   if (!user) {
-    const groupName = state.group.name || (exampleMode ? "Exempelgrupp" : "Demo");
-    const groupEmoji = state.group.emoji ?? "🍽️";
+    const groupName = suppliedGroupName || (exampleMode ? "Exempelgrupp" : "Demo");
+    const groupEmoji = suppliedGroupEmoji ?? "🍽️";
     return (
       <>
         <DropdownMenu>
@@ -157,12 +165,16 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
   const activeGroups = userGroups.filter((group) => group.lifecycleStatus === "active");
   const archivedGroups = userGroups.filter((group) => group.lifecycleStatus === "archived");
   const activeGroup = userGroups.find((group) => group.id === activeGroupId);
-  const useStoreGroup = exampleMode || mode === "demo" || !activeGroup;
-  const groupName = useStoreGroup ? state.group.name : (activeGroup?.name ?? state.group.name);
-  const groupEmoji = useStoreGroup ? (state.group.emoji ?? "🍽️") : (activeGroup?.emoji ?? "🍽️");
-  const groupArchived = useStoreGroup
-    ? state.group.lifecycleStatus === "archived"
-    : activeGroup?.lifecycleStatus === "archived";
+  const useSuppliedGroup = exampleMode || mode === "demo" || !activeGroup;
+  const groupName = useSuppliedGroup
+    ? (suppliedGroupName ?? activeGroup?.name ?? "Grupp")
+    : activeGroup.name;
+  const groupEmoji = useSuppliedGroup
+    ? (suppliedGroupEmoji ?? activeGroup?.emoji ?? "🍽️")
+    : (activeGroup.emoji ?? "🍽️");
+  const groupArchived = useSuppliedGroup
+    ? suppliedGroupLifecycleStatus === "archived"
+    : activeGroup.lifecycleStatus === "archived";
 
   return (
     <>
