@@ -190,26 +190,17 @@ function PlaceDetail() {
       <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
           <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
-            <div className="flex items-start gap-3 sm:gap-4">
-              <PlaceThumb place={place} size="detail" />
-              <div className="min-w-0 flex-1">
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 sm:gap-x-4">
+              <div className="row-span-2">
+                <PlaceThumb place={place} size="detail" />
+              </div>
+              <div className="min-w-0">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                   {CATEGORY_LABEL[place.category]}
                 </div>
                 <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
                   {place.name}
                 </h1>
-                <PlaceExternalLink
-                  href={googleMapsUrl(place)}
-                  target="_blank"
-                  rel="noreferrer"
-                  icon={MapPin}
-                  prefix={`${place.address}, `}
-                  tail={place.city}
-                  className="mt-0.5"
-                  aria-label={`Öppna ${place.name} i Google Maps`}
-                />
-                <PlaceWebsiteInfo />
                 {isNext || placeRemoved ? (
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     {isNext ? (
@@ -225,13 +216,29 @@ function PlaceDetail() {
                   </div>
                 ) : null}
               </div>
+              <div
+                data-testid="place-practical-links"
+                className="mt-0.5 flex min-w-0 flex-wrap items-start gap-x-3 gap-y-0"
+              >
+                <PlaceExternalLink
+                  href={googleMapsUrl(place)}
+                  target="_blank"
+                  rel="noreferrer"
+                  icon={MapPin}
+                  prefix={`${place.address}, `}
+                  tail={place.city}
+                  className="w-fit"
+                  aria-label={`Öppna ${place.name} i Google Maps`}
+                />
+                <PlaceWebsiteInfo />
+              </div>
             </div>
 
             <PlaceOpeningHoursInfo />
           </div>
 
-          <div className="border-t border-border/60 bg-background/60 px-4 py-3 sm:px-5">
-            {latestVisit ? (
+          {latestVisit ? (
+            <div className="border-t border-border/60 bg-background/60 px-4 py-3 sm:px-5">
               <div className="flex items-start gap-2.5">
                 <UsersRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
@@ -253,15 +260,16 @@ function PlaceDetail() {
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="flex min-h-11 items-center gap-2.5 text-sm text-muted-foreground">
-                <UsersRound className="h-4 w-4 shrink-0" />
-                <span>Ingen i gruppen har varit här än</span>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : null}
 
-          <div className="space-y-2 p-4">
+          <div
+            className={
+              latestVisit
+                ? "space-y-2 p-4"
+                : "space-y-2 border-t border-border/60 p-4"
+            }
+          >
             {writable ? (
               <>
                 <Button
