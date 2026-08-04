@@ -283,7 +283,9 @@ export function PlaceExternalInfo({
               place={place}
               groupId={groupId}
               practicalInfo={practicalInfo}
-              externalWebsite={details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null}
+              externalWebsite={
+                details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null
+              }
               externalOpeningHours={details?.openingHours ?? null}
               canRefreshExternal={mode === "live" && hasGeoapifySource}
               refreshingExternal={refreshing || loading}
