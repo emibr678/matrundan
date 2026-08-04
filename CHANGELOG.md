@@ -13,6 +13,15 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.4] – 2026-08-04
+
+### Rättat
+
+- Adressens externa länksymbol följer nu den sista textraden i stället för att
+  lämnas långt ute i tomrummet när adressen bryts på mobil.
+- Adress och webbplats använder samma responsiva länkmönster och behåller en
+  kompakt bredd även på desktop.
+
 ## [1.25.3] – 2026-08-04
 
 ### Ändrat

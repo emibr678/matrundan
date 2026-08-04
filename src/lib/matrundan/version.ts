@@ -3,6 +3,21 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_4_CHANGELOG: ChangelogEntry = {
+  version: "1.25.4",
+  date: "2026-08-04",
+  summary: "Adress och webbplats håller ihop bättre på både mobil och desktop.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Adressens externa länksymbol följer den sista textraden när adressen bryts på mobil.",
+        "Adress och webbplats använder samma responsiva länkmönster och behåller en kompakt bredd på desktop.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_3_CHANGELOG: ChangelogEntry = {
   version: "1.25.3",
   date: "2026-08-04",
@@ -250,6 +265,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_4_CHANGELOG,
   VERSION_1_25_3_CHANGELOG,
   VERSION_1_25_2_CHANGELOG,
   VERSION_1_25_1_CHANGELOG,
