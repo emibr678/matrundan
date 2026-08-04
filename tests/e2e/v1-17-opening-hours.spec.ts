@@ -257,10 +257,10 @@ test("saknad webbplats och öppettider kan redigeras utan stor tom informationsr
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  await expect(page.getByText("Praktiskt", { exact: true })).toBeVisible();
+  await expect(page.getByText("Webbplats och öppettider", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ändra", exact: true })).toBeVisible();
   await expect(page.getByText("Webbplats", { exact: true })).toBeVisible();
-  await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
+  await expect(page.getByText("Öppettider idag", { exact: true })).toBeVisible();
   await expect(page.getByText("Saknas", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Öppna Testköket i Google Maps" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
