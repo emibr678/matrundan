@@ -271,7 +271,9 @@ function PlaceDetail() {
                 onClick={() => void toggleFavorite(place.id)}
                 aria-pressed={fav}
                 aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
-                className={fav ? "min-h-11 w-full text-primary" : "min-h-11 w-full text-muted-foreground"}
+                className={
+                  fav ? "min-h-11 w-full text-primary" : "min-h-11 w-full text-muted-foreground"
+                }
               >
                 <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
                 Favorit
