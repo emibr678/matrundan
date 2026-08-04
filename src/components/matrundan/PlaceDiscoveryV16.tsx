@@ -486,8 +486,7 @@ export function PlaceDiscoveryV16({
                 <ResultToggle value={resultView} onChange={setResultView} />
                 <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
                   <span className="text-xs text-muted-foreground">
-                    {actionableResultCount}{" "}
-                    {actionableResultCount === 1 ? "träff" : "träffar"}
+                    {actionableResultCount} {actionableResultCount === 1 ? "träff" : "träffar"}
                   </span>
                   {availableResults.length > 0 ? (
                     <Button
