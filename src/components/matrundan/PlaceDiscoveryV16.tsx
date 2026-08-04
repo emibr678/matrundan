@@ -379,6 +379,7 @@ export function PlaceDiscoveryV16({
   const unmappedCount = mapResults.filter(
     (result) => result.lat == null || result.lng == null,
   ).length;
+  const actionableResultCount = sourceMatches.length + availableResults.length;
   const resultSections = (
     <SearchResultSectionsV16
       available={availableResults}
@@ -480,7 +481,30 @@ export function PlaceDiscoveryV16({
             <Empty text="Inga matställen hittades. Prova större radie, andra områden eller lägg till manuellt." />
           ) : (
             <>
-              <div className="flex min-h-11 items-center justify-between gap-3">
+              <h3 className="text-sm font-medium lg:hidden">Ställen att lägga till</h3>
+              <div className="lg:hidden">
+                <ResultToggle value={resultView} onChange={setResultView} />
+                <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {actionableResultCount}{" "}
+                    {actionableResultCount === 1 ? "träff" : "träffar"}
+                  </span>
+                  {availableResults.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-11 shrink-0"
+                      disabled={interactionsDisabled}
+                      onClick={toggleBulkMode}
+                    >
+                      {bulkMode ? "Avbryt" : "Välj flera"}
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
+              </div>
+              <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
                 <h3 className="text-sm font-medium">Ställen att lägga till</h3>
                 {availableResults.length > 0 ? (
                   <Button
@@ -494,10 +518,6 @@ export function PlaceDiscoveryV16({
                     {bulkMode ? "Avbryt" : "Välj flera"}
                   </Button>
                 ) : null}
-              </div>
-              <div className="lg:hidden">
-                <ResultToggle value={resultView} onChange={setResultView} />
-                <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
               </div>
               <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                 <div className="max-h-[52vh] overflow-y-auto pr-1">{resultSections}</div>
