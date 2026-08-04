@@ -187,9 +187,7 @@ export function GroupSettingsSheet() {
               </>
             ) : null}
 
-            {view === "maintenance" && canMaintainPlaces ? (
-              <HiddenPlaceSuggestionsSection />
-            ) : null}
+            {view === "maintenance" && canMaintainPlaces ? <HiddenPlaceSuggestionsSection /> : null}
 
             {view === "status" ? (
               <>
@@ -337,9 +335,7 @@ function MenuRow({
 function ProgressionSettingsSection({ groupId }: { groupId: string }) {
   const { state } = useStore();
   const { refreshGroups } = useSession();
-  const [enabled, setEnabled] = React.useState(
-    state.group.sharedVisitsCountForProgression ?? true,
-  );
+  const [enabled, setEnabled] = React.useState(state.group.sharedVisitsCountForProgression ?? true);
   const [busy, setBusy] = React.useState(false);
   const saved = state.group.sharedVisitsCountForProgression ?? true;
 
@@ -506,7 +502,10 @@ function InvitationsSection({ groupId }: { groupId: string }) {
     setCreating(true);
     try {
       const trimmed = email.trim();
-      const invitation = await createGroupInvitation(groupId, withEmail && trimmed ? trimmed : null);
+      const invitation = await createGroupInvitation(
+        groupId,
+        withEmail && trimmed ? trimmed : null,
+      );
       const link = `${window.location.origin}/inbjudan/${invitation.token}`;
       setLastLink(link);
       setLastEmail(withEmail && trimmed ? trimmed : null);
