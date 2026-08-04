@@ -114,6 +114,20 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   expect(favoriteBox?.height).toBeGreaterThanOrEqual(44);
   await expect(page.getByText("Favorit", { exact: true })).toHaveCount(0);
 
+  const practicalLinks = page.getByTestId("place-practical-links");
+  await expect(practicalLinks).toBeVisible();
+  const practicalLinkLayout = await practicalLinks.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    return {
+      display: style.display,
+      flexWrap: style.flexWrap,
+      rowGap: Number.parseFloat(style.rowGap) || 0,
+    };
+  });
+  expect(practicalLinkLayout.display).toBe("flex");
+  expect(practicalLinkLayout.flexWrap).toBe("wrap");
+  expect(practicalLinkLayout.rowGap).toBeLessThanOrEqual(1);
+
   const mapsLink = page.getByRole("link", { name: /Öppna .* i Google Maps/ });
   await expect(mapsLink).toBeVisible();
   await expect(mapsLink).toHaveClass(/text-primary/);
@@ -121,16 +135,17 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(page.getByText("Nytt för gruppen", { exact: true })).toHaveCount(0);
 
   const openingHours = page.getByText("Öppettider", { exact: true });
-  const groupRelation = page.getByText("Ingen i gruppen har varit här än", { exact: true });
   await expect(openingHours).toBeVisible();
-  await expect(groupRelation).toBeVisible();
+  await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Ingen har varit här än.", { exact: true })).toBeVisible();
   const openingHoursTop = await openingHours.evaluate(
     (element) => element.getBoundingClientRect().top,
   );
-  const groupRelationTop = await groupRelation.evaluate(
-    (element) => element.getBoundingClientRect().top,
-  );
-  expect(openingHoursTop).toBeLessThan(groupRelationTop);
+  const primaryActionTop = await page
+    .getByRole("button", { name: "Registrera besök" })
+    .first()
+    .evaluate((element) => element.getBoundingClientRect().top);
+  expect(openingHoursTop).toBeLessThan(primaryActionTop);
 
   await expect(
     page
