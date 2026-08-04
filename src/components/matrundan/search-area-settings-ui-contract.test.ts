@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 const settingsSource = await Bun.file(
-  "src/components/matrundan/GroupSettingsSectionV16.tsx",
+  "src/components/matrundan/GroupSearchSettingsSection.tsx",
 ).text();
 const searchSource = await Bun.file("src/components/matrundan/SearchAreaControlsV16.tsx").text();
 const pillSource = await Bun.file("src/components/matrundan/SearchAreaPill.tsx").text();
