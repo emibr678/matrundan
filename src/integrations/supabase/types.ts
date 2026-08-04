@@ -154,33 +154,48 @@ export type Database = {
       group_hidden_place_suggestions: {
         Row: {
           address: string
+          area: string | null
+          category: string | null
           city: string
           group_id: string
           hidden_at: string
           hidden_by: string | null
+          lat: number | null
+          lng: number | null
           name: string
           provider: string
           provider_place_id: string
+          website: string | null
         }
         Insert: {
           address?: string
+          area?: string | null
+          category?: string | null
           city?: string
           group_id: string
           hidden_at?: string
           hidden_by?: string | null
+          lat?: number | null
+          lng?: number | null
           name: string
           provider: string
           provider_place_id: string
+          website?: string | null
         }
         Update: {
           address?: string
+          area?: string | null
+          category?: string | null
           city?: string
           group_id?: string
           hidden_at?: string
           hidden_by?: string | null
+          lat?: number | null
+          lng?: number | null
           name?: string
           provider?: string
           provider_place_id?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -242,6 +257,57 @@ export type Database = {
           },
         ]
       }
+      group_place_practical_info_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          group_id: string
+          id: string
+          opening_hours_override: Json | null
+          place_id: string
+          source_note: string | null
+          source_url: string | null
+          website_override: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          group_id: string
+          id?: string
+          opening_hours_override?: Json | null
+          place_id: string
+          source_note?: string | null
+          source_url?: string | null
+          website_override?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          group_id?: string
+          id?: string
+          opening_hours_override?: Json | null
+          place_id?: string
+          source_note?: string | null
+          source_url?: string | null
+          website_override?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_place_practical_info_history_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_place_practical_info_history_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_places: {
         Row: {
           added_by: string
@@ -254,10 +320,17 @@ export type Database = {
           group_id: string
           notes: string | null
           occasions: string[]
+          opening_hours_cross_group_proposal_at: string | null
+          opening_hours_override: Json | null
           origin: string
           place_id: string
+          practical_info_source_note: string | null
+          practical_info_source_url: string | null
+          practical_info_updated_at: string | null
+          practical_info_updated_by: string | null
           source_group_id: string | null
           updated_at: string
+          website_cross_group_proposal_at: string | null
           website_override: string | null
         }
         Insert: {
@@ -271,10 +344,17 @@ export type Database = {
           group_id: string
           notes?: string | null
           occasions?: string[]
+          opening_hours_cross_group_proposal_at?: string | null
+          opening_hours_override?: Json | null
           origin?: string
           place_id: string
+          practical_info_source_note?: string | null
+          practical_info_source_url?: string | null
+          practical_info_updated_at?: string | null
+          practical_info_updated_by?: string | null
           source_group_id?: string | null
           updated_at?: string
+          website_cross_group_proposal_at?: string | null
           website_override?: string | null
         }
         Update: {
@@ -288,10 +368,17 @@ export type Database = {
           group_id?: string
           notes?: string | null
           occasions?: string[]
+          opening_hours_cross_group_proposal_at?: string | null
+          opening_hours_override?: Json | null
           origin?: string
           place_id?: string
+          practical_info_source_note?: string | null
+          practical_info_source_url?: string | null
+          practical_info_updated_at?: string | null
+          practical_info_updated_by?: string | null
           source_group_id?: string | null
           updated_at?: string
+          website_cross_group_proposal_at?: string | null
           website_override?: string | null
         }
         Relationships: [
@@ -819,7 +906,7 @@ export type Database = {
           osm_submission_started_at: string | null
           osm_submission_state: string
           osm_submitted_by: string | null
-          place_id: string
+          place_id: string | null
           reported_address: string
           reported_city: string
           reported_lat: number | null
@@ -831,6 +918,8 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          target_provider: string | null
+          target_provider_place_id: string | null
           updated_at: string
         }
         Insert: {
@@ -853,7 +942,7 @@ export type Database = {
           osm_submission_started_at?: string | null
           osm_submission_state?: string
           osm_submitted_by?: string | null
-          place_id: string
+          place_id?: string | null
           reported_address?: string
           reported_city?: string
           reported_lat?: number | null
@@ -865,6 +954,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          target_provider?: string | null
+          target_provider_place_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -887,7 +978,7 @@ export type Database = {
           osm_submission_started_at?: string | null
           osm_submission_state?: string
           osm_submitted_by?: string | null
-          place_id?: string
+          place_id?: string | null
           reported_address?: string
           reported_city?: string
           reported_lat?: number | null
@@ -899,6 +990,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          target_provider?: string | null
+          target_provider_place_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -935,6 +1028,111 @@ export type Database = {
             columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_data_signal_confirmations: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          place_id: string | null
+          signal_kind: string
+          target_provider: string | null
+          target_provider_place_id: string | null
+          updated_at: string
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          place_id?: string | null
+          signal_kind?: string
+          target_provider?: string | null
+          target_provider_place_id?: string | null
+          updated_at?: string
+          user_id: string
+          verdict: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          place_id?: string | null
+          signal_kind?: string
+          target_provider?: string | null
+          target_provider_place_id?: string | null
+          updated_at?: string
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_data_signal_confirmations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_data_signal_confirmations_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_data_signal_confirmations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_external_info_snapshots: {
+        Row: {
+          fetched_at: string
+          fingerprint: string
+          opening_hours: Json | null
+          place_id: string
+          provider: string
+          provider_place_id: string
+          timezone: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          fetched_at: string
+          fingerprint: string
+          opening_hours?: Json | null
+          place_id: string
+          provider: string
+          provider_place_id: string
+          timezone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          fetched_at?: string
+          fingerprint?: string
+          opening_hours?: Json | null
+          place_id?: string
+          provider?: string
+          provider_place_id?: string
+          timezone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_external_info_snapshots_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: true
+            referencedRelation: "places"
             referencedColumns: ["id"]
           },
         ]
@@ -1256,6 +1454,38 @@ export type Database = {
           },
         ]
       }
+      visit_guests: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          sort_order: number
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          sort_order: number
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          sort_order?: number
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_guests_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visit_media: {
         Row: {
           byte_size: number
@@ -1395,6 +1625,15 @@ export type Database = {
     Functions: {
       _token_hash: { Args: { _token: string }; Returns: string }
       accept_group_invitation: { Args: { _token: string }; Returns: Json }
+      apply_cross_group_practical_info_suggestion_v1: {
+        Args: {
+          _field: string
+          _fingerprint: string
+          _group_id: string
+          _place_id: string
+        }
+        Returns: undefined
+      }
       archive_group: { Args: { _group_id: string }; Returns: undefined }
       archive_group_place: {
         Args: { _group_id: string; _place_id: string }
@@ -1422,6 +1661,16 @@ export type Database = {
           _public_reference: string
           _public_text: string
           _report_id: string
+        }
+        Returns: undefined
+      }
+      confirm_place_data_signal_v1: {
+        Args: {
+          _group_id: string
+          _place_id: string
+          _provider: string
+          _provider_place_id: string
+          _verdict: string
         }
         Returns: undefined
       }
@@ -1535,6 +1784,22 @@ export type Database = {
         }
         Returns: string
       }
+      create_place_data_report_from_suggestion_v1: {
+        Args: {
+          _address: string
+          _category: string
+          _city: string
+          _description: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _name: string
+          _provider: string
+          _provider_place_id: string
+          _website: string
+        }
+        Returns: Json
+      }
       create_place_data_report_v1: {
         Args: {
           _category: string
@@ -1576,6 +1841,26 @@ export type Database = {
         }
         Returns: string
       }
+      create_visit_with_review_v2: {
+        Args: {
+          _comment?: string
+          _group_id: string
+          _guest_names?: string[]
+          _meal_type: string
+          _overall: number
+          _participant_ids: string[]
+          _place_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visited_on: string
+        }
+        Returns: string
+      }
+      cross_group_practical_info_candidate_v1: {
+        Args: { _field: string; _group_id: string; _place_id: string }
+        Returns: Json
+      }
       delete_original_visit: {
         Args: { _group_id: string; _visit_id: string }
         Returns: undefined
@@ -1593,16 +1878,38 @@ export type Database = {
         Returns: undefined
       }
       get_account_deletion_requirements: { Args: never; Returns: Json }
+      get_cross_group_practical_info_suggestions_v1: {
+        Args: { _group_id: string; _place_id: string }
+        Returns: Json
+      }
       get_group_app_state: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v4b: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5c: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5d: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5e: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5f: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5g: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5h: { Args: { _group_id: string }; Returns: Json }
+      get_group_place_practical_info_v1: {
+        Args: { _group_id: string; _place_id: string }
+        Returns: Json
+      }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
       get_notification_settings: { Args: never; Returns: Json }
       get_place_data_report_osm_refresh_v1: {
         Args: { _group_id: string; _report_id: string }
+        Returns: Json
+      }
+      get_place_data_signals_v1: {
+        Args: { _group_id: string; _targets: Json }
+        Returns: Json
+      }
+      get_place_external_info_context_v1: {
+        Args: { _group_id: string; _place_id: string }
+        Returns: Json
+      }
+      get_place_external_info_context_v2: {
+        Args: { _group_id: string; _place_id: string }
         Returns: Json
       }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
@@ -1622,6 +1929,22 @@ export type Database = {
           _name: string
           _provider: string
           _provider_place_id: string
+        }
+        Returns: undefined
+      }
+      hide_group_place_suggestion_v2: {
+        Args: {
+          _address: string
+          _area: string
+          _category: string
+          _city: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _name: string
+          _provider: string
+          _provider_place_id: string
+          _website: string
         }
         Returns: undefined
       }
@@ -1652,6 +1975,10 @@ export type Database = {
           provider_place_id: string
         }[]
       }
+      list_group_hidden_place_suggestions_v2: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
       list_group_invitations: {
         Args: { _group_id: string }
         Returns: {
@@ -1672,6 +1999,18 @@ export type Database = {
         Returns: Json
       }
       list_group_place_data_reports_v2: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      list_group_place_data_reports_v3: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      list_group_place_practical_info_history_v1: {
+        Args: { _group_id: string; _limit?: number; _place_id: string }
+        Returns: Json
+      }
+      list_own_open_place_suggestion_report_keys_v1: {
         Args: { _group_id: string }
         Returns: Json
       }
@@ -1775,6 +2114,22 @@ export type Database = {
         Args: { _invitation_id: string }
         Returns: undefined
       }
+      safe_cross_group_website_v1: {
+        Args: { _value: string }
+        Returns: boolean
+      }
+      save_place_external_info_snapshot_v1: {
+        Args: {
+          _fetched_at: string
+          _group_id: string
+          _opening_hours: Json
+          _place_id: string
+          _provider_place_id: string
+          _timezone: string
+          _website: string
+        }
+        Returns: undefined
+      }
       set_member_role: {
         Args: { _group_id: string; _role: string; _user_id: string }
         Returns: undefined
@@ -1828,6 +2183,17 @@ export type Database = {
           _notes?: string
           _occasions?: string[]
           _place_id: string
+        }
+        Returns: undefined
+      }
+      update_group_place_practical_info_v1: {
+        Args: {
+          _group_id: string
+          _opening_hours_override?: Json
+          _place_id: string
+          _source_note?: string
+          _source_url?: string
+          _website_override?: string
         }
         Returns: undefined
       }
@@ -1892,6 +2258,10 @@ export type Database = {
           _width: number
         }
         Returns: string
+      }
+      valid_opening_hours_schedule_v1: {
+        Args: { _value: Json }
+        Returns: boolean
       }
       visit_photo_path_group: { Args: { _name: string }; Returns: string }
       visit_photo_path_visit: { Args: { _name: string }; Returns: string }
