@@ -124,8 +124,12 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   const groupRelation = page.getByText("Ingen i gruppen har varit här än", { exact: true });
   await expect(openingHours).toBeVisible();
   await expect(groupRelation).toBeVisible();
-  const openingHoursTop = await openingHours.evaluate((element) => element.getBoundingClientRect().top);
-  const groupRelationTop = await groupRelation.evaluate((element) => element.getBoundingClientRect().top);
+  const openingHoursTop = await openingHours.evaluate(
+    (element) => element.getBoundingClientRect().top,
+  );
+  const groupRelationTop = await groupRelation.evaluate(
+    (element) => element.getBoundingClientRect().top,
+  );
   expect(openingHoursTop).toBeLessThan(groupRelationTop);
 
   await expect(
