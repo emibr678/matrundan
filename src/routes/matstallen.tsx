@@ -292,13 +292,13 @@ function PlacesIndex() {
               </div>
 
               {topRated.length > 0 ? (
-                <div className="grid gap-2 md:grid-cols-3">
+                <div className="grid min-w-0 gap-2 md:grid-cols-3">
                   {topRated.map(({ place, rating, rank }) => (
                     <Link
                       key={place.id}
                       to="/matstallen/$placeId"
                       params={{ placeId: place.id }}
-                      className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
+                      className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
                     >
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                         {rank}
