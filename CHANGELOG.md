@@ -13,6 +13,17 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.5] – 2026-08-04
+
+### Rättat
+
+- Favoritknappen ligger på raden med **Tillbaka** och tar inte längre plats från
+  ställets namn, adress eller webbplats.
+- Platsbilden är mindre på de smalaste mobilerna och återgår till full storlek
+  på bredare skärmar.
+- Långa namn och adresser får en jämnare, responsiv layout utan onödiga glipor
+  eller sammanpressning.
+
 ## [1.25.4] – 2026-08-04
 
 ### Rättat
