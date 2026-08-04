@@ -29,10 +29,22 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
       : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
   const currentMember = state.members.find((member) => member.id === state.currentUserId);
+  const groupContext = exampleMode ? `${state.group.name} · Exempel` : state.group.name;
   const brand = (
     <>
-      <span className="text-2xl">🍽️</span>
-      <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
+      <span className="shrink-0 text-2xl">🍽️</span>
+      <span className="min-w-0">
+        <span className="block font-display text-xl font-semibold leading-tight tracking-tight">
+          Matrundan
+        </span>
+        <span className="flex min-w-0 items-center gap-1 text-[11px] leading-tight text-muted-foreground">
+          <span className="shrink-0">{state.group.emoji ?? "🍽️"}</span>
+          <span className="truncate" title={groupContext}>
+            {groupContext}
+          </span>
+          {archived ? <span className="shrink-0">· Arkiverad</span> : null}
+        </span>
+      </span>
     </>
   );
 
@@ -45,11 +57,11 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
   return (
     <div className="paper-grain min-h-dvh text-foreground">
       <div className="mx-auto flex min-h-dvh max-w-6xl flex-col pb-24 md:pb-8">
-        <header className="flex items-center justify-between gap-4 px-5 pt-6 pb-3 md:pt-8">
+        <header className="flex items-center justify-between gap-2 px-4 pb-3 pt-6 md:gap-4 md:px-5 md:pt-8">
           {exampleMode ? (
             <a
               href="/"
-              className="flex items-center gap-2"
+              className="flex min-w-0 max-w-[12rem] items-center gap-2 sm:max-w-[16rem] md:max-w-none"
               onClick={(event) => {
                 event.preventDefault();
                 exitExampleMode();
@@ -58,7 +70,10 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
               {brand}
             </a>
           ) : (
-            <Link to={homeTarget} className="flex items-center gap-2">
+            <Link
+              to={homeTarget}
+              className="flex min-w-0 max-w-[12rem] items-center gap-2 sm:max-w-[16rem] md:max-w-none"
+            >
               {brand}
             </Link>
           )}
@@ -86,7 +101,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <AuthMenu exampleMode={exampleMode} />
           </div>
         </header>
