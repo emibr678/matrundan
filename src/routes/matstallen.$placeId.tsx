@@ -199,17 +199,6 @@ function PlaceDetail() {
                 <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
                   {place.name}
                 </h1>
-                <PlaceExternalLink
-                  href={googleMapsUrl(place)}
-                  target="_blank"
-                  rel="noreferrer"
-                  icon={MapPin}
-                  prefix={`${place.address}, `}
-                  tail={place.city}
-                  className="mt-0.5"
-                  aria-label={`Öppna ${place.name} i Google Maps`}
-                />
-                <PlaceWebsiteInfo />
                 {isNext || placeRemoved ? (
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     {isNext ? (
@@ -224,14 +213,30 @@ function PlaceDetail() {
                     ) : null}
                   </div>
                 ) : null}
+                <div
+                  data-testid="place-practical-links"
+                  className="mt-0.5 flex min-w-0 flex-wrap items-start gap-x-3 gap-y-0"
+                >
+                  <PlaceExternalLink
+                    href={googleMapsUrl(place)}
+                    target="_blank"
+                    rel="noreferrer"
+                    icon={MapPin}
+                    prefix={`${place.address}, `}
+                    tail={place.city}
+                    className="w-fit"
+                    aria-label={`Öppna ${place.name} i Google Maps`}
+                  />
+                  <PlaceWebsiteInfo />
+                </div>
               </div>
             </div>
 
             <PlaceOpeningHoursInfo />
           </div>
 
-          <div className="border-t border-border/60 bg-background/60 px-4 py-3 sm:px-5">
-            {latestVisit ? (
+          {latestVisit ? (
+            <div className="border-t border-border/60 bg-background/60 px-4 py-3 sm:px-5">
               <div className="flex items-start gap-2.5">
                 <UsersRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
@@ -253,15 +258,12 @@ function PlaceDetail() {
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="flex min-h-11 items-center gap-2.5 text-sm text-muted-foreground">
-                <UsersRound className="h-4 w-4 shrink-0" />
-                <span>Ingen i gruppen har varit här än</span>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : null}
 
-          <div className="space-y-2 p-4">
+          <div
+            className={latestVisit ? "space-y-2 p-4" : "space-y-2 border-t border-border/60 p-4"}
+          >
             {writable ? (
               <>
                 <Button

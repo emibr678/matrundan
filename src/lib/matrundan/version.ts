@@ -3,6 +3,21 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_6_CHANGELOG: ChangelogEntry = {
+  version: "1.25.6",
+  date: "2026-08-04",
+  summary: "Platsdetaljen håller länkar och tomstatus mer kompakt.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Adress och webbplats radbryts som en sammanhållen responsiv grupp utan stora vertikala glapp.",
+        "Den dubbla tomstatusen ovanför besöksknapparna visas inte längre när gruppen saknar besök.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_5_CHANGELOG: ChangelogEntry = {
   version: "1.25.5",
   date: "2026-08-04",
@@ -281,6 +296,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_6_CHANGELOG,
   VERSION_1_25_5_CHANGELOG,
   VERSION_1_25_4_CHANGELOG,
   VERSION_1_25_3_CHANGELOG,

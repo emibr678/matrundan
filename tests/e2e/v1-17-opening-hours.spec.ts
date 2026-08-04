@@ -382,7 +382,8 @@ test("saknad webbplats blir en diskret lägg till-handling och öppettider tar e
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toBeVisible();
+  await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Ingen har varit här än.", { exact: true })).toBeVisible();
   const addWebsite = page.getByRole("button", { name: "Lägg till webbplats", exact: true });
   const register = page.getByRole("button", { name: "Registrera besök", exact: true });
   const propose = page.getByRole("button", { name: "Föreslå som nästa stopp", exact: true });

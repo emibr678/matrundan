@@ -13,6 +13,15 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.6] – 2026-08-04
+
+### Rättat
+
+- Adress och webbplats radbryts som en sammanhållen responsiv grupp utan stora
+  vertikala glapp.
+- Den dubbla tomstatusen ovanför besöksknapparna visas inte längre när gruppen
+  saknar besök.
+
 ## [1.25.5] – 2026-08-04
 
 ### Rättat
