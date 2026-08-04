@@ -3,6 +3,35 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_0_CHANGELOG: ChangelogEntry = {
+  version: "1.25.0",
+  date: "2026-08-04",
+  summary: "Gruppval, platsinformation och appinformation är enklare och lugnare på mobil.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Den kombinerade profil- och gruppmenyn visar aktiv grupp i sidhuvudet och hanterar långa gruppnamn utan en extra rad under Matrundan.",
+        "Platsdetaljen prioriterar betyg, handlingar och besök medan webbplats och öppettider visas kompakt och adressen öppnar Google Maps.",
+        "Nya uppgifter om webbplats eller öppettider kan jämföras direkt med gruppens nuvarande värden utan att något skrivs över automatiskt.",
+        "Om Matrundan visar syfte, aktuell version och tidigare uppdateringar direkt i gruppinställningarna.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Teknisk ändringsinformation och manuell informationskontroll belastar inte längre platsens vardagsvy, och rapportering av fel ligger som en diskret slutåtgärd.",
+      ],
+    },
+    {
+      kind: "Säkerhet",
+      items: [
+        "Interna notifieringsköer och äldre appstatusfunktioner har fått striktare anropsrättigheter i databasen.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_24_0_CHANGELOG: ChangelogEntry = {
   version: "1.24.0",
   date: "2026-08-04",
@@ -174,6 +203,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_0_CHANGELOG,
   VERSION_1_24_0_CHANGELOG,
   VERSION_1_23_0_CHANGELOG,
   VERSION_1_22_0_CHANGELOG,
