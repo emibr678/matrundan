@@ -273,7 +273,8 @@ test("en aktiv medlem uppdaterar gruppens webbplats och öppettider utan teknisk
 
   const website = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
   await expect(website).toHaveAttribute("href", "https://gruppen.example/");
-  await expect(page.getByText("Idag", { exact: true })).toBeVisible();
+  await expect(page.getByText("Idag", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Måndag", { exact: true })).toBeVisible();
   await expect(page.getByText("12–23", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Gruppens uppgift", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/Gruppens uppgift ändrad/)).toHaveCount(0);

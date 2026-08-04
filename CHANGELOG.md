@@ -13,6 +13,17 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.3] – 2026-08-04
+
+### Ändrat
+
+- Adress och webbplats ligger tätare som en sammanhållen informationsgrupp på
+  platsdetaljen.
+- Öppettider visas som en lugn rad i platskortet i stället för som ett tungt
+  kort i kortet.
+- Utfällda öppettider undviker dubblerade rubriker, statusrader och tomma
+  meddelanden.
+
 ## [1.25.2] – 2026-08-04
 
 ### Ändrat
