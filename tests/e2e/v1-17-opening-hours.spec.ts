@@ -54,7 +54,11 @@ async function seedAuthenticatedSession(page: Page, details: unknown) {
   );
 }
 
-async function mockLiveGroup(page: Page, website: string | null) {
+async function mockLiveGroup(
+  page: Page,
+  website: string | null,
+  address = "Testgatan 1",
+) {
   const now = new Date().toISOString();
   await page.route("**/rest/v1/rpc/list_user_groups_v4b", async (route) => {
     await route.fulfill({
@@ -109,7 +113,7 @@ async function mockLiveGroup(page: Page, website: string | null) {
         canonicalCuisines: ["Svenskt"],
         cuisinesOverride: null,
         occasions: [],
-        address: "Testgatan 1",
+        address,
         area: "Enskede",
         city: "Stockholm",
         lat: 59.283,
@@ -224,11 +228,11 @@ function weeklyDetails(now: string) {
   };
 }
 
-test("detaljsidan visar webbplats nära adressen och ett kompakt veckoschema", async ({ page }) => {
+test("långa och korta externa länkar håller ihop på mobil och desktop", async ({ page }) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, weeklyDetails(now));
-  await mockLiveGroup(page, "https://www.testkoket.se/");
+  await mockLiveGroup(page, "https://www.testkoket.se/", "Planens restaurang");
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
@@ -238,15 +242,70 @@ test("detaljsidan visar webbplats nära adressen och ett kompakt veckoschema", a
   await expect(mapsLink).toBeVisible();
   await expect(websiteLink).toBeVisible();
 
-  const [mapsBox, websiteBox] = await Promise.all([
+  const addressTailText = mapsLink.locator('[data-slot="external-link-tail-text"]');
+  const addressExternalIcon = mapsLink.locator('[data-slot="external-link-icon"]');
+  const websiteTailText = websiteLink.locator('[data-slot="external-link-tail-text"]');
+  const websiteExternalIcon = websiteLink.locator('[data-slot="external-link-icon"]');
+  await expect(addressTailText).toHaveText("Stockholm");
+  await expect(websiteTailText).toHaveText("Webbplats");
+
+  const [
+    mapsBox,
+    websiteBox,
+    addressTailTextBox,
+    addressExternalIconBox,
+    websiteTailTextBox,
+    websiteExternalIconBox,
+  ] = await Promise.all([
     mapsLink.boundingBox(),
     websiteLink.boundingBox(),
+    addressTailText.boundingBox(),
+    addressExternalIcon.boundingBox(),
+    websiteTailText.boundingBox(),
+    websiteExternalIcon.boundingBox(),
   ]);
   expect(mapsBox).not.toBeNull();
   expect(websiteBox).not.toBeNull();
+  expect(addressTailTextBox).not.toBeNull();
+  expect(addressExternalIconBox).not.toBeNull();
+  expect(websiteTailTextBox).not.toBeNull();
+  expect(websiteExternalIconBox).not.toBeNull();
+
   const linkGap = websiteBox!.y - (mapsBox!.y + mapsBox!.height);
   expect(linkGap).toBeGreaterThanOrEqual(-1);
   expect(linkGap).toBeLessThanOrEqual(8);
+
+  const addressIconGap =
+    addressExternalIconBox!.x - (addressTailTextBox!.x + addressTailTextBox!.width);
+  const websiteIconGap =
+    websiteExternalIconBox!.x - (websiteTailTextBox!.x + websiteTailTextBox!.width);
+  expect(addressIconGap).toBeGreaterThanOrEqual(2);
+  expect(addressIconGap).toBeLessThanOrEqual(8);
+  expect(websiteIconGap).toBeGreaterThanOrEqual(2);
+  expect(websiteIconGap).toBeLessThanOrEqual(8);
+  await expectNoHorizontalOverflow(page);
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  const [desktopMapsBox, desktopAddressIconBox, desktopWebsiteBox, desktopWebsiteIconBox] =
+    await Promise.all([
+      mapsLink.boundingBox(),
+      addressExternalIcon.boundingBox(),
+      websiteLink.boundingBox(),
+      websiteExternalIcon.boundingBox(),
+    ]);
+  expect(desktopMapsBox).not.toBeNull();
+  expect(desktopAddressIconBox).not.toBeNull();
+  expect(desktopWebsiteBox).not.toBeNull();
+  expect(desktopWebsiteIconBox).not.toBeNull();
+  expect(
+    desktopMapsBox!.x + desktopMapsBox!.width -
+      (desktopAddressIconBox!.x + desktopAddressIconBox!.width),
+  ).toBeLessThanOrEqual(2);
+  expect(
+    desktopWebsiteBox!.x + desktopWebsiteBox!.width -
+      (desktopWebsiteIconBox!.x + desktopWebsiteIconBox!.width),
+  ).toBeLessThanOrEqual(2);
+  await expectNoHorizontalOverflow(page);
 
   const openingHours = page.getByText("Öppettider", { exact: true });
   await expect(openingHours).toBeVisible();
