@@ -212,6 +212,12 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(widths.bodyScroll).toBeLessThanOrEqual(widths.bodyClient);
 }
 
+async function openPracticalInfo(page: Page) {
+  const practicalInfo = page.getByText("Webbplats och öppettider", { exact: true });
+  await expect(practicalInfo).toBeVisible();
+  await practicalInfo.click();
+}
+
 test("visar och tillämpar fältvisa förslag utan privat ursprungsdata", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await seedSession(page);
@@ -255,6 +261,7 @@ test("visar och tillämpar fältvisa förslag utan privat ursprungsdata", async 
   );
 
   await page.goto(`/matstallen/${PLACE_ID}`);
+  await openPracticalInfo(page);
 
   await expect(page.getByText("Förslag från andra grupper", { exact: true })).toBeVisible();
   await expect(page.getByText("Föreslagen webbplats", { exact: true })).toBeVisible();
@@ -298,6 +305,7 @@ test("motstridiga förslag visas utan vinnare eller tillämpningsknapp", async (
   );
 
   await page.goto(`/matstallen/${PLACE_ID}`);
+  await openPracticalInfo(page);
 
   await expect(page.getByText(/Andra grupper har olika webbplatser/)).toBeVisible();
   await expect(page.getByText(/Andra grupper har olika öppettider/)).toBeVisible();
