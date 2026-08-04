@@ -114,31 +114,6 @@ function OpeningHoursScheduleList({
   );
 }
 
-function OpeningHoursDetails({
-  schedule,
-  timezone,
-}: {
-  schedule: OpeningHoursSchedule;
-  timezone: string | null;
-}) {
-  const today = openingHoursForDate(schedule, new Date(), timezone);
-  const todaySummary = openingHoursDaySummary(today);
-
-  return (
-    <details className="group">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 py-1.5 text-sm marker:content-none">
-        <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1 font-medium">Öppettider idag</span>
-        <span className="min-w-0 truncate text-right text-muted-foreground">{todaySummary}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="border-t border-border/50 pb-2 pl-6 pt-2.5">
-        <OpeningHoursScheduleList schedule={schedule} timezone={timezone} />
-      </div>
-    </details>
-  );
-}
-
 export function PlaceExternalInfo({
   place,
   groupId,
@@ -231,6 +206,10 @@ export function PlaceExternalInfo({
   const canonicalOrStoredWebsite = normalizeWebsiteUrl(place.website) ?? details?.website ?? null;
   const websiteUrl = practicalInfo.websiteOverride ?? canonicalOrStoredWebsite;
   const openingHours = practicalInfo.openingHoursOverride ?? details?.openingHours ?? null;
+  const today = openingHours
+    ? openingHoursForDate(openingHours, new Date(), details?.timezone ?? null)
+    : null;
+  const todaySummary = today ? openingHoursDaySummary(today) : null;
   const websiteConflict = Boolean(
     practicalInfo.websiteOverride &&
     details?.website &&
@@ -244,6 +223,13 @@ export function PlaceExternalInfo({
   const hasConflict = websiteConflict || openingHoursConflict;
   const hasGeoapifySource = Boolean(key);
   const canEdit = canReport && !demoReadOnly && !practicalInfoError;
+  const summary = loading
+    ? "Hämtar…"
+    : todaySummary
+      ? todaySummary
+      : websiteUrl
+        ? "Webbplats finns"
+        : "Saknas";
 
   async function applyNewInformationForConflicts() {
     if (!actor) return;
@@ -279,28 +265,38 @@ export function PlaceExternalInfo({
   }
 
   return (
-    <div className="mt-3 border-y border-border/50">
-      <div className="flex min-h-9 items-center justify-between gap-2 py-1">
-        <div className="text-xs font-medium text-muted-foreground">Webbplats och öppettider</div>
-        <PlacePracticalInfoDialog
-          place={place}
-          groupId={groupId}
-          practicalInfo={practicalInfo}
-          externalWebsite={details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null}
-          externalOpeningHours={details?.openingHours ?? null}
-          disabled={!canEdit}
-          canRefreshExternal={mode === "live" && hasGeoapifySource}
-          refreshingExternal={refreshing || loading}
-          onRefreshExternal={() => loadExternalDetails(true)}
-          onSaved={setPracticalInfo}
-        />
-      </div>
+    <details className="group border-t border-border/60">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 py-2 text-sm marker:content-none sm:px-5">
+        <Globe2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 font-medium">Webbplats och öppettider</span>
+        <span className="max-w-[8rem] truncate text-right text-muted-foreground">{summary}</span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
 
-      <div className="divide-y divide-border/50">
-        <div className="flex min-h-11 items-center gap-2 py-1.5 text-sm">
-          <Globe2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1 font-medium">Webbplats</span>
-          {websiteUrl ? (
+      <div className="space-y-3 border-t border-border/50 px-4 pb-4 pt-3 sm:px-5">
+        {canEdit ? (
+          <div className="flex min-h-9 items-center justify-between gap-2">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Gruppens praktiska uppgifter
+            </p>
+            <PlacePracticalInfoDialog
+              place={place}
+              groupId={groupId}
+              practicalInfo={practicalInfo}
+              externalWebsite={details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null}
+              externalOpeningHours={details?.openingHours ?? null}
+              canRefreshExternal={mode === "live" && hasGeoapifySource}
+              refreshingExternal={refreshing || loading}
+              onRefreshExternal={() => loadExternalDetails(true)}
+              onSaved={setPracticalInfo}
+            />
+          </div>
+        ) : null}
+
+        {websiteUrl ? (
+          <div className="flex min-h-11 items-center gap-2 rounded-xl bg-muted/35 px-3 py-1.5 text-sm">
+            <Globe2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 font-medium">Webbplats</span>
             <a
               href={websiteUrl}
               target="_blank"
@@ -311,52 +307,60 @@ export function PlaceExternalInfo({
               Öppna
               <ExternalLink className="h-3.5 w-3.5 shrink-0" />
             </a>
-          ) : (
-            <span className="shrink-0 text-muted-foreground">Saknas</span>
-          )}
-        </div>
+          </div>
+        ) : null}
 
-        <div className="py-1.5">
-          {openingHours ? (
-            <OpeningHoursDetails schedule={openingHours} timezone={details?.timezone ?? null} />
-          ) : loading ? (
-            <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Hämtar öppettider…
-            </div>
-          ) : (
-            <div className="flex min-h-11 items-center gap-2 text-sm">
+        {openingHours ? (
+          <section className="overflow-hidden rounded-xl border border-border/60">
+            <div className="flex min-h-11 items-center gap-2 px-3 py-1.5 text-sm">
               <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="font-medium">Öppettider idag</span>
-              <span className="ml-auto text-muted-foreground">Saknas</span>
+              <span className="min-w-0 flex-1 font-medium">Öppettider idag</span>
+              <span className="min-w-0 truncate text-right text-muted-foreground">
+                {todaySummary}
+              </span>
             </div>
-          )}
-        </div>
+            <div className="border-t border-border/50 px-3 py-3">
+              <OpeningHoursScheduleList
+                schedule={openingHours}
+                timezone={details?.timezone ?? null}
+              />
+            </div>
+          </section>
+        ) : loading ? (
+          <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Hämtar öppettider…
+          </div>
+        ) : !websiteUrl ? (
+          <p className="rounded-xl bg-muted/35 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
+            Webbplats och öppettider saknas.
+          </p>
+        ) : null}
+
+        {hasConflict ? (
+          <button
+            type="button"
+            className="flex min-h-11 w-full items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+            onClick={() => setCompareOpen(true)}
+          >
+            <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1">Det finns nya uppgifter om stället</span>
+            <span className="shrink-0 font-medium text-primary">Jämför</span>
+          </button>
+        ) : null}
+
+        <CrossGroupPracticalInfoSuggestions
+          groupId={groupId}
+          placeId={place.id}
+          enabled={canEdit}
+          onApplied={loadPracticalInfo}
+        />
+
+        {practicalInfoError || (hasGeoapifySource && error && !details) ? (
+          <p role="status" className="text-xs leading-relaxed text-muted-foreground">
+            {practicalInfoError ?? error}
+          </p>
+        ) : null}
       </div>
-
-      {hasConflict ? (
-        <button
-          type="button"
-          className="my-2 flex min-h-11 w-full items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
-          onClick={() => setCompareOpen(true)}
-        >
-          <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1">Det finns nya uppgifter om stället</span>
-          <span className="shrink-0 font-medium text-primary">Jämför</span>
-        </button>
-      ) : null}
-
-      <CrossGroupPracticalInfoSuggestions
-        groupId={groupId}
-        placeId={place.id}
-        enabled={canEdit}
-        onApplied={loadPracticalInfo}
-      />
-
-      {practicalInfoError || (hasGeoapifySource && error && !details) ? (
-        <p role="status" className="pb-2 text-xs leading-relaxed text-muted-foreground">
-          {practicalInfoError ?? error}
-        </p>
-      ) : null}
 
       <AlertDialog open={compareOpen} onOpenChange={setCompareOpen}>
         <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
@@ -416,6 +420,6 @@ export function PlaceExternalInfo({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </details>
   );
 }
