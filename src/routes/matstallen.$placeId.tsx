@@ -139,13 +139,16 @@ function PlaceDetail() {
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
   const latestVisit = visits[0] ?? null;
-  const latestParticipantSummary = latestVisit
-    ? summarizeParticipantNames(
-        latestVisit.participantIds
+  const latestParticipantNames = latestVisit
+    ? latestVisit.participants && latestVisit.participants.length > 0
+      ? latestVisit.participants
+          .filter((participant) => participant.status !== "guest")
+          .map((participant) => participant.name)
+      : latestVisit.participantIds
           .map((participantId) => memberById(participantId)?.name)
-          .filter((name): name is string => Boolean(name)),
-      )
-    : null;
+          .filter((name): name is string => Boolean(name))
+    : [];
+  const latestParticipantSummary = summarizeParticipantNames(latestParticipantNames);
   const visitCountLabel = visits.length === 1 ? "1 besök" : `${visits.length} besök`;
 
   const goBack = () => {
