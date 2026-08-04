@@ -1,13 +1,5 @@
 import * as React from "react";
-import {
-  ChevronDown,
-  Clock3,
-  ExternalLink,
-  Globe2,
-  Info,
-  Loader2,
-  Plus,
-} from "lucide-react";
+import { ChevronDown, Clock3, ExternalLink, Globe2, Info, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { CrossGroupPracticalInfoSuggestions } from "./CrossGroupPracticalInfoSuggestions";
@@ -285,13 +277,13 @@ export function PlacePracticalInfoProvider({
   const todaySummary = today ? openingHoursDaySummary(today) : null;
   const websiteConflict = Boolean(
     practicalInfo.websiteOverride &&
-      details?.website &&
-      practicalInfo.websiteOverride !== details.website,
+    details?.website &&
+    practicalInfo.websiteOverride !== details.website,
   );
   const openingHoursConflict = Boolean(
     practicalInfo.openingHoursOverride &&
-      details?.openingHours &&
-      !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
+    details?.openingHours &&
+    !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
   );
   const hasConflict = websiteConflict || openingHoursConflict;
   const hasGeoapifySource = Boolean(key);
@@ -307,10 +299,11 @@ export function PlacePracticalInfoProvider({
 
       const normalizedSourceNote = sourceNote.trim() || null;
       const websiteOverride = normalizedWebsite;
-      const combinedSourceNote = [practicalInfo.sourceNote, normalizedSourceNote]
-        .filter(Boolean)
-        .join("\n")
-        .slice(0, 1000) || null;
+      const combinedSourceNote =
+        [practicalInfo.sourceNote, normalizedSourceNote]
+          .filter(Boolean)
+          .join("\n")
+          .slice(0, 1000) || null;
       const nextInput = {
         websiteOverride,
         openingHoursOverride: practicalInfo.openingHoursOverride,
@@ -329,13 +322,7 @@ export function PlacePracticalInfoProvider({
         };
         window.dispatchEvent(new Event("matrundan:reload"));
       } else {
-        next = updateLocalGroupPlacePracticalInfo(
-          groupId,
-          place.id,
-          nextInput,
-          actor,
-          storageKind,
-        );
+        next = updateLocalGroupPlacePracticalInfo(groupId, place.id, nextInput, actor, storageKind);
       }
 
       setPracticalInfo(next);
@@ -363,7 +350,8 @@ export function PlacePracticalInfoProvider({
       toast.success("Webbplatsen är tillagd för gruppen.", {
         description: "Den publiceras inte externt automatiskt.",
       });
-    }, [actor, groupId, mode, place, practicalInfo, storageKind],
+    },
+    [actor, groupId, mode, place, practicalInfo, storageKind],
   );
 
   const applyNewInformationForConflicts = React.useCallback(async () => {
@@ -389,20 +377,23 @@ export function PlacePracticalInfoProvider({
         };
         window.dispatchEvent(new Event("matrundan:reload"));
       } else {
-        next = updateLocalGroupPlacePracticalInfo(
-          groupId,
-          place.id,
-          nextInput,
-          actor,
-          storageKind,
-        );
+        next = updateLocalGroupPlacePracticalInfo(groupId, place.id, nextInput, actor, storageKind);
       }
       setPracticalInfo(next);
       toast.success("Gruppen använder nu de nya uppgifterna.");
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Uppgiften kunde inte uppdateras.");
     }
-  }, [actor, groupId, mode, openingHoursConflict, place.id, practicalInfo, storageKind, websiteConflict]);
+  }, [
+    actor,
+    groupId,
+    mode,
+    openingHoursConflict,
+    place.id,
+    practicalInfo,
+    storageKind,
+    websiteConflict,
+  ]);
 
   const value = React.useMemo<PlacePracticalInfoContextValue>(
     () => ({
@@ -593,7 +584,7 @@ export function PlaceOpeningHoursInfo() {
   } = usePlacePracticalInfo();
   const { mode } = useSession();
   const [compareOpen, setCompareOpen] = React.useState(false);
-  const summary = loading ? "Hämtar…" : todaySummary ?? "Saknas";
+  const summary = loading ? "Hämtar…" : (todaySummary ?? "Saknas");
 
   async function useNewInformation() {
     await applyNewInformationForConflicts();
