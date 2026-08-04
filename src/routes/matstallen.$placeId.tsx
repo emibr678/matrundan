@@ -17,6 +17,7 @@ import {
   MapPin,
   MessageCircle,
   Plus,
+  UsersRound,
 } from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
@@ -130,6 +131,25 @@ function PlaceDetail() {
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
+  const latestVisit = visits[0] ?? null;
+  const latestParticipantNames = latestVisit
+    ? Array.from(
+        new Set(
+          (latestVisit.participants?.length
+            ? latestVisit.participants
+                .filter((participant) => participant.status !== "guest")
+                .map((participant) => participant.name)
+            : latestVisit.participantIds
+                .map((participantId) => memberById(participantId)?.name)
+                .filter((name): name is string => Boolean(name))),
+        ),
+      )
+    : [];
+  const latestParticipantSummary = latestParticipantNames.length
+    ? `${latestParticipantNames.slice(0, 2).join(", ")}${
+        latestParticipantNames.length > 2 ? ` +${latestParticipantNames.length - 2}` : ""
+      }`
+    : null;
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
@@ -187,28 +207,40 @@ function PlaceDetail() {
               </div>
             </div>
           </div>
-          <PlaceExternalInfo place={place} groupId={state.group.id} canReport={writable} />
         </div>
 
-        {rating.count > 0 ? (
-          <div className="flex items-center gap-4 border-t border-border/60 bg-background/60 px-5 py-4">
-            <div className="text-center">
-              <div className="font-display text-3xl font-semibold leading-none">
-                {formatRating(rating.overall)}
+        <div className="border-t border-border/60 bg-background/60 px-4 py-3 sm:px-5">
+          {latestVisit ? (
+            <div className="flex items-start gap-2.5">
+              <UsersRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                  {rating.count > 0 ? (
+                    <>
+                      <RatingStars value={rating.overall} size={13} />
+                      <span className="font-medium">{formatRating(rating.overall)}</span>
+                      <span aria-hidden="true" className="text-muted-foreground">
+                        ·
+                      </span>
+                    </>
+                  ) : null}
+                  <span className="font-medium">
+                    {visits.length} {visits.length === 1 ? "besök" : "besök"}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  Senast {formatDate(latestVisit.date)}
+                  {latestParticipantSummary ? ` · ${latestParticipantSummary}` : ""}
+                </div>
               </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">av 5</div>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-medium tracking-wide text-muted-foreground">
-                Gruppens helhetsbetyg
-              </div>
-              <RatingStars value={rating.overall} size={16} className="mt-0.5" />
-              <div className="mt-0.5 text-xs text-muted-foreground">
-                {rating.count} betyg från gänget
-              </div>
+          ) : (
+            <div className="flex min-h-11 items-center gap-2.5 text-sm text-muted-foreground">
+              <UsersRound className="h-4 w-4 shrink-0" />
+              <span>Ingen i gruppen har varit här än</span>
             </div>
-          </div>
-        ) : null}
+          )}
+        </div>
 
         <div className="space-y-2 p-4">
           {writable ? (
@@ -218,38 +250,37 @@ function PlaceDetail() {
                 onClick={() => setVisitOpen(true)}
                 className="h-12 w-full text-base"
               >
-                <Plus className="h-4 w-4" /> Registrera besök
+                <Plus className="h-4 w-4" />
+                {visits.length > 0 ? "Registrera besök igen" : "Registrera besök"}
               </Button>
-              <div className="grid grid-cols-2 gap-2">
-                {isNext ? (
-                  <Button
-                    variant="ghost"
-                    onClick={() => void setNext(null)}
-                    className="min-h-11 whitespace-normal text-muted-foreground"
-                  >
-                    Ta bort som nästa stopp
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => void setNext(place.id)}
-                    className="min-h-11 whitespace-normal"
-                  >
-                    <Flag className="h-4 w-4 shrink-0" />
-                    Föreslå som nästa stopp
-                  </Button>
-                )}
+              {isNext ? (
+                <Button
+                  variant="ghost"
+                  onClick={() => void setNext(null)}
+                  className="min-h-11 w-full whitespace-normal text-muted-foreground"
+                >
+                  Ta bort som nästa stopp
+                </Button>
+              ) : (
                 <Button
                   variant="outline"
-                  onClick={() => void toggleFavorite(place.id)}
-                  aria-pressed={fav}
-                  aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
-                  className="min-h-11"
+                  onClick={() => void setNext(place.id)}
+                  className="min-h-11 w-full whitespace-normal"
                 >
-                  <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
-                  Favorit
+                  <Flag className="h-4 w-4 shrink-0" />
+                  Föreslå som nästa stopp
                 </Button>
-              </div>
+              )}
+              <Button
+                variant="ghost"
+                onClick={() => void toggleFavorite(place.id)}
+                aria-pressed={fav}
+                aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
+                className="min-h-11 w-full text-muted-foreground"
+              >
+                <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
+                Favorit
+              </Button>
             </>
           ) : (
             <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm">
@@ -272,6 +303,8 @@ function PlaceDetail() {
             </div>
           )}
         </div>
+
+        <PlaceExternalInfo place={place} groupId={state.group.id} canReport={writable} />
       </Card>
 
       <section>
