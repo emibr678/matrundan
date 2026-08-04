@@ -86,10 +86,9 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   const leaderboard = page.getByTestId("occasion-leaderboard");
   await expect(leaderboard).toBeVisible();
   await leaderboard.getByRole("button", { name: "Visa", exact: true }).click();
-  await expect(leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(
+    leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }),
+  ).toHaveAttribute("aria-pressed", "true");
   await expectNoHorizontalOverflow(page, "Matställen");
 
   await page.goto("/matstallen/p8?demo=1");
