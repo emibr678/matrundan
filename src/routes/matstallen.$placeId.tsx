@@ -161,39 +161,38 @@ function PlaceDetail() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 pt-2 md:max-w-3xl">
-      <Button
-        variant="ghost"
-        onClick={goBack}
-        className="-ml-2 h-11 min-w-11 gap-1 rounded-full px-3 text-sm text-muted-foreground hover:text-foreground"
-        aria-label="Gå tillbaka till matställen"
-      >
-        <ArrowLeft className="h-4 w-4" /> Tillbaka
-      </Button>
+      <div className="flex min-h-11 items-center justify-between gap-3">
+        <Button
+          variant="ghost"
+          onClick={goBack}
+          className="-ml-2 h-11 min-w-11 gap-1 rounded-full px-3 text-sm text-muted-foreground hover:text-foreground"
+          aria-label="Gå tillbaka till matställen"
+        >
+          <ArrowLeft className="h-4 w-4" /> Tillbaka
+        </Button>
+        {writable ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => void toggleFavorite(place.id)}
+            aria-pressed={fav}
+            aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
+            className="h-11 w-11 shrink-0 rounded-full border border-border/70 bg-background/70 shadow-sm backdrop-blur hover:bg-background"
+          >
+            <Heart
+              className={fav ? "h-5 w-5 fill-primary stroke-primary" : "h-5 w-5 text-foreground"}
+            />
+          </Button>
+        ) : null}
+      </div>
 
       <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
-          <div className="relative bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
-            {writable ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => void toggleFavorite(place.id)}
-                aria-pressed={fav}
-                aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
-                className="absolute right-3 top-3 z-10 h-11 w-11 rounded-full border border-border/70 bg-background/80 shadow-sm backdrop-blur hover:bg-background sm:right-4 sm:top-4"
-              >
-                <Heart
-                  className={
-                    fav ? "h-5 w-5 fill-primary stroke-primary" : "h-5 w-5 text-foreground"
-                  }
-                />
-              </Button>
-            ) : null}
-
+          <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
             <div className="flex items-start gap-3 sm:gap-4">
-              <PlaceThumb place={place} size="lg" />
-              <div className="min-w-0 flex-1 pr-12">
+              <PlaceThumb place={place} size="detail" />
+              <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                   {CATEGORY_LABEL[place.category]}
                 </div>

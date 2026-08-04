@@ -54,7 +54,12 @@ async function seedAuthenticatedSession(page: Page, details: unknown) {
   );
 }
 
-async function mockLiveGroup(page: Page, website: string | null, address = "Testgatan 1") {
+async function mockLiveGroup(
+  page: Page,
+  website: string | null,
+  address = "Testgatan 1",
+  placeName = "Testköket",
+) {
   const now = new Date().toISOString();
   await page.route("**/rest/v1/rpc/list_user_groups_v4b", async (route) => {
     await route.fulfill({
@@ -101,7 +106,7 @@ async function mockLiveGroup(page: Page, website: string | null, address = "Test
     places: [
       {
         id: PLACE_ID,
-        name: "Testköket",
+        name: placeName,
         category: "restaurang",
         canonicalCategory: "restaurang",
         categoryOverride: null,
@@ -224,17 +229,32 @@ function weeklyDetails(now: string) {
   };
 }
 
-test("långa och korta externa länkar håller ihop på mobil och desktop", async ({ page }) => {
+test("platskortet ger lång identitet naturlig bredd på mobil och desktop", async ({ page }) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, weeklyDetails(now));
-  await mockLiveGroup(page, "https://www.testkoket.se/", "Planens restaurang");
+  await mockLiveGroup(
+    page,
+    "https://www.testkoket.se/",
+    "Planens restaurang",
+    "Planens restaurang",
+  );
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  await expect(page.getByRole("heading", { name: "Testköket" })).toBeVisible();
-  const mapsLink = page.getByRole("link", { name: "Öppna Testköket i Google Maps" });
-  const websiteLink = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
+  const heading = page.getByRole("heading", { name: "Planens restaurang" });
+  const back = page.getByRole("button", { name: "Gå tillbaka till matställen" });
+  const favorite = page.getByRole("button", { name: "Markera som favorit" });
+  const thumb = page.locator('[data-slot="place-thumb"]').first();
+  const mapsLink = page.getByRole("link", {
+    name: "Öppna Planens restaurang i Google Maps",
+  });
+  const websiteLink = page.getByRole("link", {
+    name: "Öppna webbplatsen för Planens restaurang",
+  });
+  await expect(heading).toBeVisible();
+  await expect(back).toBeVisible();
+  await expect(favorite).toBeVisible();
   await expect(mapsLink).toBeVisible();
   await expect(websiteLink).toBeVisible();
 
@@ -246,6 +266,10 @@ test("långa och korta externa länkar håller ihop på mobil och desktop", asyn
   await expect(websiteTailText).toHaveText("Webbplats");
 
   const [
+    headingBox,
+    backBox,
+    favoriteBox,
+    thumbBox,
     mapsBox,
     websiteBox,
     addressTailTextBox,
@@ -253,6 +277,10 @@ test("långa och korta externa länkar håller ihop på mobil och desktop", asyn
     websiteTailTextBox,
     websiteExternalIconBox,
   ] = await Promise.all([
+    heading.boundingBox(),
+    back.boundingBox(),
+    favorite.boundingBox(),
+    thumb.boundingBox(),
     mapsLink.boundingBox(),
     websiteLink.boundingBox(),
     addressTailText.boundingBox(),
@@ -260,12 +288,24 @@ test("långa och korta externa länkar håller ihop på mobil och desktop", asyn
     websiteTailText.boundingBox(),
     websiteExternalIcon.boundingBox(),
   ]);
+  expect(headingBox).not.toBeNull();
+  expect(backBox).not.toBeNull();
+  expect(favoriteBox).not.toBeNull();
+  expect(thumbBox).not.toBeNull();
   expect(mapsBox).not.toBeNull();
   expect(websiteBox).not.toBeNull();
   expect(addressTailTextBox).not.toBeNull();
   expect(addressExternalIconBox).not.toBeNull();
   expect(websiteTailTextBox).not.toBeNull();
   expect(websiteExternalIconBox).not.toBeNull();
+
+  expect(Math.abs(favoriteBox!.y - backBox!.y)).toBeLessThanOrEqual(2);
+  expect(favoriteBox!.x).toBeGreaterThan(backBox!.x + backBox!.width);
+  expect(favoriteBox!.y + favoriteBox!.height).toBeLessThan(headingBox!.y);
+  expect(thumbBox!.width).toBeGreaterThanOrEqual(63);
+  expect(thumbBox!.width).toBeLessThanOrEqual(65);
+  expect(headingBox!.width).toBeGreaterThanOrEqual(190);
+  expect(mapsBox!.width).toBeGreaterThanOrEqual(190);
 
   const linkGap = websiteBox!.y - (mapsBox!.y + mapsBox!.height);
   expect(linkGap).toBeGreaterThanOrEqual(-1);
@@ -282,17 +322,26 @@ test("långa och korta externa länkar håller ihop på mobil och desktop", asyn
   await expectNoHorizontalOverflow(page);
 
   await page.setViewportSize({ width: 1024, height: 900 });
-  const [desktopMapsBox, desktopAddressIconBox, desktopWebsiteBox, desktopWebsiteIconBox] =
-    await Promise.all([
-      mapsLink.boundingBox(),
-      addressExternalIcon.boundingBox(),
-      websiteLink.boundingBox(),
-      websiteExternalIcon.boundingBox(),
-    ]);
+  const [
+    desktopThumbBox,
+    desktopMapsBox,
+    desktopAddressIconBox,
+    desktopWebsiteBox,
+    desktopWebsiteIconBox,
+  ] = await Promise.all([
+    thumb.boundingBox(),
+    mapsLink.boundingBox(),
+    addressExternalIcon.boundingBox(),
+    websiteLink.boundingBox(),
+    websiteExternalIcon.boundingBox(),
+  ]);
+  expect(desktopThumbBox).not.toBeNull();
   expect(desktopMapsBox).not.toBeNull();
   expect(desktopAddressIconBox).not.toBeNull();
   expect(desktopWebsiteBox).not.toBeNull();
   expect(desktopWebsiteIconBox).not.toBeNull();
+  expect(desktopThumbBox!.width).toBeGreaterThanOrEqual(79);
+  expect(desktopThumbBox!.width).toBeLessThanOrEqual(81);
   expect(
     desktopMapsBox!.x +
       desktopMapsBox!.width -
