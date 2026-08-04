@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   normalizeOccasionClassification,
   rankPlacesForOccasion,
+  rankPlacesOverall,
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
 import { OCCASION_DESCRIPTION, OCCASION_LABEL, OCCASION_VALUES } from "@/lib/matrundan/types";
@@ -47,6 +48,24 @@ describe("sammanhangskategorier", () => {
     expect(toggleOccasionSelection(["avslappnat", "middag"], "avslappnat")).toEqual(["middag"]);
   });
 
+  test("topplistan för alla inkluderar betygsatta ställen utan Passar för", () => {
+    const places = [
+      place("Utan val", [], "p0"),
+      place("Bara avslappnat", ["avslappnat"], "p1"),
+      place("Arkiverat", [], "p4", "archived"),
+    ];
+    const ratings: Record<string, { overall: number; count: number }> = {
+      p0: { overall: 5, count: 1 },
+      p1: { overall: 4.5, count: 2 },
+      p4: { overall: 5, count: 9 },
+    };
+
+    expect(rankPlacesOverall(places, (id) => ratings[id]).map(({ place: item }) => item.id)).toEqual([
+      "p0",
+      "p1",
+    ]);
+  });
+
   test("topplistan inkluderar stället för vart och ett av dess val", () => {
     const places = [
       place("Bara avslappnat", ["avslappnat"], "p1"),
@@ -71,7 +90,12 @@ describe("sammanhangskategorier", () => {
   });
 });
 
-function place(name: string, occasions: Place["occasions"], id: string): Place {
+function place(
+  name: string,
+  occasions: Place["occasions"],
+  id: string,
+  collectionStatus: Place["collectionStatus"] = "active",
+): Place {
   return {
     id,
     name,
@@ -82,5 +106,6 @@ function place(name: string, occasions: Place["occasions"], id: string): Place {
     city: "Stockholm",
     addedBy: "m1",
     addedAt: "2026-01-01T00:00:00.000Z",
+    collectionStatus,
   };
 }
