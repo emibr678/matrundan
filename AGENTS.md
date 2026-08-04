@@ -15,6 +15,8 @@ These instructions apply to the entire repository.
 
 Read:
 
+- [`docs/product-roadmap.md`](docs/product-roadmap.md) before planning a backlog
+  feature, changing product priority or revisiting an already agreed scope;
 - [`docs/architecture.md`](docs/architecture.md) before changing the data model,
   authentication, sharing, Geoapify, group privacy, notifications or
   gamification;
@@ -52,10 +54,13 @@ Preserve these rules:
 
 For a new feature, large change or explicit planning request:
 
-1. inspect the actual implementation and relevant database objects;
-2. discuss the product decision against Matrundan's shared food journey;
-3. produce a concrete plan with edge cases, security and tests;
-4. do not modify files, migrations, database state, commits or deployments
+1. inspect the related GitHub Issue and `docs/product-roadmap.md` when the work
+   belongs to the backlog;
+2. inspect the actual implementation and relevant database objects;
+3. discuss the product decision against Matrundan's shared food journey;
+4. produce a concrete plan with edge cases, security and tests;
+5. assess whether the example group or its scenario contract must change;
+6. do not modify files, migrations, database state, commits or deployments
    until implementation is explicitly approved.
 
 `plan_mode`, “Gör endast en plan” and “ej implementation” are absolute.
@@ -69,6 +74,12 @@ separate explicit approval.
 
 Corrective documentation and small maintenance may be performed within an
 explicit review request, but must not introduce new product behaviour.
+
+GitHub Issues are the concrete backlog. Preserve already documented product
+choices instead of reopening them from chat history alone. Update the issue and,
+when package or priority changes, `docs/product-roadmap.md` before changing an
+agreed direction. New ideas begin in `status:inbox`; implementation begins only
+after an current plan is explicitly approved and the issue is `status:ready`.
 
 ## Implementation and diagnostics
 
@@ -114,6 +125,8 @@ explicit review request, but must not introduce new product behaviour.
   changelog.
 - `supabase/migrations/` — schema, RPC, RLS and Storage changes.
 - `scripts/` — reproducible setup and verification tooling.
+- `docs/product-roadmap.md` — canonical product packages, priorities and backlog
+  workflow.
 - `docs/architecture.md` — canonical architecture and security decisions.
 - `docs/development-workflow.md` — canonical delivery workflow.
 - `DEVELOPMENT.md` — runtime, setup and verification commands.
@@ -245,13 +258,15 @@ For a published release:
 - update `src/lib/matrundan/version.ts` and in-app history;
 - move the release from **Unreleased** to a dated entry in `CHANGELOG.md`;
 - update `README.md` when current capability or limitation changes;
+- update `docs/product-roadmap.md` when package, priority or active roadmap
+  scope changes;
 - update `docs/architecture.md` when a durable decision changes;
 - keep version and deployment status consistent;
 - publish only after relevant checks are green and approval is explicit.
 
-README must not duplicate a long release history. Completed implementation
-plans should be removed or archived after durable decisions are captured in
-architecture and changelog.
+README must not duplicate a long release history or act as a parallel backlog.
+Completed implementation plans should be removed or archived after durable
+decisions are captured in architecture, roadmap and changelog.
 
 Documentation-only commits do not require app publication unless the app reads
 the changed file.
