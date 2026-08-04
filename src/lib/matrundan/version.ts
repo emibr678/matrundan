@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_3_CHANGELOG: ChangelogEntry = {
+  version: "1.25.3",
+  date: "2026-08-04",
+  summary: "Platsdetaljens praktiska information är kompaktare och lättare att överblicka.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Adress och webbplats ligger tätare som en sammanhållen informationsgrupp.",
+        "Öppettider visas som en lugn rad i platskortet i stället för som ett tungt kort i kortet.",
+        "Utfällda öppettider undviker dubblerade rubriker, statusrader och tomma meddelanden.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_2_CHANGELOG: ChangelogEntry = {
   version: "1.25.2",
   date: "2026-08-04",
@@ -234,6 +250,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_3_CHANGELOG,
   VERSION_1_25_2_CHANGELOG,
   VERSION_1_25_1_CHANGELOG,
   VERSION_1_25_0_CHANGELOG,
