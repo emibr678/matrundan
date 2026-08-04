@@ -181,9 +181,7 @@ function PlaceDetail() {
             className="h-11 w-11 shrink-0 rounded-full border border-border/70 bg-background/70 shadow-sm backdrop-blur hover:bg-background"
           >
             <Heart
-              className={
-                fav ? "h-5 w-5 fill-primary stroke-primary" : "h-5 w-5 text-foreground"
-              }
+              className={fav ? "h-5 w-5 fill-primary stroke-primary" : "h-5 w-5 text-foreground"}
             />
           </Button>
         ) : null}
