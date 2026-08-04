@@ -224,7 +224,9 @@ function weeklyDetails(now: string) {
   };
 }
 
-test("detaljsidan visar webbplats under adressen och ett kompakt veckoschema", async ({ page }) => {
+test("detaljsidan visar webbplats nära adressen och ett kompakt veckoschema", async ({
+  page,
+}) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, weeklyDetails(now));
@@ -233,16 +235,27 @@ test("detaljsidan visar webbplats under adressen och ett kompakt veckoschema", a
   await page.goto(`/matstallen/${PLACE_ID}`);
 
   await expect(page.getByRole("heading", { name: "Testköket" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Öppna webbplatsen för Testköket" })).toBeVisible();
+  const mapsLink = page.getByRole("link", { name: "Öppna Testköket i Google Maps" });
+  const websiteLink = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
+  await expect(mapsLink).toBeVisible();
+  await expect(websiteLink).toBeVisible();
+
+  const [mapsBox, websiteBox] = await Promise.all([mapsLink.boundingBox(), websiteLink.boundingBox()]);
+  expect(mapsBox).not.toBeNull();
+  expect(websiteBox).not.toBeNull();
+  const linkGap = websiteBox!.y - (mapsBox!.y + mapsBox!.height);
+  expect(linkGap).toBeGreaterThanOrEqual(-1);
+  expect(linkGap).toBeLessThanOrEqual(8);
+
   const openingHours = page.getByText("Öppettider", { exact: true });
-  const today = page.getByText("Idag", { exact: true });
   await expect(openingHours).toBeVisible();
-  await expect(today).toBeHidden();
+  await expect(page.getByText("Måndag", { exact: true })).toBeHidden();
   await expect(page.getByText("Öppet nu", { exact: true })).toHaveCount(0);
   await openingHours.click();
-  await expect(today).toBeVisible();
   await expect(page.getByText("Måndag", { exact: true })).toBeVisible();
   await expect(page.getByText("Söndag", { exact: true })).toBeVisible();
+  await expect(page.getByText("Idag", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Gruppens webbplats och öppettider", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 });
 
@@ -299,7 +312,8 @@ test("saknad webbplats blir en diskret lägg till-handling och öppettider tar e
 
   await openingHours.click();
   await expect(page.getByRole("button", { name: "Ändra", exact: true })).toBeVisible();
-  await expect(page.getByText("Öppettider saknas.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Öppettider saknas.", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Gruppens webbplats och öppettider", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Idag", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Öppna Testköket i Google Maps" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
