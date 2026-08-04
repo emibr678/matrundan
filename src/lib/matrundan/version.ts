@@ -3,6 +3,24 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_1_CHANGELOG: ChangelogEntry = {
+  version: "1.25.1",
+  date: "2026-08-04",
+  summary: "Platsdetaljen sätter gruppens besök och nästa stopp före praktiska uppgifter.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Platsdetaljen sammanfattar gruppens antal besök, senaste besök och deltagare direkt under ställets identitet.",
+        "Registrera besök och Föreslå som nästa stopp ligger före favorit och öppettider i mobilens läsordning.",
+        "Webbplatsen visas diskret under den klickbara adressen och kan läggas till direkt för gruppen när den saknas.",
+        "En tillagd webbplats skapar ett privat granskningsunderlag men publiceras aldrig externt automatiskt.",
+        "Öppettider visas i en egen kompakt utfällbar rad och tidigare besökta ställen använder Registrera besök igen.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_0_CHANGELOG: ChangelogEntry = {
   version: "1.25.0",
   date: "2026-08-04",
@@ -198,6 +216,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_1_CHANGELOG,
   VERSION_1_25_0_CHANGELOG,
   VERSION_1_24_0_CHANGELOG,
   VERSION_1_23_0_CHANGELOG,

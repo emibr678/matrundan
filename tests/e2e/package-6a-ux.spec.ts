@@ -109,7 +109,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(page.getByRole("button", { name: "Markera som favorit" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Öppna .* i Google Maps/ })).toBeVisible();
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Webbplats och öppettider", { exact: true })).toBeVisible();
+  await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
   await expect(
     page
       .getByRole("heading", { name: "Om stället" })

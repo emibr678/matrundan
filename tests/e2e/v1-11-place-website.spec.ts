@@ -50,7 +50,7 @@ async function seedAuthenticatedSession(page: Page) {
   );
 }
 
-test("matställets webbplats visas diskret utan mobil overflow", async ({ page }) => {
+test("matställets webbplats visas diskret under adressen utan mobil overflow", async ({ page }) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page);
@@ -198,10 +198,21 @@ test("matställets webbplats visas diskret utan mobil overflow", async ({ page }
   await page.goto(`/matstallen/${PLACE_ID}`);
 
   await expect(page.getByRole("heading", { name: "Testköket" })).toBeVisible();
+  const maps = page.getByRole("link", { name: "Öppna Testköket i Google Maps" });
   const website = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
+  const openingHours = page.getByText("Öppettider", { exact: true });
+  await expect(maps).toBeVisible();
   await expect(website).toBeVisible();
   await expect(website).toHaveAttribute("href", "https://www.testkoket.se/meny");
-  await expect(page.getByRole("link", { name: "Öppna Testköket i Google Maps" })).toBeVisible();
+  await expect(openingHours).toBeVisible();
+
+  const [mapsBox, websiteBox, openingHoursBox] = await Promise.all([
+    maps.boundingBox(),
+    website.boundingBox(),
+    openingHours.boundingBox(),
+  ]);
+  expect(mapsBox?.y ?? 0).toBeLessThan(websiteBox?.y ?? 0);
+  expect(websiteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
 
   const widths = await page.evaluate(() => ({
     documentClient: document.documentElement.clientWidth,

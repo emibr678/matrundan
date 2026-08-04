@@ -13,6 +13,21 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.1] – 2026-08-04
+
+### Ändrat
+
+- Platsdetaljen sammanfattar gruppens antal besök, senaste besök och deltagare
+  direkt under ställets identitet.
+- **Registrera besök** och **Föreslå som nästa stopp** ligger före favorit och
+  öppettider i mobilens läsordning.
+- Webbplatsen visas diskret under den klickbara adressen. När webbplats saknas
+  kan en medlem lägga till den direkt för gruppen.
+- En tillagd webbplats skapar ett privat granskningsunderlag men publiceras
+  aldrig externt automatiskt.
+- Öppettider visas i en egen kompakt utfällbar rad, och tidigare besökta ställen
+  använder den tydligare handlingen **Registrera besök igen**.
+
 ## [1.25.0] – 2026-08-04
 
 ### Ändrat

@@ -17,11 +17,16 @@ import {
   MapPin,
   MessageCircle,
   Plus,
+  UsersRound,
 } from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
-import { PlaceExternalInfo } from "@/components/matrundan/PlaceExternalInfo";
+import {
+  PlaceOpeningHoursInfo,
+  PlacePracticalInfoProvider,
+  PlaceWebsiteInfo,
+} from "@/components/matrundan/PlacePracticalInfo";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { RatingStars } from "@/components/matrundan/Rating";
@@ -130,6 +135,25 @@ function PlaceDetail() {
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
+  const latestVisit = visits[0] ?? null;
+  const latestParticipantNames = latestVisit
+    ? Array.from(
+        new Set(
+          latestVisit.participants?.length
+            ? latestVisit.participants
+                .filter((participant) => participant.status !== "guest")
+                .map((participant) => participant.name)
+            : latestVisit.participantIds
+                .map((participantId) => memberById(participantId)?.name)
+                .filter((name): name is string => Boolean(name)),
+        ),
+      )
+    : [];
+  const latestParticipantSummary = latestParticipantNames.length
+    ? `${latestParticipantNames.slice(0, 2).join(", ")}${
+        latestParticipantNames.length > 2 ? ` +${latestParticipantNames.length - 2}` : ""
+      }`
+    : null;
 
   const goBack = () => {
     if (window.history.length > 1) router.history.back();
@@ -147,85 +171,97 @@ function PlaceDetail() {
         <ArrowLeft className="h-4 w-4" /> Tillbaka
       </Button>
 
-      <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
-        <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
-          <div className="flex items-start gap-3 sm:gap-4">
-            <PlaceThumb place={place} size="lg" />
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
-                {CATEGORY_LABEL[place.category]}
-              </div>
-              <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
-                {place.name}
-              </h1>
-              <a
-                href={googleMapsUrl(place)}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground transition-colors hover:text-primary hover:underline"
-                aria-label={`Öppna ${place.name} i Google Maps`}
-              >
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span className="min-w-0 [overflow-wrap:anywhere]">
-                  {place.address}, {place.city}
-                </span>
-                <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" />
-              </a>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                {isNext ? (
-                  <Badge variant="secondary" className="rounded-full">
-                    <Flag className="mr-1 h-3 w-3" /> Nästa stopp
-                  </Badge>
-                ) : null}
-                {placeRemoved ? (
-                  <Badge variant="outline" className="rounded-full">
-                    <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
-                  </Badge>
-                ) : (
-                  <StatusBadge placeId={place.id} />
-                )}
-              </div>
-            </div>
-          </div>
-          <PlaceExternalInfo place={place} groupId={state.group.id} canReport={writable} />
-        </div>
-
-        {rating.count > 0 ? (
-          <div className="flex items-center gap-4 border-t border-border/60 bg-background/60 px-5 py-4">
-            <div className="text-center">
-              <div className="font-display text-3xl font-semibold leading-none">
-                {formatRating(rating.overall)}
-              </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">av 5</div>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-medium tracking-wide text-muted-foreground">
-                Gruppens helhetsbetyg
-              </div>
-              <RatingStars value={rating.overall} size={16} className="mt-0.5" />
-              <div className="mt-0.5 text-xs text-muted-foreground">
-                {rating.count} betyg från gänget
+      <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
+        <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
+          <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <PlaceThumb place={place} size="lg" />
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
+                  {CATEGORY_LABEL[place.category]}
+                </div>
+                <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
+                  {place.name}
+                </h1>
+                <a
+                  href={googleMapsUrl(place)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground transition-colors hover:text-primary hover:underline"
+                  aria-label={`Öppna ${place.name} i Google Maps`}
+                >
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    {place.address}, {place.city}
+                  </span>
+                  <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" />
+                </a>
+                <PlaceWebsiteInfo />
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  {isNext ? (
+                    <Badge variant="secondary" className="rounded-full">
+                      <Flag className="mr-1 h-3 w-3" /> Nästa stopp
+                    </Badge>
+                  ) : null}
+                  {placeRemoved ? (
+                    <Badge variant="outline" className="rounded-full">
+                      <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
+                    </Badge>
+                  ) : (
+                    <StatusBadge placeId={place.id} />
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        ) : null}
 
-        <div className="space-y-2 p-4">
-          {writable ? (
-            <>
-              <Button
-                size="lg"
-                onClick={() => setVisitOpen(true)}
-                className="h-12 w-full text-base"
-              >
-                <Plus className="h-4 w-4" /> Registrera besök
-              </Button>
-              <div className="grid grid-cols-2 gap-2">
+          <div className="border-t border-border/60 bg-background/60 px-4 py-3 sm:px-5">
+            {latestVisit ? (
+              <div className="flex items-start gap-2.5">
+                <UsersRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                    {rating.count > 0 ? (
+                      <>
+                        <RatingStars value={rating.overall} size={13} />
+                        <span className="font-medium">{formatRating(rating.overall)}</span>
+                        <span aria-hidden="true" className="text-muted-foreground">
+                          ·
+                        </span>
+                      </>
+                    ) : null}
+                    <span className="font-medium">{visits.length} besök</span>
+                  </div>
+                  <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    Senast {formatDate(latestVisit.date)}
+                    {latestParticipantSummary ? ` · ${latestParticipantSummary}` : ""}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-11 items-center gap-2.5 text-sm text-muted-foreground">
+                <UsersRound className="h-4 w-4 shrink-0" />
+                <span>Ingen i gruppen har varit här än</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2 p-4">
+            {writable ? (
+              <>
+                <Button
+                  size="lg"
+                  onClick={() => setVisitOpen(true)}
+                  className="h-12 w-full text-base"
+                >
+                  <Plus className="h-4 w-4" />
+                  {visits.length > 0 ? "Registrera besök igen" : "Registrera besök"}
+                </Button>
                 {isNext ? (
                   <Button
                     variant="ghost"
                     onClick={() => void setNext(null)}
-                    className="min-h-11 whitespace-normal text-muted-foreground"
+                    className="min-h-11 w-full whitespace-normal text-muted-foreground"
                   >
                     Ta bort som nästa stopp
                   </Button>
@@ -233,46 +269,48 @@ function PlaceDetail() {
                   <Button
                     variant="outline"
                     onClick={() => void setNext(place.id)}
-                    className="min-h-11 whitespace-normal"
+                    className="min-h-11 w-full whitespace-normal"
                   >
                     <Flag className="h-4 w-4 shrink-0" />
                     Föreslå som nästa stopp
                   </Button>
                 )}
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => void toggleFavorite(place.id)}
                   aria-pressed={fav}
                   aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
-                  className="min-h-11"
+                  className="min-h-11 w-full text-muted-foreground"
                 >
                   <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
                   Favorit
                 </Button>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm">
+                <div className="font-medium">
+                  {demoReadOnly
+                    ? "Skrivskyddad exempelgrupp"
+                    : placeRemoved
+                      ? "Inte längre i gruppens lista"
+                      : "Gruppen är arkiverad"}
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {demoReadOnly
+                    ? "Du kan utforska stället och gruppens påhittade besök, men inte ändra exempeldata."
+                    : `Tidigare besök, betyg, kommentarer och favoriter finns kvar.${
+                        placeRemoved && !groupArchived
+                          ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
+                          : " Återaktivera gruppen för att göra ändringar."
+                      }`}
+                </p>
               </div>
-            </>
-          ) : (
-            <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm">
-              <div className="font-medium">
-                {demoReadOnly
-                  ? "Skrivskyddad exempelgrupp"
-                  : placeRemoved
-                    ? "Inte längre i gruppens lista"
-                    : "Gruppen är arkiverad"}
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                {demoReadOnly
-                  ? "Du kan utforska stället och gruppens påhittade besök, men inte ändra exempeldata."
-                  : `Tidigare besök, betyg, kommentarer och favoriter finns kvar.${
-                      placeRemoved && !groupArchived
-                        ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
-                        : " Återaktivera gruppen för att göra ändringar."
-                    }`}
-              </p>
-            </div>
-          )}
-        </div>
-      </Card>
+            )}
+          </div>
+
+          <PlaceOpeningHoursInfo />
+        </Card>
+      </PlacePracticalInfoProvider>
 
       <section>
         <h2 className="mb-2 font-display text-lg">
@@ -312,9 +350,9 @@ function PlaceDetail() {
                     })
                   }
                   className="w-full rounded-2xl border border-border/70 bg-card p-3 text-left transition-colors hover:bg-accent focus:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label={`Öppna besök av ${
-                    author?.name ?? "medlem"
-                  } ${formatDate(visit.date)}`}
+                  aria-label={`Öppna besök av ${author?.name ?? "medlem"} ${formatDate(
+                    visit.date,
+                  )}`}
                 >
                   <div className="flex items-start gap-3">
                     {visit.photo?.url ? (
