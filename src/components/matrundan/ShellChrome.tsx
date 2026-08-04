@@ -29,21 +29,11 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
       : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
   const currentMember = state.members.find((member) => member.id === state.currentUserId);
-  const groupContext = exampleMode ? `${state.group.name} · Exempel` : state.group.name;
   const brand = (
     <>
       <span className="shrink-0 text-2xl">🍽️</span>
-      <span className="min-w-0">
-        <span className="block font-display text-xl font-semibold leading-tight tracking-tight">
-          Matrundan
-        </span>
-        <span className="flex min-w-0 items-center gap-1 text-[11px] leading-tight text-muted-foreground">
-          <span className="shrink-0">{state.group.emoji ?? "🍽️"}</span>
-          <span className="truncate" title={groupContext}>
-            {groupContext}
-          </span>
-          {archived ? <span className="shrink-0">· Arkiverad</span> : null}
-        </span>
+      <span className="font-display text-xl font-semibold leading-tight tracking-tight">
+        Matrundan
       </span>
     </>
   );
@@ -61,7 +51,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
           {exampleMode ? (
             <a
               href="/"
-              className="flex min-w-0 max-w-[12rem] items-center gap-2 sm:max-w-[16rem] md:max-w-none"
+              className="flex shrink-0 items-center gap-2"
               onClick={(event) => {
                 event.preventDefault();
                 exitExampleMode();
@@ -70,10 +60,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
               {brand}
             </a>
           ) : (
-            <Link
-              to={homeTarget}
-              className="flex min-w-0 max-w-[12rem] items-center gap-2 sm:max-w-[16rem] md:max-w-none"
-            >
+            <Link to={homeTarget} className="flex shrink-0 items-center gap-2">
               {brand}
             </Link>
           )}
@@ -101,7 +88,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
             })}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
             <AuthMenu exampleMode={exampleMode} />
           </div>
         </header>
