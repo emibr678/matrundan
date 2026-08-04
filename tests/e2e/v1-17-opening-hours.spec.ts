@@ -322,14 +322,19 @@ test("platskortet ger lång identitet naturlig bredd på mobil och desktop", asy
   await expectNoHorizontalOverflow(page);
 
   await page.setViewportSize({ width: 1024, height: 900 });
-  const [desktopThumbBox, desktopMapsBox, desktopAddressIconBox, desktopWebsiteBox, desktopWebsiteIconBox] =
-    await Promise.all([
-      thumb.boundingBox(),
-      mapsLink.boundingBox(),
-      addressExternalIcon.boundingBox(),
-      websiteLink.boundingBox(),
-      websiteExternalIcon.boundingBox(),
-    ]);
+  const [
+    desktopThumbBox,
+    desktopMapsBox,
+    desktopAddressIconBox,
+    desktopWebsiteBox,
+    desktopWebsiteIconBox,
+  ] = await Promise.all([
+    thumb.boundingBox(),
+    mapsLink.boundingBox(),
+    addressExternalIcon.boundingBox(),
+    websiteLink.boundingBox(),
+    websiteExternalIcon.boundingBox(),
+  ]);
   expect(desktopThumbBox).not.toBeNull();
   expect(desktopMapsBox).not.toBeNull();
   expect(desktopAddressIconBox).not.toBeNull();
