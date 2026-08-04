@@ -58,9 +58,7 @@ test("gruppen granskar och simulerar ett rättelseförslag privat", async ({ pag
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  await settings
-    .getByRole("button", { name: /Underhåll av matställen/, exact: false })
-    .click();
+  await settings.getByRole("button", { name: /Underhåll av matställen/, exact: false }).click();
   const maintenance = page.getByRole("dialog", { name: "Underhåll av matställen" });
   const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
 
