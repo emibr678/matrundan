@@ -6,7 +6,8 @@ export type { ChangelogEntry };
 const VERSION_1_25_2_CHANGELOG: ChangelogEntry = {
   version: "1.25.2",
   date: "2026-08-04",
-  summary: "Platsdetaljen samlar identitet, praktisk information och gruppens handlingar tydligare.",
+  summary:
+    "Platsdetaljen samlar identitet, praktisk information och gruppens handlingar tydligare.",
   sections: [
     {
       kind: "Förbättrat",
