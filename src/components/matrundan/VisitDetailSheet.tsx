@@ -2,7 +2,7 @@ import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, MessageCircle, ExternalLink, Share2, Trash2, Users2 } from "lucide-react";
+import { MapPin, MessageCircle, Share2, Trash2, Users2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
+import { formatDate, useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { removeSharedVisitFromGroup, setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
 import { RatingStars } from "./Rating";
@@ -349,22 +349,15 @@ export function VisitDetailSheet({
                   </section>
                 ) : null}
 
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button asChild variant="outline">
-                    <Link
-                      to="/matstallen/$placeId"
-                      params={{ placeId: place.id }}
-                      onClick={() => onOpenChange(false)}
-                    >
-                      Till stället
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <a href={googleMapsUrl(place)} target="_blank" rel="noreferrer">
-                      <ExternalLink className="h-4 w-4" /> Maps
-                    </a>
-                  </Button>
-                </div>
+                <Button asChild variant="outline" className="w-full">
+                  <Link
+                    to="/matstallen/$placeId"
+                    params={{ placeId: place.id }}
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Till stället
+                  </Link>
+                </Button>
 
                 {canShare ? (
                   <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}>
