@@ -176,9 +176,7 @@ export function PlaceExternalInfo({
     } catch (caught) {
       setPracticalInfo(emptyGroupPlacePracticalInfo());
       setPracticalInfoError(
-        caught instanceof Error
-          ? caught.message
-          : "Webbplats och öppettider kunde inte hämtas.",
+        caught instanceof Error ? caught.message : "Webbplats och öppettider kunde inte hämtas.",
       );
     }
   }, [groupId, mode, place.id, storageKind]);
