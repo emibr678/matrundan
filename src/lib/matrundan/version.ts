@@ -3,6 +3,21 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_7_CHANGELOG: ChangelogEntry = {
+  version: "1.25.7",
+  date: "2026-08-05",
+  summary: "Platsdetaljen håller adress, webbplats och tomstatus tätare.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Adress och webbplats ligger på samma obrutna rad under ställets namn, medan en lång adress krymper och radbryts inom sitt eget utrymme.",
+        "Tomläget under Besök är lägre och mer diskret när gruppen ännu saknar registrerade besök.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_6_CHANGELOG: ChangelogEntry = {
   version: "1.25.6",
   date: "2026-08-04",
@@ -296,6 +311,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_7_CHANGELOG,
   VERSION_1_25_6_CHANGELOG,
   VERSION_1_25_5_CHANGELOG,
   VERSION_1_25_4_CHANGELOG,
