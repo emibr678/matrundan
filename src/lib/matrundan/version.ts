@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_5_CHANGELOG: ChangelogEntry = {
+  version: "1.25.5",
+  date: "2026-08-04",
+  summary: "Platskortet ger namn och adress bättre utrymme på mobil.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Favoritknappen ligger på raden med Tillbaka och tar inte längre plats från ställets namn, adress eller webbplats.",
+        "Platsbilden är mindre på de smalaste mobilerna och återgår till full storlek på bredare skärmar.",
+        "Långa namn och adresser får en jämnare, responsiv layout utan onödiga glipor eller sammanpressning.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_4_CHANGELOG: ChangelogEntry = {
   version: "1.25.4",
   date: "2026-08-04",
@@ -265,6 +281,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_5_CHANGELOG,
   VERSION_1_25_4_CHANGELOG,
   VERSION_1_25_3_CHANGELOG,
   VERSION_1_25_2_CHANGELOG,
