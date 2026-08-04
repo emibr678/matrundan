@@ -58,7 +58,11 @@ test("gruppen granskar och simulerar ett rättelseförslag privat", async ({ pag
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  const reportedErrorsSection = settings.getByRole("region", { name: "Rapporterade fel" });
+  await settings
+    .getByRole("button", { name: /Underhåll av matställen/, exact: false })
+    .click();
+  const maintenance = page.getByRole("dialog", { name: "Underhåll av matställen" });
+  const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
 
   await expect(reportedErrorsSection.getByText("1 att granska")).toBeVisible();
   await expect(
