@@ -30,7 +30,6 @@ import {
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
 import { RatingStars } from "@/components/matrundan/Rating";
-import { StatusBadge } from "@/components/matrundan/StatusBadge";
 import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { Badge } from "@/components/ui/badge";
@@ -173,10 +172,28 @@ function PlaceDetail() {
 
       <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
-          <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
+          <div className="relative bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
+            {writable ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => void toggleFavorite(place.id)}
+                aria-pressed={fav}
+                aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
+                className="absolute right-3 top-3 z-10 h-11 w-11 rounded-full border border-border/70 bg-background/80 shadow-sm backdrop-blur hover:bg-background sm:right-4 sm:top-4"
+              >
+                <Heart
+                  className={
+                    fav ? "h-5 w-5 fill-primary stroke-primary" : "h-5 w-5 text-foreground"
+                  }
+                />
+              </Button>
+            ) : null}
+
             <div className="flex items-start gap-3 sm:gap-4">
               <PlaceThumb place={place} size="lg" />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 pr-12">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                   {CATEGORY_LABEL[place.category]}
                 </div>
@@ -187,32 +204,34 @@ function PlaceDetail() {
                   href={googleMapsUrl(place)}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground transition-colors hover:text-primary hover:underline"
+                  className="mt-0.5 flex min-h-11 max-w-full items-start gap-1.5 py-1 text-sm font-medium text-primary transition-colors hover:underline"
                   aria-label={`Öppna ${place.name} i Google Maps`}
                 >
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                   <span className="min-w-0 [overflow-wrap:anywhere]">
                     {place.address}, {place.city}
                   </span>
-                  <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" />
+                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 </a>
                 <PlaceWebsiteInfo />
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  {isNext ? (
-                    <Badge variant="secondary" className="rounded-full">
-                      <Flag className="mr-1 h-3 w-3" /> Nästa stopp
-                    </Badge>
-                  ) : null}
-                  {placeRemoved ? (
-                    <Badge variant="outline" className="rounded-full">
-                      <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
-                    </Badge>
-                  ) : (
-                    <StatusBadge placeId={place.id} />
-                  )}
-                </div>
+                {isNext || placeRemoved ? (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {isNext ? (
+                      <Badge variant="secondary" className="rounded-full">
+                        <Flag className="mr-1 h-3 w-3" /> Nästa stopp
+                      </Badge>
+                    ) : null}
+                    {placeRemoved ? (
+                      <Badge variant="outline" className="rounded-full">
+                        <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
+                      </Badge>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
+
+            <PlaceOpeningHoursInfo />
           </div>
 
           <div className="border-t border-border/60 bg-background/60 px-4 py-3 sm:px-5">
@@ -275,16 +294,6 @@ function PlaceDetail() {
                     Föreslå som nästa stopp
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  onClick={() => void toggleFavorite(place.id)}
-                  aria-pressed={fav}
-                  aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
-                  className="min-h-11 w-full text-muted-foreground"
-                >
-                  <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
-                  Favorit
-                </Button>
               </>
             ) : (
               <div className="rounded-2xl border border-border/70 bg-muted/40 p-3 text-sm">
@@ -307,8 +316,6 @@ function PlaceDetail() {
               </div>
             )}
           </div>
-
-          <PlaceOpeningHoursInfo />
         </Card>
       </PlacePracticalInfoProvider>
 
