@@ -1,14 +1,5 @@
 import * as React from "react";
-import {
-  Archive,
-  ChevronDown,
-  Home,
-  LogIn,
-  LogOut,
-  Mail,
-  Plus,
-  UserCog,
-} from "lucide-react";
+import { Archive, ChevronDown, Home, LogIn, LogOut, Mail, Plus, UserCog } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -167,11 +158,13 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
   const archivedGroups = userGroups.filter((group) => group.lifecycleStatus === "archived");
   const activeGroup = userGroups.find((group) => group.id === activeGroupId);
   const useStoreGroup = exampleMode || mode === "demo" || !activeGroup;
-  const groupName = useStoreGroup ? state.group.name : activeGroup.name;
-  const groupEmoji = useStoreGroup ? (state.group.emoji ?? "🍽️") : (activeGroup.emoji ?? "🍽️");
+  const groupName = useStoreGroup ? state.group.name : (activeGroup?.name ?? state.group.name);
+  const groupEmoji = useStoreGroup
+    ? (state.group.emoji ?? "🍽️")
+    : (activeGroup?.emoji ?? "🍽️");
   const groupArchived = useStoreGroup
     ? state.group.lifecycleStatus === "archived"
-    : activeGroup.lifecycleStatus === "archived";
+    : activeGroup?.lifecycleStatus === "archived";
 
   return (
     <>
@@ -185,7 +178,9 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
           >
             <span className="shrink-0">{groupEmoji}</span>
             <span className="min-w-0 flex-1 truncate">{groupName}</span>
-            {groupArchived ? <Archive className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+            {groupArchived ? (
+              <Archive className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            ) : null}
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
@@ -194,7 +189,9 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
             <div className="text-xs font-normal text-muted-foreground">Inloggad som</div>
             <div className="truncate">{displayName}</div>
             {displayEmail ? (
-              <div className="truncate text-xs font-normal text-muted-foreground">{displayEmail}</div>
+              <div className="truncate text-xs font-normal text-muted-foreground">
+                {displayEmail}
+              </div>
             ) : null}
           </DropdownMenuLabel>
           {exampleMode ? (
