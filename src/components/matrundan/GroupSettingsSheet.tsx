@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { AboutDialog } from "@/components/matrundan/AboutDialog";
+import { AboutContent } from "@/components/matrundan/AboutContent";
 import { GroupSettingsSectionV16 } from "@/components/matrundan/GroupSettingsSectionV16";
 import { HiddenPlaceSuggestionsSection } from "@/components/matrundan/HiddenPlaceSuggestionsSection";
 import { MemberManagementSection } from "@/components/matrundan/MemberManagementSection";
@@ -32,7 +32,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -92,7 +91,6 @@ export function GroupSettingsSheet() {
   const { mode, activeGroupId, activeGroupRole, refreshGroups, user } = useSession();
   const [open, setOpen] = React.useState(false);
   const [view, setView] = React.useState<SettingsView>("menu");
-  const [aboutOpen, setAboutOpen] = React.useState(false);
   const [settingsDirty, setSettingsDirty] = React.useState(false);
 
   const isLive = mode === "live" && !!activeGroupId;
@@ -124,135 +122,113 @@ export function GroupSettingsSheet() {
   const copy = VIEW_COPY[view];
 
   return (
-    <>
-      <Sheet open={open} onOpenChange={handleOpenChange}>
-        <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 shrink-0 rounded-full"
-            aria-label="Gruppinställningar"
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader>
-            {view !== "menu" ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="-ml-2 mb-1 w-fit justify-start rounded-full px-2"
-                onClick={() => changeView("menu")}
-              >
-                <ArrowLeft className="h-4 w-4" /> Till inställningar
-              </Button>
-            ) : null}
-            <SheetTitle>{copy.title}</SheetTitle>
-            <SheetDescription>{copy.description}</SheetDescription>
-          </SheetHeader>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-11 w-11 shrink-0 rounded-full"
+          aria-label="Gruppinställningar"
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+        <SheetHeader>
+          {view !== "menu" ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="-ml-2 mb-1 w-fit justify-start rounded-full px-2"
+              onClick={() => changeView("menu")}
+            >
+              <ArrowLeft className="h-4 w-4" /> Till inställningar
+            </Button>
+          ) : null}
+          <SheetTitle>{copy.title}</SheetTitle>
+          <SheetDescription>{copy.description}</SheetDescription>
+        </SheetHeader>
 
-          <div className="space-y-5 py-4">
-            {view === "menu" ? (
-              <SettingsMenu
-                showGroup={isAdmin && Boolean(activeGroupId)}
-                showMaintenance={canMaintainPlaces}
-                onSelect={changeView}
-              />
-            ) : null}
+        <div className="space-y-5 py-4">
+          {view === "menu" ? (
+            <SettingsMenu
+              showGroup={isAdmin && Boolean(activeGroupId)}
+              showMaintenance={canMaintainPlaces}
+              onSelect={changeView}
+            />
+          ) : null}
 
-            {view === "group" && isAdmin && activeGroupId ? (
-              <GroupSettingsSectionV16
+          {view === "group" && isAdmin && activeGroupId ? (
+            <GroupSettingsSectionV16
+              groupId={activeGroupId}
+              initialName={state.group.name}
+              initialEmoji={state.group.emoji}
+              initialSearchAreas={state.group.searchAreas ?? []}
+              initialRadius={state.group.defaultSearchRadiusKm ?? 1}
+              initialHome={state.group.homeLocation ?? null}
+              onDirtyChange={setSettingsDirty}
+            />
+          ) : null}
+
+          {view === "members" ? (
+            <>
+              <MemberManagementSection
+                members={state.members}
+                currentUserId={state.currentUserId}
+                isOwner={isOwner}
+                isAdmin={isAdmin}
                 groupId={activeGroupId}
-                initialName={state.group.name}
-                initialEmoji={state.group.emoji}
-                initialSearchAreas={state.group.searchAreas ?? []}
-                initialRadius={state.group.defaultSearchRadiusKm ?? 1}
-                initialHome={state.group.homeLocation ?? null}
-                onDirtyChange={setSettingsDirty}
+                onChanged={refreshGroups}
               />
-            ) : null}
+              {isAdmin && activeGroupId ? <InvitationsSection groupId={activeGroupId} /> : null}
+            </>
+          ) : null}
 
-            {view === "members" ? (
-              <>
-                <MemberManagementSection
-                  members={state.members}
-                  currentUserId={state.currentUserId}
-                  isOwner={isOwner}
-                  isAdmin={isAdmin}
+          {view === "maintenance" && canMaintainPlaces ? <HiddenPlaceSuggestionsSection /> : null}
+
+          {view === "status" ? (
+            <>
+              {isAdmin && activeGroupId ? (
+                <ProgressionSettingsSection groupId={activeGroupId} />
+              ) : null}
+              {isLive && activeGroupId ? (
+                <LeaveGroupSection
                   groupId={activeGroupId}
-                  onChanged={refreshGroups}
+                  isOwner={isOwner}
+                  onLeft={refreshGroups}
                 />
-                {isAdmin && activeGroupId ? <InvitationsSection groupId={activeGroupId} /> : null}
-              </>
-            ) : null}
+              ) : null}
+              {canChangeGroupStatus ? <GroupStatusSection /> : null}
+              {mode === "demo" ? (
+                <section>
+                  <h3 className="mb-2 text-sm font-medium">Demo-data</h3>
+                  <Card className="rounded-2xl border-border/70 p-4">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-destructive"
+                      onClick={() => {
+                        if (window.confirm("Nollställ demo-data?")) {
+                          resetDemo();
+                          toast.success("Demo-data återställd");
+                        }
+                      }}
+                    >
+                      <RotateCcw className="h-4 w-4" /> Återställ demo-data
+                    </Button>
+                  </Card>
+                </section>
+              ) : null}
+            </>
+          ) : null}
 
-            {view === "maintenance" && canMaintainPlaces ? <HiddenPlaceSuggestionsSection /> : null}
+          {view === "about" ? <AboutContent /> : null}
 
-            {view === "status" ? (
-              <>
-                {isAdmin && activeGroupId ? (
-                  <ProgressionSettingsSection groupId={activeGroupId} />
-                ) : null}
-                {isLive && activeGroupId ? (
-                  <LeaveGroupSection
-                    groupId={activeGroupId}
-                    isOwner={isOwner}
-                    onLeft={refreshGroups}
-                  />
-                ) : null}
-                {canChangeGroupStatus ? <GroupStatusSection /> : null}
-                {mode === "demo" ? (
-                  <section>
-                    <h3 className="mb-2 text-sm font-medium">Demo-data</h3>
-                    <Card className="rounded-2xl border-border/70 p-4">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-destructive"
-                        onClick={() => {
-                          if (window.confirm("Nollställ demo-data?")) {
-                            resetDemo();
-                            toast.success("Demo-data återställd");
-                          }
-                        }}
-                      >
-                        <RotateCcw className="h-4 w-4" /> Återställ demo-data
-                      </Button>
-                    </Card>
-                  </section>
-                ) : null}
-              </>
-            ) : null}
-
-            {view === "about" ? (
-              <Card className="rounded-2xl border-border/70 p-0">
-                <button
-                  type="button"
-                  onClick={() => setAboutOpen(true)}
-                  className="flex w-full items-center gap-3 rounded-2xl p-4 text-left outline-none transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">Öppna versionshistoriken</div>
-                    <div className="text-xs text-muted-foreground">
-                      Läs vad som är nytt och tidigare uppdateringar.
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="rounded-full">
-                    v{APP_VERSION}
-                  </Badge>
-                </button>
-              </Card>
-            ) : null}
-
-            {isLive && user && view === "menu" ? (
-              <div className="text-[11px] text-muted-foreground">Inloggad som {user.email}</div>
-            ) : null}
-          </div>
-        </SheetContent>
-      </Sheet>
-      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
-    </>
+          {isLive && user && view === "menu" ? (
+            <div className="text-[11px] text-muted-foreground">Inloggad som {user.email}</div>
+          ) : null}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
