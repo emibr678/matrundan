@@ -262,11 +262,7 @@ function PlaceDetail() {
           ) : null}
 
           <div
-            className={
-              latestVisit
-                ? "space-y-2 p-4"
-                : "space-y-2 border-t border-border/60 p-4"
-            }
+            className={latestVisit ? "space-y-2 p-4" : "space-y-2 border-t border-border/60 p-4"}
           >
             {writable ? (
               <>
