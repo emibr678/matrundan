@@ -547,7 +547,7 @@ export function PlaceWebsiteInfo() {
         href={websiteUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-0.5 inline-flex min-h-11 max-w-full items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:underline"
+        className="flex min-h-11 w-fit max-w-full items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:underline"
         aria-label={`Öppna webbplatsen för ${place.name}`}
       >
         <Globe2 className="h-4 w-4 shrink-0" />
@@ -585,94 +585,91 @@ export function PlaceOpeningHoursInfo() {
   const { mode } = useSession();
   const [compareOpen, setCompareOpen] = React.useState(false);
   const summary = loading ? "Hämtar…" : (todaySummary ?? "Saknas");
+  const contentError =
+    practicalInfoError ?? (hasGeoapifySource && error && !details ? error : null);
+  const canExpand = Boolean(openingHours || canEdit || hasConflict || contentError);
 
   async function applyComparedInformation() {
     await applyNewInformationForConflicts();
     setCompareOpen(false);
   }
 
+  const summaryContent = (
+    <>
+      <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 font-medium">Öppettider</span>
+      <span className="max-w-[9rem] truncate text-right text-muted-foreground">{summary}</span>
+    </>
+  );
+
   return (
-    <details className="group mt-3 overflow-hidden rounded-2xl border border-border/60 bg-background/65 shadow-sm">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 py-1.5 text-sm marker:content-none">
-        <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1 font-medium">Öppettider</span>
-        <span className="max-w-[8rem] truncate text-right text-muted-foreground">{summary}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-      </summary>
+    <>
+      {canExpand ? (
+        <details className="group mt-2 border-t border-border/60 pt-1">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-1.5 py-1 text-sm marker:content-none transition-colors hover:bg-background/35">
+            {summaryContent}
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
 
-      <div className="space-y-3 border-t border-border/50 px-3 pb-3 pt-3">
-        {canEdit ? (
-          <div className="flex min-h-9 items-center justify-between gap-2">
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Gruppens webbplats och öppettider
-            </p>
-            <PlacePracticalInfoDialog
-              place={place}
+          <div className="space-y-3 pb-1 pl-6 pt-1 sm:pl-7">
+            {canEdit ? (
+              <div className="flex min-h-9 items-center justify-end">
+                <PlacePracticalInfoDialog
+                  place={place}
+                  groupId={groupId}
+                  practicalInfo={practicalInfo}
+                  externalWebsite={
+                    details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null
+                  }
+                  externalOpeningHours={details?.openingHours ?? null}
+                  canRefreshExternal={mode === "live" && hasGeoapifySource}
+                  refreshingExternal={refreshing || loading}
+                  onRefreshExternal={() => loadExternalDetails(true)}
+                  onSaved={setPracticalInfo}
+                />
+              </div>
+            ) : null}
+
+            {openingHours ? (
+              <div className="rounded-xl bg-background/45 px-3 py-3">
+                <OpeningHoursScheduleList
+                  schedule={openingHours}
+                  timezone={details?.timezone ?? null}
+                />
+              </div>
+            ) : null}
+
+            {hasConflict ? (
+              <button
+                type="button"
+                className="flex min-h-11 w-full items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+                onClick={() => setCompareOpen(true)}
+              >
+                <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1">Det finns nya uppgifter om stället</span>
+                <span className="shrink-0 font-medium text-primary">Jämför</span>
+              </button>
+            ) : null}
+
+            <CrossGroupPracticalInfoSuggestions
               groupId={groupId}
-              practicalInfo={practicalInfo}
-              externalWebsite={
-                details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null
-              }
-              externalOpeningHours={details?.openingHours ?? null}
-              canRefreshExternal={mode === "live" && hasGeoapifySource}
-              refreshingExternal={refreshing || loading}
-              onRefreshExternal={() => loadExternalDetails(true)}
-              onSaved={setPracticalInfo}
+              placeId={place.id}
+              enabled={canEdit}
+              onApplied={loadPracticalInfo}
             />
+
+            {contentError ? (
+              <p role="status" className="text-xs leading-relaxed text-muted-foreground">
+                {contentError}
+              </p>
+            ) : null}
           </div>
-        ) : null}
-
-        {openingHours ? (
-          <section className="overflow-hidden rounded-xl border border-border/60">
-            <div className="flex min-h-11 items-center gap-2 px-3 py-1.5 text-sm">
-              <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1 font-medium">Idag</span>
-              <span className="min-w-0 truncate text-right text-muted-foreground">
-                {todaySummary}
-              </span>
-            </div>
-            <div className="border-t border-border/50 px-3 py-3">
-              <OpeningHoursScheduleList
-                schedule={openingHours}
-                timezone={details?.timezone ?? null}
-              />
-            </div>
-          </section>
-        ) : loading ? (
-          <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Hämtar öppettider…
-          </div>
-        ) : (
-          <p className="rounded-xl bg-muted/35 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
-            Öppettider saknas.
-          </p>
-        )}
-
-        {hasConflict ? (
-          <button
-            type="button"
-            className="flex min-h-11 w-full items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
-            onClick={() => setCompareOpen(true)}
-          >
-            <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1">Det finns nya uppgifter om stället</span>
-            <span className="shrink-0 font-medium text-primary">Jämför</span>
-          </button>
-        ) : null}
-
-        <CrossGroupPracticalInfoSuggestions
-          groupId={groupId}
-          placeId={place.id}
-          enabled={canEdit}
-          onApplied={loadPracticalInfo}
-        />
-
-        {practicalInfoError || (hasGeoapifySource && error && !details) ? (
-          <p role="status" className="text-xs leading-relaxed text-muted-foreground">
-            {practicalInfoError ?? error}
-          </p>
-        ) : null}
-      </div>
+        </details>
+      ) : (
+        <div className="mt-2 flex min-h-11 items-center gap-2 border-t border-border/60 px-1.5 pt-1 text-sm">
+          {summaryContent}
+        </div>
+      )}
 
       <AlertDialog open={compareOpen} onOpenChange={setCompareOpen}>
         <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
@@ -729,6 +726,6 @@ export function PlaceOpeningHoursInfo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </details>
+    </>
   );
 }
