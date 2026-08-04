@@ -233,15 +233,18 @@ test("detaljsidan visar ett kompakt veckoschema utan Öppet nu-status", async ({
   await page.goto(`/matstallen/${PLACE_ID}`);
 
   await expect(page.getByRole("heading", { name: "Testköket" })).toBeVisible();
-  await expect(page.getByText("Öppettider idag", { exact: true })).toBeVisible();
+  const practicalInfo = page.getByText("Webbplats och öppettider", { exact: true });
+  await expect(practicalInfo).toBeVisible();
+  await expect(page.getByText("Öppettider idag", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Öppet nu", { exact: true })).toHaveCount(0);
-  await page.getByText("Öppettider idag", { exact: true }).click();
+  await practicalInfo.click();
+  await expect(page.getByText("Öppettider idag", { exact: true })).toBeVisible();
   await expect(page.getByText("Måndag", { exact: true })).toBeVisible();
   await expect(page.getByText("Söndag", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 
-test("saknad webbplats och öppettider kan redigeras utan stor tom informationsruta", async ({
+test("saknad praktisk information tar en rad efter gruppens viktigaste handlingar", async ({
   page,
 }) => {
   const now = new Date().toISOString();
@@ -257,11 +260,36 @@ test("saknad webbplats och öppettider kan redigeras utan stor tom informationsr
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  await expect(page.getByText("Webbplats och öppettider", { exact: true })).toBeVisible();
+  await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toBeVisible();
+  const register = page.getByRole("button", { name: "Registrera besök", exact: true });
+  const propose = page.getByRole("button", { name: "Föreslå som nästa stopp", exact: true });
+  const favorite = page.getByRole("button", { name: "Markera som favorit", exact: true });
+  const practicalInfo = page.getByText("Webbplats och öppettider", { exact: true });
+  await expect(register).toBeVisible();
+  await expect(propose).toBeVisible();
+  await expect(favorite).toBeVisible();
+  await expect(practicalInfo).toBeVisible();
+  await expect(page.getByText("Saknas", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ändra", exact: true })).toHaveCount(0);
+
+  const [registerBox, proposeBox, favoriteBox, practicalBox] = await Promise.all([
+    register.boundingBox(),
+    propose.boundingBox(),
+    favorite.boundingBox(),
+    practicalInfo.boundingBox(),
+  ]);
+  expect(registerBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(proposeBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(favoriteBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(registerBox?.y ?? 0).toBeLessThan(proposeBox?.y ?? 0);
+  expect(proposeBox?.y ?? 0).toBeLessThan(favoriteBox?.y ?? 0);
+  expect(favoriteBox?.y ?? 0).toBeLessThan(practicalBox?.y ?? 0);
+
+  await practicalInfo.click();
   await expect(page.getByRole("button", { name: "Ändra", exact: true })).toBeVisible();
-  await expect(page.getByText("Webbplats", { exact: true })).toBeVisible();
-  await expect(page.getByText("Öppettider idag", { exact: true })).toBeVisible();
-  await expect(page.getByText("Saknas", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Webbplats och öppettider saknas.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Webbplats", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Öppettider idag", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Öppna Testköket i Google Maps" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
