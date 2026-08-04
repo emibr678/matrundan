@@ -47,6 +47,9 @@ Motivering:
 
 ## Changelog och version
 
+Dokumentations-, test- eller verktygsändringar utan versionshöjning måste
+markera **Version: inte relevant** för att klara releasekontrollen.
+
 - [ ] `CHANGELOG.md` har en daterad release som matchar apphistoriken
 - [ ] Patch
 - [ ] Minor
