@@ -10,7 +10,6 @@ import {
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
   ArrowLeft,
-  ExternalLink,
   Flag,
   Heart,
   ListX,
@@ -22,6 +21,7 @@ import {
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
+import { PlaceExternalLink } from "@/components/matrundan/PlaceExternalLink";
 import {
   PlaceOpeningHoursInfo,
   PlacePracticalInfoProvider,
@@ -200,19 +200,16 @@ function PlaceDetail() {
                 <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
                   {place.name}
                 </h1>
-                <a
+                <PlaceExternalLink
                   href={googleMapsUrl(place)}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-0.5 flex min-h-11 max-w-full items-start gap-1.5 py-1 text-sm font-medium text-primary transition-colors hover:underline"
+                  icon={MapPin}
+                  prefix={`${place.address}, `}
+                  tail={place.city}
+                  className="mt-0.5"
                   aria-label={`Öppna ${place.name} i Google Maps`}
-                >
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">
-                    {place.address}, {place.city}
-                  </span>
-                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                </a>
+                />
                 <PlaceWebsiteInfo />
                 {isNext || placeRemoved ? (
                   <div className="mt-1 flex flex-wrap items-center gap-2">
