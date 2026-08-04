@@ -34,7 +34,7 @@ export function PlaceThumb({
           : "h-14 w-14 text-3xl";
   return (
     <div
-      data-slot="place-thumb"
+      data-slot="place-thumb-visual-check"
       className={`relative grid ${dims} shrink-0 place-items-center overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br ${CATEGORY_GRADIENT[place.category]}`}
       aria-hidden="true"
     >
