@@ -300,7 +300,9 @@ test("nya uppgifter jämförs med verkliga värden innan gruppen väljer", async
   await expect(comparison.getByText("11–22", { exact: true }).first()).toBeVisible();
   await comparison.getByRole("button", { name: "Använd de nya uppgifterna" }).click();
 
-  await expect(page.getByText("Det finns nya uppgifter om stället", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Det finns nya uppgifter om stället", { exact: true })).toHaveCount(
+    0,
+  );
   await expect(page.getByRole("link", { name: "Öppna webbplatsen för Testköket" })).toHaveAttribute(
     "href",
     "https://kartdata.example/",
