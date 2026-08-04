@@ -1,8 +1,9 @@
 import * as React from "react";
-import { ChevronDown, Clock3, ExternalLink, Globe2, Info, Loader2, Plus } from "lucide-react";
+import { ChevronDown, Clock3, Globe2, Info, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { CrossGroupPracticalInfoSuggestions } from "./CrossGroupPracticalInfoSuggestions";
+import { PlaceExternalLink } from "./PlaceExternalLink";
 import { PlacePracticalInfoDialog } from "./PlacePracticalInfoDialog";
 import {
   AlertDialog,
@@ -543,17 +544,14 @@ export function PlaceWebsiteInfo() {
 
   if (websiteUrl) {
     return (
-      <a
+      <PlaceExternalLink
         href={websiteUrl}
         target="_blank"
         rel="noreferrer"
-        className="flex min-h-11 w-fit max-w-full items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:underline"
+        icon={Globe2}
+        tail="Webbplats"
         aria-label={`Öppna webbplatsen för ${place.name}`}
-      >
-        <Globe2 className="h-4 w-4 shrink-0" />
-        <span>Webbplats</span>
-        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-      </a>
+      />
     );
   }
 
