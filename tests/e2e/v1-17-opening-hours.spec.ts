@@ -54,11 +54,7 @@ async function seedAuthenticatedSession(page: Page, details: unknown) {
   );
 }
 
-async function mockLiveGroup(
-  page: Page,
-  website: string | null,
-  address = "Testgatan 1",
-) {
+async function mockLiveGroup(page: Page, website: string | null, address = "Testgatan 1") {
   const now = new Date().toISOString();
   await page.route("**/rest/v1/rpc/list_user_groups_v4b", async (route) => {
     await route.fulfill({
@@ -298,11 +294,13 @@ test("långa och korta externa länkar håller ihop på mobil och desktop", asyn
   expect(desktopWebsiteBox).not.toBeNull();
   expect(desktopWebsiteIconBox).not.toBeNull();
   expect(
-    desktopMapsBox!.x + desktopMapsBox!.width -
+    desktopMapsBox!.x +
+      desktopMapsBox!.width -
       (desktopAddressIconBox!.x + desktopAddressIconBox!.width),
   ).toBeLessThanOrEqual(2);
   expect(
-    desktopWebsiteBox!.x + desktopWebsiteBox!.width -
+    desktopWebsiteBox!.x +
+      desktopWebsiteBox!.width -
       (desktopWebsiteIconBox!.x + desktopWebsiteIconBox!.width),
   ).toBeLessThanOrEqual(2);
   await expectNoHorizontalOverflow(page);
