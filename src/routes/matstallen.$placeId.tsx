@@ -171,11 +171,7 @@ function PlaceDetail() {
         <ArrowLeft className="h-4 w-4" /> Tillbaka
       </Button>
 
-      <PlacePracticalInfoProvider
-        place={place}
-        groupId={state.group.id}
-        canReport={writable}
-      >
+      <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
           <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
             <div className="flex items-start gap-3 sm:gap-4">
@@ -286,9 +282,7 @@ function PlaceDetail() {
                   aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
                   className="min-h-11 w-full text-muted-foreground"
                 >
-                  <Heart
-                    className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"}
-                  />
+                  <Heart className={fav ? "h-4 w-4 fill-primary stroke-primary" : "h-4 w-4"} />
                   Favorit
                 </Button>
               </>
