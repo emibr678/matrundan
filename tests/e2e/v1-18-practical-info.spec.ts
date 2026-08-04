@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const SUPABASE_AUTH_STORAGE_KEY = "sb-bkyzxkfrenbbkgiymofk-auth-token";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const GROUP_ID = "22222222-2222-4222-8222-222222222222";
+const GROUP_NAME = "Enskede med omnejd och ännu längre gruppnamn";
 const PLACE_ID = "33333333-3333-4333-8333-333333333333";
 const PROVIDER_PLACE_ID = "geo-testkoket";
 const REPORT_ID = "44444444-4444-4444-8444-444444444444";
@@ -77,7 +78,7 @@ async function seedAuthenticatedSession(page: Page, externalHours = "11–22") {
           confirmed_at: now,
           last_sign_in_at: now,
           app_metadata: { provider: "google", providers: ["google"] },
-          user_metadata: { full_name: "Testanvändare" },
+          user_metadata: { full_name: "Testanvändare med ett mycket långt fullständigt namn" },
           identities: [],
           created_at: now,
           updated_at: now,
@@ -99,7 +100,7 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
       body: JSON.stringify([
         {
           id: GROUP_ID,
-          name: "Testgruppen",
+          name: GROUP_NAME,
           emoji: "🍽️",
           role: "owner",
           lifecycleStatus: "active",
@@ -116,7 +117,7 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
         currentUserId: USER_ID,
         group: {
           id: GROUP_ID,
-          name: "Testgruppen",
+          name: GROUP_NAME,
           emoji: "🍽️",
           city: "Stockholm",
           createdAt: now,
@@ -226,7 +227,7 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(widths.bodyScroll).toBeLessThanOrEqual(widths.bodyClient);
 }
 
-test("en aktiv medlem uppdaterar gruppens praktiska information med diskret underlag", async ({
+test("en aktiv medlem uppdaterar gruppens webbplats och öppettider utan tekniskt brus", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
@@ -242,13 +243,17 @@ test("en aktiv medlem uppdaterar gruppens praktiska information med diskret unde
   });
 
   await page.goto(`/matstallen/${PLACE_ID}`);
-  await expect(page.getByText("Praktiskt", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Profil och grupp: ${GROUP_NAME}` })).toBeVisible();
+  await expect(page.getByText("Webbplats och öppettider", { exact: true })).toBeVisible();
+  await expect(page.getByText("Praktiskt", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Öppna Testköket i Google Maps" })).toBeVisible();
+  await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Ändra", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "Ändra webbplats och öppettider" });
   await expect(dialog.getByText("Hur vet du det?", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("Tidigare ändringar", { exact: true })).toHaveCount(0);
+  await dialog.getByText("Fler alternativ", { exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Sök efter ny information" })).toBeVisible();
   await dialog.getByLabel("Webbplats").fill("https://gruppen.example");
   for (const code of ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]) {
     await dialog.locator(`#practical-hours-${code}`).fill("12–23");
@@ -263,13 +268,13 @@ test("en aktiv medlem uppdaterar gruppens praktiska information med diskret unde
   await expect(website).toHaveAttribute("href", "https://gruppen.example/");
   await expect(page.getByText("Öppettider idag", { exact: true })).toBeVisible();
   await expect(page.getByText("12–23", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Gruppens uppgift", { exact: true })).toHaveCount(2);
-  await expect(page.getByText("Visa källa", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Gruppens uppgift", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/Gruppens uppgift ändrad/)).toHaveCount(0);
   expect(mocked.reportCount()).toBe(2);
   await expectNoHorizontalOverflow(page);
 });
 
-test("kartdata skriver inte över gruppens uppgift utan ett uttryckligt val", async ({ page }) => {
+test("nya uppgifter jämförs med verkliga värden innan gruppen väljer", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, "11–22");
   const mocked = await mockLiveGroup(page, {
@@ -283,15 +288,19 @@ test("kartdata skriver inte över gruppens uppgift utan ett uttryckligt val", as
   });
 
   await page.goto(`/matstallen/${PLACE_ID}`);
-  await expect(page.getByText("Ny kartdata finns.", { exact: false })).toBeVisible();
-  await page.getByText("Ny kartdata finns.", { exact: false }).click();
+  await expect(page.getByText("Det finns nya uppgifter om stället", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Det finns nya uppgifter om stället/ }).click();
 
-  const comparison = page.getByRole("alertdialog", { name: "Jämför med kartdatan" });
-  await expect(comparison.getByText(/Gruppen: https:\/\/gruppen\.example/)).toBeVisible();
-  await expect(comparison.getByText(/Kartdata: https:\/\/kartdata\.example/)).toBeVisible();
-  await comparison.getByRole("button", { name: "Använd kartdatan" }).click();
+  const comparison = page.getByRole("alertdialog", { name: "Jämför uppgifter" });
+  await expect(comparison.getByText("Nuvarande uppgift", { exact: true }).first()).toBeVisible();
+  await expect(comparison.getByText("Nya uppgifter", { exact: true }).first()).toBeVisible();
+  await expect(comparison.getByText("https://gruppen.example/", { exact: true })).toBeVisible();
+  await expect(comparison.getByText("https://kartdata.example/", { exact: true })).toBeVisible();
+  await expect(comparison.getByText("12–23", { exact: true }).first()).toBeVisible();
+  await expect(comparison.getByText("11–22", { exact: true }).first()).toBeVisible();
+  await comparison.getByRole("button", { name: "Använd de nya uppgifterna" }).click();
 
-  await expect(page.getByText("Ny kartdata finns.", { exact: false })).toHaveCount(0);
+  await expect(page.getByText("Det finns nya uppgifter om stället", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Öppna webbplatsen för Testköket" })).toHaveAttribute(
     "href",
     "https://kartdata.example/",
@@ -301,7 +310,7 @@ test("kartdata skriver inte över gruppens uppgift utan ett uttryckligt val", as
   await expectNoHorizontalOverflow(page);
 });
 
-test("återgång till kartdata skapar inget nytt granskningsunderlag", async ({ page }) => {
+test("återgång till hittade uppgifter skapar inget nytt granskningsunderlag", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page);
   const mocked = await mockLiveGroup(page, {
@@ -317,7 +326,7 @@ test("återgång till kartdata skapar inget nytt granskningsunderlag", async ({ 
   await page.goto(`/matstallen/${PLACE_ID}`);
   await page.getByRole("button", { name: "Ändra", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Ändra webbplats och öppettider" });
-  await dialog.getByRole("button", { name: "Använd kartdata för allt" }).click();
+  await dialog.getByRole("button", { name: "Använd hittade uppgifter för allt" }).click();
   await dialog.getByRole("button", { name: "Spara för gruppen" }).click();
 
   await expect(page.getByRole("link", { name: "Öppna webbplatsen för Testköket" })).toHaveAttribute(
