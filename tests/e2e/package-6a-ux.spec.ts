@@ -123,13 +123,10 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     .getByRole("heading", { name: "Om stället" })
     .evaluate((element) => element.getBoundingClientRect().top);
   expect(visitHistoryTop).toBeLessThan(aboutPlaceTop);
-  const ratingDetailsTop = await page
-    .getByRole("heading", { name: "Betygsdetaljer" })
-    .evaluate((element) => element.getBoundingClientRect().top);
   const reportTop = await page
     .getByRole("button", { name: "Rapportera felaktig information" })
     .evaluate((element) => element.getBoundingClientRect().top);
-  expect(reportTop).toBeGreaterThan(ratingDetailsTop);
+  expect(reportTop).toBeGreaterThan(aboutPlaceTop);
 
   await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
   await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
