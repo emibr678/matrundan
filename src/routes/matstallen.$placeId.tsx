@@ -213,22 +213,25 @@ function PlaceDetail() {
                     ) : null}
                   </div>
                 ) : null}
-                <div
-                  data-testid="place-practical-links"
-                  className="mt-0.5 flex min-w-0 flex-wrap items-start gap-x-3 gap-y-0"
-                >
-                  <PlaceExternalLink
-                    href={googleMapsUrl(place)}
-                    target="_blank"
-                    rel="noreferrer"
-                    icon={MapPin}
-                    prefix={`${place.address}, `}
-                    tail={place.city}
-                    className="w-fit"
-                    aria-label={`Öppna ${place.name} i Google Maps`}
-                  />
-                  <PlaceWebsiteInfo />
-                </div>
+              </div>
+            </div>
+
+            <div
+              data-testid="place-practical-links"
+              className="mt-2 flex min-w-0 items-start gap-x-2 sm:gap-x-3"
+            >
+              <PlaceExternalLink
+                href={googleMapsUrl(place)}
+                target="_blank"
+                rel="noreferrer"
+                icon={MapPin}
+                prefix={`${place.address}, `}
+                tail={place.city}
+                className="min-w-0"
+                aria-label={`Öppna ${place.name} i Google Maps`}
+              />
+              <div className="shrink-0 self-start [&>button]:items-start [&>button]:py-1">
+                <PlaceWebsiteInfo />
               </div>
             </div>
 
@@ -322,8 +325,8 @@ function PlaceDetail() {
           {visits.length > 0 ? `Besök (${visits.length})` : "Besök"}
         </h2>
         {visits.length === 0 ? (
-          <Card className="rounded-2xl border-dashed p-5 text-center">
-            <p className="text-sm text-muted-foreground">
+          <Card className="rounded-2xl border-dashed bg-transparent px-4 py-3 text-center shadow-none">
+            <p className="text-xs leading-5 text-muted-foreground">
               {writable ? "Ingen har varit här än." : "Inga registrerade besök finns i historiken."}
             </p>
           </Card>
