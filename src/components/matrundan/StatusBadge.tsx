@@ -14,23 +14,23 @@ export function StatusBadge({ placeId }: { placeId: string }) {
         }
       : status === "alla-provat"
         ? {
-            text: `Provat av alla ${total} medlemmar`,
+            text: "Alla har provat",
             cls: "bg-sage/40 text-sage-foreground border-sage/50",
           }
         : status === "nytt-for-mig"
           ? {
-              text: `Nytt för dig · ${visited} av ${total} medlemmar har varit här`,
+              text: "Nytt för dig",
               cls: "bg-mustard/40 text-mustard-foreground border-mustard/50",
             }
           : {
-              text: `Provat i gänget · ${visited} av ${total} medlemmar`,
+              text: `${visited} av ${total} har provat`,
               cls: "bg-muted text-muted-foreground border-border",
             };
 
   return (
     <Badge
       variant="outline"
-      className={`max-w-full whitespace-normal rounded-full px-2.5 py-0.5 text-right text-[11px] font-medium ${meta.cls}`}
+      className={`max-w-full whitespace-nowrap rounded-full px-2.5 py-0.5 text-center text-[11px] font-medium ${meta.cls}`}
     >
       {meta.text}
     </Badge>
