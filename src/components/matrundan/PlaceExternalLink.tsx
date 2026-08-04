@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface PlaceExternalLinkProps extends Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
-  "children"
+  "children" | "prefix"
 > {
   icon: LucideIcon;
   prefix?: React.ReactNode;
