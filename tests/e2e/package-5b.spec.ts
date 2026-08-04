@@ -63,16 +63,22 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(dialog.getByRole("checkbox")).toHaveCount(0);
   const initialExistingCount = await readExistingCount(dialog);
 
-  const resultHeading = dialog.getByRole("heading", { name: "Ställen att lägga till" });
-  const listToggle = dialog.getByRole("button", { name: "Lista", exact: true });
-  const bulkToggle = dialog.getByRole("button", { name: "Välj flera", exact: true });
+  const resultHeading = dialog.locator("h3:visible", { hasText: "Ställen att lägga till" });
+  const listToggle = dialog.locator("button:visible").filter({ hasText: /^Lista$/ });
+  const bulkToggle = dialog.locator("button:visible").filter({ hasText: /^Välj flera$/ });
+  await expect(resultHeading).toBeVisible();
+  await expect(listToggle).toBeVisible();
+  await expect(bulkToggle).toBeVisible();
   const [headingBox, listBox, bulkBox] = await Promise.all([
     resultHeading.boundingBox(),
     listToggle.boundingBox(),
     bulkToggle.boundingBox(),
   ]);
-  expect(headingBox?.y ?? 0).toBeLessThan(listBox?.y ?? 0);
-  expect(listBox?.y ?? 0).toBeLessThan(bulkBox?.y ?? 0);
+  if (!headingBox || !listBox || !bulkBox) {
+    throw new Error("Kunde inte mäta de synliga mobilkontrollerna för sökresultaten.");
+  }
+  expect(headingBox.y).toBeLessThan(listBox.y);
+  expect(listBox.y).toBeLessThan(bulkBox.y);
 
   await bulkToggle.click();
   await expect(dialog.getByRole("button", { name: "Avbryt", exact: true })).toBeVisible();
