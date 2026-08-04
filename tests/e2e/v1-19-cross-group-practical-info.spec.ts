@@ -213,9 +213,9 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 async function openPracticalInfo(page: Page) {
-  const practicalInfo = page.getByText("Webbplats och öppettider", { exact: true });
-  await expect(practicalInfo).toBeVisible();
-  await practicalInfo.click();
+  const openingHours = page.getByText("Öppettider", { exact: true });
+  await expect(openingHours).toBeVisible();
+  await openingHours.click();
 }
 
 test("visar och tillämpar fältvisa förslag utan privat ursprungsdata", async ({ page }) => {
