@@ -15,18 +15,13 @@ const VERSION_1_25_0_CHANGELOG: ChangelogEntry = {
         "Platsdetaljen prioriterar betyg, handlingar och besök medan webbplats och öppettider visas kompakt och adressen öppnar Google Maps.",
         "Nya uppgifter om webbplats eller öppettider kan jämföras direkt med gruppens nuvarande värden utan att något skrivs över automatiskt.",
         "Om Matrundan visar syfte, aktuell version och tidigare uppdateringar direkt i gruppinställningarna.",
+        "Interna notifieringsköer och äldre appstatusfunktioner har fått striktare anropsrättigheter i databasen.",
       ],
     },
     {
       kind: "Rättat",
       items: [
         "Teknisk ändringsinformation och manuell informationskontroll belastar inte längre platsens vardagsvy, och rapportering av fel ligger som en diskret slutåtgärd.",
-      ],
-    },
-    {
-      kind: "Säkerhet",
-      items: [
-        "Interna notifieringsköer och äldre appstatusfunktioner har fått striktare anropsrättigheter i databasen.",
       ],
     },
   ],
