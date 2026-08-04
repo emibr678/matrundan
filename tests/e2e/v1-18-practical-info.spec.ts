@@ -227,6 +227,12 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(widths.bodyScroll).toBeLessThanOrEqual(widths.bodyClient);
 }
 
+async function openPracticalInfo(page: Page) {
+  const practicalInfo = page.getByText("Webbplats och öppettider", { exact: true });
+  await expect(practicalInfo).toBeVisible();
+  await practicalInfo.click();
+}
+
 test("en aktiv medlem uppdaterar gruppens webbplats och öppettider utan tekniskt brus", async ({
   page,
 }) => {
@@ -248,6 +254,7 @@ test("en aktiv medlem uppdaterar gruppens webbplats och öppettider utan teknisk
   await expect(page.getByText("Praktiskt", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Öppna Testköket i Google Maps" })).toBeVisible();
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
+  await openPracticalInfo(page);
   await page.getByRole("button", { name: "Ändra", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "Ändra webbplats och öppettider" });
@@ -288,6 +295,7 @@ test("nya uppgifter jämförs med verkliga värden innan gruppen väljer", async
   });
 
   await page.goto(`/matstallen/${PLACE_ID}`);
+  await openPracticalInfo(page);
   await expect(page.getByText("Det finns nya uppgifter om stället", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Det finns nya uppgifter om stället/ }).click();
 
@@ -326,6 +334,7 @@ test("återgång till hittade uppgifter skapar inget nytt granskningsunderlag", 
   });
 
   await page.goto(`/matstallen/${PLACE_ID}`);
+  await openPracticalInfo(page);
   await page.getByRole("button", { name: "Ändra", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Ändra webbplats och öppettider" });
   await dialog.getByRole("button", { name: "Använd hittade uppgifter för allt" }).click();
