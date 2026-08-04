@@ -13,6 +13,19 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.2] – 2026-08-04
+
+### Ändrat
+
+- Adressen har samma tydliga länkstil som webbplatsen och öppnar fortfarande
+  Google Maps.
+- Favorit är en kompakt hjärtknapp i platskortets övre högra hörn i stället för
+  en egen rad.
+- Öppettider ligger tillsammans med ställets identitet och kan fortfarande
+  fällas ut för veckoschema och underhåll.
+- Den dubblerade statusen **Nytt för gruppen** visas inte längre på detaljsidan
+  när grupprelationen redan förklarar besökshistoriken.
+
 ## [1.25.1] – 2026-08-04
 
 ### Ändrat

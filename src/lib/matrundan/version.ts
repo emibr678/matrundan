@@ -3,6 +3,24 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_2_CHANGELOG: ChangelogEntry = {
+  version: "1.25.2",
+  date: "2026-08-04",
+  summary:
+    "Platsdetaljen samlar identitet, praktisk information och gruppens handlingar tydligare.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Adressen har samma tydliga länkstil som webbplatsen och öppnar fortfarande Google Maps.",
+        "Favorit är en kompakt hjärtknapp i platskortets övre högra hörn i stället för en egen rad.",
+        "Öppettider ligger tillsammans med ställets identitet och kan fortfarande fällas ut för veckoschema och underhåll.",
+        "Den dubblerade statusen Nytt för gruppen visas inte längre på detaljsidan när grupprelationen redan förklarar besökshistoriken.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_1_CHANGELOG: ChangelogEntry = {
   version: "1.25.1",
   date: "2026-08-04",
@@ -216,6 +234,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_2_CHANGELOG,
   VERSION_1_25_1_CHANGELOG,
   VERSION_1_25_0_CHANGELOG,
   VERSION_1_24_0_CHANGELOG,
