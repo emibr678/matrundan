@@ -13,6 +13,28 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.0] – 2026-08-04
+
+### Ändrat
+
+- Den kombinerade profil- och gruppmenyn visar aktiv grupp i sidhuvudet och
+  hanterar långa gruppnamn utan en extra rad under Matrundan.
+- Platsdetaljen prioriterar betyg, handlingar och besök. Webbplats och
+  öppettider visas kompakt, medan adressen öppnar Google Maps.
+- Nya uppgifter om webbplats eller öppettider kan jämföras direkt med gruppens
+  nuvarande värden. Ingenting skrivs över automatiskt.
+- Underhållsinformation och sökning efter nya platsuppgifter ligger i
+  redigeringsdialogen i stället för i vardagsvyn.
+- **Rapportera felaktig information** ligger som en diskret slutåtgärd på
+  platsdetaljen i stället för inuti **Om stället**.
+- **Om Matrundan** visar syfte, aktuell version och tidigare uppdateringar direkt
+  i gruppinställningarna utan ett extra dialogsteg.
+
+### Säkerhet
+
+- Interna notifieringsköer och äldre appstatusfunktioner har fått striktare
+  anropsrättigheter i databasen.
+
 ## [1.24.0] – 2026-08-04
 
 ### Ändrat
