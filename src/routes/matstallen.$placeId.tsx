@@ -8,7 +8,16 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import { ArrowLeft, Flag, Heart, ListX, MapPin, MessageCircle, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Flag,
+  Heart,
+  ListX,
+  MapPin,
+  MessageCircle,
+  Plus,
+} from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
@@ -23,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
-import { formatDate, useStore } from "@/lib/matrundan/store";
+import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -149,12 +158,19 @@ function PlaceDetail() {
               <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
                 {place.name}
               </h1>
-              <div className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground">
+              <a
+                href={googleMapsUrl(place)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 flex max-w-full items-start gap-1 text-sm text-muted-foreground transition-colors hover:text-primary hover:underline"
+                aria-label={`Öppna ${place.name} i Google Maps`}
+              >
                 <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span className="min-w-0 [overflow-wrap:anywhere]">
                   {place.address}, {place.city}
                 </span>
-              </div>
+                <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" />
+              </a>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {isNext ? (
                   <Badge variant="secondary" className="rounded-full">
@@ -399,16 +415,6 @@ function PlaceDetail() {
           <div className="text-xs text-muted-foreground">
             Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
           </div>
-          {!demoReadOnly && !groupArchived ? (
-            <div className="border-t border-border/60 pt-3">
-              <div className="text-sm font-medium">Felaktig platsinformation?</div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Rapportera namn, adress, webbplats, öppettider, dubblett eller att verksamheten kan
-                ha stängt permanent. Rapporten går först till gruppens admin.
-              </p>
-              <PlaceDataReportDialog place={place} />
-            </div>
-          ) : null}
         </Card>
       </section>
 
@@ -424,6 +430,12 @@ function PlaceDetail() {
             <RatingCell label="Service" value={detail.service} />
           </Card>
         </section>
+      ) : null}
+
+      {!demoReadOnly && !groupArchived ? (
+        <div className="pt-1">
+          <PlaceDataReportDialog place={place} triggerLabel="Rapportera felaktig information" />
+        </div>
       ) : null}
 
       {writable ? (

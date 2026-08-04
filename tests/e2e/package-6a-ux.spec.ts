@@ -41,7 +41,8 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await page.setViewportSize({ width: 360, height: 800 });
 
   await page.goto("/?demo=1");
-  await expect(page.getByText("Fredagsgänget", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
+  await expect(page.locator("header").getByText("Fredagsgänget", { exact: true })).toHaveCount(1);
   await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Senaste aktivitet" })).toHaveCount(0);
   await expect(page.getByText(/^Ni har provat \d+ av \d+ ställen tillsammans$/)).toBeVisible();
@@ -65,6 +66,17 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(page).toHaveURL(/\/besok\?visit=/);
   await expect(page.getByRole("dialog")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Besöksdetalj från Aktivitet");
+
+  await page.goto("/gruppen?demo=1");
+  await page.getByRole("button", { name: "Gruppinställningar" }).click();
+  await page.getByRole("button", { name: /Om Matrundan/ }).click();
+  await expect(page.getByRole("heading", { name: "Om Matrundan" })).toBeVisible();
+  await expect(
+    page.getByText(/Matrundan hjälper vänner och familjer att samla matställen/),
+  ).toBeVisible();
+  await expect(page.getByText("Vad är nytt", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Öppna versionshistoriken" })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Om Matrundan");
 
   await page.goto("/matstallen?demo=1");
   await expect(
@@ -96,6 +108,8 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(page.getByRole("button", { name: "Föreslå som nästa stopp" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Markera som favorit" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Öppna .* i Google Maps/ })).toBeVisible();
+  await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Webbplats och öppettider", { exact: true })).toBeVisible();
   await expect(
     page
       .getByRole("heading", { name: "Om stället" })
@@ -109,6 +123,10 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     .getByRole("heading", { name: "Om stället" })
     .evaluate((element) => element.getBoundingClientRect().top);
   expect(visitHistoryTop).toBeLessThan(aboutPlaceTop);
+  const reportTop = await page
+    .getByRole("button", { name: "Rapportera felaktig information" })
+    .evaluate((element) => element.getBoundingClientRect().top);
+  expect(reportTop).toBeGreaterThan(aboutPlaceTop);
 
   await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
   await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();

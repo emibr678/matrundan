@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2, Pencil, RotateCcw } from "lucide-react";
+import { Loader2, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,15 @@ function scheduleEqual(
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function formatTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("sv-SE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function reportDescription(
   label: string,
   sourceUrl: string | null,
@@ -84,6 +93,9 @@ export function PlacePracticalInfoDialog({
   externalWebsite,
   externalOpeningHours,
   disabled = false,
+  canRefreshExternal = false,
+  refreshingExternal = false,
+  onRefreshExternal,
   onSaved,
 }: {
   place: Place;
@@ -92,6 +104,9 @@ export function PlacePracticalInfoDialog({
   externalWebsite: string | null;
   externalOpeningHours: OpeningHoursSchedule | null;
   disabled?: boolean;
+  canRefreshExternal?: boolean;
+  refreshingExternal?: boolean;
+  onRefreshExternal?: () => void | Promise<void>;
   onSaved: (next: GroupPlacePracticalInfo) => void;
 }) {
   const { mode, exampleMode } = useSession();
@@ -116,7 +131,7 @@ export function PlacePracticalInfoDialog({
     setEvidenceOpen(Boolean(practicalInfo.sourceUrl || practicalInfo.sourceNote));
   }, [open, practicalInfo]);
 
-  function useMapData() {
+  function useExternalInformation() {
     setWebsite("");
     setDayInputs(emptyDayInputs());
     setSourceUrl("");
@@ -271,8 +286,8 @@ export function PlacePracticalInfoDialog({
       );
       toast.success("Webbplats och öppettider är uppdaterade.", {
         description: hasOverride
-          ? "Ändringen syns direkt i gruppen. En administratör kan granska om kartdatan också bör uppdateras."
-          : "Gruppen använder nu kartdatan igen.",
+          ? "Ändringen syns direkt i gruppen. Administratörerna får ett underlag om den behöver granskas."
+          : "Gruppens egna ändringar är borttagna.",
       });
       setOpen(false);
     } catch (error) {
@@ -295,18 +310,25 @@ export function PlacePracticalInfoDialog({
         <DialogHeader>
           <DialogTitle>Ändra webbplats och öppettider</DialogTitle>
           <DialogDescription>
-            Uppgifterna visas direkt för {state.group.name}. Om de skiljer sig från kartdatan får
-            gruppens administratörer ett underlag att granska.
+            Uppgifterna visas direkt för {state.group.name}. När du anger andra uppgifter sparas ett
+            privat underlag som gruppens administratörer kan granska.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
+          {practicalInfo.updatedAt ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Senast ändrad {formatTimestamp(practicalInfo.updatedAt)}
+              {practicalInfo.updatedByName ? ` av ${practicalInfo.updatedByName}` : ""}.
+            </p>
+          ) : null}
+
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <Label htmlFor="practical-website">Webbplats</Label>
               {externalWebsite || practicalInfo.websiteOverride ? (
                 <Button type="button" variant="ghost" size="sm" onClick={() => setWebsite("")}>
-                  Använd kartdatan
+                  Använd hittad uppgift
                 </Button>
               ) : null}
             </div>
@@ -323,8 +345,8 @@ export function PlacePracticalInfoDialog({
             />
             <p className="text-xs text-muted-foreground">
               {externalWebsite
-                ? `Kartdata: ${externalWebsite}`
-                : "Lämna tomt för att använda webbplatsen från kartdatan."}
+                ? `Hittad uppgift: ${externalWebsite}`
+                : "Lämna tomt om gruppen inte ska använda en egen webbplats."}
             </p>
           </div>
 
@@ -344,7 +366,7 @@ export function PlacePracticalInfoDialog({
                   className="shrink-0"
                   onClick={() => setDayInputs(emptyDayInputs())}
                 >
-                  Använd kartdatan
+                  Använd hittad uppgift
                 </Button>
               ) : null}
             </div>
@@ -370,8 +392,8 @@ export function PlacePracticalInfoDialog({
                 </div>
               ))}
             </div>
-            <Button type="button" variant="ghost" size="sm" onClick={useMapData}>
-              <RotateCcw className="h-3.5 w-3.5" /> Använd kartdata för allt
+            <Button type="button" variant="ghost" size="sm" onClick={useExternalInformation}>
+              <RotateCcw className="h-3.5 w-3.5" /> Använd hittade uppgifter för allt
             </Button>
           </div>
 
@@ -411,6 +433,33 @@ export function PlacePracticalInfoDialog({
               </p>
             </div>
           </details>
+
+          {canRefreshExternal && onRefreshExternal ? (
+            <details className="rounded-xl border border-border/70">
+              <summary className="flex min-h-11 cursor-pointer items-center px-3 py-2 text-sm font-medium">
+                Fler alternativ
+              </summary>
+              <div className="space-y-2 border-t border-border/60 p-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={refreshingExternal}
+                  onClick={() => void onRefreshExternal()}
+                >
+                  {refreshingExternal ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  Sök efter ny information
+                </Button>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Matrundan kontrollerar om ny information finns. Gruppens uppgifter ändras inte
+                  automatiskt.
+                </p>
+              </div>
+            </details>
+          ) : null}
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">

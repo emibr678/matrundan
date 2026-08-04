@@ -1,14 +1,5 @@
 import * as React from "react";
-import {
-  AlertTriangle,
-  ChevronDown,
-  Clock3,
-  ExternalLink,
-  Globe2,
-  Loader2,
-  MapPin,
-  RefreshCw,
-} from "lucide-react";
+import { ChevronDown, Clock3, ExternalLink, Globe2, Info, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { CrossGroupPracticalInfoSuggestions } from "./CrossGroupPracticalInfoSuggestions";
@@ -23,8 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   geoapifyPlaceDetails,
   type PlaceExternalDetails,
@@ -44,7 +33,7 @@ import {
   type GroupPlacePracticalInfo,
 } from "@/lib/matrundan/practical-info";
 import { useSession } from "@/lib/matrundan/session";
-import { googleMapsUrl, useStore } from "@/lib/matrundan/store";
+import { useStore } from "@/lib/matrundan/store";
 import type { Place } from "@/lib/matrundan/types";
 
 const CACHE_PREFIX = "matrundan.place-external-info.v2";
@@ -85,15 +74,6 @@ function writeCache(key: string, details: PlaceExternalDetails): void {
   }
 }
 
-function formattedFetchedAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("sv-SE", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
 function scheduleEqual(
   left: OpeningHoursSchedule | null,
   right: OpeningHoursSchedule | null,
@@ -101,14 +81,45 @@ function scheduleEqual(
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function OpeningHoursDetails({
+function OpeningHoursScheduleList({
   schedule,
   timezone,
-  groupOverride,
 }: {
   schedule: OpeningHoursSchedule;
   timezone: string | null;
-  groupOverride: boolean;
+}) {
+  const today = openingHoursForDate(schedule, new Date(), timezone);
+
+  return (
+    <>
+      <dl className="space-y-1.5 text-sm">
+        {schedule.days.map((day) => (
+          <div key={day.code} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+            <dt className={day.code === today.code ? "font-medium" : "text-muted-foreground"}>
+              {day.label}
+            </dt>
+            <dd className="max-w-[11rem] text-right [overflow-wrap:anywhere]">
+              {openingHoursDaySummary(day)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {schedule.partiallyParsed ? (
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          Specialdagar eller ovanliga regler kan avvika. Kontrollera gärna ställets egen information
+          före besöket.
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function OpeningHoursDetails({
+  schedule,
+  timezone,
+}: {
+  schedule: OpeningHoursSchedule;
+  timezone: string | null;
 }) {
   const today = openingHoursForDate(schedule, new Date(), timezone);
   const todaySummary = openingHoursDaySummary(today);
@@ -117,36 +128,12 @@ function OpeningHoursDetails({
     <details className="group">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 py-1.5 text-sm marker:content-none">
         <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1">
-          <span className="font-medium">Öppettider idag</span>
-          <span className="ml-1.5 text-muted-foreground">{todaySummary}</span>
-        </span>
-        {groupOverride ? (
-          <Badge variant="secondary" className="shrink-0 rounded-full px-2 text-[10px]">
-            Gruppens uppgift
-          </Badge>
-        ) : null}
+        <span className="min-w-0 flex-1 font-medium">Öppettider idag</span>
+        <span className="min-w-0 truncate text-right text-muted-foreground">{todaySummary}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
       <div className="border-t border-border/50 pb-2 pl-6 pt-2.5">
-        <dl className="space-y-1.5 text-sm">
-          {schedule.days.map((day) => (
-            <div key={day.code} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-              <dt className={day.code === today.code ? "font-medium" : "text-muted-foreground"}>
-                {day.label}
-              </dt>
-              <dd className="max-w-[11rem] text-right [overflow-wrap:anywhere]">
-                {openingHoursDaySummary(day)}
-              </dd>
-            </div>
-          ))}
-        </dl>
-        {schedule.partiallyParsed ? (
-          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            Specialdagar eller ovanliga regler kan avvika. Kontrollera gärna verksamhetens egen
-            information före besöket.
-          </p>
-        ) : null}
+        <OpeningHoursScheduleList schedule={schedule} timezone={timezone} />
       </div>
     </details>
   );
@@ -189,9 +176,7 @@ export function PlaceExternalInfo({
     } catch (caught) {
       setPracticalInfo(emptyGroupPlacePracticalInfo());
       setPracticalInfoError(
-        caught instanceof Error
-          ? caught.message
-          : "Gruppens praktiska information kunde inte hämtas.",
+        caught instanceof Error ? caught.message : "Webbplats och öppettider kunde inte hämtas.",
       );
     }
   }, [groupId, mode, place.id, storageKind]);
@@ -222,13 +207,13 @@ export function PlaceExternalInfo({
         setDetails(nextDetails);
         writeCache(key, nextDetails);
         if (forceRefresh) {
-          toast.success("Kartdatan är kontrollerad.", {
-            description: "Gruppens uppgift är oförändrad.",
+          toast.success("Ny information har sökts.", {
+            description: "Gruppens uppgifter är oförändrade.",
           });
         }
       } catch (caught) {
         setError(
-          caught instanceof Error ? caught.message : "Platsinformationen kunde inte hämtas.",
+          caught instanceof Error ? caught.message : "Informationen kunde inte hämtas just nu.",
         );
       } finally {
         setLoading(false);
@@ -258,16 +243,18 @@ export function PlaceExternalInfo({
   );
   const hasConflict = websiteConflict || openingHoursConflict;
   const hasGeoapifySource = Boolean(key);
-  const fetchedLabel = details ? formattedFetchedAt(details.fetchedAt) : "";
   const canEdit = canReport && !demoReadOnly && !practicalInfoError;
 
-  async function applyMapDataForConflicts() {
+  async function applyNewInformationForConflicts() {
     if (!actor) return;
+    const websiteOverride = websiteConflict ? null : practicalInfo.websiteOverride;
+    const openingHoursOverride = openingHoursConflict ? null : practicalInfo.openingHoursOverride;
+    const hasRemainingOverride = Boolean(websiteOverride || openingHoursOverride);
     const nextInput = {
-      websiteOverride: websiteConflict ? null : practicalInfo.websiteOverride,
-      openingHoursOverride: openingHoursConflict ? null : practicalInfo.openingHoursOverride,
-      sourceUrl: websiteConflict && openingHoursConflict ? null : practicalInfo.sourceUrl,
-      sourceNote: websiteConflict && openingHoursConflict ? null : practicalInfo.sourceNote,
+      websiteOverride,
+      openingHoursOverride,
+      sourceUrl: hasRemainingOverride ? practicalInfo.sourceUrl : null,
+      sourceNote: hasRemainingOverride ? practicalInfo.sourceNote : null,
     };
     try {
       let next: GroupPlacePracticalInfo;
@@ -285,182 +272,146 @@ export function PlaceExternalInfo({
       }
       setPracticalInfo(next);
       setCompareOpen(false);
-      toast.success("Gruppen använder nu den senaste kartdatan.");
+      toast.success("Gruppen använder nu de nya uppgifterna.");
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Uppgiften kunde inte uppdateras.");
     }
   }
 
   return (
-    <div className="mt-3 space-y-2">
-      <div className="rounded-2xl border border-border/60 bg-background/45 p-3">
-        <div className="flex min-h-9 items-center justify-between gap-2">
-          <div className="font-medium">Praktiskt</div>
-          <PlacePracticalInfoDialog
-            place={place}
-            groupId={groupId}
-            practicalInfo={practicalInfo}
-            externalWebsite={
-              details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null
-            }
-            externalOpeningHours={details?.openingHours ?? null}
-            disabled={!canEdit}
-            onSaved={setPracticalInfo}
-          />
-        </div>
-
-        <div className="mt-1 divide-y divide-border/50">
-          <div className="flex min-h-11 items-center gap-2 py-1.5 text-sm">
-            <Globe2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1 font-medium">Webbplats</span>
-            {practicalInfo.websiteOverride ? (
-              <Badge variant="secondary" className="shrink-0 rounded-full px-2 text-[10px]">
-                Gruppens uppgift
-              </Badge>
-            ) : null}
-            {websiteUrl ? (
-              <a
-                href={websiteUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-9 shrink-0 items-center gap-1 text-primary hover:underline"
-                aria-label={`Öppna webbplatsen för ${place.name}`}
-              >
-                Öppna
-                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-              </a>
-            ) : (
-              <span className="shrink-0 text-muted-foreground">Saknas</span>
-            )}
-          </div>
-
-          <div className="py-1.5">
-            {openingHours ? (
-              <OpeningHoursDetails
-                schedule={openingHours}
-                timezone={details?.timezone ?? null}
-                groupOverride={Boolean(practicalInfo.openingHoursOverride)}
-              />
-            ) : loading ? (
-              <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Hämtar öppettider…
-              </div>
-            ) : (
-              <div className="flex min-h-11 items-center gap-2 text-sm">
-                <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="font-medium">Öppettider</span>
-                <span className="ml-auto text-muted-foreground">Saknas</span>
-              </div>
-            )}
-          </div>
-
-          <a
-            href={googleMapsUrl(place)}
-            target="_blank"
-            rel="noreferrer"
-            className="flex min-h-11 items-center gap-2 py-1.5 text-sm hover:bg-accent/30"
-            aria-label={`Öppna ${place.name} i Google Maps`}
-          >
-            <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1 font-medium">Google Maps</span>
-            <span className="inline-flex shrink-0 items-center gap-1 text-primary">
-              Öppna <ExternalLink className="h-3.5 w-3.5" />
-            </span>
-          </a>
-        </div>
-
-        {hasConflict ? (
-          <button
-            type="button"
-            className="mt-2 flex w-full items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-left text-xs text-amber-950 dark:bg-amber-950/25 dark:text-amber-100"
-            onClick={() => setCompareOpen(true)}
-          >
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              <strong>Ny kartdata finns.</strong> Jämför innan gruppens uppgift ersätts.
-            </span>
-          </button>
-        ) : null}
-
-        <CrossGroupPracticalInfoSuggestions
+    <div className="mt-3 border-y border-border/50">
+      <div className="flex min-h-9 items-center justify-between gap-2 py-1">
+        <div className="text-xs font-medium text-muted-foreground">Webbplats och öppettider</div>
+        <PlacePracticalInfoDialog
+          place={place}
           groupId={groupId}
-          placeId={place.id}
-          enabled={canEdit}
-          onApplied={loadPracticalInfo}
+          practicalInfo={practicalInfo}
+          externalWebsite={details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null}
+          externalOpeningHours={details?.openingHours ?? null}
+          disabled={!canEdit}
+          canRefreshExternal={mode === "live" && hasGeoapifySource}
+          refreshingExternal={refreshing || loading}
+          onRefreshExternal={() => loadExternalDetails(true)}
+          onSaved={setPracticalInfo}
         />
+      </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-relaxed text-muted-foreground">
-          {practicalInfo.updatedAt ? (
-            <span>
-              Gruppens uppgift ändrad {formattedFetchedAt(practicalInfo.updatedAt)}
-              {practicalInfo.updatedByName ? ` av ${practicalInfo.updatedByName}` : ""}.
-            </span>
-          ) : details ? (
-            <span>
-              {details.attribution} {fetchedLabel ? `Hämtat ${fetchedLabel}.` : ""}
-            </span>
-          ) : practicalInfoError ? (
-            <span>{practicalInfoError}</span>
-          ) : hasGeoapifySource && error ? (
-            <span>{error}</span>
-          ) : (
-            <span>Ingen extern platsdata tillgänglig.</span>
-          )}
-          {mode === "live" && hasGeoapifySource ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs"
-              disabled={refreshing || loading}
-              onClick={() => void loadExternalDetails(true)}
+      <div className="divide-y divide-border/50">
+        <div className="flex min-h-11 items-center gap-2 py-1.5 text-sm">
+          <Globe2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1 font-medium">Webbplats</span>
+          {websiteUrl ? (
+            <a
+              href={websiteUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-9 shrink-0 items-center gap-1 text-primary hover:underline"
+              aria-label={`Öppna webbplatsen för ${place.name}`}
             >
-              {refreshing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3.5 w-3.5" />
-              )}
-              Kontrollera kartdatan
-            </Button>
-          ) : null}
+              Öppna
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+            </a>
+          ) : (
+            <span className="shrink-0 text-muted-foreground">Saknas</span>
+          )}
+        </div>
+
+        <div className="py-1.5">
+          {openingHours ? (
+            <OpeningHoursDetails schedule={openingHours} timezone={details?.timezone ?? null} />
+          ) : loading ? (
+            <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Hämtar öppettider…
+            </div>
+          ) : (
+            <div className="flex min-h-11 items-center gap-2 text-sm">
+              <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="font-medium">Öppettider idag</span>
+              <span className="ml-auto text-muted-foreground">Saknas</span>
+            </div>
+          )}
         </div>
       </div>
 
+      {hasConflict ? (
+        <button
+          type="button"
+          className="my-2 flex min-h-11 w-full items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+          onClick={() => setCompareOpen(true)}
+        >
+          <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1">Det finns nya uppgifter om stället</span>
+          <span className="shrink-0 font-medium text-primary">Jämför</span>
+        </button>
+      ) : null}
+
+      <CrossGroupPracticalInfoSuggestions
+        groupId={groupId}
+        placeId={place.id}
+        enabled={canEdit}
+        onApplied={loadPracticalInfo}
+      />
+
+      {practicalInfoError || (hasGeoapifySource && error && !details) ? (
+        <p role="status" className="pb-2 text-xs leading-relaxed text-muted-foreground">
+          {practicalInfoError ?? error}
+        </p>
+      ) : null}
+
       <AlertDialog open={compareOpen} onOpenChange={setCompareOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle>Jämför med kartdatan</AlertDialogTitle>
+            <AlertDialogTitle>Jämför uppgifter</AlertDialogTitle>
             <AlertDialogDescription>
-              Matrundan skriver aldrig över gruppens egen uppgift automatiskt. Välj om gruppen ska
-              behålla den eller återgå till kartdatan.
+              Matrundan ändrar aldrig gruppens uppgifter automatiskt. Välj vilka uppgifter gruppen
+              ska använda.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-3 text-sm">
+          <div className="space-y-4 text-sm">
             {websiteConflict ? (
-              <div className="rounded-xl border border-border/70 p-3">
-                <div className="font-medium">Webbplats</div>
-                <div className="mt-1 break-all text-muted-foreground">
-                  Gruppen: {practicalInfo.websiteOverride}
+              <section className="space-y-2 rounded-xl border border-border/70 p-3">
+                <h3 className="font-medium">Webbplats</h3>
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Nuvarande uppgift</div>
+                  <div className="mt-0.5 break-all">{practicalInfo.websiteOverride}</div>
                 </div>
-                <div className="mt-1 break-all text-muted-foreground">
-                  Kartdata: {details?.website}
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Nya uppgifter</div>
+                  <div className="mt-0.5 break-all">{details?.website}</div>
                 </div>
-              </div>
+              </section>
             ) : null}
-            {openingHoursConflict ? (
-              <div className="rounded-xl border border-border/70 p-3">
-                <div className="font-medium">Öppettider</div>
-                <p className="mt-1 text-muted-foreground">
-                  Veckoschemat i kartdatan skiljer sig från gruppens uppgift. Visa respektive schema
-                  på detaljsidan innan du väljer.
-                </p>
-              </div>
+            {openingHoursConflict && practicalInfo.openingHoursOverride && details?.openingHours ? (
+              <section className="space-y-3 rounded-xl border border-border/70 p-3">
+                <h3 className="font-medium">Öppettider</h3>
+                <div>
+                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                    Nuvarande uppgift
+                  </div>
+                  <OpeningHoursScheduleList
+                    schedule={practicalInfo.openingHoursOverride}
+                    timezone={details.timezone ?? null}
+                  />
+                </div>
+                <div className="border-t border-border/60 pt-3">
+                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                    Nya uppgifter
+                  </div>
+                  <OpeningHoursScheduleList
+                    schedule={details.openingHours}
+                    timezone={details.timezone ?? null}
+                  />
+                </div>
+              </section>
             ) : null}
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Behåll gruppens uppgift</AlertDialogCancel>
-            <AlertDialogAction disabled={!canEdit} onClick={() => void applyMapDataForConflicts()}>
-              Använd kartdatan
+            <AlertDialogCancel>Behåll nuvarande</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!canEdit}
+              onClick={() => void applyNewInformationForConflicts()}
+            >
+              Använd de nya uppgifterna
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

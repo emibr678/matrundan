@@ -86,7 +86,7 @@ test("exempelgruppen kan lämnas via menyn och Matrundan-logotypen", async ({ pa
   await expect(page).toHaveURL(/\/exempel$/);
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Exempel", exact: true }).click();
+  await page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }).click();
   await page.getByRole("menuitem", { name: "Till startsidan", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(

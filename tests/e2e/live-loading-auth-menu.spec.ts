@@ -120,11 +120,12 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
 
   await page.goto("/");
 
-  await expect(page.getByRole("button", { name: "Testanvändare" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Profil och grupp: Grupp" })).toBeVisible();
   await expect(page.getByText("Något gick snett")).toHaveCount(0);
 
   releaseGroups?.();
 
+  await expect(page.getByRole("button", { name: "Profil och grupp: Testgruppen" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Vart går rundan härnäst?" })).toBeVisible();
   await expect(page.getByText("Något gick snett")).toHaveCount(0);
 });
