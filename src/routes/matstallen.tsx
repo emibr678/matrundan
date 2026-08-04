@@ -261,9 +261,7 @@ function PlacesIndex() {
                 </Button>
               </CollapsibleTrigger>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              Gruppens högst betygsatta ställen
-            </p>
+            <p className="text-[11px] text-muted-foreground">Gruppens högst betygsatta ställen</p>
 
             <CollapsibleContent className="pt-3">
               <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">
