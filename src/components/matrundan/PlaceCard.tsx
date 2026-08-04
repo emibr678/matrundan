@@ -17,13 +17,21 @@ const CATEGORY_GRADIENT: Record<PlaceCategory, string> = {
   matvagn: "from-sage/30 to-mustard/30",
 };
 
-export function PlaceThumb({ place, size = "md" }: { place: Place; size?: "sm" | "md" | "lg" }) {
+export function PlaceThumb({
+  place,
+  size = "md",
+}: {
+  place: Place;
+  size?: "sm" | "md" | "lg" | "detail";
+}) {
   const dims =
-    size === "lg"
-      ? "h-20 w-20 text-4xl"
-      : size === "sm"
-        ? "h-11 w-11 text-2xl"
-        : "h-14 w-14 text-3xl";
+    size === "detail"
+      ? "h-16 w-16 text-3xl min-[390px]:h-20 min-[390px]:w-20 min-[390px]:text-4xl"
+      : size === "lg"
+        ? "h-20 w-20 text-4xl"
+        : size === "sm"
+          ? "h-11 w-11 text-2xl"
+          : "h-14 w-14 text-3xl";
   return (
     <div
       className={`relative grid ${dims} shrink-0 place-items-center overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br ${CATEGORY_GRADIENT[place.category]}`}
