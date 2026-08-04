@@ -60,10 +60,9 @@ describe("sammanhangskategorier", () => {
       p4: { overall: 5, count: 9 },
     };
 
-    expect(rankPlacesOverall(places, (id) => ratings[id]).map(({ place: item }) => item.id)).toEqual([
-      "p0",
-      "p1",
-    ]);
+    expect(
+      rankPlacesOverall(places, (id) => ratings[id]).map(({ place: item }) => item.id),
+    ).toEqual(["p0", "p1"]);
   });
 
   test("topplistan inkluderar stället för vart och ett av dess val", () => {
