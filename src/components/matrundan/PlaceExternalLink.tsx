@@ -3,8 +3,10 @@ import { ExternalLink, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-interface PlaceExternalLinkProps
-  extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "children"> {
+interface PlaceExternalLinkProps extends Omit<
+  React.AnchorHTMLAttributes<HTMLAnchorElement>,
+  "children"
+> {
   icon: LucideIcon;
   prefix?: React.ReactNode;
   tail: React.ReactNode;
