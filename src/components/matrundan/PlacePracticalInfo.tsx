@@ -485,7 +485,7 @@ function AddWebsiteDialog() {
           type="button"
           variant="ghost"
           size="sm"
-          className="-ml-2 min-h-9 justify-start px-2 text-xs font-medium text-primary"
+          className="-ml-2 min-h-11 justify-start px-2 text-xs font-medium text-primary"
         >
           <Plus className="h-3.5 w-3.5" /> Lägg till webbplats
         </Button>
@@ -547,7 +547,7 @@ export function PlaceWebsiteInfo() {
         href={websiteUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-0.5 inline-flex min-h-9 max-w-full items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:underline"
+        className="mt-0.5 inline-flex min-h-11 max-w-full items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:underline"
         aria-label={`Öppna webbplatsen för ${place.name}`}
       >
         <Globe2 className="h-3.5 w-3.5 shrink-0" />
@@ -586,7 +586,7 @@ export function PlaceOpeningHoursInfo() {
   const [compareOpen, setCompareOpen] = React.useState(false);
   const summary = loading ? "Hämtar…" : (todaySummary ?? "Saknas");
 
-  async function useNewInformation() {
+  async function applyComparedInformation() {
     await applyNewInformationForConflicts();
     setCompareOpen(false);
   }
@@ -723,7 +723,7 @@ export function PlaceOpeningHoursInfo() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Behåll nuvarande</AlertDialogCancel>
-            <AlertDialogAction disabled={!canEdit} onClick={() => void useNewInformation()}>
+            <AlertDialogAction disabled={!canEdit} onClick={() => void applyComparedInformation()}>
               Använd de nya uppgifterna
             </AlertDialogAction>
           </AlertDialogFooter>
