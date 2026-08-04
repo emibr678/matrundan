@@ -283,13 +283,13 @@ test("saknad webbplats blir en diskret lägg till-handling och öppettider tar e
     favorite.boundingBox(),
     openingHours.boundingBox(),
   ]);
-  expect(addWebsiteBox?.y ?? 0).toBeLessThan(registerBox?.y ?? 0);
   expect(registerBox?.height ?? 0).toBeGreaterThanOrEqual(44);
   expect(proposeBox?.height ?? 0).toBeGreaterThanOrEqual(44);
   expect(favoriteBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(favoriteBox?.y ?? 0).toBeLessThan(addWebsiteBox?.y ?? 0);
+  expect(addWebsiteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
+  expect(openingHoursBox?.y ?? 0).toBeLessThan(registerBox?.y ?? 0);
   expect(registerBox?.y ?? 0).toBeLessThan(proposeBox?.y ?? 0);
-  expect(proposeBox?.y ?? 0).toBeLessThan(favoriteBox?.y ?? 0);
-  expect(favoriteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
 
   await addWebsite.click();
   const addWebsiteDialog = page.getByRole("dialog", { name: "Lägg till webbplats" });
