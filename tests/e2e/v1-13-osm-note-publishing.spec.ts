@@ -42,7 +42,7 @@ test("gruppen granskar och simulerar ett rättelseförslag privat", async ({ pag
     ),
   ).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Om stället", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Rapportera felaktig uppgift" }).click();
+  await page.getByRole("button", { name: "Rapportera felaktig information" }).click();
   const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktig uppgift" });
   await expect(
     reportDialog.getByText(/Du lämnar ett underlag till gruppens ägare och administratörer/),
