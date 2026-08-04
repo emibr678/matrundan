@@ -63,9 +63,11 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(dialog.getByRole("checkbox")).toHaveCount(0);
   const initialExistingCount = await readExistingCount(dialog);
 
-  const resultHeading = dialog.locator("h3:visible", { hasText: "Ställen att lägga till" });
-  const listToggle = dialog.locator("button:visible").filter({ hasText: /^Lista$/ });
-  const bulkToggle = dialog.locator("button:visible").filter({ hasText: /^Välj flera$/ });
+  const resultHeading = dialog
+    .getByRole("heading", { name: "Ställen att lägga till", exact: true })
+    .first();
+  const listToggle = dialog.getByRole("button", { name: "Lista", exact: true }).first();
+  const bulkToggle = dialog.getByRole("button", { name: "Välj flera", exact: true }).first();
   await expect(resultHeading).toBeVisible();
   await expect(listToggle).toBeVisible();
   await expect(bulkToggle).toBeVisible();
