@@ -13,6 +13,18 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.26.0] – 2026-08-04
+
+### Ändrat
+
+- Gruppens betyg, antal besök och senaste besök med deltagare sammanfattas direkt
+  under matställets namn och adress.
+- **Registrera besök**, **Föreslå som nästa stopp** och **Favorit** har en
+  tydligare inbördes prioritering. Tidigare besökta ställen använder
+  **Registrera besök igen**.
+- Webbplats och öppettider ligger efter gruppens handlingar i en enda kompakt,
+  utfällbar rad som bara visar den information som finns.
+
 ## [1.25.0] – 2026-08-04
 
 ### Ändrat
