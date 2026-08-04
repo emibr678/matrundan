@@ -43,9 +43,7 @@ function GroupPage() {
   const navigate = useNavigate({ from: "/gruppen" });
   const activeMember = React.useMemo(
     () =>
-      search.member
-        ? (state.members.find((member) => member.id === search.member) ?? null)
-        : null,
+      search.member ? (state.members.find((member) => member.id === search.member) ?? null) : null,
     [search.member, state.members],
   );
 
@@ -56,9 +54,7 @@ function GroupPage() {
     const lastVisit = state.visits
       .filter((visit) => visit.participantIds.includes(member.id))
       .sort((left, right) => (left.date < right.date ? 1 : -1))[0];
-    const favCount = state.favorites.filter(
-      (favorite) => favorite.memberId === member.id,
-    ).length;
+    const favCount = state.favorites.filter((favorite) => favorite.memberId === member.id).length;
     const progression = computeMemberProgression(state, member.id);
     return { member, lastVisit, favCount, progression };
   });
@@ -115,9 +111,7 @@ function GroupPage() {
                   <MemberAvatar member={member} size={40} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="min-w-0 max-w-full truncate font-medium">
-                        {member.name}
-                      </span>
+                      <span className="min-w-0 max-w-full truncate font-medium">{member.name}</span>
                       {member.role !== "medlem" ? (
                         <Badge variant="outline" className="shrink-0 rounded-full text-[10px]">
                           {member.role}
