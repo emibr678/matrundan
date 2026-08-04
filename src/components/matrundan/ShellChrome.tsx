@@ -89,7 +89,12 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
           </nav>
 
           <div className="flex min-w-0 shrink-0 items-center gap-2">
-            <AuthMenu exampleMode={exampleMode} />
+            <AuthMenu
+              exampleMode={exampleMode}
+              groupName={state.group.name}
+              groupEmoji={state.group.emoji}
+              groupLifecycleStatus={state.group.lifecycleStatus}
+            />
           </div>
         </header>
 
