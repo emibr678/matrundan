@@ -50,7 +50,9 @@ async function seedAuthenticatedSession(page: Page) {
   );
 }
 
-test("matställets webbplats visas diskret under adressen utan mobil overflow", async ({ page }) => {
+test("matställets webbplats visas diskret intill adressen utan mobil overflow", async ({
+  page,
+}) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page);
@@ -211,7 +213,12 @@ test("matställets webbplats visas diskret under adressen utan mobil overflow", 
     website.boundingBox(),
     openingHours.boundingBox(),
   ]);
-  expect(mapsBox?.y ?? 0).toBeLessThan(websiteBox?.y ?? 0);
+  expect(mapsBox).not.toBeNull();
+  expect(websiteBox).not.toBeNull();
+  expect(Math.abs(mapsBox!.y - websiteBox!.y)).toBeLessThanOrEqual(2);
+  const linkGap = websiteBox!.x - (mapsBox!.x + mapsBox!.width);
+  expect(linkGap).toBeGreaterThanOrEqual(-1);
+  expect(linkGap).toBeLessThanOrEqual(16);
   expect(websiteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
 
   const widths = await page.evaluate(() => ({
