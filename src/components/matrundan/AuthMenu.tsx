@@ -1,5 +1,14 @@
 import * as React from "react";
-import { Archive, Home, LogIn, LogOut, Mail, User as UserIcon, Plus, UserCog } from "lucide-react";
+import {
+  Archive,
+  ChevronDown,
+  Home,
+  LogIn,
+  LogOut,
+  Mail,
+  Plus,
+  UserCog,
+} from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
+import { useStore } from "@/lib/matrundan/store";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
@@ -58,6 +68,7 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
     exitExampleMode,
     refreshGroups,
   } = useSession();
+  const { state } = useStore();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -98,17 +109,30 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
   }
 
   if (!user) {
+    const groupName = state.group.name || (exampleMode ? "Exempelgrupp" : "Demo");
+    const groupEmoji = state.group.emoji ?? "🍽️";
     return (
       <>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline" className="rounded-full">
-              <UserIcon className="mr-1.5 h-4 w-4" />
-              {exampleMode ? "Exempel" : "Demo"}
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label={`Profil och grupp: ${groupName}`}
+              className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem]"
+            >
+              <span className="shrink-0">{groupEmoji}</span>
+              <span className="min-w-0 flex-1 truncate">{groupName}</span>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>{exampleMode ? "Exempelgrupp" : "Demo-läge"}</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              <div className="truncate">{groupName}</div>
+              <div className="text-xs font-normal text-muted-foreground">
+                {exampleMode ? "Exempelgrupp" : "Demo-läge"}
+              </div>
+            </DropdownMenuLabel>
             {exampleMode ? (
               <>
                 <DropdownMenuItem onSelect={exitExampleMode}>
@@ -138,25 +162,41 @@ export function AuthMenu({ exampleMode = false }: { exampleMode?: boolean }) {
     (user.user_metadata?.name as string | undefined) ??
     user.email ??
     "Inloggad";
+  const displayEmail = user.email && user.email !== displayName ? user.email : null;
   const activeGroups = userGroups.filter((group) => group.lifecycleStatus === "active");
   const archivedGroups = userGroups.filter((group) => group.lifecycleStatus === "archived");
+  const activeGroup = userGroups.find((group) => group.id === activeGroupId);
+  const useStoreGroup = exampleMode || mode === "demo" || !activeGroup;
+  const groupName = useStoreGroup ? state.group.name : activeGroup.name;
+  const groupEmoji = useStoreGroup ? (state.group.emoji ?? "🍽️") : (activeGroup.emoji ?? "🍽️");
+  const groupArchived = useStoreGroup
+    ? state.group.lifecycleStatus === "archived"
+    : activeGroup.lifecycleStatus === "archived";
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="sm" variant="outline" className="rounded-full">
-            <UserIcon className="mr-1.5 h-4 w-4" />
-            <span className="max-w-[7rem] truncate sm:max-w-[10rem]">{displayName}</span>
-            {mode === "demo" ? (
-              <span className="ml-2 rounded-full bg-mustard/40 px-1.5 py-0.5 text-[10px] font-medium">
-                {exampleMode ? "exempel" : "demo"}
-              </span>
-            ) : null}
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={`Profil och grupp: ${groupName}`}
+            className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem] md:max-w-[18rem]"
+          >
+            <span className="shrink-0">{groupEmoji}</span>
+            <span className="min-w-0 flex-1 truncate">{groupName}</span>
+            {groupArchived ? <Archive className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
-          <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
+          <DropdownMenuLabel>
+            <div className="text-xs font-normal text-muted-foreground">Inloggad som</div>
+            <div className="truncate">{displayName}</div>
+            {displayEmail ? (
+              <div className="truncate text-xs font-normal text-muted-foreground">{displayEmail}</div>
+            ) : null}
+          </DropdownMenuLabel>
           {exampleMode ? (
             <>
               <DropdownMenuItem onSelect={exitExampleMode}>
