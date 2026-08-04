@@ -485,9 +485,9 @@ function AddWebsiteDialog() {
           type="button"
           variant="ghost"
           size="sm"
-          className="-ml-2 min-h-11 justify-start px-2 text-xs font-medium text-primary"
+          className="-ml-2 min-h-11 justify-start px-2 text-sm font-medium text-primary"
         >
-          <Plus className="h-3.5 w-3.5" /> Lägg till webbplats
+          <Plus className="h-4 w-4" /> Lägg till webbplats
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-md">
@@ -547,12 +547,12 @@ export function PlaceWebsiteInfo() {
         href={websiteUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-0.5 inline-flex min-h-11 max-w-full items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:underline"
+        className="mt-0.5 inline-flex min-h-11 max-w-full items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:underline"
         aria-label={`Öppna webbplatsen för ${place.name}`}
       >
-        <Globe2 className="h-3.5 w-3.5 shrink-0" />
+        <Globe2 className="h-4 w-4 shrink-0" />
         <span>Webbplats</span>
-        <ExternalLink className="h-3 w-3 shrink-0" />
+        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
       </a>
     );
   }
@@ -592,15 +592,15 @@ export function PlaceOpeningHoursInfo() {
   }
 
   return (
-    <details className="group border-t border-border/60">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 py-2 text-sm marker:content-none sm:px-5">
+    <details className="group mt-3 overflow-hidden rounded-2xl border border-border/60 bg-background/65 shadow-sm">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 py-1.5 text-sm marker:content-none">
         <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="min-w-0 flex-1 font-medium">Öppettider</span>
         <span className="max-w-[8rem] truncate text-right text-muted-foreground">{summary}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
 
-      <div className="space-y-3 border-t border-border/50 px-4 pb-4 pt-3 sm:px-5">
+      <div className="space-y-3 border-t border-border/50 px-3 pb-3 pt-3">
         {canEdit ? (
           <div className="flex min-h-9 items-center justify-between gap-2">
             <p className="text-xs leading-relaxed text-muted-foreground">
