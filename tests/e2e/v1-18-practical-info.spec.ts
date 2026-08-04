@@ -228,9 +228,9 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 async function openPracticalInfo(page: Page) {
-  const practicalInfo = page.getByText("Webbplats och öppettider", { exact: true });
-  await expect(practicalInfo).toBeVisible();
-  await practicalInfo.click();
+  const openingHours = page.getByText("Öppettider", { exact: true });
+  await expect(openingHours).toBeVisible();
+  await openingHours.click();
 }
 
 test("en aktiv medlem uppdaterar gruppens webbplats och öppettider utan tekniskt brus", async ({
@@ -250,7 +250,7 @@ test("en aktiv medlem uppdaterar gruppens webbplats och öppettider utan teknisk
 
   await page.goto(`/matstallen/${PLACE_ID}`);
   await expect(page.getByRole("button", { name: `Profil och grupp: ${GROUP_NAME}` })).toBeVisible();
-  await expect(page.getByText("Webbplats och öppettider", { exact: true })).toBeVisible();
+  await expect(page.getByText("Öppettider", { exact: true })).toBeVisible();
   await expect(page.getByText("Praktiskt", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Öppna Testköket i Google Maps" })).toBeVisible();
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
@@ -273,7 +273,7 @@ test("en aktiv medlem uppdaterar gruppens webbplats och öppettider utan teknisk
 
   const website = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
   await expect(website).toHaveAttribute("href", "https://gruppen.example/");
-  await expect(page.getByText("Öppettider idag", { exact: true })).toBeVisible();
+  await expect(page.getByText("Idag", { exact: true })).toBeVisible();
   await expect(page.getByText("12–23", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Gruppens uppgift", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/Gruppens uppgift ändrad/)).toHaveCount(0);
