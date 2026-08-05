@@ -1,158 +1,122 @@
-# UX-granskning: matställets detaljvy (mobil, 360 px)
+# UX-bedömning: matställets detaljkort (mobil 360–390 px)
 
-Endast analys. Ingen kod, ingen migration, ingen publicering.
+Endast analys och rekommendation. Ingen kod, ingen migration, ingen publicering.
+Avgränsat till frontend/presentation i `src/routes/matstallen.$placeId.tsx` och
+`src/components/matrundan/PlaceLocationRefresh.tsx`.
 
-Granskad kod: `src/routes/matstallen.$placeId.tsx`, `PlaceExternalInfo.tsx`,
-`PlacePracticalInfoDialog.tsx` (trigger "Ändra"), `PlaceAdminDialog.tsx`
-(trigger med aria-label "Ändra gruppens uppgifter om stället"),
-`StatusBadge.tsx`, `PlaceCard.tsx`.
+## Vad koden faktiskt gör idag
 
-## Vad som fungerar idag
+Kortets topp är en `flex items-start gap-3` med `PlaceThumb size="detail"`
+(h-16/h-20) till vänster och en textkolumn med kategori, `h1` och en villkorad
+badgerad. **Adress och webbplats ligger utanför** flexraden, som ett eget block
+under hela raden. Därför:
 
-- Tydlig identitet högst upp: kategori, namn, klickbar adress till Maps, status.
-- "Registrera besök" är en riktig primärknapp (h-12, full bredd) och står före
-  sekundära handlingar.
-- Betygsblocket visas bara när det finns betyg; besökslistan är rik utan att
-  läcka annan grupps data, och externa deltagare visas som anonym räknare.
-- Öppettider ligger redan i en kollapsad `details`, praktiska uppgifter ändras
-  aldrig automatiskt utan via en jämförelsedialog.
-- Skrivskyddade lägen (exempelgrupp, arkiverad grupp, borttaget ställe) har
-  förklarande copy istället för döda knappar.
-- Touchmål är genomgående minst 44 px och adressen bryter med
-  `overflow-wrap:anywhere`.
+- Bilden är alltid 64–80 px hög, medan textkolumnen ofta bara är ca 46 px
+  (kategori + ett namnrad). Skillnaden blir synligt tomrum till höger om bilden,
+  och adressen börjar först under bilden.
+- Badgen `Nästa stopp` renderas inne i textkolumnen och fyller bara delvis
+  tomrummet, vilket gör att kortets höjd hoppar mellan tillstånd.
+- `PlaceLocationRefresh` är en fullbredds `details`-rad ("Kontrollera kartdata")
+  direkt under öppettider, alltså underhållsfunktion i den mest värdefulla ytan.
 
-## Prioriterade UX-problem
+## Rekommendation 1 – stabil, kompakt topprad
 
-1. **Hög (kärnsyfte).** Metadatablocket "Webbplats och öppettider" ligger mellan
-   ställets identitet och gruppens handlingar. På 360 px trycker rubrikrad +
-   Ändra-knapp + webbplatsrad + öppettidsrad (ca 4 rader plus två avgränsare)
-   ned "Registrera besök" under fold. Stödinformation dominerar beslutet.
-2. **Hög.** Grupphistoriken syns för sent. Ett tidigare besökt ställe visar
-   ingen sammanfattning ("3 besök, senast 12 maj med Anna och Erik") ovanför
-   fold; betygssiffran finns men inte relationen till gänget.
-3. **Medel–hög.** Två separata redigeringsingångar ("Ändra" i praktiska
-   uppgifter, ikonknapp i "Om stället") splittrar redigeringsmodellen. Användaren
-   måste veta i vilken sektion ett fält bor för att hitta rätt ingång.
-4. **Medel.** Webbplats visas som en hel rad även när den saknas ("Saknas"),
-   liksom öppettider. Tomma fält kostar lika mycket vertikal plats som ifyllda.
-5. **Medel.** "Föreslå som nästa stopp" och "Favorit" har samma vikt
-   (`outline` + `outline`) trots att de hör till olika nivåer: nästa stopp är ett
-   gruppbeslut, favorit är privat. Långa svenska labels tvingar dessutom
-   radbrytning i tvåkolumnsrutnätet.
-6. **Medel.** Primärknappen är identisk för nytt och tidigare besökt ställe.
-   För ett ställe med besökshistorik är "Registrera besök igen" den ärligare
-   formuleringen.
-7. **Låg–medel.** Statusbrickan (`Nytt för gruppen` / `2 av 4 har provat`)
-   dubblerar delvis information som senare upprepas i besökssektionen.
-8. **Låg.** Konfliktraden "Det finns nya uppgifter om stället" och
-   cross-group-förslagen ligger i identitetskortet, alltså i den mest värdefulla
-   ytan, trots att de är underhållsarbete.
-9. **Låg.** "Rapportera felaktig information" ligger korrekt sist, men saknar
-   koppling till den nya samlade redigeringsingången.
+Flytta adress och webbplats **in i samma textkolumn** som kategori och namn, och
+byt flexraden mot ett grid som gör bilden till en egen kolumn:
 
-## Rekommenderad innehållsordning (topp → botten)
+- `grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3`
+- kolumn 1: `PlaceThumb` med `shrink-0`
+- kolumn 2: kategori → namn (`h1`, tillåt två rader, ingen truncate) → adressrad
+  (Maps-länk, `[overflow-wrap:anywhere]`) → webbplatsrad endast när den finns.
 
-1. Tillbaka
-2. Identitetskort: kategori · namn · adress (Maps-länk) · status/nästa stopp
-3. Gruppens relation, en till två kompakta rader: betyg + antal besök + senaste
-   besöket med deltagare (eller "Ingen i gänget har varit här än")
-4. Primär handling: "Registrera besök" / "Registrera besök igen"
-5. Gruppbeslut: "Föreslå som nästa stopp" (outline, full bredd)
-6. Privat: "Favorit" (ghost/ikon, mindre vikt)
-7. Praktiskt: en kollapsad rad "Webbplats och öppettider · Öppet till 21"
-8. Besök (lista)
-9. Om stället (kök, tillfällen, anteckning, tillagt av) med samlad
-   redigeringsingång
-10. Betygsdetaljer
-11. Underhåll: nya uppgifter/jämför, cross-group-förslag, rapportera fel
+Då blir textkolumnen alltid minst lika hög som bilden och tomrummet försvinner
+oavsett om badgen finns. Långa namn/adresser växer nedåt i kolumnen istället för
+att lämna hål. Saknad webbplats renderar ingen rad.
 
-## Textbaserat wireframe (360 px)
+**"Nästa stopp":** lägg den som en liten överlappande badge nere till vänster på
+bilden (`absolute -bottom-1 left-0` inuti thumbens `relative`-container, redan
+`relative` idag). Bilden har fast höjd, så badgen tar noll extra höjd och
+reserverar inget utrymme när den saknas. Alternativ om överlapp känns för
+dekorativt: en badgerad **under** hela gridet, som renderas bara när minst en
+badge finns — enkelt, men flyttar statusen längre från namnet.
+
+`Inte längre i gruppens lista` (och ev. permanent stängt) bör inte överlappa
+bilden, utan ligga i en villkorad rad under gridet: det är ett läge som
+förtjänar full bredd och radbrytning.
+
+Ingen konflikt med favoritknappen: den ligger i raden ovanför kortet och
+påverkas inte. Överlappande badge håller sig inom kortets `overflow-hidden`.
+
+## Rekommendation 2 – platsdatakontrollen som ikonknapp + sheet
+
+Vedertaget mönster för sekundärt underhåll på mobil: **ikonknapp som öppnar ett
+bottom-sheet** (samma `Sheet`-primitiv som redan används i projektet), inte
+popover (för lite plats för jämförelse + två knappar) och inte permanent
+details-rad.
+
+- Placering: i öppettids-/webbplatsblockets högerkant, som en 44 px `ghost`
+  ikonknapp bredvid den befintliga "Ändra"-ingången — alltså i praktisk
+  metadata, inte i identiteten.
+- Ikon: `RefreshCw` (synk/uppdatera). Undvik `MapPin`, den läses som "visa
+  karta".
+- Tillgängligt namn: `aria-label="Kontrollera adress och kartposition"`.
+- Diskret tillstånd: när en avvikelse hittats, visa en liten prick/punkt eller
+  texten `Ny adress` intill ikonen. Ikonen får inte i sig trigga externa anrop.
+- Sheet-innehåll (oförändrad logik, bara flyttad): rubrik "Adress och
+  kartposition", jämförelse "I Matrundan" / "I kartdatan", förklaringen att
+  inget ändras automatiskt, `Använd ny adress` (endast ägare/admin), `Sök igen`
+  och rapportvägen "Kartdatan stämmer inte".
+- Återkoppling: laddning i sheetet ("Kontrollerar kartdatan…"), toast vid
+  tillämpad adress som idag, `role="status"` på fel.
+- Bevarat: hämtning sker först när sheetet öppnas; ikonen visas bara i live-läge
+  med aktiv Geoapify-källa och `canReport`, så exempel-/demo-läge gör inga
+  externa anrop och ser ingen ikon. Samma produktkomponent i alla lägen.
+
+## Mobil-wireframe (360 px)
 
 ```text
-← Tillbaka
-┌──────────────────────────────────────────┐
-│ CAFÉ                                     │
-│ Kafé Sjöstugan                    [ 🍰 ] │
-│ 📍 Storgatan 12, Göteborg ↗              │
-│ [Nytt för gruppen]  [⚑ Nästa stopp]      │
-├──────────────────────────────────────────┤
-│ ★★★★☆ 4,2 · 3 besök                      │
-│ Senast 12 maj · Anna, Erik +1            │
-├──────────────────────────────────────────┤
-│ [        Registrera besök        ]  h-12 │
-│ [  ⚑ Föreslå som nästa stopp     ]  full │
-│ ♡ Favorit                          ghost │
-├──────────────────────────────────────────┤
-│ 🌐 Webbplats och öppettider   Öppet 21 ⌄ │  ← kollapsad
-└──────────────────────────────────────────┘
-
-Besök (3)                       [lista som idag]
-
-Om stället                              [✎]
-  kök · tillfällen · anteckning · tillagt av
-
-Betygsdetaljer
-
-⚠ Det finns nya uppgifter om stället  Jämför
-Rapportera felaktig information
+← Tillbaka                                        [♡]
+┌──────────────────────────────────────────────┐
+│ ┌────────┐  CAFÉ                             │
+│ │  🍰    │  Kafé Sjöstugan                   │
+│ │ [⚑Nästa]  📍 Storgatan 12, Göteborg ↗      │
+│ └────────┘  🌐 sjostugan.se ↗                │
+│                                              │
+│ 🕐 Öppettider · Öppet till 21   [Ändra] [⟳] │
+├──────────────────────────────────────────────┤
+│ 👥 ★★★★☆ 4,2 · 3 besök                       │
+│    Senast 12 maj · Anna, Erik                │
+├──────────────────────────────────────────────┤
+│ [         Registrera besök igen        ] h-12│
+│ [   ⚑ Föreslå som nästa stopp          ]     │
+└──────────────────────────────────────────────┘
 ```
 
-## Synlighetsnivåer
+`[⟳]` = ikonknappen som öppnar sheetet nedan:
 
-- **Alltid synligt:** namn, kategori, adress, status, gruppens betyg/besöksrad,
-  primärknappen, "Föreslå som nästa stopp".
-- **Kompakt:** favorit (ikon + text i ghost), öppet-nu-sammanfattning i den
-  kollapsade radens högerkant.
-- **Kollapsat:** hela "Webbplats och öppettider" inklusive veckoschema,
-  källhänvisning och Ändra.
-- **Längre ned:** konfliktrad, cross-group-förslag, rapportering, betygsdetaljer.
+```text
+╭─ Adress och kartposition ────────────────────╮
+│ Inget ändras automatiskt. Jämför innan du    │
+│ väljer.                                      │
+│ I Matrundan:  Storgatan 12, Göteborg         │
+│ I kartdatan:  Storgatan 12 A, Göteborg       │
+│ [ Använd ny adress ]                         │
+│ Kartdatan stämmer inte ·  Sök igen           │
+╰──────────────────────────────────────────────╯
+```
 
-## Edge cases
+## Edge cases att täcka i genomförandet
 
-- Saknas både webbplats och öppettider: visa ingen egen rad, bara en dämpad
-  textlänk "Lägg till webbplats och öppettider" när användaren får redigera.
-- Saknas ett av två: visa den kollapsade raden med det som finns; det tomma
-  fältet syns först inne i panelen.
-- Stängt idag / kan ha stängt permanent: sammanfattningen visar "Stängt idag";
-  permanent-stängt-signalen behåller sin nuvarande amber-behandling och ska
-  ligga i identitetskortet, inte i den kollapsade panelen.
-- Flera besök: besöksraden visar senaste + totalantal; ingen ny lista.
-- Långa namn/adresser: rubrik i två rader tillåts (ingen truncate på
-  detaljsidan), adress behåller `overflow-wrap:anywhere`.
-- Extern deltagare: fortsatt "+N utanför gruppen" i besökslistan, aldrig i
-  toppsammanfattningen.
-- Admin vs medlem: samma layout; redigeringsikonen och Ändra-vägen döljs för den
-  som saknar rättighet, ingen disabled-knapp.
-- Exempelgrupp vs livegrupp: befintlig förklaringsruta behålls men flyttas
-  under primärytan så exempelgruppen får samma läsordning som livegruppen.
+- Saknad webbplats: ingen rad, ingen platshållare.
+- Mycket långt namn: två rader tillåts; adressen behåller
+  `[overflow-wrap:anywhere]`, inget horisontellt spill vid 360 px.
+- Badge saknas: kortets höjd oförändrad (överlappande badge reserverar inget).
+- Ej ägare/admin: sheetet visar förklaring istället för disabled-knapp.
+- Ingen säker adress i kartdatan: bara rapportvägen i sheetet.
+- Arkiverad grupp / borttaget ställe / exempelgrupp: ingen ikon, befintlig
+  förklaringsruta oförändrad.
 
-## Alternativ med verkliga tradeoffs
+## Omfattning
 
-- **Kollapsad praktisk panel** (rekommenderas) sparar mest höjd men lägger ett
-  klick på öppettider. Alternativ: behåll öppettidsraden synlig och kollapsa
-  bara webbplats — mindre vinst, ingen extra kostnad.
-- **Slå ihop redigeringsingångarna till en** ger en begriplig modell men gör
-  dialogen större. Alternativ: behåll två dialoger men flytta båda triggarna
-  till samma ikonknapp i "Om stället" med en enkel valmeny.
-- **Favorit som ren ikon** sparar en rad men blir mindre upptäckbar; behåll
-  därför text vid ikonen.
-
-## Minsta förbättringspaket kontra omstrukturering
-
-**Minsta paket (rekommenderat först, ren presentationsändring):**
-
-1. Flytta "Webbplats och öppettider" nedanför handlingsblocket och gör hela
-   sektionen kollapsad med sammanfattning i huvudraden.
-2. Lägg till en kompakt grupprelationsrad (betyg · antal besök · senaste besök
-   med deltagare) direkt under identiteten.
-3. Gör "Föreslå som nästa stopp" full bredd och sänk favorit till ghost.
-4. Dölj tomma webbplats-/öppettidsrader.
-5. Anpassa primärknappens copy för tidigare besökta ställen.
-
-Detta ger uppskattat 4–6 färre rader ovanför fold och håller sig inom
-frontend/presentation, utan datamodell- eller RPC-ändring.
-
-**Större omstrukturering (avvakta):** samlad redigeringsmodell för alla
-gruppuppgifter och en egen underhållsvy för konflikter/cross-group-förslag.
-Rör fler dialoger och behörighetsvillkor och bör hanteras som eget paket efter
-att det minsta paketet är verifierat på 360 px.
+Ren presentationsändring i två filer plus en liten sheet-komponent. Ingen
+ändring av datamodell, RPC, behörighetsregler eller externa anrop.
