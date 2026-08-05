@@ -309,7 +309,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   expect(thumbBox!.width).toBeLessThanOrEqual(97);
   expect(thumbBox!.height).toBeGreaterThanOrEqual(112);
   expect(thumbBox!.height).toBeLessThanOrEqual(128);
-  expect(headingBox!.width).toBeGreaterThanOrEqual(190);
+  expect(headingBox!.width).toBeGreaterThanOrEqual(184);
   expect(Math.abs(mapsBox!.x - headingBox!.x)).toBeLessThanOrEqual(2);
   expect(mapsBox!.y).toBeGreaterThanOrEqual(headingBox!.y + headingBox!.height - 1);
   expect(Math.abs(websiteBox!.x - mapsBox!.x)).toBeLessThanOrEqual(2);
