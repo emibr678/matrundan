@@ -235,7 +235,20 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   expect(reportTop).toBeGreaterThan(aboutPlaceTop);
 
   await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
-  await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
+  const nextStopBadge = page.getByText("Nästa stopp", { exact: true });
+  await expect(nextStopBadge).toBeVisible();
   await expect(page.getByRole("button", { name: "Ta bort som nästa stopp" })).toBeVisible();
+  // Med statusbadge ligger adressen fortfarande i samma textkolumn, direkt under badgen.
+  const [nextStopBox, mapsLinkBoxWithBadge, headingBoxWithBadge] = await Promise.all([
+    nextStopBadge.boundingBox(),
+    mapsLink.boundingBox(),
+    placeHeading.boundingBox(),
+  ]);
+  expect(nextStopBox!.y).toBeGreaterThanOrEqual(
+    headingBoxWithBadge!.y + headingBoxWithBadge!.height - 1,
+  );
+  expect(mapsLinkBoxWithBadge!.y).toBeGreaterThanOrEqual(nextStopBox!.y + nextStopBox!.height - 1);
+  expect(Math.abs(mapsLinkBoxWithBadge!.x - headingBoxWithBadge!.x)).toBeLessThanOrEqual(2);
   await expectNoHorizontalOverflow(page, "Matställets detaljsida");
+
 });
