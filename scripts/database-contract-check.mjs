@@ -12,6 +12,7 @@ const root = process.cwd();
 const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const migrationRoot = resolve(root, "supabase/migrations");
 const preflightPath = resolve(root, "supabase/production-preflight.sql");
+const preflightLocationPath = resolve(root, "supabase/production-preflight-place-location.sql");
 const errors = [];
 
 function git(args, allowFailure = false) {
@@ -169,8 +170,15 @@ for (const index of [
 
 if (!existsSync(preflightPath)) {
   errors.push("supabase/production-preflight.sql saknas.");
-} else {
-  const preflight = readFileSync(preflightPath, "utf8");
+}
+if (!existsSync(preflightLocationPath)) {
+  errors.push("supabase/production-preflight-place-location.sql saknas.");
+}
+if (existsSync(preflightPath) && existsSync(preflightLocationPath)) {
+  const preflight = `${readFileSync(preflightPath, "utf8")}\n${readFileSync(
+    preflightLocationPath,
+    "utf8",
+  )}`;
   for (const name of requiredFunctions) {
     if (!preflight.includes(name)) {
       errors.push(`Produktions-preflight saknar ${name}.`);
