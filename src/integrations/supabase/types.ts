@@ -1095,9 +1095,16 @@ export type Database = {
       }
       place_external_info_snapshots: {
         Row: {
+          address: string | null
+          area: string | null
+          city: string | null
           fetched_at: string
           fingerprint: string
+          lat: number | null
+          lng: number | null
           opening_hours: Json | null
+          osm_id: string | null
+          osm_type: string | null
           place_id: string
           provider: string
           provider_place_id: string
@@ -1106,9 +1113,16 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          address?: string | null
+          area?: string | null
+          city?: string | null
           fetched_at: string
           fingerprint: string
+          lat?: number | null
+          lng?: number | null
           opening_hours?: Json | null
+          osm_id?: string | null
+          osm_type?: string | null
           place_id: string
           provider: string
           provider_place_id: string
@@ -1117,9 +1131,16 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          address?: string | null
+          area?: string | null
+          city?: string | null
           fetched_at?: string
           fingerprint?: string
+          lat?: number | null
+          lng?: number | null
           opening_hours?: Json | null
+          osm_id?: string | null
+          osm_type?: string | null
           place_id?: string
           provider?: string
           provider_place_id?: string
@@ -1634,6 +1655,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      apply_place_external_location_v1: {
+        Args: {
+          _actor_id: string
+          _address: string
+          _area: string
+          _city: string
+          _fetched_at: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _osm_id: string
+          _osm_type: string
+          _place_id: string
+          _provider_place_id: string
+        }
+        Returns: Json
+      }
       archive_group: { Args: { _group_id: string }; Returns: undefined }
       archive_group_place: {
         Args: { _group_id: string; _place_id: string }
@@ -1912,6 +1950,10 @@ export type Database = {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
       }
+      get_place_external_info_context_v3: {
+        Args: { _group_id: string; _place_id: string }
+        Returns: Json
+      }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
@@ -2123,6 +2165,25 @@ export type Database = {
           _fetched_at: string
           _group_id: string
           _opening_hours: Json
+          _place_id: string
+          _provider_place_id: string
+          _timezone: string
+          _website: string
+        }
+        Returns: undefined
+      }
+      save_place_external_info_snapshot_v2: {
+        Args: {
+          _address: string
+          _area: string
+          _city: string
+          _fetched_at: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _opening_hours: Json
+          _osm_id: string
+          _osm_type: string
           _place_id: string
           _provider_place_id: string
           _timezone: string
