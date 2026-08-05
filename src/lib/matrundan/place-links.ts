@@ -15,7 +15,7 @@ export interface GoogleMapsDisplayParts {
 
 const MAX_WEBSITE_LENGTH = 2048;
 const STREET_ADDRESS_HINT =
-  /(?:\d|\b(?:gata|gatan|väg|vägen|gränd|torg|torget|allé|allen|aveny|kaj|plan|plats|backe|backen|stig|stigen|stråk|terrass|esplanad|park|centrum)\b)/i;
+  /(?:\d|(?:gata(?:n)?|väg(?:en)?|gränd(?:en)?|torg(?:et)?|allé(?:n)?|allen|aveny(?:n)?|kaj(?:en)?|backe(?:n)?|stig(?:en)?|stråk(?:et)?|terrass(?:en)?|esplanad(?:en)?|gång(?:en)?|led(?:en)?|plats(?:en)?|street|road)\b)/i;
 
 function normalizedPart(value: string): string {
   return value.trim().toLocaleLowerCase("sv-SE").replace(/\s+/g, " ");
