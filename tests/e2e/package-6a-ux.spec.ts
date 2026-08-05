@@ -147,35 +147,45 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   const mapsIcon = mapsLink.locator("svg").first();
   const placeHeading = page.locator("h1");
   const placeThumb = page.locator('[data-slot="place-thumb"]').first();
+  const placeThumbVisual = placeThumb.locator('[data-slot="place-thumb-visual"]');
   await expect(mapsLink).toBeVisible();
   await expect(secondaryPracticalAction).toBeVisible();
   await expect(mapsLink).toHaveClass(/text-primary/);
-  const [mapsLinkBox, secondaryActionBox, secondaryIconBox, mapsIconBox, headingBox, thumbBox] =
-    await Promise.all([
-      mapsLink.boundingBox(),
-      secondaryPracticalAction.boundingBox(),
-      secondaryPracticalIcon.boundingBox(),
-      mapsIcon.boundingBox(),
-      placeHeading.boundingBox(),
-      placeThumb.boundingBox(),
-    ]);
+  const [
+    mapsLinkBox,
+    secondaryActionBox,
+    secondaryIconBox,
+    mapsIconBox,
+    headingBox,
+    thumbBox,
+    thumbVisualBox,
+  ] = await Promise.all([
+    mapsLink.boundingBox(),
+    secondaryPracticalAction.boundingBox(),
+    secondaryPracticalIcon.boundingBox(),
+    mapsIcon.boundingBox(),
+    placeHeading.boundingBox(),
+    placeThumb.boundingBox(),
+    placeThumbVisual.boundingBox(),
+  ]);
   expect(mapsLinkBox).not.toBeNull();
   expect(secondaryActionBox).not.toBeNull();
   expect(secondaryIconBox).not.toBeNull();
   expect(mapsIconBox).not.toBeNull();
   expect(headingBox).not.toBeNull();
   expect(thumbBox).not.toBeNull();
+  expect(thumbVisualBox).not.toBeNull();
   expect(Math.abs(mapsLinkBox!.x - headingBox!.x)).toBeLessThanOrEqual(2);
   expect(mapsLinkBox!.y).toBeGreaterThanOrEqual(headingBox!.y + headingBox!.height - 1);
   expect(secondaryActionBox!.y).toBeGreaterThanOrEqual(mapsLinkBox!.y + mapsLinkBox!.height - 1);
   expect(Math.abs(secondaryIconBox!.x - mapsIconBox!.x)).toBeLessThanOrEqual(2);
   expect(thumbBox!.width).toBeGreaterThanOrEqual(95);
   expect(thumbBox!.width).toBeLessThanOrEqual(97);
-  expect(thumbBox!.height).toBeGreaterThanOrEqual(112);
-  expect(thumbBox!.height).toBeLessThanOrEqual(128);
-  expect(
-    Math.abs(thumbBox!.y + thumbBox!.height - (secondaryActionBox!.y + secondaryActionBox!.height)),
-  ).toBeLessThanOrEqual(24);
+  expect(thumbVisualBox!.width).toBeGreaterThanOrEqual(95);
+  expect(thumbVisualBox!.width).toBeLessThanOrEqual(97);
+  expect(Math.abs(thumbVisualBox!.width - thumbVisualBox!.height)).toBeLessThanOrEqual(1);
+  expect(mapsLinkBox!.height).toBeGreaterThanOrEqual(44);
+  expect(secondaryActionBox!.height).toBeGreaterThanOrEqual(44);
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Nytt för gruppen", { exact: true })).toHaveCount(0);
 
