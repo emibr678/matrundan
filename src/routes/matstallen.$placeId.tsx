@@ -191,7 +191,10 @@ function PlaceDetail() {
       <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
           <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
-            <div className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-x-3 min-[390px]:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4">
+            <div
+              data-testid="place-identity-grid"
+              className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-x-3 min-[390px]:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4"
+            >
               <PlaceThumb place={place} size="detail" />
               <div className="min-w-0">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
