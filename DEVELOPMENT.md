@@ -120,6 +120,14 @@ Kör den relevanta agentverifieringen, inklusive mobil Chromium när UI har änd
 bun run verify:agent
 ```
 
+Kör en snabb preliminär mobilkontroll av Playwright-filer som har ändrats eller importerar ändrad kod:
+
+```bash
+bun run test:mobile:changed -- --only-changed=origin/main
+```
+
+`--only-changed` använder Playwrights beroendegraf och är en snabb heuristik. Den kan missa indirekt berörda E2E-flöden där testet endast navigerar till appen. En färdig UI-kandidat måste därför fortfarande köra hela relevanta mobilsviten.
+
 Kartans WebKit- och desktopmatris körs alltid i redo-CI. Den kan även köras lokalt:
 
 ```bash
@@ -156,6 +164,8 @@ Dessutom inkluderas staged, unstaged och otrackade filer. Samma klassificering a
 
 ## CI
 
+De statiska kontrollerna och browserverifieringen körs i separata jobb. Ett browsertestfel kan därför läsas och återköras utan att döljas längst ned i samma jobb som format, typning och bygge.
+
 Draft-PR kör:
 
 - miljökontroll;
@@ -165,9 +175,22 @@ Draft-PR kör:
 - Prettier och ESLint på ändrade filer;
 - alla enhetstester under `src`;
 - TypeScript för appkod, Bun-enhetstester och Playwright-svit;
-- produktionsbygge.
+- produktionsbygge;
+- en preliminär mobil Chromium-körning med `--only-changed` när UI har ändrats.
 
-När PR:n markeras redo körs dessutom mobil Chromium för UI-ändringar samt WebKit och desktop Chromium för kartrelaterade ändringar.
+Den preliminära browserkörningen har ingen automatisk retry och stoppar vid första fel. Syftet är snabb diagnostik, inte att ersätta full regressionsverifiering.
+
+När PR:n markeras redo, när `main` uppdateras eller vid manuell körning körs i stället hela mobil Chromium-sviten för UI-ändringar samt WebKit och desktop Chromium för kartrelaterade ändringar.
+
+Playwrights browserfiler cachelagras per runner, lockfil och kartbehov. Systemberoenden verifieras fortfarande av Playwright vid varje browserjobb.
+
+## Iterationsdisciplin
+
+- Håll PR:n som draft medan implementation, visuell justering eller diagnostik pågår.
+- Pusha en sammanhängande kandidat efter riktad lokal kontroll, inte varje experiment.
+- Om en redo-PR behöver flera nya hypoteser eller visuella iterationer ska den flyttas tillbaka till draft innan fler pushar.
+- Lovable ska användas på en avgränsad branch eller sandbox. Undvik en serie små direktpushar till `main`.
+- Exakta pixelgränser i E2E-test ska endast användas när pixelmåttet är ett avsiktligt stabilt kontrakt. För normal responsiv UX föredras ordning, overflow, minsta tryckyta och robusta relativa relationer.
 
 ## Skyddsräcken
 

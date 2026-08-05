@@ -122,6 +122,15 @@ Pusha när det finns en granskbar kandidat, en preview behövs för verklig
 enhetstestning eller en viktig checkpoint måste bevaras. Pusha inte varje
 experiment och skapa inte commits enbart för att trigga CI.
 
+PR:n ska vara draft medan implementation, visuell justering eller diagnostik
+pågår. Om en redo-PR behöver flera nya hypoteser eller ytterligare designloopar
+ska den flyttas tillbaka till draft innan fler pushar.
+
+Lovable ska användas på en avgränsad branch eller sandbox under iteration.
+Undvik en serie små direktpushar till `main`. En Lovable-iteration ska samlas
+till en granskbar kandidat innan den förs vidare till normal PR- och
+verifieringsprocess.
+
 GitHub Actions verifierar kod. Workflows får inte användas som en fjärrstyrd
 editor som patchar, committar eller pushar produktkod tillbaka till branchen.
 
@@ -143,6 +152,17 @@ När UI eller huvudflöden har ändrats:
 bun run verify:agent
 ```
 
+För snabb preliminär browserfeedback kan ändrade eller direkt beroende
+Playwright-filer köras separat:
+
+```bash
+bun run test:mobile:changed -- --only-changed=origin/main
+```
+
+`--only-changed` är en heuristik och kan missa E2E-flöden som endast navigerar
+till appen utan att importera den ändrade modulen. Den ersätter därför aldrig
+den fulla relevanta browserverifieringen för en färdig kandidat.
+
 För en färdig releasekandidat:
 
 ```bash
@@ -154,6 +174,11 @@ kartsviten. Ett test får bara rapporteras som utfört när det faktiskt har kö
 En saknad autentiserad live-session ska redovisas som en begränsning, inte döljas
 bakom grön demo-CI.
 
+Exakta pixelgränser i E2E-test ska endast användas när pixelmåttet är ett
+avsiktligt stabilt kontrakt. För normal responsiv UX ska tester i första hand
+skydda ordning, overflow, minsta tryckyta, synlighet och robusta relativa
+relationer.
+
 Databas- och RPC-ändringar kräver dessutom manuell granskning av:
 
 - autentisering, medlemskap och rollkrav;
@@ -164,6 +189,10 @@ Databas- och RPC-ändringar kräver dessutom manuell granskning av:
 
 ## 7. CI-nivåer
 
+Statiska kontroller och browsertester körs i separata jobb. Browserjobbet startar
+först när kodjobbet är grönt. Det gör felorsaken tydligare och gör det möjligt
+att återköra ett isolerat browserjobb när felet är tillfälligt.
+
 Draft-PR kör den snabba men kompletta kodkedjan:
 
 - miljökontroll och verktygsskydd;
@@ -173,12 +202,18 @@ Draft-PR kör den snabba men kompletta kodkedjan:
 - TypeScript;
 - produktionsbygge.
 
-När en PR markeras redo, när `main` uppdateras eller vid manuell fullkörning
-läggs relevanta browserkontroller till:
+När en draft-PR ändrar UI körs dessutom en preliminär mobil Chromium-kontroll med
+Playwrights `--only-changed`. Den har ingen automatisk retry och stoppar vid
+första fel. Syftet är snabb feedback på ändrade testfiler och direkta
+testberoenden, inte full regressionsgaranti.
 
-- mobil Chromium för UI-ändringar;
+När en PR markeras redo, när `main` uppdateras eller vid manuell fullkörning
+körs i stället relevanta fulla browserkontroller:
+
+- hela mobil Chromium-sviten för UI-ändringar;
 - WebKit/iPhone och desktop Chromium för kartrelaterade ändringar.
 
+Playwrights browserfiler cachelagras per runner, lockfil och kartbehov.
 Ändringsklassificeringen i `scripts/repo-tools.mjs` ska hållas uppdaterad när nya
 centrala UI- eller kartfiler tillkommer.
 
@@ -306,6 +341,10 @@ Undvik:
 - commits som endast triggar workflows;
 - självmodifierande GitHub Actions-workflows;
 - full browsermatris efter varje liten diagnostikändring;
+- att lämna en PR redo medan flera nya visuella hypoteser fortfarande testas;
+- en serie små Lovable-pushar direkt till `main`;
+- exakta pixelassertioner som låser normal responsiv layout utan ett uttalat
+  designkontrakt;
 - global skrivande formattering när bara några filer ändrats;
 - parallella verktyg för samma kontroll, exempelvis både `tsgo` och `tsc`;
 - att blanda produktfunktion, CI-ombyggnad och publicering i samma PR;
