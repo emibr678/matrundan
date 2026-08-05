@@ -229,7 +229,9 @@ function weeklyDetails(now: string) {
   };
 }
 
-test("platskortet ger lång identitet naturlig bredd på mobil och desktop", async ({ page }) => {
+test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och desktop", async ({
+  page,
+}) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, weeklyDetails(now));
@@ -258,6 +260,7 @@ test("platskortet ger lång identitet naturlig bredd på mobil och desktop", asy
   await expect(mapsLink).toBeVisible();
   await expect(websiteLink).toBeVisible();
 
+  const addressContent = mapsLink.locator("span").first();
   const addressTailText = mapsLink.locator('[data-slot="external-link-tail-text"]');
   const addressExternalIcon = mapsLink.locator('[data-slot="external-link-icon"]');
   const websiteTailText = websiteLink.locator('[data-slot="external-link-tail-text"]');
@@ -302,19 +305,29 @@ test("platskortet ger lång identitet naturlig bredd på mobil och desktop", asy
   expect(Math.abs(favoriteBox!.y - backBox!.y)).toBeLessThanOrEqual(2);
   expect(favoriteBox!.x).toBeGreaterThan(backBox!.x + backBox!.width);
   expect(favoriteBox!.y + favoriteBox!.height).toBeLessThan(headingBox!.y);
-  expect(thumbBox!.width).toBeGreaterThanOrEqual(63);
-  expect(thumbBox!.width).toBeLessThanOrEqual(65);
+  expect(thumbBox!.width).toBeGreaterThanOrEqual(95);
+  expect(thumbBox!.width).toBeLessThanOrEqual(97);
+  expect(thumbBox!.height).toBeGreaterThanOrEqual(112);
+  expect(thumbBox!.height).toBeLessThanOrEqual(128);
   expect(headingBox!.width).toBeGreaterThanOrEqual(190);
-  expect(mapsBox!.width).toBeGreaterThanOrEqual(170);
-  expect(mapsBox!.x).toBeLessThan(headingBox!.x);
-  expect(mapsBox!.y).toBeGreaterThanOrEqual(
-    Math.max(thumbBox!.y + thumbBox!.height, headingBox!.y + headingBox!.height) - 1,
-  );
-  expect(Math.abs(websiteBox!.y - mapsBox!.y)).toBeLessThanOrEqual(2);
+  expect(Math.abs(mapsBox!.x - headingBox!.x)).toBeLessThanOrEqual(2);
+  expect(mapsBox!.y).toBeGreaterThanOrEqual(headingBox!.y + headingBox!.height - 1);
+  expect(Math.abs(websiteBox!.x - mapsBox!.x)).toBeLessThanOrEqual(2);
+  expect(websiteBox!.y).toBeGreaterThanOrEqual(mapsBox!.y + mapsBox!.height - 1);
+  expect(
+    Math.abs(thumbBox!.y + thumbBox!.height - (websiteBox!.y + websiteBox!.height)),
+  ).toBeLessThanOrEqual(24);
 
-  const linkGap = websiteBox!.x - (mapsBox!.x + mapsBox!.width);
-  expect(linkGap).toBeGreaterThanOrEqual(-1);
-  expect(linkGap).toBeLessThanOrEqual(16);
+  const addressMetrics = await addressContent.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    return {
+      height: element.getBoundingClientRect().height,
+      lineHeight: Number.parseFloat(style.lineHeight),
+      lineClamp: style.getPropertyValue("-webkit-line-clamp"),
+    };
+  });
+  expect(addressMetrics.lineClamp).toBe("2");
+  expect(addressMetrics.height).toBeLessThanOrEqual(addressMetrics.lineHeight * 2 + 1);
 
   const addressIconGap =
     addressExternalIconBox!.x - (addressTailTextBox!.x + addressTailTextBox!.width);
@@ -328,29 +341,35 @@ test("platskortet ger lång identitet naturlig bredd på mobil och desktop", asy
 
   await page.setViewportSize({ width: 1024, height: 900 });
   const [
+    desktopHeadingBox,
     desktopThumbBox,
     desktopMapsBox,
     desktopAddressIconBox,
     desktopWebsiteBox,
     desktopWebsiteIconBox,
   ] = await Promise.all([
+    heading.boundingBox(),
     thumb.boundingBox(),
     mapsLink.boundingBox(),
     addressExternalIcon.boundingBox(),
     websiteLink.boundingBox(),
     websiteExternalIcon.boundingBox(),
   ]);
+  expect(desktopHeadingBox).not.toBeNull();
   expect(desktopThumbBox).not.toBeNull();
   expect(desktopMapsBox).not.toBeNull();
   expect(desktopAddressIconBox).not.toBeNull();
   expect(desktopWebsiteBox).not.toBeNull();
   expect(desktopWebsiteIconBox).not.toBeNull();
-  expect(desktopThumbBox!.width).toBeGreaterThanOrEqual(79);
-  expect(desktopThumbBox!.width).toBeLessThanOrEqual(81);
-  expect(Math.abs(desktopWebsiteBox!.y - desktopMapsBox!.y)).toBeLessThanOrEqual(2);
-  const desktopLinkGap = desktopWebsiteBox!.x - (desktopMapsBox!.x + desktopMapsBox!.width);
-  expect(desktopLinkGap).toBeGreaterThanOrEqual(-1);
-  expect(desktopLinkGap).toBeLessThanOrEqual(16);
+  expect(desktopThumbBox!.width).toBeGreaterThanOrEqual(111);
+  expect(desktopThumbBox!.width).toBeLessThanOrEqual(113);
+  expect(desktopThumbBox!.height).toBeGreaterThanOrEqual(128);
+  expect(desktopThumbBox!.height).toBeLessThanOrEqual(144);
+  expect(Math.abs(desktopMapsBox!.x - desktopHeadingBox!.x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(desktopWebsiteBox!.x - desktopMapsBox!.x)).toBeLessThanOrEqual(2);
+  expect(desktopWebsiteBox!.y).toBeGreaterThanOrEqual(
+    desktopMapsBox!.y + desktopMapsBox!.height - 1,
+  );
   expect(
     desktopMapsBox!.x +
       desktopMapsBox!.width -
@@ -364,7 +383,18 @@ test("platskortet ger lång identitet naturlig bredd på mobil och desktop", asy
   await expectNoHorizontalOverflow(page);
 
   const openingHours = page.getByText("Öppettider", { exact: true });
+  const openingHoursIcon = openingHours.locator("..").locator("svg").first();
+  const registerVisit = page.getByRole("button", { name: "Registrera besök", exact: true });
   await expect(openingHours).toBeVisible();
+  await expect(openingHoursIcon).toBeVisible();
+  await expect(registerVisit).toBeVisible();
+  const [openingHoursIconBox, registerVisitBox] = await Promise.all([
+    openingHoursIcon.boundingBox(),
+    registerVisit.boundingBox(),
+  ]);
+  expect(openingHoursIconBox).not.toBeNull();
+  expect(registerVisitBox).not.toBeNull();
+  expect(Math.abs(openingHoursIconBox!.x - registerVisitBox!.x)).toBeLessThanOrEqual(2);
   await expect(page.getByText("Måndag", { exact: true })).toBeHidden();
   await expect(page.getByText("Öppet nu", { exact: true })).toHaveCount(0);
   await openingHours.click();
@@ -375,7 +405,7 @@ test("platskortet ger lång identitet naturlig bredd på mobil och desktop", asy
   await expectNoHorizontalOverflow(page);
 });
 
-test("saknad webbplats blir en diskret lägg till-handling och öppettider tar en rad", async ({
+test("saknad webbplats blir en diskret handling under adressen och öppettider tar en rad", async ({
   page,
 }) => {
   const now = new Date().toISOString();
@@ -397,7 +427,9 @@ test("saknad webbplats blir en diskret lägg till-handling och öppettider tar e
   const emptyVisitCardBox = await emptyVisitMessage.locator("..").boundingBox();
   expect(emptyVisitCardBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(52);
   const mapsLink = page.getByRole("link", { name: "Öppna Testköket i Google Maps" });
+  const mapsIcon = mapsLink.locator("svg").first();
   const addWebsite = page.getByRole("button", { name: "Lägg till webbplats", exact: true });
+  const addWebsiteIcon = addWebsite.locator("svg").first();
   const register = page.getByRole("button", { name: "Registrera besök", exact: true });
   const propose = page.getByRole("button", { name: "Föreslå som nästa stopp", exact: true });
   const favorite = page.getByRole("button", { name: "Markera som favorit", exact: true });
@@ -411,24 +443,35 @@ test("saknad webbplats blir en diskret lägg till-handling och öppettider tar e
   await expect(page.getByText("Saknas", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ändra", exact: true })).toHaveCount(0);
 
-  const [mapsLinkBox, addWebsiteBox, registerBox, proposeBox, favoriteBox, openingHoursBox] =
-    await Promise.all([
-      mapsLink.boundingBox(),
-      addWebsite.boundingBox(),
-      register.boundingBox(),
-      propose.boundingBox(),
-      favorite.boundingBox(),
-      openingHours.boundingBox(),
-    ]);
+  const [
+    mapsLinkBox,
+    mapsIconBox,
+    addWebsiteBox,
+    addWebsiteIconBox,
+    registerBox,
+    proposeBox,
+    favoriteBox,
+    openingHoursBox,
+  ] = await Promise.all([
+    mapsLink.boundingBox(),
+    mapsIcon.boundingBox(),
+    addWebsite.boundingBox(),
+    addWebsiteIcon.boundingBox(),
+    register.boundingBox(),
+    propose.boundingBox(),
+    favorite.boundingBox(),
+    openingHours.boundingBox(),
+  ]);
   expect(mapsLinkBox).not.toBeNull();
+  expect(mapsIconBox).not.toBeNull();
   expect(addWebsiteBox).not.toBeNull();
+  expect(addWebsiteIconBox).not.toBeNull();
   expect(registerBox?.height ?? 0).toBeGreaterThanOrEqual(44);
   expect(proposeBox?.height ?? 0).toBeGreaterThanOrEqual(44);
   expect(favoriteBox?.height ?? 0).toBeGreaterThanOrEqual(44);
-  expect(Math.abs(mapsLinkBox!.y - addWebsiteBox!.y)).toBeLessThanOrEqual(2);
-  expect(addWebsiteBox!.x - (mapsLinkBox!.x + mapsLinkBox!.width)).toBeGreaterThanOrEqual(-9);
-  expect(addWebsiteBox!.x - (mapsLinkBox!.x + mapsLinkBox!.width)).toBeLessThanOrEqual(16);
-  expect(favoriteBox?.y ?? 0).toBeLessThan(addWebsiteBox?.y ?? 0);
+  expect(addWebsiteBox!.y).toBeGreaterThanOrEqual(mapsLinkBox!.y + mapsLinkBox!.height - 1);
+  expect(Math.abs(addWebsiteIconBox!.x - mapsIconBox!.x)).toBeLessThanOrEqual(2);
+  expect(favoriteBox?.y ?? 0).toBeLessThan(mapsLinkBox?.y ?? 0);
   expect(addWebsiteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
   expect(openingHoursBox?.y ?? 0).toBeLessThan(registerBox?.y ?? 0);
   expect(registerBox?.y ?? 0).toBeLessThan(proposeBox?.y ?? 0);
