@@ -313,7 +313,9 @@ function PlaceDetail() {
                       <Flag className="h-4 w-4 shrink-0" />
                       <span>Nästa stopp</span>
                     </span>
-                    <span className="shrink-0 text-xs font-normal text-muted-foreground">Ta bort</span>
+                    <span className="shrink-0 text-xs font-normal text-muted-foreground">
+                      Ta bort
+                    </span>
                   </Button>
                 ) : (
                   <Button
