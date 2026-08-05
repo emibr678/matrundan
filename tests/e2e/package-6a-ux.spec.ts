@@ -106,7 +106,9 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await page.goto("/matstallen/p7?demo=1");
   const registerVisit = page.getByRole("button", { name: "Registrera besök igen" }).first();
   await expect(registerVisit).toBeVisible();
-  await expect(page.getByRole("button", { name: "Föreslå som nästa stopp" })).toBeVisible();
+  const proposeNextStop = page.getByRole("button", { name: "Föreslå som nästa stopp" });
+  await expect(proposeNextStop).toBeVisible();
+  await expect(proposeNextStop).toHaveAttribute("aria-pressed", "false");
 
   const favorite = page.getByRole("button", { name: "Markera som favorit" });
   await expect(favorite).toBeVisible();
@@ -115,18 +117,13 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   expect(favoriteBox?.height).toBeGreaterThanOrEqual(44);
   await expect(page.getByText("Favorit", { exact: true })).toHaveCount(0);
 
-  const practicalLinks = page.getByTestId("place-practical-links");
   const identityGrid = page.getByTestId("place-identity-grid");
+  const practicalInfo = page.getByTestId("place-practical-info");
+  const practicalLinks = page.getByTestId("place-practical-links");
+  await expect(identityGrid).toBeVisible();
+  await expect(practicalInfo).toBeVisible();
   await expect(practicalLinks).toBeVisible();
-  const [practicalLinkLayout, identityLayout] = await Promise.all([
-    practicalLinks.evaluate((element) => {
-      const style = window.getComputedStyle(element);
-      return {
-        display: style.display,
-        flexDirection: style.flexDirection,
-        rowGap: Number.parseFloat(style.rowGap) || 0,
-      };
-    }),
+  const [identityLayout, practicalLayout] = await Promise.all([
     identityGrid.evaluate((element) => {
       const style = window.getComputedStyle(element);
       return {
@@ -134,12 +131,18 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
         columns: style.gridTemplateColumns,
       };
     }),
+    practicalLinks.evaluate((element) => {
+      const style = window.getComputedStyle(element);
+      return {
+        display: style.display,
+        flexDirection: style.flexDirection,
+      };
+    }),
   ]);
   expect(identityLayout.display).toBe("grid");
   expect(identityLayout.columns.split(" ")).toHaveLength(2);
-  expect(practicalLinkLayout.display).toBe("flex");
-  expect(practicalLinkLayout.flexDirection).toBe("column");
-  expect(practicalLinkLayout.rowGap).toBeLessThanOrEqual(1);
+  expect(practicalLayout.display).toBe("flex");
+  expect(practicalLayout.flexDirection).toBe("column");
 
   const mapsLink = page.getByRole("link", { name: /Öppna .* i Google Maps/ });
   const secondaryPracticalAction = practicalLinks.locator("a, button").nth(1);
@@ -159,6 +162,8 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     headingBox,
     thumbBox,
     thumbVisualBox,
+    identityGridBox,
+    practicalInfoBox,
   ] = await Promise.all([
     mapsLink.boundingBox(),
     secondaryPracticalAction.boundingBox(),
@@ -167,6 +172,8 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     placeHeading.boundingBox(),
     placeThumb.boundingBox(),
     placeThumbVisual.boundingBox(),
+    identityGrid.boundingBox(),
+    practicalInfo.boundingBox(),
   ]);
   expect(mapsLinkBox).not.toBeNull();
   expect(secondaryActionBox).not.toBeNull();
@@ -175,8 +182,11 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   expect(headingBox).not.toBeNull();
   expect(thumbBox).not.toBeNull();
   expect(thumbVisualBox).not.toBeNull();
-  expect(Math.abs(mapsLinkBox!.x - headingBox!.x)).toBeLessThanOrEqual(2);
-  expect(mapsLinkBox!.y).toBeGreaterThanOrEqual(headingBox!.y + headingBox!.height - 1);
+  expect(identityGridBox).not.toBeNull();
+  expect(practicalInfoBox).not.toBeNull();
+  expect(practicalInfoBox!.x).toBeLessThanOrEqual(thumbBox!.x + 1);
+  expect(practicalInfoBox!.width).toBeGreaterThanOrEqual(identityGridBox!.width - 1);
+  expect(mapsLinkBox!.x).toBeLessThan(headingBox!.x);
   expect(secondaryActionBox!.y).toBeGreaterThanOrEqual(mapsLinkBox!.y + mapsLinkBox!.height - 1);
   expect(Math.abs(secondaryIconBox!.x - mapsIconBox!.x)).toBeLessThanOrEqual(2);
   expect(thumbBox!.width).toBeGreaterThanOrEqual(60);
@@ -186,27 +196,24 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   expect(Math.abs(thumbVisualBox!.width - thumbVisualBox!.height)).toBeLessThanOrEqual(1);
   expect(mapsLinkBox!.height).toBeGreaterThanOrEqual(44);
   expect(secondaryActionBox!.height).toBeGreaterThanOrEqual(44);
-  // Adressen ligger direkt under namnet, utan reserverat tomrum när statusen saknas.
-  expect(mapsLinkBox!.y - (headingBox!.y + headingBox!.height)).toBeLessThanOrEqual(16);
+  await expect(identityGrid.getByText("Nästa stopp", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Nytt för gruppen", { exact: true })).toHaveCount(0);
-  // Kartdataunderhållet ska inte längre ta en egen synlig rad i kortet.
   await expect(page.getByText("Kontrollera kartdata", { exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("place-location-refresh-trigger")).toHaveCount(0);
   await expect(page.getByTestId("place-location-refresh")).toHaveCount(0);
-
 
   const openingHours = page.getByText("Öppettider", { exact: true });
   const openingHoursIcon = openingHours.locator("..").locator("svg").first();
   await expect(openingHours).toBeVisible();
   await expect(openingHoursIcon).toBeVisible();
-  const [openingHoursIconBox, registerVisitBox] = await Promise.all([
+  const [openingHoursIconBox, registerVisitBoxBefore] = await Promise.all([
     openingHoursIcon.boundingBox(),
     registerVisit.boundingBox(),
   ]);
   expect(openingHoursIconBox).not.toBeNull();
-  expect(registerVisitBox).not.toBeNull();
-  // Öppettidsraden har 6 px inre hover-yta, så ikonen får ligga som mest 6 px in från knappkanten.
-  expect(Math.abs(openingHoursIconBox!.x - registerVisitBox!.x)).toBeLessThanOrEqual(6);
+  expect(registerVisitBoxBefore).not.toBeNull();
+  expect(Math.abs(openingHoursIconBox!.x - mapsIconBox!.x)).toBeLessThanOrEqual(2);
   await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toHaveCount(0);
   await expect(page.getByText("1 besök", { exact: true })).toBeVisible();
   const openingHoursTop = await openingHours.evaluate(
@@ -235,21 +242,22 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     .evaluate((element) => element.getBoundingClientRect().top);
   expect(reportTop).toBeGreaterThan(aboutPlaceTop);
 
-  await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
-  const nextStopBadge = page.getByText("Nästa stopp", { exact: true });
-  await expect(nextStopBadge).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ta bort som nästa stopp" })).toBeVisible();
-  // Med statusbadge ligger adressen fortfarande i samma textkolumn, direkt under badgen.
-  const [nextStopBox, mapsLinkBoxWithBadge, headingBoxWithBadge] = await Promise.all([
-    nextStopBadge.boundingBox(),
-    mapsLink.boundingBox(),
-    placeHeading.boundingBox(),
-  ]);
-  expect(nextStopBox!.y).toBeGreaterThanOrEqual(
-    headingBoxWithBadge!.y + headingBoxWithBadge!.height - 1,
-  );
-  expect(mapsLinkBoxWithBadge!.y).toBeGreaterThanOrEqual(nextStopBox!.y + nextStopBox!.height - 1);
-  expect(Math.abs(mapsLinkBoxWithBadge!.x - headingBoxWithBadge!.x)).toBeLessThanOrEqual(2);
-  await expectNoHorizontalOverflow(page, "Matställets detaljsida");
+  const practicalInfoTopBefore = practicalInfoBox!.y;
+  const registerVisitTopBefore = registerVisitBoxBefore!.y;
+  await proposeNextStop.click();
+  const selectedNextStop = page.getByRole("button", { name: /Ta bort .* som nästa stopp/ });
+  await expect(selectedNextStop).toBeVisible();
+  await expect(selectedNextStop).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("next-stop-accent")).toBeVisible();
+  await expect(identityGrid.getByText("Nästa stopp", { exact: true })).toHaveCount(0);
 
+  const [practicalInfoBoxWithNextStop, registerVisitBoxWithNextStop] = await Promise.all([
+    practicalInfo.boundingBox(),
+    registerVisit.boundingBox(),
+  ]);
+  expect(practicalInfoBoxWithNextStop).not.toBeNull();
+  expect(registerVisitBoxWithNextStop).not.toBeNull();
+  expect(Math.abs(practicalInfoBoxWithNextStop!.y - practicalInfoTopBefore)).toBeLessThanOrEqual(1);
+  expect(Math.abs(registerVisitBoxWithNextStop!.y - registerVisitTopBefore)).toBeLessThanOrEqual(1);
+  await expectNoHorizontalOverflow(page, "Matställets detaljsida");
 });
