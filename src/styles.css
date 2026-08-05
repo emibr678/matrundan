@@ -198,8 +198,9 @@
 
 /*
  * Platsdetaljens identitetsblock använder två stabila kolumner:
- * ikon till vänster och namn, adress samt webbplats till höger.
- * DOM-ordningen är oförändrad för läsordning och tillgänglighet.
+ * en kvadratisk ikon till vänster och namn samt praktiska länkar till höger.
+ * Länkarna behåller varsin 44 px tryckyta men deras synliga innehåll möts i
+ * mitten, så adress och webbplats upplevs som en kompakt informationsgrupp.
  */
 div:has(> [data-testid="place-practical-links"]) {
   display: grid;
@@ -215,11 +216,12 @@ div:has(> [data-testid="place-practical-links"]) > :first-child {
 div:has(> [data-testid="place-practical-links"]) > :first-child > [data-slot="place-thumb"] {
   grid-column: 1;
   grid-row: 1 / span 2;
-  align-self: stretch;
+  align-self: start;
   width: 6rem;
-  height: auto;
-  min-height: 7rem;
-  max-height: 8rem;
+  height: 6rem;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: 1 / 1;
   font-size: 2.25rem;
 }
 
@@ -244,6 +246,9 @@ div:has(> [data-testid="place-practical-links"]) > :first-child > :last-child {
 [data-testid="place-practical-links"] > a:first-child {
   width: fit-content;
   max-width: 100%;
+  align-items: flex-end;
+  padding-top: 0;
+  padding-bottom: 0.125rem;
 }
 
 [data-testid="place-practical-links"] > a:first-child > span {
@@ -260,13 +265,21 @@ div:has(> [data-testid="place-practical-links"]) > :first-child > :last-child {
 [data-testid="place-practical-links"] > div > a,
 [data-testid="place-practical-links"] > div > button {
   width: fit-content;
+  align-items: flex-start;
+  padding-top: 0.125rem;
+  padding-bottom: 0;
+}
+
+[data-testid="place-practical-links"] + details,
+[data-testid="place-practical-links"] + div,
+[data-testid="place-location-refresh"] {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 [data-testid="place-practical-links"] + details,
 [data-testid="place-practical-links"] + div {
-  grid-column: 1 / -1;
   grid-row: 3;
-  width: 100%;
   margin-top: 0.75rem;
 }
 
@@ -274,6 +287,10 @@ div:has(> [data-testid="place-practical-links"]) > :first-child > :last-child {
 [data-testid="place-practical-links"] + div {
   padding-right: 0;
   padding-left: 0;
+}
+
+[data-testid="place-location-refresh"] {
+  margin-top: 0;
 }
 
 @media (min-width: 640px) {
@@ -284,13 +301,15 @@ div:has(> [data-testid="place-practical-links"]) > :first-child > :last-child {
 
   div:has(> [data-testid="place-practical-links"]) > :first-child > [data-slot="place-thumb"] {
     width: 7rem;
-    min-height: 8rem;
-    max-height: 9rem;
+    height: 7rem;
+    min-height: 0;
+    max-height: none;
     font-size: 2.5rem;
   }
 
   [data-testid="place-practical-links"] + details,
-  [data-testid="place-practical-links"] + div {
+  [data-testid="place-practical-links"] + div,
+  [data-testid="place-location-refresh"] {
     width: calc(100% + 0.5rem);
     margin-right: -0.25rem;
     margin-left: -0.25rem;
