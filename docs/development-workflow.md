@@ -194,6 +194,8 @@ Innan den markeras redo ska följande vara tydligt:
 - databas- och integritetskonsekvenser;
 - om exempelgruppen eller scenariokontraktet ändrades, redan täcker behovet eller
   inte är relevant;
+- om roadmapen behöver markera en färdig funktion, avsluta ett paket eller
+  ändra nästa prioritet;
 - utförda kontroller;
 - manuella teststeg;
 - sådant som inte kunde verifieras;
@@ -203,6 +205,26 @@ Merge får ske när scope är uppfyllt, diffen är granskad, relevant CI är gr�
 inga kända blockerare återstår. Merge innebär inte automatiskt att databasen är
 driftsatt, att Lovable-previewn har synkat eller att den publika appen är
 publicerad.
+
+### Efter merge: backlog- och roadmapkvitto
+
+Efter merge av en implementerande PR ska följande kontrolleras och redovisas:
+
+1. bekräfta att `Closes #...` stängde rätt issue;
+2. ta bort `status:ready` om etiketten ligger kvar på ett stängt issue;
+3. behåll typ- och prioritetslabel när de hjälper historisk sökning;
+4. kontrollera att roadmapen fortfarande beskriver aktivt och kommande arbete;
+5. markera en färdig issue kort med `✅` om dess paket fortfarande pågår;
+6. om paketets sista issue stängdes, flytta paketet till **Genomförda paket**;
+7. gör en kort produktbedömning innan nästa paket eller issue får
+   `priority:now` och uppdatera både roadmap och berörda labels;
+8. redovisa changelog/version, arkitektur, databas, Lovable-synk, preview och
+   publicering separat.
+
+Roadmap- och labeländringar görs helst i den avslutande implementations-PR:n när
+det är tydligt att funktionen eller paketet blir klart. Om det inte är lämpligt
+ska en omedelbart följande docs-only PR skapas. GitHub Actions får verifiera
+reglerna men ska inte automatiskt skriva om roadmapen eller välja prioritet.
 
 ## 9. Lovable, preview och publicering
 
@@ -239,12 +261,19 @@ Branch:
 Commit:
 PR:
 CI:
+Issue:
+Issue stängd:
+Roadmap:
+Exempelgrupp:
+Changelog/version:
+Arkitektur:
 Lovable-synk:
 Preview:
 Testa:
 Ej verifierat:
 Databas:
 Publicering:
+Nästa rekommenderade issue:
 ```
 
 ## 11. Dokumentationsansvar
@@ -283,4 +312,6 @@ Undvik:
 - att förlita sig på en gammal chatt som enda källa till ett produktbeslut;
 - att använda README, `.lovable/plan.md` eller lösa TODO-listor som parallell
   backlog;
+- att lämna ett stängt issue med `status:ready` eller en aktiv roadmap som visar
+  ett redan avslutat paket som pågående;
 - flera dokument som gör anspråk på att vara kanoniska för samma sak.

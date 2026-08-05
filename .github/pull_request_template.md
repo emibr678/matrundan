@@ -24,6 +24,18 @@ issue.
 
 - 
 
+## Backlog och roadmap
+
+- [ ] PR:n använder `Closes #...` för det issue som slutförs.
+- [ ] Issuens scope och öppna beslut speglar den slutliga implementationen.
+- [ ] `docs/product-roadmap.md` är uppdaterad om funktionen färdigställs,
+      paketstatus ändras eller nästa prioritet påverkas.
+- [ ] Om detta är paketets sista issue har nästa paket och dess prioritet
+      bedömts.
+- [ ] Inte relevant, med motivering nedan.
+
+Motivering:
+
 ## Exempelgruppen
 
 Välj ett alternativ och motivera vid behov:
@@ -97,3 +109,12 @@ Utförda kommandon och resultat:
 - Ej verifierat:
 - Databas:
 - Publicering: ingår inte om inget annat uttryckligen godkänts
+
+## Efter merge
+
+- [ ] Bekräfta att rätt issue stängdes av `Closes #...`.
+- [ ] Ta bort `status:ready` om etiketten ligger kvar på ett stängt issue.
+- [ ] Kontrollera att roadmapen fortfarande visar aktivt och kommande arbete
+      korrekt.
+- [ ] Om paketets sista issue stängdes: flytta paketet till genomfört och bedöm
+      nästa `priority:now`.
