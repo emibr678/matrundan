@@ -53,6 +53,7 @@ const contextSchema = z.object({
 
 const geoapifyPropertiesSchema = z
   .object({
+    name: z.string().optional(),
     address_line1: z.string().optional(),
     formatted: z.string().optional(),
     street: z.string().optional(),
@@ -170,12 +171,17 @@ function normalizeExternalLocation(
   properties: z.infer<typeof geoapifyPropertiesSchema> | undefined,
 ): ExternalPlaceLocation | null {
   if (!properties) return null;
+
+  const placeName = cleanText(properties.name);
   const street = [cleanText(properties.street), cleanText(properties.housenumber)]
     .filter(Boolean)
     .join(" ");
   const addressLine = cleanText(properties.address_line1);
   const formattedFirstLine = cleanText(properties.formatted?.split(",")[0]);
-  const address = street || addressLine || formattedFirstLine;
+  const address =
+    street ||
+    (isCredibleStreetAddress(addressLine, placeName) ? addressLine : "") ||
+    (isCredibleStreetAddress(formattedFirstLine, placeName) ? formattedFirstLine : "");
   const city = cleanText(
     properties.city ||
       properties.town ||
@@ -187,7 +193,7 @@ function normalizeExternalLocation(
     cleanText(
       properties.suburb || properties.neighbourhood || properties.quarter || properties.district,
     ) || null;
-  if (!isCredibleStreetAddress(address) || !city) return null;
+  if (!address || !city) return null;
   if (!Number.isFinite(properties.lat) || !Number.isFinite(properties.lon)) return null;
 
   const raw = properties.datasource?.raw;
@@ -202,7 +208,7 @@ function normalizeExternalLocation(
     osmType: osmType && osmId ? osmType : null,
     osmId: osmType && osmId ? osmId : null,
   };
-  return isUsableExternalLocation(location) ? location : null;
+  return isUsableExternalLocation(location, placeName) ? location : null;
 }
 
 async function fetchPlaceDetails(providerPlaceId: string): Promise<PlaceExternalDetails> {
@@ -389,8 +395,8 @@ export const applyGeoapifyPlaceLocation = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<ApplyPlaceExternalLocationResult> => {
-    const rpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
-    const verified = await verifiedContext(rpc, data.groupId, data.placeId);
+    const userRpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
+    const verified = await verifiedContext(userRpc, data.groupId, data.placeId);
     if (!verified.supportsLocationSync) {
       throw new Error("Omsynk av adress kräver den senaste databasversionen.");
     }
@@ -403,8 +409,11 @@ export const applyGeoapifyPlaceLocation = createServerFn({ method: "POST" })
       throw new Error("Kartdatan innehåller ingen säker adress och position att använda.");
     }
 
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const adminRpc = supabaseAdmin.rpc.bind(supabaseAdmin) as unknown as RpcCall;
     const location = details.location;
-    const applied = await rpc("apply_place_external_location_v1", {
+    const applied = await adminRpc("apply_place_external_location_v1", {
+      _actor_id: context.userId,
       _group_id: data.groupId,
       _place_id: data.placeId,
       _provider_place_id: verified.context.providerPlaceId,
