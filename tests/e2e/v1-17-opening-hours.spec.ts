@@ -316,8 +316,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   expect(websiteBox!.y).toBeGreaterThanOrEqual(mapsBox!.y + mapsBox!.height - 1);
   expect(
     Math.abs(
-      thumbBox!.y + thumbBox!.height -
-        (websiteExternalIconBox!.y + websiteExternalIconBox!.height),
+      thumbBox!.y + thumbBox!.height - (websiteExternalIconBox!.y + websiteExternalIconBox!.height),
     ),
   ).toBeLessThanOrEqual(24);
 
