@@ -5,7 +5,8 @@ godkänd implementation, verifiering, merge, Lovable-synk och publicering.
 
 Miljösetup, låst Bun-version och exakta kommandon finns i
 [DEVELOPMENT.md](../DEVELOPMENT.md). Arkitektur- och säkerhetsregler finns i
-[architecture.md](./architecture.md).
+[architecture.md](./architecture.md). Beslutad produktinriktning, paket och
+backlogflöde finns i [product-roadmap.md](./product-roadmap.md).
 
 ## 1. Faser
 
@@ -40,6 +41,29 @@ Innan en icke-trivial implementation:
 
 Ett godkänt scope ska genomföras som minsta sammanhängande lösning. Bredda inte
 uppgiften tyst och blanda inte in orelaterad refaktorering.
+
+### Roadmap och GitHub Issues
+
+`docs/product-roadmap.md` är den kanoniska översikten över beslutade paket,
+prioriteringar och varaktiga produktavgränsningar. GitHub Issues är den konkreta
+backloggen.
+
+- Nya idéer registreras normalt med `status:inbox`.
+- Efter produktdiskussion dokumenteras användarbehov, överenskommet scope,
+  icke-mål, integritet och öppna beslut i issuen och status sätts till
+  `status:agreed`.
+- En aktuell teknisk plan tas fram först när funktionen närmar sig genomförande,
+  eftersom kod och databas kan ha ändrats sedan produktbeslutet.
+- Efter uttryckligt implementationsgodkännande sätts `status:ready`.
+- En implementerande PR ska referera eller stänga sitt issue.
+
+Redan dokumenterade produktbeslut ska inte behöva diskuteras om från början i
+en ny chatt. Om aktuell kod, nya fakta eller ett tydligt produktproblem kräver
+en ändring ska issuen och vid behov roadmapen uppdateras innan scope breddas.
+
+Varje större feature-plan och PR ska bedöma om exempelgruppen eller dess
+scenariokontrakt behöver uppdateras. Ett nej ska motiveras när ändringen påverkar
+ett användarflöde.
 
 ## 3. Arbetsyta och Git
 
@@ -164,10 +188,12 @@ En PR ska vara draft medan implementation eller diagnostik pågår.
 
 Innan den markeras redo ska följande vara tydligt:
 
-- godkänt scope;
+- relaterat GitHub Issue och godkänt scope;
 - motivering eller verifierad grundorsak;
 - viktigaste ändringar;
 - databas- och integritetskonsekvenser;
+- om exempelgruppen eller scenariokontraktet ändrades, redan täcker behovet eller
+  inte är relevant;
 - utförda kontroller;
 - manuella teststeg;
 - sådant som inte kunde verifieras;
@@ -227,15 +253,19 @@ Varje typ av information ska ha en tydlig källa:
 
 - `README.md` – kort, aktuell projektöversikt och startpunkt;
 - `CHANGELOG.md` – släppta och ännu inte publicerade användarförändringar;
+- `docs/product-roadmap.md` – beslutade produktpaket, prioritering och
+  backlogprocess;
+- GitHub Issues – detaljerat scope och status för konkreta funktioner och
+  buggar;
 - `docs/architecture.md` – varaktiga arkitektur- och säkerhetsbeslut;
 - `DEVELOPMENT.md` – miljösetup och kanoniska kommandon;
 - detta dokument – arbets- och leveransprocess;
 - `AGENTS.md` – bindande instruktioner för kodande agenter;
 - `docs/archive/` – historiska dokument som inte längre är kanoniska.
 
-README ska inte duplicera en lång releasehistorik. Avslutade
-implementationsplaner ska tas bort eller arkiveras när deras varaktiga beslut
-har flyttats till arkitektur och changelog.
+README ska inte duplicera en lång releasehistorik eller fungera som en parallell
+backlog. Avslutade implementationsplaner ska tas bort eller arkiveras när deras
+varaktiga beslut har flyttats till arkitektur, roadmap och changelog.
 
 ## 12. Antimönster
 
@@ -250,4 +280,7 @@ Undvik:
 - global skrivande formattering när bara några filer ändrats;
 - parallella verktyg för samma kontroll, exempelvis både `tsgo` och `tsc`;
 - att blanda produktfunktion, CI-ombyggnad och publicering i samma PR;
+- att förlita sig på en gammal chatt som enda källa till ett produktbeslut;
+- att använda README, `.lovable/plan.md` eller lösa TODO-listor som parallell
+  backlog;
 - flera dokument som gör anspråk på att vara kanoniska för samma sak.
