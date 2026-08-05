@@ -31,6 +31,7 @@ function screenshotName(route: string) {
 
 for (const route of getReviewPaths()) {
   test(`fånga ${route}`, async ({ page }, testInfo) => {
+    await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
     await page.goto(route, { waitUntil: "domcontentloaded" });
     await expect(page.locator("main").first()).toBeVisible();
 
@@ -49,7 +50,9 @@ for (const route of getReviewPaths()) {
 
     await page.evaluate(async () => {
       await document.fonts.ready;
-      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
       window.scrollTo(0, 0);
     });
 
