@@ -35,7 +35,8 @@
     "test:mobile": "playwright test --project=mobile-chromium",
     "test:mobile:changed": "playwright test --project=mobile-chromium --pass-with-no-tests --max-failures=1 --retries=0",
     "test:map": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-chromium",
-    "test:map:cross-browser": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-webkit --project=desktop-chromium"
+    "test:map:cross-browser": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-webkit --project=desktop-chromium",
+    "test:visual-review": "playwright test --config=playwright.visual.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -110,7 +111,6 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
-    "nitro": "3.0.260603-beta",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
