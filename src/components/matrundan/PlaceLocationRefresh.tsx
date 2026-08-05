@@ -1,8 +1,15 @@
 import * as React from "react";
-import { Loader2, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import {
+  CheckCircle2,
+  Clock3,
+  Globe2,
+  Loader2,
+  MapPin,
+  PencilLine,
+  RefreshCw,
+} from "lucide-react";
 
-import { PlaceDataReportDialog } from "./PlaceDataReportDialog";
+import { usePlacePracticalInfo } from "./PlacePracticalInfoContext";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -12,101 +19,136 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  applyGeoapifyPlaceLocation,
-  geoapifyPlaceDetails,
-  type PlaceExternalDetails,
-} from "@/lib/matrundan/geoapify-place-details.functions";
-import { comparePlaceLocation, placeLocationLabel } from "@/lib/matrundan/place-location-sync";
-import { isCredibleStreetAddress } from "@/lib/matrundan/place-links";
-import { useSession } from "@/lib/matrundan/session";
-import { useStore } from "@/lib/matrundan/store";
-import type { Place } from "@/lib/matrundan/types";
+import { openingHoursDaySummary, openingHoursForDate } from "@/lib/matrundan/opening-hours";
+import { placeLocationLabel } from "@/lib/matrundan/place-location-sync";
+import { cn } from "@/lib/utils";
 
-export function PlaceLocationRefresh({
-  place,
-  groupId,
-  canReport,
+function FieldStatus({
+  kind,
 }: {
-  place: Place;
-  groupId: string;
-  canReport: boolean;
+  kind: "current" | "group" | "available" | "missing";
 }) {
-  const { mode, exampleMode } = useSession();
-  const { state, demoReadOnly } = useStore();
-  const [open, setOpen] = React.useState(false);
-  const [details, setDetails] = React.useState<PlaceExternalDetails | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [applying, setApplying] = React.useState(false);
-  const [applied, setApplied] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const hasGeoapifySource = (place.sources ?? []).some(
-    (source) => source.provider === "geoapify" && source.status === "active",
-  );
-  const currentMember = state.members.find((member) => member.id === state.currentUserId);
-  const canApply =
-    !demoReadOnly &&
-    canReport &&
-    (currentMember?.role === "ägare" || currentMember?.role === "admin");
-  const locationDiff = comparePlaceLocation(place, details?.location);
-
-  const load = React.useCallback(
-    async (forceRefresh: boolean) => {
-      if (!canReport || mode !== "live" || exampleMode || !hasGeoapifySource) return;
-      if (forceRefresh) setRefreshing(true);
-      else setLoading(true);
-      setError(null);
-      setApplied(false);
-      try {
-        const next = await geoapifyPlaceDetails({
-          data: { groupId, placeId: place.id, forceRefresh },
-        });
-        setDetails(next);
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Kartdatan kunde inte hämtas.");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
+  const content = {
+    current: {
+      icon: CheckCircle2,
+      label: "Stämmer med kartdatan",
+      className: "text-muted-foreground",
     },
-    [canReport, exampleMode, groupId, hasGeoapifySource, mode, place.id],
+    group: {
+      icon: PencilLine,
+      label: "Gruppens egen uppgift",
+      className: "text-muted-foreground",
+    },
+    available: {
+      icon: RefreshCw,
+      label: "Ny uppgift finns",
+      className: "text-mustard-foreground",
+    },
+    missing: {
+      icon: CheckCircle2,
+      label: "Ingen uppgift i kartdatan",
+      className: "text-muted-foreground",
+    },
+  }[kind];
+  const Icon = content.icon;
+
+  return (
+    <div className={cn("flex items-center gap-1.5 text-xs font-medium", content.className)}>
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span>{content.label}</span>
+    </div>
   );
+}
+
+function ComparisonValue({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-sm [overflow-wrap:anywhere]">{value}</div>
+    </div>
+  );
+}
+
+function InfoSection({
+  icon: Icon,
+  title,
+  status,
+  children,
+  action,
+}: {
+  icon: typeof MapPin;
+  title: string;
+  status: React.ReactNode;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3 rounded-2xl border border-border/70 bg-background/45 p-3">
+      <div className="flex items-start gap-2">
+        <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-medium">{title}</h3>
+          <div className="mt-1">{status}</div>
+        </div>
+      </div>
+      <div className="grid gap-2 pl-6">{children}</div>
+      {action ? <div className="pl-6">{action}</div> : null}
+    </section>
+  );
+}
+
+function openingHoursSummary(
+  schedule: ReturnType<typeof usePlacePracticalInfo>["openingHours"],
+  timezone: string | null,
+): string {
+  if (!schedule) return "Ingen uppgift";
+  return openingHoursDaySummary(openingHoursForDate(schedule, new Date(), timezone));
+}
+
+export function PlaceLocationRefresh() {
+  const {
+    effectivePlace,
+    practicalInfo,
+    details,
+    websiteUrl,
+    openingHours,
+    websiteConflict,
+    openingHoursConflict,
+    hasExternalSource,
+    canEdit,
+    canApplyLocation,
+    loading,
+    refreshing,
+    applyingLocation,
+    error,
+    locationDiff,
+    loadExternalDetails,
+    applyExternalPracticalInfo,
+    applyExternalLocation,
+  } = usePlacePracticalInfo();
+  const [open, setOpen] = React.useState(false);
 
   React.useEffect(() => {
-    if (!open || details || loading || error) return;
-    void load(false);
-  }, [details, error, load, loading, open]);
+    if (!open || details || loading || error || !hasExternalSource) return;
+    void loadExternalDetails(false);
+  }, [details, error, hasExternalSource, loadExternalDetails, loading, open]);
 
-  async function applyLocation() {
-    if (!canApply || applying) return;
-    setApplying(true);
-    setError(null);
-    try {
-      const result = await applyGeoapifyPlaceLocation({
-        data: { groupId, placeId: place.id },
-      });
-      setApplied(true);
-      toast.success("Adressen och kartpositionen är uppdaterade.", {
-        description: result.sourceLinked
-          ? "Stället är också kopplat till sin OpenStreetMap-källa."
-          : "Gruppens webbplats och öppettider är oförändrade.",
-      });
-      window.dispatchEvent(new Event("matrundan:reload"));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Kartdatan kunde inte användas.");
-    } finally {
-      setApplying(false);
-    }
-  }
+  if (!hasExternalSource) return null;
 
-  if (!canReport || mode !== "live" || exampleMode || !hasGeoapifySource) return null;
-
-  const currentLocationLabel = isCredibleStreetAddress(place.address, place.name)
-    ? placeLocationLabel(place)
-    : "Ingen säker adress";
-  const externalLocationLabel = details?.location ? placeLocationLabel(details.location) : null;
+  const hasAttention = Boolean(
+    locationDiff?.hasChanges || websiteConflict || openingHoursConflict,
+  );
+  const currentLocationLabel = placeLocationLabel(effectivePlace) || "Ingen säker adress";
+  const externalLocationLabel = details?.location
+    ? placeLocationLabel(details.location)
+    : "Ingen säker adress i kartdatan";
+  const currentWebsiteLabel = websiteUrl ?? "Ingen webbplats för gruppen";
+  const externalWebsiteLabel = details?.website ?? "Ingen webbplats i kartdatan";
+  const currentOpeningHoursLabel = openingHoursSummary(openingHours, details?.timezone ?? null);
+  const externalOpeningHoursLabel = openingHoursSummary(
+    details?.openingHours ?? null,
+    details?.timezone ?? null,
+  );
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -115,122 +157,186 @@ export function PlaceLocationRefresh({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-11 w-11 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-          aria-label="Kontrollera adress och kartposition"
-          data-testid="place-location-refresh-trigger"
+          className="relative h-11 w-11 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+          aria-label={
+            hasAttention
+              ? "Kontrollera uppgifter – nya uppgifter finns"
+              : "Kontrollera uppgifter"
+          }
+          data-testid="place-info-check-trigger"
         >
           <RefreshCw className="h-4 w-4" />
+          {hasAttention ? (
+            <span
+              aria-hidden="true"
+              data-testid="place-info-status-dot"
+              className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-mustard ring-2 ring-background"
+            />
+          ) : null}
         </Button>
       </SheetTrigger>
+
       <SheetContent
         side="bottom"
-        className="max-h-[85vh] overflow-y-auto rounded-t-3xl"
-        data-testid="place-location-refresh"
+        className="max-h-[88vh] overflow-y-auto rounded-t-3xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 sm:mx-auto sm:max-w-lg"
+        data-testid="place-info-check-sheet"
       >
-        <SheetHeader className="text-left">
-          <SheetTitle>Adress och kartposition</SheetTitle>
+        <SheetHeader className="pr-8 text-left">
+          <SheetTitle>Kontrollera uppgifter</SheetTitle>
           <SheetDescription>
-            Inget ändras automatiskt. Jämför uppgifterna innan du väljer.
+            Vi jämför gruppens uppgifter med kartdatan. Inget ändras automatiskt.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-3">
-          {loading ? (
-            <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Kontrollerar kartdatan…
+        <div className="mt-4 space-y-3">
+          {loading && !details ? (
+            <div className="flex min-h-11 items-center gap-2 rounded-2xl bg-muted/45 px-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Kontrollerar uppgifterna…
             </div>
           ) : null}
 
-          {details && !loading ? (
+          {error ? (
+            <p role="status" className="rounded-2xl bg-muted/45 px-3 py-3 text-sm text-muted-foreground">
+              {error}
+            </p>
+          ) : null}
+
+          {details ? (
             <>
-              {applied ? (
-                <div className="rounded-xl bg-sage/20 px-3 py-2 text-sm">
-                  Den nya adressen har använts. Sidan uppdateras med aktuell platsdata.
-                </div>
-              ) : locationDiff?.hasChanges && details.location && externalLocationLabel ? (
-                <section className="space-y-3 rounded-xl border border-border/70 bg-background/45 p-3">
-                  <h3 className="text-sm font-medium">Ny adress hittad</h3>
-                  <dl className="grid gap-2 text-sm">
-                    <div>
-                      <dt className="text-xs font-medium text-muted-foreground">I Matrundan</dt>
-                      <dd className="mt-0.5 [overflow-wrap:anywhere]">{currentLocationLabel}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs font-medium text-muted-foreground">I kartdatan</dt>
-                      <dd className="mt-0.5 font-medium [overflow-wrap:anywhere]">
-                        {externalLocationLabel}
-                      </dd>
-                    </div>
-                  </dl>
-                  {locationDiff.positionChanged ? (
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      Kartpositionen uppdateras samtidigt så att sökning och kartlänkar leder rätt.
-                    </p>
-                  ) : null}
-                  <div className="flex flex-col items-stretch gap-1 sm:flex-row sm:items-center">
-                    {canApply ? (
+              <InfoSection
+                icon={MapPin}
+                title="Adress och kartposition"
+                status={
+                  locationDiff?.hasChanges ? (
+                    <FieldStatus kind="available" />
+                  ) : details.location ? (
+                    <FieldStatus kind="current" />
+                  ) : (
+                    <FieldStatus kind="missing" />
+                  )
+                }
+                action={
+                  locationDiff?.hasChanges && details.location ? (
+                    canApplyLocation ? (
                       <Button
                         type="button"
                         size="sm"
                         className="min-h-11"
-                        disabled={applying}
-                        onClick={() => void applyLocation()}
+                        disabled={applyingLocation}
+                        onClick={() => void applyExternalLocation()}
                       >
-                        {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        {applyingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                         Använd ny adress
                       </Button>
                     ) : (
-                      <p className="py-2 text-xs leading-relaxed text-muted-foreground">
-                        En ägare eller admin kan använda den nya adressen.
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        En ägare eller admin kan använda ny adress och kartposition.
                       </p>
-                    )}
-                    <PlaceDataReportDialog
-                      place={place}
-                      compact
-                      initialCategory="wrong_address"
-                      triggerLabel="Kartdatan stämmer inte"
-                    />
-                  </div>
-                </section>
-              ) : details.location ? (
-                <p className="rounded-xl bg-background/45 px-3 py-2 text-sm text-muted-foreground">
-                  Adress och kartposition stämmer med den senast hittade kartdatan.
-                </p>
-              ) : (
-                <div className="space-y-2 rounded-xl bg-background/45 px-3 py-2">
-                  <p className="text-sm text-muted-foreground">
-                    Ingen säker adress hittades i kartdatan.
-                  </p>
-                  <PlaceDataReportDialog
-                    place={place}
-                    compact
-                    initialCategory="wrong_address"
-                    triggerLabel="Rapportera adress eller position"
-                  />
-                </div>
-              )}
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="min-h-11"
-                disabled={refreshing || applying}
-                onClick={() => void load(true)}
+                    )
+                  ) : undefined
+                }
               >
-                {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                Sök igen
-              </Button>
+                <ComparisonValue label="I Matrundan" value={currentLocationLabel} />
+                <ComparisonValue label="I kartdatan" value={externalLocationLabel} />
+              </InfoSection>
+
+              <InfoSection
+                icon={Globe2}
+                title="Webbplats"
+                status={
+                  websiteConflict ? (
+                    <FieldStatus kind="available" />
+                  ) : practicalInfo.websiteOverride ? (
+                    <FieldStatus kind="group" />
+                  ) : details.website ? (
+                    <FieldStatus kind="current" />
+                  ) : (
+                    <FieldStatus kind="missing" />
+                  )
+                }
+                action={
+                  websiteConflict ? (
+                    canEdit ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="min-h-11"
+                        onClick={() => void applyExternalPracticalInfo("website")}
+                      >
+                        Använd kartdatans webbplats
+                      </Button>
+                    ) : (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        En aktiv gruppmedlem kan välja vilken webbplats gruppen ska använda.
+                      </p>
+                    )
+                  ) : undefined
+                }
+              >
+                <ComparisonValue label="Gruppen använder" value={currentWebsiteLabel} />
+                <ComparisonValue label="I kartdatan" value={externalWebsiteLabel} />
+              </InfoSection>
+
+              <InfoSection
+                icon={Clock3}
+                title="Öppettider"
+                status={
+                  openingHoursConflict ? (
+                    <FieldStatus kind="available" />
+                  ) : practicalInfo.openingHoursOverride ? (
+                    <FieldStatus kind="group" />
+                  ) : details.openingHours ? (
+                    <FieldStatus kind="current" />
+                  ) : (
+                    <FieldStatus kind="missing" />
+                  )
+                }
+                action={
+                  openingHoursConflict ? (
+                    canEdit ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="min-h-11"
+                        onClick={() => void applyExternalPracticalInfo("opening_hours")}
+                      >
+                        Använd kartdatans öppettider
+                      </Button>
+                    ) : (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        En aktiv gruppmedlem kan välja vilka öppettider gruppen ska använda.
+                      </p>
+                    )
+                  ) : undefined
+                }
+              >
+                <ComparisonValue label="Gruppen använder idag" value={currentOpeningHoursLabel} />
+                <ComparisonValue label="Kartdatan idag" value={externalOpeningHoursLabel} />
+              </InfoSection>
             </>
           ) : null}
 
-          {error ? (
-            <p role="status" className="text-xs leading-relaxed text-muted-foreground">
-              {error}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            disabled={refreshing || loading || applyingLocation}
+            onClick={() => void loadExternalDetails(true)}
+          >
+            {refreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Sök igen
+          </Button>
+
+          {details?.attribution ? (
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {details.attribution}
             </p>
           ) : null}
         </div>
