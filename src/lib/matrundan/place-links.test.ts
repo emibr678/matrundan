@@ -66,7 +66,11 @@ describe("platsens adress och kartetikett", () => {
   test("behandlar område utan gatuuppgift som kartlänk", () => {
     expect(isCredibleStreetAddress("Gamla Enskede")).toBe(false);
     expect(
-      googleMapsDisplayParts({ name: "Kvartersköket", address: "Gamla Enskede", city: "Stockholm" }),
+      googleMapsDisplayParts({
+        name: "Kvartersköket",
+        address: "Gamla Enskede",
+        city: "Stockholm",
+      }),
     ).toEqual({ tail: "Visa på karta", hasStreetAddress: false });
   });
 });
