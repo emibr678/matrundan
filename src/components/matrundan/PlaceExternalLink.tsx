@@ -45,11 +45,11 @@ export function PlaceExternalLink({
     <a
       {...props}
       className={cn(
-        "inline-flex min-h-11 max-w-full items-start gap-1.5 py-1 text-sm font-medium text-primary transition-colors hover:underline",
+        "inline-flex min-h-11 max-w-full items-center gap-2 py-0 text-sm font-medium text-primary transition-colors hover:underline",
         className,
       )}
     >
-      <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+      <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
       <span className="min-w-0 [overflow-wrap:anywhere]">
         {visiblePrefix}
         <span
