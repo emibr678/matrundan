@@ -67,9 +67,7 @@ describe("Geoapifys externa platsidentitet", () => {
     });
 
     expect(result?.address).toBe("");
-    expect(decodeURIComponent(result?.externalUrl ?? "")).toContain(
-      "Planens restaurang Stockholm",
-    );
+    expect(decodeURIComponent(result?.externalUrl ?? "")).toContain("Planens restaurang Stockholm");
   });
 
   test("utelämnar ofullständig OSM-identitet och markerar saknade öppettider", () => {
