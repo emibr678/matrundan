@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_8_CHANGELOG: ChangelogEntry = {
+  version: "1.25.8",
+  date: "2026-08-05",
+  summary: "Platsdetaljen samlar identitet och praktiska länkar i två tydliga kolumner.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Platsbilden ligger i vänsterkolumnen medan kategori, namn, adress och webbplats bildar en kompakt vertikal följd till höger.",
+        "Adressen kan använda två rader och webbplatsen ligger alltid direkt under den i stället för att konkurrera om samma rad.",
+        "Öppettider och besökssammanfattning följer samma vänsterlinje som kortets handlingar.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_7_CHANGELOG: ChangelogEntry = {
   version: "1.25.7",
   date: "2026-08-05",
@@ -311,6 +327,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_8_CHANGELOG,
   VERSION_1_25_7_CHANGELOG,
   VERSION_1_25_6_CHANGELOG,
   VERSION_1_25_5_CHANGELOG,
