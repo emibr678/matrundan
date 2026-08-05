@@ -32,8 +32,11 @@ En variant eller branch innebär inte automatiskt en isolerad databas.
 ## Preview och artefakter
 
 Lovable-preview används för manuell produkt- och UX-granskning. GitHub-workflowen
-**Visual review artifacts** skapar kompletterande fullsidesskärmbilder från en
-produktionsbuild i Chromium.
+**Visual review artifacts** verifierar först att produktionsbygget lyckas och
+skapar därefter kompletterande fullsidesskärmbilder från samma commit i
+Chromium. Själva bilderna fångas via repots verifierade lokala Vite-server,
+eftersom Lovables Cloudflare-anpassade produktionsbundle inte är en fristående
+lokal Node-preview.
 
 Workflowen kan startas på två sätt:
 
