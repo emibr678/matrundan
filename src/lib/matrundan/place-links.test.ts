@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+  googleMapsDisplayParts,
   googleMapsSearchParts,
   googleMapsSearchUrl,
+  isCredibleStreetAddress,
   normalizeWebsiteUrl,
   websiteLabel,
 } from "./place-links";
@@ -31,6 +33,41 @@ describe("Google Maps-sökningar", () => {
     expect(
       googleMapsSearchParts({ name: "Okänt ställe", lat: 59.1234567, lng: 18.7654321 }),
     ).toEqual(["Okänt ställe", "59.123457,18.765432"]);
+  });
+});
+
+describe("platsens adress och kartetikett", () => {
+  test("visar en faktisk gatuadress tillsammans med orten", () => {
+    expect(isCredibleStreetAddress("Enskedevägen 98", "Planens restaurang")).toBe(true);
+    expect(
+      googleMapsDisplayParts({
+        name: "Planens restaurang",
+        address: "Enskedevägen 98",
+        city: "Enskede",
+      }),
+    ).toEqual({
+      prefix: "Enskedevägen 98, ",
+      tail: "Enskede",
+      hasStreetAddress: true,
+    });
+  });
+
+  test("beskriver kartfunktionen när adressfältet bara innehåller ställets namn", () => {
+    expect(isCredibleStreetAddress("Planens restaurang", "Planens restaurang")).toBe(false);
+    expect(
+      googleMapsDisplayParts({
+        name: "Planens restaurang",
+        address: "Planens restaurang",
+        city: "Stockholm",
+      }),
+    ).toEqual({ tail: "Visa på karta", hasStreetAddress: false });
+  });
+
+  test("behandlar område utan gatuuppgift som kartlänk", () => {
+    expect(isCredibleStreetAddress("Gamla Enskede")).toBe(false);
+    expect(
+      googleMapsDisplayParts({ name: "Kvartersköket", address: "Gamla Enskede", city: "Stockholm" }),
+    ).toEqual({ tail: "Visa på karta", hasStreetAddress: false });
   });
 });
 
