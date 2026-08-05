@@ -22,6 +22,7 @@ import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
 import { PlaceExternalLink } from "@/components/matrundan/PlaceExternalLink";
+import { PlaceLocationRefresh } from "@/components/matrundan/PlaceLocationRefresh";
 import {
   PlaceOpeningHoursInfo,
   PlacePracticalInfoProvider,
@@ -236,6 +237,7 @@ function PlaceDetail() {
             </div>
 
             <PlaceOpeningHoursInfo />
+            <PlaceLocationRefresh place={place} groupId={state.group.id} canReport={writable} />
           </div>
 
           {latestVisit ? (

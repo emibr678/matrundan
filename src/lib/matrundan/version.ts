@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_26_0_CHANGELOG: ChangelogEntry = {
+  version: "1.26.0",
+  date: "2026-08-05",
+  summary: "Platsdetaljen är kompaktare och kan jämföra adress med aktuell kartdata.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Ägare och administratörer kan kontrollera ett tillagt ställes adress och kartposition mot aktuell kartdata och uttryckligen välja att använda en säker ny uppgift.",
+        "När kartdatan också är fel leder jämförelsen vidare till det privata rapporteringsflödet utan automatisk publicering.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Platsikonen är stabilt kvadratisk och adress samt webbplats ligger visuellt tätare samtidigt som länkarna behåller stora tryckytor.",
+        "Omsynk bevarar gruppens egna webbplats- och öppettidsuppgifter och kopplar bara en verifierad OpenStreetMap-källa utan identitetskonflikt.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_9_CHANGELOG: ChangelogEntry = {
   version: "1.25.9",
   date: "2026-08-05",
@@ -343,6 +365,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_26_0_CHANGELOG,
   VERSION_1_25_9_CHANGELOG,
   VERSION_1_25_8_CHANGELOG,
   VERSION_1_25_7_CHANGELOG,

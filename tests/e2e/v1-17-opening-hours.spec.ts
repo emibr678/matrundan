@@ -248,6 +248,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   const back = page.getByRole("button", { name: "Gå tillbaka till matställen" });
   const favorite = page.getByRole("button", { name: "Markera som favorit" });
   const thumb = page.locator('[data-slot="place-thumb"]').first();
+  const thumbVisual = thumb.locator('[data-slot="place-thumb-visual"]');
   const mapsLink = page.getByRole("link", {
     name: "Öppna Planens restaurang i Google Maps",
   });
@@ -273,6 +274,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
     backBox,
     favoriteBox,
     thumbBox,
+    thumbVisualBox,
     mapsBox,
     websiteBox,
     addressTailTextBox,
@@ -284,6 +286,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
     back.boundingBox(),
     favorite.boundingBox(),
     thumb.boundingBox(),
+    thumbVisual.boundingBox(),
     mapsLink.boundingBox(),
     websiteLink.boundingBox(),
     addressTailText.boundingBox(),
@@ -295,6 +298,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   expect(backBox).not.toBeNull();
   expect(favoriteBox).not.toBeNull();
   expect(thumbBox).not.toBeNull();
+  expect(thumbVisualBox).not.toBeNull();
   expect(mapsBox).not.toBeNull();
   expect(websiteBox).not.toBeNull();
   expect(addressTailTextBox).not.toBeNull();
@@ -307,18 +311,20 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   expect(favoriteBox!.y + favoriteBox!.height).toBeLessThan(headingBox!.y);
   expect(thumbBox!.width).toBeGreaterThanOrEqual(95);
   expect(thumbBox!.width).toBeLessThanOrEqual(97);
-  expect(thumbBox!.height).toBeGreaterThanOrEqual(112);
-  expect(thumbBox!.height).toBeLessThanOrEqual(128);
+  expect(thumbVisualBox!.width).toBeGreaterThanOrEqual(95);
+  expect(thumbVisualBox!.width).toBeLessThanOrEqual(97);
+  expect(Math.abs(thumbVisualBox!.width - thumbVisualBox!.height)).toBeLessThanOrEqual(1);
   expect(headingBox!.width).toBeGreaterThanOrEqual(184);
   expect(Math.abs(mapsBox!.x - headingBox!.x)).toBeLessThanOrEqual(2);
   expect(mapsBox!.y).toBeGreaterThanOrEqual(headingBox!.y + headingBox!.height - 1);
   expect(Math.abs(websiteBox!.x - mapsBox!.x)).toBeLessThanOrEqual(2);
   expect(websiteBox!.y).toBeGreaterThanOrEqual(mapsBox!.y + mapsBox!.height - 1);
-  expect(
-    Math.abs(
-      thumbBox!.y + thumbBox!.height - (websiteExternalIconBox!.y + websiteExternalIconBox!.height),
-    ),
-  ).toBeLessThanOrEqual(24);
+  expect(mapsBox!.height).toBeGreaterThanOrEqual(44);
+  expect(websiteBox!.height).toBeGreaterThanOrEqual(44);
+  const visibleRowGap =
+    websiteTailTextBox!.y - (addressTailTextBox!.y + addressTailTextBox!.height);
+  expect(visibleRowGap).toBeGreaterThanOrEqual(0);
+  expect(visibleRowGap).toBeLessThanOrEqual(12);
 
   const addressMetrics = await addressContent.evaluate((element) => {
     const style = window.getComputedStyle(element);
@@ -345,6 +351,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   const [
     desktopHeadingBox,
     desktopThumbBox,
+    desktopThumbVisualBox,
     desktopMapsBox,
     desktopAddressIconBox,
     desktopWebsiteBox,
@@ -352,6 +359,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   ] = await Promise.all([
     heading.boundingBox(),
     thumb.boundingBox(),
+    thumbVisual.boundingBox(),
     mapsLink.boundingBox(),
     addressExternalIcon.boundingBox(),
     websiteLink.boundingBox(),
@@ -359,14 +367,18 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   ]);
   expect(desktopHeadingBox).not.toBeNull();
   expect(desktopThumbBox).not.toBeNull();
+  expect(desktopThumbVisualBox).not.toBeNull();
   expect(desktopMapsBox).not.toBeNull();
   expect(desktopAddressIconBox).not.toBeNull();
   expect(desktopWebsiteBox).not.toBeNull();
   expect(desktopWebsiteIconBox).not.toBeNull();
   expect(desktopThumbBox!.width).toBeGreaterThanOrEqual(111);
   expect(desktopThumbBox!.width).toBeLessThanOrEqual(113);
-  expect(desktopThumbBox!.height).toBeGreaterThanOrEqual(128);
-  expect(desktopThumbBox!.height).toBeLessThanOrEqual(144);
+  expect(desktopThumbVisualBox!.width).toBeGreaterThanOrEqual(111);
+  expect(desktopThumbVisualBox!.width).toBeLessThanOrEqual(113);
+  expect(
+    Math.abs(desktopThumbVisualBox!.width - desktopThumbVisualBox!.height),
+  ).toBeLessThanOrEqual(1);
   expect(Math.abs(desktopMapsBox!.x - desktopHeadingBox!.x)).toBeLessThanOrEqual(2);
   expect(Math.abs(desktopWebsiteBox!.x - desktopMapsBox!.x)).toBeLessThanOrEqual(2);
   expect(desktopWebsiteBox!.y).toBeGreaterThanOrEqual(
