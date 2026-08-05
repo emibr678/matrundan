@@ -73,7 +73,10 @@ const requiredFunctions = [
   "get_group_place_practical_info_v1",
   "list_group_place_practical_info_history_v1",
   "get_place_external_info_context_v2",
+  "get_place_external_info_context_v3",
   "save_place_external_info_snapshot_v1",
+  "save_place_external_info_snapshot_v2",
+  "apply_place_external_location_v1",
   "get_cross_group_practical_info_suggestions_v1",
   "apply_cross_group_practical_info_suggestion_v1",
 ];
@@ -123,9 +126,13 @@ for (const column of [
   "target_provider",
   "target_provider_place_id",
   "category",
+  "address",
   "area",
+  "city",
   "lat",
   "lng",
+  "osm_type",
+  "osm_id",
 ]) {
   if (!new RegExp(`ADD\\s+COLUMN\\s+IF\\s+NOT\\s+EXISTS\\s+${column}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar den additiva kolumnen ${column}.`);
@@ -177,6 +184,13 @@ if (!existsSync(preflightPath)) {
     "place_data_signal_confirmations",
     "group_place_practical_info_history",
     "place_external_info_snapshots",
+    "place_external_info_snapshots.address",
+    "place_external_info_snapshots.area",
+    "place_external_info_snapshots.city",
+    "place_external_info_snapshots.lat",
+    "place_external_info_snapshots.lng",
+    "place_external_info_snapshots.osm_type",
+    "place_external_info_snapshots.osm_id",
     "default_search_radius_km",
     "places.website",
     "group_places.website_override",
