@@ -191,53 +191,62 @@ function PlaceDetail() {
       <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
         <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
           <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
-            <div className="flex items-start gap-3 sm:gap-4">
+            <div className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-x-3 min-[390px]:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4">
               <PlaceThumb place={place} size="detail" />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                   {CATEGORY_LABEL[place.category]}
                 </div>
                 <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
                   {place.name}
                 </h1>
-                {isNext || placeRemoved ? (
+                {isNext ? (
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    {isNext ? (
-                      <Badge variant="secondary" className="rounded-full">
-                        <Flag className="mr-1 h-3 w-3" /> Nästa stopp
-                      </Badge>
-                    ) : null}
-                    {placeRemoved ? (
-                      <Badge variant="outline" className="rounded-full">
-                        <ListX className="mr-1 h-3 w-3" /> Inte längre i gruppens lista
-                      </Badge>
-                    ) : null}
+                    <Badge variant="secondary" className="rounded-full">
+                      <Flag className="mr-1 h-3 w-3" /> Nästa stopp
+                    </Badge>
                   </div>
                 ) : null}
+                <div
+                  data-testid="place-practical-links"
+                  className="mt-1 flex min-w-0 flex-col items-start gap-0"
+                >
+                  <PlaceExternalLink
+                    href={googleMapsUrl(place)}
+                    target="_blank"
+                    rel="noreferrer"
+                    icon={MapPin}
+                    prefix={`${place.address}, `}
+                    tail={place.city}
+                    className="min-w-0 max-w-full"
+                    aria-label={`Öppna ${place.name} i Google Maps`}
+                  />
+                  <PlaceWebsiteInfo />
+                </div>
               </div>
             </div>
 
-            <div
-              data-testid="place-practical-links"
-              className="mt-2 flex min-w-0 items-start gap-x-2 sm:gap-x-3"
-            >
-              <PlaceExternalLink
-                href={googleMapsUrl(place)}
-                target="_blank"
-                rel="noreferrer"
-                icon={MapPin}
-                prefix={`${place.address}, `}
-                tail={place.city}
-                className="min-w-0"
-                aria-label={`Öppna ${place.name} i Google Maps`}
-              />
-              <div className="shrink-0 self-start [&>button]:items-start [&>button]:py-1">
-                <PlaceWebsiteInfo />
+            {placeRemoved ? (
+              <div className="mt-2">
+                <Badge variant="outline" className="whitespace-normal rounded-2xl text-left">
+                  <ListX className="mr-1 h-3 w-3 shrink-0" /> Inte längre i gruppens lista
+                </Badge>
+              </div>
+            ) : null}
+
+            <div className="flex items-start gap-1">
+              <div className="min-w-0 flex-1">
+                <PlaceOpeningHoursInfo />
+              </div>
+              <div className="mt-2 shrink-0 pt-1">
+                <PlaceLocationRefresh
+                  place={place}
+                  groupId={state.group.id}
+                  canReport={writable}
+                />
               </div>
             </div>
 
-            <PlaceOpeningHoursInfo />
-            <PlaceLocationRefresh place={place} groupId={state.group.id} canReport={writable} />
           </div>
 
           {latestVisit ? (
