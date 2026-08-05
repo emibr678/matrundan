@@ -50,9 +50,7 @@ async function seedAuthenticatedSession(page: Page) {
   );
 }
 
-test("matställets webbplats visas diskret intill adressen utan mobil overflow", async ({
-  page,
-}) => {
+test("matställets webbplats visas diskret under adressen utan mobil overflow", async ({ page }) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page);
@@ -215,11 +213,22 @@ test("matställets webbplats visas diskret intill adressen utan mobil overflow",
   ]);
   expect(mapsBox).not.toBeNull();
   expect(websiteBox).not.toBeNull();
-  expect(Math.abs(mapsBox!.y - websiteBox!.y)).toBeLessThanOrEqual(2);
-  const linkGap = websiteBox!.x - (mapsBox!.x + mapsBox!.width);
-  expect(linkGap).toBeGreaterThanOrEqual(-1);
-  expect(linkGap).toBeLessThanOrEqual(16);
+  expect(Math.abs(mapsBox!.x - websiteBox!.x)).toBeLessThanOrEqual(2);
+  expect(websiteBox!.y).toBeGreaterThanOrEqual(mapsBox!.y + mapsBox!.height - 1);
   expect(websiteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
+
+  const addressContent = maps.locator("span").first();
+  const addressMetrics = await addressContent.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    const lineHeight = Number.parseFloat(style.lineHeight);
+    return {
+      height: element.getBoundingClientRect().height,
+      lineHeight,
+      lineClamp: style.getPropertyValue("-webkit-line-clamp"),
+    };
+  });
+  expect(addressMetrics.lineClamp).toBe("2");
+  expect(addressMetrics.height).toBeLessThanOrEqual(addressMetrics.lineHeight * 2 + 1);
 
   const widths = await page.evaluate(() => ({
     documentClient: document.documentElement.clientWidth,

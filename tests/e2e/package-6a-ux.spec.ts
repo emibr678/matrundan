@@ -103,8 +103,9 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   ).toHaveAttribute("aria-pressed", "true");
   await expectNoHorizontalOverflow(page, "Matställen");
 
-  await page.goto("/matstallen/p8?demo=1");
-  await expect(page.getByRole("button", { name: "Registrera besök" }).first()).toBeVisible();
+  await page.goto("/matstallen/p7?demo=1");
+  const registerVisit = page.getByRole("button", { name: "Registrera besök igen" }).first();
+  await expect(registerVisit).toBeVisible();
   await expect(page.getByRole("button", { name: "Föreslå som nästa stopp" })).toBeVisible();
 
   const favorite = page.getByRole("button", { name: "Markera som favorit" });
@@ -115,63 +116,88 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(page.getByText("Favorit", { exact: true })).toHaveCount(0);
 
   const practicalLinks = page.getByTestId("place-practical-links");
+  const identityGrid = practicalLinks.locator("..");
   await expect(practicalLinks).toBeVisible();
-  const practicalLinkLayout = await practicalLinks.evaluate((element) => {
-    const style = window.getComputedStyle(element);
-    return {
-      display: style.display,
-      flexWrap: style.flexWrap,
-      columnGap: Number.parseFloat(style.columnGap) || 0,
-    };
-  });
+  const [practicalLinkLayout, identityLayout] = await Promise.all([
+    practicalLinks.evaluate((element) => {
+      const style = window.getComputedStyle(element);
+      return {
+        display: style.display,
+        flexDirection: style.flexDirection,
+        rowGap: Number.parseFloat(style.rowGap) || 0,
+      };
+    }),
+    identityGrid.evaluate((element) => {
+      const style = window.getComputedStyle(element);
+      return {
+        display: style.display,
+        columns: style.gridTemplateColumns,
+      };
+    }),
+  ]);
+  expect(identityLayout.display).toBe("grid");
+  expect(identityLayout.columns.split(" ")).toHaveLength(2);
   expect(practicalLinkLayout.display).toBe("flex");
-  expect(practicalLinkLayout.flexWrap).toBe("nowrap");
-  expect(practicalLinkLayout.columnGap).toBeLessThanOrEqual(12);
+  expect(practicalLinkLayout.flexDirection).toBe("column");
+  expect(practicalLinkLayout.rowGap).toBeLessThanOrEqual(1);
 
   const mapsLink = page.getByRole("link", { name: /Öppna .* i Google Maps/ });
   const secondaryPracticalAction = practicalLinks.locator("a, button").nth(1);
+  const secondaryPracticalIcon = secondaryPracticalAction.locator("svg").first();
+  const mapsIcon = mapsLink.locator("svg").first();
   const placeHeading = page.locator("h1");
   const placeThumb = page.locator('[data-slot="place-thumb"]').first();
   await expect(mapsLink).toBeVisible();
   await expect(secondaryPracticalAction).toBeVisible();
   await expect(mapsLink).toHaveClass(/text-primary/);
-  const [practicalLinksBox, mapsLinkBox, secondaryActionBox, headingBox, thumbBox] =
+  const [mapsLinkBox, secondaryActionBox, secondaryIconBox, mapsIconBox, headingBox, thumbBox] =
     await Promise.all([
-      practicalLinks.boundingBox(),
       mapsLink.boundingBox(),
       secondaryPracticalAction.boundingBox(),
+      secondaryPracticalIcon.boundingBox(),
+      mapsIcon.boundingBox(),
       placeHeading.boundingBox(),
       placeThumb.boundingBox(),
     ]);
-  expect(practicalLinksBox).not.toBeNull();
   expect(mapsLinkBox).not.toBeNull();
   expect(secondaryActionBox).not.toBeNull();
+  expect(secondaryIconBox).not.toBeNull();
+  expect(mapsIconBox).not.toBeNull();
   expect(headingBox).not.toBeNull();
   expect(thumbBox).not.toBeNull();
-  expect(Math.abs(mapsLinkBox!.y - secondaryActionBox!.y)).toBeLessThanOrEqual(2);
-  expect(secondaryActionBox!.x - (mapsLinkBox!.x + mapsLinkBox!.width)).toBeGreaterThanOrEqual(-1);
-  expect(secondaryActionBox!.x - (mapsLinkBox!.x + mapsLinkBox!.width)).toBeLessThanOrEqual(16);
-  expect(Math.abs(practicalLinksBox!.x - thumbBox!.x)).toBeLessThanOrEqual(2);
-  expect(practicalLinksBox!.y).toBeGreaterThanOrEqual(
-    Math.max(thumbBox!.y + thumbBox!.height, headingBox!.y + headingBox!.height) - 1,
-  );
+  expect(Math.abs(mapsLinkBox!.x - headingBox!.x)).toBeLessThanOrEqual(2);
+  expect(mapsLinkBox!.y).toBeGreaterThanOrEqual(headingBox!.y + headingBox!.height - 1);
+  expect(secondaryActionBox!.y).toBeGreaterThanOrEqual(mapsLinkBox!.y + mapsLinkBox!.height - 1);
+  expect(Math.abs(secondaryIconBox!.x - mapsIconBox!.x)).toBeLessThanOrEqual(2);
+  expect(thumbBox!.width).toBeGreaterThanOrEqual(95);
+  expect(thumbBox!.width).toBeLessThanOrEqual(97);
+  expect(thumbBox!.height).toBeGreaterThanOrEqual(112);
+  expect(thumbBox!.height).toBeLessThanOrEqual(128);
+  expect(
+    Math.abs(thumbBox!.y + thumbBox!.height - (secondaryActionBox!.y + secondaryActionBox!.height)),
+  ).toBeLessThanOrEqual(24);
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Nytt för gruppen", { exact: true })).toHaveCount(0);
 
   const openingHours = page.getByText("Öppettider", { exact: true });
+  const openingHoursIcon = openingHours.locator("..").locator("svg").first();
   await expect(openingHours).toBeVisible();
+  await expect(openingHoursIcon).toBeVisible();
+  const [openingHoursIconBox, registerVisitBox] = await Promise.all([
+    openingHoursIcon.boundingBox(),
+    registerVisit.boundingBox(),
+  ]);
+  expect(openingHoursIconBox).not.toBeNull();
+  expect(registerVisitBox).not.toBeNull();
+  expect(Math.abs(openingHoursIconBox!.x - registerVisitBox!.x)).toBeLessThanOrEqual(2);
   await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toHaveCount(0);
-  const emptyVisitMessage = page.getByText("Ingen har varit här än.", { exact: true });
-  await expect(emptyVisitMessage).toBeVisible();
-  const emptyVisitCardBox = await emptyVisitMessage.locator("..").boundingBox();
-  expect(emptyVisitCardBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(52);
+  await expect(page.getByText("1 besök", { exact: true })).toBeVisible();
   const openingHoursTop = await openingHours.evaluate(
     (element) => element.getBoundingClientRect().top,
   );
-  const primaryActionTop = await page
-    .getByRole("button", { name: "Registrera besök" })
-    .first()
-    .evaluate((element) => element.getBoundingClientRect().top);
+  const primaryActionTop = await registerVisit.evaluate(
+    (element) => element.getBoundingClientRect().top,
+  );
   expect(openingHoursTop).toBeLessThan(primaryActionTop);
 
   await expect(
