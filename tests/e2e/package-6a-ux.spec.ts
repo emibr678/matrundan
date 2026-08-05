@@ -116,7 +116,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(page.getByText("Favorit", { exact: true })).toHaveCount(0);
 
   const practicalLinks = page.getByTestId("place-practical-links");
-  const identityGrid = practicalLinks.locator("..");
+  const identityGrid = page.getByTestId("place-identity-grid");
   await expect(practicalLinks).toBeVisible();
   const [practicalLinkLayout, identityLayout] = await Promise.all([
     practicalLinks.evaluate((element) => {
