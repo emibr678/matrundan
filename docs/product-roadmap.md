@@ -53,6 +53,8 @@ klar ska slutsatserna föras in i relevant issue och vid behov i roadmapen.
 
 En PR visar normalt att arbetet pågår. När en PR mergas kan dess issue stängas.
 Merge innebär inte att databas, Lovable-preview eller publik app är driftsatt.
+Ett stängt issue är den kanoniska signalen för att arbetet är genomfört; en
+separat `status:done`-etikett behövs därför inte.
 
 ### Prioritetsetiketter
 
@@ -80,7 +82,10 @@ Merge innebär inte att databas, Lovable-preview eller publik app är driftsatt.
 7. Implementera i en avgränsad branch och PR som refererar eller stänger
    issuen.
 8. Verifiera och merge enligt utvecklingsflödet.
-9. Driftsätt databas och publicera endast efter separat uttryckligt godkännande.
+9. Bekräfta efter merge att rätt issue stängdes och ta bort `status:ready` om
+   etiketten ligger kvar.
+10. Driftsätt databas och publicera endast efter separat uttryckligt
+    godkännande.
 
 Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
 chatt. De får omprövas när aktuell kod, nya fakta eller ett tydligt
@@ -157,6 +162,18 @@ Kommentarer och enkla reaktioner ska vara förankrade i ett verkligt besök och 
 den aktuella gruppens besökslänk. Funktionen ska vara privat och sekundär, utan
 global feed, följare, offentliga likes eller progression för social aktivitet.
 
+## Genomförda paket
+
+När ett pakets sista issue är mergat flyttas paketet från den aktiva delen hit
+som en kort historisk post med paketnamn, datum eller version och länk till de
+stängda issues som bär detaljerna.
+
+Roadmapen ska inte återge full implementation eller releasehistorik. Den finns i
+stängda issues, mergade PR:er, `CHANGELOG.md` och vid behov
+`docs/architecture.md`.
+
+Inga paket är ännu markerade som genomförda.
+
 ## Exempelgruppen som permanent kontrakt
 
 Exempelgruppen ska hållas aktuell med produktens bredd utan att växa till
@@ -179,6 +196,11 @@ paket. När nästa arbete väljs bedöms:
 4. om den hör till ett befintligt paket eller ett nytt framtida paket;
 5. om roadmapen behöver uppdateras.
 
+När ett paket avslutas ska nästa paket inte automatiskt flyttas till
+`priority:now` utan en kort produktbedömning. Om prioriteringen ändras ska både
+roadmapen och berörda öppna issues uppdateras i samma PR eller i en omedelbart
+följande docs-only PR.
+
 GitHub Projects införs först om issues, labels och roadmapen inte längre ger en
 tydlig överblick, exempelvis vid många parallella utvecklare eller ett betydligt
 större antal aktiva backlogposter.
@@ -190,7 +212,14 @@ Uppdatera dokumentet när:
 - ett paket eller en prioritering ändras;
 - ett varaktigt produktbeslut tillkommer eller tas bort;
 - ett övergripande feature-issue delas upp eller ersätts;
-- en funktion är genomförd och ska flyttas ur den aktiva roadmapen.
+- en funktion är genomförd och ska markeras som klar inom ett pågående paket;
+- ett pakets sista issue är genomfört och paketet ska flyttas till
+  **Genomförda paket**;
+- nästa aktiva paket eller `priority:now` ändras.
+
+Under ett pågående paket får färdiga issues markeras kort med `✅` för att göra
+läget tydligt. När hela paketet är klart flyttas det ur den aktiva delen och
+sammanfattas kort under **Genomförda paket**.
 
 Detaljerade implementationsplaner och tillfällig diagnostik hör inte hemma här.
 När en funktion är klar ska användarförändringen dokumenteras i changelog och
