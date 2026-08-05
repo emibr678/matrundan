@@ -9,10 +9,7 @@ import {
   geoapifyPlaceDetails,
   type PlaceExternalDetails,
 } from "@/lib/matrundan/geoapify-place-details.functions";
-import {
-  comparePlaceLocation,
-  placeLocationLabel,
-} from "@/lib/matrundan/place-location-sync";
+import { comparePlaceLocation, placeLocationLabel } from "@/lib/matrundan/place-location-sync";
 import { isCredibleStreetAddress } from "@/lib/matrundan/place-links";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -101,9 +98,7 @@ export function PlaceLocationRefresh({
   const currentLocationLabel = isCredibleStreetAddress(place.address, place.name)
     ? placeLocationLabel(place)
     : "Ingen säker adress";
-  const externalLocationLabel = details?.location
-    ? placeLocationLabel(details.location)
-    : null;
+  const externalLocationLabel = details?.location ? placeLocationLabel(details.location) : null;
 
   return (
     <details
