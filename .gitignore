@@ -16,6 +16,11 @@ dist-ssr
 .nitro
 *.local
 
+# Test and visual review artifacts
+playwright-report/
+test-results/
+visual-review/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
