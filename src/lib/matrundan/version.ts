@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_26_1_CHANGELOG: ChangelogEntry = {
+  version: "1.26.1",
+  date: "2026-08-05",
+  summary: "Platsdetaljen håller samma komposition med och utan nästa stopp.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Bild, kategori och namn bildar en stabil identitetsdel medan adress, webbplats och öppettider samlas i en fullbred praktisk sektion.",
+        "Kartdatauppdateringen ligger vid adressen eftersom den endast kontrollerar adress och kartposition, inte webbplats eller öppettider.",
+        "Nästa stopp visas i den fasta handlingsraden utan att flytta adress, praktisk information eller besöksknappen.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_26_0_CHANGELOG: ChangelogEntry = {
   version: "1.26.0",
   date: "2026-08-05",
@@ -365,6 +381,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_26_1_CHANGELOG,
   VERSION_1_26_0_CHANGELOG,
   VERSION_1_25_9_CHANGELOG,
   VERSION_1_25_8_CHANGELOG,

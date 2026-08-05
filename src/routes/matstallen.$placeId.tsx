@@ -189,31 +189,50 @@ function PlaceDetail() {
       </div>
 
       <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
-        <Card className="overflow-hidden rounded-3xl border-border/70 p-0">
+        <Card
+          data-next-stop={isNext ? "true" : "false"}
+          className={`relative overflow-hidden rounded-3xl p-0 transition-colors ${
+            isNext ? "border-primary/35" : "border-border/70"
+          }`}
+        >
+          {isNext ? (
+            <div
+              aria-hidden="true"
+              data-testid="next-stop-accent"
+              className="absolute inset-x-8 top-0 z-10 h-1 rounded-b-full bg-primary/70"
+            />
+          ) : null}
+
           <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
             <div
               data-testid="place-identity-grid"
-              className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-x-3 min-[390px]:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4"
+              className="grid min-h-16 grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-3 min-[390px]:min-h-20 min-[390px]:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4"
             >
               <PlaceThumb place={place} size="detail" />
-              <div className="min-w-0">
+              <div className="min-w-0 self-center">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                   {CATEGORY_LABEL[place.category]}
                 </div>
                 <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
                   {place.name}
                 </h1>
-                {isNext ? (
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="rounded-full">
-                      <Flag className="mr-1 h-3 w-3" /> Nästa stopp
-                    </Badge>
-                  </div>
-                ) : null}
-                <div
-                  data-testid="place-practical-links"
-                  className="mt-1 flex min-w-0 flex-col items-start gap-0"
-                >
+              </div>
+            </div>
+
+            {placeRemoved ? (
+              <div className="mt-3">
+                <Badge variant="outline" className="whitespace-normal rounded-2xl text-left">
+                  <ListX className="mr-1 h-3 w-3 shrink-0" /> Inte längre i gruppens lista
+                </Badge>
+              </div>
+            ) : null}
+
+            <div
+              data-testid="place-practical-info"
+              className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-background/35"
+            >
+              <div data-testid="place-practical-links" className="flex min-w-0 flex-col">
+                <div className="flex min-w-0 items-start gap-1 px-3">
                   <PlaceExternalLink
                     href={googleMapsUrl(place)}
                     target="_blank"
@@ -221,35 +240,26 @@ function PlaceDetail() {
                     icon={MapPin}
                     prefix={`${place.address}, `}
                     tail={place.city}
-                    className="min-w-0 max-w-full"
+                    className="min-w-0 flex-1"
                     aria-label={`Öppna ${place.name} i Google Maps`}
                   />
+                  <div className="empty:hidden shrink-0 border-l border-border/50 pl-1">
+                    <PlaceLocationRefresh
+                      place={place}
+                      groupId={state.group.id}
+                      canReport={writable}
+                    />
+                  </div>
+                </div>
+                <div className="empty:hidden border-t border-border/60 px-3 [&>a]:w-full [&>button]:w-full">
                   <PlaceWebsiteInfo />
                 </div>
               </div>
-            </div>
 
-            {placeRemoved ? (
-              <div className="mt-2">
-                <Badge variant="outline" className="whitespace-normal rounded-2xl text-left">
-                  <ListX className="mr-1 h-3 w-3 shrink-0" /> Inte längre i gruppens lista
-                </Badge>
-              </div>
-            ) : null}
-
-            <div className="flex items-start gap-1">
-              <div className="min-w-0 flex-1">
+              <div className="border-t border-border/60 [&>details]:mt-0 [&>details]:border-0 [&>details]:pt-0 [&>div]:mt-0 [&>div]:border-0 [&>div]:px-3 [&>div]:pt-0 [&_summary]:px-3">
                 <PlaceOpeningHoursInfo />
               </div>
-              <div className="mt-2 shrink-0 pt-1">
-                <PlaceLocationRefresh
-                  place={place}
-                  groupId={state.group.id}
-                  canReport={writable}
-                />
-              </div>
             </div>
-
           </div>
 
           {latestVisit ? (
@@ -293,15 +303,24 @@ function PlaceDetail() {
                 </Button>
                 {isNext ? (
                   <Button
-                    variant="ghost"
+                    variant="secondary"
+                    aria-pressed="true"
+                    aria-label={`Ta bort ${place.name} som nästa stopp`}
                     onClick={() => void setNext(null)}
-                    className="min-h-11 w-full whitespace-normal text-muted-foreground"
+                    className="min-h-11 w-full justify-between gap-3 whitespace-normal px-4"
                   >
-                    Ta bort som nästa stopp
+                    <span className="flex min-w-0 items-center gap-2 font-medium">
+                      <Flag className="h-4 w-4 shrink-0" />
+                      <span>Nästa stopp</span>
+                    </span>
+                    <span className="shrink-0 text-xs font-normal text-muted-foreground">
+                      Ta bort
+                    </span>
                   </Button>
                 ) : (
                   <Button
                     variant="outline"
+                    aria-pressed="false"
                     onClick={() => void setNext(place.id)}
                     className="min-h-11 w-full whitespace-normal"
                   >

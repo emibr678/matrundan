@@ -13,6 +13,17 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.26.1] – 2026-08-05
+
+### Ändrat
+
+- Bild, kategori och namn bildar en stabil identitetsdel medan adress, webbplats
+  och öppettider samlas i en fullbred praktisk sektion.
+- Kartdatauppdateringen ligger vid adressen eftersom den endast kontrollerar
+  adress och kartposition, inte webbplats eller öppettider.
+- **Nästa stopp** visas i den fasta handlingsraden utan att flytta adress,
+  praktisk information eller knappen för att registrera besök.
+
 ## [1.26.0] – 2026-08-05
 
 ### Lagt till
