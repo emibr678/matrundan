@@ -13,6 +13,17 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.8] – 2026-08-05
+
+### Ändrat
+
+- Platsbilden ligger i vänsterkolumnen medan kategori, namn, adress och webbplats
+  bildar en kompakt vertikal följd till höger.
+- Adressen kan använda två rader och webbplatsen ligger alltid direkt under den
+  i stället för att konkurrera om samma rad.
+- Öppettider och besökssammanfattning följer samma vänsterlinje som kortets
+  handlingar.
+
 ## [1.25.7] – 2026-08-05
 
 ### Rättat
