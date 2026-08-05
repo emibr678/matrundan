@@ -288,4 +288,11 @@ div:has(> [data-testid="place-practical-links"]) > :first-child > :last-child {
     max-height: 9rem;
     font-size: 2.5rem;
   }
+
+  [data-testid="place-practical-links"] + details,
+  [data-testid="place-practical-links"] + div {
+    width: calc(100% + 0.5rem);
+    margin-right: -0.25rem;
+    margin-left: -0.25rem;
+  }
 }
