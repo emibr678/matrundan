@@ -50,7 +50,7 @@ async function seedAuthenticatedSession(page: Page) {
   );
 }
 
-test("matställets webbplats visas diskret under adressen utan mobil overflow", async ({ page }) => {
+test("matställets webbplats visas under adressen i en fullbred mobilsektion", async ({ page }) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page);
@@ -198,22 +198,30 @@ test("matställets webbplats visas diskret under adressen utan mobil overflow", 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
   await expect(page.getByRole("heading", { name: "Testköket" })).toBeVisible();
+  const practicalInfo = page.getByTestId("place-practical-info");
   const maps = page.getByRole("link", { name: "Öppna Testköket i Google Maps" });
   const website = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
   const openingHours = page.getByText("Öppettider", { exact: true });
+  await expect(practicalInfo).toBeVisible();
   await expect(maps).toBeVisible();
   await expect(website).toBeVisible();
   await expect(website).toHaveAttribute("href", "https://www.testkoket.se/meny");
   await expect(openingHours).toBeVisible();
 
-  const [mapsBox, websiteBox, openingHoursBox] = await Promise.all([
+  const [practicalInfoBox, mapsBox, websiteBox, openingHoursBox] = await Promise.all([
+    practicalInfo.boundingBox(),
     maps.boundingBox(),
     website.boundingBox(),
     openingHours.boundingBox(),
   ]);
+  expect(practicalInfoBox).not.toBeNull();
   expect(mapsBox).not.toBeNull();
   expect(websiteBox).not.toBeNull();
   expect(Math.abs(mapsBox!.x - websiteBox!.x)).toBeLessThanOrEqual(2);
+  expect(mapsBox!.x).toBeGreaterThanOrEqual(practicalInfoBox!.x);
+  expect(mapsBox!.x + mapsBox!.width).toBeLessThanOrEqual(
+    practicalInfoBox!.x + practicalInfoBox!.width + 1,
+  );
   expect(websiteBox!.y).toBeGreaterThanOrEqual(mapsBox!.y + mapsBox!.height - 1);
   expect(websiteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
 
@@ -227,8 +235,8 @@ test("matställets webbplats visas diskret under adressen utan mobil overflow", 
       lineClamp: style.getPropertyValue("-webkit-line-clamp"),
     };
   });
-  expect(addressMetrics.lineClamp).toBe("2");
-  expect(addressMetrics.height).toBeLessThanOrEqual(addressMetrics.lineHeight * 2 + 1);
+  expect(addressMetrics.lineClamp).toBe("none");
+  expect(addressMetrics.height).toBeLessThanOrEqual(addressMetrics.lineHeight * 3 + 1);
 
   const widths = await page.evaluate(() => ({
     documentClient: document.documentElement.clientWidth,
