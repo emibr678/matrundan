@@ -212,9 +212,7 @@ div:has(> [data-testid="place-practical-links"]) > :first-child {
   display: contents;
 }
 
-div:has(> [data-testid="place-practical-links"])
-  > :first-child
-  > [data-slot="place-thumb"] {
+div:has(> [data-testid="place-practical-links"]) > :first-child > [data-slot="place-thumb"] {
   grid-column: 1;
   grid-row: 1 / span 2;
   align-self: stretch;
@@ -283,9 +281,7 @@ div:has(> [data-testid="place-practical-links"]) > :first-child > :last-child {
     column-gap: 1rem;
   }
 
-  div:has(> [data-testid="place-practical-links"])
-    > :first-child
-    > [data-slot="place-thumb"] {
+  div:has(> [data-testid="place-practical-links"]) > :first-child > [data-slot="place-thumb"] {
     width: 7rem;
     min-height: 8rem;
     max-height: 9rem;
