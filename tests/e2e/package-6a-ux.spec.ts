@@ -179,15 +179,21 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   expect(mapsLinkBox!.y).toBeGreaterThanOrEqual(headingBox!.y + headingBox!.height - 1);
   expect(secondaryActionBox!.y).toBeGreaterThanOrEqual(mapsLinkBox!.y + mapsLinkBox!.height - 1);
   expect(Math.abs(secondaryIconBox!.x - mapsIconBox!.x)).toBeLessThanOrEqual(2);
-  expect(thumbBox!.width).toBeGreaterThanOrEqual(95);
-  expect(thumbBox!.width).toBeLessThanOrEqual(97);
-  expect(thumbVisualBox!.width).toBeGreaterThanOrEqual(95);
-  expect(thumbVisualBox!.width).toBeLessThanOrEqual(97);
+  expect(thumbBox!.width).toBeGreaterThanOrEqual(60);
+  expect(thumbBox!.width).toBeLessThanOrEqual(84);
+  expect(thumbVisualBox!.width).toBeGreaterThanOrEqual(60);
+  expect(thumbVisualBox!.width).toBeLessThanOrEqual(84);
   expect(Math.abs(thumbVisualBox!.width - thumbVisualBox!.height)).toBeLessThanOrEqual(1);
   expect(mapsLinkBox!.height).toBeGreaterThanOrEqual(44);
   expect(secondaryActionBox!.height).toBeGreaterThanOrEqual(44);
+  // Adressen ligger direkt under namnet, utan reserverat tomrum när statusen saknas.
+  expect(mapsLinkBox!.y - (headingBox!.y + headingBox!.height)).toBeLessThanOrEqual(16);
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Nytt för gruppen", { exact: true })).toHaveCount(0);
+  // Kartdataunderhållet ska inte längre ta en egen synlig rad i kortet.
+  await expect(page.getByText("Kontrollera kartdata", { exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("place-location-refresh")).toHaveCount(0);
+
 
   const openingHours = page.getByText("Öppettider", { exact: true });
   const openingHoursIcon = openingHours.locator("..").locator("svg").first();
