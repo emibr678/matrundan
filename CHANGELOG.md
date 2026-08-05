@@ -13,6 +13,16 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.7] – 2026-08-05
+
+### Rättat
+
+- Adress och webbplats ligger på samma obrutna rad under ställets namn. En lång
+  adress krymper och radbryts inom sitt eget utrymme i stället för att flytta
+  webbplatsen till en separat rad.
+- Tomläget under **Besök** är lägre och mer diskret när gruppen ännu saknar
+  registrerade besök.
+
 ## [1.25.6] – 2026-08-04
 
 ### Rättat

@@ -121,23 +121,50 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
     return {
       display: style.display,
       flexWrap: style.flexWrap,
-      rowGap: Number.parseFloat(style.rowGap) || 0,
+      columnGap: Number.parseFloat(style.columnGap) || 0,
     };
   });
   expect(practicalLinkLayout.display).toBe("flex");
-  expect(practicalLinkLayout.flexWrap).toBe("wrap");
-  expect(practicalLinkLayout.rowGap).toBeLessThanOrEqual(1);
+  expect(practicalLinkLayout.flexWrap).toBe("nowrap");
+  expect(practicalLinkLayout.columnGap).toBeLessThanOrEqual(12);
 
   const mapsLink = page.getByRole("link", { name: /Öppna .* i Google Maps/ });
+  const secondaryPracticalAction = practicalLinks.locator("a, button").nth(1);
+  const placeHeading = page.locator("h1");
+  const placeThumb = page.locator('[data-slot="place-thumb"]').first();
   await expect(mapsLink).toBeVisible();
+  await expect(secondaryPracticalAction).toBeVisible();
   await expect(mapsLink).toHaveClass(/text-primary/);
+  const [practicalLinksBox, mapsLinkBox, secondaryActionBox, headingBox, thumbBox] =
+    await Promise.all([
+      practicalLinks.boundingBox(),
+      mapsLink.boundingBox(),
+      secondaryPracticalAction.boundingBox(),
+      placeHeading.boundingBox(),
+      placeThumb.boundingBox(),
+    ]);
+  expect(practicalLinksBox).not.toBeNull();
+  expect(mapsLinkBox).not.toBeNull();
+  expect(secondaryActionBox).not.toBeNull();
+  expect(headingBox).not.toBeNull();
+  expect(thumbBox).not.toBeNull();
+  expect(Math.abs(mapsLinkBox!.y - secondaryActionBox!.y)).toBeLessThanOrEqual(2);
+  expect(secondaryActionBox!.x - (mapsLinkBox!.x + mapsLinkBox!.width)).toBeGreaterThanOrEqual(-1);
+  expect(secondaryActionBox!.x - (mapsLinkBox!.x + mapsLinkBox!.width)).toBeLessThanOrEqual(16);
+  expect(Math.abs(practicalLinksBox!.x - thumbBox!.x)).toBeLessThanOrEqual(2);
+  expect(practicalLinksBox!.y).toBeGreaterThanOrEqual(
+    Math.max(thumbBox!.y + thumbBox!.height, headingBox!.y + headingBox!.height) - 1,
+  );
   await expect(page.getByText("Google Maps", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Nytt för gruppen", { exact: true })).toHaveCount(0);
 
   const openingHours = page.getByText("Öppettider", { exact: true });
   await expect(openingHours).toBeVisible();
   await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Ingen har varit här än.", { exact: true })).toBeVisible();
+  const emptyVisitMessage = page.getByText("Ingen har varit här än.", { exact: true });
+  await expect(emptyVisitMessage).toBeVisible();
+  const emptyVisitCardBox = await emptyVisitMessage.locator("..").boundingBox();
+  expect(emptyVisitCardBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(52);
   const openingHoursTop = await openingHours.evaluate(
     (element) => element.getBoundingClientRect().top,
   );
