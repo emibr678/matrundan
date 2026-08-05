@@ -217,10 +217,7 @@ export function cityFromGeoapify(props: GeoapifyProperties): string {
   return props.city || props.town || props.village || props.municipality || props.county || "";
 }
 
-export function addressFromGeoapify(
-  props: GeoapifyProperties,
-  placeName?: string | null,
-): string {
+export function addressFromGeoapify(props: GeoapifyProperties, placeName?: string | null): string {
   const street = [props.street, props.housenumber].filter(Boolean).join(" ").trim();
   if (street) return street;
 
