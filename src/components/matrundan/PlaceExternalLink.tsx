@@ -1,6 +1,7 @@
 import type * as React from "react";
 import { ExternalLink, type LucideIcon } from "lucide-react";
 
+import { googleMapsDisplayParts } from "@/lib/matrundan/place-links";
 import { cn } from "@/lib/utils";
 
 interface PlaceExternalLinkProps extends Omit<
@@ -12,6 +13,16 @@ interface PlaceExternalLinkProps extends Omit<
   tail: React.ReactNode;
 }
 
+function isGoogleMapsLink(href: string | undefined): boolean {
+  if (!href) return false;
+  try {
+    const url = new URL(href);
+    return /(^|\.)google\.[a-z.]+$/i.test(url.hostname) && url.pathname.startsWith("/maps");
+  } catch {
+    return false;
+  }
+}
+
 export function PlaceExternalLink({
   icon: Icon,
   prefix,
@@ -19,6 +30,17 @@ export function PlaceExternalLink({
   className,
   ...props
 }: PlaceExternalLinkProps) {
+  const mapsDisplay =
+    isGoogleMapsLink(props.href) && typeof prefix === "string" && typeof tail === "string"
+      ? googleMapsDisplayParts({
+          name: "",
+          address: prefix.replace(/,\s*$/, ""),
+          city: tail,
+        })
+      : null;
+  const visiblePrefix = mapsDisplay ? mapsDisplay.prefix : prefix;
+  const visibleTail = mapsDisplay ? mapsDisplay.tail : tail;
+
   return (
     <a
       {...props}
@@ -29,12 +51,12 @@ export function PlaceExternalLink({
     >
       <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
       <span className="min-w-0 [overflow-wrap:anywhere]">
-        {prefix}
+        {visiblePrefix}
         <span
           data-slot="external-link-tail"
           className="inline-flex whitespace-nowrap align-baseline"
         >
-          <span data-slot="external-link-tail-text">{tail}</span>
+          <span data-slot="external-link-tail-text">{visibleTail}</span>
           <ExternalLink
             aria-hidden="true"
             data-slot="external-link-icon"
