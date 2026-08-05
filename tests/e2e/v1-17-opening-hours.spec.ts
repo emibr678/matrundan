@@ -265,7 +265,7 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   const addressExternalIcon = mapsLink.locator('[data-slot="external-link-icon"]');
   const websiteTailText = websiteLink.locator('[data-slot="external-link-tail-text"]');
   const websiteExternalIcon = websiteLink.locator('[data-slot="external-link-icon"]');
-  await expect(addressTailText).toHaveText("Stockholm");
+  await expect(addressTailText).toHaveText("Visa på karta");
   await expect(websiteTailText).toHaveText("Webbplats");
 
   const [

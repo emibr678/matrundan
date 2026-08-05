@@ -3,6 +3,7 @@
  * Filen innehåller ingen nätverks- eller secret-hantering.
  */
 import { normalizeFoodTags } from "./food-tags";
+import { isCredibleStreetAddress } from "./place-links";
 import type { PlaceCategory } from "./types";
 
 export const GEOAPIFY_ATTRIBUTION = "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.";
@@ -216,11 +217,15 @@ export function cityFromGeoapify(props: GeoapifyProperties): string {
   return props.city || props.town || props.village || props.municipality || props.county || "";
 }
 
-export function addressFromGeoapify(props: GeoapifyProperties): string {
-  if (props.address_line1?.trim()) return props.address_line1.trim();
+export function addressFromGeoapify(props: GeoapifyProperties, placeName?: string | null): string {
   const street = [props.street, props.housenumber].filter(Boolean).join(" ").trim();
   if (street) return street;
-  return props.formatted?.split(",")[0]?.trim() ?? "";
+
+  const addressLine = props.address_line1?.trim();
+  if (isCredibleStreetAddress(addressLine, placeName)) return addressLine ?? "";
+
+  const formattedFirstLine = props.formatted?.split(",")[0]?.trim();
+  return isCredibleStreetAddress(formattedFirstLine, placeName) ? (formattedFirstLine ?? "") : "";
 }
 
 function hasOpeningHours(properties: GeoapifyProperties): boolean {
@@ -242,6 +247,8 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
   const osmType = normalizedOsmType(providerRaw?.osm_type);
   const osmId = normalizedOsmId(providerRaw?.osm_id);
   const categories = properties.categories ?? [];
+  const address = addressFromGeoapify(properties, name);
+  const city = cityFromGeoapify(properties);
   const metadata = {
     provider: "geoapify",
     providerPlaceId: externalId,
@@ -264,8 +271,8 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
       typeof providerRaw?.amenity === "string" ? providerRaw.amenity : undefined,
     ),
     cuisines: cuisinesFromGeoapify(properties),
-    address: addressFromGeoapify(properties),
-    city: cityFromGeoapify(properties),
+    address,
+    city,
     area: areaFromGeoapify(properties),
     lat: properties.lat,
     lng: properties.lon,
@@ -274,9 +281,7 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
     phone: typeof phone === "string" ? phone : undefined,
     hasOpeningHours: openingHoursKnown,
     externalUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      [name, addressFromGeoapify(properties), cityFromGeoapify(properties)]
-        .filter(Boolean)
-        .join(" "),
+      [name, address, city].filter(Boolean).join(" "),
     )}`,
     attribution: GEOAPIFY_ATTRIBUTION,
     raw: JSON.stringify(metadata),

@@ -7,10 +7,46 @@ export interface GoogleMapsPlaceLike {
   lng?: number | null;
 }
 
+export interface GoogleMapsDisplayParts {
+  prefix?: string;
+  tail: string;
+  hasStreetAddress: boolean;
+}
+
 const MAX_WEBSITE_LENGTH = 2048;
+const STREET_ADDRESS_HINT =
+  /(?:\d|(?:gata(?:n)?|väg(?:en)?|gränd(?:en)?|torg(?:et)?|allé(?:n)?|allen|aveny(?:n)?|kaj(?:en)?|backe(?:n)?|stig(?:en)?|stråk(?:et)?|terrass(?:en)?|esplanad(?:en)?|gång(?:en)?|led(?:en)?|plats(?:en)?|street|road)\b)/i;
 
 function normalizedPart(value: string): string {
   return value.trim().toLocaleLowerCase("sv-SE").replace(/\s+/g, " ");
+}
+
+/**
+ * Avgör konservativt om en sträng kan visas som en faktisk gatuadress.
+ * Leverantörers adressfält kan annars innehålla verksamhetsnamnet eller ett område.
+ */
+export function isCredibleStreetAddress(
+  value: string | null | undefined,
+  placeName?: string | null,
+): boolean {
+  const address = value?.trim();
+  if (!address || !/[a-zåäö]/i.test(address)) return false;
+  if (placeName?.trim() && normalizedPart(address) === normalizedPart(placeName)) return false;
+  return STREET_ADDRESS_HINT.test(address);
+}
+
+/**
+ * Visar gatuadress och ort när adressen är trovärdig. Annars beskriver länken
+ * handlingen i stället för att presentera namn eller område som en adress.
+ */
+export function googleMapsDisplayParts(place: GoogleMapsPlaceLike): GoogleMapsDisplayParts {
+  const address = place.address?.trim();
+  const city = place.city?.trim();
+  if (isCredibleStreetAddress(address, place.name)) {
+    if (city) return { prefix: `${address}, `, tail: city, hasStreetAddress: true };
+    return { tail: address ?? "Visa på karta", hasStreetAddress: true };
+  }
+  return { tail: "Visa på karta", hasStreetAddress: false };
 }
 
 /**

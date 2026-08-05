@@ -13,6 +13,17 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.25.9] – 2026-08-05
+
+### Rättat
+
+- Geoapifys separata gata och gatunummer prioriteras när ett matställe läggs
+  till.
+- Ett verksamhetsnamn eller område visas inte längre som om det vore en
+  gatuadress.
+- När en säker gatuadress saknas visar detaljsidan **Visa på karta** och behåller
+  en träffsäker Google Maps-sökning.
+
 ## [1.25.8] – 2026-08-05
 
 ### Ändrat

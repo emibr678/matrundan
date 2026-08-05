@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_19, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-19";
 export type { ChangelogEntry };
 
+const VERSION_1_25_9_CHANGELOG: ChangelogEntry = {
+  version: "1.25.9",
+  date: "2026-08-05",
+  summary: "Platsdetaljen skiljer riktiga adresser från generella kartlänkar.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Geoapifys separata gata och gatunummer prioriteras när ett matställe läggs till.",
+        "Ett verksamhetsnamn eller område visas inte längre som om det vore en gatuadress.",
+        "När en säker gatuadress saknas visar detaljsidan Visa på karta och behåller en träffsäker Google Maps-sökning.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_25_8_CHANGELOG: ChangelogEntry = {
   version: "1.25.8",
   date: "2026-08-05",
@@ -327,6 +343,7 @@ const VERSION_1_20_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_25_9_CHANGELOG,
   VERSION_1_25_8_CHANGELOG,
   VERSION_1_25_7_CHANGELOG,
   VERSION_1_25_6_CHANGELOG,
