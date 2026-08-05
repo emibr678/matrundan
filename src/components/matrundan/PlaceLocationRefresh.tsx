@@ -134,7 +134,7 @@ export function PlaceLocationRefresh({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-3 px-4 pb-6">
+        <div className="space-y-3">
           {loading ? (
             <div className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Kontrollerar kartdatan…
