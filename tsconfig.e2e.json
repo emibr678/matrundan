@@ -1,6 +1,11 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["tests/**/*.ts", "tests/**/*.tsx", "playwright.config.ts"],
+  "include": [
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "playwright.config.ts",
+    "playwright.visual.config.ts"
+  ],
   "exclude": [],
   "compilerOptions": {
     "types": ["node"]
