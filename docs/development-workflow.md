@@ -1,12 +1,14 @@
 # Utvecklings- och leveransflöde
 
 Det här dokumentet är den kanoniska processen för produktdiskussion, planering,
-godkänd implementation, verifiering, merge, Lovable-synk och publicering.
+godkänd implementation, verifiering, merge, Lovable-synk, databasdriftsättning
+och publicering.
 
 Miljösetup, låst Bun-version och exakta kommandon finns i
 [DEVELOPMENT.md](../DEVELOPMENT.md). Arkitektur- och säkerhetsregler finns i
 [architecture.md](./architecture.md). Beslutad produktinriktning, paket och
-backlogflöde finns i [product-roadmap.md](./product-roadmap.md).
+backlogflöde finns i [product-roadmap.md](./product-roadmap.md). Processen för
+visuell granskning finns i [visual-review.md](./visual-review.md).
 
 ## 1. Faser
 
@@ -18,11 +20,14 @@ Arbetet ska alltid kunna beskrivas som en av följande faser:
    scope.
 4. **Verifiering** – statiska kontroller, tester, CI och manuell kontroll.
 5. **Merge** – en verifierad ändring förs in i `main`.
-6. **Publicering** – databasdriftsättning och publik release.
+6. **Lovable-synk och preview** – rätt commit synkas och granskas.
+7. **Databasdriftsättning** – godkända migrationer appliceras separat.
+8. **Publicering** – en verifierad version publiceras till användarna.
 
-En ny funktion eller större förändring kräver uttryckligt
-godkännande innan implementation. Publicering kräver ett separat uttryckligt
-godkännande även när implementationen redan är mergad.
+En ny funktion eller större förändring kräver uttryckligt godkännande innan
+implementation. Ett implementationsgodkännande är inte ett godkännande för
+merge, databasdriftsättning eller publicering. Publicering och
+produktionsmigration kräver separata uttryckliga godkännanden.
 
 Korrigerande dokumentation och små underhållsändringar får göras inom ett
 uttryckligt granskningsuppdrag, men får inte användas för att smyga in nytt
@@ -70,12 +75,13 @@ ett användarflöde.
 Återanvänd en verifierad checkout. Klona endast när miljön är ny, checkouten
 saknas eller dess tillstånd inte kan återställas säkert.
 
-En ny godkänd uppgift får normalt en branch från aktuell `main`:
+En ny godkänd uppgift får normalt en branch från verifierad aktuell `main`:
 
 ```bash
 git fetch origin --prune
 git switch main
 git pull --ff-only
+git rev-parse HEAD
 git switch -c agent/<beskrivande-namn>
 ```
 
@@ -84,7 +90,7 @@ PR:er eller commits för varje felsökningshypotes.
 
 Historik som redan har pushats och synkats till Lovable får inte skrivas om med
 force-push, rebase eller amend. En PR med många arbetscommits kan squash-mergas
-av GitHub när det inte skriver om den publicerade feature-branchens historik.
+av GitHub när det inte skriver om den publicerade featurebranchens historik.
 
 ## 4. Diagnostik före fix
 
@@ -126,15 +132,45 @@ PR:n ska vara draft medan implementation, visuell justering eller diagnostik
 pågår. Om en redo-PR behöver flera nya hypoteser eller ytterligare designloopar
 ska den flyttas tillbaka till draft innan fler pushar.
 
-Lovable ska användas på en avgränsad branch eller sandbox under iteration.
-Undvik en serie små direktpushar till `main`. En Lovable-iteration ska samlas
-till en granskbar kandidat innan den förs vidare till normal PR- och
-verifieringsprocess.
-
 GitHub Actions verifierar kod. Workflows får inte användas som en fjärrstyrd
 editor som patchar, committar eller pushar produktkod tillbaka till branchen.
 
-## 6. Verifiering
+## 6. Lovable, brancher och visuell granskning
+
+Visuella implementationer ska ske isolerat från `main`.
+
+1. Använd i första hand en Lovable-variant baserad på en verifierad fullständig
+   commit-SHA när variantfunktionen finns.
+2. Om varianter saknas, använd en dedikerad GitHub-featurebranch och välj den i
+   Lovable när branch switching finns.
+3. Om rätt variant, branch eller commit inte kan verifieras, gör ingen
+   Lovable-implementation. Fortsätt via normal GitHub-branch och PR.
+
+Anta inte att en variant följer senare commits eller att previewn visar rätt
+branch eller commit utan verifiering. Samla visuella iterationer i samma variant
+eller branch till en sammanhållen kandidat. Undvik en serie små Lovable-pushar
+direkt till `main`.
+
+En större ändring av layout, informationshierarki, responsivitet eller
+huvudflöde ska granskas manuellt före merge vid minst 360 px och desktop.
+Previewn ska kontrolleras mot avsedd commit. Demo eller exempelgrupp och
+autentiserat live-läge ska jämföras när det är relevant och möjligt.
+
+Workflowen **Visual review artifacts** är ett opt-in-komplement. Den bygger
+kandidaten och skapar fullsidesskärmbilder i Chromium för 360 × 800 och
+1280 × 900. Den kan startas manuellt eller genom PR-mallens ruta
+`Skapa visuella granskningsbilder`. Standardmatrisen använder stabila
+demosökvägar och kan ersättas med andra sökvägar vid manuell körning.
+
+Skärmbilderna är inte golden snapshots och ingen pixeljämförelse görs. Preview,
+artifact, browserkontroller och CI är olika bevis och ersätter inte varandra.
+Fullständig instruktion finns i [visual-review.md](./visual-review.md).
+
+En variant eller branch innebär inte automatiskt en isolerad databas.
+`.lovable/plan.md` är tillfällig och får inte följa med till en färdig PR eller
+`main` utan uttryckligt godkännande.
+
+## 7. Verifiering
 
 Använd kommandona som definieras i `package.json` och beskrivs i
 [DEVELOPMENT.md](../DEVELOPMENT.md).
@@ -163,6 +199,12 @@ bun run test:mobile:changed -- --only-changed=origin/main
 till appen utan att importera den ändrade modulen. Den ersätter därför aldrig
 den fulla relevanta browserverifieringen för en färdig kandidat.
 
+Visuella granskningsbilder kan skapas lokalt med:
+
+```bash
+bun run test:visual-review
+```
+
 För en färdig releasekandidat:
 
 ```bash
@@ -187,7 +229,7 @@ Databas- och RPC-ändringar kräver dessutom manuell granskning av:
 - isolering mellan grupper;
 - bevarande av befintliga produktionsrader.
 
-## 7. CI-nivåer
+## 8. CI-nivåer
 
 Statiska kontroller och browsertester körs i separata jobb. Browserjobbet startar
 först när kodjobbet är grönt. Det gör felorsaken tydligare och gör det möjligt
@@ -217,7 +259,11 @@ Playwrights browserfiler cachelagras per runner, lockfil och kartbehov.
 Ändringsklassificeringen i `scripts/repo-tools.mjs` ska hållas uppdaterad när nya
 centrala UI- eller kartfiler tillkommer.
 
-## 8. PR och merge
+Den opt-in visuella workflowen är fristående från ordinarie CI och blockerar
+inte en PR genom pixeljämförelser. Ett misslyckat bygge eller screenshot-test ska
+däremot utredas innan artifact används som granskningsunderlag.
+
+## 9. PR och merge
 
 En PR ska vara draft medan implementation eller diagnostik pågår.
 
@@ -229,17 +275,19 @@ Innan den markeras redo ska följande vara tydligt:
 - databas- och integritetskonsekvenser;
 - om exempelgruppen eller scenariokontraktet ändrades, redan täcker behovet eller
   inte är relevant;
+- om visuell granskning krävs och vilka previewer, artifacts och vyer som
+  faktiskt granskades;
 - om roadmapen behöver markera en färdig funktion, avsluta ett paket eller
   ändra nästa prioritet;
 - utförda kontroller;
 - manuella teststeg;
 - sådant som inte kunde verifieras;
-- om publicering ingår eller inte.
+- om databasdriftsättning eller publicering ingår.
 
-Merge får ske när scope är uppfyllt, diffen är granskad, relevant CI är grön och
-inga kända blockerare återstår. Merge innebär inte automatiskt att databasen är
-driftsatt, att Lovable-previewn har synkat eller att den publika appen är
-publicerad.
+Merge får ske när scope är uppfyllt, diffen är granskad, relevant CI är grön,
+krävd visuell granskning är dokumenterad och inga kända blockerare återstår.
+Merge innebär inte automatiskt att databasen är driftsatt, att Lovable-previewn
+har synkat eller att den publika appen är publicerad.
 
 ### Efter merge: backlog- och roadmapkvitto
 
@@ -261,7 +309,7 @@ det är tydligt att funktionen eller paketet blir klart. Om det inte är lämpli
 ska en omedelbart följande docs-only PR skapas. GitHub Actions får verifiera
 reglerna men ska inte automatiskt skriva om roadmapen eller välja prioritet.
 
-## 9. Lovable, preview och publicering
+## 10. Lovable-synk, databas och publicering
 
 Projektets previeworigin är:
 
@@ -283,9 +331,10 @@ Skilj alltid mellan:
 - den publika appen är publicerad.
 
 Skriv inte att synk, driftsättning eller publicering är klar utan faktisk
-bekräftelse.
+bekräftelse. Databasändringar och produktionsskrivningar får inte göras från en
+variant eller branch utan verifierad miljöisolering och separat godkännande.
 
-## 10. Leveranskvitto
+## 11. Leveranskvitto
 
 Efter en push eller merge som är avsedd att testas ska status redovisas med de
 fält som är relevanta:
@@ -303,7 +352,9 @@ Exempelgrupp:
 Changelog/version:
 Arkitektur:
 Lovable-synk:
-Preview:
+Preview och verifierad commit:
+Visuell artifact:
+Manuellt granskade vyer:
 Testa:
 Ej verifierat:
 Databas:
@@ -311,7 +362,7 @@ Publicering:
 Nästa rekommenderade issue:
 ```
 
-## 11. Dokumentationsansvar
+## 12. Dokumentationsansvar
 
 Varje typ av information ska ha en tydlig källa:
 
@@ -324,6 +375,7 @@ Varje typ av information ska ha en tydlig källa:
 - `docs/architecture.md` – varaktiga arkitektur- och säkerhetsbeslut;
 - `DEVELOPMENT.md` – miljösetup och kanoniska kommandon;
 - detta dokument – arbets- och leveransprocess;
+- `docs/visual-review.md` – isolering, preview och screenshot-granskning;
 - `AGENTS.md` – bindande instruktioner för kodande agenter;
 - `docs/archive/` – historiska dokument som inte längre är kanoniska.
 
@@ -331,7 +383,7 @@ README ska inte duplicera en lång releasehistorik eller fungera som en parallel
 backlog. Avslutade implementationsplaner ska tas bort eller arkiveras när deras
 varaktiga beslut har flyttats till arkitektur, roadmap och changelog.
 
-## 12. Antimönster
+## 13. Antimönster
 
 Undvik:
 
@@ -342,7 +394,10 @@ Undvik:
 - självmodifierande GitHub Actions-workflows;
 - full browsermatris efter varje liten diagnostikändring;
 - att lämna en PR redo medan flera nya visuella hypoteser fortfarande testas;
-- en serie små Lovable-pushar direkt till `main`;
+- en serie små Lovable-pushar eller visuella experiment direkt till `main`;
+- att anta att en variant, branch eller preview följer en senare commit utan
+  verifiering;
+- att behandla en preview eller grön CI som ersättning för den andra;
 - exakta pixelassertioner som låser normal responsiv layout utan ett uttalat
   designkontrakt;
 - global skrivande formattering när bara några filer ändrats;
