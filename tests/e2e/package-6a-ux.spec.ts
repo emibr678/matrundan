@@ -205,7 +205,8 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   ]);
   expect(openingHoursIconBox).not.toBeNull();
   expect(registerVisitBox).not.toBeNull();
-  expect(Math.abs(openingHoursIconBox!.x - registerVisitBox!.x)).toBeLessThanOrEqual(2);
+  // Öppettidsraden har 6 px inre hover-yta, så ikonen får ligga som mest 6 px in från knappkanten.
+  expect(Math.abs(openingHoursIconBox!.x - registerVisitBox!.x)).toBeLessThanOrEqual(6);
   await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toHaveCount(0);
   await expect(page.getByText("1 besök", { exact: true })).toBeVisible();
   const openingHoursTop = await openingHours.evaluate(
