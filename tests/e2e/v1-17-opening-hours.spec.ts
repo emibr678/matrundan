@@ -224,225 +224,127 @@ function weeklyDetails(now: string) {
     },
     website: "https://www.testkoket.se/",
     timezone: "Europe/Stockholm",
+    location: {
+      address: "Testgatan 1",
+      area: "Enskede",
+      city: "Stockholm",
+      lat: 59.283,
+      lng: 18.07,
+      osmType: "node",
+      osmId: "123",
+    },
     fetchedAt: now,
     attribution: "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
   };
 }
 
-test("platskortet har stabil identitet och fullbred praktisk sektion på mobil och desktop", async ({
+test("platskortet visar adress över en kompakt delad rad på mobil och desktop", async ({
   page,
 }) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, weeklyDetails(now));
-  await mockLiveGroup(
-    page,
-    "https://www.testkoket.se/",
-    "Planens restaurang",
-    "Planens restaurang",
-  );
+  await mockLiveGroup(page, "https://www.testkoket.se/");
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  const heading = page.getByRole("heading", { name: "Planens restaurang" });
-  const back = page.getByRole("button", { name: "Gå tillbaka till matställen" });
-  const favorite = page.getByRole("button", { name: "Markera som favorit" });
+  const heading = page.getByRole("heading", { name: "Testköket" });
   const identity = page.getByTestId("place-identity-grid");
   const practicalInfo = page.getByTestId("place-practical-info");
-  const thumb = page.locator('[data-slot="place-thumb"]').first();
-  const thumbVisual = thumb.locator('[data-slot="place-thumb-visual"]');
-  const mapsLink = page.getByRole("link", {
-    name: "Öppna Planens restaurang i Google Maps",
-  });
-  const mapsIcon = mapsLink.locator("svg").first();
-  const locationRefresh = page.getByRole("button", {
-    name: "Kontrollera adress och kartposition",
-  });
-  const websiteLink = page.getByRole("link", {
-    name: "Öppna webbplatsen för Planens restaurang",
-  });
+  const addressRow = page.getByTestId("place-address-row");
+  const compactRow = page.getByTestId("place-practical-links");
+  const mapsLink = page.getByRole("link", { name: "Öppna Testköket i Google Maps" });
+  const checkInfo = page.getByRole("button", { name: "Kontrollera uppgifter" });
+  const websiteLink = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
+  const openingHours = page.getByLabel(/^Öppettider:/);
+
   await expect(heading).toBeVisible();
-  await expect(back).toBeVisible();
-  await expect(favorite).toBeVisible();
   await expect(identity).toBeVisible();
   await expect(practicalInfo).toBeVisible();
+  await expect(addressRow).toBeVisible();
+  await expect(compactRow).toBeVisible();
   await expect(mapsLink).toBeVisible();
-  await expect(locationRefresh).toBeVisible();
+  await expect(checkInfo).toBeVisible();
   await expect(websiteLink).toBeVisible();
-
-  const addressContent = mapsLink.locator("span").first();
-  const addressTailText = mapsLink.locator('[data-slot="external-link-tail-text"]');
-  const addressExternalIcon = mapsLink.locator('[data-slot="external-link-icon"]');
-  const websiteTailText = websiteLink.locator('[data-slot="external-link-tail-text"]');
-  const websiteExternalIcon = websiteLink.locator('[data-slot="external-link-icon"]');
-  await expect(addressTailText).toHaveText("Visa på karta");
-  await expect(websiteTailText).toHaveText("Webbplats");
-
-  const [
-    headingBox,
-    backBox,
-    favoriteBox,
-    identityBox,
-    practicalInfoBox,
-    thumbBox,
-    thumbVisualBox,
-    mapsBox,
-    mapsIconBox,
-    locationRefreshBox,
-    websiteBox,
-    addressTailTextBox,
-    addressExternalIconBox,
-    websiteTailTextBox,
-    websiteExternalIconBox,
-  ] = await Promise.all([
-    heading.boundingBox(),
-    back.boundingBox(),
-    favorite.boundingBox(),
-    identity.boundingBox(),
-    practicalInfo.boundingBox(),
-    thumb.boundingBox(),
-    thumbVisual.boundingBox(),
-    mapsLink.boundingBox(),
-    mapsIcon.boundingBox(),
-    locationRefresh.boundingBox(),
-    websiteLink.boundingBox(),
-    addressTailText.boundingBox(),
-    addressExternalIcon.boundingBox(),
-    websiteTailText.boundingBox(),
-    websiteExternalIcon.boundingBox(),
-  ]);
-  expect(headingBox).not.toBeNull();
-  expect(backBox).not.toBeNull();
-  expect(favoriteBox).not.toBeNull();
-  expect(identityBox).not.toBeNull();
-  expect(practicalInfoBox).not.toBeNull();
-  expect(thumbBox).not.toBeNull();
-  expect(thumbVisualBox).not.toBeNull();
-  expect(mapsBox).not.toBeNull();
-  expect(mapsIconBox).not.toBeNull();
-  expect(locationRefreshBox).not.toBeNull();
-  expect(websiteBox).not.toBeNull();
-  expect(addressTailTextBox).not.toBeNull();
-  expect(addressExternalIconBox).not.toBeNull();
-  expect(websiteTailTextBox).not.toBeNull();
-  expect(websiteExternalIconBox).not.toBeNull();
-
-  expect(Math.abs(favoriteBox!.y - backBox!.y)).toBeLessThanOrEqual(2);
-  expect(favoriteBox!.x).toBeGreaterThan(backBox!.x + backBox!.width);
-  expect(favoriteBox!.y + favoriteBox!.height).toBeLessThan(headingBox!.y);
-  expect(thumbBox!.width).toBeGreaterThanOrEqual(60);
-  expect(thumbBox!.width).toBeLessThanOrEqual(84);
-  expect(thumbVisualBox!.width).toBeGreaterThanOrEqual(60);
-  expect(thumbVisualBox!.width).toBeLessThanOrEqual(84);
-  expect(Math.abs(thumbVisualBox!.width - thumbVisualBox!.height)).toBeLessThanOrEqual(1);
-  expect(headingBox!.width).toBeGreaterThanOrEqual(184);
-  expect(practicalInfoBox!.x).toBeLessThanOrEqual(thumbBox!.x + 1);
-  expect(practicalInfoBox!.width).toBeGreaterThanOrEqual(identityBox!.width - 1);
-  expect(mapsBox!.x).toBeLessThan(headingBox!.x);
-  expect(mapsBox!.y).toBeGreaterThanOrEqual(identityBox!.y + identityBox!.height - 1);
-  expect(Math.abs(websiteBox!.x - mapsBox!.x)).toBeLessThanOrEqual(2);
-  expect(Math.abs(websiteBox!.y - (mapsBox!.y + mapsBox!.height))).toBeLessThanOrEqual(1);
-  expect(mapsBox!.height).toBeGreaterThanOrEqual(44);
-  expect(locationRefreshBox!.width).toBeGreaterThanOrEqual(44);
-  expect(locationRefreshBox!.height).toBeGreaterThanOrEqual(44);
-  expect(locationRefreshBox!.y).toBeLessThanOrEqual(mapsBox!.y + mapsBox!.height);
-  expect(locationRefreshBox!.y + locationRefreshBox!.height).toBeGreaterThanOrEqual(mapsBox!.y);
-  expect(websiteBox!.height).toBeGreaterThanOrEqual(44);
-
-  const addressMetrics = await addressContent.evaluate((element) => {
-    const style = window.getComputedStyle(element);
-    return {
-      height: element.getBoundingClientRect().height,
-      lineHeight: Number.parseFloat(style.lineHeight),
-      lineClamp: style.getPropertyValue("-webkit-line-clamp"),
-    };
-  });
-  expect(addressMetrics.lineClamp).toBe("none");
-  expect(addressMetrics.height).toBeLessThanOrEqual(addressMetrics.lineHeight * 3 + 1);
-
-  const addressIconGap =
-    addressExternalIconBox!.x - (addressTailTextBox!.x + addressTailTextBox!.width);
-  const websiteIconGap =
-    websiteExternalIconBox!.x - (websiteTailTextBox!.x + websiteTailTextBox!.width);
-  expect(addressIconGap).toBeGreaterThanOrEqual(2);
-  expect(addressIconGap).toBeLessThanOrEqual(8);
-  expect(websiteIconGap).toBeGreaterThanOrEqual(2);
-  expect(websiteIconGap).toBeLessThanOrEqual(8);
-  await expectNoHorizontalOverflow(page);
-
-  await page.setViewportSize({ width: 1024, height: 900 });
-  const [
-    desktopHeadingBox,
-    desktopIdentityBox,
-    desktopPracticalInfoBox,
-    desktopThumbBox,
-    desktopThumbVisualBox,
-    desktopMapsBox,
-    desktopWebsiteBox,
-  ] = await Promise.all([
-    heading.boundingBox(),
-    identity.boundingBox(),
-    practicalInfo.boundingBox(),
-    thumb.boundingBox(),
-    thumbVisual.boundingBox(),
-    mapsLink.boundingBox(),
-    websiteLink.boundingBox(),
-  ]);
-  expect(desktopHeadingBox).not.toBeNull();
-  expect(desktopIdentityBox).not.toBeNull();
-  expect(desktopPracticalInfoBox).not.toBeNull();
-  expect(desktopThumbBox).not.toBeNull();
-  expect(desktopThumbVisualBox).not.toBeNull();
-  expect(desktopMapsBox).not.toBeNull();
-  expect(desktopWebsiteBox).not.toBeNull();
-  expect(desktopThumbBox!.width).toBeGreaterThanOrEqual(79);
-  expect(desktopThumbBox!.width).toBeLessThanOrEqual(81);
-  expect(desktopThumbVisualBox!.width).toBeGreaterThanOrEqual(79);
-  expect(desktopThumbVisualBox!.width).toBeLessThanOrEqual(81);
-  expect(
-    Math.abs(desktopThumbVisualBox!.width - desktopThumbVisualBox!.height),
-  ).toBeLessThanOrEqual(1);
-  expect(desktopPracticalInfoBox!.x).toBeLessThanOrEqual(desktopThumbBox!.x + 1);
-  expect(desktopPracticalInfoBox!.width).toBeGreaterThanOrEqual(desktopIdentityBox!.width - 1);
-  expect(desktopMapsBox!.x).toBeLessThan(desktopHeadingBox!.x);
-  expect(Math.abs(desktopWebsiteBox!.x - desktopMapsBox!.x)).toBeLessThanOrEqual(2);
-  expect(desktopWebsiteBox!.y).toBeGreaterThanOrEqual(
-    desktopMapsBox!.y + desktopMapsBox!.height - 1,
-  );
-  await expectNoHorizontalOverflow(page);
-
-  const openingHours = page.getByText("Öppettider", { exact: true });
-  const openingHoursIcon = openingHours.locator("..").locator("svg").first();
-  const registerVisit = page.getByRole("button", { name: "Registrera besök", exact: true });
   await expect(openingHours).toBeVisible();
-  await expect(openingHoursIcon).toBeVisible();
-  await expect(registerVisit).toBeVisible();
-  const [openingHoursIconBox, desktopMapsIconBox] = await Promise.all([
-    openingHoursIcon.boundingBox(),
-    mapsIcon.boundingBox(),
+  await expect(page.getByTestId("place-info-status-dot")).toHaveCount(0);
+
+  const [addressBox, mapsBox, compactBox, websiteBox, openingBox, checkBox] = await Promise.all([
+    addressRow.boundingBox(),
+    mapsLink.boundingBox(),
+    compactRow.boundingBox(),
+    websiteLink.boundingBox(),
+    openingHours.boundingBox(),
+    checkInfo.boundingBox(),
   ]);
-  expect(openingHoursIconBox).not.toBeNull();
-  expect(desktopMapsIconBox).not.toBeNull();
-  expect(Math.abs(openingHoursIconBox!.x - desktopMapsIconBox!.x)).toBeLessThanOrEqual(2);
-  await expect(page.getByText("Måndag", { exact: true })).toBeHidden();
-  await expect(page.getByText("Öppet nu", { exact: true })).toHaveCount(0);
+  expect(addressBox).not.toBeNull();
+  expect(mapsBox).not.toBeNull();
+  expect(compactBox).not.toBeNull();
+  expect(websiteBox).not.toBeNull();
+  expect(openingBox).not.toBeNull();
+  expect(checkBox).not.toBeNull();
+  expect(addressBox!.height).toBeGreaterThanOrEqual(44);
+  expect(mapsBox!.height).toBeGreaterThanOrEqual(44);
+  expect(websiteBox!.height).toBeGreaterThanOrEqual(44);
+  expect(openingBox!.height).toBeGreaterThanOrEqual(44);
+  expect(checkBox!.width).toBeGreaterThanOrEqual(44);
+  expect(checkBox!.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs(websiteBox!.y - openingBox!.y)).toBeLessThanOrEqual(1);
+  expect(compactBox!.y).toBeGreaterThanOrEqual(addressBox!.y + addressBox!.height - 1);
+  expect(
+    Math.abs(mapsBox!.y + mapsBox!.height / 2 - (addressBox!.y + addressBox!.height / 2)),
+  ).toBeLessThanOrEqual(2);
+  await expectNoHorizontalOverflow(page);
+
   await openingHours.click();
   await expect(page.getByText("Måndag", { exact: true })).toBeVisible();
   await expect(page.getByText("Söndag", { exact: true })).toBeVisible();
-  await expect(page.getByText("Idag", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Gruppens webbplats och öppettider", { exact: true })).toHaveCount(0);
+  const openedHours = openingHours.locator("xpath=ancestor::details");
+  const [openedBox, practicalBox] = await Promise.all([
+    openedHours.boundingBox(),
+    practicalInfo.boundingBox(),
+  ]);
+  expect(openedBox).not.toBeNull();
+  expect(practicalBox).not.toBeNull();
+  expect(openedBox!.width).toBeGreaterThanOrEqual(practicalBox!.width - 2);
+  await expectNoHorizontalOverflow(page);
+
+  await checkInfo.click();
+  const sheet = page.getByTestId("place-info-check-sheet");
+  await expect(sheet.getByRole("heading", { name: "Kontrollera uppgifter" })).toBeVisible();
+  await expect(sheet.getByText("Adress och kartposition", { exact: true })).toBeVisible();
+  await expect(sheet.getByText("Webbplats", { exact: true })).toBeVisible();
+  await expect(sheet.getByText("Öppettider", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1024, height: 900 });
+  const [desktopPractical, desktopIdentity] = await Promise.all([
+    practicalInfo.boundingBox(),
+    identity.boundingBox(),
+  ]);
+  expect(desktopPractical).not.toBeNull();
+  expect(desktopIdentity).not.toBeNull();
+  expect(desktopPractical!.width).toBeGreaterThanOrEqual(desktopIdentity!.width - 1);
   await expectNoHorizontalOverflow(page);
 });
 
-test("saknad webbplats blir en diskret handling under adressen och öppettider tar en rad", async ({
-  page,
-}) => {
+test("saknad webbplats och öppettider behåller två kompakta celler", async ({ page }) => {
   const now = new Date().toISOString();
   await page.setViewportSize({ width: 360, height: 800 });
   await seedAuthenticatedSession(page, {
     openingHours: null,
     website: null,
     timezone: "Europe/Stockholm",
+    location: {
+      address: "Testgatan 1",
+      area: "Enskede",
+      city: "Stockholm",
+      lat: 59.283,
+      lng: 18.07,
+      osmType: null,
+      osmId: null,
+    },
     fetchedAt: now,
     attribution: "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
   });
@@ -450,60 +352,33 @@ test("saknad webbplats blir en diskret handling under adressen och öppettider t
 
   await page.goto(`/matstallen/${PLACE_ID}`);
 
-  await expect(page.getByText("Ingen i gruppen har varit här än", { exact: true })).toHaveCount(0);
-  const emptyVisitMessage = page.getByText("Ingen har varit här än.", { exact: true });
-  await expect(emptyVisitMessage).toBeVisible();
-  const emptyVisitCardBox = await emptyVisitMessage.locator("..").boundingBox();
-  expect(emptyVisitCardBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(52);
   const mapsLink = page.getByRole("link", { name: "Öppna Testköket i Google Maps" });
-  const mapsIcon = mapsLink.locator("svg").first();
-  const addWebsite = page.getByRole("button", { name: "Lägg till webbplats", exact: true });
-  const addWebsiteIcon = addWebsite.locator("svg").first();
+  const addWebsite = page.getByRole("button", { name: "Lägg till webbplats" });
+  const openingHours = page.getByLabel("Öppettider: Saknas");
   const register = page.getByRole("button", { name: "Registrera besök", exact: true });
   const propose = page.getByRole("button", { name: "Föreslå som nästa stopp", exact: true });
-  const favorite = page.getByRole("button", { name: "Markera som favorit", exact: true });
-  const openingHours = page.getByText("Öppettider", { exact: true });
+
   await expect(mapsLink).toBeVisible();
   await expect(addWebsite).toBeVisible();
+  await expect(openingHours).toBeVisible();
   await expect(register).toBeVisible();
   await expect(propose).toBeVisible();
-  await expect(favorite).toBeVisible();
-  await expect(openingHours).toBeVisible();
-  await expect(page.getByText("Saknas", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ändra", exact: true })).toHaveCount(0);
 
-  const [
-    mapsLinkBox,
-    mapsIconBox,
-    addWebsiteBox,
-    addWebsiteIconBox,
-    registerBox,
-    proposeBox,
-    favoriteBox,
-    openingHoursBox,
-  ] = await Promise.all([
-    mapsLink.boundingBox(),
-    mapsIcon.boundingBox(),
+  const [websiteBox, openingBox, registerBox, proposeBox] = await Promise.all([
     addWebsite.boundingBox(),
-    addWebsiteIcon.boundingBox(),
+    openingHours.boundingBox(),
     register.boundingBox(),
     propose.boundingBox(),
-    favorite.boundingBox(),
-    openingHours.boundingBox(),
   ]);
-  expect(mapsLinkBox).not.toBeNull();
-  expect(mapsIconBox).not.toBeNull();
-  expect(addWebsiteBox).not.toBeNull();
-  expect(addWebsiteIconBox).not.toBeNull();
-  expect(registerBox?.height ?? 0).toBeGreaterThanOrEqual(44);
-  expect(proposeBox?.height ?? 0).toBeGreaterThanOrEqual(44);
-  expect(favoriteBox?.height ?? 0).toBeGreaterThanOrEqual(44);
-  expect(addWebsiteBox!.y).toBeGreaterThanOrEqual(mapsLinkBox!.y + mapsLinkBox!.height - 1);
-  expect(Math.abs(addWebsiteIconBox!.x - mapsIconBox!.x)).toBeLessThanOrEqual(2);
-  expect(favoriteBox?.y ?? 0).toBeLessThan(mapsLinkBox?.y ?? 0);
-  expect(addWebsiteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
-  expect(openingHoursBox?.y ?? 0).toBeLessThan(registerBox?.y ?? 0);
-  expect(registerBox?.y ?? 0).toBeLessThan(proposeBox?.y ?? 0);
+  expect(websiteBox).not.toBeNull();
+  expect(openingBox).not.toBeNull();
+  expect(registerBox).not.toBeNull();
+  expect(proposeBox).not.toBeNull();
+  expect(websiteBox!.height).toBeGreaterThanOrEqual(44);
+  expect(openingBox!.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs(websiteBox!.y - openingBox!.y)).toBeLessThanOrEqual(1);
+  expect(openingBox!.y).toBeLessThan(registerBox!.y);
+  expect(registerBox!.y).toBeLessThan(proposeBox!.y);
 
   await addWebsite.click();
   const addWebsiteDialog = page.getByRole("dialog", { name: "Lägg till webbplats" });
@@ -513,9 +388,5 @@ test("saknad webbplats blir en diskret handling under adressen och öppettider t
 
   await openingHours.click();
   await expect(page.getByRole("button", { name: "Ändra", exact: true })).toBeVisible();
-  await expect(page.getByText("Öppettider saknas.", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Gruppens webbplats och öppettider", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Idag", { exact: true })).toHaveCount(0);
-  await expect(mapsLink).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
