@@ -46,7 +46,7 @@ export function PlaceLocationRefresh({
 
   const load = React.useCallback(
     async (forceRefresh: boolean) => {
-      if (mode !== "live" || exampleMode || !hasGeoapifySource) return;
+      if (!canReport || mode !== "live" || exampleMode || !hasGeoapifySource) return;
       if (forceRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
@@ -63,7 +63,7 @@ export function PlaceLocationRefresh({
         setRefreshing(false);
       }
     },
-    [exampleMode, groupId, hasGeoapifySource, mode, place.id],
+    [canReport, exampleMode, groupId, hasGeoapifySource, mode, place.id],
   );
 
   React.useEffect(() => {
@@ -93,7 +93,7 @@ export function PlaceLocationRefresh({
     }
   }
 
-  if (mode !== "live" || exampleMode || !hasGeoapifySource) return null;
+  if (!canReport || mode !== "live" || exampleMode || !hasGeoapifySource) return null;
 
   const currentLocationLabel = isCredibleStreetAddress(place.address, place.name)
     ? placeLocationLabel(place)
@@ -171,14 +171,12 @@ export function PlaceLocationRefresh({
                       En ägare eller admin kan använda den nya adressen.
                     </p>
                   )}
-                  {canReport ? (
-                    <PlaceDataReportDialog
-                      place={place}
-                      compact
-                      initialCategory="wrong_address"
-                      triggerLabel="Kartdatan stämmer inte"
-                    />
-                  ) : null}
+                  <PlaceDataReportDialog
+                    place={place}
+                    compact
+                    initialCategory="wrong_address"
+                    triggerLabel="Kartdatan stämmer inte"
+                  />
                 </div>
               </section>
             ) : details.location ? (
@@ -190,14 +188,12 @@ export function PlaceLocationRefresh({
                 <p className="text-sm text-muted-foreground">
                   Ingen säker adress hittades i kartdatan.
                 </p>
-                {canReport ? (
-                  <PlaceDataReportDialog
-                    place={place}
-                    compact
-                    initialCategory="wrong_address"
-                    triggerLabel="Rapportera adress eller position"
-                  />
-                ) : null}
+                <PlaceDataReportDialog
+                  place={place}
+                  compact
+                  initialCategory="wrong_address"
+                  triggerLabel="Rapportera adress eller position"
+                />
               </div>
             )}
 
