@@ -242,7 +242,8 @@ div:has(> [data-testid="place-practical-links"]) > :first-child > :last-child {
 }
 
 [data-testid="place-practical-links"] > a:first-child {
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
 }
 
 [data-testid="place-practical-links"] > a:first-child > span {
