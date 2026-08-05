@@ -51,10 +51,18 @@ describe("Geoapifys platsdetaljer", () => {
     expect(source).toContain("attribution: string");
   });
 
-  test("kanonisk adress ändras bara genom uttrycklig och rollskyddad handling", () => {
+  test("kanonisk adress ändras endast genom serverstyrd, uttrycklig handling", () => {
     expect(source).toContain("export const applyGeoapifyPlaceLocation");
     expect(source).toContain("if (!verified.context.canApplyLocation)");
-    expect(source).toContain('rpc("apply_place_external_location_v1"');
+    expect(source).toContain("const adminRpc = supabaseAdmin.rpc.bind(supabaseAdmin)");
+    expect(source).toContain('adminRpc("apply_place_external_location_v1"');
+    expect(source).toContain("_actor_id: context.userId");
     expect(source).toContain("Kartdatan innehåller ingen säker adress och position att använda");
+  });
+
+  test("namn-som-adress avvisas även vid detaljhämtning", () => {
+    expect(source).toContain("name: z.string().optional()");
+    expect(source).toContain("isCredibleStreetAddress(addressLine, placeName)");
+    expect(source).toContain("isUsableExternalLocation(location, placeName)");
   });
 });
