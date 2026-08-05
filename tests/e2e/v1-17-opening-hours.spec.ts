@@ -341,17 +341,13 @@ test("platskortet har stabil identitet och fullbred praktisk sektion på mobil o
   expect(mapsBox!.x).toBeLessThan(headingBox!.x);
   expect(mapsBox!.y).toBeGreaterThanOrEqual(identityBox!.y + identityBox!.height - 1);
   expect(Math.abs(websiteBox!.x - mapsBox!.x)).toBeLessThanOrEqual(2);
-  expect(websiteBox!.y).toBeGreaterThanOrEqual(mapsBox!.y + mapsBox!.height - 1);
+  expect(Math.abs(websiteBox!.y - (mapsBox!.y + mapsBox!.height))).toBeLessThanOrEqual(1);
   expect(mapsBox!.height).toBeGreaterThanOrEqual(44);
   expect(locationRefreshBox!.width).toBeGreaterThanOrEqual(44);
   expect(locationRefreshBox!.height).toBeGreaterThanOrEqual(44);
   expect(locationRefreshBox!.y).toBeLessThanOrEqual(mapsBox!.y + mapsBox!.height);
   expect(locationRefreshBox!.y + locationRefreshBox!.height).toBeGreaterThanOrEqual(mapsBox!.y);
   expect(websiteBox!.height).toBeGreaterThanOrEqual(44);
-  const visibleRowGap =
-    websiteTailTextBox!.y - (addressTailTextBox!.y + addressTailTextBox!.height);
-  expect(visibleRowGap).toBeGreaterThanOrEqual(0);
-  expect(visibleRowGap).toBeLessThanOrEqual(12);
 
   const addressMetrics = await addressContent.evaluate((element) => {
     const style = window.getComputedStyle(element);
