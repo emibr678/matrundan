@@ -14,7 +14,8 @@ export default defineConfig({
     trace: "off",
   },
   webServer: {
-    command: "bun run build && bun run preview -- --host 127.0.0.1 --port 4173",
+    command:
+      "bun run build && HOST=127.0.0.1 PORT=4173 node .output/server/index.mjs",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
