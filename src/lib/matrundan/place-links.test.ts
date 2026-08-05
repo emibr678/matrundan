@@ -63,6 +63,16 @@ describe("platsens adress och kartetikett", () => {
     ).toEqual({ tail: "Visa på karta", hasStreetAddress: false });
   });
 
+  test("visar kartfunktionen när adressen saknas helt", () => {
+    expect(
+      googleMapsDisplayParts({
+        name: "Planens restaurang",
+        address: "",
+        city: "Stockholm",
+      }),
+    ).toEqual({ tail: "Visa på karta", hasStreetAddress: false });
+  });
+
   test("behandlar område utan gatuuppgift som kartlänk", () => {
     expect(isCredibleStreetAddress("Gamla Enskede")).toBe(false);
     expect(
