@@ -237,11 +237,7 @@ function PlaceDetail() {
             </div>
 
             <PlaceOpeningHoursInfo />
-            <PlaceLocationRefresh
-              place={place}
-              groupId={state.group.id}
-              canReport={writable}
-            />
+            <PlaceLocationRefresh place={place} groupId={state.group.id} canReport={writable} />
           </div>
 
           {latestVisit ? (
