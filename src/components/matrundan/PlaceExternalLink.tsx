@@ -31,10 +31,10 @@ export function PlaceExternalLink({
   ...props
 }: PlaceExternalLinkProps) {
   const mapsDisplay =
-    isGoogleMapsLink(props.href) && typeof prefix === "string" && typeof tail === "string"
+    isGoogleMapsLink(props.href) && typeof tail === "string"
       ? googleMapsDisplayParts({
           name: "",
-          address: prefix.replace(/,\s*$/, ""),
+          address: typeof prefix === "string" ? prefix.replace(/,\s*$/, "") : undefined,
           city: tail,
         })
       : null;
