@@ -13,6 +13,30 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.26.0] – 2026-08-05
+
+### Lagt till
+
+- Ägare och administratörer kan kontrollera ett tillagt ställes adress och
+  kartposition mot aktuell kartdata och uttryckligen välja att använda en säker
+  ny uppgift.
+- Om kartdatan också är fel leder jämförelsen vidare till gruppens privata
+  rapporteringsflöde. Ingenting publiceras automatiskt.
+
+### Ändrat
+
+- Platsikonen är stabilt kvadratisk. Adress och webbplats ligger visuellt tätare
+  samtidigt som länkarna behåller stora tryckytor.
+- Omsynk bevarar gruppens egna webbplats- och öppettidsuppgifter och kopplar
+  endast en verifierad OpenStreetMap-källa utan identitetskonflikt.
+
+### Databas och integritet
+
+- Normaliserad extern adress och kartposition lagras i en privat serverstyrd
+  snapshot för jämförelse.
+- Kanonisk platsdata uppdateras endast efter medlemskaps-, roll-, källa-,
+  färskhets- och konfliktkontroll på servern.
+
 ## [1.25.9] – 2026-08-05
 
 ### Rättat
