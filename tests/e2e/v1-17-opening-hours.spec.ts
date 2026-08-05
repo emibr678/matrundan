@@ -315,7 +315,10 @@ test("platskortet ger lång identitet en stabil tvåkolumnslayout på mobil och 
   expect(Math.abs(websiteBox!.x - mapsBox!.x)).toBeLessThanOrEqual(2);
   expect(websiteBox!.y).toBeGreaterThanOrEqual(mapsBox!.y + mapsBox!.height - 1);
   expect(
-    Math.abs(thumbBox!.y + thumbBox!.height - (websiteBox!.y + websiteBox!.height)),
+    Math.abs(
+      thumbBox!.y + thumbBox!.height -
+        (websiteExternalIconBox!.y + websiteExternalIconBox!.height),
+    ),
   ).toBeLessThanOrEqual(24);
 
   const addressMetrics = await addressContent.evaluate((element) => {
