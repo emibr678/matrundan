@@ -1,13 +1,5 @@
 import * as React from "react";
-import {
-  CheckCircle2,
-  Clock3,
-  Globe2,
-  Loader2,
-  MapPin,
-  PencilLine,
-  RefreshCw,
-} from "lucide-react";
+import { CheckCircle2, Clock3, Globe2, Loader2, MapPin, PencilLine, RefreshCw } from "lucide-react";
 
 import { usePlacePracticalInfo } from "./PlacePracticalInfoContext";
 import { Button } from "@/components/ui/button";
@@ -23,11 +15,7 @@ import { openingHoursDaySummary, openingHoursForDate } from "@/lib/matrundan/ope
 import { placeLocationLabel } from "@/lib/matrundan/place-location-sync";
 import { cn } from "@/lib/utils";
 
-function FieldStatus({
-  kind,
-}: {
-  kind: "current" | "group" | "available" | "missing";
-}) {
+function FieldStatus({ kind }: { kind: "current" | "group" | "available" | "missing" }) {
   const content = {
     current: {
       icon: CheckCircle2,
@@ -135,9 +123,7 @@ export function PlaceLocationRefresh() {
 
   if (!hasExternalSource) return null;
 
-  const hasAttention = Boolean(
-    locationDiff?.hasChanges || websiteConflict || openingHoursConflict,
-  );
+  const hasAttention = Boolean(locationDiff?.hasChanges || websiteConflict || openingHoursConflict);
   const currentLocationLabel = placeLocationLabel(effectivePlace) || "Ingen säker adress";
   const externalLocationLabel = details?.location
     ? placeLocationLabel(details.location)
@@ -159,9 +145,7 @@ export function PlaceLocationRefresh() {
           size="icon"
           className="relative h-11 w-11 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
           aria-label={
-            hasAttention
-              ? "Kontrollera uppgifter – nya uppgifter finns"
-              : "Kontrollera uppgifter"
+            hasAttention ? "Kontrollera uppgifter – nya uppgifter finns" : "Kontrollera uppgifter"
           }
           data-testid="place-info-check-trigger"
         >
@@ -196,7 +180,10 @@ export function PlaceLocationRefresh() {
           ) : null}
 
           {error ? (
-            <p role="status" className="rounded-2xl bg-muted/45 px-3 py-3 text-sm text-muted-foreground">
+            <p
+              role="status"
+              className="rounded-2xl bg-muted/45 px-3 py-3 text-sm text-muted-foreground"
+            >
               {error}
             </p>
           ) : null}
