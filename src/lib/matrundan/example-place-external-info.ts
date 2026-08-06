@@ -70,9 +70,7 @@ function scenarioDetails(place: Place): PlaceExternalDetails {
   };
 }
 
-export function exampleExternalInfoForPlace(
-  place: Place,
-): ExampleExternalInfoScenario | null {
+export function exampleExternalInfoForPlace(place: Place): ExampleExternalInfoScenario | null {
   if (!/^p[1-9]$/.test(place.id)) return null;
   if (place.id === "p8") {
     return {
@@ -109,7 +107,9 @@ function isLocation(value: unknown): value is ExternalPlaceLocation {
 export function readExampleLocationOverride(placeId: string): ExternalPlaceLocation | null {
   if (typeof window === "undefined") return null;
   try {
-    const parsed = JSON.parse(window.sessionStorage.getItem(locationOverrideKey(placeId)) ?? "null");
+    const parsed = JSON.parse(
+      window.sessionStorage.getItem(locationOverrideKey(placeId)) ?? "null",
+    );
     return isLocation(parsed) ? parsed : null;
   } catch {
     return null;
