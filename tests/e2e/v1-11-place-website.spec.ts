@@ -201,7 +201,7 @@ test("matställets webbplats visas under adressen i en fullbred mobilsektion", a
   const practicalInfo = page.getByTestId("place-practical-info");
   const maps = page.getByRole("link", { name: "Öppna Testköket i Google Maps" });
   const website = page.getByRole("link", { name: "Öppna webbplatsen för Testköket" });
-  const openingHours = page.getByText("Öppettider", { exact: true });
+  const openingHours = page.getByLabel(/^Öppettider:/);
   await expect(practicalInfo).toBeVisible();
   await expect(maps).toBeVisible();
   await expect(website).toBeVisible();
@@ -217,13 +217,20 @@ test("matställets webbplats visas under adressen i en fullbred mobilsektion", a
   expect(practicalInfoBox).not.toBeNull();
   expect(mapsBox).not.toBeNull();
   expect(websiteBox).not.toBeNull();
-  expect(Math.abs(mapsBox!.x - websiteBox!.x)).toBeLessThanOrEqual(2);
+  expect(openingHoursBox).not.toBeNull();
+  expect(mapsBox!.height).toBeGreaterThanOrEqual(44);
+  expect(websiteBox!.height).toBeGreaterThanOrEqual(44);
+  expect(openingHoursBox!.height).toBeGreaterThanOrEqual(44);
   expect(mapsBox!.x).toBeGreaterThanOrEqual(practicalInfoBox!.x);
   expect(mapsBox!.x + mapsBox!.width).toBeLessThanOrEqual(
     practicalInfoBox!.x + practicalInfoBox!.width + 1,
   );
+  expect(websiteBox!.x).toBeGreaterThanOrEqual(practicalInfoBox!.x);
+  expect(websiteBox!.x + websiteBox!.width).toBeLessThanOrEqual(
+    practicalInfoBox!.x + practicalInfoBox!.width + 1,
+  );
   expect(websiteBox!.y).toBeGreaterThanOrEqual(mapsBox!.y + mapsBox!.height - 1);
-  expect(websiteBox?.y ?? 0).toBeLessThan(openingHoursBox?.y ?? 0);
+  expect(Math.abs(websiteBox!.y - openingHoursBox!.y)).toBeLessThanOrEqual(1);
 
   const addressContent = maps.locator("span").first();
   const addressMetrics = await addressContent.evaluate((element) => {

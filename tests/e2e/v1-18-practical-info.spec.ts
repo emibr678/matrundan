@@ -296,22 +296,24 @@ test("nya uppgifter jämförs med verkliga värden innan gruppen väljer", async
   });
 
   await page.goto(`/matstallen/${PLACE_ID}`);
-  await openPracticalInfo(page);
-  await expect(page.getByText("Det finns nya uppgifter om stället", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Det finns nya uppgifter om stället/ }).click();
+  const trigger = page.getByRole("button", {
+    name: "Kontrollera uppgifter – nya uppgifter finns",
+  });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
 
-  const comparison = page.getByRole("alertdialog", { name: "Jämför uppgifter" });
-  await expect(comparison.getByText("Nuvarande uppgift", { exact: true }).first()).toBeVisible();
-  await expect(comparison.getByText("Nya uppgifter", { exact: true }).first()).toBeVisible();
+  const comparison = page.getByTestId("place-info-check-sheet");
+  await expect(comparison.getByRole("heading", { name: "Kontrollera uppgifter" })).toBeVisible();
   await expect(comparison.getByText("https://gruppen.example/", { exact: true })).toBeVisible();
   await expect(comparison.getByText("https://kartdata.example/", { exact: true })).toBeVisible();
   await expect(comparison.getByText("12–23", { exact: true }).first()).toBeVisible();
   await expect(comparison.getByText("11–22", { exact: true }).first()).toBeVisible();
-  await comparison.getByRole("button", { name: "Använd de nya uppgifterna" }).click();
+  await comparison.getByRole("button", { name: "Använd kartdatans webbplats" }).click();
+  await comparison.getByRole("button", { name: "Använd kartdatans öppettider" }).click();
+  await page.keyboard.press("Escape");
+  await expect(comparison).toBeHidden();
 
-  await expect(page.getByText("Det finns nya uppgifter om stället", { exact: true })).toHaveCount(
-    0,
-  );
+  await expect(page.getByTestId("place-info-status-dot")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Öppna webbplatsen för Testköket" })).toHaveAttribute(
     "href",
     "https://kartdata.example/",
