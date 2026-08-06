@@ -13,7 +13,5 @@ export function useSession() {
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("demo") === "1";
 
-  return simulatedDemo && !session.exampleMode
-    ? { ...session, exampleMode: true }
-    : session;
+  return simulatedDemo && !session.exampleMode ? { ...session, exampleMode: true } : session;
 }
