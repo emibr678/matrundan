@@ -33,9 +33,7 @@ describe("sökområdenas databaskontrakt", () => {
   });
 
   test("hjälpfunktionen är intern och migrationen verifierar slutläget", () => {
-    expect(sql).toContain(
-      "REVOKE ALL ON FUNCTION public.search_area_label_is_broad(text)",
-    );
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.search_area_label_is_broad(text)");
     expect(sql).toContain("FROM PUBLIC, anon, authenticated");
     expect(sql).toContain("search-area settings RPC is missing required guards");
     expect(sql).toContain("search-area settings RPC has incorrect execute grants");
