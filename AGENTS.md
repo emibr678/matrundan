@@ -22,6 +22,8 @@ Read:
   gamification;
 - [`docs/development-workflow.md`](docs/development-workflow.md) before
   implementing, debugging, verifying, merging or reporting Lovable sync;
+- [`docs/visual-review.md`](docs/visual-review.md) before a larger visual,
+  layout or responsive change;
 - [`DEVELOPMENT.md`](DEVELOPMENT.md) before setting up or changing the
   development environment.
 
@@ -97,6 +99,29 @@ after a current plan is explicitly approved and the issue is `status:ready`.
 - Report exact branch, commit, PR, CI, Lovable sync, preview, database and
   publication status.
 
+## Lovable and visual review
+
+- Visual implementation must be isolated from `main`.
+- Prefer a Lovable variant based on a verified full commit SHA when variants are
+  available.
+- Otherwise use a dedicated GitHub feature branch and select it in Lovable when
+  branch switching is available.
+- If the variant, branch or preview commit cannot be verified, do not implement
+  through Lovable; continue through the normal GitHub branch and PR workflow.
+- Do not assume a variant follows later GitHub commits or that a preview shows
+  the intended branch without verification.
+- Collect visual iterations into one coherent candidate instead of making a
+  series of small Lovable changes directly on `main`.
+- Before merging a larger layout change, review the relevant preview at 360 px
+  and desktop and record what was actually checked.
+- Use the opt-in **Visual review artifacts** workflow for complementary
+  production-build screenshots when useful. It is not a pixel-diff gate.
+- Preview, screenshot artifacts and CI are separate evidence. None replaces the
+  others.
+- A branch or variant does not imply an isolated database.
+- `.lovable/plan.md` is temporary and must not reach a finished PR or `main`
+  unless explicitly approved as durable documentation.
+
 ## Codex Cloud environment
 
 - Setup: `bash scripts/codex-cloud-setup.sh`.
@@ -129,6 +154,7 @@ after a current plan is explicitly approved and the issue is `status:ready`.
   workflow.
 - `docs/architecture.md` — canonical architecture and security decisions.
 - `docs/development-workflow.md` — canonical delivery workflow.
+- `docs/visual-review.md` — visual isolation, preview and screenshot process.
 - `DEVELOPMENT.md` — runtime, setup and verification commands.
 - `README.md` — current human-facing project overview.
 - `CHANGELOG.md` — released and unreleased user-facing history.
@@ -231,6 +257,12 @@ Changed UI:
 bun run verify:agent
 ```
 
+Visual review artifact when relevant:
+
+```bash
+bun run test:visual-review
+```
+
 Release candidate:
 
 ```bash
@@ -280,5 +312,6 @@ the changed file.
 - Do not push every exploratory edit.
 - Do not create commits only to trigger CI.
 - Do not use self-modifying workflows to write or push product code.
+- Do not make iterative visual experiments directly on `main`.
 - Inspect branch and latest commit before modifying files because Lovable and
   GitHub can both advance the repository.
