@@ -90,9 +90,10 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 
-  await page.goto("/matstallen/p2?visit=v1");
+  await page.goto("/matstallen/p2");
   await expect(page.getByRole("heading", { name: "Kardemummaköket" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Besök (2)" })).toBeVisible();
+  await page.getByRole("button", { name: /Öppna besök av Alex/ }).click();
   await expect(page.getByRole("heading", { name: "Foto från besöket" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ta bort foto" })).toBeVisible();
 
