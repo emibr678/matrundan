@@ -9,7 +9,8 @@ export type { ChangelogEntry };
 const VERSION_1_26_3_CHANGELOG: ChangelogEntry = {
   version: "1.26.3",
   date: "2026-08-06",
-  summary: "Exempelgruppen visar fler verkliga produktfall med stabila scenarier och regressionsskydd.",
+  summary:
+    "Exempelgruppen visar fler verkliga produktfall med stabila scenarier och regressionsskydd.",
   sections: [
     {
       kind: "Förbättrat",
