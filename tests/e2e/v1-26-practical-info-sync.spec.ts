@@ -82,6 +82,8 @@ test("exempelgruppen visar samma kompakta uppgiftskontroll utan externa anrop", 
   await expectNoHorizontalOverflow(page, "Uppgiftskontroll i exempelgruppen");
 
   await sheet.getByRole("button", { name: "Använd ny adress" }).click();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
   await expect(
     page.getByRole("link", { name: /Öppna Gröna Terrassen i Google Maps/ }),
   ).toContainText("Utsiktsgränd 25");
