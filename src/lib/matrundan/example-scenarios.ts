@@ -1,10 +1,4 @@
-import type {
-  AppState,
-  Place,
-  Visit,
-  VisitParticipant,
-  VisibleReview,
-} from "./types";
+import type { AppState, Place, Visit, VisitParticipant, VisibleReview } from "./types";
 import { APP_VERSION } from "./version";
 
 export const EXAMPLE_TIME_ZONE = "Europe/Stockholm";
@@ -124,11 +118,7 @@ function exampleVisit(input: ExampleVisitInput): Visit {
   };
 }
 
-function activeParticipant(
-  id: string,
-  name: string,
-  avatar: string,
-): VisitParticipant {
+function activeParticipant(id: string, name: string, avatar: string): VisitParticipant {
   return { id, name, avatar, avatarImage: null, status: "active" };
 }
 
@@ -400,15 +390,7 @@ export function buildExampleState(nowInput: Date): AppState {
           4,
           5,
         ),
-        review(
-          "review-v2-sam",
-          members.sam,
-          4,
-          "Bra tempo och generösa portioner.",
-          4,
-          4,
-          3,
-        ),
+        review("review-v2-sam", members.sam, 4, "Bra tempo och generösa portioner.", 4, 4, 3),
       ],
     }),
     exampleVisit({
@@ -527,12 +509,7 @@ export function buildExampleState(nowInput: Date): AppState {
       linkType: "shared",
       countsForProgression: false,
       visibleReviews: [
-        review(
-          "review-v9-sam",
-          members.sam,
-          4,
-          "Trevligt kvartersställe och enkelt att mötas.",
-        ),
+        review("review-v9-sam", members.sam, 4, "Trevligt kvartersställe och enkelt att mötas."),
       ],
     }),
   ];
