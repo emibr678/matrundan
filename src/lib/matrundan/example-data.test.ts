@@ -38,9 +38,7 @@ function expectValidTarget(
   } else if (target.kind === "visit") {
     expect(placeIds.has(target.placeId)).toBe(true);
     expect(visitIds.has(target.visitId)).toBe(true);
-    expect(state.visits.find((visit) => visit.id === target.visitId)?.placeId).toBe(
-      target.placeId,
-    );
+    expect(state.visits.find((visit) => visit.id === target.visitId)?.placeId).toBe(target.placeId);
   } else {
     expect(memberIds.has(target.memberId)).toBe(true);
   }
@@ -144,12 +142,8 @@ describe("publik exempeldata", () => {
     expect(guestVisit?.participantIds).not.toContain(members.guestAya);
     expect(guestVisit?.visibleReviews).toHaveLength(2);
 
-    const formerVisit = state.visits.find(
-      (visit) => visit.id === visits.formerMemberHistory,
-    );
-    const former = formerVisit?.participants?.find(
-      (participant) => participant.status === "left",
-    );
+    const formerVisit = state.visits.find((visit) => visit.id === visits.formerMemberHistory);
+    const former = formerVisit?.participants?.find((participant) => participant.status === "left");
     expect(former?.id).toBe(members.formerLina);
     expect(state.members.some((member) => member.id === members.formerLina)).toBe(false);
     expect(formerVisit?.participantIds).toContain(members.formerLina);
@@ -196,15 +190,9 @@ describe("publik exempeldata", () => {
 
   test("har fullständig, begränsad och felande extern exempelinfo utan nätverksanrop", () => {
     const state = buildExampleState(FIXED_NOW);
-    const fullPlace = state.places.find(
-      (place) => place.id === EXAMPLE_IDS.places.providerBistro,
-    );
-    const limitedPlace = state.places.find(
-      (place) => place.id === EXAMPLE_IDS.places.limitedInfo,
-    );
-    const errorPlace = state.places.find(
-      (place) => place.id === EXAMPLE_IDS.places.externalError,
-    );
+    const fullPlace = state.places.find((place) => place.id === EXAMPLE_IDS.places.providerBistro);
+    const limitedPlace = state.places.find((place) => place.id === EXAMPLE_IDS.places.limitedInfo);
+    const errorPlace = state.places.find((place) => place.id === EXAMPLE_IDS.places.externalError);
 
     expect(fullPlace).toBeDefined();
     expect(limitedPlace).toBeDefined();
