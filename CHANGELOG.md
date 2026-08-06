@@ -14,6 +14,20 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.26.3] – 2026-08-06
+
+### Ändrat
+
+- Exempelgruppen täcker återbesök, besöksfoto, gäst, tidigare medlem, delat
+  besök, arkiverat ställe och flera synliga omdömen i samma produktkomponenter
+  som demo- och live-läge.
+- Providerställe, begränsad platsinformation och ett långt mobilscenario gör
+  fler verkliga produktfall möjliga att granska utan externa anrop.
+- Exempeldata byggs från en uttrycklig referenstid och använder en ny
+  sessionsversion så gammal flikdata inte döljer det aktuella scenariokontraktet.
+- Kontraktstester och riktade mobilflöden verifierar referensintegritet,
+  deltagarregler, delningsintegritet och 360 px utan horisontell overflow.
+
 ## [1.26.2] – 2026-08-06
 
 ### Ändrat
