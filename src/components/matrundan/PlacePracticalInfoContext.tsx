@@ -264,7 +264,8 @@ export function PlacePracticalInfoProvider({
         setLoading(false);
         setRefreshing(false);
       }
-    }, [exampleMode, exampleScenario, groupId, hasExternalSource, key, place.id],
+    },
+    [exampleMode, exampleScenario, groupId, hasExternalSource, key, place.id],
   );
 
   React.useEffect(() => {
@@ -281,13 +282,13 @@ export function PlacePracticalInfoProvider({
   const todaySummary = today ? openingHoursDaySummary(today) : null;
   const websiteConflict = Boolean(
     practicalInfo.websiteOverride &&
-      details?.website &&
-      practicalInfo.websiteOverride !== details.website,
+    details?.website &&
+    practicalInfo.websiteOverride !== details.website,
   );
   const openingHoursConflict = Boolean(
     practicalInfo.openingHoursOverride &&
-      details?.openingHours &&
-      !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
+    details?.openingHours &&
+    !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
   );
   const hasConflict = websiteConflict || openingHoursConflict;
   const writableMember = canReport && !demoReadOnly;
@@ -369,7 +370,9 @@ export function PlacePracticalInfoProvider({
       toast.success("Webbplatsen är tillagd för gruppen.", {
         description: "Den publiceras inte externt automatiskt.",
       });
-    }, [actor, groupId, mode, persistPracticalInfo, place, practicalInfo, storageKind]);
+    },
+    [actor, groupId, mode, persistPracticalInfo, place, practicalInfo, storageKind],
+  );
 
   const applyExternalPracticalInfo = React.useCallback(
     async (field: PracticalInfoField) => {
@@ -379,9 +382,7 @@ export function PlacePracticalInfoProvider({
       if (!clearWebsite && !clearOpeningHours) return;
 
       const websiteOverride = clearWebsite ? null : practicalInfo.websiteOverride;
-      const openingHoursOverride = clearOpeningHours
-        ? null
-        : practicalInfo.openingHoursOverride;
+      const openingHoursOverride = clearOpeningHours ? null : practicalInfo.openingHoursOverride;
       const hasRemainingOverride = Boolean(websiteOverride || openingHoursOverride);
       await persistPracticalInfo({
         websiteOverride,
@@ -394,13 +395,8 @@ export function PlacePracticalInfoProvider({
           ? "Gruppen använder nu kartdatans webbplats."
           : "Gruppen använder nu kartdatans öppettider.",
       );
-    }, [
-      canEdit,
-      openingHoursConflict,
-      persistPracticalInfo,
-      practicalInfo,
-      websiteConflict,
-    ],
+    },
+    [canEdit, openingHoursConflict, persistPracticalInfo, practicalInfo, websiteConflict],
   );
 
   const applyExternalLocation = React.useCallback(async () => {
