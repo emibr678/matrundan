@@ -110,8 +110,7 @@ function withLocation(place: Place, location: ExternalPlaceLocation | null): Pla
 
 function isInternalDemo(): boolean {
   return (
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("demo") === "1"
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "1"
   );
 }
 
