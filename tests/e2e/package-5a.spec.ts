@@ -126,10 +126,10 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
     page.getByRole("heading", { name: "Det lilla långbordet vid Tegelbackens gröna gård" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Sankt Eriksgatan 123, gårdshuset längst in till vänster", {
-      exact: true,
+    page.getByRole("link", {
+      name: /Öppna Det lilla långbordet vid Tegelbackens gröna gård i Google Maps/,
     }),
-  ).toBeVisible();
+  ).toContainText("Sankt Eriksgatan 123, gårdshuset längst in till vänster, Stockholm");
   await expectNoHorizontalOverflow(page, "Långt exempelställe på 360 px");
 });
 
