@@ -12,7 +12,7 @@ const VERSION_1_26_4_CHANGELOG: ChangelogEntry = {
   summary: "Server- och lagringsvakter för sökområden och besöksfoton är återställda.",
   sections: [
     {
-      kind: "Fixat",
+      kind: "Rättat",
       items: [
         "Nya breda kommun-, läns-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
         "Besöksfoton skyddas åter av en privat Storage-bucket med högst 1,5 MB och endast JPEG.",
