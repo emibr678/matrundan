@@ -6,6 +6,23 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_26_3_CHANGELOG: ChangelogEntry = {
+  version: "1.26.3",
+  date: "2026-08-06",
+  summary:
+    "Exempelgruppen visar fler verkliga produktfall med stabila scenarier och regressionsskydd.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Exempelgruppen täcker nu återbesök, foto, gäst, tidigare medlem, delat besök, arkiverat ställe och flera omdömen i samma riktiga produktflöden.",
+        "Providerställe, begränsad platsinformation och ett långt mobilscenario gör fler tillstånd möjliga att granska utan externa anrop.",
+        "Exempeldata byggs från en uttrycklig referenstid och får en ny sessionsversion så gamla flikdata inte döljer nya scenarier.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
   version: "1.26.2",
   date: "2026-08-06",
@@ -23,7 +40,11 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [VERSION_1_26_2_CHANGELOG, ...CHANGELOG_THROUGH_1_26_1];
+export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_26_3_CHANGELOG,
+  VERSION_1_26_2_CHANGELOG,
+  ...CHANGELOG_THROUGH_1_26_1,
+];
 
 const currentRelease = CHANGELOG[0];
 if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");
