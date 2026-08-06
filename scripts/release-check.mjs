@@ -8,6 +8,10 @@ import { spawnSync } from "node:child_process";
 const root = process.cwd();
 const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const changelogPath = resolve(root, "CHANGELOG.md");
+const productArchivedChangelogPath = resolve(
+  root,
+  "docs/archive/changelog-v1.16-through-v1.26.1.md",
+);
 const recentArchivedChangelogPath = resolve(root, "docs/archive/changelog-v1.6.1-through-v1.15.md");
 const archivedChangelogPath = resolve(root, "docs/archive/changelog-through-v1.6.md");
 const versionPath = resolve(root, "src/lib/matrundan/version.ts");
@@ -67,6 +71,7 @@ function isUserFacing(file) {
   if (file === "src/lib/matrundan/version.ts") return false;
   if (file === "src/lib/matrundan/version-through-1-6.ts") return false;
   if (file === "src/lib/matrundan/version-through-1-15.ts") return false;
+  if (file === "src/lib/matrundan/version-through-1-26-1.ts") return false;
   return (
     file.startsWith("src/components/matrundan/") ||
     file.startsWith("src/routes/") ||
@@ -85,11 +90,13 @@ const { APP_VERSION, APP_VERSION_DATE, CHANGELOG } = await import(
   `${pathToFileURL(versionPath).href}?release-check=${Date.now()}`
 );
 const markdown = readFileSync(changelogPath, "utf8");
+const productArchivedMarkdown = readFileSync(productArchivedChangelogPath, "utf8");
 const recentArchivedMarkdown = readFileSync(recentArchivedChangelogPath, "utf8");
 const archivedMarkdown = readFileSync(archivedChangelogPath, "utf8");
 const markdownEntries = markdownReleases(markdown);
 const allMarkdownEntries = [
   ...markdownEntries,
+  ...markdownReleases(productArchivedMarkdown),
   ...markdownReleases(recentArchivedMarkdown),
   ...markdownReleases(archivedMarkdown),
 ];
@@ -111,7 +118,7 @@ for (let index = 0; index < CHANGELOG.length; index += 1) {
     errors.push(`Ogiltig semver: ${entry.version}.`);
   }
   if (!validDate(entry.date)) {
-    errors.push(`Ogiltigt datum för ${entry.version}: ${entry.date}.`);
+    errors.push(`Ogiltig datum för ${entry.version}: ${entry.date}.`);
   }
   if (seen.has(entry.version)) {
     errors.push(`Dubblerad version i apphistoriken: ${entry.version}.`);
@@ -174,7 +181,7 @@ if (base) {
   }
   if (userFacingChanged && !changelogChanged) {
     errors.push(
-      "Användarsynlig kod eller migration har ändrats utan en daterad uppdatering av CHANGELOG.md.",
+      "Användarsynlig kod eller migration har ôndrats utan en daterad uppdatering av CHANGELOG.md.",
     );
   }
 
@@ -211,4 +218,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Releasekontroll godkänd: Matrundan ${APP_VERSION} · ${APP_VERSION_DATE}.`);
+console.log(`Releasekontroll godkänd: Matrundan ${APP_VERSION} µ ${APP_VERSION_DATE}.`);

@@ -8,6 +8,7 @@
 - [ ] Godkänd implementation
 - [ ] Verifiering
 - [ ] Redo för merge
+- [ ] Databasdriftsättning ingår uttryckligen
 - [ ] Publicering ingår uttryckligen
 
 ## Scope
@@ -45,6 +46,24 @@ Välj ett alternativ och motivera vid behov:
 - [ ] Inte relevant eftersom ändringen inte påverkar ett produktflöde.
 
 Motivering eller berört scenario:
+
+## Visuell granskning
+
+Markera när ändringen påverkar layout, hierarki, responsivitet eller ett
+huvudflöde. Workflowen **Visual review artifacts** körs när den särskilda rutan
+nedan är markerad i PR-beskrivningen.
+
+- [ ] Visuell granskning krävs.
+- [ ] Lovable-variant eller featurebranch är verifierad mot rätt commit.
+- [ ] Skapa visuella granskningsbilder
+- [ ] 360 px mobil är manuellt granskad.
+- [ ] Desktop är manuellt granskad.
+- [ ] Demo/exempelgrupp och live-läge är jämförda när relevant.
+- [ ] Visuell granskning är inte relevant, med motivering nedan.
+
+Granskad preview, artifact och vyer:
+
+Ej visuellt verifierat:
 
 ## Produkt- och arkitekturdokumentation
 
@@ -104,7 +123,7 @@ Utförda kommandon och resultat:
 - Commit:
 - CI:
 - Lovable-synk: inte verifierad
-- Preview: https://id-preview--d389634e-227c-4689-85ed-8714fdc602f7.lovable.app
+- Preview och verifierad commit:
 - Manuella teststeg:
 - Ej verifierat:
 - Databas:
