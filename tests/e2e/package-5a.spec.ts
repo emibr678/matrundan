@@ -12,9 +12,10 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
     metrics.documentScrollWidth,
     `${context}: dokumentet får inte ha horisontell overflow`,
   ).toBeLessThanOrEqual(metrics.documentClientWidth);
-  expect(metrics.bodyScrollWidth, `${context}: body får inte ha horisontell overflow`).toBeLessThanOrEqual(
-    metrics.bodyClientWidth,
-  );
+  expect(
+    metrics.bodyScrollWidth,
+    `${context}: body får inte ha horisontell overflow`,
+  ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
 test("utloggad användare möts av landningssidan i stället för en fiktiv grupp", async ({
@@ -84,9 +85,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   ).toBeVisible();
 });
 
-test("exempelgruppens centrala scenarier går att nå utan privat dataläckage", async ({
-  page,
-}) => {
+test("exempelgruppens centrala scenarier går att nå utan privat dataläckage", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
 
@@ -113,7 +112,9 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
 
   await page.goto("/matstallen/p4");
   await expect(page.getByRole("heading", { name: "Brödverket 47" })).toBeVisible();
-  await expect(page.getByText("Inte längre i gruppens lista", { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText("Inte längre i gruppens lista", { exact: true }).first(),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Besök (1)" })).toBeVisible();
 
   await page.goto("/matstallen/p10");
