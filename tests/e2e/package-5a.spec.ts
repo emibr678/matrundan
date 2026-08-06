@@ -88,6 +88,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
 test("exempelgruppens centrala scenarier går att nå utan privat dataläckage", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 
   await page.goto("/matstallen/p2?visit=v1");
   await expect(page.getByRole("heading", { name: "Kardemummaköket" })).toBeVisible();
