@@ -6,10 +6,7 @@ import { CrossGroupPracticalInfoSuggestions } from "./CrossGroupPracticalInfoSug
 import { PlaceExternalLink } from "./PlaceExternalLink";
 import { PlaceLocationRefresh } from "./PlaceLocationRefresh";
 import { PlacePracticalInfoDialog } from "./PlacePracticalInfoDialog";
-import {
-  PlacePracticalInfoProvider,
-  usePlacePracticalInfo,
-} from "./PlacePracticalInfoContext";
+import { PlacePracticalInfoProvider, usePlacePracticalInfo } from "./PlacePracticalInfoContext";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -211,7 +208,8 @@ export function PlaceOpeningHoursInfo({ compact = false }: { compact?: boolean }
     setPracticalInfo,
   } = usePlacePracticalInfo();
   const summary = loading ? "Hämtar…" : (todaySummary ?? "Saknas");
-  const contentError = practicalInfoError ?? (hasExternalSource && error && !details ? error : null);
+  const contentError =
+    practicalInfoError ?? (hasExternalSource && error && !details ? error : null);
   const canExpand = Boolean(openingHours || canEdit || contentError);
 
   const summaryContent = (
@@ -279,7 +277,10 @@ export function PlaceOpeningHoursInfo({ compact = false }: { compact?: boolean }
 
         {openingHours ? (
           <div className="rounded-xl bg-background/45 px-3 py-3">
-            <OpeningHoursScheduleList schedule={openingHours} timezone={details?.timezone ?? null} />
+            <OpeningHoursScheduleList
+              schedule={openingHours}
+              timezone={details?.timezone ?? null}
+            />
           </div>
         ) : null}
 
