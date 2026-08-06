@@ -23,7 +23,7 @@ issue.
 
 ## Ändringar
 
-- 
+-
 
 ## Backlog och roadmap
 
@@ -47,23 +47,45 @@ Välj ett alternativ och motivera vid behov:
 
 Motivering eller berört scenario:
 
-## Visuell granskning
+## Lovable och visuell granskning
 
 Markera när ändringen påverkar layout, hierarki, responsivitet eller ett
 huvudflöde. Workflowen **Visual review artifacts** körs när den särskilda rutan
-nedan är markerad i PR-beskrivningen.
+nedan är markerad.
+
+### Lovable-användning
+
+- [ ] Användaren bad uttryckligen om Lovable-konsultation och den genomfördes i
+      Plan mode.
+- [ ] Användaren bad uttryckligen om Lovable-implementation och den genomfördes
+      på PR-branchen.
+- [ ] Lovable kunde inte användas; begränsningen är dokumenterad.
+- [ ] Lovable var inte relevant.
+
+### Previewgrind för större visuella ändringar
 
 - [ ] Visuell granskning krävs.
-- [ ] Lovable-variant eller featurebranch är verifierad mot rätt commit.
-- [ ] Skapa visuella granskningsbilder
+- [ ] Exakt PR-branch och aktuell head-SHA är dokumenterade.
+- [ ] Samma PR-branch är vald i Lovable.
+- [ ] Lovable-synken är verifierad mot aktuell PR-head.
+- [ ] En aktuell previewlänk har lämnats till användaren i chatten.
 - [ ] 360 px mobil är manuellt granskad.
 - [ ] Desktop är manuellt granskad.
 - [ ] Demo/exempelgrupp och live-läge är jämförda när relevant.
+- [ ] Användaren har granskat previewn och uttryckligen godkänt merge.
+- [ ] Skapa visuella granskningsbilder
 - [ ] Visuell granskning är inte relevant, med motivering nedan.
 
-Granskad preview, artifact och vyer:
-
+PR-branch:
+PR-head:
+Vald Lovable-branch:
+Verifierad Lovable-commit:
+Previewlänk:
+Preview lämnad i chatten:
+Användarens gransknings-/mergebesked:
+Granskade vyer:
 Ej visuellt verifierat:
+Motivering om inte relevant:
 
 ## Produkt- och arkitekturdokumentation
 
@@ -87,7 +109,7 @@ markera **Version: inte relevant** för att klara releasekontrollen.
 - [ ] Major
 - [ ] Version: inte relevant
 
-Motivering om version inte är relevant (endast dokumentation, tester eller verktyg utan användarsynlig ändring):
+Motivering om version inte är relevant:
 
 ## Databas
 
@@ -121,9 +143,13 @@ Utförda kommandon och resultat:
 
 - Branch:
 - Commit:
+- PR:
 - CI:
-- Lovable-synk: inte verifierad
-- Preview och verifierad commit:
+- Lovable-konsultation:
+- Vald Lovable-branch:
+- Lovable-synk:
+- Previewlänk:
+- Preview granskad av användaren:
 - Manuella teststeg:
 - Ej verifierat:
 - Databas:
