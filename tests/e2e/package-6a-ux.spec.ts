@@ -1,5 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
 
+function isExternalPlaceProviderRequest(requestUrl: string): boolean {
+  try {
+    const hostname = new URL(requestUrl).hostname;
+    return (
+      hostname === "geoapify.com" ||
+      hostname.endsWith(".geoapify.com") ||
+      hostname === "openstreetmap.org" ||
+      hostname.endsWith(".openstreetmap.org")
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function expectNoHorizontalOverflow(page: Page, context: string) {
   const metrics = await page.evaluate(() => {
     const viewportWidth = document.documentElement.clientWidth;
@@ -198,7 +212,7 @@ test("exempelgruppen visar nya kartuppgifter utan externa anrop", async ({ page 
   await page.setViewportSize({ width: 360, height: 800 });
   const externalRequests: string[] = [];
   page.on("request", (request) => {
-    if (/geoapify|openstreetmap/i.test(request.url())) externalRequests.push(request.url());
+    if (isExternalPlaceProviderRequest(request.url())) externalRequests.push(request.url());
   });
 
   await page.goto("/matstallen/p5?demo=1");
@@ -216,9 +230,7 @@ test("exempelgruppen visar nya kartuppgifter utan externa anrop", async ({ page 
   await applyAddress.click();
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
-  await expect(
-    page.getByRole("link", { name: /Öppna Gröna Terrassen i Google Maps/ }),
-  ).toContainText("Utsiktsgränd 25");
+  await expect(page.getByTestId("place-address-row")).toContainText("Utsiktsgränd 25");
   await expect(page.getByTestId("place-info-status-dot")).toHaveCount(0);
   expect(externalRequests).toEqual([]);
 });
