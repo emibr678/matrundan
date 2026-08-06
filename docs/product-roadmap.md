@@ -91,6 +91,14 @@ Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
 chatt. De får omprövas när aktuell kod, nya fakta eller ett tydligt
 produktproblem visar att beslutet behöver ändras.
 
+## Aktuell driftgrind
+
+**#137 Återställ produktionsvakter för sökområden och besöksfoton** har
+`priority:now` och ska genomföras före nästa produktfeature. Korrigeringen ska
+återställa server- och Storage-invariants utan att spela om historiskt saknade
+migrationer eller skriva över befintlig data. Efter verifierad implementation,
+merge och separat databasdriftsättning fortsätter Paket A med #108.
+
 ## Paket A – Grundplatta och konsekvens
 
 **Prioritet:** `priority:now`
