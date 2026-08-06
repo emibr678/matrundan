@@ -170,7 +170,7 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.get_invitation_preview(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_invitation_preview(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_invitation_preview(text) TO anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.accept_group_invitation(_token text)
