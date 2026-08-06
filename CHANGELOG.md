@@ -14,6 +14,19 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.26.4] – 2026-08-06
+
+### Rättat
+
+- Nya breda kommun-, läns-, region- och landsområden blockeras åter av
+  servern innan gruppens befintliga sökområden ersätts.
+- Befintliga breda sökområden kan ligga kvar oförändrade tills gruppen väljer
+  ett mer precist område.
+- Den privata bucketen för besöksfoton begränsas åter till högst 1,5 MB och
+  endast JPEG.
+- Korrigeringen använder en ny framåtriktad migration och spelar inte om eller
+  fabricerar historiskt saknade migrationsversioner.
+
 ## [1.26.3] – 2026-08-06
 
 ### Ändrat
