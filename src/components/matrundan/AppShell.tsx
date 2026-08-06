@@ -170,11 +170,7 @@ function ShellBody() {
       demoPersistence={exampleMode ? "session" : "local"}
       demoStorageKey={exampleMode ? EXAMPLE_STATE_STORAGE_KEY : undefined}
       initialState={
-        mode === "live"
-          ? (liveState ?? undefined)
-          : exampleMode
-            ? exampleInitialState
-            : undefined
+        mode === "live" ? (liveState ?? undefined) : exampleMode ? exampleInitialState : undefined
       }
       onLiveMutation={mode === "live" ? reloadLive : undefined}
       activeGroupId={mode === "live" ? activeGroupId : null}
