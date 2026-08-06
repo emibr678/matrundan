@@ -100,10 +100,10 @@ kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
 
 Rekommenderad ordning:
 
-1. **#107 Levande exempelgrupp med scenariokontrakt**  
+1. ✅ **#107 Levande exempelgrupp med scenariokontrakt**  
    Gör exempelgruppen till en liten, representativ och löpande underhållen
-   produktfixture. Nya större funktioner ska bedöma behovet av nya exempeldata
-   och regressionsscenarier.
+   produktfixture. Genomförd i v1.26.3 via #138. Nya större funktioner ska
+   bedöma behovet av nya exempeldata och regressionsscenarier.
 2. **#108 Gemensamt visuellt språk för platskandidater och tillagda
    matställen**  
    Återanvänd platsidentitet och visuell hierarki utan att göra sökresultat och
