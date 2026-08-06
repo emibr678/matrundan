@@ -8,25 +8,13 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import {
-  ArrowLeft,
-  Flag,
-  Heart,
-  ListX,
-  MapPin,
-  MessageCircle,
-  Plus,
-  UsersRound,
-} from "lucide-react";
+import { ArrowLeft, Flag, Heart, ListX, MessageCircle, Plus, UsersRound } from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
-import { PlaceExternalLink } from "@/components/matrundan/PlaceExternalLink";
-import { PlaceLocationRefresh } from "@/components/matrundan/PlaceLocationRefresh";
 import {
-  PlaceOpeningHoursInfo,
+  PlacePracticalInfoPanel,
   PlacePracticalInfoProvider,
-  PlaceWebsiteInfo,
 } from "@/components/matrundan/PlacePracticalInfo";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
@@ -37,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
-import { formatDate, googleMapsUrl, useStore } from "@/lib/matrundan/store";
+import { formatDate, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -191,18 +179,8 @@ function PlaceDetail() {
       <PlacePracticalInfoProvider place={place} groupId={state.group.id} canReport={writable}>
         <Card
           data-next-stop={isNext ? "true" : "false"}
-          className={`relative overflow-hidden rounded-3xl p-0 transition-colors ${
-            isNext ? "border-primary/35" : "border-border/70"
-          }`}
+          className="relative overflow-hidden rounded-3xl border-border/70 p-0"
         >
-          {isNext ? (
-            <div
-              aria-hidden="true"
-              data-testid="next-stop-accent"
-              className="absolute inset-x-8 top-0 z-10 h-1 rounded-b-full bg-primary/70"
-            />
-          ) : null}
-
           <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
             <div
               data-testid="place-identity-grid"
@@ -227,39 +205,7 @@ function PlaceDetail() {
               </div>
             ) : null}
 
-            <div
-              data-testid="place-practical-info"
-              className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-background/35"
-            >
-              <div data-testid="place-practical-links" className="flex min-w-0 flex-col">
-                <div className="flex min-w-0 items-start gap-1 px-3">
-                  <PlaceExternalLink
-                    href={googleMapsUrl(place)}
-                    target="_blank"
-                    rel="noreferrer"
-                    icon={MapPin}
-                    prefix={`${place.address}, `}
-                    tail={place.city}
-                    className="min-w-0 flex-1"
-                    aria-label={`Öppna ${place.name} i Google Maps`}
-                  />
-                  <div className="empty:hidden shrink-0 border-l border-border/50 pl-1">
-                    <PlaceLocationRefresh
-                      place={place}
-                      groupId={state.group.id}
-                      canReport={writable}
-                    />
-                  </div>
-                </div>
-                <div className="empty:hidden border-t border-border/60 px-3 [&>a]:w-full [&>button]:w-full">
-                  <PlaceWebsiteInfo />
-                </div>
-              </div>
-
-              <div className="border-t border-border/60 [&>details]:mt-0 [&>details]:border-0 [&>details]:pt-0 [&>div]:mt-0 [&>div]:border-0 [&>div]:px-3 [&>div]:pt-0 [&_summary]:px-3">
-                <PlaceOpeningHoursInfo />
-              </div>
-            </div>
+            <PlacePracticalInfoPanel />
           </div>
 
           {latestVisit ? (

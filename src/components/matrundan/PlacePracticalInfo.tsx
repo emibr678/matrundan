@@ -1,20 +1,12 @@
 import * as React from "react";
-import { ChevronDown, Clock3, Globe2, Info, Loader2, Plus } from "lucide-react";
+import { ChevronDown, Clock3, Globe2, Loader2, MapPin, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { CrossGroupPracticalInfoSuggestions } from "./CrossGroupPracticalInfoSuggestions";
 import { PlaceExternalLink } from "./PlaceExternalLink";
+import { PlaceLocationRefresh } from "./PlaceLocationRefresh";
 import { PlacePracticalInfoDialog } from "./PlacePracticalInfoDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { PlacePracticalInfoProvider, usePlacePracticalInfo } from "./PlacePracticalInfoContext";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,88 +21,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  geoapifyPlaceDetails,
-  type PlaceExternalDetails,
-} from "@/lib/matrundan/geoapify-place-details.functions";
-import {
   openingHoursDaySummary,
   openingHoursForDate,
   type OpeningHoursSchedule,
 } from "@/lib/matrundan/opening-hours";
-import {
-  createGroupPlaceDataReport,
-  createLocalPlaceDataReport,
-} from "@/lib/matrundan/place-data-reports";
 import { normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
-import {
-  emptyGroupPlacePracticalInfo,
-  getGroupPlacePracticalInfo,
-  getLocalGroupPlacePracticalInfo,
-  updateGroupPlacePracticalInfo,
-  updateLocalGroupPlacePracticalInfo,
-  type GroupPlacePracticalInfo,
-} from "@/lib/matrundan/practical-info";
-import { useSession } from "@/lib/matrundan/session";
-import { useStore } from "@/lib/matrundan/store";
-import type { Place } from "@/lib/matrundan/types";
+import { googleMapsUrl } from "@/lib/matrundan/store";
+import { cn } from "@/lib/utils";
 
-const CACHE_PREFIX = "matrundan.place-external-info.v2";
-const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+export { PlacePracticalInfoProvider };
 
-interface CacheEntry {
-  cachedAt: string;
-  details: PlaceExternalDetails;
-}
-
-function cacheKey(place: Place): string | null {
-  const source = (place.sources ?? []).find(
-    (candidate) => candidate.provider === "geoapify" && candidate.status === "active",
-  );
-  return source ? `${CACHE_PREFIX}.${source.providerPlaceId}` : null;
-}
-
-function readCache(key: string): PlaceExternalDetails | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const parsed = JSON.parse(window.sessionStorage.getItem(key) ?? "null") as CacheEntry | null;
-    if (!parsed?.cachedAt || !parsed.details?.fetchedAt) return null;
-    if (Date.now() - new Date(parsed.cachedAt).getTime() > CACHE_MAX_AGE_MS) return null;
-    return parsed.details;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(key: string, details: PlaceExternalDetails): void {
-  try {
-    window.sessionStorage.setItem(
-      key,
-      JSON.stringify({ cachedAt: new Date().toISOString(), details } satisfies CacheEntry),
-    );
-  } catch {
-    /* Cache är en optimering, aldrig ett krav för flödet. */
-  }
-}
-
-function scheduleEqual(
-  left: OpeningHoursSchedule | null,
-  right: OpeningHoursSchedule | null,
-): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function reportDescription(sourceUrl: string, sourceNote: string | null): string {
-  return [
-    "Webbplatsen har lagts till i gruppen och bör kontrolleras mot kartdatan.",
-    sourceNote ? `Observation: ${sourceNote}` : null,
-    `Källa: ${sourceUrl}`,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .slice(0, 1000);
-}
-
-function OpeningHoursScheduleList({
+export function OpeningHoursScheduleList({
   schedule,
   timezone,
 }: {
@@ -143,317 +64,7 @@ function OpeningHoursScheduleList({
   );
 }
 
-interface PlacePracticalInfoContextValue {
-  place: Place;
-  groupId: string;
-  practicalInfo: GroupPlacePracticalInfo;
-  details: PlaceExternalDetails | null;
-  websiteUrl: string | null;
-  openingHours: OpeningHoursSchedule | null;
-  todaySummary: string | null;
-  websiteConflict: boolean;
-  openingHoursConflict: boolean;
-  hasConflict: boolean;
-  hasGeoapifySource: boolean;
-  canEdit: boolean;
-  loading: boolean;
-  refreshing: boolean;
-  websitePending: boolean;
-  error: string | null;
-  practicalInfoError: string | null;
-  loadPracticalInfo: () => Promise<void>;
-  loadExternalDetails: (forceRefresh?: boolean) => Promise<void>;
-  setPracticalInfo: React.Dispatch<React.SetStateAction<GroupPlacePracticalInfo>>;
-  saveWebsite: (website: string, sourceNote: string) => Promise<void>;
-  applyNewInformationForConflicts: () => Promise<void>;
-}
-
-const PlacePracticalInfoContext = React.createContext<PlacePracticalInfoContextValue | null>(null);
-
-function usePlacePracticalInfo() {
-  const value = React.useContext(PlacePracticalInfoContext);
-  if (!value) throw new Error("PlacePracticalInfoProvider saknas.");
-  return value;
-}
-
-export function PlacePracticalInfoProvider({
-  place,
-  groupId,
-  canReport,
-  children,
-}: {
-  place: Place;
-  groupId: string;
-  canReport: boolean;
-  children: React.ReactNode;
-}) {
-  const { mode, exampleMode } = useSession();
-  const { state, demoReadOnly } = useStore();
-  const key = React.useMemo(() => cacheKey(place), [place]);
-  const [details, setDetails] = React.useState<PlaceExternalDetails | null>(() =>
-    key ? readCache(key) : null,
-  );
-  const [practicalInfo, setPracticalInfo] = React.useState<GroupPlacePracticalInfo>(
-    emptyGroupPlacePracticalInfo,
-  );
-  const [practicalInfoLoaded, setPracticalInfoLoaded] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [practicalInfoError, setPracticalInfoError] = React.useState<string | null>(null);
-  const storageKind = exampleMode ? "session" : "local";
-  const actor = state.members.find((member) => member.id === state.currentUserId);
-
-  const loadPracticalInfo = React.useCallback(async () => {
-    try {
-      const next =
-        mode === "live"
-          ? await getGroupPlacePracticalInfo(groupId, place.id)
-          : getLocalGroupPlacePracticalInfo(groupId, place.id, storageKind);
-      setPracticalInfo(next);
-      setPracticalInfoError(null);
-    } catch (caught) {
-      setPracticalInfo(emptyGroupPlacePracticalInfo());
-      setPracticalInfoError(
-        caught instanceof Error ? caught.message : "Webbplats och öppettider kunde inte hämtas.",
-      );
-    } finally {
-      setPracticalInfoLoaded(true);
-    }
-  }, [groupId, mode, place.id, storageKind]);
-
-  React.useEffect(() => {
-    void loadPracticalInfo();
-    const changed = () => void loadPracticalInfo();
-    window.addEventListener("matrundan:practical-info-changed", changed);
-    return () => window.removeEventListener("matrundan:practical-info-changed", changed);
-  }, [loadPracticalInfo]);
-
-  React.useEffect(() => {
-    setDetails(key ? readCache(key) : null);
-    setLoading(false);
-    setError(null);
-  }, [key]);
-
-  const loadExternalDetails = React.useCallback(
-    async (forceRefresh = false) => {
-      if (mode !== "live" || exampleMode || !key) return;
-      if (forceRefresh) setRefreshing(true);
-      else setLoading(true);
-      setError(null);
-      try {
-        const nextDetails = await geoapifyPlaceDetails({
-          data: { groupId, placeId: place.id, forceRefresh },
-        });
-        setDetails(nextDetails);
-        writeCache(key, nextDetails);
-        if (forceRefresh) {
-          toast.success("Ny information har sökts.", {
-            description: "Gruppens uppgifter är oförändrade.",
-          });
-        }
-      } catch (caught) {
-        setError(
-          caught instanceof Error ? caught.message : "Informationen kunde inte hämtas just nu.",
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [exampleMode, groupId, key, mode, place.id],
-  );
-
-  React.useEffect(() => {
-    if (mode !== "live" || exampleMode || !key || details) return;
-    void loadExternalDetails(false);
-  }, [details, exampleMode, key, loadExternalDetails, mode]);
-
-  const canonicalOrStoredWebsite = normalizeWebsiteUrl(place.website) ?? details?.website ?? null;
-  const websiteUrl = practicalInfo.websiteOverride ?? canonicalOrStoredWebsite;
-  const openingHours = practicalInfo.openingHoursOverride ?? details?.openingHours ?? null;
-  const today = openingHours
-    ? openingHoursForDate(openingHours, new Date(), details?.timezone ?? null)
-    : null;
-  const todaySummary = today ? openingHoursDaySummary(today) : null;
-  const websiteConflict = Boolean(
-    practicalInfo.websiteOverride &&
-    details?.website &&
-    practicalInfo.websiteOverride !== details.website,
-  );
-  const openingHoursConflict = Boolean(
-    practicalInfo.openingHoursOverride &&
-    details?.openingHours &&
-    !scheduleEqual(practicalInfo.openingHoursOverride, details.openingHours),
-  );
-  const hasConflict = websiteConflict || openingHoursConflict;
-  const hasGeoapifySource = Boolean(key);
-  const canEdit = canReport && !demoReadOnly && !practicalInfoError;
-  const externalPending = mode === "live" && !exampleMode && Boolean(key) && !details && !error;
-  const websitePending = !practicalInfoLoaded || externalPending;
-
-  const saveWebsite = React.useCallback(
-    async (website: string, sourceNote: string) => {
-      if (!actor) throw new Error("Medlemmen kunde inte identifieras.");
-      const normalizedWebsite = normalizeWebsiteUrl(website);
-      if (!normalizedWebsite) throw new Error("Ange en giltig webbplats.");
-
-      const normalizedSourceNote = sourceNote.trim() || null;
-      const websiteOverride = normalizedWebsite;
-      const combinedSourceNote =
-        [practicalInfo.sourceNote, normalizedSourceNote]
-          .filter(Boolean)
-          .join("\n")
-          .slice(0, 1000) || null;
-      const nextInput = {
-        websiteOverride,
-        openingHoursOverride: practicalInfo.openingHoursOverride,
-        sourceUrl: practicalInfo.sourceUrl ?? normalizedWebsite,
-        sourceNote: combinedSourceNote,
-      };
-
-      let next: GroupPlacePracticalInfo;
-      if (mode === "live") {
-        await updateGroupPlacePracticalInfo(groupId, place.id, nextInput);
-        next = {
-          ...nextInput,
-          updatedBy: actor.id,
-          updatedByName: actor.name,
-          updatedAt: new Date().toISOString(),
-        };
-        window.dispatchEvent(new Event("matrundan:reload"));
-      } else {
-        next = updateLocalGroupPlacePracticalInfo(groupId, place.id, nextInput, actor, storageKind);
-      }
-
-      setPracticalInfo(next);
-      try {
-        const description = reportDescription(normalizedWebsite, normalizedSourceNote);
-        if (mode === "live") {
-          await createGroupPlaceDataReport(groupId, place.id, {
-            category: "wrong_website",
-            description,
-          });
-        } else {
-          createLocalPlaceDataReport(
-            groupId,
-            place,
-            actor,
-            { category: "wrong_website", description },
-            storageKind,
-          );
-        }
-        window.dispatchEvent(new Event("matrundan:place-data-reports-changed"));
-      } catch {
-        toast.warning("Webbplatsen sparades, men granskningsunderlaget kunde inte skapas.");
-      }
-
-      toast.success("Webbplatsen är tillagd för gruppen.", {
-        description: "Den publiceras inte externt automatiskt.",
-      });
-    },
-    [actor, groupId, mode, place, practicalInfo, storageKind],
-  );
-
-  const applyNewInformationForConflicts = React.useCallback(async () => {
-    if (!actor) return;
-    const websiteOverride = websiteConflict ? null : practicalInfo.websiteOverride;
-    const openingHoursOverride = openingHoursConflict ? null : practicalInfo.openingHoursOverride;
-    const hasRemainingOverride = Boolean(websiteOverride || openingHoursOverride);
-    const nextInput = {
-      websiteOverride,
-      openingHoursOverride,
-      sourceUrl: hasRemainingOverride ? practicalInfo.sourceUrl : null,
-      sourceNote: hasRemainingOverride ? practicalInfo.sourceNote : null,
-    };
-    try {
-      let next: GroupPlacePracticalInfo;
-      if (mode === "live") {
-        await updateGroupPlacePracticalInfo(groupId, place.id, nextInput);
-        next = {
-          ...nextInput,
-          updatedBy: actor.id,
-          updatedByName: actor.name,
-          updatedAt: new Date().toISOString(),
-        };
-        window.dispatchEvent(new Event("matrundan:reload"));
-      } else {
-        next = updateLocalGroupPlacePracticalInfo(groupId, place.id, nextInput, actor, storageKind);
-      }
-      setPracticalInfo(next);
-      toast.success("Gruppen använder nu de nya uppgifterna.");
-    } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : "Uppgiften kunde inte uppdateras.");
-    }
-  }, [
-    actor,
-    groupId,
-    mode,
-    openingHoursConflict,
-    place.id,
-    practicalInfo,
-    storageKind,
-    websiteConflict,
-  ]);
-
-  const value = React.useMemo<PlacePracticalInfoContextValue>(
-    () => ({
-      place,
-      groupId,
-      practicalInfo,
-      details,
-      websiteUrl,
-      openingHours,
-      todaySummary,
-      websiteConflict,
-      openingHoursConflict,
-      hasConflict,
-      hasGeoapifySource,
-      canEdit,
-      loading,
-      refreshing,
-      websitePending,
-      error,
-      practicalInfoError,
-      loadPracticalInfo,
-      loadExternalDetails,
-      setPracticalInfo,
-      saveWebsite,
-      applyNewInformationForConflicts,
-    }),
-    [
-      place,
-      groupId,
-      practicalInfo,
-      details,
-      websiteUrl,
-      openingHours,
-      todaySummary,
-      websiteConflict,
-      openingHoursConflict,
-      hasConflict,
-      hasGeoapifySource,
-      canEdit,
-      loading,
-      refreshing,
-      websitePending,
-      error,
-      practicalInfoError,
-      loadPracticalInfo,
-      loadExternalDetails,
-      saveWebsite,
-      applyNewInformationForConflicts,
-    ],
-  );
-
-  return (
-    <PlacePracticalInfoContext.Provider value={value}>
-      {children}
-    </PlacePracticalInfoContext.Provider>
-  );
-}
-
-function AddWebsiteDialog() {
+function AddWebsiteDialog({ compact = false }: { compact?: boolean }) {
   const { place, saveWebsite } = usePlacePracticalInfo();
   const [open, setOpen] = React.useState(false);
   const [website, setWebsite] = React.useState("");
@@ -486,9 +97,14 @@ function AddWebsiteDialog() {
           type="button"
           variant="ghost"
           size="sm"
-          className="-ml-2 min-h-11 justify-start px-2 text-sm font-medium text-primary"
+          className={cn(
+            "min-h-11 justify-start gap-2 text-sm font-medium text-primary",
+            compact ? "h-full w-full rounded-none px-3" : "px-2",
+          )}
+          aria-label="Lägg till webbplats"
         >
-          <Plus className="h-4 w-4" /> Lägg till webbplats
+          <Plus className="h-4 w-4 shrink-0" />
+          <span className="truncate">Webbplats</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-md">
@@ -537,10 +153,17 @@ function AddWebsiteDialog() {
   );
 }
 
-export function PlaceWebsiteInfo() {
+export function PlaceWebsiteInfo({ compact = false }: { compact?: boolean }) {
   const { place, websiteUrl, canEdit, websitePending } = usePlacePracticalInfo();
 
-  if (websitePending) return null;
+  if (websitePending) {
+    return (
+      <div className="flex min-h-11 items-center gap-2 px-3 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        <span className="truncate">Hämtar…</span>
+      </div>
+    );
+  }
 
   if (websiteUrl) {
     return (
@@ -550,15 +173,23 @@ export function PlaceWebsiteInfo() {
         rel="noreferrer"
         icon={Globe2}
         tail="Webbplats"
+        className={compact ? "w-full px-3" : undefined}
         aria-label={`Öppna webbplatsen för ${place.name}`}
       />
     );
   }
 
-  return canEdit ? <AddWebsiteDialog /> : null;
+  if (canEdit) return <AddWebsiteDialog compact={compact} />;
+
+  return (
+    <div className="flex min-h-11 items-center gap-2 px-3 text-sm text-muted-foreground">
+      <Globe2 className="h-4 w-4 shrink-0" />
+      <span className="truncate">Webbplats saknas</span>
+    </div>
+  );
 }
 
-export function PlaceOpeningHoursInfo() {
+export function PlaceOpeningHoursInfo({ compact = false }: { compact?: boolean }) {
   const {
     place,
     groupId,
@@ -566,10 +197,7 @@ export function PlaceOpeningHoursInfo() {
     details,
     openingHours,
     todaySummary,
-    websiteConflict,
-    openingHoursConflict,
-    hasConflict,
-    hasGeoapifySource,
+    hasExternalSource,
     canEdit,
     loading,
     refreshing,
@@ -578,152 +206,142 @@ export function PlaceOpeningHoursInfo() {
     loadPracticalInfo,
     loadExternalDetails,
     setPracticalInfo,
-    applyNewInformationForConflicts,
   } = usePlacePracticalInfo();
-  const { mode } = useSession();
-  const [compareOpen, setCompareOpen] = React.useState(false);
   const summary = loading ? "Hämtar…" : (todaySummary ?? "Saknas");
   const contentError =
-    practicalInfoError ?? (hasGeoapifySource && error && !details ? error : null);
-  const canExpand = Boolean(openingHours || canEdit || hasConflict || contentError);
-
-  async function applyComparedInformation() {
-    await applyNewInformationForConflicts();
-    setCompareOpen(false);
-  }
+    practicalInfoError ?? (hasExternalSource && error && !details ? error : null);
+  const canExpand = Boolean(openingHours || canEdit || contentError);
 
   const summaryContent = (
     <>
       <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1 font-medium">Öppettider</span>
-      <span className="max-w-[9rem] truncate text-right text-muted-foreground">{summary}</span>
+      <span className="min-w-0 flex-1 leading-tight">
+        <span className="block truncate text-[11px] font-medium text-muted-foreground">
+          Öppettider
+        </span>
+        <span className="block truncate font-medium">{summary}</span>
+      </span>
     </>
   );
 
+  if (!canExpand) {
+    return (
+      <div
+        className={cn(
+          "flex min-h-11 items-center gap-2 px-3 text-sm",
+          compact ? "col-span-1" : "mt-2 border-t border-border/60",
+        )}
+        aria-label={`Öppettider: ${summary}`}
+      >
+        {summaryContent}
+      </div>
+    );
+  }
+
   return (
-    <>
-      {canExpand ? (
-        <details className="group mt-2 border-t border-border/60 pt-1">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-1.5 py-1 text-sm marker:content-none transition-colors hover:bg-background/35">
-            {summaryContent}
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-          </summary>
-
-          <div className="space-y-3 pb-1 pl-6 pt-1 sm:pl-7">
-            {canEdit ? (
-              <div className="flex min-h-9 items-center justify-end">
-                <PlacePracticalInfoDialog
-                  place={place}
-                  groupId={groupId}
-                  practicalInfo={practicalInfo}
-                  externalWebsite={
-                    details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null
-                  }
-                  externalOpeningHours={details?.openingHours ?? null}
-                  canRefreshExternal={mode === "live" && hasGeoapifySource}
-                  refreshingExternal={refreshing || loading}
-                  onRefreshExternal={() => loadExternalDetails(true)}
-                  onSaved={setPracticalInfo}
-                />
-              </div>
-            ) : null}
-
-            {openingHours ? (
-              <div className="rounded-xl bg-background/45 px-3 py-3">
-                <OpeningHoursScheduleList
-                  schedule={openingHours}
-                  timezone={details?.timezone ?? null}
-                />
-              </div>
-            ) : null}
-
-            {hasConflict ? (
-              <button
-                type="button"
-                className="flex min-h-11 w-full items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
-                onClick={() => setCompareOpen(true)}
-              >
-                <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1">Det finns nya uppgifter om stället</span>
-                <span className="shrink-0 font-medium text-primary">Jämför</span>
-              </button>
-            ) : null}
-
-            <CrossGroupPracticalInfoSuggestions
-              groupId={groupId}
-              placeId={place.id}
-              enabled={canEdit}
-              onApplied={loadPracticalInfo}
-            />
-
-            {contentError ? (
-              <p role="status" className="text-xs leading-relaxed text-muted-foreground">
-                {contentError}
-              </p>
-            ) : null}
-          </div>
-        </details>
-      ) : (
-        <div className="mt-2 flex min-h-11 items-center gap-2 border-t border-border/60 px-1.5 pt-1 text-sm">
-          {summaryContent}
-        </div>
+    <details
+      className={cn(
+        "group",
+        compact ? "col-span-1 open:col-span-2" : "mt-2 border-t border-border/60 pt-1",
       )}
+    >
+      <summary
+        className={cn(
+          "flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm marker:content-none transition-colors hover:bg-background/35",
+          compact ? "rounded-none" : "rounded-xl",
+        )}
+        aria-label={`Öppettider: ${summary}`}
+      >
+        {summaryContent}
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
 
-      <AlertDialog open={compareOpen} onOpenChange={setCompareOpen}>
-        <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Jämför uppgifter</AlertDialogTitle>
-            <AlertDialogDescription>
-              Matrundan ändrar aldrig gruppens uppgifter automatiskt. Välj vilka uppgifter gruppen
-              ska använda.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-4 text-sm">
-            {websiteConflict ? (
-              <section className="space-y-2 rounded-xl border border-border/70 p-3">
-                <h3 className="font-medium">Webbplats</h3>
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground">Nuvarande uppgift</div>
-                  <div className="mt-0.5 break-all">{practicalInfo.websiteOverride}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-muted-foreground">Nya uppgifter</div>
-                  <div className="mt-0.5 break-all">{details?.website}</div>
-                </div>
-              </section>
-            ) : null}
-            {openingHoursConflict && practicalInfo.openingHoursOverride && details?.openingHours ? (
-              <section className="space-y-3 rounded-xl border border-border/70 p-3">
-                <h3 className="font-medium">Öppettider</h3>
-                <div>
-                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-                    Nuvarande uppgift
-                  </div>
-                  <OpeningHoursScheduleList
-                    schedule={practicalInfo.openingHoursOverride}
-                    timezone={details.timezone ?? null}
-                  />
-                </div>
-                <div className="border-t border-border/60 pt-3">
-                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-                    Nya uppgifter
-                  </div>
-                  <OpeningHoursScheduleList
-                    schedule={details.openingHours}
-                    timezone={details.timezone ?? null}
-                  />
-                </div>
-              </section>
-            ) : null}
+      <div className="space-y-3 border-t border-border/60 px-3 pb-3 pt-3">
+        {canEdit ? (
+          <div className="flex min-h-9 items-center justify-end">
+            <PlacePracticalInfoDialog
+              place={place}
+              groupId={groupId}
+              practicalInfo={practicalInfo}
+              externalWebsite={
+                details?.website ?? normalizeWebsiteUrl(place.canonicalWebsite) ?? null
+              }
+              externalOpeningHours={details?.openingHours ?? null}
+              canRefreshExternal={hasExternalSource}
+              refreshingExternal={refreshing || loading}
+              onRefreshExternal={() => loadExternalDetails(true)}
+              onSaved={setPracticalInfo}
+            />
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Behåll nuvarande</AlertDialogCancel>
-            <AlertDialogAction disabled={!canEdit} onClick={() => void applyComparedInformation()}>
-              Använd de nya uppgifterna
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+        ) : null}
+
+        {openingHours ? (
+          <div className="rounded-xl bg-background/45 px-3 py-3">
+            <OpeningHoursScheduleList
+              schedule={openingHours}
+              timezone={details?.timezone ?? null}
+            />
+          </div>
+        ) : null}
+
+        <CrossGroupPracticalInfoSuggestions
+          groupId={groupId}
+          placeId={place.id}
+          enabled={canEdit}
+          onApplied={loadPracticalInfo}
+        />
+
+        {contentError ? (
+          <p role="status" className="text-xs leading-relaxed text-muted-foreground">
+            {contentError}
+          </p>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
+export function PlacePracticalInfoPanel() {
+  const { effectivePlace, hasExternalSource } = usePlacePracticalInfo();
+
+  return (
+    <div
+      data-testid="place-practical-info"
+      className="relative mt-4 overflow-hidden rounded-2xl border border-border/60 bg-background/35"
+    >
+      <div
+        data-testid="place-address-row"
+        className={cn(
+          "relative flex min-h-11 items-center px-3",
+          hasExternalSource ? "pr-14" : "pr-3",
+        )}
+      >
+        <PlaceExternalLink
+          href={googleMapsUrl(effectivePlace)}
+          target="_blank"
+          rel="noreferrer"
+          icon={MapPin}
+          prefix={`${effectivePlace.address}, `}
+          tail={effectivePlace.city}
+          className="min-w-0 flex-1"
+          aria-label={`Öppna ${effectivePlace.name} i Google Maps`}
+        />
+        {hasExternalSource ? (
+          <div className="absolute inset-y-0 right-1 flex items-center">
+            <PlaceLocationRefresh />
+          </div>
+        ) : null}
+      </div>
+
+      <div
+        data-testid="place-practical-links"
+        className="grid min-w-0 grid-cols-2 border-t border-border/60"
+      >
+        <div className="min-w-0 border-r border-border/60">
+          <PlaceWebsiteInfo compact />
+        </div>
+        <PlaceOpeningHoursInfo compact />
+      </div>
+    </div>
   );
 }
