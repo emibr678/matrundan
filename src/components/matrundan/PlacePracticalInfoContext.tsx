@@ -34,7 +34,7 @@ import {
   updateLocalGroupPlacePracticalInfo,
   type GroupPlacePracticalInfo,
 } from "@/lib/matrundan/practical-info";
-import { useSession } from "@/lib/matrundan/session";
+import { useSession } from "@/lib/matrundan/session.tsx";
 import { useStore } from "@/lib/matrundan/store";
 import type { Place } from "@/lib/matrundan/types";
 
@@ -108,6 +108,13 @@ function withLocation(place: Place, location: ExternalPlaceLocation | null): Pla
   };
 }
 
+function isInternalDemo(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("demo") === "1"
+  );
+}
+
 export interface PlacePracticalInfoContextValue {
   place: Place;
   effectivePlace: Place;
@@ -159,16 +166,17 @@ export function PlacePracticalInfoProvider({
 }) {
   const { mode, exampleMode } = useSession();
   const { state, demoReadOnly } = useStore();
+  const simulatedExternalInfo = exampleMode || (mode !== "live" && isInternalDemo());
   const key = React.useMemo(() => cacheKey(place), [place]);
   const exampleScenario = React.useMemo(
-    () => (exampleMode ? exampleExternalInfoForPlace(place) : null),
-    [exampleMode, place],
+    () => (simulatedExternalInfo ? exampleExternalInfoForPlace(place) : null),
+    [place, simulatedExternalInfo],
   );
   const [exampleLocation, setExampleLocation] = React.useState<ExternalPlaceLocation | null>(() =>
-    exampleMode ? readExampleLocationOverride(place.id) : null,
+    simulatedExternalInfo ? readExampleLocationOverride(place.id) : null,
   );
   const [details, setDetails] = React.useState<PlaceExternalDetails | null>(() =>
-    !exampleMode && key ? readCache(key) : null,
+    !simulatedExternalInfo && key ? readCache(key) : null,
   );
   const [practicalInfo, setPracticalInfo] = React.useState<GroupPlacePracticalInfo>(
     emptyGroupPlacePracticalInfo,
@@ -182,14 +190,14 @@ export function PlacePracticalInfoProvider({
   const storageKind = exampleMode ? "session" : "local";
   const actor = state.members.find((member) => member.id === state.currentUserId);
   const effectivePlace = React.useMemo(
-    () => withLocation(place, exampleMode ? exampleLocation : null),
-    [exampleLocation, exampleMode, place],
+    () => withLocation(place, simulatedExternalInfo ? exampleLocation : null),
+    [exampleLocation, place, simulatedExternalInfo],
   );
-  const hasExternalSource = exampleMode ? Boolean(exampleScenario) : Boolean(key);
+  const hasExternalSource = simulatedExternalInfo ? Boolean(exampleScenario) : Boolean(key);
 
   React.useEffect(() => {
-    setExampleLocation(exampleMode ? readExampleLocationOverride(place.id) : null);
-  }, [exampleMode, place.id]);
+    setExampleLocation(simulatedExternalInfo ? readExampleLocationOverride(place.id) : null);
+  }, [place.id, simulatedExternalInfo]);
 
   const loadPracticalInfo = React.useCallback(async () => {
     try {
@@ -217,11 +225,11 @@ export function PlacePracticalInfoProvider({
   }, [loadPracticalInfo]);
 
   React.useEffect(() => {
-    setDetails(!exampleMode && key ? readCache(key) : null);
+    setDetails(!simulatedExternalInfo && key ? readCache(key) : null);
     setLoading(false);
     setRefreshing(false);
     setError(null);
-  }, [exampleMode, key, place.id]);
+  }, [key, place.id, simulatedExternalInfo]);
 
   const loadExternalDetails = React.useCallback(
     async (forceRefresh = false) => {
@@ -231,7 +239,7 @@ export function PlacePracticalInfoProvider({
       setError(null);
       try {
         let nextDetails: PlaceExternalDetails;
-        if (exampleMode) {
+        if (simulatedExternalInfo) {
           await Promise.resolve();
           if (!exampleScenario || exampleScenario.error || !exampleScenario.details) {
             throw new Error(
@@ -265,7 +273,7 @@ export function PlacePracticalInfoProvider({
         setRefreshing(false);
       }
     },
-    [exampleMode, exampleScenario, groupId, hasExternalSource, key, place.id],
+    [exampleScenario, groupId, hasExternalSource, key, place.id, simulatedExternalInfo],
   );
 
   React.useEffect(() => {
@@ -403,7 +411,7 @@ export function PlacePracticalInfoProvider({
     if (!canApplyLocation || !details?.location || !locationDiff?.hasChanges) return;
     setApplyingLocation(true);
     try {
-      if (exampleMode) {
+      if (simulatedExternalInfo) {
         writeExampleLocationOverride(place.id, details.location);
         setExampleLocation(details.location);
       } else {
@@ -418,7 +426,7 @@ export function PlacePracticalInfoProvider({
         window.dispatchEvent(new Event("matrundan:reload"));
         return;
       }
-      toast.success("Exempelgruppen använder nu den nya adressen.", {
+      toast.success("Den nya adressen används i det simulerade läget.", {
         description: "Ändringen sparas bara i den här webbläsarfliken.",
       });
     } catch (caught) {
@@ -429,10 +437,10 @@ export function PlacePracticalInfoProvider({
   }, [
     canApplyLocation,
     details?.location,
-    exampleMode,
     groupId,
     locationDiff?.hasChanges,
     place.id,
+    simulatedExternalInfo,
   ]);
 
   const value = React.useMemo<PlacePracticalInfoContextValue>(
