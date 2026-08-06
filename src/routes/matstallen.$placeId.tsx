@@ -8,15 +8,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import {
-  ArrowLeft,
-  Flag,
-  Heart,
-  ListX,
-  MessageCircle,
-  Plus,
-  UsersRound,
-} from "lucide-react";
+import { ArrowLeft, Flag, Heart, ListX, MessageCircle, Plus, UsersRound } from "lucide-react";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";

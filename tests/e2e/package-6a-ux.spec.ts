@@ -179,9 +179,9 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   ]);
   expect(practicalInfoBoxWithNextStop).not.toBeNull();
   expect(registerVisitBoxWithNextStop).not.toBeNull();
-  expect(Math.abs(practicalInfoBoxWithNextStop!.y - (await practicalInfoTopBefore))).toBeLessThanOrEqual(
-    1,
-  );
+  expect(
+    Math.abs(practicalInfoBoxWithNextStop!.y - (await practicalInfoTopBefore)),
+  ).toBeLessThanOrEqual(1);
   expect(Math.abs(registerVisitBoxWithNextStop!.y - registerVisitTopBefore)).toBeLessThanOrEqual(1);
 
   await checkInfo.click();
@@ -214,9 +214,9 @@ test("exempelgruppen visar nya kartuppgifter utan externa anrop", async ({ page 
   const applyAddress = sheet.getByRole("button", { name: "Använd ny adress" });
   await expect(applyAddress).toBeVisible();
   await applyAddress.click();
-  await expect(page.getByRole("link", { name: /Öppna Gröna Terrassen i Google Maps/ })).toContainText(
-    "Utsiktsgränd 25",
-  );
+  await expect(
+    page.getByRole("link", { name: /Öppna Gröna Terrassen i Google Maps/ }),
+  ).toContainText("Utsiktsgränd 25");
   await expect(page.getByTestId("place-info-status-dot")).toHaveCount(0);
   expect(externalRequests).toEqual([]);
 });
