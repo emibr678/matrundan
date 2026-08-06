@@ -100,7 +100,7 @@ kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
 
 Rekommenderad ordning:
 
-1. **#107 Levande exempelgrupp med scenariokontrakt**  
+1. ✅ **#107 Levande exempelgrupp med scenariokontrakt**  
    Gör exempelgruppen till en liten, representativ och löpande underhållen
    produktfixture. Nya större funktioner ska bedöma behovet av nya exempeldata
    och regressionsscenarier.
