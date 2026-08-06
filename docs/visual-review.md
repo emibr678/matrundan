@@ -16,18 +16,57 @@ Visuell granskning krävs normalt när en ändring påverkar:
 Den krävs normalt inte för ren intern logik, dokumentation, copy utan
 layoutpåverkan eller osynliga tekniska ändringar. Motivera undantag i PR:n.
 
-## Isolerad arbetsyta
+## Lovable: konsultation och implementation
 
-1. Utgå från en verifierad fullständig commit-SHA.
-2. Använd i första hand en Lovable-variant när funktionen finns.
-3. Använd annars en dedikerad GitHub-featurebranch och välj den i Lovable när
-   branch switching finns.
-4. Om rätt variant, branch eller commit inte kan verifieras ska Lovable inte
-   användas för implementationen.
-5. Samla iterationer till en sammanhållen kandidat. Experimentera inte direkt
-   på `main`.
+Skilj mellan att konsultera Lovable och att låta Lovable skriva kod.
 
-En variant eller branch innebär inte automatiskt en isolerad databas.
+### Konsultation
+
+När användaren uttryckligen ber att bolla UX med Lovable ska Lovable konsulteras
+i Plan mode innan den visuella lösningen låses, om verktyget är tillgängligt.
+Konsultationen får inte hoppas över tyst bara för att branch switching inte kan
+styras automatiskt. Redovisa tydligt om konsultationen inte kunde genomföras.
+
+### Implementation på PR-branchen
+
+Lovables normala isolerade arbetsflöde är GitHub-featurebranch tillsammans med
+GitHub branch switching i Lovable:
+
+1. utgå från verifierad aktuell `main` och skapa en dedikerad featurebranch;
+2. öppna eller förbered en draft-PR från samma branch;
+3. välj exakt PR-branchen i Lovable;
+4. verifiera branchens namn och aktuella head-SHA innan Lovable får skriva kod;
+5. låt Lovable använda Agent mode när användaren uttryckligen har bett om
+   Lovable-implementation och krediter finns;
+6. granska Lovables diff och för därefter kandidaten genom normal PR- och
+   verifieringsprocess.
+
+Använd inte interna eller odokumenterade variantbegrepp som huvudflöde. Om rätt
+branch inte kan väljas eller verifieras ska Lovable inte skriva kod. Pausa och
+be användaren välja branchen i Lovable-editorn. Gå inte tyst över till egen full
+UX-implementation när användaren uttryckligen bett Lovable implementera.
+
+Samla iterationer till en sammanhållen kandidat och experimentera inte direkt på
+`main`. En branch innebär inte automatiskt en isolerad databas.
+
+## Previewgrind före merge
+
+För större visuella ändringar är följande ett mergekrav:
+
+- exakt PR-branch och aktuell head-SHA är dokumenterade;
+- samma branch är vald i Lovable;
+- Lovable-synken motsvarar PR-head eller en dokumenterad senare commit på samma
+  PR-branch;
+- en aktuell Lovable-previewlänk har lämnats till användaren i chatten;
+- användaren har fått möjlighet att granska previewn före merge;
+- användaren har uttryckligen godkänt merge efter previewgranskningen.
+
+Om branch, synk eller preview inte kan verifieras ska PR:n förbli draft eller
+inte markeras redo för merge. En previewlänk som har löpt ut ska förnyas före
+granskningsbesked.
+
+Preview är granskning, inte publicering. Den publika appen får inte användas som
+ersättning för en branchspecifik preview.
 
 ## Preview och artefakter
 
@@ -75,9 +114,11 @@ inte att diffen eller CI är godkänd.
 
 Redovisa separat:
 
-- branch och commit;
+- PR-branch och head-SHA;
 - PR och CI;
-- Lovable-synk och verifierad preview;
+- vald Lovable-branch och verifierad synk;
+- previewlänk och datum när den lämnades i chatten;
+- användarens preview- och mergegodkännande;
 - manuellt granskade vyer;
 - ej verifierade lägen;
 - databas och migration;

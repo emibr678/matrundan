@@ -5,8 +5,8 @@
 > that are already pushed — as it rewrites history on Lovable's side and the
 > user will likely lose their project history.
 >
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
+> Commits pushed to the branch currently selected in Lovable sync back to the
+> editor. Keep that branch buildable and verify the selected branch before edits.
 <!-- LOVABLE:END -->
 
 # Matrundan agent instructions
@@ -16,7 +16,7 @@ These instructions apply to the entire repository.
 Read:
 
 - [`docs/product-roadmap.md`](docs/product-roadmap.md) before planning a backlog
-  feature, changing product priority or revisiting an already agreed scope;
+  feature, changing product priority or revisiting an agreed scope;
 - [`docs/architecture.md`](docs/architecture.md) before changing the data model,
   authentication, sharing, Geoapify, group privacy, notifications or
   gamification;
@@ -41,12 +41,11 @@ Preserve these rules:
   internal identifiers when a visit is shared.
 - `places` and `visits` are canonical real-world entities. Sharing links to them
   instead of duplicating them.
-- Only actual visit participants receive progression. Registration work gives
-  no extra credit.
+- Only actual visit participants receive progression. Registration gives no
+  extra credit.
 - Repeat visits count.
 - Gamification is warm, discreet, private and secondary.
-- A group's saved search areas are only prefilled search centres, never a
-  geographical restriction.
+- Saved search areas are prefilled search centres, never geographical limits.
 - All saved search areas are selected by default; there is no primary area.
 - Product copy is Swedish unless a technical identifier must remain English.
 - Keep example, demo and authenticated live mode working side by side.
@@ -58,10 +57,10 @@ For a new feature, large change or explicit planning request:
 
 1. inspect the related GitHub Issue and `docs/product-roadmap.md` when the work
    belongs to the backlog;
-2. inspect the actual implementation and relevant database objects;
-3. discuss the product decision against Matrundan's shared food journey;
+2. inspect actual implementation and relevant database objects;
+3. discuss the decision against Matrundan's shared food journey;
 4. produce a concrete plan with edge cases, security and tests;
-5. assess whether the example group or its scenario contract must change;
+5. assess whether the example group or scenario contract must change;
 6. do not modify files, migrations, database state, commits or deployments
    until implementation is explicitly approved.
 
@@ -70,18 +69,17 @@ For a new feature, large change or explicit planning request:
 For approved implementation, make the smallest coherent change that satisfies
 the agreed scope. Do not silently broaden the task.
 
-When an approved scope is implemented, reviewed and has green relevant CI, the
-PR may be marked ready and merged to `main`. Publishing always requires a
-separate explicit approval.
+Implementation approval is not approval for merge, database deployment or
+publication. These are separate phases and approvals.
 
 Corrective documentation and small maintenance may be performed within an
 explicit review request, but must not introduce new product behaviour.
 
-GitHub Issues are the concrete backlog. Preserve already documented product
-choices instead of reopening them from chat history alone. Update the issue and,
-when package or priority changes, `docs/product-roadmap.md` before changing an
-agreed direction. New ideas begin in `status:inbox`; implementation begins only
-after a current plan is explicitly approved and the issue is `status:ready`.
+GitHub Issues are the concrete backlog. Preserve documented product choices
+instead of reopening them from chat history alone. New ideas begin in
+`status:inbox`; implementation begins after a current plan is approved and the
+issue is `status:ready`. Update `docs/product-roadmap.md` when package, priority
+or a durable product decision changes, not for every commit.
 
 ## Implementation and diagnostics
 
@@ -99,28 +97,72 @@ after a current plan is explicitly approved and the issue is `status:ready`.
 - Report exact branch, commit, PR, CI, Lovable sync, preview, database and
   publication status.
 
-## Lovable and visual review
+## Lovable consultation and implementation
 
-- Visual implementation must be isolated from `main`.
-- Prefer a Lovable variant based on a verified full commit SHA when variants are
-  available.
-- Otherwise use a dedicated GitHub feature branch and select it in Lovable when
-  branch switching is available.
-- If the variant, branch or preview commit cannot be verified, do not implement
-  through Lovable; continue through the normal GitHub branch and PR workflow.
-- Do not assume a variant follows later GitHub commits or that a preview shows
-  the intended branch without verification.
-- Collect visual iterations into one coherent candidate instead of making a
-  series of small Lovable changes directly on `main`.
-- Before merging a larger layout change, review the relevant preview at 360 px
-  and desktop and record what was actually checked.
-- Use the opt-in **Visual review artifacts** workflow for complementary
-  production-build screenshots when useful. It is not a pixel-diff gate.
-- Preview, screenshot artifacts and CI are separate evidence. None replaces the
-  others.
-- A branch or variant does not imply an isolated database.
-- `.lovable/plan.md` is temporary and must not reach a finished PR or `main`
-  unless explicitly approved as durable documentation.
+Separate consultation from implementation.
+
+### Consultation
+
+When the user explicitly asks to discuss or review UX with Lovable, consult
+Lovable in Plan mode before locking the visual solution, when the tool is
+available. Do not silently skip the consultation because branch switching cannot
+be controlled automatically. Report the limitation when consultation fails.
+
+### Implementation on the PR branch
+
+The normal isolated Lovable workflow is a dedicated GitHub feature branch plus
+GitHub branch switching inside Lovable:
+
+1. create the feature branch from verified current `main`;
+2. open or prepare a draft PR from that branch;
+3. select the exact PR branch in Lovable;
+4. verify branch name and current head SHA before Lovable writes code;
+5. use Agent mode when the user explicitly requested Lovable UX implementation
+   and credits are available;
+6. review Lovable's diff and continue through normal PR verification.
+
+Do not use internal or undocumented “variant” terminology as the primary
+workflow. If the correct branch cannot be selected or verified, Lovable must not
+write code. Pause and ask the user to select the branch in the Lovable editor.
+Do not silently replace explicitly requested Lovable implementation with a full
+visual implementation by Codex or ChatGPT.
+
+Codex/ChatGPT remains responsible for product scope, architecture, security,
+data boundaries, tests and final code review. Lovable is preferred for visual
+hierarchy, layout, spacing, responsiveness and interaction polish when the user
+requests it.
+
+Collect visual iterations into one coherent candidate. Never experiment directly
+on `main`. A branch does not imply an isolated database.
+
+## Preview gate for visual changes
+
+For larger changes to layout, hierarchy, responsiveness or a main flow, merge
+requires all of the following:
+
+- exact PR branch and current head SHA are documented;
+- the same PR branch is selected in Lovable;
+- Lovable sync matches current PR head or a documented later commit on the same
+  PR branch;
+- a current Lovable preview link is sent to the user in chat;
+- the preview is reviewed at minimum at 360 px and desktop;
+- demo/example and authenticated live mode are compared when relevant;
+- the user explicitly approves merge after preview review.
+
+If branch, sync or preview cannot be verified, keep the PR draft or not ready.
+Renew an expired preview link before review.
+
+For backend-only, documentation-only or invisible technical changes, preview is
+normally not a merge requirement. State why in the PR.
+
+Preview, GitHub diff, browser checks, screenshot artifacts and CI are separate
+evidence. None replaces the others. Preview is not publication.
+
+Use the opt-in **Visual review artifacts** workflow for complementary screenshots.
+It is not a pixel-diff gate.
+
+`.lovable/plan.md` is temporary and must not reach a finished PR or `main`
+unless explicitly approved as durable documentation.
 
 ## Codex Cloud environment
 
@@ -146,15 +188,13 @@ after a current plan is explicitly approved and the issue is `status:ready`.
 - `src/lib/matrundan/geoapify.functions.ts` — server-side Geoapify functions.
 - `src/lib/matrundan/search-areas.ts` — search-area domain rules.
 - `src/lib/matrundan/gamification.ts` — deterministic progression.
-- `src/lib/matrundan/version.ts` — published application version and in-app
-  changelog.
+- `src/lib/matrundan/version.ts` — published version and in-app changelog.
 - `supabase/migrations/` — schema, RPC, RLS and Storage changes.
 - `scripts/` — reproducible setup and verification tooling.
-- `docs/product-roadmap.md` — canonical product packages, priorities and backlog
-  workflow.
-- `docs/architecture.md` — canonical architecture and security decisions.
-- `docs/development-workflow.md` — canonical delivery workflow.
-- `docs/visual-review.md` — visual isolation, preview and screenshot process.
+- `docs/product-roadmap.md` — product packages, priorities and backlog workflow.
+- `docs/architecture.md` — architecture and security decisions.
+- `docs/development-workflow.md` — delivery workflow.
+- `docs/visual-review.md` — Lovable branch, preview and screenshot process.
 - `DEVELOPMENT.md` — runtime, setup and verification commands.
 - `README.md` — current human-facing project overview.
 - `CHANGELOG.md` — released and unreleased user-facing history.
@@ -196,13 +236,13 @@ Inspect the current tree before assuming paths or APIs are unchanged.
   distance to a selected area.
 - Previously removed places appear as normal add candidates and reactivate the
   existing `group_places` relationship.
-- Active group places belong under the collapsed **Redan i gruppen** section,
-  not among the primary add candidates.
+- Active group places belong under **Redan i gruppen**, not among primary add
+  candidates.
 
 ## Canonical place and visit invariants
 
 - One real place corresponds to one canonical `places` row.
-- External place identities and their lifecycle belong to `place_sources`.
+- External place identities and lifecycle belong to `place_sources`.
 - Group notes, occasions, website override and lifecycle belong to
   `group_places`.
 - Raw provider payloads must not be returned in the group read-model.
@@ -231,8 +271,7 @@ Inspect the current tree before assuming paths or APIs are unchanged.
 - Follow the existing warm, simple, rounded and restrained visual language.
 - Prefer existing components over parallel UI systems.
 - Avoid duplicate displays of the same information.
-- Keep primary actions clear and destructive actions secondary with suitable
-  confirmation.
+- Keep primary actions clear and destructive actions secondary with confirmation.
 - Maintain keyboard behaviour and ARIA semantics for autocomplete, dialogs,
   tabs, sheets and collapsibles.
 - Use practical 44 px touch targets.
@@ -290,15 +329,14 @@ For a published release:
 - update `src/lib/matrundan/version.ts` and in-app history;
 - move the release from **Unreleased** to a dated entry in `CHANGELOG.md`;
 - update `README.md` when current capability or limitation changes;
-- update `docs/product-roadmap.md` when package, priority or active roadmap
-  scope changes;
+- update `docs/product-roadmap.md` when package, priority or active scope changes;
 - update `docs/architecture.md` when a durable decision changes;
 - keep version and deployment status consistent;
 - publish only after relevant checks are green and approval is explicit.
 
 README must not duplicate a long release history or act as a parallel backlog.
-Completed implementation plans should be removed or archived after durable
-decisions are captured in architecture, roadmap and changelog.
+Completed plans should be removed or archived after durable decisions are
+captured in architecture, roadmap and changelog.
 
 Documentation-only commits do not require app publication unless the app reads
 the changed file.
@@ -313,5 +351,7 @@ the changed file.
 - Do not create commits only to trigger CI.
 - Do not use self-modifying workflows to write or push product code.
 - Do not make iterative visual experiments directly on `main`.
+- Do not merge larger visual changes without a verified PR-branch preview link
+  and the user's review.
 - Inspect branch and latest commit before modifying files because Lovable and
   GitHub can both advance the repository.
