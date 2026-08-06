@@ -47,6 +47,7 @@ const requiredFunctions = [
   PREVIOUS_GROUP_STATE_RPC,
   CURRENT_GROUP_STATE_RPC,
   "replace_group_search_settings",
+  "search_area_label_is_broad",
   "create_group_with_owner_v2",
   "list_group_hidden_place_suggestions",
   "list_group_hidden_place_suggestions_v2",
@@ -185,6 +186,10 @@ if (existsSync(preflightPath) && existsSync(preflightLocationPath)) {
     }
   }
   for (const object of [
+    "search-area:broad-label-guard",
+    "storage:visit-photo-limit",
+    "isolation:no-anon-search-area-helper",
+    "isolation:no-authenticated-search-area-helper",
     "group_search_areas",
     "group_hidden_place_suggestions",
     "place_data_reports",

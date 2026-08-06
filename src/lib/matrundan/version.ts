@@ -6,6 +6,21 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_26_4_CHANGELOG: ChangelogEntry = {
+  version: "1.26.4",
+  date: "2026-08-06",
+  summary: "Server- och lagringsvakter för sökområden och besöksfoton är återställda.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Nya breda kommun-, läns-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
+        "Besöksfoton skyddas åter av en privat Storage-bucket med högst 1,5 MB och endast JPEG.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_26_3_CHANGELOG: ChangelogEntry = {
   version: "1.26.3",
   date: "2026-08-06",
@@ -41,6 +56,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_26_4_CHANGELOG,
   VERSION_1_26_3_CHANGELOG,
   VERSION_1_26_2_CHANGELOG,
   ...CHANGELOG_THROUGH_1_26_1,

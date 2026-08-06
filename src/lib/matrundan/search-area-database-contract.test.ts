@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-const migrationPath = "supabase/migrations/20260731114000_search_area_admin_guard.sql";
+const migrationPath = "supabase/migrations/20260806175500_restore_production_guards.sql";
 const sql = await Bun.file(migrationPath).text();
 
 describe("sökområdenas databaskontrakt", () => {
@@ -22,6 +22,7 @@ describe("sökområdenas databaskontrakt", () => {
 
   test("skrivfunktionen förblir rollskyddad och endast autentiserad", () => {
     expect(sql).toContain("public.has_group_role(_group_id, _uid, ARRAY['owner','admin'])");
+    expect(sql).toContain("public.group_is_active(_group_id)");
     expect(sql).toContain(
       "REVOKE ALL ON FUNCTION public.replace_group_search_settings(uuid, jsonb, integer)",
     );
@@ -29,5 +30,24 @@ describe("sökområdenas databaskontrakt", () => {
       "GRANT EXECUTE ON FUNCTION public.replace_group_search_settings(uuid, jsonb, integer)",
     );
     expect(sql).toContain("TO authenticated");
+  });
+
+  test("hjälpfunktionen är intern och migrationen verifierar slutläget", () => {
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.search_area_label_is_broad(text)");
+    expect(sql).toContain("FROM PUBLIC, anon, authenticated");
+    expect(sql).toContain("search-area settings RPC is missing required guards");
+    expect(sql).toContain("search-area settings RPC has incorrect execute grants");
+  });
+});
+
+describe("besöksfotons Storage-kontrakt", () => {
+  test("visit-photos förblir privat och accepterar endast begränsade JPEG-filer", () => {
+    expect(sql).toContain("INSERT INTO storage.buckets");
+    expect(sql).toContain("'visit-photos'");
+    expect(sql).toContain("false,\n  1500000,\n  ARRAY['image/jpeg']::text[]");
+    expect(sql).toContain("ON CONFLICT (id) DO UPDATE SET");
+    expect(sql).toContain("file_size_limit = EXCLUDED.file_size_limit");
+    expect(sql).toContain("allowed_mime_types = EXCLUDED.allowed_mime_types");
+    expect(sql).toContain("visit-photos bucket configuration could not be restored");
   });
 });
