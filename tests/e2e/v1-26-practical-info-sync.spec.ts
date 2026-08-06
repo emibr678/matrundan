@@ -12,9 +12,10 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
     widths.documentScroll,
     `${context}: dokumentet får inte ha horisontell overflow`,
   ).toBeLessThanOrEqual(widths.documentClient);
-  expect(widths.bodyScroll, `${context}: body får inte ha horisontell overflow`).toBeLessThanOrEqual(
-    widths.bodyClient,
-  );
+  expect(
+    widths.bodyScroll,
+    `${context}: body får inte ha horisontell overflow`,
+  ).toBeLessThanOrEqual(widths.bodyClient);
 }
 
 test("exempelgruppen visar samma kompakta uppgiftskontroll utan externa anrop", async ({
