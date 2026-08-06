@@ -115,8 +115,12 @@ Rekommenderad ordning:
    Använd en central varumärkeskomponent där symbolen representerar Matrundan,
    men behåll matsymboler där de representerar grupper eller matställen.
 5. **#105 Utökat emoji- och symbolstöd för grupper och matställen**  
-   Utöka kurerade symbolval. Bilduppladdning ingår uttryckligen inte i detta
-   scope.
+   Utöka kurerade symbolval och stöd ett gruppspecifikt manuellt val.
+   Bilduppladdning ingår uttryckligen inte i detta scope.
+6. **#135 Härled representativa matställessymboler från kök och inriktning**  
+   Ge ställen en stabil automatisk symbol från normaliserad inriktning, kök och
+   kategori när ingen uttrycklig symbol finns. Manuellt gruppval ska ha
+   företräde och breda eller motstridiga utbud ska få en neutral fallback.
 
 ## Paket B – Nästa stopp v2
 
