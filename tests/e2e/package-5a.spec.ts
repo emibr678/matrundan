@@ -108,9 +108,9 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
 
   await page.goto("/matstallen/p9?visit=v9");
   await expect(page.getByText("Delat besök", { exact: true })).toBeVisible();
-  await expect(
-    page.getByTitle("Personer utanför den här gruppen visas anonymt."),
-  ).toContainText("+2 utanför gruppen");
+  await expect(page.getByTitle("Personer utanför den här gruppen visas anonymt.")).toContainText(
+    "+2 utanför gruppen",
+  );
   await expect(page.getByText("Aya", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Lina", { exact: true })).toHaveCount(0);
 
