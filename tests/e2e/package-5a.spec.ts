@@ -12,10 +12,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
     metrics.documentScrollWidth,
     `${context}: dokumentet får inte ha horisontell overflow`,
   ).toBeLessThanOrEqual(metrics.documentClientWidth);
-  expect(
-    metrics.bodyScrollWidth,
-    `${context}: body får inte ha horisontell overflow`,
-  ).toBeLessThanOrEqual(metrics.bodyClientWidth);
+  expect(metrics.bodyScrollWidth, `${context}: body får inte ha horisontell overflow`).toBeLessThanOrEqual(
+    metrics.bodyClientWidth,
+  );
 }
 
 test("utloggad användare möts av landningssidan i stället för en fiktiv grupp", async ({
@@ -42,6 +41,10 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
       "matrundan.state.v1",
       JSON.stringify({ group: { name: "Gammal lokal demo" } }),
     );
+    window.sessionStorage.setItem(
+      "matrundan.exampleState.v1",
+      JSON.stringify({ group: { name: "Gammal exempelgrupp" } }),
+    );
   });
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
@@ -53,6 +56,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Slumpa" })).toBeVisible();
   await expect(page.getByText("Gammal lokal demo")).toHaveCount(0);
+  await expect(page.getByText("Gammal exempelgrupp")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Exempelgruppen på 360 px");
 
   await page.goto("/matstallen/p8");
@@ -60,10 +64,12 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(page.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
 
   const storage = await page.evaluate(() => ({
-    example: window.sessionStorage.getItem("matrundan.exampleState.v1"),
+    current: window.sessionStorage.getItem("matrundan.exampleState.v2"),
+    legacy: window.sessionStorage.getItem("matrundan.exampleState.v1"),
     sandbox: window.localStorage.getItem("matrundan.state.v1"),
   }));
-  expect(storage.example).toContain('"placeId":"p8"');
+  expect(storage.current).toContain('"placeId":"p8"');
+  expect(storage.legacy).toContain("Gammal exempelgrupp");
   expect(storage.sandbox).toContain("Gammal lokal demo");
 
   await page.reload();
@@ -76,6 +82,50 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(
     page.getByRole("button", { name: "Markera som favorit", exact: true }),
   ).toBeVisible();
+});
+
+test("exempelgruppens centrala scenarier går att nå utan privat dataläckage", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+
+  await page.goto("/matstallen/p2?visit=v1");
+  await expect(page.getByRole("heading", { name: "Kardemummaköket" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Besök (2)" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Foto från besöket" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ta bort foto" })).toBeVisible();
+
+  await page.goto("/matstallen/p3?visit=v2");
+  await expect(page.getByText("Aya", { exact: true })).toBeVisible();
+  await expect(page.getByText("· Gäst", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Gäster hör bara till detta besök/)).toBeVisible();
+
+  await page.goto("/matstallen/p6?visit=v3");
+  await expect(page.getByText("Lina", { exact: true })).toBeVisible();
+  await expect(page.getByText("· Tidigare medlem", { exact: true })).toBeVisible();
+
+  await page.goto("/matstallen/p9?visit=v9");
+  await expect(page.getByText("Delat besök", { exact: true })).toBeVisible();
+  await expect(page.getByText(/\+2 utanför gruppen/)).toBeVisible();
+  await expect(page.getByText("Aya", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Lina", { exact: true })).toHaveCount(0);
+
+  await page.goto("/matstallen/p4");
+  await expect(page.getByRole("heading", { name: "Brödverket 47" })).toBeVisible();
+  await expect(page.getByText("Inte längre i gruppens lista", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Besök (1)" })).toBeVisible();
+
+  await page.goto("/matstallen/p10");
+  await expect(
+    page.getByRole("heading", { name: "Det lilla långbordet vid Tegelbackens gröna gård" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Sankt Eriksgatan 123, gårdshuset längst in till vänster", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Långt exempelställe på 360 px");
 });
 
 test("exempelgruppen kan lämnas via menyn och Matrundan-logotypen", async ({ page }) => {
