@@ -32,7 +32,7 @@ Det ändrar inte `package.json`, `bun.lock`, produktkod eller Git-historik.
 
 ## Codex Cloud
 
-Skapa eller redigera Codex-miljön för repot `emibr678/matrundan-din-gruppens-matresa` och använd följande inställningar.
+Skapa eller redigera Codex-miljön för repot `emibr678/matrundan` och använd följande inställningar.
 
 Setup script:
 
