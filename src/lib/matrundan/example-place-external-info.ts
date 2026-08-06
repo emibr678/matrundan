@@ -25,23 +25,16 @@ const WEBSITE_BY_PLACE: Record<string, string | null> = {
 };
 
 const OPENING_HOURS_BY_PLACE: Record<string, string | null> = {
-  [EXAMPLE_IDS.places.providerBistro]:
-    "Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00; Su 12:00-20:00",
-  [EXAMPLE_IDS.places.repeatCafe]:
-    "Mo-Fr 07:00-18:00; Sa-Su 08:00-17:00",
-  [EXAMPLE_IDS.places.guestReviews]:
-    "Tu-Th 11:00-21:00; Fr-Sa 11:00-23:00; Su 12:00-20:00",
-  [EXAMPLE_IDS.places.archivedBakery]:
-    "Mo-Fr 07:00-17:00; Sa-Su 08:00-16:00",
-  [EXAMPLE_IDS.places.nextStop]:
-    "Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00; Su 12:00-20:00",
+  [EXAMPLE_IDS.places.providerBistro]: "Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00; Su 12:00-20:00",
+  [EXAMPLE_IDS.places.repeatCafe]: "Mo-Fr 07:00-18:00; Sa-Su 08:00-17:00",
+  [EXAMPLE_IDS.places.guestReviews]: "Tu-Th 11:00-21:00; Fr-Sa 11:00-23:00; Su 12:00-20:00",
+  [EXAMPLE_IDS.places.archivedBakery]: "Mo-Fr 07:00-17:00; Sa-Su 08:00-16:00",
+  [EXAMPLE_IDS.places.nextStop]: "Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00; Su 12:00-20:00",
   [EXAMPLE_IDS.places.formerMemberHistory]: "Mo-Su 11:00-21:00",
   [EXAMPLE_IDS.places.limitedInfo]: null,
   [EXAMPLE_IDS.places.externalError]: "Mo-Sa 11:00-22:00; Su 12:00-20:00",
-  [EXAMPLE_IDS.places.sharedVisit]:
-    "Mo-Th 15:00-23:00; Fr-Sa 15:00-01:00; Su 15:00-22:00",
-  [EXAMPLE_IDS.places.longLayout]:
-    "Tu-Th 17:00-22:00; Fr-Sa 12:00-23:00; Su 12:00-20:00",
+  [EXAMPLE_IDS.places.sharedVisit]: "Mo-Th 15:00-23:00; Fr-Sa 15:00-01:00; Su 15:00-22:00",
+  [EXAMPLE_IDS.places.longLayout]: "Tu-Th 17:00-22:00; Fr-Sa 12:00-23:00; Su 12:00-20:00",
 };
 
 function currentLocation(place: Place): ExternalPlaceLocation | null {
