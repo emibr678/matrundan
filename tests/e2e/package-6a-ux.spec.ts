@@ -214,6 +214,8 @@ test("exempelgruppen visar nya kartuppgifter utan externa anrop", async ({ page 
   const applyAddress = sheet.getByRole("button", { name: "Använd ny adress" });
   await expect(applyAddress).toBeVisible();
   await applyAddress.click();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
   await expect(
     page.getByRole("link", { name: /Öppna Gröna Terrassen i Google Maps/ }),
   ).toContainText("Utsiktsgränd 25");
