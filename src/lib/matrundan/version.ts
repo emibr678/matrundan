@@ -10,14 +10,16 @@ const VERSION_1_28_0_CHANGELOG: ChangelogEntry = {
   version: "1.28.0",
   date: "2026-08-07",
   summary:
-    "Lägg till ställen får tydligare geografi och intelligent sökning efter namn, kök och typ.",
+    "Lägg till ställen får tydligare geografi, intelligent sökning och stegvis fler resultat.",
   sections: [
     {
       kind: "Förbättrat",
       items: [
-        "Sökflödet etablerar valda sökområden före matställessökningen och behåller områden samt radie som ett tydligt gemensamt scope.",
+        "Sök i visar geografifältet före valda områden och beskriver punktavståndet som Avstånd X km.",
         "Kända kök, inriktningar och typer som sushi, pasta och café tolkas semantiskt i stället för att enbart matchas mot verksamhetsnamn.",
         "Matställessökningen kan skilja generella köks- och typförslag från specifika verksamheter utan att ett platsval ändrar sökområdet.",
+        "Sökresultat visas i mindre omgångar om upp till 20 träffar och kan utökas med Visa fler utan att redan visade resultat försvinner.",
+        "Kortlivad återanvändning av identiska provideranrop minskar onödiga Geoapify-anrop utan långlivad klientcache.",
         "Exempel- och demoläget använder samma sökintent med deterministiska lokala matställen och utan externa provideranrop.",
       ],
     },
