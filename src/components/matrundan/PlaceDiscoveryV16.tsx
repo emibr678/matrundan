@@ -28,7 +28,12 @@ import {
   listLocalManualSourceLinks,
   type LocalManualSourceLink,
 } from "@/lib/matrundan/manual-place-source-links";
+import {
+  genericPlaceSearchSuggestions,
+  type GenericPlaceSearchSuggestion,
+} from "@/lib/matrundan/place-search-intent";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
+
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -422,24 +427,17 @@ export function PlaceDiscoveryV16({
       className="h-[55vh] min-h-[340px] lg:h-[52vh] lg:min-h-[390px]"
     />
   );
+  const genericSuggestions = React.useMemo(() => genericPlaceSearchSuggestions(query, 4), [query]);
+  const placeAutocompleteSuggestions = React.useMemo(
+    () => (query.trim().length < 2 ? [] : visibleResults.slice(0, 5)),
+    [query, visibleResults],
+  );
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="place-query">Sök</Label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="place-query"
-            className="pl-9"
-            placeholder="Namn, kök eller kategori"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-      </div>
-
       <SearchAreaControlsV16
+        heading="Sök i"
+        addAreaActionLabel="Lägg till område eller adress"
         savedAreas={savedAreas}
         selectedAreaIds={selectedAreaIds}
         onSelectedAreaIdsChange={setSelectedAreaIds}
@@ -449,6 +447,15 @@ export function PlaceDiscoveryV16({
         onRadiusChange={setRadiusKm}
         isLive={isLive}
         fallbackCity={state.group.city}
+      />
+
+      <PlaceSearchCombobox
+        query={query}
+        onQueryChange={setQuery}
+        loading={loading}
+        genericSuggestions={genericSuggestions}
+        placeSuggestions={placeAutocompleteSuggestions}
+        onSelectPlace={(suggestion) => setSelectedId(suggestion.externalId)}
       />
 
       {activeAreas.length === 0 ? (
@@ -625,6 +632,203 @@ function Empty({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-dashed border-border/70 bg-card/60 p-6 text-center text-sm text-muted-foreground">
       {text}
+    </div>
+  );
+}
+
+type PlaceSearchOption =
+  | { kind: "generic"; key: string; label: string; meta: string; searchValue: string }
+  | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion };
+
+function placeOptionMeta(suggestion: PlaceSuggestion): string {
+  const location =
+    suggestion.address?.trim() ||
+    [suggestion.area, suggestion.city].filter(Boolean).join(" · ") ||
+    suggestion.city ||
+    "";
+  const city = suggestion.address?.trim() && suggestion.city ? suggestion.city : "";
+  return [CATEGORY_LABEL[suggestion.category], location, city].filter(Boolean).join(" · ");
+}
+
+/**
+ * Presentationsfält för "Sök matställen".
+ *
+ * Fältet gör inga egna dataanrop: generella förslag kommer från
+ * genericPlaceSearchSuggestions och specifika matställen från samma
+ * providerresultat som resultatlistan. Val av ett matställe markerar bara den
+ * verksamheten och rör aldrig sökområden eller radie.
+ */
+function PlaceSearchCombobox({
+  query,
+  onQueryChange,
+  loading,
+  genericSuggestions,
+  placeSuggestions,
+  onSelectPlace,
+}: {
+  query: string;
+  onQueryChange: (value: string) => void;
+  loading: boolean;
+  genericSuggestions: GenericPlaceSearchSuggestion[];
+  placeSuggestions: PlaceSuggestion[];
+  onSelectPlace: (suggestion: PlaceSuggestion) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [activeIx, setActiveIx] = React.useState(-1);
+
+  const genericOptions: PlaceSearchOption[] = genericSuggestions.map((suggestion) => ({
+    kind: "generic",
+    key: suggestion.id,
+    label: suggestion.label,
+    meta: suggestion.groupLabel,
+    searchValue: suggestion.searchValue,
+  }));
+  const placeOptions: PlaceSearchOption[] = placeSuggestions.map((suggestion) => ({
+    kind: "place",
+    key: suggestion.externalId,
+    label: suggestion.name,
+    meta: placeOptionMeta(suggestion),
+    suggestion,
+  }));
+  const options = [...genericOptions, ...placeOptions];
+  const hasQuery = query.trim().length >= 2;
+  const showList = open && hasQuery;
+
+  React.useEffect(() => {
+    setActiveIx(-1);
+  }, [query]);
+
+  function select(option: PlaceSearchOption) {
+    if (option.kind === "generic") {
+      onQueryChange(option.label);
+    } else {
+      onSelectPlace(option.suggestion);
+    }
+    setOpen(false);
+    setActiveIx(-1);
+  }
+
+  function move(direction: 1 | -1) {
+    if (options.length === 0) return;
+    setActiveIx((current) => {
+      if (current < 0) return direction === 1 ? 0 : options.length - 1;
+      return (current + direction + options.length) % options.length;
+    });
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (options.length === 0) return;
+      event.preventDefault();
+      setOpen(true);
+      move(event.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+    if (event.key === "Enter" && showList && activeIx >= 0) {
+      event.preventDefault();
+      select(options[activeIx]);
+      return;
+    }
+    if (event.key === "Escape") {
+      setOpen(false);
+      setActiveIx(-1);
+    }
+  }
+
+  function renderGroup(label: string, groupOptions: PlaceSearchOption[], offset: number) {
+    if (groupOptions.length === 0) return null;
+    return (
+      <div
+        role="group"
+        aria-label={label}
+        className="border-t border-border/60 pt-1 first:border-t-0 first:pt-0"
+      >
+        <p className="px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        {groupOptions.map((option, index) => {
+          const optionIndex = offset + index;
+          return (
+            <div
+              key={`${option.kind}:${option.key}`}
+              id={`place-search-opt-${optionIndex}`}
+              role="option"
+              aria-selected={optionIndex === activeIx}
+            >
+              <button
+                type="button"
+                className={[
+                  "w-full min-w-0 rounded px-2 py-2 text-left hover:bg-accent",
+                  optionIndex === activeIx ? "bg-accent" : "",
+                ].join(" ")}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  select(option);
+                }}
+              >
+                <span className="block min-w-0 break-words font-medium text-foreground">
+                  {option.label}
+                </span>
+                {option.meta ? (
+                  <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">
+                    {option.meta}
+                  </span>
+                ) : null}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor="place-query">Sök matställen</Label>
+      <div className="relative min-w-0">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          id="place-query"
+          className="pl-9"
+          placeholder="Namn, kök eller typ"
+          value={query}
+          onChange={(event) => {
+            onQueryChange(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+          onKeyDown={onKeyDown}
+          autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={showList}
+          aria-controls="place-search-listbox"
+          aria-activedescendant={activeIx >= 0 ? `place-search-opt-${activeIx}` : undefined}
+        />
+        {showList ? (
+          <div
+            id="place-search-listbox"
+            role="listbox"
+            aria-label="Förslag på kök, typer och matställen"
+            className="absolute z-30 mt-1 max-h-72 w-full min-w-0 overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
+          >
+            {options.length === 0 ? (
+              <p className="px-2 py-2 text-muted-foreground">
+                {loading ? "Söker…" : "Inga förslag"}
+              </p>
+            ) : (
+              <>
+                {renderGroup("Kök och typer", genericOptions, 0)}
+                {renderGroup("Matställen", placeOptions, genericOptions.length)}
+                {loading ? (
+                  <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
