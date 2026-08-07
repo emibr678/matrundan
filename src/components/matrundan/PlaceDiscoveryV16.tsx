@@ -333,6 +333,9 @@ export function PlaceDiscoveryV16({
   );
   const bufferedRemaining = Math.max(0, filteredResults.length - visibleResults.length);
   const canShowMore = bufferedRemaining > 0 || hasMore;
+  const searchInFlight = loading || hiddenLoading;
+  const isReloadingResults = searchInFlight && visibleResults.length > 0;
+  const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
 
   const showMoreResults = React.useCallback(async () => {
     if (bufferedRemaining > 0) {
