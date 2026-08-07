@@ -3,10 +3,11 @@ import type { PlaceSuggestion } from "./places-provider";
 /**
  * Ren sammanslagning av två sidor sökträffar från platsleverantören.
  *
- * Deduplicerar på provider + externalId, behåller den version som har kortast
- * verifierat avstånd, slår ihop `matchingAreaLabels` utan dubletter och låter
- * `nearestAreaLabel` följa den närmaste versionen. Slutresultatet sorteras på
- * avstånd och därefter svenskt namn.
+ * Bevarar ordningen på redan visade `current`-träffar exakt. Dubbletter
+ * uppdaterar metadata på samma position: kortast verifierat avstånd vinner,
+ * `matchingAreaLabels` slås ihop utan dubletter och `nearestAreaLabel` följer
+ * den närmaste versionen. Genuint nya träffar från `incoming` läggs sist i
+ * inkommande ordning. Listan sorteras inte om.
  */
 export function mergePlaceSearchPages(
   current: PlaceSuggestion[],
@@ -15,8 +16,12 @@ export function mergePlaceSearchPages(
   const merged = new Map<string, PlaceSuggestion>();
   const order: string[] = [];
 
+  function keyOf(suggestion: PlaceSuggestion) {
+    return `${suggestion.provider ?? "unknown"}:${suggestion.externalId}`;
+  }
+
   for (const suggestion of [...current, ...incoming]) {
-    const key = `${suggestion.provider ?? "unknown"}:${suggestion.externalId}`;
+    const key = keyOf(suggestion);
     const existing = merged.get(key);
     if (!existing) {
       order.push(key);
@@ -47,11 +52,6 @@ export function mergePlaceSearchPages(
     });
   }
 
-  return order
-    .map((key) => merged.get(key)!)
-    .sort((a, b) => {
-      const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
-      const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
-      return da - db || a.name.localeCompare(b.name, "sv-SE");
-    });
+  return order.map((key) => merged.get(key)!);
 }
+
