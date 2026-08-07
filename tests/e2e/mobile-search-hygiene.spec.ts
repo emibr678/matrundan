@@ -98,7 +98,9 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
   await expect(
-    detailsDialog.getByTestId("pending-place-identity-grid").locator('[data-slot="place-identity-mark"]'),
+    detailsDialog
+      .getByTestId("pending-place-identity-grid")
+      .locator('[data-slot="place-identity-mark"]'),
   ).toHaveAttribute("data-size", "detail");
   await expect(detailsDialog.getByTestId("pending-place-practical-info")).toBeVisible();
   await expect(detailsDialog.getByText("Webbplats ej angiven", { exact: true })).toBeVisible();
