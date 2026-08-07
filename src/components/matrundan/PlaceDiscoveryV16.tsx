@@ -42,6 +42,8 @@ import { CATEGORY_LABEL, type SearchArea, type SearchRadiusKm } from "@/lib/matr
 type ResultView = "lista" | "karta";
 type ResultStatus = "available" | "linkable" | "existing";
 
+const RESULT_PAGE_SIZE = 20;
+
 export interface PlaceDiscoverySnapshot {
   query: string;
   selectedAreaIds: string[];
@@ -54,7 +56,11 @@ export interface PlaceDiscoverySnapshot {
   existingOpen: boolean;
   bulkMode: boolean;
   error: string | null;
+  displayLimit: number;
+  hasMore: boolean;
+  nextOffset: number;
 }
+
 
 export function PlaceDiscoveryV16({
   addedResultIds,
