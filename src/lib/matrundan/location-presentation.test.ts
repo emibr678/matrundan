@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { providerMessage, transientSearchAreaId } from "./add-place-v16-utils";
 import { demoAutocompleteLocations } from "./demo-location-suggestions";
 import { normalizeLocationFeature, resolveLocationPresentation } from "./geoapify-normalize";
 import { isBroadAdministrativeSearchArea } from "./search-areas";
@@ -103,6 +104,23 @@ describe("svensk geografisk presentation", () => {
     });
     expect(isBroadAdministrativeSearchArea(municipality?.resultType, municipality?.label)).toBe(
       true,
+    );
+  });
+
+  test("tillfälligt sökcenter använder ett kort lokalt id oberoende av provider-id", () => {
+    const id = transientSearchAreaId("temporary", 59.287123456, 18.692987654);
+
+    expect(id).toBe("temporary-59.287123-18.692988");
+    expect(id.length).toBeLessThanOrEqual(120);
+  });
+
+  test("råa valideringsfel visas inte för användaren", () => {
+    const rawValidationError = new Error(
+      '[{"code":"too_big","maximum":120,"message":"String must contain at most 120 character(s)","path":["centers",1,"id"]}]',
+    );
+
+    expect(providerMessage(rawValidationError)).toBe(
+      "Kunde inte genomföra sökningen. Försök igen.",
     );
   });
 });

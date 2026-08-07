@@ -6,6 +6,24 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_28_0_CHANGELOG: ChangelogEntry = {
+  version: "1.28.0",
+  date: "2026-08-07",
+  summary:
+    "Lägg till ställen får tydligare geografi och intelligent sökning efter namn, kök och typ.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Sökflödet etablerar valda sökområden före matställessökningen och behåller områden samt radie som ett tydligt gemensamt scope.",
+        "Kända kök, inriktningar och typer som sushi, pasta och café tolkas semantiskt i stället för att enbart matchas mot verksamhetsnamn.",
+        "Matställessökningen kan skilja generella köks- och typförslag från specifika verksamheter utan att ett platsval ändrar sökområdet.",
+        "Exempel- och demoläget använder samma sökintent med deterministiska lokala matställen och utan externa provideranrop.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_27_1_CHANGELOG: ChangelogEntry = {
   version: "1.27.1",
   date: "2026-08-07",
@@ -62,7 +80,7 @@ const VERSION_1_26_4_CHANGELOG: ChangelogEntry = {
     {
       kind: "Rättat",
       items: [
-        "Nya breda kommun-, läns-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
+        "Nya breda kommun-, län-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
         "Besöksfoton skyddas åter av en privat Storage-bucket med högst 1,5 MB och endast JPEG.",
       ],
     },
@@ -104,6 +122,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_28_0_CHANGELOG,
   VERSION_1_27_1_CHANGELOG,
   VERSION_1_27_0_CHANGELOG,
   VERSION_1_26_5_CHANGELOG,

@@ -6,6 +6,7 @@
  */
 
 import { normalizeFoodTags } from "./food-tags";
+import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
 import type { PlaceCategory, SearchArea } from "./types";
 
 export interface PlaceSuggestion {
@@ -129,7 +130,7 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     address: "Lyktgatan 9",
     area: "Vasastan",
     city: "Göteborg",
-    cuisines: ["japanskt", "smårätter"],
+    cuisines: ["japanskt", "sushi", "smårätter"],
     lat: 57.6978,
     lng: 11.9641,
   },
@@ -229,6 +230,30 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     lng: 12.9989,
   },
   {
+    externalId: "demo-12",
+    provider: "demo",
+    name: "Päronträdets Trattoria Haga",
+    category: "restaurang",
+    address: "Hagagatan 18",
+    area: "Haga",
+    city: "Göteborg",
+    cuisines: ["italienskt", "pasta"],
+    lat: 57.6992,
+    lng: 11.9562,
+  },
+  {
+    externalId: "demo-13",
+    provider: "demo",
+    name: "Pizzagläntan",
+    category: "restaurang",
+    address: "Gläntstigen 3",
+    area: "Haga",
+    city: "Göteborg",
+    cuisines: ["italienskt", "pizza"],
+    lat: 57.7002,
+    lng: 11.9569,
+  },
+  {
     externalId: "demo-existing-kardemumma",
     provider: "demo",
     name: "Kvarterets Kardemumma",
@@ -248,7 +273,7 @@ const demoProvider: PlacesProvider = {
     await new Promise((resolve) => setTimeout(resolve, 220));
     if (!suppliedCenter && !city.trim()) return [];
 
-    const normalizedQuery = (query ?? "").trim().toLocaleLowerCase("sv-SE");
+    const intent = resolvePlaceSearchIntent(query);
     const normalizedArea = (area ?? "").trim().toLocaleLowerCase("sv-SE");
     const center = suppliedCenter ?? centerFor(city, area);
     const normalizedSuggestions = DEMO_SUGGESTIONS.map((suggestion) => ({
@@ -270,17 +295,8 @@ const demoProvider: PlacesProvider = {
       );
     }
 
-    if (normalizedQuery) {
-      items = items.filter(
-        (suggestion) =>
-          suggestion.name.toLocaleLowerCase("sv-SE").includes(normalizedQuery) ||
-          suggestion.category.toLocaleLowerCase("sv-SE").includes(normalizedQuery) ||
-          suggestion.cuisines?.some((cuisine) =>
-            cuisine.toLocaleLowerCase("sv-SE").includes(normalizedQuery),
-          ) ||
-          suggestion.address.toLocaleLowerCase("sv-SE").includes(normalizedQuery) ||
-          suggestion.area?.toLocaleLowerCase("sv-SE").includes(normalizedQuery),
-      );
+    if (intent.kind !== "browse") {
+      items = items.filter((suggestion) => matchesPlaceSearchIntent(suggestion, intent));
     }
 
     const withDistance = items.map((suggestion) => ({
