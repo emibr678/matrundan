@@ -6,6 +6,22 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_27_0_CHANGELOG: ChangelogEntry = {
+  version: "1.27.0",
+  date: "2026-08-07",
+  summary: "Platskandidater känns igen tydligare före och efter att de läggs till.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Sökresultat och tillagda matställen använder samma visuella platsidentitet utan att blanda ihop vyernas olika uppgifter.",
+        "Kandidatkort prioriterar namn, kategori, läge, adress och tillgänglig praktisk information i en mobilvänlig hierarki.",
+        "Webbplats, platsval och tillägg är separata tryckytor, medan öppettider bara markeras när leverantören faktiskt har sådan data.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_26_5_CHANGELOG: ChangelogEntry = {
   version: "1.26.5",
   date: "2026-08-06",
@@ -72,6 +88,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_27_0_CHANGELOG,
   VERSION_1_26_5_CHANGELOG,
   VERSION_1_26_4_CHANGELOG,
   VERSION_1_26_3_CHANGELOG,
