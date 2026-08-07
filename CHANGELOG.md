@@ -14,6 +14,20 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.27.0] – 2026-08-07
+
+### Ändrat
+
+- Sökresultat och tillagda matställen använder samma visuella platsidentitet
+  utan att blanda ihop vyernas olika uppgifter.
+- Kandidatkort prioriterar namn, kategori, läge, adress och tillgänglig praktisk
+  information i en mobilvänlig hierarki.
+- Webbplats, platsval och tillägg är separata tryckytor. Öppettider markeras bara
+  när leverantören faktiskt har sådan data; kortet gissar inte öppet eller
+  stängt.
+- Exempeldata och mobiltest täcker lång adress, saknad metadata,
+  tangentbordsnavigation och 360 px utan horisontell overflow.
+
 ## [1.26.5] – 2026-08-06
 
 ### Rättat
