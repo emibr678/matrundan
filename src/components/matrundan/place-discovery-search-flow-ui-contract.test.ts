@@ -27,10 +27,18 @@ describe("Lägg till ställens sökflöde", () => {
     expect(areaControlsSource).not.toContain("Lägg till område eller adress</span>");
   });
 
-  test("använder avståndscopy och beskrivande aria-label", () => {
-    expect(areaControlsSource).toContain("Avstånd ${value} km");
-    expect(areaControlsSource).toContain("Avstånd runt adresser och platser");
-    expect(areaControlsSource).not.toContain("inom ${value} km");
+  test("använder sökavståndscopy och beskrivande aria-label", () => {
+    expect(areaControlsSource).toContain("Sök inom ${value} km");
+    expect(areaControlsSource).toContain("Sökavstånd runt valda platser");
+    expect(areaControlsSource).not.toContain("Avstånd ${value} km");
+  });
+
+  test("behåller resultatytan vid omladdning och visar diskret status", () => {
+    expect(discoverySource).toContain("isReloadingResults");
+    expect(discoverySource).toContain("isInitialSearchLoading");
+    expect(discoverySource).toContain('aria-live="polite"');
+    expect(discoverySource).toContain("Söker…");
+    expect(discoverySource).not.toContain("loading || hiddenLoading ?");
   });
 
   test("skiljer generella typer från specifika matställen i autocomplete", () => {

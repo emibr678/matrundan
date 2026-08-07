@@ -15,10 +15,11 @@ const VERSION_1_28_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Förbättrat",
       items: [
-        "Sök i visar geografifältet före valda områden och beskriver punktavståndet som Avstånd X km.",
+        "Sök i visar geografifältet före valda områden och beskriver punktavståndet som Sök inom X km.",
         "Kända kök, inriktningar och typer som sushi, pasta och café tolkas semantiskt i stället för att enbart matchas mot verksamhetsnamn.",
         "Matställessökningen kan skilja generella köks- och typförslag från specifika verksamheter utan att ett platsval ändrar sökområdet.",
-        "Sökresultat visas i mindre omgångar om upp till 20 träffar och kan utökas med Visa fler utan att redan visade resultat försvinner.",
+        "En ny sökning behåller redan visade träffar medan den laddar och visar en diskret status i stället för att tömma resultatytan.",
+        "Sökresultat visas i mindre omgångar om upp till 20 träffar och Visa fler lägger till nya träffar sist utan att kasta om redan visade.",
         "Kortlivad återanvändning av identiska provideranrop minskar onödiga Geoapify-anrop utan långlivad klientcache.",
         "Exempel- och demoläget använder samma sökintent med deterministiska lokala matställen och utan externa provideranrop.",
       ],

@@ -333,6 +333,9 @@ export function PlaceDiscoveryV16({
   );
   const bufferedRemaining = Math.max(0, filteredResults.length - visibleResults.length);
   const canShowMore = bufferedRemaining > 0 || hasMore;
+  const searchInFlight = loading || hiddenLoading;
+  const isReloadingResults = searchInFlight && visibleResults.length > 0;
+  const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
 
   const showMoreResults = React.useCallback(async () => {
     if (bufferedRemaining > 0) {
@@ -549,7 +552,7 @@ export function PlaceDiscoveryV16({
 
       {activeAreas.length === 0 ? (
         <Empty text="Sök och välj minst ett sökområde." />
-      ) : loading || hiddenLoading ? (
+      ) : isInitialSearchLoading ? (
         <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
         </div>
@@ -568,6 +571,15 @@ export function PlaceDiscoveryV16({
         </div>
       ) : (
         <>
+          {isReloadingResults ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex min-h-6 items-center gap-2 text-xs text-muted-foreground"
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Söker…
+            </div>
+          ) : null}
           {failedAreas.length > 0 ? (
             <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
               Kunde inte söka i {failedAreas.join(", ")}. Övriga resultat visas.

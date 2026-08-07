@@ -127,7 +127,7 @@ function InlineSearchRadius({
     >
       <SelectTrigger
         id="place-radius"
-        aria-label="Avstånd runt adresser och platser"
+        aria-label="Sökavstånd runt valda platser"
         className="h-8 w-auto shrink-0 gap-1 rounded-full border-border/60 bg-muted/50 px-2.5 text-xs font-normal text-muted-foreground"
       >
         <SelectValue />
@@ -135,7 +135,7 @@ function InlineSearchRadius({
       <SelectContent>
         {SEARCH_RADIUS_OPTIONS.map((value) => (
           <SelectItem key={value} value={String(value)}>
-            {`Avstånd ${value} km`}
+            {`Sök inom ${value} km`}
           </SelectItem>
         ))}
       </SelectContent>
