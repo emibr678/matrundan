@@ -121,6 +121,12 @@ export function PlaceDiscoveryV16({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(snapshot?.error ?? null);
   const [retry, setRetry] = React.useState(0);
+  const [displayLimit, setDisplayLimit] = React.useState(
+    snapshot?.displayLimit ?? RESULT_PAGE_SIZE,
+  );
+  const [hasMore, setHasMore] = React.useState(snapshot?.hasMore ?? false);
+  const [nextOffset, setNextOffset] = React.useState(snapshot?.nextOffset ?? 0);
+  const [loadingMore, setLoadingMore] = React.useState(false);
   const requestRef = React.useRef(0);
   const previousBulkBusyRef = React.useRef(false);
   const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
@@ -139,12 +145,18 @@ export function PlaceDiscoveryV16({
       existingOpen,
       bulkMode,
       error,
+      displayLimit,
+      hasMore,
+      nextOffset,
     });
   }, [
     bulkMode,
+    displayLimit,
     error,
     existingOpen,
     failedAreas,
+    hasMore,
+    nextOffset,
     onSnapshotChange,
     query,
     radiusKm,
@@ -154,6 +166,7 @@ export function PlaceDiscoveryV16({
     selectedId,
     temporaryAreas,
   ]);
+
 
   const activeAreas = React.useMemo(() => {
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
