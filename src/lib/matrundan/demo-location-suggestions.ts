@@ -103,9 +103,24 @@ export function demoAutocompleteLocations(
   const contextLabel = parts[1] ?? fallbackCity;
   const broad = /(^region\s|\s(?:kommun|län|region)$)/iu.test(primaryLabel);
   const address = /\d/u.test(primaryLabel);
-  const kindLabel = broad ? (primaryLabel.endsWith("län") ? "Län" : "Kommun") : address ? "Adress" : "Ort";
-  const resultType = broad ? (primaryLabel.endsWith("län") ? "county" : "municipality") : address ? "building" : "city";
-  const label = contextLabel && contextLabel !== primaryLabel ? `${primaryLabel}, ${contextLabel}` : primaryLabel;
+  const kindLabel = broad
+    ? primaryLabel.endsWith("län")
+      ? "Län"
+      : "Kommun"
+    : address
+      ? "Adress"
+      : "Ort";
+  const resultType = broad
+    ? primaryLabel.endsWith("län")
+      ? "county"
+      : "municipality"
+    : address
+      ? "building"
+      : "city";
+  const label =
+    contextLabel && contextLabel !== primaryLabel
+      ? `${primaryLabel}, ${contextLabel}`
+      : primaryLabel;
 
   return [
     {
