@@ -30,6 +30,13 @@ function toLocationSuggestion(row: NormalizedLocationSuggestion): LocationSugges
   };
 }
 
+function matchesDemoInputExactly(suggestion: LocationSuggestion, value: string): boolean {
+  const query = value.trim().toLocaleLowerCase("sv-SE");
+  return [suggestion.primaryLabel, suggestion.label].some(
+    (candidate) => candidate.trim().toLocaleLowerCase("sv-SE") === query,
+  );
+}
+
 /**
  * Val-baserat autocomplete-fält för verifierade sökområden.
  *
@@ -159,7 +166,10 @@ export function GeoapifyLocationInput({
       const demoSuggestion = demoMode
         ? demoAutocompleteLocations(value, demoFallbackCity, 6)
             .map(toLocationSuggestion)
-            .find((suggestion) => !suggestion.blocked)
+            .find(
+              (suggestion) =>
+                !suggestion.blocked && matchesDemoInputExactly(suggestion, value),
+            )
         : undefined;
       const suggestion = activeSuggestion ?? demoSuggestion;
       if (suggestion && !suggestion.blocked) {
