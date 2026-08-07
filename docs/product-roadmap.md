@@ -93,15 +93,15 @@ produktproblem visar att beslutet behöver ändras.
 
 ## Aktuellt arbete
 
-Den tidigare driftgrinden **#142 Nygenererad öppen inbjudningslänk behandlas som
-redan använd** genomfördes i v1.26.5. Det pågående arbetet är **#108 Gemensamt
-visuellt språk för platskandidater och tillagda matställen**. Därefter prioriteras
-**Paket B – Sök och geografi** omedelbart, före återstående frågor i Paket A,
-eftersom paketet löser observerade problem i det centrala flödet för att hitta
-och lägga till matställen.
+Driftgrinderna **#142 Nygenererad öppen inbjudningslänk behandlas som redan
+använd** och **#137 Återställ produktionsvakter för sökområden och besöksfoton**
+är genomförda i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
+platskandidater och tillagda matställen** genomfördes i v1.27.0.
 
-Den tidigare driftgrinden **#137 Återställ produktionsvakter för sökområden och
-besöksfoton** genomfördes i v1.26.4.
+**Paket B – Sök och geografi** är nu aktivt. Första steget **#147 Visa naturliga
+svenska etiketter för geografiska sökträffar** genomförs i v1.27.1. Därefter är
+**#148 Gör Lägg till ställen begripligt med Sök i före intelligent
+matställessökning** nästa steg.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -109,8 +109,8 @@ besöksfoton** genomfördes i v1.26.4.
 
 Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
 kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
-Efter det redan pågående #108 går arbetet till Paket B innan återstående delar av
-Paket A tas upp igen.
+Efter #108 går arbetet till Paket B innan återstående delar av Paket A tas upp
+igen.
 
 Intern ordning när Paket A återupptas:
 
@@ -118,10 +118,10 @@ Intern ordning när Paket A återupptas:
    Gör exempelgruppen till en liten, representativ och löpande underhållen
    produktfixture. Genomförd i v1.26.3 via #138. Nya större funktioner ska
    bedöma behovet av nya exempeldata och regressionsscenarier.
-2. **#108 Gemensamt visuellt språk för platskandidater och tillagda
+2. ✅ **#108 Gemensamt visuellt språk för platskandidater och tillagda
    matställen**  
    Återanvänd platsidentitet och visuell hierarki utan att göra sökresultat och
-   detaljvy innehållsmässigt identiska.
+   detaljvy innehållsmässigt identiska. Genomförd i v1.27.0 via #151.
 3. **#104 Tydligare informationsarkitektur i gruppinställningarna**  
    Organisera gruppytan efter konkreta uppgifter och separera gruppspecifikt
    innehåll från personliga app- och kontoinställningar.
@@ -138,7 +138,7 @@ Intern ordning när Paket A återupptas:
 
 ## Paket B – Sök och geografi
 
-**Prioritet:** `priority:now`, närmast efter pågående #108
+**Prioritet:** `priority:now`
 
 Paketet löser observerade problem i det centrala flödet för att hitta och lägga
 till matställen. Användaren ska först förstå **var** gruppen söker och därefter
@@ -147,9 +147,10 @@ matställessökningen ska vara tolerant och hjälpsam utan att dölja sitt scope
 
 Rekommenderad ordning:
 
-1. **#147 Visa naturliga svenska etiketter för geografiska sökträffar**  
+1. ✅ **#147 Visa naturliga svenska etiketter för geografiska sökträffar**  
    Ersätt rå providertext som `Stavsnäs, AB` med begripligt namn, resulttyp och
    relevant geografisk kontext utan att ändra den underliggande punktmodellen.
+   Genomförd i v1.27.1.
 2. **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
    matställessökning**  
    Visa valda områden först som tydliga pills och sök därefter efter namn, kök
