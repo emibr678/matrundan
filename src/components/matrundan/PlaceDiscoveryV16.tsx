@@ -1,5 +1,7 @@
 import * as React from "react";
 import { Check, List, Loader2, Map, Search } from "lucide-react";
+import { toast } from "sonner";
+
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
 import { SearchAreaControlsV16 } from "./SearchAreaControlsV16";
 import { SearchResultSectionsV16, type SourceMatchResult } from "./SearchResultSectionsV16";
