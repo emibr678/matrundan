@@ -166,10 +166,7 @@ export function GeoapifyLocationInput({
       const demoSuggestion = demoMode
         ? demoAutocompleteLocations(value, demoFallbackCity, 6)
             .map(toLocationSuggestion)
-            .find(
-              (suggestion) =>
-                !suggestion.blocked && matchesDemoInputExactly(suggestion, value),
-            )
+            .find((suggestion) => !suggestion.blocked && matchesDemoInputExactly(suggestion, value))
         : undefined;
       const suggestion = activeSuggestion ?? demoSuggestion;
       if (suggestion && !suggestion.blocked) {
