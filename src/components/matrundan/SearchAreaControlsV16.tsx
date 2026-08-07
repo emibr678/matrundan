@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { transientSearchAreaId } from "@/lib/matrundan/add-place-v16-utils";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import { SEARCH_RADIUS_OPTIONS } from "@/lib/matrundan/search-areas";
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
@@ -182,7 +181,7 @@ export function SearchAreaControlsV16({
 
   function addVerifiedArea(value: VerifiedHomeLocation) {
     addArea({
-      id: transientSearchAreaId("temporary", value.lat, value.lng),
+      id: `temporary-${value.placeId}`,
       label: value.label,
       lat: value.lat,
       lng: value.lng,

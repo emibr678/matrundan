@@ -26,15 +26,7 @@ export function providerMessage(error: unknown) {
   if (/GEOAPIFY_|network|fetch/i.test(message)) {
     return "Kunde inte nå platstjänsten just nu. Försök igen strax.";
   }
-  return "Kunde inte genomföra sökningen. Försök igen.";
-}
-
-export function transientSearchAreaId(
-  kind: "temporary" | "legacy",
-  lat: number,
-  lng: number,
-): string {
-  return `${kind}-${lat.toFixed(6)}-${lng.toFixed(6)}`;
+  return message;
 }
 
 export function emptyManualPlace(city: string): ManualPlaceDraft {
@@ -131,7 +123,7 @@ export function configuredSearchAreas(state: AppState, isLive: boolean): SearchA
   ) {
     return [
       {
-        id: transientSearchAreaId("legacy", home.lat, home.lng),
+        id: `legacy-${home.placeId}`,
         label: home.label,
         lat: home.lat,
         lng: home.lng,

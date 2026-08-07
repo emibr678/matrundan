@@ -12,12 +12,19 @@ import {
   type NormalizedLocationSuggestion,
   type NormalizedPlaceSuggestion,
 } from "./geoapify-normalize";
-import {
-  geoapifyCategoriesForPlaceSearchIntent,
-  geoapifyNameQueryForPlaceSearchIntent,
-  hasStructuredGeoapifyMapping,
-} from "./geoapify-place-search";
-import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
+
+const CATEGORIES = [
+  "catering.restaurant",
+  "catering.fast_food",
+  "catering.food_court",
+  "catering.cafe",
+  "catering.pub",
+  "catering.bar",
+  "catering.biergarten",
+  "catering.taproom",
+  "catering.ice_cream",
+  "commercial.food_and_drink.bakery",
+].join(",");
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const WIDE_AREA_RADIUS_KM = 50;
@@ -88,6 +95,47 @@ async function callGeoapify(url: URL): Promise<{ features?: unknown[] }> {
   }
 }
 
+function likelyPlaceName(text: string): boolean {
+  const value = text.trim();
+  if (!value || value.length < 3 || value.length > 80) return false;
+  const generic = new Set([
+    "restaurang",
+    "café",
+    "cafe",
+    "fika",
+    "pizza",
+    "pizzeria",
+    "sushi",
+    "burgare",
+    "burger",
+    "pub",
+    "bar",
+    "bageri",
+    "snabbmat",
+    "thai",
+    "indiskt",
+    "italienskt",
+    "japanskt",
+    "kinesiskt",
+    "vegetariskt",
+  ]);
+  return !generic.has(value.toLowerCase());
+}
+
+function searchableText(place: NormalizedPlaceSuggestion): string {
+  return [place.name, place.category, ...place.cuisines, place.address, place.area, place.city]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase("sv-SE");
+}
+
+function matchesQuery(place: NormalizedPlaceSuggestion, query: string): boolean {
+  const terms = query.trim().toLocaleLowerCase("sv-SE").split(/\s+/).filter(Boolean);
+  if (!terms.length) return true;
+  const haystack = searchableText(place);
+  return terms.every((term) => haystack.includes(term));
+}
+
 async function searchPlacesAtCenter(input: {
   text?: string;
   lat: number;
@@ -96,20 +144,18 @@ async function searchPlacesAtCenter(input: {
   limit?: number;
 }): Promise<NormalizedPlaceSuggestion[]> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
-  const intent = resolvePlaceSearchIntent(input.text);
-  const requestedLimit =
-    intent.kind === "browse"
-      ? DISCOVERY_RESULT_LIMIT
-      : Math.min(input.limit ?? 30, DISCOVERY_RESULT_LIMIT);
+  const query = input.text?.trim() ?? "";
+  const requestedLimit = query
+    ? Math.min(input.limit ?? 30, DISCOVERY_RESULT_LIMIT)
+    : DISCOVERY_RESULT_LIMIT;
 
   const url = new URL("https://api.geoapify.com/v2/places");
-  url.searchParams.set("categories", geoapifyCategoriesForPlaceSearchIntent(intent).join(","));
+  url.searchParams.set("categories", CATEGORIES);
   url.searchParams.set("filter", `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`);
   url.searchParams.set("bias", `proximity:${input.lng},${input.lat}`);
   url.searchParams.set("lang", "sv");
   url.searchParams.set("limit", String(DISCOVERY_RESULT_LIMIT));
-  const nameQuery = geoapifyNameQueryForPlaceSearchIntent(intent);
-  if (nameQuery) url.searchParams.set("name", nameQuery);
+  if (query && likelyPlaceName(query)) url.searchParams.set("name", query);
   url.searchParams.set("apiKey", readKey());
 
   const json = await callGeoapify(url);
@@ -119,9 +165,7 @@ async function searchPlacesAtCenter(input: {
     const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
     if (!place || seen.has(place.externalId)) continue;
     seen.add(place.externalId);
-
-    const providerAlreadyAppliedIntent = hasStructuredGeoapifyMapping(intent);
-    if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) continue;
+    if (query && !matchesQuery(place, query)) continue;
     normalized.push(place);
   }
 

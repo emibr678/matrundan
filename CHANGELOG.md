@@ -14,19 +14,6 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
-## [1.28.0] – 2026-08-07
-
-### Ändrat
-
-- Lägg till ställen etablerar valda sökområden före matställessökningen och
-  håller områden samt gemensam radie synliga som sökningens geografiska scope.
-- Kända kök, inriktningar och typer som sushi, pasta och café tolkas semantiskt
-  i stället för att enbart matchas mot verksamhetsnamn.
-- Matställessökningen skiljer generella köks- och typförslag från specifika
-  verksamheter utan att ett verksamhetsval ändrar sökområde eller radie.
-- Exempel- och demoläget använder samma sökintent med deterministiska lokala
-  matställen och utan externa provideranrop.
-
 ## [1.27.1] – 2026-08-07
 
 ### Rättat
@@ -69,7 +56,7 @@ Inga ändringar ännu.
 
 ### Rättat
 
-- Nya breda kommun-, län-, region- och landsområden blockeras åter av
+- Nya breda kommun-, läns-, region- och landsområden blockeras åter av
   servern innan gruppens befintliga sökområden ersätts.
 - Befintliga breda sökområden kan ligga kvar oförändrade tills gruppen väljer
   ett mer precist område.

@@ -53,7 +53,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(dialog).toBeVisible();
 
-  const radius = dialog.getByRole("combobox", { name: "Sökradie", exact: true });
+  const radius = dialog.getByRole("combobox");
   await radius.click();
   await page.getByRole("option", { name: "Inom 10 km" }).click();
   await expect(radius).toContainText("Inom 10 km");
@@ -137,7 +137,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const reopened = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await reopened.getByRole("combobox", { name: "Sökradie", exact: true }).click();
+  await reopened.getByRole("combobox").click();
   await page.getByRole("option", { name: "Inom 10 km" }).click();
 
   const reopenedExisting = existingSection(reopened, initialExistingCount + 2);
