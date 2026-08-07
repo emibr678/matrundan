@@ -23,8 +23,7 @@ const SIZE_CLASS = {
   sm: "h-11 w-11 text-2xl",
   md: "h-14 w-14 text-3xl",
   lg: "h-20 w-20 text-4xl",
-  detail:
-    "-top-0.5 h-16 w-16 text-3xl min-[390px]:h-20 min-[390px]:w-20 min-[390px]:text-4xl",
+  detail: "-top-0.5 h-16 w-16 text-3xl min-[390px]:h-20 min-[390px]:w-20 min-[390px]:text-4xl",
 } as const;
 
 export type PlaceIdentityMarkSize = keyof typeof SIZE_CLASS;
