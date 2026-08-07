@@ -153,7 +153,7 @@ export function toPlaceSuggestion(row: MultiAreaPlaceSuggestion): PlaceSuggestio
     raw: row.raw,
     nearestAreaLabel: row.nearestAreaLabel,
     matchingAreaLabels: row.matchingAreaLabels,
-  } as PlaceSuggestion & { hasOpeningHours: boolean };
+  };
 }
 
 export function safeParse(raw?: string): unknown {
