@@ -86,29 +86,41 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await page.setViewportSize({ width: 360, height: 520 });
   const searchDialog = await openPlaceSearch(page);
   const candidate = placeSuggestionButton(searchDialog);
-  const candidateContent = candidate.locator("..");
 
-  await expect(candidate.locator('[data-slot="place-identity-mark"]')).toBeVisible();
-  await expect(candidateContent.getByText("Öppettider finns", { exact: true })).toBeVisible();
-  const websiteLink = searchDialog.getByRole("link", {
-    name: `Öppna webbplatsen för ${PLACE_NAME}`,
-  });
-  await expect(websiteLink).toHaveAttribute("href", "https://parontradets.example/");
-  await expectNoHorizontalOverflow(page, "Platskandidat med lång adress");
-
-  await websiteLink.evaluate((element) => {
-    element.addEventListener("click", (event) => event.preventDefault(), { once: true });
-    (element as HTMLAnchorElement).click();
-  });
-  await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toHaveCount(0);
+  await expect(candidate.locator('[data-slot="place-identity-mark"]')).toHaveCount(0);
+  await expect(
+    searchDialog.getByRole("link", { name: `Öppna webbplatsen för ${PLACE_NAME}` }),
+  ).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Kompakt sökresultat");
 
   await candidate.focus();
   await page.keyboard.press("Enter");
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
   await expect(
+    detailsDialog.getByTestId("pending-place-identity-grid").locator('[data-slot="place-identity-mark"]'),
+  ).toBeVisible();
+  await expect(detailsDialog.getByText("Finns i kartdatan", { exact: true })).toBeVisible();
+
+  const websiteLink = detailsDialog.getByRole("link", {
+    name: `Öppna webbplatsen för ${PLACE_NAME}`,
+  });
+  await expect(websiteLink).toHaveAttribute("href", "https://parontradets.example/");
+  await websiteLink.evaluate((element) => {
+    element.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    (element as HTMLAnchorElement).click();
+  });
+  await expect(detailsDialog).toBeVisible();
+
+  await expect(
     detailsDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
   ).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("button", { name: "Föreslå som nästa stopp", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    detailsDialog.getByRole("button", { name: "Registrera besök", exact: true }),
+  ).toHaveCount(0);
   await expect(
     detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }),
   ).toBeVisible();
