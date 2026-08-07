@@ -2,6 +2,7 @@ import {
   FOOD_TAGS,
   FOOD_TAG_GROUP_LABEL,
   findFoodTag,
+  findFoodTags,
   foodTagSearchValue,
   type FoodTagDefinition,
 } from "./food-tags";
@@ -27,12 +28,21 @@ export interface GenericPlaceSearchSuggestion {
   searchValue: string;
 }
 
+export interface SearchablePlaceSuggestion {
+  name: string;
+  category: PlaceCategory;
+  cuisines?: readonly string[];
+  address?: string;
+  area?: string;
+  city?: string;
+}
+
 const CATEGORY_SEARCH_DEFINITIONS: Array<{
   category: PlaceCategory;
   aliases: string[];
 }> = [
   { category: "restaurang", aliases: ["restaurang", "restauranger"] },
-  { category: "café", aliases: ["café", "cafe", "caféer", "caféer"] },
+  { category: "café", aliases: ["café", "cafe", "caféer"] },
   { category: "bageri", aliases: ["bageri", "bagerier"] },
   { category: "snabbmat", aliases: ["snabbmat", "fast food", "fastfood"] },
   { category: "pub", aliases: ["pub", "pubar"] },
@@ -82,6 +92,35 @@ export function resolvePlaceSearchIntent(value: string | undefined): PlaceSearch
   }
 
   return { kind: "text", query };
+}
+
+export function matchesPlaceSearchIntent(
+  place: SearchablePlaceSuggestion,
+  intent: PlaceSearchIntent,
+): boolean {
+  if (intent.kind === "browse") return true;
+  if (intent.kind === "category") return place.category === intent.category;
+  if (intent.kind === "food-tag") {
+    return (place.cuisines ?? []).some((cuisine) =>
+      findFoodTags(cuisine).some((tag) => tag.id === intent.tagId),
+    );
+  }
+
+  const terms = normalize(intent.query).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const haystack = normalize(
+    [
+      place.name,
+      CATEGORY_LABEL[place.category],
+      ...(place.cuisines ?? []),
+      place.address,
+      place.area,
+      place.city,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+  return terms.every((term) => haystack.includes(term));
 }
 
 function scoreSuggestion(searchValue: string, query: string): number | null {
