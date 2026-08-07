@@ -93,11 +93,14 @@ produktproblem visar att beslutet behöver ändras.
 
 ## Aktuell driftgrind
 
-**#137 Återställ produktionsvakter för sökområden och besöksfoton** har
-`priority:now` och ska genomföras före nästa produktfeature. Korrigeringen ska
-återställa server- och Storage-invariants utan att spela om historiskt saknade
-migrationer eller skriva över befintlig data. Efter verifierad implementation,
+**#142 Nygenererad öppen inbjudningslänk behandlas som redan använd** har
+`priority:now` och ska korrigeras före nästa produktfeature. Nya öppna länkar
+ska kunna användas av flera personer tills de återkallas eller går ut, medan
+e-postbundna inbjudningar förblir engångslänkar. Efter verifierad implementation,
 merge och separat databasdriftsättning fortsätter Paket A med #108.
+
+Den tidigare driftgrinden **#137 Återställ produktionsvakter för sökområden och
+besöksfoton** genomfördes i v1.26.4.
 
 ## Paket A – Grundplatta och konsekvens
 

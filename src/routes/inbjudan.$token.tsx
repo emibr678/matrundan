@@ -90,8 +90,8 @@ function InvitePage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Du har blivit inbjuden till en privat matställeslista.
               {preview.email_bound
-                ? " Inbjudan är knuten till en specifik e-postadress – logga in med rätt e-postadress."
-                : ""}
+                ? " Inbjudan är knuten till en specifik e-postadress och kan användas en gång – logga in med rätt e-postadress."
+                : " Den öppna länken kan användas av flera personer tills den går ut eller återkallas."}
             </p>
 
             <div className="mt-5 space-y-2">

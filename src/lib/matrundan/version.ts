@@ -6,6 +6,22 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_26_5_CHANGELOG: ChangelogEntry = {
+  version: "1.26.5",
+  date: "2026-08-06",
+  summary: "Öppna inbjudningslänkar kan användas av flera personer tills de stängs.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Nya öppna inbjudningslänkar kan användas av flera personer tills de återkallas eller går ut.",
+        "E-postbundna inbjudningar förblir engångslänkar för den angivna adressen.",
+        "Redan aktiva medlemmar skapar varken dubbla medlemskap eller nya anslutningshändelser när de öppnar länken igen.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_26_4_CHANGELOG: ChangelogEntry = {
   version: "1.26.4",
   date: "2026-08-06",
@@ -56,6 +72,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_26_5_CHANGELOG,
   VERSION_1_26_4_CHANGELOG,
   VERSION_1_26_3_CHANGELOG,
   VERSION_1_26_2_CHANGELOG,

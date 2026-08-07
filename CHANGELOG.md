@@ -14,6 +14,18 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.26.5] – 2026-08-06
+
+### Rättat
+
+- Nya öppna inbjudningslänkar kan användas av flera personer tills länken
+  återkallas eller går ut.
+- E-postbundna inbjudningar förblir engångslänkar för den angivna adressen.
+- Aktiva medlemmar kan öppna länken igen utan dubbelt medlemskap eller en ny
+  anslutningshändelse.
+- Tidigare använda, återkallade eller utgångna äldre länkar återaktiveras inte
+  av migrationen.
+
 ## [1.26.4] – 2026-08-06
 
 ### Rättat
