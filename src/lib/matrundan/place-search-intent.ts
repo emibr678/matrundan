@@ -1,6 +1,5 @@
 import {
   FOOD_TAGS,
-  FOOD_TAG_GROUP_LABEL,
   findFoodTag,
   findFoodTags,
   foodTagSearchValue,
@@ -153,7 +152,7 @@ export function genericPlaceSearchSuggestions(
               kind: "food-tag" as const,
               id: tag.id,
               label: tag.label,
-              groupLabel: FOOD_TAG_GROUP_LABEL[tag.group],
+              groupLabel: tag.group === "cuisine" ? ("Kök" as const) : ("Inriktning" as const),
               searchValue,
             },
           },
