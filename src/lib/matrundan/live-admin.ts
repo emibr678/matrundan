@@ -45,7 +45,7 @@ export interface InvitationPreview {
   group_emoji?: string | null;
   expires_at?: string;
   email_bound?: boolean;
-  is_multi_use: boolean;
+  is_multi_use?: boolean;
 }
 
 export async function getInvitationPreview(token: string): Promise<InvitationPreview> {
