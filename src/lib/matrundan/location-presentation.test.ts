@@ -12,8 +12,8 @@ describe("svensk geografisk presentation", () => {
       resolveLocationPresentation({
         name: "Stavsnäs",
         formatted: "Stavsnäs, AB",
-        municipality: "Värmdö kommun",
-        county: "Stockholms län",
+        county: "Värmdö kommun",
+        state: "Stockholms län",
         result_type: "city",
       }),
     ).toEqual({
@@ -27,8 +27,8 @@ describe("svensk geografisk presentation", () => {
     const presentation = resolveLocationPresentation({
       name: "Värmdö kommun",
       formatted: "Värmdö kommun, AB",
-      municipality: "Värmdö kommun",
-      county: "Stockholms län",
+      county: "Värmdö kommun",
+      state: "Stockholms län",
       result_type: "city",
     });
 
@@ -37,9 +37,7 @@ describe("svensk geografisk presentation", () => {
       secondaryLabel: "Kommun · Stockholms län",
       selectionLabel: "Värmdö kommun, Stockholms län",
     });
-    expect(
-      isBroadAdministrativeSearchArea("city", presentation?.selectionLabel),
-    ).toBe(true);
+    expect(isBroadAdministrativeSearchArea("city", presentation?.selectionLabel)).toBe(true);
   });
 
   test("gatuadress använder verifierad gata och ort utan konstruerad adress", () => {
@@ -48,7 +46,8 @@ describe("svensk geografisk presentation", () => {
         street: "Skärgårdsvägen",
         housenumber: "8",
         city: "Gustavsberg",
-        municipality: "Värmdö kommun",
+        county: "Värmdö kommun",
+        state: "Stockholms län",
         formatted: "Skärgårdsvägen 8, 134 30 Gustavsberg, Sverige",
         result_type: "building",
       }),
@@ -78,8 +77,8 @@ describe("svensk geografisk presentation", () => {
         place_id: "geoapify-stavnas",
         name: "Stavsnäs",
         formatted: "Stavsnäs, AB",
-        municipality: "Värmdö kommun",
-        county: "Stockholms län",
+        county: "Värmdö kommun",
+        state: "Stockholms län",
         result_type: "city",
         lat: 59.287,
         lon: 18.692,
