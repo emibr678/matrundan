@@ -5,17 +5,20 @@ async function openDemo(page: import("@playwright/test").Page) {
   await expect(page.getByRole("heading", { name: "Matställen" })).toBeVisible();
 }
 
+async function openSearchDialog(page: import("@playwright/test").Page) {
+  const addPlace = page.getByRole("button", { name: /lägg till ställe/i }).first();
+  await expect(addPlace).toBeVisible();
+  await addPlace.click();
+  await expect(page.getByText("Sökområden", { exact: true })).toBeVisible();
+}
+
 test("flera sökområden använder kompakta chips utan horisontell overflow på 360 px", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await openDemo(page);
+  await openSearchDialog(page);
 
-  const addPlace = page.getByRole("button", { name: /lägg till ställe/i }).first();
-  await expect(addPlace).toBeVisible();
-  await addPlace.click();
-
-  await expect(page.getByText("Sökområden", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /annan plats/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /använd platsen/i })).toHaveCount(0);
   await expect(
@@ -95,6 +98,34 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   });
   await expect(map).toHaveAttribute("data-map-icon-renderer", "canvas");
   await expect(map).toHaveAttribute("data-map-point-visual", "category-icon");
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test("geografisk autocomplete behåller svensk hierarki utan overflow på desktopbredd", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await openDemo(page);
+  await openSearchDialog(page);
+
+  const areaInput = page.getByRole("combobox", { name: "Sökområden", exact: true });
+  await areaInput.fill("Skärgårdsvägen 8");
+
+  const address = page.getByRole("button", {
+    name: "Skärgårdsvägen 8. Adress · Gustavsberg",
+  });
+  await expect(address).toBeVisible();
+  await expect(address).toContainText("Skärgårdsvägen 8");
+  await expect(address).toContainText("Adress · Gustavsberg");
+
+  await areaInput.fill("Värmdö kommun");
+  await expect(
+    page.getByRole("button", { name: "Värmdö kommun. Kommun · Stockholms län" }),
+  ).toBeDisabled();
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
