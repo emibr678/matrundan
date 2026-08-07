@@ -19,13 +19,15 @@ Inga ändringar ännu.
 ### Ändrat
 
 - Lägg till ställen etablerar sökområdet före matställessökningen: geografifältet
-  visas före valda områdes-pills och avståndet beskrivs som `Avstånd X km`.
+  visas före valda områdes-pills och avståndet beskrivs som `Sök inom X km`.
 - Kända kök, inriktningar och typer som sushi, pasta och café tolkas semantiskt
   i stället för att enbart matchas mot verksamhetsnamn.
 - Matställessökningen skiljer generella köks- och typförslag från specifika
   verksamheter utan att ett verksamhetsval ändrar sökområde eller avstånd.
-- Sökresultat visas i mindre omgångar om upp till 20 träffar och kan utökas med
-  **Visa fler** utan att redan visade resultat försvinner.
+- En ny sökning behåller redan visade träffar under omladdningen och visar en
+  diskret `Söker…`-status i stället för att tömma resultatytan.
+- Sökresultat visas i mindre omgångar om upp till 20 träffar och **Visa fler**
+  lägger till nya träffar sist utan att kasta om redan visade resultat.
 - Identiska Geoapify-sökningar och autocompleteanrop kan återanvända en
   kortlivad servercache för att minska onödiga provideranrop.
 - Exempel- och demoläget använder samma sökintent med deterministiska lokala
