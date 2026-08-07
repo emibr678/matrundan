@@ -1,9 +1,11 @@
 import * as React from "react";
-import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock3, Globe2, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
 import { PlaceDataLimitedInfoNotice } from "./PlaceDataSignalNotice";
+import { PlaceExternalLink } from "./PlaceExternalLink";
+import { PlaceIdentityMark } from "./PlaceIdentityMark";
 import { PlaceSuggestionReportDialog } from "./PlaceSuggestionReportDialog";
 import { PlaceSuggestionSignalPanel } from "./PlaceSuggestionSignalPanel";
 import { Button } from "@/components/ui/button";
@@ -53,62 +55,105 @@ function suggestionWebsite(suggestion: PlaceSuggestion): string | undefined {
 function PendingPlaceSummary({
   pending,
   reportablePending,
-  disabled,
 }: {
   pending: PlaceSuggestion;
   reportablePending: ReportablePlaceSuggestion;
-  disabled: boolean;
 }) {
   const websiteUrl = suggestionWebsite(pending);
-  const { signal, target } = usePlaceDataSignalForReportableSuggestion(reportablePending);
+  const { signal } = usePlaceDataSignalForReportableSuggestion(reportablePending);
 
   return (
-    <>
-      <div className="rounded-2xl border border-border/70 bg-card p-3">
-        <div className="flex items-start gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-secondary text-2xl">
-            {emojiForCategory(pending.category)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="break-words font-medium">{pending.name}</div>
-            <div className="text-xs text-muted-foreground">
+    <div className="overflow-hidden rounded-3xl border border-border/70 bg-card">
+      <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
+        <div
+          data-testid="pending-place-identity-grid"
+          className="grid min-h-16 grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-3 min-[390px]:min-h-20 min-[390px]:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4"
+        >
+          <PlaceIdentityMark
+            category={pending.category}
+            symbol={emojiForCategory(pending.category)}
+            size="detail"
+          />
+          <div className="min-w-0 self-center">
+            <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
               {CATEGORY_LABEL[pending.category]}
-              {pending.cuisines?.length ? ` · ${pending.cuisines.join(", ")}` : ""}
             </div>
-            <div className="break-words text-[11px] text-muted-foreground">
-              {[pending.address, pending.area, pending.city].filter(Boolean).join(" · ")}
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-x-4">
+            <h2 className="break-words font-display text-2xl font-semibold leading-tight md:text-3xl">
+              {pending.name}
+            </h2>
+            {pending.cuisines?.length ? (
+              <div className="mt-1 break-words text-xs text-muted-foreground">
+                {pending.cuisines.join(" · ")}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div
+          data-testid="pending-place-practical-info"
+          className="relative mt-4 overflow-hidden rounded-2xl border border-border/60 bg-background/35"
+        >
+          <div className="relative flex min-h-11 items-center px-3">
+            <PlaceExternalLink
+              href={googleMapsSearchUrl(pending)}
+              target="_blank"
+              rel="noreferrer"
+              icon={MapPin}
+              prefix={pending.address ? `${pending.address}, ` : undefined}
+              tail={pending.city || pending.area || "Google Maps"}
+              className="min-w-0 flex-1"
+              aria-label={`Öppna ${pending.name} i Google Maps`}
+            />
+          </div>
+
+          <div className="grid min-w-0 grid-cols-2 border-t border-border/60">
+            <div className="min-w-0 border-r border-border/60">
               {websiteUrl ? (
-                <a
+                <PlaceExternalLink
                   href={websiteUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  icon={Globe2}
+                  tail="Webbplats"
+                  className="w-full px-3"
                   aria-label={`Öppna webbplatsen för ${pending.name}`}
-                >
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                  Webbplats
-                </a>
-              ) : null}
-              <a
-                href={googleMapsSearchUrl(pending)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-1.5 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                aria-label={`Öppna ${pending.name} i Google Maps`}
-              >
-                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                Google Maps
-              </a>
-              <PlaceDataLimitedInfoNotice signal={signal} />
+                />
+              ) : (
+                <div className="flex min-h-11 items-center gap-2 px-3 text-sm text-muted-foreground">
+                  <Globe2 className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Webbplats ej angiven</span>
+                </div>
+              )}
+            </div>
+            <div className="flex min-h-11 min-w-0 items-center gap-2 px-3 text-sm">
+              <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1 leading-tight">
+                <span className="block truncate text-[11px] font-medium text-muted-foreground">
+                  Öppettider
+                </span>
+                <span className="block truncate font-medium">
+                  {pending.hasOpeningHours ? "Finns i kartdatan" : "Ej angivna"}
+                </span>
+              </span>
             </div>
           </div>
+
+          <PlaceDataLimitedInfoNotice signal={signal} />
         </div>
       </div>
-      <PlaceSuggestionSignalPanel signal={signal} target={target} disabled={disabled} />
-    </>
+    </div>
   );
+}
+
+function PendingPlaceSignalStatus({
+  reportablePending,
+  disabled,
+}: {
+  reportablePending: ReportablePlaceSuggestion;
+  disabled: boolean;
+}) {
+  const { signal, target } = usePlaceDataSignalForReportableSuggestion(reportablePending);
+  return <PlaceSuggestionSignalPanel signal={signal} target={target} disabled={disabled} />;
 }
 
 export function AddPlaceResultDialogsV16({
@@ -318,33 +363,36 @@ export function AddPlaceResultDialogsV16({
               </DialogDescription>
             </DialogHeader>
 
-            <PendingPlaceSummary
-              pending={pending}
+            <PendingPlaceSummary pending={pending} reportablePending={reportablePending} />
+
+            <div className="space-y-5 border-t border-border/60 pt-5">
+              <FoodTagMultiSelect
+                id="pending-food-tags"
+                label="Kök och inriktning (valfritt)"
+                value={cuisines}
+                onChange={setCuisines}
+              />
+              <OccasionPicker
+                id="pending-occasions"
+                value={occasions}
+                onChange={setOccasions}
+                description="Valfritt – kan fyllas i efter ett besök."
+              />
+              <div className="space-y-1.5">
+                <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
+                <Textarea
+                  id="pending-notes"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <PendingPlaceSignalStatus
               reportablePending={reportablePending}
               disabled={isBusy || state.group.lifecycleStatus === "archived"}
             />
-
-            <FoodTagMultiSelect
-              id="pending-food-tags"
-              label="Kök och inriktning (valfritt)"
-              value={cuisines}
-              onChange={setCuisines}
-            />
-            <OccasionPicker
-              id="pending-occasions"
-              value={occasions}
-              onChange={setOccasions}
-              description="Valfritt – kan fyllas i efter ett besök."
-            />
-            <div className="space-y-1.5">
-              <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
-              <Textarea
-                id="pending-notes"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                rows={2}
-              />
-            </div>
 
             <div className="border-t border-border/60 pt-1">
               <PlaceSuggestionReportDialog
