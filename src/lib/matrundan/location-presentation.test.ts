@@ -93,12 +93,16 @@ describe("svensk geografisk presentation", () => {
   });
 
   test("demo använder samma presentation och blockerar bred administrativ träff", () => {
-    const [municipality] = demoAutocompleteLocations("Värmdö kommun", "Stockholm");
+    const municipality = demoAutocompleteLocations("Värmdö kommun", "Stockholm").find(
+      (suggestion) => suggestion.primaryLabel === "Värmdö kommun",
+    );
     expect(municipality).toMatchObject({
       primaryLabel: "Värmdö kommun",
       secondaryLabel: "Kommun · Stockholms län",
       label: "Värmdö kommun, Stockholms län",
     });
-    expect(isBroadAdministrativeSearchArea(municipality.resultType, municipality.label)).toBe(true);
+    expect(isBroadAdministrativeSearchArea(municipality?.resultType, municipality?.label)).toBe(
+      true,
+    );
   });
 });
