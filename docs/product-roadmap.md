@@ -94,8 +94,11 @@ produktproblem visar att beslutet behöver ändras.
 ## Aktuellt arbete
 
 Den tidigare driftgrinden **#142 Nygenererad öppen inbjudningslänk behandlas som
-redan använd** genomfördes i v1.26.5. Paket A fortsätter därefter med **#108
-Gemensamt visuellt språk för platskandidater och tillagda matställen**.
+redan använd** genomfördes i v1.26.5. Det pågående arbetet är **#108 Gemensamt
+visuellt språk för platskandidater och tillagda matställen**. Därefter prioriteras
+**Paket B – Sök och geografi** omedelbart, före återstående frågor i Paket A,
+eftersom paketet löser observerade problem i det centrala flödet för att hitta
+och lägga till matställen.
 
 Den tidigare driftgrinden **#137 Återställ produktionsvakter för sökområden och
 besöksfoton** genomfördes i v1.26.4.
@@ -106,8 +109,10 @@ besöksfoton** genomfördes i v1.26.4.
 
 Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
 kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
+Efter det redan pågående #108 går arbetet till Paket B innan återstående delar av
+Paket A tas upp igen.
 
-Rekommenderad ordning:
+Rekommenderad ordning inom paketet:
 
 1. ✅ **#107 Levande exempelgrupp med scenariokontrakt**  
    Gör exempelgruppen till en liten, representativ och löpande underhållen
@@ -133,7 +138,7 @@ Rekommenderad ordning:
 
 ## Paket B – Sök och geografi
 
-**Prioritet:** `priority:next`
+**Prioritet:** `priority:now`, närmast efter pågående #108
 
 Paketet löser observerade problem i det centrala flödet för att hitta och lägga
 till matställen. Användaren ska först förstå **var** gruppen söker och därefter
