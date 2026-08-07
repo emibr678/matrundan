@@ -14,16 +14,46 @@ function suggestion(overrides: Partial<PlaceSuggestion> & { externalId: string }
 }
 
 describe("mergePlaceSearchPages", () => {
-  test("lägger till nya träffar och sorterar på avstånd och namn", () => {
+  test("bevarar ordningen på redan visade träffar exakt", () => {
     const merged = mergePlaceSearchPages(
-      [suggestion({ externalId: "a", name: "Alfa", distanceKm: 2 })],
       [
-        suggestion({ externalId: "b", name: "Beta", distanceKm: 1 }),
-        suggestion({ externalId: "c", name: "Åsa", distanceKm: 1 }),
+        suggestion({ externalId: "a", name: "Alfa", distanceKm: 5 }),
+        suggestion({ externalId: "b", name: "Beta", distanceKm: 2 }),
+      ],
+      [suggestion({ externalId: "c", name: "Åsa", distanceKm: 1 })],
+    );
+
+    expect(merged.map((row) => row.externalId)).toEqual(["a", "b", "c"]);
+  });
+
+  test("lägger nya träffar sist i inkommande ordning", () => {
+    const merged = mergePlaceSearchPages(
+      [suggestion({ externalId: "a", distanceKm: 9 })],
+      [
+        suggestion({ externalId: "z", name: "Zeta", distanceKm: 1 }),
+        suggestion({ externalId: "y", name: "Ypsilon", distanceKm: 8 }),
       ],
     );
 
-    expect(merged.map((row) => row.externalId)).toEqual(["b", "c", "a"]);
+    expect(merged.map((row) => row.externalId)).toEqual(["a", "z", "y"]);
+  });
+
+  test("dubbletter uppdaterar metadata på samma position", () => {
+    const merged = mergePlaceSearchPages(
+      [
+        suggestion({ externalId: "a", distanceKm: 4, nearestAreaLabel: "Stockholm" }),
+        suggestion({ externalId: "b", distanceKm: 6 }),
+      ],
+      [
+        suggestion({ externalId: "b", distanceKm: 6 }),
+        suggestion({ externalId: "a", distanceKm: 1.2, nearestAreaLabel: "Stavsnäs" }),
+        suggestion({ externalId: "c", distanceKm: 3 }),
+      ],
+    );
+
+    expect(merged.map((row) => row.externalId)).toEqual(["a", "b", "c"]);
+    expect(merged[0].distanceKm).toBe(1.2);
+    expect(merged[0].nearestAreaLabel).toBe("Stavsnäs");
   });
 
   test("deduplicerar på provider och externalId", () => {
@@ -36,16 +66,6 @@ describe("mergePlaceSearchPages", () => {
     );
 
     expect(merged).toHaveLength(2);
-  });
-
-  test("behåller kortaste verifierade avstånd och dess närmaste område", () => {
-    const merged = mergePlaceSearchPages(
-      [suggestion({ externalId: "a", distanceKm: 4, nearestAreaLabel: "Stockholm" })],
-      [suggestion({ externalId: "a", distanceKm: 1.2, nearestAreaLabel: "Stavsnäs" })],
-    );
-
-    expect(merged[0].distanceKm).toBe(1.2);
-    expect(merged[0].nearestAreaLabel).toBe("Stavsnäs");
   });
 
   test("behåller befintligt avstånd när nya saknar avstånd", () => {
