@@ -95,7 +95,7 @@ produktproblem visar att beslutet behöver ändras.
 
 Driftgrinderna **#142 Nygenererad öppen inbjudningslänk behandlas som redan
 använd** och **#137 Återställ produktionsvakter för sökområden och besöksfoton**
-är genomförda i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
+har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
 platskandidater och tillagda matställen** genomfördes i v1.27.0.
 
 **Paket B – Sök och geografi** är nu aktivt. Första steget **#147 Visa naturliga
