@@ -18,10 +18,20 @@ import {
   hasStructuredGeoapifyMapping,
 } from "./geoapify-place-search";
 import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
+import { createShortLivedRequestCache } from "./short-lived-request-cache";
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const WIDE_AREA_RADIUS_KM = 50;
-const DISCOVERY_RESULT_LIMIT = 50;
+const DISCOVERY_PAGE_SIZE = 20;
+const FALLBACK_PROVIDER_LIMIT = 50;
+const GEOAPIFY_CACHE_TTL_MS = 5 * 60_000;
+
+type GeoapifyPayload = { features?: unknown[] };
+
+const geoapifyResponseCache = createShortLivedRequestCache<GeoapifyPayload>({
+  ttlMs: GEOAPIFY_CACHE_TTL_MS,
+  maxEntries: 250,
+});
 
 const radiusSchema = z.union([
   z.literal(1),
@@ -42,7 +52,15 @@ export type MultiAreaPlaceSuggestion = NormalizedPlaceSuggestion & {
 export interface MultiAreaSearchResponse {
   results: MultiAreaPlaceSuggestion[];
   failedAreaLabels: string[];
+  hasMore: boolean;
+  nextOffset: number;
 }
+
+type PlaceSearchPage = {
+  results: NormalizedPlaceSuggestion[];
+  hasMore: boolean;
+  nextOffset: number;
+};
 
 function readKey(): string {
   const key = process.env.GEOAPIFY_API_KEY?.trim();
@@ -54,7 +72,13 @@ function readKey(): string {
   return key;
 }
 
-async function callGeoapify(url: URL): Promise<{ features?: unknown[] }> {
+function cacheKeyForGeoapify(url: URL): string {
+  const safe = new URL(url);
+  safe.searchParams.delete("apiKey");
+  return safe.toString();
+}
+
+async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
@@ -77,7 +101,7 @@ async function callGeoapify(url: URL): Promise<{ features?: unknown[] }> {
     if (!json || typeof json !== "object" || !("features" in json)) {
       throw new Error("GEOAPIFY_MALFORMED: Geoapify returnerade ett oväntat svar.");
     }
-    return json as { features?: unknown[] };
+    return json as GeoapifyPayload;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error("GEOAPIFY_TIMEOUT: Platssökningen tog för lång tid. Försök igen.");
@@ -88,31 +112,41 @@ async function callGeoapify(url: URL): Promise<{ features?: unknown[] }> {
   }
 }
 
+async function callGeoapify(url: URL): Promise<GeoapifyPayload> {
+  return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () => fetchGeoapify(url));
+}
+
 async function searchPlacesAtCenter(input: {
   text?: string;
   lat: number;
   lng: number;
   radiusKm: 1 | 2 | 3 | 5 | 10 | 25 | 50 | null;
   limit?: number;
-}): Promise<NormalizedPlaceSuggestion[]> {
+  offset?: number;
+}): Promise<PlaceSearchPage> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
   const intent = resolvePlaceSearchIntent(input.text);
-  const requestedLimit =
-    intent.kind === "browse"
-      ? DISCOVERY_RESULT_LIMIT
-      : Math.min(input.limit ?? 30, DISCOVERY_RESULT_LIMIT);
+  const requestedLimit = Math.min(input.limit ?? DISCOVERY_PAGE_SIZE, 50);
+  const providerAlreadyAppliedIntent = hasStructuredGeoapifyMapping(intent);
+  const nameQuery = geoapifyNameQueryForPlaceSearchIntent(intent);
+  const needsLocalFiltering = intent.kind !== "browse" && !providerAlreadyAppliedIntent && !nameQuery;
+  const providerLimit = needsLocalFiltering
+    ? Math.max(requestedLimit, FALLBACK_PROVIDER_LIMIT)
+    : requestedLimit;
+  const offset = input.offset ?? 0;
 
   const url = new URL("https://api.geoapify.com/v2/places");
   url.searchParams.set("categories", geoapifyCategoriesForPlaceSearchIntent(intent).join(","));
   url.searchParams.set("filter", `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`);
   url.searchParams.set("bias", `proximity:${input.lng},${input.lat}`);
   url.searchParams.set("lang", "sv");
-  url.searchParams.set("limit", String(DISCOVERY_RESULT_LIMIT));
-  const nameQuery = geoapifyNameQueryForPlaceSearchIntent(intent);
+  url.searchParams.set("limit", String(providerLimit));
+  if (offset > 0) url.searchParams.set("offset", String(offset));
   if (nameQuery) url.searchParams.set("name", nameQuery);
   url.searchParams.set("apiKey", readKey());
 
   const json = await callGeoapify(url);
+  const rawFeatureCount = json.features?.length ?? 0;
   const seen = new Set<string>();
   const normalized: NormalizedPlaceSuggestion[] = [];
   for (const feature of json.features ?? []) {
@@ -120,7 +154,6 @@ async function searchPlacesAtCenter(input: {
     if (!place || seen.has(place.externalId)) continue;
     seen.add(place.externalId);
 
-    const providerAlreadyAppliedIntent = hasStructuredGeoapifyMapping(intent);
     if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) continue;
     normalized.push(place);
   }
@@ -130,7 +163,12 @@ async function searchPlacesAtCenter(input: {
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
     return da - db || a.name.localeCompare(b.name, "sv-SE");
   });
-  return normalized.slice(0, requestedLimit);
+
+  return {
+    results: normalized,
+    hasMore: rawFeatureCount >= providerLimit,
+    nextOffset: offset + providerLimit,
+  };
 }
 
 export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
@@ -183,10 +221,14 @@ export const geoapifySearchPlaces = createServerFn({ method: "POST" })
         lng: z.number().min(-180).max(180),
         radiusKm: radiusSchema,
         limit: z.number().int().min(1).max(50).optional(),
+        offset: z.number().int().min(0).max(10_000).optional(),
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<NormalizedPlaceSuggestion[]> => searchPlacesAtCenter(data));
+  .handler(async ({ data }): Promise<NormalizedPlaceSuggestion[]> => {
+    const page = await searchPlacesAtCenter(data);
+    return page.results.slice(0, data.limit ?? DISCOVERY_PAGE_SIZE);
+  });
 
 export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -207,6 +249,7 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
           .max(5),
         radiusKm: radiusSchema,
         limit: z.number().int().min(1).max(50).optional(),
+        offset: z.number().int().min(0).max(10_000).optional(),
       })
       .parse(input),
   )
@@ -214,12 +257,13 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
     const settled = await Promise.allSettled(
       data.centers.map(async (center) => ({
         center,
-        results: await searchPlacesAtCenter({
+        page: await searchPlacesAtCenter({
           text: data.text,
           lat: center.lat,
           lng: center.lng,
           radiusKm: data.radiusKm,
-          limit: DISCOVERY_RESULT_LIMIT,
+          limit: data.limit ?? DISCOVERY_PAGE_SIZE,
+          offset: data.offset ?? 0,
         }),
       })),
     );
@@ -227,6 +271,8 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
     const failedAreaLabels: string[] = [];
     const merged = new Map<string, MultiAreaPlaceSuggestion>();
     let firstFailure: unknown = null;
+    let hasMore = false;
+    let nextOffset = data.offset ?? 0;
 
     settled.forEach((outcome, index) => {
       const center = data.centers[index];
@@ -236,7 +282,10 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
         return;
       }
 
-      for (const place of outcome.value.results) {
+      hasMore ||= outcome.value.page.hasMore;
+      nextOffset = Math.max(nextOffset, outcome.value.page.nextOffset);
+
+      for (const place of outcome.value.page.results) {
         const key = `${place.provider}:${place.externalId}`;
         const current = merged.get(key);
         const nextDistance = place.distanceKm ?? Number.POSITIVE_INFINITY;
@@ -263,14 +312,11 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
         : new Error("GEOAPIFY_UNAVAILABLE: Inga områden kunde sökas just nu.");
     }
 
-    const limit = data.limit ?? DISCOVERY_RESULT_LIMIT;
-    const results = [...merged.values()]
-      .sort((a, b) => {
-        const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
-        const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
-        return da - db || a.name.localeCompare(b.name, "sv-SE");
-      })
-      .slice(0, limit);
+    const results = [...merged.values()].sort((a, b) => {
+      const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
+      const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
+      return da - db || a.name.localeCompare(b.name, "sv-SE");
+    });
 
-    return { results, failedAreaLabels };
+    return { results, failedAreaLabels, hasMore, nextOffset };
   });
