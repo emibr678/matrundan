@@ -91,13 +91,11 @@ Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
 chatt. De får omprövas när aktuell kod, nya fakta eller ett tydligt
 produktproblem visar att beslutet behöver ändras.
 
-## Aktuell driftgrind
+## Aktuellt arbete
 
-**#142 Nygenererad öppen inbjudningslänk behandlas som redan använd** har
-`priority:now` och ska korrigeras före nästa produktfeature. Nya öppna länkar
-ska kunna användas av flera personer tills de återkallas eller går ut, medan
-e-postbundna inbjudningar förblir engångslänkar. Efter verifierad implementation,
-merge och separat databasdriftsättning fortsätter Paket A med #108.
+Den tidigare driftgrinden **#142 Nygenererad öppen inbjudningslänk behandlas som
+redan använd** genomfördes i v1.26.5. Paket A fortsätter därefter med **#108
+Gemensamt visuellt språk för platskandidater och tillagda matställen**.
 
 Den tidigare driftgrinden **#137 Återställ produktionsvakter för sökområden och
 besöksfoton** genomfördes i v1.26.4.
@@ -133,24 +131,60 @@ Rekommenderad ordning:
    kategori när ingen uttrycklig symbol finns. Manuellt gruppval ska ha
    företräde och breda eller motstridiga utbud ska få en neutral fallback.
 
-## Paket B – Nästa stopp v2
+## Paket B – Sök och geografi
 
 **Prioritet:** `priority:next`
 
+Paketet löser observerade problem i det centrala flödet för att hitta och lägga
+till matställen. Användaren ska först förstå **var** gruppen söker och därefter
+**vad** den söker efter. Geografiska val ska vara explicita och synliga, medan
+matställessökningen ska vara tolerant och hjälpsam utan att dölja sitt scope.
+
+Rekommenderad ordning:
+
+1. **#147 Visa naturliga svenska etiketter för geografiska sökträffar**  
+   Ersätt rå providertext som `Stavsnäs, AB` med begripligt namn, resulttyp och
+   relevant geografisk kontext utan att ändra den underliggande punktmodellen.
+2. **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
+   matställessökning**  
+   Visa valda områden först som tydliga pills och sök därefter efter namn, kök
+   eller typ med grupperad autocomplete. Specifika matställen ska visas med
+   trovärdig adress eller relevant geografisk fallback. Den visuella lösningen
+   ska återanvända Matrundans befintliga språk och #108:s platsidentitet.
+3. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
+   Utöka sökområdesmodellen så verifierade kommuner, stadsdelar och andra
+   områden kan sökas inom sin faktiska providergräns, medan adresser och andra
+   punktplatser behåller närhetsavstånd. Polygoner och radier ska kunna
+   kombineras och visas i samma kartvy.
+
+Paketet behåller principen att gruppens sparade sökområden är **förval för nya
+sökningar**, inte en permanent spärr för vilka matställen gruppen får använda.
+Alla sparade områden är fortsatt valda när sökningen öppnas och inget område är
+primärt. Befintliga punktområden får inte tyst få ny geografisk innebörd när
+boundary-stödet införs.
+
+Boundary-steget ändrar ett varaktigt arkitekturbeslut och kräver därför en
+aktuell arkitektur- och migrationsplan innan implementation. Egenritade
+polygoner och generell kartredigering är uttryckliga icke-mål.
+
+## Paket C – Nästa stopp v2
+
+**Prioritet:** `priority:next`, efter Paket B
+
 - **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
 
-Det här är nästa större kärnproduktsteg. Gruppen ska kunna föreslå alternativa
-matställen och flera tider utan att ett nytt förslag skriver över det som redan
-diskuteras. Frågorna **vart** och **när** hålls separata, medan ett aktuellt nästa
-stopp förblir tydligt.
+Det här är nästa större kärnproduktsteg efter sök- och geografipaketet. Gruppen
+ska kunna föreslå alternativa matställen och flera tider utan att ett nytt
+förslag skriver över det som redan diskuteras. Frågorna **vart** och **när** hålls
+separata, medan ett aktuellt nästa stopp förblir tydligt.
 
 Det övergripande issuen får delas i mindre underissues efter en aktuell
 arkitektur- och implementationsplan. En stor plats × datum-matris och automatisk
 majoritetsvinnare är uttryckliga icke-mål.
 
-## Paket C – Personlig inspiration
+## Paket D – Personlig inspiration
 
-**Prioritet:** `priority:later`, efter Paket B
+**Prioritet:** `priority:later`, efter Paket C
 
 Rekommenderad ordning:
 
@@ -167,7 +201,7 @@ Rekommenderad ordning:
 Personliga funktioner får inte skapa offentlig profil, global ranking eller en
 individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
-## Paket D – Gemensamma besöksminnen
+## Paket E – Gemensamma besöksminnen
 
 **Prioritet:** `priority:later`
 
