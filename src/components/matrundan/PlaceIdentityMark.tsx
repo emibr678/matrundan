@@ -19,7 +19,12 @@ const SIZE_CLASS = {
 
 export type PlaceIdentityMarkSize = keyof typeof SIZE_CLASS;
 
-export function PlaceIdentityMark({ category, symbol, size = "md", className }: {
+export function PlaceIdentityMark({
+  category,
+  symbol,
+  size = "md",
+  className,
+}: {
   category: PlaceCategory;
   symbol?: string | null;
   size?: PlaceIdentityMarkSize;
@@ -27,8 +32,19 @@ export function PlaceIdentityMark({ category, symbol, size = "md", className }: 
 }) {
   const visibleSymbol = symbol?.trim() || "🍽️";
   return (
-    <div data-slot="place-identity-mark" data-size={size} className={cn("relative shrink-0", SIZE_CLASS[size], className)} aria-hidden="true">
-      <div data-slot="place-identity-mark-visual" className={cn("grid h-full w-full place-items-center overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br", CATEGORY_GRADIENT[category])}>
+    <div
+      data-slot="place-identity-mark"
+      data-size={size}
+      className={cn("relative shrink-0", SIZE_CLASS[size], className)}
+      aria-hidden="true"
+    >
+      <div
+        data-slot="place-identity-mark-visual"
+        className={cn(
+          "grid h-full w-full place-items-center overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br",
+          CATEGORY_GRADIENT[category],
+        )}
+      >
         <span className="drop-shadow-sm">{visibleSymbol}</span>
       </div>
     </div>
