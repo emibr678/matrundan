@@ -99,10 +99,11 @@ har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk f
 platskandidater och tillagda matställen** genomfördes i v1.27.0.
 
 **Paket B – Sök och geografi** är nu aktivt. **#147 Visa naturliga svenska
-etiketter för geografiska sökträffar** genomfördes i v1.27.1 och **#148 Gör Lägg
-till ställen begripligt med Sök i före intelligent matställessökning** levereras
-i v1.28.0. Därefter är **#149 Stöd geografiska boundaries och visualisera
-sökområden på kartan** nästa steg.
+etiketter för geografiska sökträffar** genomfördes i v1.27.1. **#148 Gör Lägg
+till ställen begripligt med Sök i före intelligent matställessökning** är
+implementerad som v1.28.0-kandidat i PR #154 och inväntar preview- och
+mergegranskning. När den är mergad är **#149 Stöd geografiska boundaries och
+visualisera sökområden på kartan** nästa steg.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -152,13 +153,14 @@ Rekommenderad ordning:
    Ersätt rå providertext som `Stavsnäs, AB` med begripligt namn, resulttyp och
    relevant geografisk kontext utan att ändra den underliggande punktmodellen.
    Genomförd i v1.27.1.
-2. ✅ **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
+2. **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
    matställessökning**  
    Visa valda områden först som tydliga pills och sök därefter efter namn, kök
-   eller typ med grupperad autocomplete. Specifika matställen visas med
+   eller typ med grupperad autocomplete. Specifika matställen ska visas med
    trovärdig adress eller relevant geografisk fallback. Den visuella lösningen
-   återanvänder Matrundans befintliga språk och #108:s platsidentitet.
-   Levereras i v1.28.0 via #154.
+   ska återanvända Matrundans befintliga språk och #108:s platsidentitet.
+   Implementerad som v1.28.0-kandidat i PR #154; markeras som genomförd när PR:n
+   mergas och issue #148 stängs.
 3. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
    Utöka sökområdesmodellen så verifierade kommuner, stadsdelar och andra
    områden kan sökas inom sin faktiska providergräns, medan adresser och andra
