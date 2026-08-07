@@ -54,4 +54,3 @@ export function mergePlaceSearchPages(
 
   return order.map((key) => merged.get(key)!);
 }
-

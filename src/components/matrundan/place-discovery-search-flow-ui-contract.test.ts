@@ -31,7 +31,6 @@ describe("Lägg till ställens sökflöde", () => {
     expect(areaControlsSource).toContain("Sök inom ${value} km");
     expect(areaControlsSource).toContain("Sökavstånd runt valda platser");
     expect(areaControlsSource).not.toContain("Avstånd ${value} km");
-    
   });
 
   test("behåller resultatytan vid omladdning och visar diskret status", () => {
