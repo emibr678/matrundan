@@ -229,6 +229,9 @@ export function PlaceDiscoveryV16({
       setResults([]);
       setFailedAreas([]);
       setError(null);
+      setDisplayLimit(RESULT_PAGE_SIZE);
+      setHasMore(false);
+      setNextOffset(0);
       return;
     }
     const requestId = ++requestRef.current;
@@ -239,6 +242,8 @@ export function PlaceDiscoveryV16({
       try {
         let nextResults: PlaceSuggestion[];
         let nextFailedAreas: string[] = [];
+        let moreAvailable = false;
+        let followingOffset = 0;
         if (isLive) {
           const response = await geoapifySearchPlacesMulti({
             data: {
@@ -250,11 +255,14 @@ export function PlaceDiscoveryV16({
                 lng: area.lng,
               })),
               radiusKm,
-              limit: 50,
+              limit: RESULT_PAGE_SIZE,
+              offset: 0,
             },
           });
           nextResults = response.results.map(toPlaceSuggestion);
           nextFailedAreas = response.failedAreaLabels;
+          moreAvailable = response.hasMore;
+          followingOffset = response.nextOffset;
         } else {
           const settled = await Promise.allSettled(
             activeAreas.map(async (area) => ({
@@ -289,10 +297,15 @@ export function PlaceDiscoveryV16({
         if (requestId !== requestRef.current) return;
         setResults(nextResults);
         setFailedAreas(nextFailedAreas);
+        setDisplayLimit(RESULT_PAGE_SIZE);
+        setHasMore(moreAvailable);
+        setNextOffset(followingOffset);
         setSelectedId(nextResults[0]?.externalId ?? null);
       } catch (caught) {
         if (requestId !== requestRef.current) return;
         setResults([]);
+        setHasMore(false);
+        setNextOffset(0);
         setError(providerMessage(caught));
       } finally {
         if (requestId === requestRef.current) setLoading(false);
@@ -301,10 +314,66 @@ export function PlaceDiscoveryV16({
     return () => window.clearTimeout(timer);
   }, [activeAreas, isLive, query, radiusKm, retry]);
 
-  const visibleResults = React.useMemo(
+  const filteredResults = React.useMemo(
     () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
     [hiddenKeys, results],
   );
+  const visibleResults = React.useMemo(
+    () => filteredResults.slice(0, displayLimit),
+    [displayLimit, filteredResults],
+  );
+  const bufferedRemaining = Math.max(0, filteredResults.length - visibleResults.length);
+  const canShowMore = bufferedRemaining > 0 || hasMore;
+
+  const showMoreResults = React.useCallback(async () => {
+    if (bufferedRemaining > 0) {
+      setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
+      return;
+    }
+    if (!hasMore || !isLive || loadingMore) return;
+
+    const requestId = requestRef.current;
+    setLoadingMore(true);
+    try {
+      const response = await geoapifySearchPlacesMulti({
+        data: {
+          text: query.trim() || undefined,
+          centers: activeAreas.map((area) => ({
+            id: area.id,
+            label: shortSearchAreaLabel(area.label),
+            lat: area.lat,
+            lng: area.lng,
+          })),
+          radiusKm,
+          limit: RESULT_PAGE_SIZE,
+          offset: nextOffset,
+        },
+      });
+      if (requestId !== requestRef.current) return;
+      const fetched = response.results.map(toPlaceSuggestion);
+      setResults((current) => {
+        const merged = new Map(current.map((result) => [result.externalId, result]));
+        for (const result of fetched) {
+          if (!merged.has(result.externalId)) merged.set(result.externalId, result);
+        }
+        return [...merged.values()].sort((a, b) => {
+          const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
+          const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
+          return da - db || a.name.localeCompare(b.name, "sv-SE");
+        });
+      });
+      setHasMore(response.hasMore);
+      setNextOffset(response.nextOffset);
+      setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
+    } catch (caught) {
+      if (requestId !== requestRef.current) return;
+      setHasMore(false);
+      console.warn("[Matrundan] kunde inte hämta fler sökträffar:", caught);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeAreas, bufferedRemaining, hasMore, isLive, loadingMore, nextOffset, query, radiusKm]);
+
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
     if (!canLinkSources) return [];
