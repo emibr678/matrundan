@@ -127,6 +127,8 @@ export function PlaceDiscoveryV16({
   const [nextOffset, setNextOffset] = React.useState(snapshot?.nextOffset ?? 0);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const requestRef = React.useRef(0);
+  const skipInitialSearchRef = React.useRef(Boolean(snapshot));
+
   const previousBulkBusyRef = React.useRef(false);
   const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
