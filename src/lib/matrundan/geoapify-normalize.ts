@@ -31,7 +31,12 @@ export interface NormalizedPlaceSuggestion {
 
 export interface NormalizedLocationSuggestion {
   placeId: string;
+  /** Naturlig etikett som sparas när användaren väljer träffen. */
   label: string;
+  /** Kort huvudnamn för autocomplete-raden. */
+  primaryLabel: string;
+  /** Svensk resulttyp och relevant geografisk kontext. */
+  secondaryLabel: string;
   name: string;
   city: string;
   area?: string;
@@ -40,8 +45,7 @@ export interface NormalizedLocationSuggestion {
   resultType?: string;
 }
 
-interface GeoapifyProperties {
-  place_id?: string;
+export interface GeoapifyLocationProperties {
   name?: string;
   address_line1?: string;
   formatted?: string;
@@ -52,16 +56,22 @@ interface GeoapifyProperties {
   village?: string;
   municipality?: string;
   county?: string;
+  state?: string;
+  country?: string;
   district?: string;
   suburb?: string;
   neighbourhood?: string;
   quarter?: string;
   postcode?: string;
   country_code?: string;
+  result_type?: string;
+}
+
+interface GeoapifyProperties extends GeoapifyLocationProperties {
+  place_id?: string;
   lat?: number;
   lon?: number;
   distance?: number;
-  result_type?: string;
   categories?: string[];
   website?: string;
   opening_hours?: string;
@@ -84,6 +94,150 @@ interface GeoapifyFeature {
 }
 
 type OsmType = "node" | "way" | "relation";
+
+export interface LocationPresentation {
+  primaryLabel: string;
+  secondaryLabel: string;
+  selectionLabel: string;
+}
+
+function clean(value: string | undefined): string {
+  return value?.trim() ?? "";
+}
+
+function samePlaceLabel(a: string, b: string): boolean {
+  return Boolean(a && b && a.localeCompare(b, "sv-SE", { sensitivity: "base" }) === 0);
+}
+
+function firstDistinct(primary: string, ...values: string[]): string {
+  return values.find((value) => value && !samePlaceLabel(primary, value)) ?? "";
+}
+
+function localityName(properties: GeoapifyLocationProperties): string {
+  return clean(properties.city) || clean(properties.town) || clean(properties.village);
+}
+
+function locationArea(properties: GeoapifyLocationProperties): string {
+  return (
+    clean(properties.suburb) ||
+    clean(properties.neighbourhood) ||
+    clean(properties.quarter) ||
+    clean(properties.district)
+  );
+}
+
+function municipalityName(properties: GeoapifyLocationProperties): string {
+  return clean(properties.municipality);
+}
+
+function countyName(properties: GeoapifyLocationProperties): string {
+  return clean(properties.county);
+}
+
+function stateName(properties: GeoapifyLocationProperties): string {
+  return clean(properties.state);
+}
+
+function countryName(properties: GeoapifyLocationProperties): string {
+  return clean(properties.country);
+}
+
+function looksLikeMunicipality(value: string): boolean {
+  return /\s(?:kommun|municipality)$/iu.test(value);
+}
+
+function looksLikeCounty(value: string): boolean {
+  return /\s(?:län|county)$/iu.test(value);
+}
+
+function fallbackPrimary(properties: GeoapifyLocationProperties): string {
+  return clean(properties.formatted).split(",")[0]?.trim() ?? "";
+}
+
+/**
+ * Bygger användarcopy för geografiska autocomplete-träffar från strukturerad
+ * Geoapify-data. Rå `formatted` används bara som defensiv fallback för
+ * huvudnamnet och aldrig som normal sekundär kontext.
+ */
+export function resolveLocationPresentation(
+  properties: GeoapifyLocationProperties,
+): LocationPresentation | null {
+  const resultType = clean(properties.result_type).toLocaleLowerCase("en-US");
+  const rawName = clean(properties.name);
+  const street = clean(properties.street);
+  const houseNumber = clean(properties.housenumber);
+  const streetAddress = [street, houseNumber].filter(Boolean).join(" ").trim();
+  const credibleAddressLine = isCredibleStreetAddress(properties.address_line1, rawName)
+    ? clean(properties.address_line1)
+    : "";
+  const address = houseNumber ? streetAddress || credibleAddressLine : credibleAddressLine;
+  const locality = localityName(properties);
+  const area = locationArea(properties);
+  const municipality = municipalityName(properties);
+  const county = countyName(properties);
+  const state = stateName(properties);
+  const country = countryName(properties);
+  const formattedFallback = fallbackPrimary(properties);
+
+  let primaryLabel = "";
+  let kindLabel = "Plats";
+  let contextLabel = "";
+
+  if (address) {
+    primaryLabel = address;
+    kindLabel = "Adress";
+    contextLabel = firstDistinct(primaryLabel, locality, municipality, county, state);
+  } else if (resultType === "street" || (street && samePlaceLabel(rawName, street))) {
+    primaryLabel = street || rawName || formattedFallback;
+    kindLabel = "Gata";
+    contextLabel = firstDistinct(primaryLabel, locality, municipality, county, state);
+  } else if (
+    resultType === "municipality" ||
+    looksLikeMunicipality(rawName) ||
+    (rawName && samePlaceLabel(rawName, municipality) && looksLikeMunicipality(municipality))
+  ) {
+    primaryLabel = rawName || municipality || formattedFallback;
+    kindLabel = "Kommun";
+    contextLabel = firstDistinct(primaryLabel, county, state);
+  } else if (resultType === "county" || looksLikeCounty(rawName)) {
+    primaryLabel = rawName || county || formattedFallback;
+    kindLabel = "Län";
+    contextLabel = firstDistinct(primaryLabel, state, country);
+  } else if (resultType === "state" || resultType === "region") {
+    primaryLabel = rawName || state || formattedFallback;
+    kindLabel = looksLikeCounty(primaryLabel) ? "Län" : "Region";
+    contextLabel = firstDistinct(primaryLabel, country);
+  } else if (resultType === "country") {
+    primaryLabel = rawName || country || formattedFallback;
+    kindLabel = "Land";
+  } else if (resultType === "postcode") {
+    primaryLabel = clean(properties.postcode) || rawName || formattedFallback;
+    kindLabel = "Postnummer";
+    contextLabel = firstDistinct(primaryLabel, locality, municipality, county, state);
+  } else if (resultType === "suburb") {
+    primaryLabel = rawName || area || formattedFallback;
+    kindLabel = "Stadsdel";
+    contextLabel = firstDistinct(primaryLabel, locality, municipality, county, state);
+  } else if (resultType === "district") {
+    primaryLabel = rawName || area || formattedFallback;
+    kindLabel = "Område";
+    contextLabel = firstDistinct(primaryLabel, locality, municipality, county, state);
+  } else if (["city", "town", "village", "locality"].includes(resultType)) {
+    primaryLabel = rawName || locality || formattedFallback;
+    kindLabel = looksLikeMunicipality(primaryLabel) ? "Kommun" : "Ort";
+    contextLabel = firstDistinct(primaryLabel, municipality, county, state);
+  } else {
+    primaryLabel =
+      rawName || area || locality || municipality || county || state || formattedFallback;
+    contextLabel = firstDistinct(primaryLabel, area, locality, municipality, county, state);
+  }
+
+  if (!primaryLabel) return null;
+
+  const secondaryLabel = [kindLabel, contextLabel].filter(Boolean).join(" · ");
+  const selectionLabel = contextLabel ? `${primaryLabel}, ${contextLabel}` : primaryLabel;
+  return { primaryLabel, secondaryLabel, selectionLabel };
+}
 
 function hasCategory(categories: string[], prefix: string): boolean {
   return categories.some((category) => category === prefix || category.startsWith(`${prefix}.`));
@@ -209,15 +363,18 @@ export function cuisinesFromGeoapify(props: GeoapifyProperties | undefined): str
   return normalizeFoodTags(values, false).slice(0, 8);
 }
 
-export function areaFromGeoapify(props: GeoapifyProperties): string | undefined {
+export function areaFromGeoapify(props: GeoapifyLocationProperties): string | undefined {
   return props.suburb || props.neighbourhood || props.quarter || props.district || undefined;
 }
 
-export function cityFromGeoapify(props: GeoapifyProperties): string {
+export function cityFromGeoapify(props: GeoapifyLocationProperties): string {
   return props.city || props.town || props.village || props.municipality || props.county || "";
 }
 
-export function addressFromGeoapify(props: GeoapifyProperties, placeName?: string | null): string {
+export function addressFromGeoapify(
+  props: GeoapifyLocationProperties,
+  placeName?: string | null,
+): string {
   const street = [props.street, props.housenumber].filter(Boolean).join(" ").trim();
   if (street) return street;
 
@@ -299,14 +456,18 @@ export function normalizeLocationFeature(
   ) {
     return null;
   }
+
+  const presentation = resolveLocationPresentation(properties);
+  if (!presentation) return null;
+
   const city = cityFromGeoapify(properties);
-  if (!city) return null;
   const area = areaFromGeoapify(properties);
-  const name = properties.name || area || city;
   return {
     placeId: properties.place_id,
-    label: properties.formatted || (area ? `${area}, ${city}` : city),
-    name,
+    label: presentation.selectionLabel,
+    primaryLabel: presentation.primaryLabel,
+    secondaryLabel: presentation.secondaryLabel,
+    name: presentation.primaryLabel,
     city,
     area,
     lat: properties.lat,

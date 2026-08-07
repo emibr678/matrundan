@@ -14,6 +14,17 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.27.1] – 2026-08-07
+
+### Rättat
+
+- Geografisk autocomplete visar kort platsnamn med svensk resulttyp och relevant
+  ort, kommun eller län i stället för rå providertext som `Stavsnäs, AB`.
+- Breda kommun-, läns- och regionträffar förklaras tydligt men förblir ovalbara
+  så länge sökområden använder punkt och radie.
+- Exempel- och demoläget använder samma autocompletepresentation utan externa
+  Geoapify-anrop.
+
 ## [1.27.0] – 2026-08-07
 
 ### Ändrat

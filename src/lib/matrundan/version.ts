@@ -6,6 +6,22 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_27_1_CHANGELOG: ChangelogEntry = {
+  version: "1.27.1",
+  date: "2026-08-07",
+  summary: "Geografiska sökträffar visas med naturliga svenska namn och tydlig kontext.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Geografisk autocomplete visar kort platsnamn med svensk resulttyp och relevant ort, kommun eller län i stället för rå providertext.",
+        "Breda kommun-, läns- och regionträffar förklaras tydligt men förblir ovalbara så länge sökområden använder punkt och radie.",
+        "Exempel- och demoläget använder samma autocompletepresentation utan externa Geoapify-anrop.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_27_0_CHANGELOG: ChangelogEntry = {
   version: "1.27.0",
   date: "2026-08-07",
@@ -88,6 +104,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_27_1_CHANGELOG,
   VERSION_1_27_0_CHANGELOG,
   VERSION_1_26_5_CHANGELOG,
   VERSION_1_26_4_CHANGELOG,
