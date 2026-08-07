@@ -24,6 +24,37 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
 
   const areaInput = page.getByRole("textbox", { name: "Sökområden", exact: true });
   await expect(areaInput).toHaveAttribute("placeholder", "Sök ort, stadsdel eller adress");
+
+  await areaInput.fill("Stavsnäs");
+  const stavnas = page.getByRole("button", { name: "Stavsnäs. Ort · Värmdö kommun" });
+  await expect(stavnas).toBeVisible();
+  await expect(stavnas).toContainText("Stavsnäs");
+  await expect(stavnas).toContainText("Ort · Värmdö kommun");
+  await expect(stavnas).not.toContainText("AB");
+  await areaInput.press("ArrowDown");
+  await areaInput.press("Enter");
+  await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Stavsnäs");
+  await page.getByRole("button", { name: /Ta bort Stavsnäs.*från sökningen/i }).click();
+
+  await areaInput.fill("Värmdö kommun");
+  const municipality = page.getByRole("button", {
+    name: "Värmdö kommun. Kommun · Stockholms län",
+  });
+  await expect(municipality).toBeVisible();
+  await expect(municipality).toBeDisabled();
+  await expect(municipality).toContainText("Välj en ort, stadsdel eller adress i området.");
+
+  await areaInput.fill("Det mycket långa sökområdet längs skärgårdsvägen, Stockholm");
+  await expect(
+    page.getByRole("button", {
+      name: /Det mycket långa sökområdet längs skärgårdsvägen\. Ort · Stockholm/,
+    }),
+  ).toBeVisible();
+  const autocompleteOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(autocompleteOverflow).toBeLessThanOrEqual(0);
+
   await areaInput.fill("Majorna, Göteborg");
   await areaInput.press("Enter");
   await expect(areaInput).toHaveValue("");
