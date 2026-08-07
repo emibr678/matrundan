@@ -31,10 +31,7 @@ const FOOD_TAG_PROVIDER_CATEGORIES: Record<string, readonly string[]> = {
   "cuisine:thai": ["catering.restaurant.thai"],
   "cuisine:vietnamese": ["catering.restaurant.vietnamese"],
   "cuisine:indian": ["catering.restaurant.indian"],
-  "cuisine:mexican-latin": [
-    "catering.restaurant.mexican",
-    "catering.restaurant.latin_american",
-  ],
+  "cuisine:mexican-latin": ["catering.restaurant.mexican", "catering.restaurant.latin_american"],
   "cuisine:mediterranean": ["catering.restaurant.mediterranean"],
   "cuisine:greek": ["catering.restaurant.greek"],
   "cuisine:french": ["catering.restaurant.french"],
@@ -52,7 +49,9 @@ const FOOD_TAG_PROVIDER_CATEGORIES: Record<string, readonly string[]> = {
   "specialty:coffee": ["catering.cafe.coffee"],
 };
 
-export function geoapifyCategoriesForPlaceSearchIntent(intent: PlaceSearchIntent): readonly string[] {
+export function geoapifyCategoriesForPlaceSearchIntent(
+  intent: PlaceSearchIntent,
+): readonly string[] {
   if (intent.kind === "category") {
     return CATEGORY_PROVIDER_CATEGORIES[intent.category] ?? GEOAPIFY_DISCOVERY_CATEGORIES;
   }
@@ -68,7 +67,9 @@ export function hasStructuredGeoapifyMapping(intent: PlaceSearchIntent): boolean
   return false;
 }
 
-export function geoapifyNameQueryForPlaceSearchIntent(intent: PlaceSearchIntent): string | undefined {
+export function geoapifyNameQueryForPlaceSearchIntent(
+  intent: PlaceSearchIntent,
+): string | undefined {
   if (intent.kind !== "text") return undefined;
   const value = intent.query.trim();
   if (!value || value.length < 3 || value.length > 80) return undefined;
