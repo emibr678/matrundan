@@ -19,7 +19,6 @@ import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 const MAX_SEARCH_CENTERS = 5;
 const SEARCH_PLACEHOLDER = "Sök ort, stadsdel eller adress";
 
-
 interface SearchAreaControlsProps {
   heading: string;
   addAreaActionLabel: string;
@@ -140,7 +139,6 @@ function InlineSearchRadius({
           </SelectItem>
         ))}
       </SelectContent>
-
     </Select>
   );
 }
@@ -248,7 +246,6 @@ export function SearchAreaControlsV16({
         onRemoveSaved={removeSavedArea}
         onRemoveTemporary={removeTemporaryArea}
       />
-
     </section>
   );
 }

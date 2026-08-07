@@ -61,7 +61,6 @@ export interface PlaceDiscoverySnapshot {
   nextOffset: number;
 }
 
-
 export function PlaceDiscoveryV16({
   addedResultIds,
   selectedResults,
@@ -166,7 +165,6 @@ export function PlaceDiscoveryV16({
     selectedId,
     temporaryAreas,
   ]);
-
 
   const activeAreas = React.useMemo(() => {
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
@@ -377,7 +375,6 @@ export function PlaceDiscoveryV16({
       setLoadingMore(false);
     }
   }, [activeAreas, bufferedRemaining, hasMore, isLive, loadingMore, nextOffset, query, radiusKm]);
-
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
     if (!canLinkSources) return [];
@@ -648,7 +645,6 @@ export function PlaceDiscoveryV16({
                   kartposition och visas bara i listan.
                 </p>
               ) : null}
-
             </>
           )}
         </>
