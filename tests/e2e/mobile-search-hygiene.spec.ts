@@ -86,9 +86,10 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await page.setViewportSize({ width: 360, height: 520 });
   const searchDialog = await openPlaceSearch(page);
   const candidate = placeSuggestionButton(searchDialog);
+  const candidateContent = candidate.locator("..");
 
   await expect(candidate.locator('[data-slot="place-identity-mark"]')).toBeVisible();
-  await expect(searchDialog.getByText("Öppettider finns", { exact: true })).toBeVisible();
+  await expect(candidateContent.getByText("Öppettider finns", { exact: true })).toBeVisible();
   const websiteLink = searchDialog.getByRole("link", {
     name: `Öppna webbplatsen för ${PLACE_NAME}`,
   });
