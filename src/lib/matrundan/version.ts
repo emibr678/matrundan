@@ -6,6 +6,86 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_27_1_CHANGELOG: ChangelogEntry = {
+  version: "1.27.1",
+  date: "2026-08-07",
+  summary: "Geografiska sökträffar visas med naturliga svenska namn och tydlig kontext.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Geografisk autocomplete visar kort platsnamn med svensk resulttyp och relevant ort, kommun eller län i stället för rå providertext.",
+        "Breda kommun-, läns- och regionträffar förklaras tydligt men förblir ovalbara så länge sökområden använder punkt och radie.",
+        "Exempel- och demoläget använder samma autocompletepresentation utan externa Geoapify-anrop.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_27_0_CHANGELOG: ChangelogEntry = {
+  version: "1.27.0",
+  date: "2026-08-07",
+  summary: "Platsdetaljen känns igen före och efter att ett matställe läggs till.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Lägg till i gruppen och den tillagda platsdetaljen delar visuellt språk för platsidentitet, adress och praktisk information.",
+        "Sökresultatlistan behåller sin tidigare kompakta utformning och förändras inte av platsdetaljens nya uttryck.",
+        "Förhandsdetaljen behåller kök och inriktning, Passar för, gruppanteckning och rapportering utan att visa besöks- eller nästa-stopp-handlingar.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_26_5_CHANGELOG: ChangelogEntry = {
+  version: "1.26.5",
+  date: "2026-08-06",
+  summary: "Öppna inbjudningslänkar kan användas av flera personer tills de stängs.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Nya öppna inbjudningslänkar kan användas av flera personer tills de återkallas eller går ut.",
+        "E-postbundna inbjudningar förblir engångslänkar för den angivna adressen.",
+        "Redan aktiva medlemmar skapar varken dubbla medlemskap eller nya anslutningshändelser när de öppnar länken igen.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_26_4_CHANGELOG: ChangelogEntry = {
+  version: "1.26.4",
+  date: "2026-08-06",
+  summary: "Server- och lagringsvakter för sökområden och besöksfoton är återställda.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Nya breda kommun-, läns-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
+        "Besöksfoton skyddas åter av en privat Storage-bucket med högst 1,5 MB och endast JPEG.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_26_3_CHANGELOG: ChangelogEntry = {
+  version: "1.26.3",
+  date: "2026-08-06",
+  summary:
+    "Exempelgruppen visar fler verkliga produktfall med stabila scenarier och regressionsskydd.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Exempelgruppen täcker nu återbesök, foto, gäst, tidigare medlem, delat besök, arkiverat ställe och flera omdömen i samma riktiga produktflöden.",
+        "Providerställe, begränsad platsinformation och ett långt mobilscenario gör fler tillstånd möjliga att granska utan externa anrop.",
+        "Exempeldata byggs från en uttrycklig referenstid och får en ny sessionsversion så gamla flikdata inte döljer nya scenarier.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
   version: "1.26.2",
   date: "2026-08-06",
@@ -23,7 +103,15 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [VERSION_1_26_2_CHANGELOG, ...CHANGELOG_THROUGH_1_26_1];
+export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_27_1_CHANGELOG,
+  VERSION_1_27_0_CHANGELOG,
+  VERSION_1_26_5_CHANGELOG,
+  VERSION_1_26_4_CHANGELOG,
+  VERSION_1_26_3_CHANGELOG,
+  VERSION_1_26_2_CHANGELOG,
+  ...CHANGELOG_THROUGH_1_26_1,
+];
 
 const currentRelease = CHANGELOG[0];
 if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");

@@ -552,7 +552,8 @@ function InvitationsSection({ groupId }: { groupId: string }) {
             onChange={(event) => setEmail(event.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            Med e-post: bara den adressen kan använda länken.
+            Öppen länk: flera personer kan använda den tills den återkallas eller går ut. Med
+            e-post: bara den adressen kan använda länken, och länken gäller en gång.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2">

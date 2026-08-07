@@ -3,7 +3,6 @@ import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoapifyLocationInput } from "./GeoapifyLocationInput";
 import { SearchAreaPill } from "./SearchAreaPill";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -12,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { transientSearchAreaId } from "@/lib/matrundan/add-place-v16-utils";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
-import { demoSearchAreaFromText } from "@/lib/matrundan/places-provider";
 import { SEARCH_RADIUS_OPTIONS } from "@/lib/matrundan/search-areas";
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
@@ -37,9 +36,9 @@ interface SearchAreaFieldProps {
   query: string;
   placeholder: string;
   disabled: boolean;
+  fallbackCity: string;
   onQueryChange: (query: string) => void;
   onSelect: (location: VerifiedHomeLocation) => void;
-  onDemoSubmit: () => void;
 }
 
 interface SelectedAreasProps {
@@ -58,36 +57,20 @@ function SearchAreaField({
   query,
   placeholder,
   disabled,
+  fallbackCity,
   onQueryChange,
   onSelect,
-  onDemoSubmit,
 }: SearchAreaFieldProps) {
-  if (isLive) {
-    return (
-      <GeoapifyLocationInput
-        id="search-area-query"
-        value={query}
-        onChange={onQueryChange}
-        onSelect={onSelect}
-        placeholder={placeholder}
-        disabled={disabled}
-      />
-    );
-  }
-
   return (
-    <Input
+    <GeoapifyLocationInput
       id="search-area-query"
       value={query}
-      onChange={(event) => onQueryChange(event.target.value)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" && query.trim()) {
-          event.preventDefault();
-          onDemoSubmit();
-        }
-      }}
+      onChange={onQueryChange}
+      onSelect={onSelect}
       placeholder={placeholder}
       disabled={disabled}
+      demoMode={!isLive}
+      demoFallbackCity={fallbackCity}
     />
   );
 }
@@ -199,22 +182,13 @@ export function SearchAreaControlsV16({
 
   function addVerifiedArea(value: VerifiedHomeLocation) {
     addArea({
-      id: `temporary-${value.placeId}`,
+      id: transientSearchAreaId("temporary", value.lat, value.lng),
       label: value.label,
       lat: value.lat,
       lng: value.lng,
-      provider: value.provider,
+      provider: isLive ? "geoapify" : "demo",
       placeId: value.placeId,
     });
-  }
-
-  function addDemoArea() {
-    const area = demoSearchAreaFromText(areaQuery, fallbackCity);
-    if (!area) {
-      toast.error("Ange en ort, stadsdel eller adress.");
-      return;
-    }
-    addArea(area);
   }
 
   function removeSavedArea(areaId: string) {
@@ -247,9 +221,9 @@ export function SearchAreaControlsV16({
             query={areaQuery}
             placeholder={SEARCH_PLACEHOLDER}
             disabled={false}
+            fallbackCity={fallbackCity}
             onQueryChange={setAreaQuery}
             onSelect={addVerifiedArea}
-            onDemoSubmit={addDemoArea}
           />
         )}
         <p className="text-xs leading-relaxed text-muted-foreground">

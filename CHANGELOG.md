@@ -14,6 +14,71 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.27.1] – 2026-08-07
+
+### Rättat
+
+- Geografisk autocomplete visar kort platsnamn med svensk resulttyp och relevant
+  ort, kommun eller län i stället för rå providertext som `Stavsnäs, AB`.
+- Breda kommun-, läns- och regionträffar förklaras tydligt men förblir ovalbara
+  så länge sökområden använder punkt och radie.
+- Exempel- och demoläget använder samma autocompletepresentation utan externa
+  Geoapify-anrop.
+
+## [1.27.0] – 2026-08-07
+
+### Ändrat
+
+- Detaljen **Lägg till i gruppen** och detaljsidan för ett redan tillagt
+  matställe använder samma visuella språk för platsidentitet och praktisk
+  information.
+- Adressen i förhandsdetaljen fungerar som kartlänk och webbplats samt
+  öppettidsdata följer samma kompakta panelmönster som på den tillagda sidan.
+- Sökresultatlistan behåller sin tidigare kompakta utformning; den nya
+  detaljidentiteten används först när en träff öppnas för granskning.
+- Ett ännu inte tillagt ställe får inga handlingar för besök, favorit eller
+  nästa stopp. Kök och inriktning, Passar för, gruppanteckning och rapportering
+  ligger kvar i förhandsflödet.
+
+## [1.26.5] – 2026-08-06
+
+### Rättat
+
+- Nya öppna inbjudningslänkar kan användas av flera personer tills länken
+  återkallas eller går ut.
+- E-postbundna inbjudningar förblir engångslänkar för den angivna adressen.
+- Aktiva medlemmar kan öppna länken igen utan dubbelt medlemskap eller en ny
+  anslutningshändelse.
+- Tidigare använda, återkallade eller utgångna äldre länkar återaktiveras inte
+  av migrationen.
+
+## [1.26.4] – 2026-08-06
+
+### Rättat
+
+- Nya breda kommun-, läns-, region- och landsområden blockeras åter av
+  servern innan gruppens befintliga sökområden ersätts.
+- Befintliga breda sökområden kan ligga kvar oförändrade tills gruppen väljer
+  ett mer precist område.
+- Den privata bucketen för besöksfoton begränsas åter till högst 1,5 MB och
+  endast JPEG.
+- Korrigeringen använder en ny framåtriktad migration och spelar inte om eller
+  fabricerar historiskt saknade migrationsversioner.
+
+## [1.26.3] – 2026-08-06
+
+### Ändrat
+
+- Exempelgruppen täcker återbesök, besöksfoto, gäst, tidigare medlem, delat
+  besök, arkiverat ställe och flera synliga omdömen i samma produktkomponenter
+  som demo- och live-läge.
+- Providerställe, begränsad platsinformation och ett långt mobilscenario gör
+  fler verkliga produktfall möjliga att granska utan externa anrop.
+- Exempeldata byggs från en uttrycklig referenstid och använder en ny
+  sessionsversion så gammal flikdata inte döljer det aktuella scenariokontraktet.
+- Kontraktstester och riktade mobilflöden verifierar referensintegritet,
+  deltagarregler, delningsintegritet och 360 px utan horisontell overflow.
+
 ## [1.26.2] – 2026-08-06
 
 ### Ändrat

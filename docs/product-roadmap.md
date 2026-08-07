@@ -91,23 +91,37 @@ Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
 chatt. De får omprövas när aktuell kod, nya fakta eller ett tydligt
 produktproblem visar att beslutet behöver ändras.
 
+## Aktuellt arbete
+
+Driftgrinderna **#142 Nygenererad öppen inbjudningslänk behandlas som redan
+använd** och **#137 Återställ produktionsvakter för sökområden och besöksfoton**
+har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
+platskandidater och tillagda matställen** genomfördes i v1.27.0.
+
+**Paket B – Sök och geografi** är nu aktivt. Första steget **#147 Visa naturliga
+svenska etiketter för geografiska sökträffar** genomförs i v1.27.1. Därefter är
+**#148 Gör Lägg till ställen begripligt med Sök i före intelligent
+matställessökning** nästa steg.
+
 ## Paket A – Grundplatta och konsekvens
 
 **Prioritet:** `priority:now`
 
 Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
 kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
+Efter #108 går arbetet till Paket B innan återstående delar av Paket A tas upp
+igen.
 
-Rekommenderad ordning:
+Intern ordning när Paket A återupptas:
 
-1. **#107 Levande exempelgrupp med scenariokontrakt**  
+1. ✅ **#107 Levande exempelgrupp med scenariokontrakt**  
    Gör exempelgruppen till en liten, representativ och löpande underhållen
-   produktfixture. Nya större funktioner ska bedöma behovet av nya exempeldata
-   och regressionsscenarier.
-2. **#108 Gemensamt visuellt språk för platskandidater och tillagda
+   produktfixture. Genomförd i v1.26.3 via #138. Nya större funktioner ska
+   bedöma behovet av nya exempeldata och regressionsscenarier.
+2. ✅ **#108 Gemensamt visuellt språk för platskandidater och tillagda
    matställen**  
    Återanvänd platsidentitet och visuell hierarki utan att göra sökresultat och
-   detaljvy innehållsmässigt identiska.
+   detaljvy innehållsmässigt identiska. Genomförd i v1.27.0 via #151.
 3. **#104 Tydligare informationsarkitektur i gruppinställningarna**  
    Organisera gruppytan efter konkreta uppgifter och separera gruppspecifikt
    innehåll från personliga app- och kontoinställningar.
@@ -115,27 +129,68 @@ Rekommenderad ordning:
    Använd en central varumärkeskomponent där symbolen representerar Matrundan,
    men behåll matsymboler där de representerar grupper eller matställen.
 5. **#105 Utökat emoji- och symbolstöd för grupper och matställen**  
-   Utöka kurerade symbolval. Bilduppladdning ingår uttryckligen inte i detta
-   scope.
+   Utöka kurerade symbolval och stöd ett gruppspecifikt manuellt val.
+   Bilduppladdning ingår uttryckligen inte i detta scope.
+6. **#135 Härled representativa matställessymboler från kök och inriktning**  
+   Ge ställen en stabil automatisk symbol från normaliserad inriktning, kök och
+   kategori när ingen uttrycklig symbol finns. Manuellt gruppval ska ha
+   företräde och breda eller motstridiga utbud ska få en neutral fallback.
 
-## Paket B – Nästa stopp v2
+## Paket B – Sök och geografi
 
-**Prioritet:** `priority:next`
+**Prioritet:** `priority:now`
+
+Paketet löser observerade problem i det centrala flödet för att hitta och lägga
+till matställen. Användaren ska först förstå **var** gruppen söker och därefter
+**vad** den söker efter. Geografiska val ska vara explicita och synliga, medan
+matställessökningen ska vara tolerant och hjälpsam utan att dölja sitt scope.
+
+Rekommenderad ordning:
+
+1. ✅ **#147 Visa naturliga svenska etiketter för geografiska sökträffar**  
+   Ersätt rå providertext som `Stavsnäs, AB` med begripligt namn, resulttyp och
+   relevant geografisk kontext utan att ändra den underliggande punktmodellen.
+   Genomförd i v1.27.1.
+2. **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
+   matställessökning**  
+   Visa valda områden först som tydliga pills och sök därefter efter namn, kök
+   eller typ med grupperad autocomplete. Specifika matställen ska visas med
+   trovärdig adress eller relevant geografisk fallback. Den visuella lösningen
+   ska återanvända Matrundans befintliga språk och #108:s platsidentitet.
+3. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
+   Utöka sökområdesmodellen så verifierade kommuner, stadsdelar och andra
+   områden kan sökas inom sin faktiska providergräns, medan adresser och andra
+   punktplatser behåller närhetsavstånd. Polygoner och radier ska kunna
+   kombineras och visas i samma kartvy.
+
+Paketet behåller principen att gruppens sparade sökområden är **förval för nya
+sökningar**, inte en permanent spärr för vilka matställen gruppen får använda.
+Alla sparade områden är fortsatt valda när sökningen öppnas och inget område är
+primärt. Befintliga punktområden får inte tyst få ny geografisk innebörd när
+boundary-stödet införs.
+
+Boundary-steget ändrar ett varaktigt arkitekturbeslut och kräver därför en
+aktuell arkitektur- och migrationsplan innan implementation. Egenritade
+polygoner och generell kartredigering är uttryckliga icke-mål.
+
+## Paket C – Nästa stopp v2
+
+**Prioritet:** `priority:next`, efter Paket B
 
 - **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
 
-Det här är nästa större kärnproduktsteg. Gruppen ska kunna föreslå alternativa
-matställen och flera tider utan att ett nytt förslag skriver över det som redan
-diskuteras. Frågorna **vart** och **när** hålls separata, medan ett aktuellt nästa
-stopp förblir tydligt.
+Det här är nästa större kärnproduktsteg efter sök- och geografipaketet. Gruppen
+ska kunna föreslå alternativa matställen och flera tider utan att ett nytt
+förslag skriver över det som redan diskuteras. Frågorna **vart** och **när** hålls
+separata, medan ett aktuellt nästa stopp förblir tydligt.
 
 Det övergripande issuen får delas i mindre underissues efter en aktuell
 arkitektur- och implementationsplan. En stor plats × datum-matris och automatisk
 majoritetsvinnare är uttryckliga icke-mål.
 
-## Paket C – Personlig inspiration
+## Paket D – Personlig inspiration
 
-**Prioritet:** `priority:later`, efter Paket B
+**Prioritet:** `priority:later`, efter Paket C
 
 Rekommenderad ordning:
 
@@ -152,7 +207,7 @@ Rekommenderad ordning:
 Personliga funktioner får inte skapa offentlig profil, global ranking eller en
 individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
-## Paket D – Gemensamma besöksminnen
+## Paket E – Gemensamma besöksminnen
 
 **Prioritet:** `priority:later`
 

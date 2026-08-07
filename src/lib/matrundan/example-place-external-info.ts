@@ -1,4 +1,5 @@
 import type { PlaceExternalDetails } from "./geoapify-place-details.functions";
+import { EXAMPLE_IDS, exampleIsoTimestamp } from "./example-scenarios";
 import { parseOpeningHours } from "./opening-hours";
 import type { ExternalPlaceLocation } from "./place-location-sync";
 import type { Place } from "./types";
@@ -11,27 +12,29 @@ export interface ExampleExternalInfoScenario {
 }
 
 const WEBSITE_BY_PLACE: Record<string, string | null> = {
-  p1: "https://rundans-bistro.example/",
-  p2: "https://kardemummakoket.example/",
-  p3: "https://tacoateljen.example/",
-  p4: "https://brodverket47.example/",
-  p5: "https://grona-terrassen.example/",
-  p6: "https://kottbulleklubben.example/",
-  p7: null,
-  p8: "https://smakhallen.example/",
-  p9: "https://kvartersbordet.example/",
+  [EXAMPLE_IDS.places.providerBistro]: "https://rundans-bistro.example/",
+  [EXAMPLE_IDS.places.repeatCafe]: "https://kardemummakoket.example/",
+  [EXAMPLE_IDS.places.guestReviews]: "https://tacoateljen.example/",
+  [EXAMPLE_IDS.places.archivedBakery]: "https://brodverket47.example/",
+  [EXAMPLE_IDS.places.nextStop]: "https://grona-terrassen.example/",
+  [EXAMPLE_IDS.places.formerMemberHistory]: "https://kottbulleklubben.example/",
+  [EXAMPLE_IDS.places.limitedInfo]: null,
+  [EXAMPLE_IDS.places.externalError]: "https://smakhallen.example/",
+  [EXAMPLE_IDS.places.sharedVisit]: "https://kvartersbordet.example/",
+  [EXAMPLE_IDS.places.longLayout]: "https://det-lilla-langbordet.example/",
 };
 
 const OPENING_HOURS_BY_PLACE: Record<string, string | null> = {
-  p1: "Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00; Su 12:00-20:00",
-  p2: "Mo-Fr 07:00-18:00; Sa-Su 08:00-17:00",
-  p3: "Tu-Th 11:00-21:00; Fr-Sa 11:00-23:00; Su 12:00-20:00",
-  p4: "Mo-Fr 07:00-17:00; Sa-Su 08:00-16:00",
-  p5: "Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00; Su 12:00-20:00",
-  p6: "Mo-Su 11:00-21:00",
-  p7: null,
-  p8: "Mo-Sa 11:00-22:00; Su 12:00-20:00",
-  p9: "Mo-Th 15:00-23:00; Fr-Sa 15:00-01:00; Su 15:00-22:00",
+  [EXAMPLE_IDS.places.providerBistro]: "Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00; Su 12:00-20:00",
+  [EXAMPLE_IDS.places.repeatCafe]: "Mo-Fr 07:00-18:00; Sa-Su 08:00-17:00",
+  [EXAMPLE_IDS.places.guestReviews]: "Tu-Th 11:00-21:00; Fr-Sa 11:00-23:00; Su 12:00-20:00",
+  [EXAMPLE_IDS.places.archivedBakery]: "Mo-Fr 07:00-17:00; Sa-Su 08:00-16:00",
+  [EXAMPLE_IDS.places.nextStop]: "Mo-Th 11:00-21:00; Fr-Sa 11:00-22:00; Su 12:00-20:00",
+  [EXAMPLE_IDS.places.formerMemberHistory]: "Mo-Su 11:00-21:00",
+  [EXAMPLE_IDS.places.limitedInfo]: null,
+  [EXAMPLE_IDS.places.externalError]: "Mo-Sa 11:00-22:00; Su 12:00-20:00",
+  [EXAMPLE_IDS.places.sharedVisit]: "Mo-Th 15:00-23:00; Fr-Sa 15:00-01:00; Su 15:00-22:00",
+  [EXAMPLE_IDS.places.longLayout]: "Tu-Th 17:00-22:00; Fr-Sa 12:00-23:00; Su 12:00-20:00",
 };
 
 function currentLocation(place: Place): ExternalPlaceLocation | null {
@@ -48,10 +51,10 @@ function currentLocation(place: Place): ExternalPlaceLocation | null {
   };
 }
 
-function scenarioDetails(place: Place): PlaceExternalDetails {
+function scenarioDetails(place: Place, now: Date): PlaceExternalDetails {
   const location = currentLocation(place);
   const adjustedLocation =
-    place.id === "p5" && location
+    place.id === EXAMPLE_IDS.places.nextStop && location
       ? {
           ...location,
           address: "Utsiktsgränd 25",
@@ -65,20 +68,23 @@ function scenarioDetails(place: Place): PlaceExternalDetails {
     website: WEBSITE_BY_PLACE[place.id] ?? null,
     timezone: "Europe/Stockholm",
     location: adjustedLocation,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: exampleIsoTimestamp(now),
     attribution: "Fiktiva exempeluppgifter i Matrundan.",
   };
 }
 
-export function exampleExternalInfoForPlace(place: Place): ExampleExternalInfoScenario | null {
-  if (!/^p[1-9]$/.test(place.id)) return null;
-  if (place.id === "p8") {
+export function exampleExternalInfoForPlace(
+  place: Place,
+  now = new Date(),
+): ExampleExternalInfoScenario | null {
+  if (!(place.id in WEBSITE_BY_PLACE)) return null;
+  if (place.id === EXAMPLE_IDS.places.externalError) {
     return {
       details: null,
       error: "Uppgifterna kunde inte kontrolleras just nu. Försök igen senare.",
     };
   }
-  return { details: scenarioDetails(place), error: null };
+  return { details: scenarioDetails(place, now), error: null };
 }
 
 function locationOverrideKey(placeId: string): string {
