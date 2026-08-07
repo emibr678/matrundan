@@ -84,14 +84,36 @@ async function openPlaceSearch(page: Page) {
 
 test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 520 });
-  await openPlaceSearch(page);
+  const searchDialog = await openPlaceSearch(page);
+  const candidate = placeSuggestionButton(searchDialog);
 
-  await placeSuggestionButton(page).click();
+  await expect(candidate.locator('[data-slot="place-identity-mark"]')).toHaveCount(0);
+  await expect(
+    searchDialog.getByRole("link", { name: `Öppna webbplatsen för ${PLACE_NAME}` }),
+  ).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Kompakt sökresultat");
+
+  await candidate.focus();
+  await page.keyboard.press("Enter");
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
   await expect(
+    detailsDialog
+      .getByTestId("pending-place-identity-grid")
+      .locator('[data-slot="place-identity-mark"]'),
+  ).toHaveAttribute("data-size", "detail");
+  await expect(detailsDialog.getByTestId("pending-place-practical-info")).toBeVisible();
+  await expect(detailsDialog.getByText("Webbplats ej angiven", { exact: true })).toBeVisible();
+  await expect(detailsDialog.getByText("Ej angivna", { exact: true })).toBeVisible();
+  await expect(
     detailsDialog.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
   ).toBeVisible();
+  await expect(
+    detailsDialog.getByRole("button", { name: "Föreslå som nästa stopp", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    detailsDialog.getByRole("button", { name: "Registrera besök", exact: true }),
+  ).toHaveCount(0);
   await expect(
     detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }),
   ).toBeVisible();
@@ -134,6 +156,40 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   expect(guideScroll.scrollHeight).toBeGreaterThan(guideScroll.clientHeight);
   await guideDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guideDialog).toBeHidden();
+});
+
+test("samma ställe behåller detaljidentiteten före och efter tillägg på desktop", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 800 });
+  const searchDialog = await openPlaceSearch(page);
+
+  await placeSuggestionButton(searchDialog).click();
+  const pendingDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  const pendingMark = pendingDialog
+    .getByTestId("pending-place-identity-grid")
+    .locator('[data-slot="place-identity-mark"]');
+  await expect(pendingMark).toHaveAttribute("data-size", "detail");
+  const pendingSymbol = await pendingMark.textContent();
+  await expect(pendingDialog.getByTestId("pending-place-practical-info")).toBeVisible();
+
+  await pendingDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+  await expect(pendingDialog).toBeHidden();
+  await searchDialog.getByRole("button", { name: "Klar", exact: true }).click();
+
+  const placeLink = page.getByRole("link", { name: new RegExp(PLACE_NAME) }).first();
+  await expect(placeLink).toBeVisible();
+  await placeLink.click();
+
+  await expect(page.getByRole("heading", { name: PLACE_NAME, level: 1 })).toBeVisible();
+  const savedMark = page
+    .getByTestId("place-identity-grid")
+    .locator('[data-slot="place-identity-mark"]');
+  await expect(savedMark).toHaveAttribute("data-size", "detail");
+  expect(await savedMark.textContent()).toBe(pendingSymbol);
+  await expect(page.getByTestId("place-practical-info")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Föreslå som nästa stopp" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Tillagd platsdetalj på desktop");
 });
 
 test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow", async ({

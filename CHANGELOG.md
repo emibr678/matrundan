@@ -14,6 +14,21 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.27.0] – 2026-08-07
+
+### Ändrat
+
+- Detaljen **Lägg till i gruppen** och detaljsidan för ett redan tillagt
+  matställe använder samma visuella språk för platsidentitet och praktisk
+  information.
+- Adressen i förhandsdetaljen fungerar som kartlänk och webbplats samt
+  öppettidsdata följer samma kompakta panelmönster som på den tillagda sidan.
+- Sökresultatlistan behåller sin tidigare kompakta utformning; den nya
+  detaljidentiteten används först när en träff öppnas för granskning.
+- Ett ännu inte tillagt ställe får inga handlingar för besök, favorit eller
+  nästa stopp. Kök och inriktning, Passar för, gruppanteckning och rapportering
+  ligger kvar i förhandsflödet.
+
 ## [1.26.5] – 2026-08-06
 
 ### Rättat
