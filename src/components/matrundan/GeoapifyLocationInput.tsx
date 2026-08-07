@@ -2,6 +2,7 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { demoAutocompleteLocations } from "@/lib/matrundan/demo-location-suggestions";
 import { geoapifyAutocompleteLocation } from "@/lib/matrundan/geoapify.functions";
+import type { NormalizedLocationSuggestion } from "@/lib/matrundan/geoapify-normalize";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import { isBroadAdministrativeSearchArea } from "@/lib/matrundan/search-areas";
 
@@ -15,6 +16,19 @@ type LocationSuggestion = {
   resultType?: string;
   blocked: boolean;
 };
+
+function toLocationSuggestion(row: NormalizedLocationSuggestion): LocationSuggestion {
+  return {
+    label: row.label,
+    primaryLabel: row.primaryLabel || row.label,
+    secondaryLabel: row.secondaryLabel || "Plats",
+    placeId: row.placeId,
+    lat: row.lat,
+    lng: row.lng,
+    resultType: row.resultType,
+    blocked: isBroadAdministrativeSearchArea(row.resultType, row.label),
+  };
+}
 
 /**
  * Val-baserat autocomplete-fält för verifierade sökområden.
@@ -74,18 +88,7 @@ export function GeoapifyLocationInput({
       request
         .then((rows) => {
           if (reqId !== reqRef.current) return;
-          const mapped = rows
-            .filter((row) => row.lat != null && row.lng != null && row.placeId)
-            .map((row) => ({
-              label: row.label,
-              primaryLabel: row.primaryLabel || row.label,
-              secondaryLabel: row.secondaryLabel || "Plats",
-              placeId: row.placeId,
-              lat: row.lat as number,
-              lng: row.lng as number,
-              resultType: row.resultType,
-              blocked: isBroadAdministrativeSearchArea(row.resultType, row.label),
-            }));
+          const mapped = rows.map(toLocationSuggestion);
           setSuggestions(mapped);
           setActiveIx(-1);
           setLoading(false);
@@ -151,8 +154,14 @@ export function GeoapifyLocationInput({
       }
       return;
     }
-    if (event.key === "Enter" && open && activeIx >= 0) {
-      const suggestion = suggestions[activeIx];
+    if (event.key === "Enter" && open) {
+      const activeSuggestion = activeIx >= 0 ? suggestions[activeIx] : undefined;
+      const demoSuggestion = demoMode
+        ? demoAutocompleteLocations(value, demoFallbackCity, 6)
+            .map(toLocationSuggestion)
+            .find((suggestion) => !suggestion.blocked)
+        : undefined;
+      const suggestion = activeSuggestion ?? demoSuggestion;
       if (suggestion && !suggestion.blocked) {
         event.preventDefault();
         pick(suggestion);
