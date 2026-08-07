@@ -50,16 +50,16 @@ export function PlaceDataLimitedInfoNotice({ signal }: { signal?: PlaceDataSigna
   if (!signal?.limitedInformation || signal.closureStatus !== "none") return null;
 
   return (
-    <div className="basis-full border-t border-border/60 pt-0.5">
+    <div className="basis-full border-t border-border/60">
       <Popover>
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="inline-flex min-h-9 w-full items-center justify-start gap-1.5 py-1.5 text-[11px] font-medium text-muted-foreground underline decoration-dotted decoration-muted-foreground/50 underline-offset-4 hover:text-foreground"
+            className="flex min-h-11 w-full items-center justify-start gap-2 px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-background/35 hover:text-foreground"
             aria-label="Begränsad platsinformation"
           >
-            <Info className="h-3.5 w-3.5 shrink-0" />
-            Begränsad platsinformation
+            <Info className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 text-left">Begränsad platsinformation</span>
           </button>
         </PopoverTrigger>
         <PopoverContent
