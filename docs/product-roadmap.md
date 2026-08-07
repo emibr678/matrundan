@@ -112,7 +112,7 @@ kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
 Efter det redan pågående #108 går arbetet till Paket B innan återstående delar av
 Paket A tas upp igen.
 
-Rekommenderad ordning inom paketet:
+Intern ordning när Paket A återupptas:
 
 1. ✅ **#107 Levande exempelgrupp med scenariokontrakt**  
    Gör exempelgruppen till en liten, representativ och löpande underhållen
