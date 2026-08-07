@@ -9,7 +9,8 @@ export type { ChangelogEntry };
 const VERSION_1_28_0_CHANGELOG: ChangelogEntry = {
   version: "1.28.0",
   date: "2026-08-07",
-  summary: "Lägg till ställen får tydligare geografi och intelligent sökning efter namn, kök och typ.",
+  summary:
+    "Lägg till ställen får tydligare geografi och intelligent sökning efter namn, kök och typ.",
   sections: [
     {
       kind: "Förbättrat",
@@ -79,7 +80,7 @@ const VERSION_1_26_4_CHANGELOG: ChangelogEntry = {
     {
       kind: "Rättat",
       items: [
-        "Nya breda kommun-, läns-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
+        "Nya breda kommun-, län-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
         "Besöksfoton skyddas åter av en privat Storage-bucket med högst 1,5 MB och endast JPEG.",
       ],
     },
