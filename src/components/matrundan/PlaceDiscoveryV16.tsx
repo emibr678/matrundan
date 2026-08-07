@@ -352,16 +352,20 @@ export function PlaceDiscoveryV16({
       if (requestId !== requestRef.current) return;
       const fetched = response.results.map(toPlaceSuggestion);
       setResults((current) => {
-        const merged = new Map(current.map((result) => [result.externalId, result]));
+        const seen = new Set(current.map((result) => result.externalId));
+        const merged = [...current];
         for (const result of fetched) {
-          if (!merged.has(result.externalId)) merged.set(result.externalId, result);
+          if (seen.has(result.externalId)) continue;
+          seen.add(result.externalId);
+          merged.push(result);
         }
-        return [...merged.values()].sort((a, b) => {
+        return merged.sort((a, b) => {
           const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
           const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
           return da - db || a.name.localeCompare(b.name, "sv-SE");
         });
       });
+
       setHasMore(response.hasMore);
       setNextOffset(response.nextOffset);
       setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
