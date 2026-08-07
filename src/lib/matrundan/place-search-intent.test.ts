@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   genericPlaceSearchSuggestions,
+  matchesPlaceSearchIntent,
   resolvePlaceSearchIntent,
 } from "./place-search-intent";
 
@@ -43,6 +44,72 @@ describe("matställessökningens intent", () => {
 
   test("tom fråga ger browsing", () => {
     expect(resolvePlaceSearchIntent("   ")).toEqual({ kind: "browse", query: "" });
+  });
+
+  test("semantiskt kök matchar normaliserade cuisines även utan ordet i namnet", () => {
+    const intent = resolvePlaceSearchIntent("sushi");
+    expect(
+      matchesPlaceSearchIntent(
+        {
+          name: "Rislyktans Izakaya",
+          category: "restaurang",
+          cuisines: ["Japanskt", "Sushi"],
+          address: "Lyktgatan 9",
+          city: "Göteborg",
+        },
+        intent,
+      ),
+    ).toBe(true);
+  });
+
+  test("Pasta matchar pasta men inte enbart italienskt", () => {
+    const intent = resolvePlaceSearchIntent("Pasta");
+    expect(
+      matchesPlaceSearchIntent(
+        { name: "Pastahörnan", category: "restaurang", cuisines: ["Pasta"], city: "Göteborg" },
+        intent,
+      ),
+    ).toBe(true);
+    expect(
+      matchesPlaceSearchIntent(
+        {
+          name: "Trattoria Uno",
+          category: "restaurang",
+          cuisines: ["Italienskt"],
+          city: "Göteborg",
+        },
+        intent,
+      ),
+    ).toBe(false);
+  });
+
+  test("fri text kan fortfarande matcha namn och geografisk kontext", () => {
+    expect(
+      matchesPlaceSearchIntent(
+        {
+          name: "Päronträdets Trattoria",
+          category: "restaurang",
+          cuisines: ["Italienskt", "Pasta"],
+          address: "Pärongränden 6",
+          area: "Vasastan",
+          city: "Göteborg",
+        },
+        resolvePlaceSearchIntent("päronträdets"),
+      ),
+    ).toBe(true);
+    expect(
+      matchesPlaceSearchIntent(
+        {
+          name: "Päronträdets Trattoria",
+          category: "restaurang",
+          cuisines: ["Italienskt", "Pasta"],
+          address: "Pärongränden 6",
+          area: "Vasastan",
+          city: "Göteborg",
+        },
+        resolvePlaceSearchIntent("Vasastan"),
+      ),
+    ).toBe(true);
   });
 
   test("autocomplete kan föreslå både kök/inriktning och Matrundan-typ", () => {
