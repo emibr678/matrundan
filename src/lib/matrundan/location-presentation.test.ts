@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { demoAutocompleteLocations } from "./demo-location-suggestions";
-import {
-  normalizeLocationFeature,
-  resolveLocationPresentation,
-} from "./geoapify-normalize";
+import { normalizeLocationFeature, resolveLocationPresentation } from "./geoapify-normalize";
 import { isBroadAdministrativeSearchArea } from "./search-areas";
 
 describe("svensk geografisk presentation", () => {
