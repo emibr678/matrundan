@@ -1,9 +1,8 @@
 import * as React from "react";
-import { CheckCircle2, Plus } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoapifyLocationInput } from "./GeoapifyLocationInput";
 import { SearchAreaPill } from "./SearchAreaPill";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,6 +18,7 @@ import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
 const SEARCH_PLACEHOLDER = "Sök ort, stadsdel eller adress";
+
 
 interface SearchAreaControlsProps {
   heading: string;
