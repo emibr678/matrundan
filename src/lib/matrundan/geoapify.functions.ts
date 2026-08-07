@@ -129,7 +129,8 @@ async function searchPlacesAtCenter(input: {
   const requestedLimit = Math.min(input.limit ?? DISCOVERY_PAGE_SIZE, 50);
   const providerAlreadyAppliedIntent = hasStructuredGeoapifyMapping(intent);
   const nameQuery = geoapifyNameQueryForPlaceSearchIntent(intent);
-  const needsLocalFiltering = intent.kind !== "browse" && !providerAlreadyAppliedIntent && !nameQuery;
+  const needsLocalFiltering =
+    intent.kind !== "browse" && !providerAlreadyAppliedIntent && !nameQuery;
   const providerLimit = needsLocalFiltering
     ? Math.max(requestedLimit, FALLBACK_PROVIDER_LIMIT)
     : requestedLimit;
