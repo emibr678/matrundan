@@ -10,20 +10,12 @@ const CATEGORY_GRADIENT: Record<PlaceCategory, string> = {
   matvagn: "from-sage/30 to-mustard/30",
 };
 
-const CATEGORY_SYMBOL: Record<PlaceCategory, string> = {
-  restaurang: "🍽️",
-  café: "☕",
-  bageri: "🥐",
-  snabbmat: "🍔",
-  pub: "🍺",
-  matvagn: "🌭",
-};
-
 const SIZE_CLASS = {
   sm: "h-11 w-11 text-2xl",
   md: "h-14 w-14 text-3xl",
   lg: "h-20 w-20 text-4xl",
-  detail: "-top-0.5 h-16 w-16 text-3xl min-[390px]:h-20 min-[390px]:w-20 min-[390px]:text-4xl",
+  detail:
+    "-top-0.5 h-16 w-16 text-3xl min-[390px]:h-20 min-[390px]:w-20 min-[390px]:text-4xl",
 } as const;
 
 export type PlaceIdentityMarkSize = keyof typeof SIZE_CLASS;
@@ -39,7 +31,7 @@ export function PlaceIdentityMark({
   size?: PlaceIdentityMarkSize;
   className?: string;
 }) {
-  const visibleSymbol = symbol?.trim() || CATEGORY_SYMBOL[category];
+  const visibleSymbol = symbol?.trim() || "🍽️";
 
   return (
     <div
