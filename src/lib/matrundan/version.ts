@@ -6,6 +6,22 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_27_0_CHANGELOG: ChangelogEntry = {
+  version: "1.27.0",
+  date: "2026-08-07",
+  summary: "Platsdetaljen känns igen före och efter att ett matställe läggs till.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Lägg till i gruppen och den tillagda platsdetaljen delar visuellt språk för platsidentitet, adress och praktisk information.",
+        "Sökresultatlistan behåller sin tidigare kompakta utformning och förändras inte av platsdetaljens nya uttryck.",
+        "Förhandsdetaljen behåller kök och inriktning, Passar för, gruppanteckning och rapportering utan att visa besöks- eller nästa-stopp-handlingar.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_26_5_CHANGELOG: ChangelogEntry = {
   version: "1.26.5",
   date: "2026-08-06",
@@ -72,6 +88,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_27_0_CHANGELOG,
   VERSION_1_26_5_CHANGELOG,
   VERSION_1_26_4_CHANGELOG,
   VERSION_1_26_3_CHANGELOG,
