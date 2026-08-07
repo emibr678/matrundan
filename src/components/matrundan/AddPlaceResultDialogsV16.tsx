@@ -53,9 +53,7 @@ function suggestionWebsite(suggestion: PlaceSuggestion): string | undefined {
 }
 
 function suggestionHasOpeningHours(suggestion: PlaceSuggestion): boolean {
-  return Boolean(
-    (suggestion as PlaceSuggestion & { hasOpeningHours?: boolean }).hasOpeningHours,
-  );
+  return Boolean((suggestion as PlaceSuggestion & { hasOpeningHours?: boolean }).hasOpeningHours);
 }
 
 function PendingPlaceSummary({
