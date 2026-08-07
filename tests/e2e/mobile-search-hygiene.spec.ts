@@ -84,9 +84,27 @@ async function openPlaceSearch(page: Page) {
 
 test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 520 });
-  await openPlaceSearch(page);
+  const searchDialog = await openPlaceSearch(page);
+  const candidate = placeSuggestionButton(searchDialog);
 
-  await placeSuggestionButton(page).click();
+  await expect(candidate.locator('[data-slot="place-identity-mark"]')).toBeVisible();
+  await expect(
+    searchDialog.getByText("Öppettider finns", { exact: true }),
+  ).toBeVisible();
+  const websiteLink = searchDialog.getByRole("link", {
+    name: `Öppna webbplatsen för ${PLACE_NAME}`,
+  });
+  await expect(websiteLink).toHaveAttribute("href", "https://parontradets.example/");
+  await expectNoHorizontalOverflow(page, "Platskandidat med lång adress");
+
+  await websiteLink.evaluate((element) => {
+    element.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    (element as HTMLAnchorElement).click();
+  });
+  await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toHaveCount(0);
+
+  await candidate.focus();
+  await page.keyboard.press("Enter");
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(detailsDialog).toBeVisible();
   await expect(
