@@ -227,7 +227,8 @@ export function resolveLocationPresentation(
     kindLabel = looksLikeMunicipality(primaryLabel) ? "Kommun" : "Ort";
     contextLabel = firstDistinct(primaryLabel, municipality, county, state);
   } else {
-    primaryLabel = rawName || area || locality || municipality || county || state || formattedFallback;
+    primaryLabel =
+      rawName || area || locality || municipality || county || state || formattedFallback;
     contextLabel = firstDistinct(primaryLabel, area, locality, municipality, county, state);
   }
 
@@ -370,7 +371,10 @@ export function cityFromGeoapify(props: GeoapifyLocationProperties): string {
   return props.city || props.town || props.village || props.municipality || props.county || "";
 }
 
-export function addressFromGeoapify(props: GeoapifyLocationProperties, placeName?: string | null): string {
+export function addressFromGeoapify(
+  props: GeoapifyLocationProperties,
+  placeName?: string | null,
+): string {
   const street = [props.street, props.housenumber].filter(Boolean).join(" ").trim();
   if (street) return street;
 
