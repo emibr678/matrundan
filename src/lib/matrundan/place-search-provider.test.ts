@@ -11,18 +11,14 @@ import { getPlacesProvider } from "./places-provider";
 describe("providerstyrd matställessökning", () => {
   test("sushi använder specifik Geoapify-kategori i stället för name-filter", () => {
     const intent = resolvePlaceSearchIntent("sushi");
-    expect(geoapifyCategoriesForPlaceSearchIntent(intent)).toEqual([
-      "catering.restaurant.sushi",
-    ]);
+    expect(geoapifyCategoriesForPlaceSearchIntent(intent)).toEqual(["catering.restaurant.sushi"]);
     expect(hasStructuredGeoapifyMapping(intent)).toBe(true);
     expect(geoapifyNameQueryForPlaceSearchIntent(intent)).toBeUndefined();
   });
 
   test("Pasta har ingen gissad providerkategori och faller tillbaka till bred catering", () => {
     const intent = resolvePlaceSearchIntent("Pasta");
-    expect(geoapifyCategoriesForPlaceSearchIntent(intent)).toEqual(
-      GEOAPIFY_DISCOVERY_CATEGORIES,
-    );
+    expect(geoapifyCategoriesForPlaceSearchIntent(intent)).toEqual(GEOAPIFY_DISCOVERY_CATEGORIES);
     expect(hasStructuredGeoapifyMapping(intent)).toBe(false);
     expect(geoapifyNameQueryForPlaceSearchIntent(intent)).toBeUndefined();
   });
@@ -35,9 +31,7 @@ describe("providerstyrd matställessökning", () => {
 
   test("fri verksamhetstext använder provider-name men behåller breda kategorier", () => {
     const intent = resolvePlaceSearchIntent("Päronträdets Trattoria");
-    expect(geoapifyCategoriesForPlaceSearchIntent(intent)).toEqual(
-      GEOAPIFY_DISCOVERY_CATEGORIES,
-    );
+    expect(geoapifyCategoriesForPlaceSearchIntent(intent)).toEqual(GEOAPIFY_DISCOVERY_CATEGORIES);
     expect(geoapifyNameQueryForPlaceSearchIntent(intent)).toBe("Päronträdets Trattoria");
   });
 
