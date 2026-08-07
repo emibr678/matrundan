@@ -34,6 +34,8 @@ import {
   genericPlaceSearchSuggestions,
   type GenericPlaceSearchSuggestion,
 } from "@/lib/matrundan/place-search-intent";
+import { mergePlaceSearchPages } from "@/lib/matrundan/place-search-pagination";
+
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
