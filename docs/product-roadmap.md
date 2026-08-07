@@ -98,10 +98,11 @@ använd** och **#137 Återställ produktionsvakter för sökområden och besöks
 har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
 platskandidater och tillagda matställen** genomfördes i v1.27.0.
 
-**Paket B – Sök och geografi** är nu aktivt. Första steget **#147 Visa naturliga
-svenska etiketter för geografiska sökträffar** genomförs i v1.27.1. Därefter är
-**#148 Gör Lägg till ställen begripligt med Sök i före intelligent
-matställessökning** nästa steg.
+**Paket B – Sök och geografi** är nu aktivt. **#147 Visa naturliga svenska
+etiketter för geografiska sökträffar** genomfördes i v1.27.1 och **#148 Gör Lägg
+till ställen begripligt med Sök i före intelligent matställessökning** levereras
+i v1.28.0. Därefter är **#149 Stöd geografiska boundaries och visualisera
+sökområden på kartan** nästa steg.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -151,12 +152,13 @@ Rekommenderad ordning:
    Ersätt rå providertext som `Stavsnäs, AB` med begripligt namn, resulttyp och
    relevant geografisk kontext utan att ändra den underliggande punktmodellen.
    Genomförd i v1.27.1.
-2. **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
+2. ✅ **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
    matställessökning**  
    Visa valda områden först som tydliga pills och sök därefter efter namn, kök
-   eller typ med grupperad autocomplete. Specifika matställen ska visas med
+   eller typ med grupperad autocomplete. Specifika matställen visas med
    trovärdig adress eller relevant geografisk fallback. Den visuella lösningen
-   ska återanvända Matrundans befintliga språk och #108:s platsidentitet.
+   återanvänder Matrundans befintliga språk och #108:s platsidentitet.
+   Levereras i v1.28.0 via #154.
 3. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
    Utöka sökområdesmodellen så verifierade kommuner, stadsdelar och andra
    områden kan sökas inom sin faktiska providergräns, medan adresser och andra
@@ -268,14 +270,11 @@ Uppdatera dokumentet när:
 - ett varaktigt produktbeslut tillkommer eller tas bort;
 - ett övergripande feature-issue delas upp eller ersätts;
 - en funktion är genomförd och ska markeras som klar inom ett pågående paket;
-- ett pakets sista issue är genomfört och paketet ska flyttas till
-  **Genomförda paket**;
-- nästa aktiva paket eller `priority:now` ändras.
+- ett pakets sista issue är genomfört och paketet flyttas till historik.
 
-Under ett pågående paket får färdiga issues markeras kort med `✅` för att göra
-läget tydligt. När hela paketet är klart flyttas det ur den aktiva delen och
-sammanfattas kort under **Genomförda paket**.
+Roadmapen ska normalt **inte** uppdateras för:
 
-Detaljerade implementationsplaner och tillfällig diagnostik hör inte hemma här.
-När en funktion är klar ska användarförändringen dokumenteras i changelog och
-varaktiga arkitekturbeslut i arkitekturdokumentet.
+- varje commit eller patchversion;
+- små buggrättningar som inte ändrar produktens riktning;
+- tekniska implementationdetaljer som redan hör hemma i kod, PR eller
+  arkitekturdokumentation.
