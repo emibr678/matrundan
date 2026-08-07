@@ -1,11 +1,14 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
+import { demoAutocompleteLocations } from "@/lib/matrundan/demo-location-suggestions";
 import { geoapifyAutocompleteLocation } from "@/lib/matrundan/geoapify.functions";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import { isBroadAdministrativeSearchArea } from "@/lib/matrundan/search-areas";
 
 type LocationSuggestion = {
   label: string;
+  primaryLabel: string;
+  secondaryLabel: string;
   placeId: string;
   lat: number;
   lng: number;
@@ -14,11 +17,12 @@ type LocationSuggestion = {
 };
 
 /**
- * Val-baserat Geoapify-autocomplete-fält för sökområden.
+ * Val-baserat autocomplete-fält för verifierade sökområden.
  *
- * Rå fritext utan explicit val räknas aldrig som en verifierad plats. Breda
- * administrativa områden visas för förklaring men kan inte väljas eftersom
- * Matrundans sökning utgår från en punkt och en gemensam radie.
+ * Live använder Geoapify via serverfunktionen. Exempel/demo kan använda en
+ * deterministisk lokal fixture, men båda följer samma presentations- och
+ * tangentbordskontrakt. Rå fritext utan explicit val räknas aldrig som en
+ * verifierad plats.
  */
 export function GeoapifyLocationInput({
   id,
@@ -29,6 +33,8 @@ export function GeoapifyLocationInput({
   placeholder,
   disabled,
   ariaInvalid,
+  demoMode = false,
+  demoFallbackCity = "Göteborg",
 }: {
   id?: string;
   value: string;
@@ -38,6 +44,8 @@ export function GeoapifyLocationInput({
   placeholder?: string;
   disabled?: boolean;
   ariaInvalid?: boolean;
+  demoMode?: boolean;
+  demoFallbackCity?: string;
 }) {
   const [suggestions, setSuggestions] = React.useState<LocationSuggestion[]>([]);
   const [open, setOpen] = React.useState(false);
@@ -59,13 +67,19 @@ export function GeoapifyLocationInput({
     setLoading(true);
     setDone(false);
     const timer = window.setTimeout(() => {
-      geoapifyAutocompleteLocation({ data: { text, limit: 6 } })
+      const request = demoMode
+        ? Promise.resolve(demoAutocompleteLocations(text, demoFallbackCity, 6))
+        : geoapifyAutocompleteLocation({ data: { text, limit: 6 } });
+
+      request
         .then((rows) => {
           if (reqId !== reqRef.current) return;
           const mapped = rows
             .filter((row) => row.lat != null && row.lng != null && row.placeId)
             .map((row) => ({
               label: row.label,
+              primaryLabel: row.primaryLabel || row.label,
+              secondaryLabel: row.secondaryLabel || "Plats",
               placeId: row.placeId,
               lat: row.lat as number,
               lng: row.lng as number,
@@ -86,7 +100,7 @@ export function GeoapifyLocationInput({
         });
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [value]);
+  }, [demoFallbackCity, demoMode, value]);
 
   function pick(suggestion: LocationSuggestion) {
     if (suggestion.blocked) return;
@@ -154,7 +168,7 @@ export function GeoapifyLocationInput({
   const showList = open && value.trim().length >= 2 && (loading || suggestions.length > 0 || done);
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <Input
         id={id}
         value={value}
@@ -181,7 +195,7 @@ export function GeoapifyLocationInput({
         <ul
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
+          className="absolute z-30 mt-1 max-h-72 w-full min-w-0 overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
         >
           {loading && suggestions.length === 0 ? (
             <li className="px-2 py-2 text-muted-foreground">Söker…</li>
@@ -199,8 +213,9 @@ export function GeoapifyLocationInput({
                 <button
                   type="button"
                   disabled={suggestion.blocked}
+                  aria-label={`${suggestion.primaryLabel}. ${suggestion.secondaryLabel}`}
                   className={[
-                    "w-full rounded px-2 py-2 text-left",
+                    "w-full min-w-0 rounded px-2 py-2 text-left",
                     suggestion.blocked
                       ? "cursor-not-allowed text-muted-foreground opacity-75"
                       : "hover:bg-accent",
@@ -211,9 +226,14 @@ export function GeoapifyLocationInput({
                     pick(suggestion);
                   }}
                 >
-                  <span className="block break-words">{suggestion.label}</span>
+                  <span className="block min-w-0 break-words font-medium text-foreground">
+                    {suggestion.primaryLabel}
+                  </span>
+                  <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">
+                    {suggestion.secondaryLabel}
+                  </span>
                   {suggestion.blocked ? (
-                    <span className="mt-0.5 block text-xs leading-snug">
+                    <span className="mt-1 block text-xs leading-snug">
                       Välj en ort, stadsdel eller adress i området.
                     </span>
                   ) : null}
