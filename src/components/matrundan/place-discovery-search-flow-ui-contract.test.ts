@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
 const discoverySource = await Bun.file("src/components/matrundan/PlaceDiscoveryV16.tsx").text();
+const areaControlsSource = await Bun.file(
+  "src/components/matrundan/SearchAreaControlsV16.tsx",
+).text();
 
 describe("Lägg till ställens sökflöde", () => {
   test("etablerar Sök i före Sök matställen", () => {
@@ -10,7 +13,24 @@ describe("Lägg till ställens sökflöde", () => {
     expect(searchAreaIndex).toBeGreaterThanOrEqual(0);
     expect(placeSearchIndex).toBeGreaterThan(searchAreaIndex);
     expect(discoverySource).toContain("Sök i");
-    expect(discoverySource).toContain("Lägg till område eller adress");
+  });
+
+  test("visar geografifältet direkt under rubriken och pills därunder", () => {
+    const headingIndex = areaControlsSource.indexOf("{heading}");
+    const fieldIndex = areaControlsSource.indexOf("<SearchAreaField");
+    const pillsIndex = areaControlsSource.indexOf("<SelectedAreas");
+
+    expect(headingIndex).toBeGreaterThanOrEqual(0);
+    expect(fieldIndex).toBeGreaterThan(headingIndex);
+    expect(pillsIndex).toBeGreaterThan(fieldIndex);
+    expect(areaControlsSource).not.toContain("Ändringar här gäller bara den här sökningen.");
+    expect(areaControlsSource).not.toContain("Lägg till område eller adress</span>");
+  });
+
+  test("använder avståndscopy och beskrivande aria-label", () => {
+    expect(areaControlsSource).toContain("Avstånd ${value} km");
+    expect(areaControlsSource).toContain("Avstånd runt adresser och platser");
+    expect(areaControlsSource).not.toContain("inom ${value} km");
   });
 
   test("skiljer generella typer från specifika matställen i autocomplete", () => {
@@ -25,5 +45,15 @@ describe("Lägg till ställens sökflöde", () => {
     expect(discoverySource).toContain("temporaryAreas");
     expect(discoverySource).toContain("radiusKm");
     expect(discoverySource).toContain("selectedId");
+  });
+
+  test("paginerar resultat med Visar-copy och Visa fler", () => {
+    expect(discoverySource).toContain("RESULT_PAGE_SIZE = 20");
+    expect(discoverySource).toContain("Visar {actionableResultCount}");
+    expect(discoverySource).toContain("Visa fler");
+    expect(discoverySource).toContain("Laddar fler…");
+    expect(discoverySource).toContain("displayLimit");
+    expect(discoverySource).toContain("hasMore");
+    expect(discoverySource).toContain("nextOffset");
   });
 });

@@ -42,6 +42,8 @@ import { CATEGORY_LABEL, type SearchArea, type SearchRadiusKm } from "@/lib/matr
 type ResultView = "lista" | "karta";
 type ResultStatus = "available" | "linkable" | "existing";
 
+const RESULT_PAGE_SIZE = 20;
+
 export interface PlaceDiscoverySnapshot {
   query: string;
   selectedAreaIds: string[];
@@ -54,6 +56,9 @@ export interface PlaceDiscoverySnapshot {
   existingOpen: boolean;
   bulkMode: boolean;
   error: string | null;
+  displayLimit: number;
+  hasMore: boolean;
+  nextOffset: number;
 }
 
 export function PlaceDiscoveryV16({
@@ -115,6 +120,12 @@ export function PlaceDiscoveryV16({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(snapshot?.error ?? null);
   const [retry, setRetry] = React.useState(0);
+  const [displayLimit, setDisplayLimit] = React.useState(
+    snapshot?.displayLimit ?? RESULT_PAGE_SIZE,
+  );
+  const [hasMore, setHasMore] = React.useState(snapshot?.hasMore ?? false);
+  const [nextOffset, setNextOffset] = React.useState(snapshot?.nextOffset ?? 0);
+  const [loadingMore, setLoadingMore] = React.useState(false);
   const requestRef = React.useRef(0);
   const previousBulkBusyRef = React.useRef(false);
   const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
@@ -133,12 +144,18 @@ export function PlaceDiscoveryV16({
       existingOpen,
       bulkMode,
       error,
+      displayLimit,
+      hasMore,
+      nextOffset,
     });
   }, [
     bulkMode,
+    displayLimit,
     error,
     existingOpen,
     failedAreas,
+    hasMore,
+    nextOffset,
     onSnapshotChange,
     query,
     radiusKm,
@@ -210,6 +227,9 @@ export function PlaceDiscoveryV16({
       setResults([]);
       setFailedAreas([]);
       setError(null);
+      setDisplayLimit(RESULT_PAGE_SIZE);
+      setHasMore(false);
+      setNextOffset(0);
       return;
     }
     const requestId = ++requestRef.current;
@@ -220,6 +240,8 @@ export function PlaceDiscoveryV16({
       try {
         let nextResults: PlaceSuggestion[];
         let nextFailedAreas: string[] = [];
+        let moreAvailable = false;
+        let followingOffset = 0;
         if (isLive) {
           const response = await geoapifySearchPlacesMulti({
             data: {
@@ -231,11 +253,14 @@ export function PlaceDiscoveryV16({
                 lng: area.lng,
               })),
               radiusKm,
-              limit: 50,
+              limit: RESULT_PAGE_SIZE,
+              offset: 0,
             },
           });
           nextResults = response.results.map(toPlaceSuggestion);
           nextFailedAreas = response.failedAreaLabels;
+          moreAvailable = response.hasMore;
+          followingOffset = response.nextOffset;
         } else {
           const settled = await Promise.allSettled(
             activeAreas.map(async (area) => ({
@@ -270,10 +295,15 @@ export function PlaceDiscoveryV16({
         if (requestId !== requestRef.current) return;
         setResults(nextResults);
         setFailedAreas(nextFailedAreas);
+        setDisplayLimit(RESULT_PAGE_SIZE);
+        setHasMore(moreAvailable);
+        setNextOffset(followingOffset);
         setSelectedId(nextResults[0]?.externalId ?? null);
       } catch (caught) {
         if (requestId !== requestRef.current) return;
         setResults([]);
+        setHasMore(false);
+        setNextOffset(0);
         setError(providerMessage(caught));
       } finally {
         if (requestId === requestRef.current) setLoading(false);
@@ -282,10 +312,69 @@ export function PlaceDiscoveryV16({
     return () => window.clearTimeout(timer);
   }, [activeAreas, isLive, query, radiusKm, retry]);
 
-  const visibleResults = React.useMemo(
+  const filteredResults = React.useMemo(
     () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
     [hiddenKeys, results],
   );
+  const visibleResults = React.useMemo(
+    () => filteredResults.slice(0, displayLimit),
+    [displayLimit, filteredResults],
+  );
+  const bufferedRemaining = Math.max(0, filteredResults.length - visibleResults.length);
+  const canShowMore = bufferedRemaining > 0 || hasMore;
+
+  const showMoreResults = React.useCallback(async () => {
+    if (bufferedRemaining > 0) {
+      setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
+      return;
+    }
+    if (!hasMore || !isLive || loadingMore) return;
+
+    const requestId = requestRef.current;
+    setLoadingMore(true);
+    try {
+      const response = await geoapifySearchPlacesMulti({
+        data: {
+          text: query.trim() || undefined,
+          centers: activeAreas.map((area) => ({
+            id: area.id,
+            label: shortSearchAreaLabel(area.label),
+            lat: area.lat,
+            lng: area.lng,
+          })),
+          radiusKm,
+          limit: RESULT_PAGE_SIZE,
+          offset: nextOffset,
+        },
+      });
+      if (requestId !== requestRef.current) return;
+      const fetched = response.results.map(toPlaceSuggestion);
+      setResults((current) => {
+        const seen = new Set(current.map((result) => result.externalId));
+        const merged = [...current];
+        for (const result of fetched) {
+          if (seen.has(result.externalId)) continue;
+          seen.add(result.externalId);
+          merged.push(result);
+        }
+        return merged.sort((a, b) => {
+          const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
+          const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
+          return da - db || a.name.localeCompare(b.name, "sv-SE");
+        });
+      });
+
+      setHasMore(response.hasMore);
+      setNextOffset(response.nextOffset);
+      setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
+    } catch (caught) {
+      if (requestId !== requestRef.current) return;
+      setHasMore(false);
+      console.warn("[Matrundan] kunde inte hämta fler sökträffar:", caught);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeAreas, bufferedRemaining, hasMore, isLive, loadingMore, nextOffset, query, radiusKm]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
     if (!canLinkSources) return [];
@@ -493,7 +582,8 @@ export function PlaceDiscoveryV16({
                 <ResultToggle value={resultView} onChange={setResultView} />
                 <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
                   <span className="text-xs text-muted-foreground">
-                    {actionableResultCount} {actionableResultCount === 1 ? "träff" : "träffar"}
+                    Visar {actionableResultCount}{" "}
+                    {actionableResultCount === 1 ? "träff" : "träffar"}
                   </span>
                   {availableResults.length > 0 ? (
                     <Button
@@ -529,6 +619,26 @@ export function PlaceDiscoveryV16({
                 <div className="max-h-[52vh] overflow-y-auto pr-1">{resultSections}</div>
                 {map}
               </div>
+              {canShowMore ? (
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loadingMore || interactionsDisabled}
+                    onClick={() => void showMoreResults()}
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
+                      </>
+                    ) : (
+                      "Visa fler"
+                    )}
+                  </Button>
+                </div>
+              ) : null}
               {unmappedCount > 0 ? (
                 <p className="text-[11px] text-muted-foreground">
                   {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}

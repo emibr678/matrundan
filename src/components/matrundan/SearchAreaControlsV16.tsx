@@ -1,9 +1,8 @@
 import * as React from "react";
-import { CheckCircle2, Plus } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoapifyLocationInput } from "./GeoapifyLocationInput";
 import { SearchAreaPill } from "./SearchAreaPill";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -128,7 +127,7 @@ function InlineSearchRadius({
     >
       <SelectTrigger
         id="place-radius"
-        aria-label="Gemensam sökradie"
+        aria-label="Avstånd runt adresser och platser"
         className="h-8 w-auto shrink-0 gap-1 rounded-full border-border/60 bg-muted/50 px-2.5 text-xs font-normal text-muted-foreground"
       >
         <SelectValue />
@@ -136,7 +135,7 @@ function InlineSearchRadius({
       <SelectContent>
         {SEARCH_RADIUS_OPTIONS.map((value) => (
           <SelectItem key={value} value={String(value)}>
-            {value === 50 ? "Större område · inom 50 km" : `inom ${value} km`}
+            {`Avstånd ${value} km`}
           </SelectItem>
         ))}
       </SelectContent>
@@ -158,16 +157,12 @@ export function SearchAreaControlsV16({
   fallbackCity,
 }: SearchAreaControlsProps) {
   const [areaQuery, setAreaQuery] = React.useState("");
-  const [addOpen, setAddOpen] = React.useState(false);
   const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
 
   React.useEffect(() => {
-    if (atLimit) {
-      setAddOpen(false);
-      setAreaQuery("");
-    }
+    if (atLimit) setAreaQuery("");
   }, [atLimit]);
 
   function addArea(area: SearchArea) {
@@ -217,13 +212,6 @@ export function SearchAreaControlsV16({
         <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
       </div>
 
-      <SelectedAreas
-        savedAreas={selectedSavedAreas}
-        temporaryAreas={temporaryAreas}
-        onRemoveSaved={removeSavedArea}
-        onRemoveTemporary={removeTemporaryArea}
-      />
-
       {atLimit ? (
         <div
           role="status"
@@ -235,7 +223,7 @@ export function SearchAreaControlsV16({
             område för att söka efter ett annat.
           </span>
         </div>
-      ) : addOpen ? (
+      ) : (
         <div className="space-y-1.5">
           <Label htmlFor="search-area-query" className="sr-only">
             {addAreaActionLabel}
@@ -250,22 +238,14 @@ export function SearchAreaControlsV16({
             onSelect={addVerifiedArea}
           />
         </div>
-      ) : (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="-ml-2 min-h-11 max-w-full justify-start gap-1.5 px-2 text-sm font-normal text-muted-foreground"
-          onClick={() => setAddOpen(true)}
-        >
-          <Plus className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 truncate">{addAreaActionLabel}</span>
-        </Button>
       )}
 
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Ändringar här gäller bara den här sökningen.
-      </p>
+      <SelectedAreas
+        savedAreas={selectedSavedAreas}
+        temporaryAreas={temporaryAreas}
+        onRemoveSaved={removeSavedArea}
+        onRemoveTemporary={removeTemporaryArea}
+      />
     </section>
   );
 }
