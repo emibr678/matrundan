@@ -9,13 +9,7 @@ import { PlaceIdentityMark, type PlaceIdentityMarkSize } from "./PlaceIdentityMa
 import { RatingStars } from "./Rating";
 import { StatusBadge } from "./StatusBadge";
 
-export function PlaceThumb({
-  place,
-  size = "md",
-}: {
-  place: Place;
-  size?: PlaceIdentityMarkSize;
-}) {
+export function PlaceThumb({ place, size = "md" }: { place: Place; size?: PlaceIdentityMarkSize }) {
   return <PlaceIdentityMark category={place.category} symbol={place.photo} size={size} />;
 }
 
