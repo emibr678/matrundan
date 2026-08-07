@@ -91,16 +91,13 @@ Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
 chatt. De får omprövas när aktuell kod, nya fakta eller ett tydligt
 produktproblem visar att beslutet behöver ändras.
 
-## Aktuell driftgrind
+## Aktuellt arbete
 
-**#142 Nygenererad öppen inbjudningslänk behandlas som redan använd** har
-`priority:now` och ska korrigeras före nästa produktfeature. Nya öppna länkar
-ska kunna användas av flera personer tills de återkallas eller går ut, medan
-e-postbundna inbjudningar förblir engångslänkar. Efter verifierad implementation,
-merge och separat databasdriftsättning fortsätter Paket A med #108.
-
-Den tidigare driftgrinden **#137 Återställ produktionsvakter för sökområden och
-besöksfoton** genomfördes i v1.26.4.
+Driftgrinderna **#137 Återställ produktionsvakter för sökområden och
+besöksfoton** och **#142 Nygenererad öppen inbjudningslänk behandlas som redan
+använd** är genomförda och driftsatta i v1.26.4 respektive v1.26.5. Paket A
+fortsätter därför med **#108 Gemensamt visuellt språk för platskandidater och
+tillagda matställen**.
 
 ## Paket A – Grundplatta och konsekvens
 
