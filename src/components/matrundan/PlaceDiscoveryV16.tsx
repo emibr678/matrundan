@@ -1,5 +1,7 @@
 import * as React from "react";
 import { Check, List, Loader2, Map, Search } from "lucide-react";
+import { toast } from "sonner";
+
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
 import { SearchAreaControlsV16 } from "./SearchAreaControlsV16";
 import { SearchResultSectionsV16, type SourceMatchResult } from "./SearchResultSectionsV16";
@@ -32,6 +34,8 @@ import {
   genericPlaceSearchSuggestions,
   type GenericPlaceSearchSuggestion,
 } from "@/lib/matrundan/place-search-intent";
+import { mergePlaceSearchPages } from "@/lib/matrundan/place-search-pagination";
+
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
@@ -127,6 +131,8 @@ export function PlaceDiscoveryV16({
   const [nextOffset, setNextOffset] = React.useState(snapshot?.nextOffset ?? 0);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const requestRef = React.useRef(0);
+  const skipInitialSearchRef = React.useRef(Boolean(snapshot));
+
   const previousBulkBusyRef = React.useRef(false);
   const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
@@ -223,6 +229,10 @@ export function PlaceDiscoveryV16({
   }, [loadHiddenSuggestions]);
 
   React.useEffect(() => {
+    if (skipInitialSearchRef.current) {
+      skipInitialSearchRef.current = false;
+      return;
+    }
     if (activeAreas.length === 0) {
       setResults([]);
       setFailedAreas([]);
@@ -233,6 +243,7 @@ export function PlaceDiscoveryV16({
       return;
     }
     const requestId = ++requestRef.current;
+
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError(null);
@@ -349,30 +360,19 @@ export function PlaceDiscoveryV16({
       });
       if (requestId !== requestRef.current) return;
       const fetched = response.results.map(toPlaceSuggestion);
-      setResults((current) => {
-        const seen = new Set(current.map((result) => result.externalId));
-        const merged = [...current];
-        for (const result of fetched) {
-          if (seen.has(result.externalId)) continue;
-          seen.add(result.externalId);
-          merged.push(result);
-        }
-        return merged.sort((a, b) => {
-          const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
-          const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
-          return da - db || a.name.localeCompare(b.name, "sv-SE");
-        });
-      });
+      setResults((current) => mergePlaceSearchPages(current, fetched));
 
       setHasMore(response.hasMore);
       setNextOffset(response.nextOffset);
       setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
     } catch (caught) {
       if (requestId !== requestRef.current) return;
-      setHasMore(false);
       console.warn("[Matrundan] kunde inte hämta fler sökträffar:", caught);
+      toast.error(providerMessage(caught), {
+        description: "Träffarna du redan ser ligger kvar. Försök gärna igen.",
+      });
     } finally {
-      setLoadingMore(false);
+      if (requestId === requestRef.current) setLoadingMore(false);
     }
   }, [activeAreas, bufferedRemaining, hasMore, isLive, loadingMore, nextOffset, query, radiusKm]);
 
