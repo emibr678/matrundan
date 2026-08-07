@@ -374,7 +374,6 @@ export function PlaceDiscoveryV16({
     } finally {
       if (requestId === requestRef.current) setLoadingMore(false);
     }
-
   }, [activeAreas, bufferedRemaining, hasMore, isLive, loadingMore, nextOffset, query, radiusKm]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
