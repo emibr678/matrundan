@@ -223,6 +223,10 @@ export function PlaceDiscoveryV16({
   }, [loadHiddenSuggestions]);
 
   React.useEffect(() => {
+    if (skipInitialSearchRef.current) {
+      skipInitialSearchRef.current = false;
+      return;
+    }
     if (activeAreas.length === 0) {
       setResults([]);
       setFailedAreas([]);
@@ -233,6 +237,7 @@ export function PlaceDiscoveryV16({
       return;
     }
     const requestId = ++requestRef.current;
+
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError(null);
