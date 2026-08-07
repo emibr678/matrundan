@@ -22,7 +22,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
     page.getByText("Ändringar här gäller bara den här sökningen.", { exact: true }),
   ).toBeVisible();
 
-  const areaInput = page.getByRole("textbox", { name: "Sökområden", exact: true });
+  const areaInput = page.getByRole("combobox", { name: "Sökområden", exact: true });
   await expect(areaInput).toHaveAttribute("placeholder", "Sök ort, stadsdel eller adress");
 
   await areaInput.fill("Stavsnäs");
@@ -83,7 +83,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   ).toBeGreaterThanOrEqual(32);
   await removeTarget.click();
   await expect(page.getByRole("status")).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Sökområden", exact: true })).toHaveAttribute(
+  await expect(page.getByRole("combobox", { name: "Sökområden", exact: true })).toHaveAttribute(
     "placeholder",
     "Sök ort, stadsdel eller adress",
   );
