@@ -21,6 +21,7 @@ export interface PlaceSuggestion {
   distanceKm?: number;
   provider?: string;
   website?: string;
+  hasOpeningHours?: boolean;
   raw?: string;
   nearestAreaLabel?: string;
   matchingAreaLabels?: string[];
@@ -102,17 +103,19 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     provider: "demo",
     name: "Päronträdets Trattoria",
     category: "restaurang",
-    address: "Pärongränden 6",
+    address: "Pärongränden 6, gårdshuset längst in mot den gamla brandstationen",
     area: "Vasastan",
     city: "Göteborg",
     cuisines: ["italienskt", "pasta"],
     lat: 57.6982,
     lng: 11.9614,
+    website: "parontradets.example",
+    hasOpeningHours: true,
   },
   {
     externalId: "demo-2",
     provider: "demo",
-    name: "Hagabackens Kafferum",
+    name: "Hagabackens Kafferum och Lilla Bageri",
     category: "café",
     address: "Backstigen 11",
     area: "Haga",
@@ -132,6 +135,8 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     cuisines: ["japanskt", "smårätter"],
     lat: 57.6978,
     lng: 11.9641,
+    website: "https://rislyktan.example/meny",
+    hasOpeningHours: true,
   },
   {
     externalId: "demo-4",
@@ -156,6 +161,7 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     cuisines: ["pubmat", "svenskt"],
     lat: 57.7068,
     lng: 11.9694,
+    hasOpeningHours: true,
   },
   {
     externalId: "demo-6",
@@ -168,6 +174,7 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     cuisines: ["kaffe", "bakverk"],
     lat: 57.6989,
     lng: 11.9597,
+    website: "morgonrosten.example",
   },
   {
     externalId: "demo-7",
@@ -192,6 +199,7 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     cuisines: ["surdeg", "wienerbröd"],
     lat: 57.6969,
     lng: 11.9467,
+    hasOpeningHours: true,
   },
   {
     externalId: "demo-9",
@@ -239,6 +247,8 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     cuisines: ["kaffe", "surdeg", "bakverk"],
     lat: 57.6996,
     lng: 11.9552,
+    website: "kvarteretskardemumma.example",
+    hasOpeningHours: true,
   },
 ];
 
