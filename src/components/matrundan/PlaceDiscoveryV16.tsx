@@ -356,31 +356,21 @@ export function PlaceDiscoveryV16({
       });
       if (requestId !== requestRef.current) return;
       const fetched = response.results.map(toPlaceSuggestion);
-      setResults((current) => {
-        const seen = new Set(current.map((result) => result.externalId));
-        const merged = [...current];
-        for (const result of fetched) {
-          if (seen.has(result.externalId)) continue;
-          seen.add(result.externalId);
-          merged.push(result);
-        }
-        return merged.sort((a, b) => {
-          const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
-          const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
-          return da - db || a.name.localeCompare(b.name, "sv-SE");
-        });
-      });
+      setResults((current) => mergePlaceSearchPages(current, fetched));
 
       setHasMore(response.hasMore);
       setNextOffset(response.nextOffset);
       setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
     } catch (caught) {
       if (requestId !== requestRef.current) return;
-      setHasMore(false);
       console.warn("[Matrundan] kunde inte hämta fler sökträffar:", caught);
+      toast.error(providerMessage(caught), {
+        description: "Träffarna du redan ser ligger kvar. Försök gärna igen.",
+      });
     } finally {
-      setLoadingMore(false);
+      if (requestId === requestRef.current) setLoadingMore(false);
     }
+
   }, [activeAreas, bufferedRemaining, hasMore, isLive, loadingMore, nextOffset, query, radiusKm]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
