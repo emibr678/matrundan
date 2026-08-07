@@ -585,7 +585,8 @@ export function PlaceDiscoveryV16({
                 <ResultToggle value={resultView} onChange={setResultView} />
                 <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
                   <span className="text-xs text-muted-foreground">
-                    {actionableResultCount} {actionableResultCount === 1 ? "träff" : "träffar"}
+                    Visar {actionableResultCount}{" "}
+                    {actionableResultCount === 1 ? "träff" : "träffar"}
                   </span>
                   {availableResults.length > 0 ? (
                     <Button
@@ -621,12 +622,33 @@ export function PlaceDiscoveryV16({
                 <div className="max-h-[52vh] overflow-y-auto pr-1">{resultSections}</div>
                 {map}
               </div>
+              {canShowMore ? (
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loadingMore || interactionsDisabled}
+                    onClick={() => void showMoreResults()}
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
+                      </>
+                    ) : (
+                      "Visa fler"
+                    )}
+                  </Button>
+                </div>
+              ) : null}
               {unmappedCount > 0 ? (
                 <p className="text-[11px] text-muted-foreground">
                   {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
                   kartposition och visas bara i listan.
                 </p>
               ) : null}
+
             </>
           )}
         </>
