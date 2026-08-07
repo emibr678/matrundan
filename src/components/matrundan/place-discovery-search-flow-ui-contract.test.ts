@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-const discoverySource = await Bun.file(
-  "src/components/matrundan/PlaceDiscoveryV16.tsx",
-).text();
+const discoverySource = await Bun.file("src/components/matrundan/PlaceDiscoveryV16.tsx").text();
 
 describe("Lägg till ställens sökflöde", () => {
   test("etablerar Sök i före Sök matställen", () => {
