@@ -47,6 +47,7 @@ export interface CreateManualFallbackInput {
   lng?: number;
   notes?: string;
   photo?: string;
+  declinedPlaceIds?: string[];
 }
 
 const placeCategorySchema = z.enum(["restaurang", "café", "bageri", "snabbmat", "pub", "matvagn"]);
@@ -136,6 +137,7 @@ export async function createManualPlaceFromFallback(
       _lng: input.lng ?? null,
       _notes: input.notes ?? null,
       _photo_url: input.photo ?? null,
+      _declined_place_ids: input.declinedPlaceIds ?? [],
     },
     fallbackResultSchema,
     "Servern kunde inte bekräfta det nya matstället.",
