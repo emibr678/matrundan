@@ -254,15 +254,14 @@ function PlaceMaintenancePage() {
   const [loading, setLoading] = React.useState(!demo);
   const [queue, setQueue] = React.useState<QueueMode>("open");
   const [selectedId, setSelectedId] = React.useState<string | null>(
-    demo ? DEMO_CANDIDATES[0]?.candidateId ?? null : null,
+    demo ? (DEMO_CANDIDATES[0]?.candidateId ?? null) : null,
   );
   const [providerMatches, setProviderMatches] = React.useState<PlaceMaintenanceProviderMatch[]>([]);
   const [providerLoading, setProviderLoading] = React.useState(false);
   const [linkMatch, setLinkMatch] = React.useState<PlaceMaintenanceProviderMatch | null>(null);
   const [dismissOpen, setDismissOpen] = React.useState(false);
-  const [dismissReason, setDismissReason] = React.useState<PlaceMaintenanceDismissalReason>(
-    "insufficient_evidence",
-  );
+  const [dismissReason, setDismissReason] =
+    React.useState<PlaceMaintenanceDismissalReason>("insufficient_evidence");
   const [actionBusy, setActionBusy] = React.useState(false);
 
   const loadLive = React.useCallback(async () => {
@@ -311,10 +310,7 @@ function PlaceMaintenancePage() {
     setProviderMatches([]);
   }, [queue, selected, visible]);
 
-  function patchCandidate(
-    candidateId: string,
-    patch: Partial<PlaceMaintenanceCandidate>,
-  ) {
+  function patchCandidate(candidateId: string, patch: Partial<PlaceMaintenanceCandidate>) {
     setCandidates((current) =>
       current.map((candidate) =>
         candidate.candidateId === candidateId ? { ...candidate, ...patch } : candidate,
@@ -334,11 +330,15 @@ function PlaceMaintenancePage() {
     try {
       const matches = demo
         ? (DEMO_MATCHES[selected.candidateId] ?? [])
-        : await searchPlaceMaintenanceProviderMatches({ data: { candidateId: selected.candidateId } });
+        : await searchPlaceMaintenanceProviderMatches({
+            data: { candidateId: selected.candidateId },
+          });
       setProviderMatches(matches);
       if (matches.length === 0) toast.message("Ingen tydlig extern träff hittades nära platsen.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte kontrollera extern matchning.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte kontrollera extern matchning.",
+      );
     } finally {
       setProviderLoading(false);
     }
@@ -387,7 +387,9 @@ function PlaceMaintenancePage() {
       setProviderMatches([]);
       toast.success("Ärendet är markerat för manuell OSM-åtgärd.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera underhållsärendet.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte uppdatera underhållsärendet.",
+      );
     } finally {
       setActionBusy(false);
     }
@@ -490,7 +492,8 @@ function PlaceMaintenancePage() {
               <h1 className="font-display text-2xl font-semibold sm:text-3xl">Platsunderhåll</h1>
             </div>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Ställen att kontrollera utan att exponera grupper, medlemskap eller privata anteckningar.
+              Ställen att kontrollera utan att exponera grupper, medlemskap eller privata
+              anteckningar.
             </p>
           </div>
           {demo ? (
@@ -574,7 +577,10 @@ function PlaceMaintenancePage() {
           )}
         </section>
 
-        <section className="min-w-0 lg:sticky lg:top-20 lg:self-start" aria-label="Underhållsdetalj">
+        <section
+          className="min-w-0 lg:sticky lg:top-20 lg:self-start"
+          aria-label="Underhållsdetalj"
+        >
           {selected ? (
             <Card className="min-w-0 space-y-5 rounded-2xl border-border/70 p-4 sm:p-5">
               <div className="min-w-0">
@@ -673,7 +679,8 @@ function PlaceMaintenancePage() {
                     <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
                       <div className="text-sm font-medium">Manuellt OSM-arbete</div>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Öppna platsen i OpenStreetMap eller kopiera neutral platsinformation. Matrundan skriver inget till OSM i detta steg.
+                        Öppna platsen i OpenStreetMap eller kopiera neutral platsinformation.
+                        Matrundan skriver inget till OSM i detta steg.
                       </p>
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                         <Button asChild variant="outline" size="sm" className="min-h-11">
@@ -706,7 +713,9 @@ function PlaceMaintenancePage() {
                             <div className="min-w-0">
                               <div className="break-words text-sm font-medium">{match.name}</div>
                               <div className="mt-0.5 break-words text-xs text-muted-foreground">
-                                {[match.address, match.area, match.city].filter(Boolean).join(" · ")}
+                                {[match.address, match.area, match.city]
+                                  .filter(Boolean)
+                                  .join(" · ")}
                               </div>
                               <div className="mt-1 text-[11px] text-muted-foreground">
                                 {match.distanceKm == null
@@ -763,7 +772,8 @@ function PlaceMaintenancePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Länka som samma ställe?</AlertDialogTitle>
             <AlertDialogDescription>
-              Den externa identiteten kopplas till samma kanoniska matställe och ärendet löses. Befintliga besök och grupprelationer påverkas inte.
+              Den externa identiteten kopplas till samma kanoniska matställe och ärendet löses.
+              Befintliga besök och grupprelationer påverkas inte.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {linkMatch && selected ? (
@@ -787,7 +797,8 @@ function PlaceMaintenancePage() {
           <DialogHeader>
             <DialogTitle>Avfärda underhållsärende</DialogTitle>
             <DialogDescription>
-              Välj en strukturerad orsak. Ingen privat fri text sparas i den globala underhållshistoriken.
+              Välj en strukturerad orsak. Ingen privat fri text sparas i den globala
+              underhållshistoriken.
             </DialogDescription>
           </DialogHeader>
           <Select
@@ -798,20 +809,30 @@ function PlaceMaintenancePage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.keys(PLACE_MAINTENANCE_DISMISSAL_LABEL) as PlaceMaintenanceDismissalReason[]).map(
-                (reason) => (
-                  <SelectItem key={reason} value={reason}>
-                    {PLACE_MAINTENANCE_DISMISSAL_LABEL[reason]}
-                  </SelectItem>
-                ),
-              )}
+              {(
+                Object.keys(PLACE_MAINTENANCE_DISMISSAL_LABEL) as PlaceMaintenanceDismissalReason[]
+              ).map((reason) => (
+                <SelectItem key={reason} value={reason}>
+                  {PLACE_MAINTENANCE_DISMISSAL_LABEL[reason]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <DialogFooter>
-            <Button type="button" variant="ghost" disabled={actionBusy} onClick={() => setDismissOpen(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={actionBusy}
+              onClick={() => setDismissOpen(false)}
+            >
               Avbryt
             </Button>
-            <Button type="button" variant="destructive" disabled={actionBusy} onClick={() => void confirmDismiss()}>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={actionBusy}
+              onClick={() => void confirmDismiss()}
+            >
               {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Avfärda
             </Button>
