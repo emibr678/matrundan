@@ -82,11 +82,9 @@ describe("Fyllnad till hela listsidor", () => {
   });
 });
 
-describe("Flikväxlaren i Lägg till matställe", () => {
-  const dialogSource = await Bun.file(
-    "src/components/matrundan/AddPlaceDialogImplV16.tsx",
-  ).text();
+const dialogSource = await Bun.file("src/components/matrundan/AddPlaceDialogImplV16.tsx").text();
 
+describe("Flikväxlaren i Lägg till matställe", () => {
   test("byter flik bara vid egen pekning eller tangentbord", () => {
     expect(dialogSource).toContain("onPointerDown");
     expect(dialogSource).toContain("pointerTabRef");
