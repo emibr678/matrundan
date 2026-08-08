@@ -14,6 +14,28 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.29.0] – 2026-08-08
+
+### Ändrat
+
+- **Lägg till ställen** behåller sökningen som huvudväg och visar den manuella
+  vägen som den sekundära handlingen **Lägg till ett ställe som saknas** när
+  användaren inte hittar rätt verksamhet.
+- Fallbackformuläret prioriterar namn, kategori, kök/inriktning och ett
+  sammanhållet verifierat platsval. Symbol, Passar för och anteckning ligger
+  sekundärt och användaren behöver inte förstå eller bedöma OpenStreetMap.
+- Verifierat namn och plats kan matchas konservativt mot redan kända kanoniska
+  Matrundan-ställen utan att ursprungsgrupp, medlemskap, gruppanteckningar,
+  antal grupper eller andra privata uppgifter lämnar servern.
+- När användaren väljer en befintlig kandidat återanvänds samma `place_id` och
+  endast målgruppens relation skapas eller återaktiveras. Osäkra kandidater
+  slås aldrig ihop automatiskt och kan uttryckligen avböjas.
+- Ett nytt verifierat manuellt ställe utan aktiv extern källa skapar ett privat
+  systeminternt förbättringsunderlag för senare källmatchning. Det betyder inte
+  att stället saknas i OpenStreetMap och publicerar inget externt.
+- Exempelgruppen kan återaktivera det arkiverade **Brödverket 47** från
+  fallbackflödet med samma lokala platsidentitet och utan externa anrop.
+
 ## [1.28.0] – 2026-08-07
 
 ### Ändrat
