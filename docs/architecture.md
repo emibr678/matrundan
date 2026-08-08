@@ -283,32 +283,35 @@ andra gruppers data.
 
 ## Privat platsrapportering och OSM
 
-`place_data_reports` är gruppens privata rapporteringsyta för konkreta
-platsdatafel. Den är inte en offentlig OSM-kö.
+`place_data_reports` är den gruppbundna källan för konkreta användarrapporter om
+platsdata. Rapportens livscykel och privata fält förblir gruppbundna även när en
+neutral projektion av ärendet visas i globalt Platsunderhåll.
 
 Rapporter kan avse:
 
 - ett redan tillagt kanoniskt ställe; eller
 - en providerträff som ännu inte lagts till.
 
-Klienten använder minimerade RPC:er. Direkt tabellåtkomst är inte den avsedda
-produktionsytan.
+Vanliga användare rapporterar fortsatt i sitt naturliga plats- eller sökflöde.
+Den historiska privata beskrivningen, rapportören, gruppidentiteten och privata
+gruppoverrides får aldrig projiceras till den globala arbetsytan. Endast
+strukturerad felkategori och uttryckligen säker neutral platsinformation får
+lämna rapportens gruppkontext.
 
-OSM-publicering är ett separat explicit flöde:
+Den äldre OSM Note-infrastrukturen med prepare → extern skrivning → complete/fail
+→ statusrefresh finns kvar för redan skapad offentlig historik och kompatibilitet.
+Den ska inte byggas djupare in i gruppadministration och är inte den långsiktiga
+arbetsytan för platsunderhåll.
 
-1. rapporten granskas av gruppadmin/owner;
-2. servern verifierar fortfarande att rätt kategori och platskontext gäller;
-3. ett förberett publiceringsförsök loggas och kvoteras;
-4. service-side skrivning gör själva OSM-anropet;
-5. servern kompletterar rapporten med offentlig referens/status;
-6. efterföljande refresh hämtar endast den offentliga OSM-status som behövs.
-
-En användares privata beskrivning eller gruppnamn får inte automatiskt bli OSM-
-text. Publicering ska använda neutral, granskad information.
+En användares privata beskrivning eller gruppnamn får aldrig automatiskt bli
+OSM-text. Offentliga OSM-referenser, note-URL och offentlig status får däremot
+visas i Platsunderhåll när de redan finns, eftersom de inte avslöjar den privata
+gruppkontexten.
 
 Om en plats senare får en aktiv OSM-/providerkälla kan en öppen
-`missing_in_osm`-rapport lösas automatiskt, men en pågående publicering får inte
-tyst försvinna mitt i ett submission-state.
+`missing_in_osm`-rapport fortsatt lösas enligt befintliga serverinvariants, men
+en pågående historisk publicering får inte tyst försvinna mitt i ett
+submission-state.
 
 ## Manuell plats, kanonisk återanvändning och senare källkoppling
 
@@ -374,9 +377,10 @@ Detta underlag är medvetet separat från `place_data_reports`:
 
 - det betyder inte **saknas i OpenStreetMap**;
 - det är inte en användarrapport;
-- det kan aldrig bli `ready_for_osm` eller publiceras externt genom OSM-flödet;
+- det har en egen intern livscykel;
 - `anon` och `authenticated` saknar direkt tabellåtkomst;
-- granskningsytan använder en uttrycklig, minimerad serverkontrakt-yta.
+- det projiceras till samma globala arbetsyta genom ett minimerat
+  serverkontrakt.
 
 När samma kanoniska plats senare får en aktiv `place_sources`-koppling löses
 öppna eller OSM-markerade förbättringskandidater automatiskt. Därmed följer
@@ -385,57 +389,70 @@ historik.
 
 ### Globalt Platsunderhåll
 
-`Platsunderhåll` är en global intern administrationsyta för det neutrala
-förbättringsunderlaget. I första versionen omfattar den endast
-`place_improvement_candidates`. Gruppens **Rapporterade fel** och dess OSM
-Note-flöde förblir separat gruppadministration och ska inte blandas in i den
-globala kön.
+`Platsunderhåll` är en enda global intern arbetsyta för särskilt behöriga
+platsunderhållare. Gemensam UX innebär inte gemensam tabell: den paginerade
+serverprojektionen `list_place_maintenance_work_items_v1` förenar minst
+`place_improvement_candidates` och relevanta `place_data_reports` till ett
+minimerat work-item-kontrakt.
 
 Behörighet styrs av den privata rollen `place_maintainers` och är uttryckligen
 separerad från grupproller. Att vara owner/admin i en eller flera grupper ger
-aldrig global maintainerbehörighet. Klienten får bara fråga en boolesk
-access-RPC och får inte läsa rolltabellen direkt.
+aldrig global maintainerbehörighet. Klienten får bara fråga en boolesk access-RPC
+och får inte läsa rolltabellen direkt.
 
-Maintenance-RPC:er är `SECURITY DEFINER` med låst `search_path` och får bara
-returnera neutral platsidentitet som behövs för granskningen: kandidat- och
-plats-ID, namn, kategori, säker kanonisk adress/ort/position, kanonisk webbplats,
-status samt relevant aktiv extern identitet. De får inte returnera ursprungsgrupp,
-medlemskap, användare, privata kommentarer, `group_places`-overrides eller annan
-gruppspecifik metadata.
+Den globala projektionen får returnera det som behövs för handläggning:
 
-Kandidatens livscykel är:
+- work-item-typ och intern arbetsstatus;
+- kanoniskt plats-ID när ett sådant finns;
+- neutral platsidentitet som namn, kategori, säker adress/ort och verifierad
+  kartposition;
+- strukturerad rapportkategori;
+- relevant aktiv extern identitet;
+- för providerträffar utan kanoniskt `place_id`: endast den säkra
+  provideridentifierade platsögonblicksbild som behövs för att förstå ärendet;
+- befintlig offentlig OSM-referens/status när sådan redan finns.
+
+Den får aldrig returnera ursprungsgrupp, gruppnamn, medlemskap, rapportör,
+`source_group_id`, historisk privat rapporttext, privata gruppanteckningar,
+Passar för, favoriter, besök, `group_places`-overrides eller rå providerpayload.
+För rapporter om kanoniska ställen används aktuell neutral `places`-data i
+stället för gruppens privata rapportögonblicksbild.
+
+Arbetsstatusen normaliseras i UI till exempelvis:
 
 - `open`: ska kontrolleras;
 - `needs_osm`: kräver manuellt arbete i OpenStreetMap;
-- `resolved`: en aktiv extern källa har verifierats/länkats;
-- `dismissed`: avfärdad med en kontrollerad orsakskod.
+- `resolved`: ärendet är löst;
+- `dismissed`: ärendet är avfärdat med kontrollerad orsak när det stöds.
 
-Statusövergångar och källkopplingar auditeras i den privata append-only-tabellen
-`place_improvement_candidate_events`. Fri privat text används inte som global
-avfärdandeorsak. Maintainerrollen tas bort med profilen vid kontoradering och
-auditaktörens användarreferens nullas, så historiken kan bevaras utan att blockera
-kontoägarskapets livscykel.
+`place_maintenance_events` auditerar globala maintainerhandlingar polymorft för
+både rapporter och förbättringskandidater utan att kopiera privat rapporttext.
+Den kandidat-specifika `place_improvement_candidate_events` kan samtidigt
+bevara kandidatens lägre nivå-historik. Auditaktörens användarreferens nullas vid
+profilradering så historiken kan bevaras utan att blockera kontolivscykeln.
 
-Providerkontroll sker server-side. Klienten skickar kandidat-ID; servern laddar
-den neutrala kandidatpositionen genom maintenance-RPC:n och gör Geoapify-sökning
-från den. API-nyckel och begränsad rå providerdata stannar på servern. Vid
-länkning skickar klienten bara vald provideridentitet och servern gör en färsk
-providersökning före mutation.
+Providerkontroll för förbättringskandidater sker server-side. Klienten skickar
+endast work-item/kandidat-ID och vald provideridentitet; servern laddar den
+neutrala kandidatpositionen, gör en färsk Geoapify-sökning och håller API-nyckel
+samt rå providerdata server-side. En verifierad provideridentitet får bara
+kopplas till samma befintliga `places.id` och får inte flyttas från en annan
+kanonisk plats.
 
-En central maintainer-länkning får bara koppla en verifierad provideridentitet
-till samma befintliga `places.id`. Den kräver att platsen saknar aktiv källa,
-att provider-/OSM-identiteten inte är aktiv på ett annat kanoniskt ställe och
-att namn/adress/position klarar konservativ servervalidering. Tvetydighet eller
-identitetskonflikt innebär ingen merge och ska hanteras som separat konflikt,
-inte med fuzzy auto-sammanslagning.
+`needs_osm` är endast intern arbetsstatus. Platsunderhåll får öppna OSM, kopiera
+neutral platsinformation och låta underhållaren arbeta manuellt i OSM-webben
+eller Every Door. Matrundan gör ingen automatisk OSM-publicering eller redigering
+i #163. En framtida autentiserad OSM-adapter ska ligga bakom samma globala
+underhållsgräns och kräver separat feature- och secret/auth-driftsättning.
 
-`needs_osm` är endast intern arbetsstatus. Ytan får öppna OSM och kopiera neutral
-platsinformation för manuellt arbete, men den skriver inte till OSM och använder
-inte gruppens OSM Note-publiceringsflöde.
+Den tidigare gruppspecifika arbetskön **Rapporterade fel** är reducerad så att vi
+inte har två administrativa dashboards. Vanliga användares **Rapportera fel**-
+handlingar finns kvar och skriver fortsatt till den gruppbundna rapportkällan.
+Befintliga rapporter och offentlig OSM Note-historik bevaras.
 
-Demo/test använder deterministisk lokal fixture på samma route och ska vara
-tydligt märkt som fiktiv utvecklingsdata. Den får inte göra provider-, databas-
-eller OSM-skrivningar.
+Demo/test använder en deterministisk lokal fixture på samma route med minst ett
+rapporterat fel, en förbättringskandidat, en providerträff, OSM-åtgärd och ett
+avslutat ärende. Den ska vara tydligt märkt som fiktiv utvecklingsdata och får
+inte göra provider-, databas- eller OSM-skrivningar.
 
 ### Senare extern källkoppling
 
