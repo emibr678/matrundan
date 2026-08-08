@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link2, Loader2 } from "lucide-react";
+import { ArrowLeft, Link2, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogsV16 } from "./AddPlaceResultDialogsV16";
 import { ManualAddPlaceFormV16 } from "./ManualAddPlaceFormV16";
@@ -47,7 +47,7 @@ import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
-type Tab = "sok" | "manuell";
+type AddPlaceView = "search" | "fallback";
 
 export function AddPlaceDialogV16({
   open,
@@ -58,7 +58,7 @@ export function AddPlaceDialogV16({
 }) {
   const { state, addPlace } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [tab, setTab] = React.useState<Tab>("sok");
+  const [view, setView] = React.useState<AddPlaceView>("search");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
   const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
     null,
@@ -111,6 +111,7 @@ export function AddPlaceDialogV16({
       setSelectedResults([]);
       setAddedResultIds(new Set());
       setDiscoverySnapshot(null);
+      setView("search");
       searchScrollTopRef.current = 0;
       returningToSearchRef.current = false;
     }
@@ -327,30 +328,56 @@ export function AddPlaceDialogV16({
           className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
         >
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
-            <DialogDescription className="sr-only">
-              Sök efter ett matställe eller lägg till ett manuellt.
+            <DialogTitle className="font-display text-2xl">
+              {view === "search" ? "Lägg till matställe" : "Stället saknas i sökningen"}
+            </DialogTitle>
+            <DialogDescription className={view === "search" ? "sr-only" : undefined}>
+              {view === "search"
+                ? "Sök efter ett matställe. Om du inte hittar rätt ställe kan du lägga till det som saknas."
+                : "Lägg till ett verkligt matställe som du inte kunde identifiera bland sökträffarna."}
             </DialogDescription>
           </DialogHeader>
-          <TabToggle value={tab} onChange={setTab} />
-          {tab === "sok" ? (
-            <PlaceDiscoveryV16
-              addedResultIds={addedResultIds}
-              selectedResults={selectedResults}
-              bulkBusy={bulkBusy || sourceLinkBusy}
-              snapshot={discoverySnapshot}
-              onSnapshotChange={setDiscoverySnapshot}
-              onToggleSelected={(suggestion) =>
-                setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
-              }
-              onClearSelected={() => setSelectedResults([])}
-              onAddSelected={() => void addSelectedResults()}
-              onBeginAdd={beginAdd}
-              onLinkSource={beginSourceMatch}
-              onClose={() => handleOpenChange(false)}
-            />
+
+          {view === "search" ? (
+            <>
+              <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Hittar du inte stället?</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    Sök först. Om rätt verksamhet saknas kan du lägga till den utan att lämna flödet.
+                  </p>
+                </div>
+                <FallbackTrigger disabled={bulkBusy || sourceLinkBusy} onActivate={() => setView("fallback")} />
+              </div>
+              <PlaceDiscoveryV16
+                addedResultIds={addedResultIds}
+                selectedResults={selectedResults}
+                bulkBusy={bulkBusy || sourceLinkBusy}
+                snapshot={discoverySnapshot}
+                onSnapshotChange={setDiscoverySnapshot}
+                onToggleSelected={(suggestion) =>
+                  setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
+                }
+                onClearSelected={() => setSelectedResults([])}
+                onAddSelected={() => void addSelectedResults()}
+                onBeginAdd={beginAdd}
+                onLinkSource={beginSourceMatch}
+                onClose={() => handleOpenChange(false)}
+              />
+            </>
           ) : (
-            <ManualAddPlaceFormV16 onClose={() => handleOpenChange(false)} />
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 w-fit px-2"
+                onClick={() => setView("search")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Tillbaka till sök
+              </Button>
+              <ManualAddPlaceFormV16 onClose={() => handleOpenChange(false)} />
+            </>
           )}
         </DialogContent>
       </Dialog>
@@ -413,40 +440,37 @@ export function AddPlaceDialogV16({
 }
 
 /**
- * Flikväxlaren byter läge först när klicket hör ihop med en pekning på samma
- * knapp, eller när det kommer från tangentbordet (`detail === 0`).
- *
- * Det skyddar mot spökklick och click-through: när sista sökområdes-pillen tas
- * bort krymper dialogens innehåll och kan hamna under fingret, vilket annars
- * kan aktivera "Lägg till manuellt" en kort stund.
+ * Fallbackknappen kräver att klicket hör ihop med en pekning på samma knapp,
+ * eller kommer från tangentbordet. Det behåller skyddet mot click-through som
+ * tidigare låg i flikväxlaren när sökinnehåll ändrar höjd på mobil.
  */
-function TabToggle({ value, onChange }: { value: Tab; onChange: (value: Tab) => void }) {
-  const pointerTabRef = React.useRef<Tab | null>(null);
-
+function FallbackTrigger({
+  disabled,
+  onActivate,
+}: {
+  disabled: boolean;
+  onActivate: () => void;
+}) {
+  const armedRef = React.useRef(false);
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
-      {(["sok", "manuell"] as const).map((tab) => (
-        <button
-          key={tab}
-          type="button"
-          className={`min-h-11 rounded-full px-2 text-sm font-medium ${
-            value === tab ? "bg-background shadow-sm" : "text-muted-foreground"
-          }`}
-          aria-pressed={value === tab}
-          onPointerDown={() => {
-            pointerTabRef.current = tab;
-          }}
-          onClick={(event) => {
-            const fromKeyboard = event.detail === 0;
-            const fromOwnPointer = pointerTabRef.current === tab;
-            pointerTabRef.current = null;
-            if (!fromKeyboard && !fromOwnPointer) return;
-            onChange(tab);
-          }}
-        >
-          {tab === "sok" ? "Sök" : "Lägg till manuellt"}
-        </button>
-      ))}
-    </div>
+    <Button
+      type="button"
+      variant="outline"
+      className="min-h-11 shrink-0"
+      disabled={disabled}
+      onPointerDown={() => {
+        armedRef.current = true;
+      }}
+      onClick={(event) => {
+        const fromKeyboard = event.detail === 0;
+        const fromOwnPointer = armedRef.current;
+        armedRef.current = false;
+        if (!fromKeyboard && !fromOwnPointer) return;
+        onActivate();
+      }}
+    >
+      <Plus className="h-4 w-4" />
+      Lägg till ett ställe som saknas
+    </Button>
   );
 }
