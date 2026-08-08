@@ -51,6 +51,8 @@ type ResultView = "lista" | "karta";
 type ResultStatus = "available" | "linkable" | "existing";
 
 const RESULT_PAGE_SIZE = 20;
+/** Defensivt tak på provideranrop per användarhandling. */
+const MAX_PROVIDER_PAGES_PER_ACTION = 5;
 
 export interface PlaceDiscoverySnapshot {
   query: string;
