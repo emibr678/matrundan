@@ -1,29 +1,88 @@
 BEGIN;
 
 -- Paket B, Issues #156 + #155:
--- - låt fallbacken återanvända ett redan känt kanoniskt ställe utan att
---   exponera någon annan grupps privata data;
--- - skapa nya manuella platser först efter en server-side kandidatkontroll;
--- - skapa ett neutralt internt förbättringsunderlag för verifierade manuella
---   platser utan extern källa. Underlaget betyder inte "saknas i OSM".
+-- - återanvänd ett redan känt kanoniskt ställe utan att exponera någon annan
+--   grupps privata data;
+-- - skapa ett nytt manuellt ställe först efter en server-side kandidatkontroll;
+-- - samla ett neutralt internt förbättringsunderlag för verifierade manuella
+--   ställen som ännu saknar extern källkoppling.
+--
+-- Förbättringsunderlaget ligger avsiktligt INTE i place_data_reports. Den
+-- tabellen har en etablerad användar-/adminlivscykel mot OpenStreetMap, medan
+-- detta endast betyder "behöver matchas mot extern källa" och aldrig
+-- "saknas i OpenStreetMap".
 
-ALTER TABLE public.place_data_reports
-  DROP CONSTRAINT IF EXISTS place_data_reports_category_check;
+CREATE TABLE IF NOT EXISTS public.place_improvement_candidates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id uuid NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
+  place_id uuid NOT NULL REFERENCES public.places(id) ON DELETE CASCADE,
+  reason text NOT NULL DEFAULT 'unmatched_verified_manual',
+  status text NOT NULL DEFAULT 'open',
+  created_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  resolution text,
+  CONSTRAINT place_improvement_candidates_reason_check CHECK (
+    reason IN ('unmatched_verified_manual')
+  ),
+  CONSTRAINT place_improvement_candidates_status_check CHECK (
+    status IN ('open', 'resolved', 'dismissed')
+  ),
+  CONSTRAINT place_improvement_candidates_resolution_check CHECK (
+    resolution IS NULL OR length(resolution) <= 500
+  )
+);
 
-ALTER TABLE public.place_data_reports
-  ADD CONSTRAINT place_data_reports_category_check CHECK (
-    category IN (
-      'needs_source_match',
-      'missing_in_osm',
-      'closed_or_replaced',
-      'wrong_name',
-      'wrong_address',
-      'wrong_website',
-      'wrong_opening_hours',
-      'duplicate',
-      'other'
-    )
-  );
+ALTER TABLE public.place_improvement_candidates ENABLE ROW LEVEL SECURITY;
+
+-- Underlaget är systeminternt i detta paket. Varken vanliga gruppmedlemmar,
+-- admins eller anon får läsa tabellen direkt; framtida granskningsverktyg ska
+-- gå via en uttrycklig, minimerad RPC om produkten behöver en sådan yta.
+REVOKE ALL ON TABLE public.place_improvement_candidates
+  FROM PUBLIC, anon, authenticated;
+
+CREATE UNIQUE INDEX IF NOT EXISTS place_improvement_candidates_open_uidx
+  ON public.place_improvement_candidates(group_id, place_id, reason)
+  WHERE status = 'open';
+
+CREATE INDEX IF NOT EXISTS place_improvement_candidates_place_idx
+  ON public.place_improvement_candidates(place_id, status);
+
+CREATE OR REPLACE FUNCTION public.resolve_place_improvement_candidate_for_active_source_v1()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NEW.status <> 'active' THEN
+    RETURN NEW;
+  END IF;
+
+  UPDATE public.place_improvement_candidates
+  SET status = 'resolved',
+      resolved_at = COALESCE(resolved_at, now()),
+      resolution = COALESCE(
+        resolution,
+        'Matstället har nu en aktiv extern källkoppling.'
+      )
+  WHERE place_id = NEW.place_id
+    AND status = 'open';
+
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.resolve_place_improvement_candidate_for_active_source_v1()
+  FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS place_sources_resolve_improvement_candidates
+  ON public.place_sources;
+CREATE TRIGGER place_sources_resolve_improvement_candidates
+AFTER INSERT OR UPDATE OF status
+ON public.place_sources
+FOR EACH ROW
+EXECUTE FUNCTION public.resolve_place_improvement_candidate_for_active_source_v1();
 
 CREATE OR REPLACE FUNCTION public.normalize_place_match_text_v1(_value text)
 RETURNS text
@@ -126,6 +185,10 @@ BEGIN
      AND target_gp.place_id = p.id
     WHERE p.lat IS NOT NULL
       AND p.lng IS NOT NULL
+      -- Billig bounding-box före Haversine. Slutgränsen sätts fortfarande av
+      -- distance_km nedan, så boxen avgör aldrig en match i sig.
+      AND p.lat BETWEEN _lat - 0.003 AND _lat + 0.003
+      AND p.lng BETWEEN _lng - 0.006 AND _lng + 0.006
       AND NOT EXISTS (
         SELECT 1
         FROM public.place_sources ps
@@ -254,7 +317,7 @@ BEGIN
     public.find_reusable_manual_place_candidates_v1(
       _group_id, _name, _address, _city, _lat, _lng, NULL
     )
-  ) AS candidate
+  ) AS candidates(candidate)
   WHERE candidate->>'placeId' = _place_id::text
   LIMIT 1;
 
@@ -379,16 +442,12 @@ BEGIN
   END IF;
 
   IF _lat IS NOT NULL THEN
-    -- Geografiskt lås minskar risken att två parallella fallback-skapanden för
-    -- samma verkliga plats passerar kandidatkontrollen samtidigt, även om
-    -- namnen skiljer lite.
+    -- Verifierade fallback-skapanden är sällsynta. Ett enda transaktionslås är
+    -- därför avsiktligt enklare och säkrare än geografiska låsceller: två
+    -- samtidiga grupper kan inte båda passera kandidatkontrollen innan den
+    -- första transaktionen har gjort sin plats synlig för den andra.
     PERFORM pg_advisory_xact_lock(
-      hashtextextended(
-        'manual-place-cell:'
-          || round(_lat::numeric, 4)::text || ':'
-          || round(_lng::numeric, 4)::text,
-        0
-      )
+      hashtextextended('manual-place-fallback-create-v1', 0)
     );
 
     _candidates := public.find_reusable_manual_place_candidates_v1(
@@ -403,7 +462,7 @@ BEGIN
 
     SELECT count(*)
     INTO _unresolved_candidate_count
-    FROM jsonb_array_elements(_candidates) AS candidate
+    FROM jsonb_array_elements(_candidates) AS candidates(candidate)
     WHERE NOT (
       (candidate->>'placeId')::uuid = ANY(COALESCE(_declined_place_ids, ARRAY[]::uuid[]))
     );
@@ -435,39 +494,21 @@ BEGIN
        WHERE ps.place_id = _place_id
          AND ps.status = 'active'
      ) THEN
-    INSERT INTO public.place_data_reports (
+    INSERT INTO public.place_improvement_candidates (
       group_id,
       place_id,
-      category,
-      description,
+      reason,
       status,
-      reported_name,
-      reported_address,
-      reported_city,
-      reported_website,
-      reported_lat,
-      reported_lng,
-      reported_sources,
       created_by
-    )
-    SELECT
+    ) VALUES (
       _group_id,
       _place_id,
-      'needs_source_match',
-      'Manuellt tillagt matställe med verifierad plats saknar aktiv extern källkoppling och behöver matchas eller granskas.',
+      'unmatched_verified_manual',
       'open',
-      p.name,
-      COALESCE(p.address, ''),
-      COALESCE(p.city, ''),
-      p.website,
-      p.lat,
-      p.lng,
-      '[]'::jsonb,
       _uid
-    FROM public.places p
-    WHERE p.id = _place_id
-    ON CONFLICT (group_id, place_id, category, created_by)
-      WHERE status IN ('open', 'ready_for_osm') AND created_by IS NOT NULL
+    )
+    ON CONFLICT (group_id, place_id, reason)
+      WHERE status = 'open'
     DO NOTHING;
   END IF;
 
@@ -486,69 +527,5 @@ GRANT EXECUTE ON FUNCTION public.create_manual_place_fallback_v1(
   uuid, text, text, text[], text[], text, text, text,
   double precision, double precision, text, text, uuid[]
 ) TO authenticated;
-
--- Den neutrala systemkategorin får granskas och avslutas, men aldrig markeras
--- som direkt redo för OSM. Om granskningen visar ett verkligt OSM-fel skapas
--- ett vanligt underlag av rätt kategori i ett separat, uttryckligt steg.
-CREATE OR REPLACE FUNCTION public.review_place_data_report_v1(
-  _group_id uuid,
-  _report_id uuid,
-  _status text,
-  _resolution_note text DEFAULT NULL
-)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  _uid uuid := auth.uid();
-  _note text := NULLIF(
-    regexp_replace(trim(COALESCE(_resolution_note, '')), '[[:space:]]+', ' ', 'g'),
-    ''
-  );
-  _category text;
-BEGIN
-  IF _uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
-  IF NOT public.group_is_active(_group_id) THEN
-    RAISE EXCEPTION 'Gruppen är arkiverad och kan bara läsas';
-  END IF;
-  IF NOT public.has_group_role(_group_id, _uid, ARRAY['owner', 'admin']) THEN
-    RAISE EXCEPTION 'Endast ägare eller admin kan granska platsdata';
-  END IF;
-  IF _status NOT IN ('open', 'ready_for_osm', 'resolved', 'dismissed') THEN
-    RAISE EXCEPTION 'Ogiltig rapportstatus';
-  END IF;
-  IF _note IS NOT NULL AND length(_note) > 1000 THEN
-    RAISE EXCEPTION 'Anteckningen får vara högst 1000 tecken';
-  END IF;
-
-  SELECT category INTO _category
-  FROM public.place_data_reports
-  WHERE id = _report_id
-    AND group_id = _group_id;
-
-  IF _category IS NULL THEN
-    RAISE EXCEPTION 'Rapporten finns inte i gruppen';
-  END IF;
-  IF _category = 'needs_source_match' AND _status = 'ready_for_osm' THEN
-    RAISE EXCEPTION 'Det neutrala matchningsunderlaget måste först verifieras som ett konkret platsdatafel';
-  END IF;
-
-  UPDATE public.place_data_reports
-  SET status = _status,
-      resolution_note = _note,
-      reviewed_by = _uid,
-      reviewed_at = now(),
-      updated_at = now()
-  WHERE id = _report_id
-    AND group_id = _group_id;
-END;
-$function$;
-
-REVOKE ALL ON FUNCTION public.review_place_data_report_v1(uuid, uuid, text, text)
-  FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.review_place_data_report_v1(uuid, uuid, text, text)
-  TO authenticated;
 
 COMMIT;
