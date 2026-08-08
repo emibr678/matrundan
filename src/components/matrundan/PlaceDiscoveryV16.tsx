@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, List, Loader2, Map, Search } from "lucide-react";
+import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
@@ -39,9 +39,7 @@ import {
   countActionableSuggestions,
   mergePlaceSearchPages,
 } from "@/lib/matrundan/place-search-pagination";
-
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
-
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -82,6 +80,7 @@ export function PlaceDiscoveryV16({
   onAddSelected,
   onBeginAdd,
   onLinkSource,
+  onMissingPlace,
   onClose,
 }: {
   addedResultIds: Set<string>;
@@ -94,6 +93,7 @@ export function PlaceDiscoveryV16({
   onAddSelected: () => void;
   onBeginAdd: (suggestion: PlaceSuggestion) => void;
   onLinkSource: (match: SourceMatchResult) => void;
+  onMissingPlace: () => void;
   onClose: () => void;
 }) {
   const { state, submitting } = useStore();
@@ -138,7 +138,6 @@ export function PlaceDiscoveryV16({
   const [loadingMore, setLoadingMore] = React.useState(false);
   const requestRef = React.useRef(0);
   const skipInitialSearchRef = React.useRef(Boolean(snapshot));
-
   const previousBulkBusyRef = React.useRef(false);
   const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
@@ -211,7 +210,6 @@ export function PlaceDiscoveryV16({
       setHiddenLoading(false);
       return;
     }
-
     setHiddenLoading(true);
     try {
       const rows = isLive
@@ -234,10 +232,6 @@ export function PlaceDiscoveryV16({
       window.removeEventListener("matrundan:hidden-place-suggestions-changed", handleChanged);
   }, [loadHiddenSuggestions]);
 
-  /**
-   * En träff är handlingsbar när den varken är dold eller redan aktiv i gruppen.
-   * Länkbara träffar räknas som handlingsbara eftersom de kan kopplas.
-   */
   const isActionableSuggestion = React.useCallback(
     (suggestion: PlaceSuggestion) => {
       if (hiddenKeys.has(hiddenPlaceSuggestionKey(suggestion))) return false;
@@ -254,12 +248,6 @@ export function PlaceDiscoveryV16({
     isActionableRef.current = isActionableSuggestion;
   }, [isActionableSuggestion]);
 
-  /**
-   * Läser vidare i providerns offset-paginering tills listan innehåller
-   * `targetActionable` faktiskt handlingsbara träffar, providern är slut eller
-   * det defensiva taket på antal provideranrop nås. Stoppar direkt när målet
-   * är uppnått och avbryter om användaren har ändrat sökningen (`isStale`).
-   */
   const fillProviderPages = React.useCallback(
     async ({
       seed,
@@ -294,17 +282,14 @@ export function PlaceDiscoveryV16({
           },
         });
         if (isStale()) return null;
-
         pages += 1;
         collected = mergePlaceSearchPages(collected, response.results.map(toPlaceSuggestion));
         response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
-
         if (!moreAvailable) break;
-        if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable) {
+        if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable)
           break;
-        }
       }
 
       return {
@@ -325,7 +310,6 @@ export function PlaceDiscoveryV16({
       skipInitialSearchRef.current = false;
       return;
     }
-
     if (activeAreas.length === 0) {
       setResults([]);
       setFailedAreas([]);
@@ -336,7 +320,6 @@ export function PlaceDiscoveryV16({
       return;
     }
     const requestId = ++requestRef.current;
-
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError(null);
@@ -439,7 +422,6 @@ export function PlaceDiscoveryV16({
       if (bufferedActionableCount >= targetActionable) return;
     }
     if (!hasMore || !isLive || loadingMore) return;
-
     const requestId = requestRef.current;
     setLoadingMore(true);
     try {
@@ -482,9 +464,8 @@ export function PlaceDiscoveryV16({
         addedResultIds.has(result.externalId) ||
         state.places.some((place) => hasActiveProviderSource(place, result)) ||
         hasLocalManualSourceLink(localSourceLinks, result)
-      ) {
+      )
         return [];
-      }
       const match = findManualSourceLinkCandidate(state.places, result);
       return match ? [{ result, place: match.place, reason: match.reason }] : [];
     });
@@ -500,9 +481,8 @@ export function PlaceDiscoveryV16({
         addedResultIds.has(suggestion.externalId) ||
         state.places.some((place) => hasActiveProviderSource(place, suggestion)) ||
         hasLocalManualSourceLink(localSourceLinks, suggestion)
-      ) {
+      )
         return "existing";
-      }
       if (sourceMatchIds.has(suggestion.externalId)) return "linkable";
       const match = matchingPlace(state.places, suggestion);
       return match && match.collectionStatus !== "archived" ? "existing" : "available";
@@ -560,13 +540,7 @@ export function PlaceDiscoveryV16({
     category: result.category,
     actionable: statusForResult(result) === "available",
     bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
-    eyebrow: `${CATEGORY_LABEL[result.category]}${
-      result.distanceKm != null
-        ? ` · ~${result.distanceKm} km${
-            result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""
-          }`
-        : ""
-    }`,
+    eyebrow: `${CATEGORY_LABEL[result.category]}${result.distanceKm != null ? ` · ~${result.distanceKm} km${result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""}` : ""}`,
     description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
   }));
   const unmappedCount = mapResults.filter(
@@ -644,6 +618,7 @@ export function PlaceDiscoveryV16({
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
         onSelectPlace={(suggestion) => setSelectedId(suggestion.externalId)}
+        onMissingPlace={onMissingPlace}
       />
 
       {activeAreas.length === 0 ? (
@@ -682,7 +657,16 @@ export function PlaceDiscoveryV16({
             </div>
           ) : null}
           {visibleResults.length === 0 ? (
-            <Empty text="Inga matställen hittades. Prova större radie, andra områden eller lägg till manuellt." />
+            <div className="space-y-3 rounded-xl border border-dashed border-border/70 bg-card/60 p-5 text-center">
+              <div>
+                <p className="text-sm font-medium">Inga matställen hittades</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Prova större radie eller andra sökområden. Om stället saknas kan du lägga till
+                  det.
+                </p>
+              </div>
+              <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
+            </div>
           ) : (
             <>
               <h3 className="text-sm font-medium lg:hidden">Ställen att lägga till</h3>
@@ -753,6 +737,15 @@ export function PlaceDiscoveryV16({
                   kartposition och visas bara i listan.
                 </p>
               ) : null}
+              <div className="flex min-w-0 flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Hittar du inte rätt ställe?</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Lägg till det som saknas först när sökningen inte räcker.
+                  </p>
+                </div>
+                <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
+              </div>
             </>
           )}
         </>
@@ -824,9 +817,7 @@ function ResultToggle({
     <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
       <button
         type="button"
-        className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
-          value === "lista" ? "bg-background shadow-sm" : "text-muted-foreground"
-        }`}
+        className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${value === "lista" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
         onClick={() => onChange("lista")}
         aria-pressed={value === "lista"}
       >
@@ -834,9 +825,7 @@ function ResultToggle({
       </button>
       <button
         type="button"
-        className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
-          value === "karta" ? "bg-background shadow-sm" : "text-muted-foreground"
-        }`}
+        className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${value === "karta" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
         onClick={() => onChange("karta")}
         aria-pressed={value === "karta"}
       >
@@ -868,14 +857,6 @@ function placeOptionMeta(suggestion: PlaceSuggestion): string {
   return [CATEGORY_LABEL[suggestion.category], location, city].filter(Boolean).join(" · ");
 }
 
-/**
- * Presentationsfält för "Sök matställen".
- *
- * Fältet gör inga egna dataanrop: generella förslag kommer från
- * genericPlaceSearchSuggestions och specifika matställen från samma
- * providerresultat som resultatlistan. Val av ett matställe markerar bara den
- * verksamheten och rör aldrig sökområden eller radie.
- */
 function PlaceSearchCombobox({
   query,
   onQueryChange,
@@ -883,6 +864,7 @@ function PlaceSearchCombobox({
   genericSuggestions,
   placeSuggestions,
   onSelectPlace,
+  onMissingPlace,
 }: {
   query: string;
   onQueryChange: (value: string) => void;
@@ -890,10 +872,10 @@ function PlaceSearchCombobox({
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
+  onMissingPlace: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const [activeIx, setActiveIx] = React.useState(-1);
-
   const genericOptions: PlaceSearchOption[] = genericSuggestions.map((suggestion) => ({
     kind: "generic",
     key: suggestion.id,
@@ -917,21 +899,27 @@ function PlaceSearchCombobox({
   }, [query]);
 
   function select(option: PlaceSearchOption) {
-    if (option.kind === "generic") {
-      onQueryChange(option.label);
-    } else {
-      onSelectPlace(option.suggestion);
-    }
+    if (option.kind === "generic") onQueryChange(option.label);
+    else onSelectPlace(option.suggestion);
     setOpen(false);
     setActiveIx(-1);
   }
 
+  function activateMissingPlace() {
+    setOpen(false);
+    setActiveIx(-1);
+    onMissingPlace();
+  }
+
   function move(direction: 1 | -1) {
     if (options.length === 0) return;
-    setActiveIx((current) => {
-      if (current < 0) return direction === 1 ? 0 : options.length - 1;
-      return (current + direction + options.length) % options.length;
-    });
+    setActiveIx((current) =>
+      current < 0
+        ? direction === 1
+          ? 0
+          : options.length - 1
+        : (current + direction + options.length) % options.length,
+    );
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -1004,7 +992,7 @@ function PlaceSearchCombobox({
     <div className="space-y-1.5">
       <Label htmlFor="place-query">Sök matställen</Label>
       <div className="relative min-w-0">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3 top-[22px] h-4 w-4 -translate-y-1/2 text-muted-foreground sm:top-1/2" />
         <Input
           id="place-query"
           className="pl-9"
@@ -1029,7 +1017,7 @@ function PlaceSearchCombobox({
             id="place-search-listbox"
             role="listbox"
             aria-label="Förslag på kök, typer och matställen"
-            className="absolute z-30 mt-1 max-h-72 w-full min-w-0 overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
+            className="relative z-30 mt-1 max-h-[min(42dvh,20rem)] w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md sm:absolute sm:max-h-72"
           >
             {options.length === 0 ? (
               <p className="px-2 py-2 text-muted-foreground">
@@ -1044,9 +1032,50 @@ function PlaceSearchCombobox({
                 ) : null}
               </>
             )}
+            <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
+              <p className="px-2 pt-1 text-xs text-muted-foreground">Hittar du inte rätt ställe?</p>
+              <MissingPlaceButton
+                className="mt-1 w-full justify-start"
+                disabled={loading}
+                onActivate={activateMissingPlace}
+              />
+            </div>
           </div>
         ) : null}
       </div>
     </div>
+  );
+}
+
+function MissingPlaceButton({
+  disabled,
+  onActivate,
+  className = "",
+}: {
+  disabled?: boolean;
+  onActivate: () => void;
+  className?: string;
+}) {
+  const armedRef = React.useRef(false);
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className={`min-h-11 ${className}`}
+      disabled={disabled}
+      onPointerDown={() => {
+        armedRef.current = true;
+      }}
+      onClick={(event) => {
+        const fromKeyboard = event.detail === 0;
+        const fromOwnPointer = armedRef.current;
+        armedRef.current = false;
+        if (!fromKeyboard && !fromOwnPointer) return;
+        onActivate();
+      }}
+    >
+      <Plus className="h-4 w-4" />
+      Lägg till ett ställe som saknas
+    </Button>
   );
 }

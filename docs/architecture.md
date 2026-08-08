@@ -4,530 +4,386 @@ Det här dokumentet är Matrundans kanoniska källa för varaktiga arkitektur-,
 data- och säkerhetsbeslut. Det beskriver avsiktliga gränser och invariants, inte
 ett fullständigt schemadump.
 
-Äldre plan- och arkitekturtexter som inte längre är normerande ligger under
-`docs/archive/`. Vid konflikt gäller i första hand:
+För praktiskt utvecklingsarbete kompletteras det av:
 
-1. aktuellt databasschema och aktuell kod;
-2. detta dokument;
-3. `README.md` och `DEVELOPMENT.md`;
-4. arkiverad dokumentation.
+- `AGENTS.md` för bindande repo- och arbetsregler;
+- `docs/development-workflow.md` för planering, implementation, verifiering och
+  leverans;
+- `docs/product-roadmap.md` för produktpaket och prioritering;
+- `supabase/production-preflight.sql` för den konkreta driftkontrollen efter
+  migration.
 
-## Produktgräns
+## Grundprinciper
 
-Matrundan är en privat, gruppcentrerad app för vänner och familjer som vill
-upptäcka, välja, besöka och minnas matställen tillsammans.
+Matrundan är en privat, gruppcentrerad app. Arkitekturen ska därför i första
+hand skydda gruppens gemensamma data, verkliga platsidentitet och historik.
 
-Kärnan är gruppens gemensamma matresa:
+Följande invariants är permanenta:
 
-1. samla ställen gruppen är nyfiken på;
-2. bestäm nästa gemensamma stopp;
-3. registrera verkliga besök och faktiska deltagare;
-4. bygg en privat historik med omdömen, favoriter, foton, återbesök och
-   milstolpar;
-5. använd historiken som inspiration till nästa gemensamma upplevelse.
+- gruppen är den primära produkt- och integritetsgränsen;
+- verkliga matställen är kanoniska objekt och ska återanvändas, inte dupliceras
+  när identiteten kan verifieras säkert;
+- gruppspecifik metadata hör till gruppens relation till platsen, inte till den
+  globala platsidentiteten;
+- besök är verkliga grupphändelser och progression följer faktiska deltagare;
+- privata gruppuppgifter får aldrig bli offentlig eller cross-group data genom
+  en bekväm klientgenväg;
+- servern, inte klienten, avgör medlemskap, behörighet och känsliga
+  identitetsövergångar;
+- exempel/demo får simulera samma huvudflöden men får inte bli en genväg runt
+  live-lägets säkerhetsmodell.
 
-Matrundan ska inte bli en offentlig restaurangkatalog, publik recensionsplattform,
-individuell matdagbok, social feed, global ranking eller generisk karttjänst.
-Sökning, kartor, statistik, rekommendationer och gamification är stöd för den
-gemensamma matresan, inte egna produktcentrum.
+## Runtime och driftsmiljö
 
-## Permanenta invariants
+Frontend är en Vite/React-applikation. Live-data ligger i Supabase/Postgres och
+skrivningar går i huvudsak genom explicita RPC:er.
 
-- Gruppen är den primära produkt- och integritetsgränsen.
-- Gruppdata ska vara privat och isolerad mellan grupper.
-- Verkliga matställen och besök ska vara kanoniska och länkas, inte dupliceras.
-- Delning får aldrig exponera ursprungsgrupp, privata kommentarer, medlemskap
-  eller interna identifierare.
-- Endast faktiska deltagare får progression; registreraren får ingen extra
-  kredit.
-- Återbesök räknas.
-- Gamification ska vara varm, diskret, privat och sekundär.
-- Sparade sökområden är förvalda sökcentrum, aldrig geografiska begränsningar.
-  Alla sparade områden är valda när sökningen öppnas; inget område är primärt.
-- Produktcopy ska vara naturlig svenska.
-- Exempelgrupp, intern demo och autentiserat live-läge ska fungera parallellt.
-- Ändrade huvudflöden ska fungera utan horisontell overflow vid 360 px.
-- Skydda enkelheten och undvik funktioner som inte stärker gruppens gemensamma
-  matresa.
+Produktionskedjan är:
 
-## Körlägen och tillitsgränser
+1. kod och migrationer landar i GitHub;
+2. relevanta CI-kontroller ska vara gröna;
+3. migrationer driftsätts separat när de är godkända;
+4. `supabase/production-preflight.sql` körs skrivskyddat efter migration;
+5. PostgREST schema-cache laddas om när RPC-yta eller schema ändrats;
+6. en autentiserad smoke test mot verklig gruppdata görs;
+7. Lovable-preview och publik app behandlas som separata leveranssteg.
 
-### Publik landning
+En merge är alltså inte samma sak som databasdriftsättning eller publicering.
 
-Utloggade användare ska kunna läsa publik produktinformation, öppna inbjudningar,
-logga in och prova exempelgruppen utan att privat gruppdata laddas.
+## Trust boundaries
 
-### Exempelgrupp
+### Klienten
 
-`/exempel` använder fiktiv data och samma produktkomponenter som live-läget.
-Skrivningar sparas endast i den aktuella flikens `sessionStorage`.
-Exempelgruppen får inte skriva till live-databasen eller göra externa OSM-anrop.
+Klienten får:
 
-### Intern testsandbox
+- välja och presentera data som servern redan har godkänt;
+- skicka användarens avsikt och valda indata;
+- hålla temporär UI-state för sökning, preview och demo.
 
-`?demo=1` är en separat, skrivbar utvecklings- och testsandbox. Den använder
-lokal webbläsardata och får inte exponeras som publik onboarding. OSM-publicering
-och statuskontroll simuleras lokalt.
+Klienten får inte vara enda säkerhetskontrollen för:
 
-### Live-läge
+- gruppmedlemskap eller adminroll;
+- cross-group-läsning;
+- kanonisk platsidentitet;
+- source-linking;
+- deltagarprogression;
+- privat delning;
+- OSM-publiceringsstatus;
+- databasens unika invariants.
 
-Live-läget kräver autentisering. Data läses genom gruppscopade read-models och
-skrivs genom validerade RPC:er eller serverfunktioner. Direkt klientåtkomst till
-privata basobjekt undviks när en säkrare read-model eller RPC-gräns finns.
+### Databasen
+
+Postgres/Supabase är den auktoritativa gränsen för:
+
+- medlemskap och roller;
+- gruppisolering;
+- kanoniska `places`;
+- grupprelationer i `group_places`;
+- besök, deltagare, reviews och progression;
+- externa källidentiteter;
+- känsliga cross-group-förslag;
+- privata förbättrings- och rapporteringsflöden.
+
+`SECURITY DEFINER` används bara när en serverfunktion uttryckligen behöver läsa
+eller skriva utanför vanlig RLS-synlighet. Sådana funktioner ska alltid ha låst
+`search_path`, explicita behörighetskontroller och minimerad output.
+
+## Gruppisolering
+
+Gruppdata ska inte kunna läsas bara för att en användare känner till ett UUID.
+Varje live-RPC som arbetar med gruppdata måste verifiera minst:
+
+1. att användaren är autentiserad;
+2. att gruppen är aktiv när skrivning kräver det;
+3. att användaren har aktivt medlemskap;
+4. admin/owner-roll när funktionen gör administrativ ändring.
+
+Klienten får inte läsa skyddade bas-tabeller direkt när en minimerad RPC är den
+avsedda kontraktsytan.
+
+Det gäller särskilt tabeller eller vyer som kan innehålla:
+
+- andra gruppers metadata;
+- rå providerdata;
+- privata rapporter;
+- förbättringsunderlag;
+- historiska administrativa händelser.
+
+## Kontoradering och kontoägarskap
+
+Kontoradering använder `prepare_own_account_deletion(jsonb, boolean)` som
+serverstyrd förberedelse före själva auth-raderingen.
+
+Funktionen ska scrubba eller koppla loss personidentifierande fält som annars
+skulle blockera eller onödigt behålla användaridentitet i historiska systemdata.
+
+Historiska grupphändelser får bevaras när produktens integritet och referenser
+kräver det, men direkta användarreferenser ska nullas eller ersättas när det är
+säkert och semantiskt korrekt.
+
+Nya tabeller som innehåller `created_by`, `updated_by`, submitter-ID eller annan
+användarreferens ska därför granskas mot kontoraderingsflödet innan de räknas som
+färdiga.
 
 ## Kanonisk datamodell
 
 ### Matställen
 
-`places` representerar verkliga matställen. Ett verkligt ställe ska normalt ha
-en kanonisk rad även om flera grupper använder det.
+`places` representerar ett verkligt kanoniskt matställe.
 
-Gruppspecifika uppgifter ligger i `group_places`, exempelvis:
+`group_places` representerar att en viss grupp har lagt till eller arkiverat den
+platsen och bär gruppspecifik metadata.
 
-- aktiv eller arkiverad relation till gruppen;
-- gruppens kategori- eller köksöverstyrning;
-- Passar för;
-- privat gruppanteckning;
-- webbplats- och öppettidsöverstyrning;
-- privat källa eller observation för praktisk information;
-- ändrare, ändringstid och fältvisa förslagsmarkörer.
+Det betyder:
 
-En gruppspecifik uppgift får inte tyst skrivas in som global sanning.
+- samma verkliga plats kan användas av flera grupper via samma `places.id`;
+- en grupps anteckningar, Passar för, praktiska overrides eller status ska inte
+  skrivas till det globala `places`-objektet bara för att de råkar vara
+  tillgängliga i klienten;
+- borttagning från en grupp är normalt arkivering av `group_places`, inte
+  radering av den kanoniska platsen.
 
 ### Externa källor
 
-`place_sources` kopplar externa provideridentiteter till ett kanoniskt
-matställe. Geoapify- och OpenStreetMap-identiteter lagras separat.
+`place_sources` kopplar en kanonisk plats till en extern identitet, i dag främst
+Geoapify/OSM.
 
-Varje källrad har en livscykel:
+En aktiv provideridentitet ska vara unik och får inte tyst flyttas mellan två
+kanoniska `places`-rader.
 
-- `active` – identiteten beskriver nuvarande plats;
-- `superseded` – identiteten är historisk eller ersatt.
+Rå providerpayload hålls server-side. Klienten får bara den normaliserade
+information som krävs för produktflödet.
 
-En provideridentitet är unik bland aktiva källor. Historiska källor kan bevaras
-utan att blockera en senare verklig verksamhet på samma fysiska plats.
+När en tidigare manuell plats senare får en säker provideridentitet ska källan
+länkas till samma `places.id`; historiken ska inte flyttas till ett nytt objekt.
 
-Rå providerdata får lagras serverinternt i `place_sources.raw`, men lämnas inte
-till klientens read-model. Klienten får endast begränsad identitet:
+## Bilder och lagring
 
-- provider;
-- provider-ID;
-- aktiv eller ersatt status.
+Besöksfoton ligger i privat Storage-bucket och ska inte kunna listas eller läsas
+utan gruppkontext.
 
-Verifierad webbplats kan lagras på `places.website`. En grupp kan ha en separat
-`group_places.website_override`. URL:er måste normaliseras till säker HTTP eller
-HTTPS innan de visas eller sparas i en klientexponerad ögonblicksbild.
+Produktionsvakten för `visit-photos` är:
 
-Öppettidsdetaljer är aktuell extern källdata, inte en varaktig global sanning i
-`places`. Detaljsidan får hämta dem på begäran endast genom en autentiserad
-serverfunktion efter att en gruppskyddad RPC har verifierat:
+- privat bucket;
+- JPEG;
+- max 1,5 MB;
+- server-/policykontroller för rätt grupp och användare.
 
-- aktivt medlemskap i gruppen;
-- att matstället är kopplat till gruppen;
-- att matstället har en aktiv Geoapify-källa.
+Klienten får komprimera och validera för UX, men Storage-reglerna är den
+säkerhetsmässiga sanningen.
 
-Klienten får därefter endast ett normaliserat veckoschema, normaliserad säker
-webbplats, hämtningstid och källangivelse. Rå providerpayload, gruppmedlemskap,
-interna källkopplingar och databasidentifierare lämnar inte servergränsen.
-Matrundan ska inte visa **Öppet nu** när specialdagar, tidszon eller ofullständig
-kartdata gör beskedet osäkert.
+## RLS och RPC-mönster
 
-`place_external_info_snapshots` innehåller den senaste normaliserade externa
-ögonblicksbilden för ett kanoniskt matställe. Den kan återanvändas av grupper som
-redan använder samma ställe för att minska onödiga provideranrop, men innehåller
-aldrig grupp, medlem, privat källa eller privat anteckning. Tabellen saknar
-direkt klientåtkomst.
+### Direkt RLS
 
-En vanlig autentiserad klient får aldrig skriva en global extern snapshot.
-Serverfunktionen måste först verifiera användarens gruppåtkomst och aktiva
-Geoapify-källa genom den gruppscopade kontext-RPC:n. Därefter får endast
-`service_role` spara den normaliserade snapshoten. Skrivfunktionen validerar
-plats, aktiv provideridentitet, URL, öppettidsschema och hämtningstid på nytt.
+Direkt tabellåtkomst används bara när raden i sig är en lämplig säkerhetsgräns
+och policyn kan uttrycka hela regeln enkelt.
 
-### Gruppens praktiska information
+### Minimerad RPC
 
-Webbplats och öppettider som en medlem rättar är gruppspecifika uppgifter i
-`group_places`. Alla aktiva medlemmar får underhålla dem när gruppen är aktiv.
-En icke-tom överstyrning måste ha antingen en normaliserad HTTP-/HTTPS-källänk
-eller en tillräckligt konkret privat observation.
+Använd en minimerad RPC när:
 
-Varje faktisk förändring sparas i
-`group_place_practical_info_history`. Historiken är gruppskyddad, saknar direkt
-klientåtkomst och visar bara ändringar för medlemmar i den aktuella gruppen.
+- data måste läsas över flera skyddade tabeller;
+- cross-group-information måste aggregeras eller neutraliseras;
+- klienten bara ska få en delmängd av intern data;
+- flera skrivningar måste ske atomärt;
+- servern måste revalidera en kandidat precis före commit.
 
-Extern kartdata och gruppens uppgift är två separata lager:
+En cross-group-RPC får aldrig returnera mer data bara för att den internt hade
+behörighet att läsa den.
 
-- kartdatan kan hämtas på nytt och jämföras;
-- gruppens uppgift används i gruppen tills gruppen själv väljer något annat;
-- ingen omhämtning får tyst skriva över en gruppöverstyrning;
-- återgång till kartdata är en uttrycklig grupphandling.
+## Gruppstate
 
-### Anonyma förslag på praktisk information
+`get_group_app_state_v5h(uuid)` är nuvarande primära read-RPC för gruppens
+applikationsstate. Äldre kompatibla läs-RPC:er får finnas som fallback så länge
+de behövs för säkra rullningar.
 
-En källstödd gruppändring kan hjälpa andra grupper som redan använder samma
-kanoniska matställe, men bara som ett anonymt och fältvist förslag. Detta är inte
-en offentlig feed och inte en ny global sanning.
+Read-RPC:n ska:
 
-Endast följande fält kan föreslås:
+- verifiera medlemskap;
+- bara returnera data för vald grupp;
+- bevara integritetsregler för delade besök och gäster;
+- undvika att exponera interna tabellfält som klienten inte behöver.
 
-- normaliserad säker webbplats;
-- validerat normaliserat veckoschema för öppettider.
+## Besök och deltagare
 
-En ändring blir föreslagbar endast när medlemmen har angett en uttrycklig
-källänk. Källänken fungerar som en serverintern kvalitetsmarkör men lämnas aldrig
-till den mottagande gruppen. Enbart en privat observation räcker för den egna
-gruppen men får inte skapa ett cross-group-förslag.
+Ett besök är gruppens verkliga händelse, inte registrerarens individuella logg.
 
-Förslags-RPC:n får endast lämna:
+`create_visit_with_review_v2` är den serverstyrda mutationsytan för nytt besök
+med omdöme.
 
-- neutral status: `none`, `available` eller `conflicting`;
-- det föreslagna fältvärdet när status är `available`;
-- ett innehållsfingeravtryck för ny validering vid godkännande;
-- tidpunkten för den källstödda fältändringen.
+Regler:
 
-Följande får aldrig lämnas:
+- registreraren kan vara förvald i UI men får ingen automatisk progression om
+  hen avmarkeras;
+- endast valda aktiva gruppmedlemmar får medlemsspecifik progression;
+- gäster lagras som besöksbundna gäster, inte som gruppmedlemmar;
+- återbesök är nya verkliga besök och räknas;
+- en delad besöksrepresentation får inte duplicera progression eller skapa ett
+  nytt verkligt besök.
+
+## Sökning och sökområden
+
+Gruppens sparade sökområden är förval för en ny söksession, inte permanent
+behörighets- eller innehållsgräns.
+
+Alla sparade områden är valda när sökningen öppnas och inget område är primärt.
+Temporära ändringar i en söksession får inte tyst skriva om gruppens sparade
+områden.
+
+Dagens produktionsmodell är punkt + radie. Bred administrativ geografi som inte
+kan representeras säkert som punkt blockeras därför av servern i
+`replace_group_search_settings`.
+
+När boundary-stöd införs måste gamla punktområden behålla sin tidigare betydelse
+tills en säker provideridentifierad gräns uttryckligen kan verifieras. Ingen
+migration får tyst omtolka historisk geografi.
+
+## Provider och Geoapify
+
+Geoapify används genom serverfunktioner; API-nyckeln ska aldrig ligga i
+klientbundle eller klientlagring.
+
+Provideranrop kan kortlivat cacheas server-side för att minska onödiga anrop,
+men cache-nycklar ska inte innehålla gruppmedlemskap eller privat gruppdata.
+
+Providerresultat normaliseras till produktdomänen. Rå payload används som
+server-side bevis eller underlag när det behövs, men ska inte spridas genom
+klienten.
+
+Autocomplete för geografi och matställen ska hålla isär:
+
+- geografiskt scope;
+- generell mattyp/kök;
+- specifikt verkligt matställe.
+
+Ett specifikt matställe får inte implicit flytta användarens sökområde.
+
+## Praktisk platsinformation
+
+Adress/kartposition, webbplats och öppettider kan komma från extern källa men
+kan behöva privata gruppoverrides.
+
+`group_places` bär därför gruppens praktiska override-värden medan global
+providerinformation ligger på eller härleds från den kanoniska platsen och dess
+källor.
+
+Serverfunktioner för praktisk information ska:
+
+- verifiera aktivt medlemskap;
+- hålla historik för gruppens egna ändringar;
+- aldrig göra en annan grupps privata källa, anteckning eller adminidentitet
+  synlig;
+- kunna presentera ett neutralt cross-group-förslag utan att avslöja
+  ursprungsgruppen;
+- revalidera förslaget server-side vid tillämpning.
+
+Cross-group-förslag får vara en kvalitetssignal, inte ett sätt att bläddra i
+andra gruppers data.
+
+## Privat platsrapportering och OSM
+
+`place_data_reports` är gruppens privata rapporteringsyta för konkreta
+platsdatafel. Den är inte en offentlig OSM-kö.
+
+Rapporter kan avse:
+
+- ett redan tillagt kanoniskt ställe; eller
+- en providerträff som ännu inte lagts till.
+
+Klienten använder minimerade RPC:er. Direkt tabellåtkomst är inte den avsedda
+produktionsytan.
+
+OSM-publicering är ett separat explicit flöde:
+
+1. rapporten granskas av gruppadmin/owner;
+2. servern verifierar fortfarande att rätt kategori och platskontext gäller;
+3. ett förberett publiceringsförsök loggas och kvoteras;
+4. service-side skrivning gör själva OSM-anropet;
+5. servern kompletterar rapporten med offentlig referens/status;
+6. efterföljande refresh hämtar endast den offentliga OSM-status som behövs.
+
+En användares privata beskrivning eller gruppnamn får inte automatiskt bli OSM-
+text. Publicering ska använda neutral, granskad information.
+
+Om en plats senare får en aktiv OSM-/providerkälla kan en öppen
+`missing_in_osm`-rapport lösas automatiskt, men en pågående publicering får inte
+tyst försvinna mitt i ett submission-state.
+
+## Manuell plats, kanonisk återanvändning och senare källkoppling
+
+Ett manuellt ställe kan skapas utan extern provideridentitet. Verifierad
+kartposition krävs däremot när flödet ska använda cross-group-matchning eller
+skapa ett neutralt förbättringsunderlag. Fri text får aldrig gissas om till
+verifierad geografi.
+
+### Återanvändning före ny kanonisk plats
+
+När användaren uttryckligen går vidare från sökningen med **Lägg till ett ställe
+som saknas** får servern göra en begränsad kontroll om ett relevant kanoniskt
+Matrundan-ställe redan finns utan aktiv extern källa.
+
+Kontrollen är inte en publik eller generell platskatalog. Den får bara ske i den
+konkreta tilläggskontexten och kräver namn samt verifierad kartposition.
+Kandidatpoolen begränsas geografiskt och matchningen är konservativ över minst
+namn, avstånd och när tillgängligt adress/ort.
+
+Liknande namn är aldrig ensamt tillräckligt för automatisk sammanslagning. En
+kandidat är ett förslag till användaren, inte en merge-order. Om flera rimliga
+kandidater finns ska användaren kunna välja eller uttryckligen avstå från dem.
+Två närliggande verksamheter måste kunna förbli separata.
+
+Cross-group-läsningen sker i en minimerad `SECURITY DEFINER`-RPC med låst
+`search_path`, aktiv grupp- och medlemskontroll. Klienten får endast neutral
+platsidentitet som behövs för valet:
+
+- kanoniskt plats-ID;
+- namn och kategori;
+- säker adress/ort/område när det finns;
+- kartposition och avstånd;
+- neutral matchtyp;
+- om samma platsrelation redan är aktiv/arkiverad i målgruppen.
+
+Följande får aldrig lämna servergränsen genom kandidatflödet:
 
 - ursprungsgrupp eller gruppnamn;
-- medlem, ändrare eller rapportör;
-- källänk eller privat observation;
-- antal grupper, förslag eller stöd;
-- grupp-, användar-, historik- eller andra interna ID:n.
-
-Modellen är konservativ:
-
-- bara andra aktiva grupper som har samma aktiva kanoniska matställe används;
-- förslag äldre än 90 dagar ignoreras;
-- ett värde som redan motsvarar gruppens eller aktuell extern uppgift visas inte;
-- flera olika aktuella värden ger `conflicting`, utan vinnare eller
-  tillämpningsknapp;
-- ett förslag skrivs aldrig in automatiskt;
-- mottagande grupp måste godkänna ett fält uttryckligen;
-- servern räknar om kandidaten och jämför fingeravtrycket vid godkännande;
-- ett godkänt förslag blir gruppens egen uppgift och sprids inte automatiskt
-  vidare som nytt förslag.
-
-### Providerträffar och privata rapporter
-
-En sökträff är inte automatiskt ett kanoniskt matställe. En felaktig eller
-inaktuell providerträff ska kunna rapporteras utan att appen först skapar en tom
-rad i `places`.
-
-`place_data_reports` kan därför rikta sig mot exakt ett av följande mål:
-
-1. ett kanoniskt `place_id`; eller
-2. en exakt `provider + provider_place_id`.
-
-Målen är ömsesidigt uteslutande och skyddas av databaskontrakt. En
-providerträffsrapport bevarar bara en begränsad ögonblicksbild av namn, adress,
-ort, säker webbplats, kartposition och källidentitet. Rå providerpayload sparas
-inte i rapporten.
-
-Rapportering och döljning är två separata handlingar:
-
-- rapportering skapar ett privat granskningsunderlag för gruppens ägare och
-  administratörer;
-- döljning är en reversibel gruppinställning som endast påverkar den aktuella
-  gruppens söklista och karta.
-
-En ägare eller admin kan välja båda i samma användarflöde, men en lyckad rapport
-får inte rullas tillbaka om den efterföljande döljningen misslyckas. En medlem
-kan rapportera utan att få administrativ rätt att dölja.
-
-### Dolda providerträffar
-
-`group_hidden_place_suggestions` identifierar en dold träff med:
-
-- grupp;
-- provider;
-- provider-ID.
-
-Döljningen raderar inget kanoniskt matställe och påverkar aldrig andra grupper.
-För att en dold träff ska kunna granskas även om providern senare slutar
-returnera den bevaras en begränsad säker ögonblicksbild:
-
-- namn och kategori;
-- adress, område och ort;
-- giltig kartposition när den finns;
-- normaliserad HTTP-/HTTPS-webbplats när den finns;
-- när och av vem träffen doldes.
-
-Äldre dolda rader utan de nya fälten förblir giltiga och kan återställas. Rå
-providerdata får inte lagras i den gruppprivata spärrlistan.
-
-### Anonyma platsdatasignaler
-
-Privata rapporter får hjälpa andra grupper endast genom en härledd och neutral
-slutsats. De får aldrig bli en global rapportfeed eller en väg runt gruppens
-integritetsgräns.
-
-`place_data_signal_confirmations` lagrar en medlems enkla bekräftelse för exakt
-ett kanoniskt ställe eller en provideridentitet. Tabellen är privat och saknar
-direkt klientåtkomst. Bekräftelsen innehåller ingen fritext och är separat från:
-
-- gruppens privata rapportkö;
-- gruppens reversibla döljning;
-- eventuell OSM-publicering.
-
-Läs-RPC:n för en grupp får bara använda evidens från **andra grupper**. Den
-aktuella gruppens privata rapporter eller bekräftelser får inte ens återkomma som
-en anonym signal till vanliga medlemmar i samma grupp.
-
-Klienten får endast följande härledda fält per mål:
-
-- `closureStatus`: `none`, `unverified`, `reviewed` eller `uncertain`;
-- `limitedInformation`: båda webbplats och öppettider saknas uttryckligen;
-- `recentlyConfirmedOpen`: det finns aktuell anonym motbevisning.
-
-Följande får aldrig lämnas av signal-RPC:n:
-
-- ursprungsgrupp;
-- medlem eller rapportör;
-- rapporttext eller intern anteckning;
-- antal rapporter, grupper eller bekräftelser;
-- rapport-, grupp- eller användar-ID.
-
-Evidensmodellen är konservativ:
-
-- en ensam ogranskad rapport ger endast `unverified`;
-- en adminbedömd rapport eller stöd från minst två oberoende grupper kan ge
-  `reviewed`;
-- en positiv signal tillsammans med motbevisning ger `uncertain`;
-- nyliga verkliga besök räknas som anonym motbevisning;
-- ogranskade rapporter, bekräftelser och granskade underlag har separata
-  tidsfönster och tappar automatiskt tyngd.
-
-**Begränsad platsinformation** är en kvalitetsflagga, inte en stängningssignal.
-Den får bara visas när leverantörens aktuella sökdata uttryckligen saknar både
-webbplats och öppettider. Okänd eller äldre data får inte tolkas som frånvaro.
-Söklistans signalmodell får fortsatt bara en neutral boolesk indikator. Ett
-normaliserat öppettidsschema får endast lämnas separat till den autentiserade
-detaljsidan genom den gruppverifierade servergränsen ovan och får aldrig påverka
-cross-group-signalen med råa tider eller specialregler.
-
-### Besök
-
-`visits` representerar verkliga besök. Ett besök ska vara kanoniskt även när det
-visas i flera av användarens grupper.
-
-`visit_group_links` kopplar ett besök till original- och mottagargrupper.
-Originalgruppen är privat serverinformation och får inte lämnas till mottagande
-grupp.
-
-`visit_participants` innehåller faktiska deltagare. Progression och privata
-medlemsmeriter ska baseras på dessa rader, inte på vem som registrerade besöket.
-Registreraren är endast förvald i klienten och får ingen serverstyrd deltagarrad
-om medlemmen väljs bort.
-
-`visit_guests` innehåller frivilliga, besökslokala visningsnamn för personer som
-inte är gruppmedlemmar. En gäst är inte ett konto, en profil eller en medlem och
-får därför ingen progression, medlemsstatistik eller annan medlemsmerit. En gäst
-kopplas inte automatiskt till en person som senare går med i gruppen.
-
-Gästtabellen saknar direkt klientåtkomst och raderas tillsammans med besöket.
-Gästnamn får endast lämnas till besökets ursprungsgrupp. När samma besök visas i
-en mottagande grupp får read-modelen endast lämna ett anonymt antal personer
-utanför gruppen, aldrig namn, ursprungsgrupp eller intern gästidentitet.
-
-`review_group_visibility` styr vilka betyg och kommentarer som får visas i varje
-grupp. En kommentar från en annan grupp delas bara efter ett uttryckligt val av
-kommentarens ägare.
-
-`visit_media` tillhör besöket men är knutet till ursprungsgruppen. Delade grupper
-får inte automatiskt tillgång till fotot.
-
-### Nästa stopp och datumplanering
-
-Nästa stopp tillhör gruppen och ska alltid referera till ett aktivt
-`group_place`.
-
-Datumförslag och svar är gruppprivata:
-
-- `next_stop_date_proposals` innehåller datum, valfri tid och skapare;
-- `next_stop_date_responses` innehåller en medlems svar på ett visst förslag.
-
-Matrundan räknar svar men fattar inte automatiska majoritetsbeslut. En ägare
-eller admin bekräftar planen uttryckligen.
-
-### Sökområden
-
-`group_search_areas` innehåller verifierade Geoapify-sökcentrum. De begränsar
-inte var gruppen får söka och har ingen primärordning.
-
-Sökningen öppnas med samtliga sparade områden aktiva. Användaren kan tillfälligt
-slå av områden eller lägga till en annan verifierad plats utan att ändra
-gruppinställningarna.
-
-Breda administrativa områden som kommuner, län, regioner och länder ska inte
-sparas som oprecisa punktcentrum. Äldre värden kan visas med vägledning för
-ersättning.
-
-## Read-model och klientexponering
-
-Den primära live-läsningen går genom `get_group_app_state_v5h`.
-`get_group_app_state_v5g` är en strikt kompatibilitetsfallback och används endast
-när den aktuella RPC:n uttryckligen saknas i PostgRESTs schema-cache.
-
-Read-modelen ska:
-
-- verifiera autentisering och aktivt medlemskap;
-- filtrera på aktuell grupp;
-- lämna ut effektiv gruppmetadata, inte privata fält från andra grupper;
-- aldrig lämna ut rå providerpayload;
-- aldrig lämna ut ursprungsgrupp för delade besök;
-- aldrig lämna ut gästnamn för ett delat besök;
-- aldrig lämna ut en kommentar som inte är synlig i gruppen;
-- aldrig lämna ut privata media från annan grupp.
-
-Cross-group-förslag för praktisk information ligger utanför den vanliga
-read-modelen och hämtas endast på detaljsidan genom en separat gruppverifierad
-RPC. Det förhindrar att förslagsvärden eller signaler sprids till listor där de
-inte behövs.
-
-Fallback får inte användas för andra fel än uttryckligen saknad ny RPC. Ett
-behörighetsfel, nätverksfel eller valideringsfel får inte döljas genom fallback.
-
-## Skrivgränser
-
-Säkerhetskänsliga skrivningar använder normalt `SECURITY DEFINER`-RPC:er med:
-
-- låst `search_path`;
-- explicit autentisering genom `auth.uid()`;
-- aktiv gruppkontroll;
-- medlemskaps- eller rollkontroll;
-- servervaliderad input;
-- explicita grants och revokes.
-
-Direkt klientskrivning till kanoniska eller integritetskänsliga tabeller ska
-undvikas.
-
-### Rollprinciper
-
-Aktiva medlemmar får:
-
-- lägga till ställen;
-- komplettera gruppens kategori, kök, Passar för och privata anteckning;
-- underhålla gruppens webbplats och öppettider med privat källa eller
-  observation;
-- granska och uttryckligen godkänna ett anonymt fältvist förslag för samma
-  kanoniska matställe;
-- registrera och redigera egna besök inom produktens regler;
-- rapportera felaktig platsinformation för ett kanoniskt ställe eller en exakt
-  providerträff;
-- bekräfta eller motsäga en anonym stängningssignal utan fritext;
-- föreslå datum och svara på förslag.
-
-Ägare och administratörer får dessutom:
-
-- ändra gruppinställningar;
-- arkivera och återaktivera gruppen;
-- ta bort och återställa ställen i gruppens aktiva lista;
-- dölja och återställa providerträffar för gruppen;
-- granska gruppens samlade platsdatarapporter;
-- förbereda och bekräfta OSM-publicering;
-- bekräfta planerat datum.
-
-En klientroll får inte:
-
-- läsa privata bastabeller direkt när en RPC-gräns finns;
-- skriva globala externa snapshots;
-- läsa ursprung, källa eller antal bakom ett anonymt praktiskt förslag;
-- registrera ett bekräftat externt OSM-note-ID;
-- ändra extern OSM-status;
-- läsa OSM-försöksloggen;
-- anropa interna trigger- eller hjälpfunktioner direkt.
-
-## Platsdatarapporter och OSM-handoff
-
-### Privat rapportering
-
-Alla aktiva gruppmedlemmar får rapportera felaktig platsinformation. Rapporten
-är privat inom gruppen och kan skapas från:
-
-- ett redan tillagt kanoniskt matställe; eller
-- en exakt providerträff före tillägg.
-
-En rapport innehåller:
-
-- grupp och målidentitet;
-- generell felkategori;
-- användarens privata beskrivning;
-- begränsad ögonblicksbild av platsinformationen;
-- rapportör och tidsstämplar;
-- granskningsstatus och intern adminanteckning.
-
-Samma medlem får inte skapa flera samtidiga rapporter med samma kategori för
-samma mål.
-
-Statusar:
-
-- `open` – väntar på granskning;
-- `ready_for_osm` – admin har förberett underlaget;
-- `resolved` – åtgärdad i Matrundan;
-- `dismissed` – avslutad utan åtgärd.
-
-`ready_for_osm` är ett privat internt tillstånd. Det publicerar ingenting utan en
-separat bekräftelse.
-
-### Offentlig OSM-publicering
-
-Endast ägare/admin får starta publicering. Innan publicering måste admin:
-
-- granska rapporten;
-- se och redigera exakt offentlig text;
-- kontrollera kartposition;
-- bekräfta att texten blir offentlig.
-
-Endast följande får lämna Matrundan:
-
-- den granskade offentliga texten;
-- kartpositionen;
-- en neutral slumpmässig Matrundan-referens.
-
-Följande får aldrig skickas automatiskt:
-
-- gruppnamn;
-- rapportör eller reviewer;
-- privat rapporttext om den inte uttryckligen har skrivits om till offentlig
-  text;
-- intern adminanteckning;
-- medlemskap;
-- interna databas-ID:n.
-
-En providerträffsrapport kan förberedas för OSM först när den har tillräckligt
-underlag och giltig kartposition. Publicering skapar inte automatiskt ett
-kanoniskt matställe i Matrundan.
-
-Publiceringen går genom en serverstyrd adapter med identifierbar User-Agent och
-referer. Klienten reserverar försöket genom gruppscopad RPC, serverrollen gör
-OSM-anropet och endast serverrollen får registrera note-ID och extern status.
-
-### Återhämtning och dubblettskydd
-
-En neutral offentlig referens genereras per rapport. Vid osäkert nätverksavbrott
-söker servern efter samma referens och position innan ett nytt POST-försök görs.
-
-En rapport får bara kopplas till en OSM-note. Publiceringsförsök loggas append-only
-för att misslyckade försök fortfarande ska räknas mot dygnskvoten. Kvoter
-serialiseras per användare och grupp för att parallella transaktioner inte ska
-kunna passera samma gräns.
-
-### Källstatus och gamla underlag
-
-Ett `missing_in_osm`-underlag får inte publiceras om platsen redan har en aktiv
-OpenStreetMap-källa.
-
-När en aktiv OSM-källa länkas:
-
-- opublicerade, väntande `missing_in_osm`-rapporter avslutas atomiskt;
-- en nyligen startad OSM-publicering blockerar källkopplingen tills försöket är
-  klart eller gammalt;
-- publicerade OSM-noter bevaras som historik.
-
-## Manuell plats och senare källkoppling
-
-Ett manuellt ställe kan skapas utan extern provideridentitet, men i live-läge
-ska kartpositionen komma från ett uttryckligt verifierat Geoapify-val när
-platsen ska användas för OSM-underlag eller senare källmatchning.
+- vem som skapade eller använder platsen;
+- medlemskap eller antal grupper;
+- privata anteckningar, Passar för, rapporter eller praktiska overrides;
+- interna grupp- eller användar-ID:n.
+
+När användaren väljer en kandidat återanvänds samma `places.id`. Servern skapar
+eller återaktiverar endast målgruppens `group_places`-relation och får inte
+kopiera metadata från någon annan grupp.
+
+När användaren väljer **Inget av dessa stämmer** får ett nytt kanoniskt ställe
+skapas, men servern gör kandidatkontrollen igen precis före skapandet. För
+verifierade fallbackskapanden serialiseras den korta kontroll-/skapandefasen med
+ett transaktionslås så att två samtidiga grupper inte båda kan passera kontrollen
+och skapa samma rimliga kandidat samtidigt. Kandidater som användaren redan
+uttryckligen avböjt får passera; nya eller förändrade kandidater måste visas på
+nytt.
+
+### Neutralt förbättringsunderlag
+
+Ett verifierat manuellt ställe utan aktiv extern källa kan skapa en intern
+`place_improvement_candidates`-rad med betydelsen ungefär **behöver matchas mot
+extern källa**.
+
+Detta underlag är medvetet separat från `place_data_reports`:
+
+- det betyder inte **saknas i OpenStreetMap**;
+- det är inte en användarrapport;
+- det kan aldrig bli `ready_for_osm` eller publiceras externt genom OSM-flödet;
+- `anon` och `authenticated` saknar direkt tabellåtkomst;
+- eventuell framtida granskningsyta måste använda en ny uttrycklig, minimerad
+  serverkontrakt-yta.
+
+När samma kanoniska plats senare får en aktiv `place_sources`-koppling löses
+öppna förbättringskandidater automatiskt. Därmed följer förbättringsunderlaget
+platsidentiteten i stället för en specifik grupps privata historik.
+
+### Senare extern källkoppling
 
 När en senare providerträff verkar motsvara ett manuellt ställe får ägare/admin
 länka källan endast om:
@@ -535,194 +391,142 @@ länka källan endast om:
 - målplatsen är aktiv i gruppen;
 - målplatsen saknar aktiv extern källa;
 - exakt en konservativ match finns;
-- extern identitet inte redan används av annan aktiv plats;
-- namn, adress och kartposition uppfyller det servervaliderade kontraktet.
+- den externa identiteten inte redan används av en annan aktiv plats;
+- namn, adress och kartposition uppfyller servervaliderade kontrakt.
 
 Tvetydighet innebär alltid ingen åtgärd. Fuzzy auto-merge ingår inte.
 
-Källkopplingen bevarar:
-
-- samma `places.id`;
-- samma `group_places`;
-- besök och omdömen;
-- gruppens privata metadata;
-- historiska källor.
-
-Källkopplingen får aldrig skriva över gruppens privata fält med providerdata eller
-exponera vilken grupp som initierade kopplingen.
+Källkopplingen bevarar samma `places.id`, `group_places`, besök, omdömen och
+privata gruppuppgifter. Den får inte skriva över eller exponera gruppmetadata.
 
 ## Delning mellan grupper
 
-Delning använder kanoniska platser och besök i stället för kopior.
+Delning får aldrig bli cross-group-läsning av privat källdata.
 
-Servern ansvarar för att:
+När ett matställe delas mellan två av användarens grupper ska målgruppen kunna
+återanvända samma kanoniska platsidentitet, men följande ska inte följa med:
 
-- kontrollera att användaren har åtkomst till både ursprungs- och mottagargrupp;
-- länka platsen till mottagargruppen vid behov;
-- länka samma besök genom `visit_group_links`;
-- aldrig lämna ut ursprungsgruppen till mottagaren;
-- aldrig dela privat kommentar utan uttryckligt medgivande;
-- aldrig dela privat foto till mottagargruppen;
-- aldrig dela gästnamn till mottagargruppen;
-- behålla faktiska deltagare som progressionens källa.
+- besök;
+- omdömen;
+- favoriter;
+- privata anteckningar;
+- Passar för;
+- adminhistorik;
+- gruppmedlemskap.
 
-En gruppspecifik borttagning av ett ställe raderar inte det kanoniska stället,
-andras grupprelationer eller historiska besök.
+Dagens specifika delningsfunktioner och framtida återanvändning ska alltså skapa
+eller återaktivera målgruppens relation, inte kopiera hela `group_places` eller
+historik.
 
-Anonyma förslag på praktisk information använder samma kanoniska `place_id` som
-matchningsnyckel men är inte generell gruppdelning. De får bara leverera det
-fältvisa, källstödda värdet under de begränsningar som anges ovan.
+## Delade besök
 
-## Kontoradering
+Ett verkligt besök kan visas i mer än en grupp utan att dupliceras som två
+verkliga händelser.
 
-Självbetjänad kontoradering orkestreras serverstyrt. Personliga uppgifter tas bort
-eller anonymiseras medan gemensam grupphistorik kan bevaras som
-**Tidigare medlem** när det behövs för dataintegritet.
+Delningslänken ska därför peka på samma besöksidentitet och bara exponera den
+minsta information som målgruppen behöver.
 
-Platsdatarapporter behandlas särskilt:
+Ursprungsgrupp, privata kommentarer, medlemskap och interna ID:n får aldrig
+exponeras i delningspayloaden.
 
-- rapportörens identitet tas bort;
-- användarens privata rapporttext tas bort;
-- intern anteckning skriven av den raderade användaren tas bort;
-- OSM-publicerarens personkoppling tas bort;
-- append-only-försöksloggen anonymiseras genom `submitted_by = NULL`;
-- användarens aktiva platsdatasignalbekräftelser raderas;
-- neutral platsöversikt och operativ status kan bevaras.
+Progression och statistik ska dedupliceras på det verkliga besöket så att en
+delad representation inte räknas två gånger.
 
-Praktisk informationshistorik får visa **Tidigare medlem** efter kontoradering.
-Ett aktivt anonymt förslag får inte innehålla eller förlita sig på den raderade
-användarens identitet, privata källänk eller observation.
+## Exempelgrupp och demo
 
-Kontoradering får inte lämna gamla personnamn i rapportöversikter, aktiva
-platsdatasignaler, praktiska cross-group-förslag eller externa OSM-referenser.
+Exempelgruppen är ett permanent scenariokontrakt, inte bara statisk mockcopy.
+Den ska kunna visa viktiga produkttillstånd med samma huvudkomponenter som live
+utan att göra externa provider-/OSM-skrivningar.
+
+Demo/exempel får därför använda deterministiska lokala fixtures för:
+
+- providerresultat;
+- geografiska val;
+- privata signaler;
+- kanonisk återanvändning;
+- källa- och kvalitetskontroll.
+
+Fixtures får aldrig antyda att en extern skrivning faktiskt gjorts.
+
+När en större feature ändrar huvudflödet ska PR:n uttryckligen bedöma om
+exempelgruppens scenariokontrakt behöver uppdateras.
 
 ## Notiser
 
-Push-prenumerationer lagras per autentiserad användare. Servern får endast skicka
-notiser som mottagaren har gruppåtkomst till.
+Notifieringar köas server-side tillsammans med den händelse som skapar dem.
+Klienten får trigga en snabb flush efter en lyckad mutation, men en misslyckad
+notisleverans får inte få själva produktmutationen att misslyckas.
 
-Notiser får inte innehålla privat data från en grupp mottagaren saknar medlemskap
-i. En arkiverad grupp ska inte generera nya operativa notiser.
+Ett schemalagt jobb är säkerhetsnät för kvarvarande outbox-rader.
 
-## Media
+Notiser får bara innehålla minsta nödvändiga gruppkontext och ska inte bli en
+ny delningskanal för privat data.
 
-Besöksfoton lagras privat. Åtkomst ska kontrolleras genom serverstyrda URL:er och
-grupp-/ägarskapspolicyer.
+## Release och databasdrift
 
-Ett foto tillhör besökets ursprungsgrupp och delas inte automatiskt när besöket
-länkas till en annan grupp.
+Version, in-app-historik och `CHANGELOG.md` ska hållas synkroniserade för en
+releasekandidat.
 
-## Geoapify och OpenStreetMap
+En migration i GitHub betyder inte att produktionsdatabasen är migrerad.
+Databasdriftsättning kräver separat uttryckligt godkännande.
 
-Geoapify används serverstyrt. API-nyckeln lagras i Lovable Cloud Secrets och får
-inte exponeras i klienten eller committas.
+Efter migration ska minst följande verifieras innan publicering:
 
-Geoapify-resultat normaliseras till Matrundans domänmodell. Normaliseringen ska:
+- nya tabeller, kolumner, index, constraints, triggers och RPC-signaturer;
+- positiva grants;
+- negativa grants och RLS-isolering;
+- PostgREST schema-cache;
+- autentiserad läsning av en verklig grupp;
+- eventuell backfill eller datakvalitet som migrationen lovar.
 
-- filtrera explicit nedlagda, rivna eller övergivna objekt;
-- separera Geoapify-ID från eventuell OSM-identitet;
-- normalisera webbplats till säker URL;
-- härleda en boolesk indikator för om öppettider finns i sökresultatet;
-- tillåta att detaljsidan på begäran får ett konservativt normaliserat
-  veckoschema genom den autentiserade och gruppverifierade servergränsen;
-- begränsa rå metadata;
-- deduplicera sökresultat konservativt.
+`supabase/production-preflight.sql` är den kanoniska driftkontrollen och ska
+uppdateras när en release inför nya obligatoriska databasobjekt eller
+behörighetsinvariants.
 
-En normaliserad extern snapshot är ett cache- och jämförelseunderlag, inte en
-permanent gruppsanning. Den skrivs endast serverstyrt och får inte automatiskt
-skriva över `group_places`.
+## Migrationer
 
-OpenStreetMap Notes används för konkreta kartdatafel efter mänsklig granskning.
-Notes får inte användas som automatisk fel-dump, privat kommentarssystem eller
-masspubliceringskanal.
+Migrationer är append-only efter att de har driftsatts i produktion.
 
-Anonyma noter kan skapas utan OSM-konto. Kommentarer och stängning kräver
-inloggat OSM-konto och ingår därför inte i den anonyma grundintegrationen.
+Redigera eller spela inte om en redan applicerad migrationsfil för att få lokala
+miljöer att se rena ut. Lägg i stället en ny framåtriktad migration.
 
-## Demo- och exempelisolering
+Migrationer ska vara konservativa med befintlig data:
 
-Demo- och exempeldata måste vara fiktiv och får inte skapa externa effekter.
+- inga destruktiva omskrivningar utan uttryckligt beslut;
+- gamla punktbaserade sökområden får inte tyst bli polygoner;
+- gamla platsrelationer får inte automatiskt fuzzy-mergas;
+- historiska privata fält får inte bli globala bara för att en ny kanonisk modell
+  tillkommer.
 
-I lokala lägen ska följande simuleras eller sparas lokalt:
+## Miljö och secrets
 
-- platsdatarapporter;
-- rapporter om providerträffar;
-- dolda sökträffar och deras säkra ögonblicksbilder;
-- kvalitetsflaggan för begränsad platsinformation;
-- OSM-publicering;
-- OSM-statuskontroll;
-- källkoppling;
-- privata gruppändringar.
+Följande får aldrig ligga i klientbundle, klientpersistens eller publika
+repositoryfiler:
 
-Lokala lägen får aldrig använda service-role, skriva produktion eller publicera
-en verklig OSM-note. Cross-group-bekräftelser och anonyma praktiska förslag är
-live-only. Demo och exempelgrupp får varken läsa eller tillämpa verkliga förslag
-från andra grupper.
+- service-role-nyckel;
+- providerhemligheter;
+- webhook-/pushhemligheter;
+- användartokens;
+- rå privat providerpayload som endast behövs server-side.
 
-## Databasmigrationer
+Publika klientnycklar som Supabase anon-key får användas enligt leverantörens
+modell men de ersätter aldrig RLS och servervalidering.
 
-Migrationer är additiva som standard och ska bevara befintliga produktionsrader.
-Destruktiva ändringar eller rensningar kräver uttryckligt godkännande.
+## Arkitekturchecklista för större ändringar
 
-En migration ska:
+Innan implementation av ändringar i datamodell, integritet, delning,
+autentisering, Geoapify, notiser eller gamification ska planen besvara:
 
-- vara versionsordnad och ligga under `supabase/migrations/`;
-- använda stabila, bakåtkompatibla övergångar när möjligt;
-- ha låst `search_path` för `SECURITY DEFINER`;
-- sätta explicita grants och revokes;
-- uppdatera produktions-preflight när ett nytt obligatoriskt objekt tillkommer;
-- inte registreras som applicerad innan objekten har verifierats.
+1. Vilket objekt är kanoniskt?
+2. Vilken grupp äger vilken metadata?
+3. Vilken data får klienten faktiskt se?
+4. Vilken kontroll måste ligga server-side?
+5. Kan ändringen skapa eller sammanblanda cross-group-data?
+6. Hur hanteras demo/exempel utan att försvaga live-modellen?
+7. Krävs migration eller backfill, och är den icke-destruktiv?
+8. Vilka positiva och negativa behörigheter måste verifieras?
+9. Behöver `production-preflight.sql` uppdateras?
+10. Behöver kontoraderingsflödet scrubba en ny användarreferens?
 
-PostgRESTs schema-cache laddas om efter migrationsdriftsättning.
-
-## Produktions-preflight
-
-`supabase/production-preflight.sql` är den kanoniska skrivskyddade kontrollen
-efter migration och före publicering.
-
-Alla rader måste returnera `ok = true`. Kontrollen omfattar minst:
-
-- aktuella och kompatibla read-models;
-- privata besöksgäster, anonym delning och negativa behörigheter;
-- obligatoriska tabeller, kolumner, constraints, index och triggers;
-- grupp- och rapport-RPC:er;
-- den gruppskyddade kontext-RPC:n för externa platsdetaljer;
-- service-role-only-skrivning av normaliserade externa snapshots;
-- anonyma praktiska förslag, konflikthantering, ny validering och negativa
-  behörigheter;
-- providerträffsrapporter och dolda träffars säkra ögonblicksbild;
-- anonyma platsdatasignaler, negativa behörigheter och cross-group-isolering;
-- OSM-publiceringsfunktioner;
-- grants och negativa behörighetskontroller;
-- kontoraderingens rapport-, signal- och OSM-städning;
-- frånvaro av direkt klientåtkomst till privata tabeller.
-
-Efter preflight görs en autentiserad läsning av en verklig aktiv grupp. Riktade
-negativa tester ska ske i rollback-transaktion eller mot obefintliga ID:n så
-ingen produktionsdata skapas.
-
-## Release, merge och publicering
-
-Version, in-app-historik och `CHANGELOG.md` ska vara konsekventa.
-
-Merge till `main` kräver:
-
-- godkänt scope;
-- granskad diff;
-- relevanta gröna tester;
-- grön CI;
-- inga kända blockerare.
-
-Efter merge redovisas separat:
-
-- branch och commit;
-- PR och merge;
-- CI;
-- Lovable-synk;
-- preview och manuella teststeg;
-- databas och migration;
-- ej verifierat;
-- publicering.
-
-Merge är inte publicering. Databasdriftsättning och publik deployment kräver
-separata uttryckliga godkännanden.
+Om någon av dessa frågor saknar ett verifierbart svar är arkitekturplanen inte
+klar.

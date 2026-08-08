@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link2, Loader2 } from "lucide-react";
+import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogsV16 } from "./AddPlaceResultDialogsV16";
 import { ManualAddPlaceFormV16 } from "./ManualAddPlaceFormV16";
@@ -47,7 +47,7 @@ import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
-type Tab = "sok" | "manuell";
+type AddPlaceView = "search" | "fallback";
 
 export function AddPlaceDialogV16({
   open,
@@ -58,7 +58,7 @@ export function AddPlaceDialogV16({
 }) {
   const { state, addPlace } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [tab, setTab] = React.useState<Tab>("sok");
+  const [view, setView] = React.useState<AddPlaceView>("search");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
   const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
     null,
@@ -111,6 +111,7 @@ export function AddPlaceDialogV16({
       setSelectedResults([]);
       setAddedResultIds(new Set());
       setDiscoverySnapshot(null);
+      setView("search");
       searchScrollTopRef.current = 0;
       returningToSearchRef.current = false;
     }
@@ -324,16 +325,20 @@ export function AddPlaceDialogV16({
             event.preventDefault();
             searchDialogRef.current?.focus({ preventScroll: true });
           }}
-          className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
+          className="max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
         >
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Lägg till matställe</DialogTitle>
-            <DialogDescription className="sr-only">
-              Sök efter ett matställe eller lägg till ett manuellt.
+            <DialogTitle className="font-display text-2xl">
+              {view === "search" ? "Lägg till matställe" : "Stället saknas i sökningen"}
+            </DialogTitle>
+            <DialogDescription className={view === "search" ? "sr-only" : undefined}>
+              {view === "search"
+                ? "Sök efter ett matställe. Om du inte hittar rätt ställe kan du lägga till det som saknas."
+                : "Lägg till ett verkligt matställe som du inte kunde identifiera bland sökträffarna."}
             </DialogDescription>
           </DialogHeader>
-          <TabToggle value={tab} onChange={setTab} />
-          {tab === "sok" ? (
+
+          {view === "search" ? (
             <PlaceDiscoveryV16
               addedResultIds={addedResultIds}
               selectedResults={selectedResults}
@@ -347,10 +352,22 @@ export function AddPlaceDialogV16({
               onAddSelected={() => void addSelectedResults()}
               onBeginAdd={beginAdd}
               onLinkSource={beginSourceMatch}
+              onMissingPlace={() => setView("fallback")}
               onClose={() => handleOpenChange(false)}
             />
           ) : (
-            <ManualAddPlaceFormV16 onClose={() => handleOpenChange(false)} />
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 w-fit px-2"
+                onClick={() => setView("search")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Tillbaka till sök
+              </Button>
+              <ManualAddPlaceFormV16 onClose={() => handleOpenChange(false)} />
+            </>
           )}
         </DialogContent>
       </Dialog>
@@ -409,44 +426,5 @@ export function AddPlaceDialogV16({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-/**
- * Flikväxlaren byter läge först när klicket hör ihop med en pekning på samma
- * knapp, eller när det kommer från tangentbordet (`detail === 0`).
- *
- * Det skyddar mot spökklick och click-through: när sista sökområdes-pillen tas
- * bort krymper dialogens innehåll och kan hamna under fingret, vilket annars
- * kan aktivera "Lägg till manuellt" en kort stund.
- */
-function TabToggle({ value, onChange }: { value: Tab; onChange: (value: Tab) => void }) {
-  const pointerTabRef = React.useRef<Tab | null>(null);
-
-  return (
-    <div className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
-      {(["sok", "manuell"] as const).map((tab) => (
-        <button
-          key={tab}
-          type="button"
-          className={`min-h-11 rounded-full px-2 text-sm font-medium ${
-            value === tab ? "bg-background shadow-sm" : "text-muted-foreground"
-          }`}
-          aria-pressed={value === tab}
-          onPointerDown={() => {
-            pointerTabRef.current = tab;
-          }}
-          onClick={(event) => {
-            const fromKeyboard = event.detail === 0;
-            const fromOwnPointer = pointerTabRef.current === tab;
-            pointerTabRef.current = null;
-            if (!fromKeyboard && !fromOwnPointer) return;
-            onChange(tab);
-          }}
-        >
-          {tab === "sok" ? "Sök" : "Lägg till manuellt"}
-        </button>
-      ))}
-    </div>
   );
 }
