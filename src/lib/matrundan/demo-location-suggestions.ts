@@ -27,6 +27,18 @@ const DEMO_LOCATION_SUGGESTIONS: NormalizedLocationSuggestion[] = [
     resultType: "suburb",
   },
   {
+    placeId: "demo-location-degvagen-47",
+    label: "Degvägen 47, Stockholm",
+    primaryLabel: "Degvägen 47",
+    secondaryLabel: "Adress · Vasastan, Stockholm",
+    name: "Degvägen 47",
+    city: "Stockholm",
+    area: "Vasastan",
+    lat: 59.3406,
+    lng: 18.0359,
+    resultType: "building",
+  },
+  {
     placeId: "demo-location-stavnas",
     label: "Stavsnäs, Värmdö kommun",
     primaryLabel: "Stavsnäs",
