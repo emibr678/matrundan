@@ -225,7 +225,7 @@ export function GeoapifyLocationInput({
         <ul
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="absolute z-30 mt-1 max-h-72 w-full min-w-0 overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
+          className="relative z-30 mt-1 max-h-[min(38dvh,18rem)] w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md sm:absolute sm:max-h-72"
         >
           {loading && suggestions.length === 0 ? (
             <li className="px-2 py-2 text-muted-foreground">Söker…</li>
