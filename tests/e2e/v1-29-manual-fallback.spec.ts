@@ -9,6 +9,17 @@ async function openSearchDialog(page: Page) {
   await expect(page.getByRole("heading", { name: "Lägg till matställe" })).toBeVisible();
 }
 
+async function openExampleSearchDialog(page: Page) {
+  await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+  await page.goto("/matstallen");
+  await expect(page.getByRole("heading", { name: "Matställen" })).toBeVisible();
+  const addPlace = page.getByRole("button", { name: /lägg till ställe/i }).first();
+  await expect(addPlace).toBeVisible();
+  await addPlace.click();
+  await expect(page.getByRole("heading", { name: "Lägg till matställe" })).toBeVisible();
+}
+
 function fallbackButton(page: Page) {
   return page.getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true });
 }
@@ -65,7 +76,7 @@ test("exempelgruppen återanvänder ett arkiverat kanoniskt ställe med samma pl
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await openSearchDialog(page);
+  await openExampleSearchDialog(page);
   await fallbackButton(page).tap();
 
   await manualForm(page).fill("Brödverket 47");
