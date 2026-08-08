@@ -17,7 +17,9 @@ describe("globalt Platsunderhåll", () => {
   test("maintainerrollen är privat och separat från grupproller", () => {
     expect(sql).toContain("CREATE TABLE public.place_maintainers");
     expect(sql).toContain("ALTER TABLE public.place_maintainers ENABLE ROW LEVEL SECURITY");
-    expect(sql).toContain("REVOKE ALL ON TABLE public.place_maintainers FROM PUBLIC, anon, authenticated");
+    expect(sql).toContain(
+      "REVOKE ALL ON TABLE public.place_maintainers FROM PUBLIC, anon, authenticated",
+    );
 
     const access = functionSql(
       "get_place_maintenance_access_v1",
@@ -38,7 +40,9 @@ describe("globalt Platsunderhåll", () => {
       "REVOKE ALL ON TABLE public.place_improvement_candidate_events FROM PUBLIC, anon, authenticated",
     );
     expect(sql).toContain("actor_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL");
-    expect(sql).toContain("user_id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE");
+    expect(sql).toContain(
+      "user_id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE",
+    );
   });
 
   test("list-RPC returnerar bara neutral platsidentitet", () => {
