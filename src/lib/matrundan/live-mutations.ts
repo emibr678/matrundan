@@ -9,9 +9,23 @@
 import { z } from "zod";
 import type { BulkPlaceAddResult, ProviderPlaceBatchInput } from "./bulk-place-add";
 import { MAX_BULK_PLACE_COUNT } from "./bulk-place-add";
+import {
+  createManualPlaceFromFallback,
+  reuseManualPlaceInGroup,
+} from "./reusable-manual-places";
 import type { NextStopDateResponseValue, Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 import { flushNotificationOutbox } from "./notifications.functions";
+
+/**
+ * Interna mutationshintar för det manuella tilläggsflödet. De lagras aldrig på
+ * Place och är bara till för att låta Store behålla sin etablerade reload-väg
+ * efter lyckade live-mutationer.
+ */
+export type ManualPlaceMutationHints = {
+  reusePlaceId?: string;
+  declinedReusablePlaceIds?: string[];
+};
 
 /**
  * Notiser köas av databasen. Vi puffar på utskicket direkt efter en händelse
@@ -48,8 +62,46 @@ function nn<T>(value: T | null | undefined): T | undefined {
 
 export async function liveCreatePlace(
   groupId: string,
-  input: Omit<Place, "id" | "addedAt">,
+  input: Omit<Place, "id" | "addedAt"> & ManualPlaceMutationHints,
 ): Promise<string> {
+  if (input.origin === "manual" || input.origin == null) {
+    if (input.reusePlaceId) {
+      if (!Number.isFinite(input.lat) || !Number.isFinite(input.lng)) {
+        throw new Error("Välj en verifierad plats innan ett befintligt matställe återanvänds.");
+      }
+      const result = await reuseManualPlaceInGroup(groupId, {
+        placeId: input.reusePlaceId,
+        name: input.name,
+        category: input.category,
+        address: input.address ?? "",
+        city: input.city ?? "",
+        lat: input.lat!,
+        lng: input.lng!,
+        occasions: input.occasions ?? [],
+        notes: input.notes,
+      });
+      return result.placeId;
+    }
+
+    const result = await createManualPlaceFromFallback(groupId, {
+      name: input.name,
+      category: input.category,
+      cuisines: input.cuisines ?? [],
+      occasions: input.occasions ?? [],
+      address: input.address ?? "",
+      area: input.area,
+      city: input.city ?? "",
+      lat: input.lat,
+      lng: input.lng,
+      notes: input.notes,
+      photo: input.photo,
+      declinedPlaceIds: input.declinedReusablePlaceIds,
+    });
+    return result.placeId;
+  }
+
+  // Defensiv kompatibilitet för äldre anrop som inte är manuella. Provider-
+  // flödet använder normalt liveCreateOrLinkProviderPlace med provider-ID.
   return rpcClient.call(
     "create_place_v4b",
     {
