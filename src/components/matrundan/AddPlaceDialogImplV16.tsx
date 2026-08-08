@@ -344,10 +344,14 @@ export function AddPlaceDialogV16({
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Hittar du inte stället?</p>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    Sök först. Om rätt verksamhet saknas kan du lägga till den utan att lämna flödet.
+                    Sök först. Om rätt verksamhet saknas kan du lägga till den utan att lämna
+                    flödet.
                   </p>
                 </div>
-                <FallbackTrigger disabled={bulkBusy || sourceLinkBusy} onActivate={() => setView("fallback")} />
+                <FallbackTrigger
+                  disabled={bulkBusy || sourceLinkBusy}
+                  onActivate={() => setView("fallback")}
+                />
               </div>
               <PlaceDiscoveryV16
                 addedResultIds={addedResultIds}
@@ -444,13 +448,7 @@ export function AddPlaceDialogV16({
  * eller kommer från tangentbordet. Det behåller skyddet mot click-through som
  * tidigare låg i flikväxlaren när sökinnehåll ändrar höjd på mobil.
  */
-function FallbackTrigger({
-  disabled,
-  onActivate,
-}: {
-  disabled: boolean;
-  onActivate: () => void;
-}) {
+function FallbackTrigger({ disabled, onActivate }: { disabled: boolean; onActivate: () => void }) {
   const armedRef = React.useRef(false);
   return (
     <Button
