@@ -103,10 +103,12 @@ describe("Fyllnad till hela listsidor", () => {
 
 const dialogSource = await Bun.file("src/components/matrundan/AddPlaceDialogImplV16.tsx").text();
 
-describe("Flikväxlaren i Lägg till matställe", () => {
-  test("byter flik bara vid egen pekning eller tangentbord", () => {
+describe("Sekundär fallback i Lägg till matställe", () => {
+  test("öppnar fallbacken bara vid egen pekning eller tangentbord", () => {
+    expect(dialogSource).toContain("function FallbackTrigger");
     expect(dialogSource).toContain("onPointerDown");
-    expect(dialogSource).toContain("pointerTabRef");
+    expect(dialogSource).toContain("armedRef");
     expect(dialogSource).toContain("event.detail === 0");
+    expect(dialogSource).toContain("if (!fromKeyboard && !fromOwnPointer) return;");
   });
 });
