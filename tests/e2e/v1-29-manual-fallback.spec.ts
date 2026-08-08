@@ -60,3 +60,27 @@ test("spökklick utan pekning öppnar inte fallbacken men en riktig aktivering g
   await expect(manualForm(page)).toBeVisible();
   await expect(page.getByRole("button", { name: "Tillbaka till sök" })).toBeVisible();
 });
+
+test("exempelgruppen återanvänder ett arkiverat kanoniskt ställe med samma placeId", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await openSearchDialog(page);
+  await fallbackButton(page).tap();
+
+  await manualForm(page).fill("Brödverket 47");
+  const location = page.locator("#manual-location");
+  await location.fill("Degvägen 47");
+
+  const option = page.getByRole("option").filter({ hasText: "Degvägen 47" }).first();
+  await expect(option).toBeVisible();
+  await option.getByRole("button").click();
+
+  await expect(page.getByText("Finns redan i Matrundan")).toBeVisible();
+  const restore = page.getByRole("button", { name: "Lägg tillbaka", exact: true });
+  await expect(restore).toBeVisible();
+  await restore.click();
+
+  await expect(page.getByText("Brödverket 47 lades tillbaka i gruppen")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lägg till matställe" })).toHaveCount(0);
+});
