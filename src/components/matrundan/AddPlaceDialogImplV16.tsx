@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowLeft, Link2, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogsV16 } from "./AddPlaceResultDialogsV16";
 import { ManualAddPlaceFormV16 } from "./ManualAddPlaceFormV16";
@@ -325,7 +325,7 @@ export function AddPlaceDialogV16({
             event.preventDefault();
             searchDialogRef.current?.focus({ preventScroll: true });
           }}
-          className="max-h-[94vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
+          className="max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
         >
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">
@@ -339,36 +339,22 @@ export function AddPlaceDialogV16({
           </DialogHeader>
 
           {view === "search" ? (
-            <>
-              <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">Hittar du inte stället?</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    Sök först. Om rätt verksamhet saknas kan du lägga till den utan att lämna
-                    flödet.
-                  </p>
-                </div>
-                <FallbackTrigger
-                  disabled={bulkBusy || sourceLinkBusy}
-                  onActivate={() => setView("fallback")}
-                />
-              </div>
-              <PlaceDiscoveryV16
-                addedResultIds={addedResultIds}
-                selectedResults={selectedResults}
-                bulkBusy={bulkBusy || sourceLinkBusy}
-                snapshot={discoverySnapshot}
-                onSnapshotChange={setDiscoverySnapshot}
-                onToggleSelected={(suggestion) =>
-                  setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
-                }
-                onClearSelected={() => setSelectedResults([])}
-                onAddSelected={() => void addSelectedResults()}
-                onBeginAdd={beginAdd}
-                onLinkSource={beginSourceMatch}
-                onClose={() => handleOpenChange(false)}
-              />
-            </>
+            <PlaceDiscoveryV16
+              addedResultIds={addedResultIds}
+              selectedResults={selectedResults}
+              bulkBusy={bulkBusy || sourceLinkBusy}
+              snapshot={discoverySnapshot}
+              onSnapshotChange={setDiscoverySnapshot}
+              onToggleSelected={(suggestion) =>
+                setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
+              }
+              onClearSelected={() => setSelectedResults([])}
+              onAddSelected={() => void addSelectedResults()}
+              onBeginAdd={beginAdd}
+              onLinkSource={beginSourceMatch}
+              onMissingPlace={() => setView("fallback")}
+              onClose={() => handleOpenChange(false)}
+            />
           ) : (
             <>
               <Button
@@ -440,35 +426,5 @@ export function AddPlaceDialogV16({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-/**
- * Fallbackknappen kräver att klicket hör ihop med en pekning på samma knapp,
- * eller kommer från tangentbordet. Det behåller skyddet mot click-through som
- * tidigare låg i flikväxlaren när sökinnehåll ändrar höjd på mobil.
- */
-function FallbackTrigger({ disabled, onActivate }: { disabled: boolean; onActivate: () => void }) {
-  const armedRef = React.useRef(false);
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      className="min-h-11 shrink-0"
-      disabled={disabled}
-      onPointerDown={() => {
-        armedRef.current = true;
-      }}
-      onClick={(event) => {
-        const fromKeyboard = event.detail === 0;
-        const fromOwnPointer = armedRef.current;
-        armedRef.current = false;
-        if (!fromKeyboard && !fromOwnPointer) return;
-        onActivate();
-      }}
-    >
-      <Plus className="h-4 w-4" />
-      Lägg till ett ställe som saknas
-    </Button>
   );
 }
