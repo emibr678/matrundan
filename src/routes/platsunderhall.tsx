@@ -273,7 +273,9 @@ function formatDate(value: string) {
 function queueIncludes(mode: QueueMode, item: PlaceMaintenanceWorkItem) {
   if (mode === "open") return item.status === "open";
   if (mode === "reported") {
-    return item.kind === "reported_error" && (item.status === "open" || item.status === "needs_osm");
+    return (
+      item.kind === "reported_error" && (item.status === "open" || item.status === "needs_osm")
+    );
   }
   if (mode === "source_missing") {
     return item.kind === "improvement_candidate" && item.status === "open";
@@ -345,7 +347,10 @@ function PlaceMaintenancePage() {
     void loadLive();
   }, [demo, loadLive, mode]);
 
-  const visible = React.useMemo(() => items.filter((item) => queueIncludes(queue, item)), [items, queue]);
+  const visible = React.useMemo(
+    () => items.filter((item) => queueIncludes(queue, item)),
+    [items, queue],
+  );
   const selected = items.find((item) => item.workItemId === selectedId) ?? null;
 
   React.useEffect(() => {
@@ -423,7 +428,10 @@ function PlaceMaintenancePage() {
     setActionBusy(true);
     try {
       if (demo) {
-        patchItem(selected.workItemId, { status: "needs_osm", updatedAt: new Date().toISOString() });
+        patchItem(selected.workItemId, {
+          status: "needs_osm",
+          updatedAt: new Date().toISOString(),
+        });
       } else {
         await markPlaceMaintenanceWorkItemNeedsOsm(selected.kind, selected.workItemId);
         await refreshAfterAction(selected.workItemId);
@@ -432,7 +440,9 @@ function PlaceMaintenancePage() {
       setProviderMatches([]);
       toast.success("Ärendet är markerat för manuell OSM-åtgärd.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera underhållsärendet.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte uppdatera underhållsärendet.",
+      );
     } finally {
       setActionBusy(false);
     }
@@ -456,7 +466,9 @@ function PlaceMaintenancePage() {
       setProviderMatches([]);
       toast.success("Rapporten är markerad som klar.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte markera rapporten som klar.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte markera rapporten som klar.",
+      );
     } finally {
       setActionBusy(false);
     }
@@ -636,7 +648,9 @@ function PlaceMaintenancePage() {
                       </div>
                       <div className="mt-1 flex min-w-0 items-start gap-1 text-xs text-muted-foreground">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span className="break-words">{itemLocation(item) || "Platsadress saknas"}</span>
+                        <span className="break-words">
+                          {itemLocation(item) || "Platsadress saknas"}
+                        </span>
                       </div>
                     </div>
                     <Badge variant="outline" className="shrink-0 rounded-full text-[10px]">
@@ -652,7 +666,10 @@ function PlaceMaintenancePage() {
           )}
         </section>
 
-        <section className="min-w-0 lg:sticky lg:top-20 lg:self-start" aria-label="Underhållsdetalj">
+        <section
+          className="min-w-0 lg:sticky lg:top-20 lg:self-start"
+          aria-label="Underhållsdetalj"
+        >
           {selected ? (
             <Card className="min-w-0 space-y-5 rounded-2xl border-border/70 p-4 sm:p-5">
               <div className="min-w-0">
@@ -668,7 +685,9 @@ function PlaceMaintenancePage() {
                         {PLACE_MAINTENANCE_KIND_LABEL[selected.kind]}
                       </span>
                     </div>
-                    <h2 className="mt-1 break-words font-display text-xl font-semibold">{selected.name}</h2>
+                    <h2 className="mt-1 break-words font-display text-xl font-semibold">
+                      {selected.name}
+                    </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {PLACE_MAINTENANCE_ISSUE_LABEL[selected.issueCategory]}
                     </p>
@@ -682,7 +701,9 @@ function PlaceMaintenancePage() {
                   {selected.category ? <div>{CATEGORY_LABEL[selected.category]}</div> : null}
                   <div className="flex min-w-0 items-start gap-2">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span className="break-words">{itemLocation(selected) || "Platsadress saknas"}</span>
+                    <span className="break-words">
+                      {itemLocation(selected) || "Platsadress saknas"}
+                    </span>
                   </div>
                   {selected.website ? (
                     <a
@@ -712,7 +733,9 @@ function PlaceMaintenancePage() {
                       lat: selected.lat,
                       lng: selected.lng,
                       category: selected.category ?? undefined,
-                      eyebrow: selected.category ? CATEGORY_LABEL[selected.category] : "Rapporterad sökträff",
+                      eyebrow: selected.category
+                        ? CATEGORY_LABEL[selected.category]
+                        : "Rapporterad sökträff",
                       description: itemLocation(selected),
                     },
                   ]}
@@ -731,7 +754,8 @@ function PlaceMaintenancePage() {
                 <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
                   <div className="text-sm font-medium">Befintlig offentlig OSM-not</div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Tidigare offentlig historik bevaras utan att grupp eller privat rapporttext visas här.
+                    Tidigare offentlig historik bevaras utan att grupp eller privat rapporttext
+                    visas här.
                   </p>
                   <Button asChild variant="outline" size="sm" className="mt-3 min-h-11">
                     <a href={selected.osmNote.url} target="_blank" rel="noreferrer">
@@ -799,8 +823,9 @@ function PlaceMaintenancePage() {
                     <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
                       <div className="text-sm font-medium">Manuellt OSM-arbete</div>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Arbeta manuellt i OpenStreetMap eller Every Door och markera rapporter som klara när
-                        uppgiften är hanterad. Matrundan skriver inget till OSM i detta steg.
+                        Arbeta manuellt i OpenStreetMap eller Every Door och markera rapporter som
+                        klara när uppgiften är hanterad. Matrundan skriver inget till OSM i detta
+                        steg.
                       </p>
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                         {selectedOsmUrl ? (
@@ -827,12 +852,17 @@ function PlaceMaintenancePage() {
                     <div className="space-y-2">
                       <div className="text-sm font-medium">Möjliga externa träffar</div>
                       {providerMatches.map((match) => (
-                        <Card key={match.providerPlaceId} className="rounded-xl border-border/70 p-3">
+                        <Card
+                          key={match.providerPlaceId}
+                          className="rounded-xl border-border/70 p-3"
+                        >
                           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="min-w-0">
                               <div className="break-words text-sm font-medium">{match.name}</div>
                               <div className="mt-0.5 break-words text-xs text-muted-foreground">
-                                {[match.address, match.area, match.city].filter(Boolean).join(" · ")}
+                                {[match.address, match.area, match.city]
+                                  .filter(Boolean)
+                                  .join(" · ")}
                               </div>
                               <div className="mt-1 text-[11px] text-muted-foreground">
                                 {match.distanceKm == null
@@ -926,13 +956,13 @@ function PlaceMaintenancePage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.keys(PLACE_MAINTENANCE_DISMISSAL_LABEL) as PlaceMaintenanceDismissalReason[]).map(
-                (reason) => (
-                  <SelectItem key={reason} value={reason}>
-                    {PLACE_MAINTENANCE_DISMISSAL_LABEL[reason]}
-                  </SelectItem>
-                ),
-              )}
+              {(
+                Object.keys(PLACE_MAINTENANCE_DISMISSAL_LABEL) as PlaceMaintenanceDismissalReason[]
+              ).map((reason) => (
+                <SelectItem key={reason} value={reason}>
+                  {PLACE_MAINTENANCE_DISMISSAL_LABEL[reason]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <DialogFooter>
