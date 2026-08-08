@@ -2,17 +2,10 @@ import * as React from "react";
 import { CheckCircle2, ChevronDown, Loader2, MapPin, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
-import {
-  GeoapifyLocationInput,
-  type VerifiedLocationSelection,
-} from "./GeoapifyLocationInput";
+import { GeoapifyLocationInput, type VerifiedLocationSelection } from "./GeoapifyLocationInput";
 import { OccasionPicker } from "./OccasionPicker";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,22 +33,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type Place, type PlaceCategory } from "@/lib/matrundan/types";
 
-const EMOJIS = [
-  "🍽️",
-  "🍕",
-  "🍣",
-  "🍜",
-  "🍔",
-  "🌮",
-  "☕",
-  "🥐",
-  "🍺",
-  "🍦",
-  "🥗",
-  "🍷",
-  "🥟",
-  "🐟",
-];
+const EMOJIS = ["🍽️", "🍕", "🍣", "🍜", "🍔", "🌮", "☕", "🥐", "🍺", "🍦", "🥗", "🍷", "🥟", "🐟"];
 
 type ManualAddInput = Omit<Place, "id" | "addedAt"> & ManualPlaceMutationHints;
 
@@ -221,8 +199,7 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
           ? `${candidate.name} lades tillbaka i gruppen`
           : `${candidate.name} tillagd i gruppen`,
         {
-          description:
-            "Matrundan återanvände samma matställe i stället för att skapa en dubblett.",
+          description: "Matrundan återanvände samma matställe i stället för att skapa en dubblett.",
         },
       );
       onClose();
