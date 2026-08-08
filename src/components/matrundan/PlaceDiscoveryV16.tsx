@@ -403,53 +403,53 @@ export function PlaceDiscoveryV16({
       }
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [activeAreas, isLive, query, radiusKm, retry]);
+  }, [activeAreas, fillProviderPages, isLive, query, radiusKm, retry]);
 
   const filteredResults = React.useMemo(
     () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
     [hiddenKeys, results],
   );
   const visibleResults = React.useMemo(
-    () => filteredResults.slice(0, displayLimit),
-    [displayLimit, filteredResults],
+    () =>
+      filteredResults.slice(
+        0,
+        actionableSliceIndex(filteredResults, isActionableSuggestion, displayLimit),
+      ),
+    [displayLimit, filteredResults, isActionableSuggestion],
   );
-  const bufferedRemaining = Math.max(0, filteredResults.length - visibleResults.length);
+  const shownActionableCount = countActionableSuggestions(visibleResults, isActionableSuggestion);
+  const bufferedActionableCount = countActionableSuggestions(
+    filteredResults,
+    isActionableSuggestion,
+  );
+  const bufferedRemaining = Math.max(0, bufferedActionableCount - shownActionableCount);
   const canShowMore = bufferedRemaining > 0 || hasMore;
   const searchInFlight = loading || hiddenLoading;
   const isReloadingResults = searchInFlight && visibleResults.length > 0;
   const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
 
   const showMoreResults = React.useCallback(async () => {
+    const targetActionable = shownActionableCount + RESULT_PAGE_SIZE;
     if (bufferedRemaining > 0) {
-      setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
-      return;
+      setDisplayLimit(targetActionable);
+      if (bufferedActionableCount >= targetActionable) return;
     }
     if (!hasMore || !isLive || loadingMore) return;
 
     const requestId = requestRef.current;
     setLoadingMore(true);
     try {
-      const response = await geoapifySearchPlacesMulti({
-        data: {
-          text: query.trim() || undefined,
-          centers: activeAreas.map((area) => ({
-            id: area.id,
-            label: shortSearchAreaLabel(area.label),
-            lat: area.lat,
-            lng: area.lng,
-          })),
-          radiusKm,
-          limit: RESULT_PAGE_SIZE,
-          offset: nextOffset,
-        },
+      const filled = await fillProviderPages({
+        seed: results,
+        startOffset: nextOffset,
+        targetActionable,
+        isStale: () => requestId !== requestRef.current,
       });
-      if (requestId !== requestRef.current) return;
-      const fetched = response.results.map(toPlaceSuggestion);
-      setResults((current) => mergePlaceSearchPages(current, fetched));
-
-      setHasMore(response.hasMore);
-      setNextOffset(response.nextOffset);
-      setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
+      if (!filled) return;
+      setResults(filled.results);
+      setHasMore(filled.hasMore);
+      setNextOffset(filled.nextOffset);
+      setDisplayLimit(targetActionable);
     } catch (caught) {
       if (requestId !== requestRef.current) return;
       console.warn("[Matrundan] kunde inte hämta fler sökträffar:", caught);
@@ -459,7 +459,17 @@ export function PlaceDiscoveryV16({
     } finally {
       if (requestId === requestRef.current) setLoadingMore(false);
     }
-  }, [activeAreas, bufferedRemaining, hasMore, isLive, loadingMore, nextOffset, query, radiusKm]);
+  }, [
+    bufferedActionableCount,
+    bufferedRemaining,
+    fillProviderPages,
+    hasMore,
+    isLive,
+    loadingMore,
+    nextOffset,
+    results,
+    shownActionableCount,
+  ]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
     if (!canLinkSources) return [];
