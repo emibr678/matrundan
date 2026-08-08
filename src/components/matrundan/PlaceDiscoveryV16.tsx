@@ -318,10 +318,14 @@ export function PlaceDiscoveryV16({
   );
 
   React.useEffect(() => {
+    // Vänta in gömda förslag: fyllnaden till 20 handlingsbara träffar räknar mot
+    // hiddenKeys, så en sökning som startar under laddningen kan bli underfylld.
+    if (hiddenLoading) return;
     if (skipInitialSearchRef.current) {
       skipInitialSearchRef.current = false;
       return;
     }
+
     if (activeAreas.length === 0) {
       setResults([]);
       setFailedAreas([]);
@@ -403,7 +407,7 @@ export function PlaceDiscoveryV16({
       }
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [activeAreas, fillProviderPages, isLive, query, radiusKm, retry]);
+  }, [activeAreas, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]);
 
   const filteredResults = React.useMemo(
     () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
