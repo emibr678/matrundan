@@ -36,7 +36,10 @@ describe("Platsunderhålls serverkontrakt", () => {
 
   test("Geoapify-nyckel och rå providerdata stannar server-side", () => {
     expect(source).toContain("process.env.GEOAPIFY_API_KEY");
-    const publicMatch = between("function toPublicMatch", "export const searchPlaceMaintenanceProviderMatches");
+    const publicMatch = between(
+      "function toPublicMatch",
+      "export const searchPlaceMaintenanceProviderMatches",
+    );
     expect(publicMatch).not.toContain("raw:");
     expect(publicMatch).not.toContain("GEOAPIFY_API_KEY");
   });
