@@ -114,6 +114,25 @@ function localHistoryKey(groupId: string, placeId: string): string {
   return `${LOCAL_HISTORY_PREFIX}.${groupId}.${placeId}`;
 }
 
+export function normalizeGroupPlacePracticalInfoUpdate(
+  input: UpdateGroupPlacePracticalInfoInput,
+): UpdateGroupPlacePracticalInfoInput {
+  const websiteOverride = normalizeWebsiteUrl(input.websiteOverride) ?? null;
+  const sourceNote = input.sourceNote?.trim() || null;
+  const hasExplicitSourceUrl = Boolean(input.sourceUrl?.trim());
+  const normalizedExplicitSourceUrl = normalizeWebsiteUrl(input.sourceUrl) ?? null;
+  const sourceUrl =
+    normalizedExplicitSourceUrl ??
+    (!hasExplicitSourceUrl && !sourceNote && websiteOverride ? websiteOverride : null);
+
+  return {
+    websiteOverride,
+    openingHoursOverride: input.openingHoursOverride,
+    sourceUrl,
+    sourceNote,
+  };
+}
+
 export function emptyGroupPlacePracticalInfo(): GroupPlacePracticalInfo {
   return {
     websiteOverride: null,
@@ -160,13 +179,14 @@ export async function updateGroupPlacePracticalInfo(
   placeId: string,
   input: UpdateGroupPlacePracticalInfoInput,
 ): Promise<void> {
+  const normalized = normalizeGroupPlacePracticalInfoUpdate(input);
   await rpcClient.callVoid("update_group_place_practical_info_v1", {
     _group_id: groupId,
     _place_id: placeId,
-    _website_override: normalizeWebsiteUrl(input.websiteOverride) ?? null,
-    _opening_hours_override: input.openingHoursOverride,
-    _source_url: normalizeWebsiteUrl(input.sourceUrl) ?? null,
-    _source_note: input.sourceNote?.trim() || null,
+    _website_override: normalized.websiteOverride,
+    _opening_hours_override: normalized.openingHoursOverride,
+    _source_url: normalized.sourceUrl,
+    _source_note: normalized.sourceNote,
   });
 }
 
@@ -231,11 +251,12 @@ export function updateLocalGroupPlacePracticalInfo(
   actor: { id: string; name: string },
   kind: "local" | "session",
 ): GroupPlacePracticalInfo {
+  const normalized = normalizeGroupPlacePracticalInfoUpdate(input);
   const next: GroupPlacePracticalInfo = {
-    websiteOverride: normalizeWebsiteUrl(input.websiteOverride) ?? null,
-    openingHoursOverride: input.openingHoursOverride,
-    sourceUrl: normalizeWebsiteUrl(input.sourceUrl) ?? null,
-    sourceNote: input.sourceNote?.trim() || null,
+    websiteOverride: normalized.websiteOverride,
+    openingHoursOverride: normalized.openingHoursOverride,
+    sourceUrl: normalized.sourceUrl,
+    sourceNote: normalized.sourceNote,
     updatedBy: actor.id,
     updatedByName: actor.name,
     updatedAt: new Date().toISOString(),
