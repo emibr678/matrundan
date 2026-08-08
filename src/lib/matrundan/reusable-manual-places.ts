@@ -154,6 +154,7 @@ function normalize(value: string | undefined): string {
     .toLocaleLowerCase("sv-SE")
     .replace(/&/g, " och ")
     .replace(/[^a-z0-9åäö]+/gi, " ")
+    .replace(/\boch\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
