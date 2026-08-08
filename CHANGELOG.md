@@ -18,12 +18,15 @@ Inga ändringar ännu.
 
 ### Ändrat
 
-- **Lägg till ställen** behåller sökningen som huvudväg och visar den manuella
-  vägen som den sekundära handlingen **Lägg till ett ställe som saknas** när
-  användaren inte hittar rätt verksamhet.
+- **Lägg till ställen** behåller sökningen som huvudväg och visar **Lägg till ett
+  ställe som saknas** först i anslutning till autocomplete, sökresultat eller
+  ett tomt resultat när den faktiskt behövs.
 - Fallbackformuläret prioriterar namn, kategori, kök/inriktning och ett
-  sammanhållet verifierat platsval. Symbol, Passar för och anteckning ligger
-  sekundärt och användaren behöver inte förstå eller bedöma OpenStreetMap.
+  sammanhållet verifierat platsval utan att användaren behöver förstå eller
+  bedöma OpenStreetMap.
+- Webbplats kan anges frivilligt tillsammans med **Passar för** och anteckning
+  under **Fler uppgifter**. Symbol väljs automatiskt utifrån ställets kategori i
+  stället för manuellt i fallbacken.
 - Verifierat namn och plats kan matchas konservativt mot redan kända kanoniska
   Matrundan-ställen utan att ursprungsgrupp, medlemskap, gruppanteckningar,
   antal grupper eller andra privata uppgifter lämnar servern.
