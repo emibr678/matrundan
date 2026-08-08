@@ -48,7 +48,7 @@ describe("normalizeGroupPlacePracticalInfoUpdate", () => {
     expect(
       normalizeGroupPlacePracticalInfoUpdate({
         websiteOverride: null,
-        openingHoursOverride: { timezone: "Europe/Stockholm", days: [] },
+        openingHoursOverride: { days: [], partiallyParsed: false },
         sourceUrl: null,
         sourceNote: null,
       }),
