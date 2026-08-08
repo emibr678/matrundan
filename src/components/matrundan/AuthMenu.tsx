@@ -1,5 +1,15 @@
 import * as React from "react";
-import { Archive, ChevronDown, Home, LogIn, LogOut, Mail, Plus, UserCog } from "lucide-react";
+import {
+  Archive,
+  ChevronDown,
+  Home,
+  LogIn,
+  LogOut,
+  Mail,
+  Plus,
+  UserCog,
+  Wrench,
+} from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
@@ -72,6 +83,30 @@ export function AuthMenu({
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
+  const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    if (!user || mode !== "live") {
+      setHasPlaceMaintenanceAccess(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void getPlaceMaintenanceAccess()
+      .then((allowed) => {
+        if (!cancelled) setHasPlaceMaintenanceAccess(allowed);
+      })
+      .catch(() => {
+        // En saknad/odriftsatt maintenance-RPC ska inte störa vanlig navigation.
+        if (!cancelled) setHasPlaceMaintenanceAccess(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, user]);
 
   async function signIn() {
     try {
@@ -217,6 +252,12 @@ export function AuthMenu({
             <UserCog className="mr-2 h-4 w-4" />
             Min profil
           </DropdownMenuItem>
+          {hasPlaceMaintenanceAccess ? (
+            <DropdownMenuItem onSelect={() => void navigate({ to: "/platsunderhall" })}>
+              <Wrench className="mr-2 h-4 w-4" />
+              Platsunderhåll
+            </DropdownMenuItem>
+          ) : null}
           {activeGroups.length > 0 ? (
             <>
               <DropdownMenuSeparator />
