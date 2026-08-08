@@ -376,23 +376,80 @@ Detta underlag är medvetet separat från `place_data_reports`:
 - det är inte en användarrapport;
 - det kan aldrig bli `ready_for_osm` eller publiceras externt genom OSM-flödet;
 - `anon` och `authenticated` saknar direkt tabellåtkomst;
-- eventuell framtida granskningsyta måste använda en ny uttrycklig, minimerad
-  serverkontrakt-yta.
+- granskningsytan använder en uttrycklig, minimerad serverkontrakt-yta.
 
 När samma kanoniska plats senare får en aktiv `place_sources`-koppling löses
-öppna förbättringskandidater automatiskt. Därmed följer förbättringsunderlaget
-platsidentiteten i stället för en specifik grupps privata historik.
+öppna eller OSM-markerade förbättringskandidater automatiskt. Därmed följer
+förbättringsunderlaget platsidentiteten i stället för en specifik grupps privata
+historik.
+
+### Globalt Platsunderhåll
+
+`Platsunderhåll` är en global intern administrationsyta för det neutrala
+förbättringsunderlaget. I första versionen omfattar den endast
+`place_improvement_candidates`. Gruppens **Rapporterade fel** och dess OSM
+Note-flöde förblir separat gruppadministration och ska inte blandas in i den
+globala kön.
+
+Behörighet styrs av den privata rollen `place_maintainers` och är uttryckligen
+separerad från grupproller. Att vara owner/admin i en eller flera grupper ger
+aldrig global maintainerbehörighet. Klienten får bara fråga en boolesk
+access-RPC och får inte läsa rolltabellen direkt.
+
+Maintenance-RPC:er är `SECURITY DEFINER` med låst `search_path` och får bara
+returnera neutral platsidentitet som behövs för granskningen: kandidat- och
+plats-ID, namn, kategori, säker kanonisk adress/ort/position, kanonisk webbplats,
+status samt relevant aktiv extern identitet. De får inte returnera ursprungsgrupp,
+medlemskap, användare, privata kommentarer, `group_places`-overrides eller annan
+gruppspecifik metadata.
+
+Kandidatens livscykel är:
+
+- `open`: ska kontrolleras;
+- `needs_osm`: kräver manuellt arbete i OpenStreetMap;
+- `resolved`: en aktiv extern källa har verifierats/länkats;
+- `dismissed`: avfärdad med en kontrollerad orsakskod.
+
+Statusövergångar och källkopplingar auditeras i den privata append-only-tabellen
+`place_improvement_candidate_events`. Fri privat text används inte som global
+avfärdandeorsak. Maintainerrollen tas bort med profilen vid kontoradering och
+auditaktörens användarreferens nullas, så historiken kan bevaras utan att blockera
+kontoägarskapets livscykel.
+
+Providerkontroll sker server-side. Klienten skickar kandidat-ID; servern laddar
+den neutrala kandidatpositionen genom maintenance-RPC:n och gör Geoapify-sökning
+från den. API-nyckel och begränsad rå providerdata stannar på servern. Vid
+länkning skickar klienten bara vald provideridentitet och servern gör en färsk
+providersökning före mutation.
+
+En central maintainer-länkning får bara koppla en verifierad provideridentitet
+till samma befintliga `places.id`. Den kräver att platsen saknar aktiv källa,
+att provider-/OSM-identiteten inte är aktiv på ett annat kanoniskt ställe och
+att namn/adress/position klarar konservativ servervalidering. Tvetydighet eller
+identitetskonflikt innebär ingen merge och ska hanteras som separat konflikt,
+inte med fuzzy auto-sammanslagning.
+
+`needs_osm` är endast intern arbetsstatus. Ytan får öppna OSM och kopiera neutral
+platsinformation för manuellt arbete, men den skriver inte till OSM och använder
+inte gruppens OSM Note-publiceringsflöde.
+
+Demo/test använder deterministisk lokal fixture på samma route och ska vara
+tydligt märkt som fiktiv utvecklingsdata. Den får inte göra provider-, databas-
+eller OSM-skrivningar.
 
 ### Senare extern källkoppling
 
-När en senare providerträff verkar motsvara ett manuellt ställe får ägare/admin
-länka källan endast om:
+I gruppens befintliga detaljflöde får ägare/admin länka en senare providerträff
+till ett manuellt ställe endast om:
 
 - målplatsen är aktiv i gruppen;
 - målplatsen saknar aktiv extern källa;
 - exakt en konservativ match finns;
 - den externa identiteten inte redan används av en annan aktiv plats;
 - namn, adress och kartposition uppfyller servervaliderade kontrakt.
+
+Det globala Platsunderhållets maintainer-länkning följer motsvarande kanoniska
+identitetsvakter men är inte beroende av en viss grupprelation.
 
 Tvetydighet innebär alltid ingen åtgärd. Fuzzy auto-merge ingår inte.
 
