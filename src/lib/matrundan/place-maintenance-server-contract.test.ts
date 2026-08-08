@@ -13,7 +13,10 @@ function between(startText: string, endText?: string) {
 
 describe("Platsunderhålls serverkontrakt", () => {
   test("klienten kan bara välja förbättringsärende och provideridentitet", () => {
-    const input = between("const workItemInputSchema", "export interface PlaceMaintenanceProviderMatch");
+    const input = between(
+      "const workItemInputSchema",
+      "export interface PlaceMaintenanceProviderMatch",
+    );
     expect(input).toContain('kind: z.literal("improvement_candidate")');
     expect(input).toContain("workItemId: z.string().uuid()");
     expect(input).toContain("providerPlaceId: z.string().trim().min(1).max(240)");
