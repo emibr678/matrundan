@@ -21,11 +21,15 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 test("Platsunderhåll fungerar i demo utan horisontell overflow", async ({ page }) => {
   await page.goto("/platsunderhall?demo=1");
 
+  const openQueue = page.getByRole("button", { name: /^Att kontrollera \d+$/ });
+  const osmQueue = page.getByRole("button", { name: /^OSM-åtgärd \d+$/ });
+  const closedQueue = page.getByRole("button", { name: /^Avslutade \d+$/ });
+
   await expect(page.getByRole("heading", { name: "Platsunderhåll" })).toBeVisible();
   await expect(page.getByText("Fiktiv demodata för utveckling")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Att kontrollera/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /OSM-åtgärd/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Avslutade/ })).toBeVisible();
+  await expect(openQueue).toBeVisible();
+  await expect(osmQueue).toBeVisible();
+  await expect(closedQueue).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – att kontrollera");
 
   await page.getByRole("button", { name: "Sök extern matchning" }).click();
@@ -33,13 +37,13 @@ test("Platsunderhåll fungerar i demo utan horisontell overflow", async ({ page 
   await expect(page.getByRole("button", { name: "Länka som samma ställe" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – extern matchning");
 
-  await page.getByRole("button", { name: /OSM-åtgärd/ }).click();
+  await osmQueue.click();
   await expect(page.getByRole("heading", { name: "Bryggans Bageri" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Öppna OpenStreetMap" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Kopiera platsinfo" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – OSM-åtgärd");
 
-  await page.getByRole("button", { name: /Avslutade/ }).click();
+  await closedQueue.click();
   await expect(page.getByText("Kajkanten")).toBeVisible();
   await expect(page.getByText("Hamnboden")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – avslutade");
