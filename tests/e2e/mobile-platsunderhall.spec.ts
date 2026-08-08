@@ -12,9 +12,10 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
     metrics.documentScrollWidth,
     `${context}: dokumentet får inte ha horisontell overflow`,
   ).toBeLessThanOrEqual(metrics.documentClientWidth);
-  expect(metrics.bodyScrollWidth, `${context}: body får inte ha horisontell overflow`).toBeLessThanOrEqual(
-    metrics.bodyClientWidth,
-  );
+  expect(
+    metrics.bodyScrollWidth,
+    `${context}: body får inte ha horisontell overflow`,
+  ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
 test("Platsunderhåll fungerar i demo utan horisontell overflow", async ({ page }) => {
