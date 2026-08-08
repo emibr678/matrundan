@@ -23,6 +23,13 @@ import {
   type ManualPlaceDraft,
 } from "@/lib/matrundan/add-place-v16-utils";
 import type { ManualPlaceMutationHints } from "@/lib/matrundan/live-mutations";
+import { normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
+import {
+  getGroupPlacePracticalInfo,
+  getLocalGroupPlacePracticalInfo,
+  updateGroupPlacePracticalInfo,
+  updateLocalGroupPlacePracticalInfo,
+} from "@/lib/matrundan/practical-info";
 import {
   isReusablePlaceRace,
   listLocalReusableManualPlaceCandidates,
@@ -33,14 +40,13 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type Place, type PlaceCategory } from "@/lib/matrundan/types";
 
-const EMOJIS = ["🍽️", "🍕", "🍣", "🍜", "🍔", "🌮", "☕", "🥐", "🍺", "🍦", "🥗", "🍷", "🥟", "🐟"];
-
 type ManualAddInput = Omit<Place, "id" | "addedAt"> & ManualPlaceMutationHints;
 
 export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
   const { state, addPlace, submitting } = useStore();
-  const { mode, activeGroupId } = useSession();
+  const { mode, activeGroupId, exampleMode } = useSession();
   const [draft, setDraft] = React.useState<ManualPlaceDraft>(() => emptyManualPlace(""));
+  const [website, setWebsite] = React.useState("");
   const [verifiedLocation, setVerifiedLocation] = React.useState<VerifiedLocationSelection | null>(
     null,
   );
@@ -49,11 +55,13 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
   const [candidateLoading, setCandidateLoading] = React.useState(false);
   const [candidateError, setCandidateError] = React.useState<string | null>(null);
   const [moreOpen, setMoreOpen] = React.useState(false);
-  const [groupOpen, setGroupOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const candidateRequestRef = React.useRef(0);
   const isBusy = busy || submitting;
   const isLive = mode === "live";
+  const localStorageKind = exampleMode ? "session" : "local";
+  const normalizedWebsite = normalizeWebsiteUrl(website);
+  const websiteInvalid = website.trim().length > 0 && !normalizedWebsite;
 
   const set = <K extends keyof ManualPlaceDraft>(key: K, value: ManualPlaceDraft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
@@ -127,9 +135,7 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
       city: verifiedLocation && value !== verifiedLocation.label ? "" : current.city,
       area: verifiedLocation && value !== verifiedLocation.label ? "" : current.area,
     }));
-    if (verifiedLocation && value !== verifiedLocation.label) {
-      setVerifiedLocation(null);
-    }
+    if (verifiedLocation && value !== verifiedLocation.label) setVerifiedLocation(null);
   }
 
   function selectLocation(location: VerifiedLocationSelection) {
@@ -160,25 +166,81 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
     };
   }
 
-  async function reuseCandidate(candidate: ReusableManualPlaceCandidate) {
-    if (candidate.groupStatus === "active") {
-      toast.info(`${candidate.name} finns redan i gruppen.`);
-      onClose();
-      return;
-    }
+  function validateWebsite(): boolean {
+    if (!websiteInvalid) return true;
+    toast.error("Ange en giltig webbplats, till exempel restaurang.se");
+    setMoreOpen(true);
+    return false;
+  }
 
+  async function saveOptionalWebsite(placeId: string): Promise<boolean> {
+    if (!normalizedWebsite) return true;
+    try {
+      const groupId = isLive ? activeGroupId : state.group.id;
+      if (!groupId) throw new Error("Ingen aktiv grupp.");
+
+      if (isLive) {
+        const current = await getGroupPlacePracticalInfo(groupId, placeId);
+        await updateGroupPlacePracticalInfo(groupId, placeId, {
+          websiteOverride: normalizedWebsite,
+          openingHoursOverride: current.openingHoursOverride,
+          sourceUrl: current.sourceUrl,
+          sourceNote: current.sourceNote,
+        });
+      } else {
+        const current = getLocalGroupPlacePracticalInfo(groupId, placeId, localStorageKind);
+        const actor = state.members.find((member) => member.id === state.currentUserId);
+        updateLocalGroupPlacePracticalInfo(
+          groupId,
+          placeId,
+          {
+            websiteOverride: normalizedWebsite,
+            openingHoursOverride: current.openingHoursOverride,
+            sourceUrl: current.sourceUrl,
+            sourceNote: current.sourceNote,
+          },
+          {
+            id: state.currentUserId,
+            name: actor?.name ?? "Du",
+          },
+          localStorageKind,
+        );
+      }
+      return true;
+    } catch (error) {
+      console.warn("[Matrundan] kunde inte spara webbplats från fallbacken:", error);
+      return false;
+    }
+  }
+
+  async function reuseCandidate(candidate: ReusableManualPlaceCandidate) {
+    if (!validateWebsite()) return;
     setBusy(true);
     try {
+      if (candidate.groupStatus === "active") {
+        const websiteSaved = await saveOptionalWebsite(candidate.placeId);
+        toast.info(`${candidate.name} finns redan i gruppen.`, {
+          description:
+            normalizedWebsite && !websiteSaved
+              ? "Webbplatsen kunde inte sparas. Du kan komplettera den senare."
+              : undefined,
+        });
+        onClose();
+        return;
+      }
+
+      let placeId = candidate.placeId;
       if (isLive) {
         const input: ManualAddInput = {
           ...baseAddInput(),
           reusePlaceId: candidate.placeId,
         };
-        await addPlace(input);
+        const added = await addPlace(input);
+        placeId = added.id;
       } else {
         const local = state.places.find((place) => place.id === candidate.placeId);
         if (!local) throw new Error("Exempelstället kunde inte hittas.");
-        await addPlace({
+        const added = await addPlace({
           name: local.name,
           category: local.category,
           cuisines: local.cuisines,
@@ -193,7 +255,10 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
           photo: local.photo ?? emojiForCategory(local.category),
           origin: "manual",
         });
+        placeId = added.id;
       }
+
+      const websiteSaved = await saveOptionalWebsite(placeId);
       toast.success(
         candidate.groupStatus === "archived"
           ? `${candidate.name} lades tillbaka i gruppen`
@@ -202,6 +267,11 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
           description: "Matrundan återanvände samma matställe i stället för att skapa en dubblett.",
         },
       );
+      if (normalizedWebsite && !websiteSaved) {
+        toast.warning("Webbplatsen kunde inte sparas", {
+          description: "Matstället är tillagt. Webbplatsen kan kompletteras senare.",
+        });
+      }
       onClose();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte återanvända matstället.");
@@ -216,6 +286,7 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
       toast.error("Ge stället ett namn");
       return;
     }
+    if (!validateWebsite()) return;
 
     const unresolvedCandidates = candidates.filter(
       (candidate) => !declinedCandidateIds.includes(candidate.placeId),
@@ -232,7 +303,13 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         declinedReusablePlaceIds: declinedCandidateIds,
       };
       const added = await addPlace(input);
+      const websiteSaved = await saveOptionalWebsite(added.id);
       toast.success(`${added.name} tillagd i gruppen`);
+      if (normalizedWebsite && !websiteSaved) {
+        toast.warning("Webbplatsen kunde inte sparas", {
+          description: "Matstället är tillagt. Webbplatsen kan kompletteras senare.",
+        });
+      }
       onClose();
     } catch (error) {
       if (isReusablePlaceRace(error)) {
@@ -282,10 +359,7 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
               setDraft((current) => ({
                 ...current,
                 category,
-                photo:
-                  current.photo === emojiForCategory(current.category)
-                    ? emojiForCategory(category)
-                    : current.photo,
+                photo: emojiForCategory(category),
               }));
             }}
             disabled={isBusy}
@@ -433,34 +507,25 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
               />
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2">
-            <div className="space-y-1.5 rounded-xl border border-border/70 p-3">
-              <Label>Symbol</Label>
-              <div className="flex items-center gap-3">
-                <EmojiPicker value={draft.photo} onChange={(value) => set("photo", value)} />
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  Valfritt. Matrundan använder annars en stabil symbol utifrån kategorin.
-                </p>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Collapsible open={groupOpen} onOpenChange={setGroupOpen}>
-          <CollapsibleTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 w-full justify-between px-2"
-              disabled={isBusy}
-            >
-              <span>För gruppen (valfritt)</span>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${groupOpen ? "rotate-180" : ""}`}
+          <CollapsibleContent className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="manual-website">Webbplats</Label>
+              <Input
+                id="manual-website"
+                type="url"
+                inputMode="url"
+                placeholder="restaurang.se"
+                value={website}
+                onChange={(event) => setWebsite(event.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                aria-invalid={websiteInvalid}
+                disabled={isBusy}
               />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-3 pt-2">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Valfritt. Kan också kompletteras senare.
+              </p>
+            </div>
             <OccasionPicker
               id="manual-occasions"
               value={draft.occasions}
@@ -485,7 +550,11 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={onClose}>
           Avbryt
         </Button>
-        <Button className="min-h-11" disabled={isBusy || candidateLoading} onClick={submit}>
+        <Button
+          className="min-h-11"
+          disabled={isBusy || candidateLoading}
+          onClick={submit}
+        >
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Lägg till i gruppen
         </Button>
@@ -535,41 +604,6 @@ function ReusableCandidateCard({
               : "Använd detta"}
         </Button>
       </div>
-    </div>
-  );
-}
-
-function EmojiPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <div className="relative shrink-0">
-      <button
-        type="button"
-        className="grid h-11 w-11 place-items-center rounded-lg bg-secondary text-2xl"
-        aria-label="Välj emoji"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-      >
-        {value}
-      </button>
-      {open ? (
-        <div className="absolute left-0 top-12 z-20 grid w-56 max-w-[calc(100vw-2rem)] grid-cols-7 gap-1 rounded-xl border border-border bg-popover p-2 shadow-lg">
-          {EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              className="rounded-md p-1 text-xl hover:bg-accent"
-              aria-label={`Använd ${emoji} som symbol`}
-              onClick={() => {
-                onChange(emoji);
-                setOpen(false);
-              }}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
