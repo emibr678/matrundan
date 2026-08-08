@@ -2,7 +2,12 @@ import { expect, test } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-const DEFAULT_PATHS = ["/?demo=1", "/matstallen?demo=1", "/matstallen/p7?demo=1"];
+const DEFAULT_PATHS = [
+  "/?demo=1",
+  "/matstallen?demo=1",
+  "/matstallen/p7?demo=1",
+  "/platsunderhall?demo=1",
+];
 
 function getReviewPaths() {
   const configured = process.env.VISUAL_REVIEW_PATHS?.trim();
