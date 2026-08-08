@@ -101,7 +101,6 @@ describe("Fyllnad till hela listsidor", () => {
   });
 });
 
-
 const dialogSource = await Bun.file("src/components/matrundan/AddPlaceDialogImplV16.tsx").text();
 
 describe("Flikväxlaren i Lägg till matställe", () => {
