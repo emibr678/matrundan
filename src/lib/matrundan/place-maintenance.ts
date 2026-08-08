@@ -12,8 +12,7 @@ export const PLACE_MAINTENANCE_DISMISSAL_REASONS = [
   "not_food_place",
   "already_handled",
 ] as const;
-export type PlaceMaintenanceDismissalReason =
-  (typeof PLACE_MAINTENANCE_DISMISSAL_REASONS)[number];
+export type PlaceMaintenanceDismissalReason = (typeof PLACE_MAINTENANCE_DISMISSAL_REASONS)[number];
 
 const categorySchema = z.enum(["restaurang", "café", "bageri", "snabbmat", "pub", "matvagn"]);
 const statusSchema = z.enum(PLACE_MAINTENANCE_STATUSES);
@@ -123,10 +122,7 @@ export async function dismissPlaceMaintenanceCandidate(
   );
 }
 
-export const PLACE_MAINTENANCE_DISMISSAL_LABEL: Record<
-  PlaceMaintenanceDismissalReason,
-  string
-> = {
+export const PLACE_MAINTENANCE_DISMISSAL_LABEL: Record<PlaceMaintenanceDismissalReason, string> = {
   not_relevant: "Inte relevant",
   insufficient_evidence: "Otillräckligt underlag",
   not_food_place: "Inte ett matställe",
