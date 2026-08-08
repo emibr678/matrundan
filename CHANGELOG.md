@@ -14,6 +14,16 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.29.1] – 2026-08-08
+
+### Rättat
+
+- En webbplats som anges när **Lägg till ett ställe som saknas** används sparas
+  nu med stället i gruppen i stället för att försvinna efter att stället skapats.
+- Webbplatsens egen URL används som källänk när ingen separat källänk eller
+  observation har angetts, utan att försvaga serverns källkrav för andra
+  praktiska uppgifter.
+
 ## [1.29.0] – 2026-08-08
 
 ### Ändrat
