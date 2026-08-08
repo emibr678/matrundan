@@ -2,10 +2,17 @@ import * as React from "react";
 import { CheckCircle2, ChevronDown, Loader2, MapPin, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
-import { GeoapifyLocationInput, type VerifiedLocationSelection } from "./GeoapifyLocationInput";
+import {
+  GeoapifyLocationInput,
+  type VerifiedLocationSelection,
+} from "./GeoapifyLocationInput";
 import { OccasionPicker } from "./OccasionPicker";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +24,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { emptyManualPlace, emojiForCategory, type ManualPlaceDraft } from "@/lib/matrundan/add-place-v16-utils";
+import {
+  emptyManualPlace,
+  emojiForCategory,
+  type ManualPlaceDraft,
+} from "@/lib/matrundan/add-place-v16-utils";
 import type { ManualPlaceMutationHints } from "@/lib/matrundan/live-mutations";
 import {
   isReusablePlaceRace,
@@ -29,7 +40,22 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type Place, type PlaceCategory } from "@/lib/matrundan/types";
 
-const EMOJIS = ["🍽️", "🍕", "🍣", "🍜", "🍔", "🌮", "☕", "🥐", "🍺", "🍦", "🥗", "🍷", "🥟", "🐟"];
+const EMOJIS = [
+  "🍽️",
+  "🍕",
+  "🍣",
+  "🍜",
+  "🍔",
+  "🌮",
+  "☕",
+  "🥐",
+  "🍺",
+  "🍦",
+  "🥗",
+  "🍷",
+  "🥟",
+  "🐟",
+];
 
 type ManualAddInput = Omit<Place, "id" | "addedAt"> & ManualPlaceMutationHints;
 
@@ -37,7 +63,9 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
   const { state, addPlace, submitting } = useStore();
   const { mode, activeGroupId } = useSession();
   const [draft, setDraft] = React.useState<ManualPlaceDraft>(() => emptyManualPlace(""));
-  const [verifiedLocation, setVerifiedLocation] = React.useState<VerifiedLocationSelection | null>(null);
+  const [verifiedLocation, setVerifiedLocation] = React.useState<VerifiedLocationSelection | null>(
+    null,
+  );
   const [candidates, setCandidates] = React.useState<ReusableManualPlaceCandidate[]>([]);
   const [declinedCandidateIds, setDeclinedCandidateIds] = React.useState<string[]>([]);
   const [candidateLoading, setCandidateLoading] = React.useState(false);
@@ -193,7 +221,8 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
           ? `${candidate.name} lades tillbaka i gruppen`
           : `${candidate.name} tillagd i gruppen`,
         {
-          description: "Matrundan återanvände samma matställe i stället för att skapa en dubblett.",
+          description:
+            "Matrundan återanvände samma matställe i stället för att skapa en dubblett.",
         },
       );
       onClose();
@@ -226,9 +255,6 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         declinedReusablePlaceIds: declinedCandidateIds,
       };
       const added = await addPlace(input);
-      if (isLive && verifiedLocation) {
-        window.dispatchEvent(new Event("matrundan:place-data-reports-changed"));
-      }
       toast.success(`${added.name} tillagd i gruppen`);
       onClose();
     } catch (error) {
@@ -245,7 +271,8 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
   }
 
   const allCandidatesDeclined =
-    candidates.length > 0 && candidates.every((candidate) => declinedCandidateIds.includes(candidate.placeId));
+    candidates.length > 0 &&
+    candidates.every((candidate) => declinedCandidateIds.includes(candidate.placeId));
 
   return (
     <>
@@ -253,7 +280,8 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         <div className="space-y-1">
           <h3 className="text-base font-semibold">Lägg till ett ställe som saknas</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Hittade du inte rätt ställe i sökningen? Lägg till det här så kan gruppen fortsätta direkt.
+            Hittade du inte rätt ställe i sökningen? Lägg till det här så kan gruppen fortsätta
+            direkt.
           </p>
         </div>
 
@@ -277,7 +305,10 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
               setDraft((current) => ({
                 ...current,
                 category,
-                photo: current.photo === emojiForCategory(current.category) ? emojiForCategory(category) : current.photo,
+                photo:
+                  current.photo === emojiForCategory(current.category)
+                    ? emojiForCategory(category)
+                    : current.photo,
               }));
             }}
             disabled={isBusy}
@@ -335,7 +366,10 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         </div>
 
         {candidateLoading ? (
-          <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground" role="status">
+          <div
+            className="flex items-center gap-2 rounded-xl border border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground"
+            role="status"
+          >
             <Loader2 className="h-4 w-4 animate-spin" />
             Kontrollerar om stället redan finns i Matrundan…
           </div>
@@ -344,18 +378,28 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         {candidateError ? (
           <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground">
             <p>Kunde inte kontrollera befintliga Matrundan-ställen just nu.</p>
-            <Button type="button" variant="ghost" size="sm" className="mt-1 px-0" onClick={() => void loadCandidates()}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-1 px-0"
+              onClick={() => void loadCandidates()}
+            >
               <RotateCcw className="h-4 w-4" /> Försök igen
             </Button>
           </div>
         ) : null}
 
         {candidates.length > 0 && !allCandidatesDeclined ? (
-          <section className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3" aria-label="Befintliga Matrundan-ställen">
+          <section
+            className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3"
+            aria-label="Befintliga Matrundan-ställen"
+          >
             <div>
               <p className="text-sm font-semibold">Kolla om stället redan finns</p>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Matrundan hittade ställen nära den valda platsen. Ingen information om andra grupper visas.
+                Matrundan hittade ställen nära den valda platsen. Ingen information om andra grupper
+                visas.
               </p>
             </div>
             <div className="space-y-2">
@@ -374,7 +418,9 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
               size="sm"
               className="min-h-10 w-full justify-center"
               disabled={isBusy}
-              onClick={() => setDeclinedCandidateIds(candidates.map((candidate) => candidate.placeId))}
+              onClick={() =>
+                setDeclinedCandidateIds(candidates.map((candidate) => candidate.placeId))
+              }
             >
               Inget av dessa stämmer
             </Button>
@@ -384,7 +430,13 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         {allCandidatesDeclined ? (
           <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
             <span>Du har valt att skapa ett nytt ställe i stället.</span>
-            <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={() => setDeclinedCandidateIds([])}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setDeclinedCandidateIds([])}
+            >
               Ångra
             </Button>
           </div>
@@ -392,9 +444,16 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
 
         <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
           <CollapsibleTrigger asChild>
-            <Button type="button" variant="ghost" className="min-h-11 w-full justify-between px-2" disabled={isBusy}>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-11 w-full justify-between px-2"
+              disabled={isBusy}
+            >
               <span>Fler uppgifter (valfritt)</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${moreOpen ? "rotate-180" : ""}`}
+              />
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
@@ -412,9 +471,16 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
 
         <Collapsible open={groupOpen} onOpenChange={setGroupOpen}>
           <CollapsibleTrigger asChild>
-            <Button type="button" variant="ghost" className="min-h-11 w-full justify-between px-2" disabled={isBusy}>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-11 w-full justify-between px-2"
+              disabled={isBusy}
+            >
               <span>För gruppen (valfritt)</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${groupOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${groupOpen ? "rotate-180" : ""}`}
+              />
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 pt-2">
@@ -472,7 +538,9 @@ function ReusableCandidateCard({
             {location ? ` · ${location}` : ""}
           </p>
           <p className="mt-1 text-[11px] font-medium text-primary">
-            {candidate.matchKind === "exact" ? "Finns redan i Matrundan" : "Liknande ställe finns i Matrundan"}
+            {candidate.matchKind === "exact"
+              ? "Finns redan i Matrundan"
+              : "Liknande ställe finns i Matrundan"}
           </p>
         </div>
         <Button
