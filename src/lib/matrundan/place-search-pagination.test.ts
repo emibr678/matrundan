@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { mergePlaceSearchPages } from "./place-search-pagination";
+import {
+  actionableSliceIndex,
+  countActionableSuggestions,
+  mergePlaceSearchPages,
+} from "./place-search-pagination";
 import type { PlaceSuggestion } from "./places-provider";
 
 function suggestion(overrides: Partial<PlaceSuggestion> & { externalId: string }): PlaceSuggestion {
@@ -97,5 +101,32 @@ describe("mergePlaceSearchPages", () => {
     );
 
     expect(merged[0].matchingAreaLabels).toEqual(["Stockholm", "Nacka", "Stavsnäs"]);
+  });
+});
+
+describe("handlingsbara sidor", () => {
+  const list = [
+    suggestion({ externalId: "a" }),
+    suggestion({ externalId: "b" }),
+    suggestion({ externalId: "c" }),
+    suggestion({ externalId: "d" }),
+  ];
+  const isActionable = (s: PlaceSuggestion) => s.externalId !== "b";
+
+  test("räknar bara handlingsbara träffar", () => {
+    expect(countActionableSuggestions(list, isActionable)).toBe(3);
+    expect(countActionableSuggestions(list, () => false)).toBe(0);
+  });
+
+  test("klipper listan där målet handlingsbara träffar nås", () => {
+    expect(actionableSliceIndex(list, isActionable, 1)).toBe(1);
+    expect(actionableSliceIndex(list, isActionable, 2)).toBe(3);
+    expect(actionableSliceIndex(list, isActionable, 3)).toBe(4);
+  });
+
+  test("returnerar hela listan när målet inte kan nås", () => {
+    expect(actionableSliceIndex(list, isActionable, 20)).toBe(list.length);
+    expect(actionableSliceIndex([], isActionable, 20)).toBe(0);
+    expect(actionableSliceIndex(list, isActionable, 0)).toBe(0);
   });
 });

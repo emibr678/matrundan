@@ -34,7 +34,11 @@ import {
   genericPlaceSearchSuggestions,
   type GenericPlaceSearchSuggestion,
 } from "@/lib/matrundan/place-search-intent";
-import { mergePlaceSearchPages } from "@/lib/matrundan/place-search-pagination";
+import {
+  actionableSliceIndex,
+  countActionableSuggestions,
+  mergePlaceSearchPages,
+} from "@/lib/matrundan/place-search-pagination";
 
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 
@@ -47,6 +51,8 @@ type ResultView = "lista" | "karta";
 type ResultStatus = "available" | "linkable" | "existing";
 
 const RESULT_PAGE_SIZE = 20;
+/** Defensivt tak på provideranrop per användarhandling. */
+const MAX_PROVIDER_PAGES_PER_ACTION = 5;
 
 export interface PlaceDiscoverySnapshot {
   query: string;
@@ -228,6 +234,89 @@ export function PlaceDiscoveryV16({
       window.removeEventListener("matrundan:hidden-place-suggestions-changed", handleChanged);
   }, [loadHiddenSuggestions]);
 
+  /**
+   * En träff är handlingsbar när den varken är dold eller redan aktiv i gruppen.
+   * Länkbara träffar räknas som handlingsbara eftersom de kan kopplas.
+   */
+  const isActionableSuggestion = React.useCallback(
+    (suggestion: PlaceSuggestion) => {
+      if (hiddenKeys.has(hiddenPlaceSuggestionKey(suggestion))) return false;
+      if (addedResultIds.has(suggestion.externalId)) return false;
+      if (state.places.some((place) => hasActiveProviderSource(place, suggestion))) return false;
+      if (hasLocalManualSourceLink(localSourceLinks, suggestion)) return false;
+      const match = matchingPlace(state.places, suggestion);
+      return !(match && match.collectionStatus !== "archived");
+    },
+    [addedResultIds, hiddenKeys, localSourceLinks, state.places],
+  );
+  const isActionableRef = React.useRef(isActionableSuggestion);
+  React.useEffect(() => {
+    isActionableRef.current = isActionableSuggestion;
+  }, [isActionableSuggestion]);
+
+  /**
+   * Läser vidare i providerns offset-paginering tills listan innehåller
+   * `targetActionable` faktiskt handlingsbara träffar, providern är slut eller
+   * det defensiva taket på antal provideranrop nås. Stoppar direkt när målet
+   * är uppnått och avbryter om användaren har ändrat sökningen (`isStale`).
+   */
+  const fillProviderPages = React.useCallback(
+    async ({
+      seed,
+      startOffset,
+      targetActionable,
+      isStale,
+    }: {
+      seed: PlaceSuggestion[];
+      startOffset: number;
+      targetActionable: number;
+      isStale: () => boolean;
+    }) => {
+      let collected = seed;
+      const failedAreaLabels = new Set<string>();
+      let offset = startOffset;
+      let moreAvailable = false;
+      let pages = 0;
+
+      while (pages < MAX_PROVIDER_PAGES_PER_ACTION) {
+        const response = await geoapifySearchPlacesMulti({
+          data: {
+            text: query.trim() || undefined,
+            centers: activeAreas.map((area) => ({
+              id: area.id,
+              label: shortSearchAreaLabel(area.label),
+              lat: area.lat,
+              lng: area.lng,
+            })),
+            radiusKm,
+            limit: RESULT_PAGE_SIZE,
+            offset,
+          },
+        });
+        if (isStale()) return null;
+
+        pages += 1;
+        collected = mergePlaceSearchPages(collected, response.results.map(toPlaceSuggestion));
+        response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
+        moreAvailable = response.hasMore;
+        offset = response.nextOffset;
+
+        if (!moreAvailable) break;
+        if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable) {
+          break;
+        }
+      }
+
+      return {
+        results: collected,
+        failedAreaLabels: [...failedAreaLabels],
+        hasMore: moreAvailable,
+        nextOffset: offset,
+      };
+    },
+    [activeAreas, query, radiusKm],
+  );
+
   React.useEffect(() => {
     if (skipInitialSearchRef.current) {
       skipInitialSearchRef.current = false;
@@ -254,24 +343,17 @@ export function PlaceDiscoveryV16({
         let moreAvailable = false;
         let followingOffset = 0;
         if (isLive) {
-          const response = await geoapifySearchPlacesMulti({
-            data: {
-              text: query.trim() || undefined,
-              centers: activeAreas.map((area) => ({
-                id: area.id,
-                label: shortSearchAreaLabel(area.label),
-                lat: area.lat,
-                lng: area.lng,
-              })),
-              radiusKm,
-              limit: RESULT_PAGE_SIZE,
-              offset: 0,
-            },
+          const filled = await fillProviderPages({
+            seed: [],
+            startOffset: 0,
+            targetActionable: RESULT_PAGE_SIZE,
+            isStale: () => requestId !== requestRef.current,
           });
-          nextResults = response.results.map(toPlaceSuggestion);
-          nextFailedAreas = response.failedAreaLabels;
-          moreAvailable = response.hasMore;
-          followingOffset = response.nextOffset;
+          if (!filled) return;
+          nextResults = filled.results;
+          nextFailedAreas = filled.failedAreaLabels;
+          moreAvailable = filled.hasMore;
+          followingOffset = filled.nextOffset;
         } else {
           const settled = await Promise.allSettled(
             activeAreas.map(async (area) => ({
@@ -321,53 +403,53 @@ export function PlaceDiscoveryV16({
       }
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [activeAreas, isLive, query, radiusKm, retry]);
+  }, [activeAreas, fillProviderPages, isLive, query, radiusKm, retry]);
 
   const filteredResults = React.useMemo(
     () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
     [hiddenKeys, results],
   );
   const visibleResults = React.useMemo(
-    () => filteredResults.slice(0, displayLimit),
-    [displayLimit, filteredResults],
+    () =>
+      filteredResults.slice(
+        0,
+        actionableSliceIndex(filteredResults, isActionableSuggestion, displayLimit),
+      ),
+    [displayLimit, filteredResults, isActionableSuggestion],
   );
-  const bufferedRemaining = Math.max(0, filteredResults.length - visibleResults.length);
+  const shownActionableCount = countActionableSuggestions(visibleResults, isActionableSuggestion);
+  const bufferedActionableCount = countActionableSuggestions(
+    filteredResults,
+    isActionableSuggestion,
+  );
+  const bufferedRemaining = Math.max(0, bufferedActionableCount - shownActionableCount);
   const canShowMore = bufferedRemaining > 0 || hasMore;
   const searchInFlight = loading || hiddenLoading;
   const isReloadingResults = searchInFlight && visibleResults.length > 0;
   const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
 
   const showMoreResults = React.useCallback(async () => {
+    const targetActionable = shownActionableCount + RESULT_PAGE_SIZE;
     if (bufferedRemaining > 0) {
-      setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
-      return;
+      setDisplayLimit(targetActionable);
+      if (bufferedActionableCount >= targetActionable) return;
     }
     if (!hasMore || !isLive || loadingMore) return;
 
     const requestId = requestRef.current;
     setLoadingMore(true);
     try {
-      const response = await geoapifySearchPlacesMulti({
-        data: {
-          text: query.trim() || undefined,
-          centers: activeAreas.map((area) => ({
-            id: area.id,
-            label: shortSearchAreaLabel(area.label),
-            lat: area.lat,
-            lng: area.lng,
-          })),
-          radiusKm,
-          limit: RESULT_PAGE_SIZE,
-          offset: nextOffset,
-        },
+      const filled = await fillProviderPages({
+        seed: results,
+        startOffset: nextOffset,
+        targetActionable,
+        isStale: () => requestId !== requestRef.current,
       });
-      if (requestId !== requestRef.current) return;
-      const fetched = response.results.map(toPlaceSuggestion);
-      setResults((current) => mergePlaceSearchPages(current, fetched));
-
-      setHasMore(response.hasMore);
-      setNextOffset(response.nextOffset);
-      setDisplayLimit((current) => current + RESULT_PAGE_SIZE);
+      if (!filled) return;
+      setResults(filled.results);
+      setHasMore(filled.hasMore);
+      setNextOffset(filled.nextOffset);
+      setDisplayLimit(targetActionable);
     } catch (caught) {
       if (requestId !== requestRef.current) return;
       console.warn("[Matrundan] kunde inte hämta fler sökträffar:", caught);
@@ -377,7 +459,17 @@ export function PlaceDiscoveryV16({
     } finally {
       if (requestId === requestRef.current) setLoadingMore(false);
     }
-  }, [activeAreas, bufferedRemaining, hasMore, isLive, loadingMore, nextOffset, query, radiusKm]);
+  }, [
+    bufferedActionableCount,
+    bufferedRemaining,
+    fillProviderPages,
+    hasMore,
+    isLive,
+    loadingMore,
+    nextOffset,
+    results,
+    shownActionableCount,
+  ]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
     if (!canLinkSources) return [];

@@ -541,6 +541,7 @@ export type Database = {
           id: string
           invited_by: string
           invited_email: string | null
+          is_multi_use: boolean
           revoked_at: string | null
           role: string
           token_hash: string
@@ -554,6 +555,7 @@ export type Database = {
           id?: string
           invited_by: string
           invited_email?: string | null
+          is_multi_use?: boolean
           revoked_at?: string | null
           role?: string
           token_hash: string
@@ -567,6 +569,7 @@ export type Database = {
           id?: string
           invited_by?: string
           invited_email?: string | null
+          is_multi_use?: boolean
           revoked_at?: string | null
           role?: string
           token_hash?: string
@@ -2191,6 +2194,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      search_area_label_is_broad: { Args: { _label: string }; Returns: boolean }
       set_member_role: {
         Args: { _group_id: string; _role: string; _user_id: string }
         Returns: undefined

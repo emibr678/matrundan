@@ -65,3 +65,29 @@ describe("Lägg till ställens sökflöde", () => {
     expect(discoverySource).toContain("nextOffset");
   });
 });
+
+describe("Fyllnad till hela listsidor", () => {
+  test("läser vidare tills sidan har 20 handlingsbara träffar", () => {
+    expect(discoverySource).toContain("MAX_PROVIDER_PAGES_PER_ACTION = 5");
+    expect(discoverySource).toContain("fillProviderPages");
+    expect(discoverySource).toContain("targetActionable");
+    expect(discoverySource).toContain("countActionableSuggestions");
+    expect(discoverySource).toContain("actionableSliceIndex");
+    expect(discoverySource).toContain("isStale");
+  });
+
+  test("räknar Visar-copy på faktiskt visade handlingsbara träffar", () => {
+    expect(discoverySource).toContain("Visar {actionableResultCount}");
+    expect(discoverySource).toContain("shownActionableCount + RESULT_PAGE_SIZE");
+  });
+});
+
+const dialogSource = await Bun.file("src/components/matrundan/AddPlaceDialogImplV16.tsx").text();
+
+describe("Flikväxlaren i Lägg till matställe", () => {
+  test("byter flik bara vid egen pekning eller tangentbord", () => {
+    expect(dialogSource).toContain("onPointerDown");
+    expect(dialogSource).toContain("pointerTabRef");
+    expect(dialogSource).toContain("event.detail === 0");
+  });
+});

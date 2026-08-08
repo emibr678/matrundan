@@ -26,8 +26,12 @@ Inga ändringar ännu.
   verksamheter utan att ett verksamhetsval ändrar sökområde eller avstånd.
 - En ny sökning behåller redan visade träffar under omladdningen och visar en
   diskret `Söker…`-status i stället för att tömma resultatytan.
-- Sökresultat visas i mindre omgångar om upp till 20 träffar och **Visa fler**
-  lägger till nya träffar sist utan att kasta om redan visade resultat.
+- Sökresultat visas i mindre omgångar och varje listsida fylls med upp till 20
+  faktiskt visningsbara träffar när providern har fler. **Visa fler** ger upp
+  till nästa 20 visningsbara träffar och lägger dem sist utan att kasta om
+  redan visade resultat.
+- Att ta bort det sista sökområdet på mobil lämnar kvar fliken **Sök**, utan att
+  formuläret för manuellt tillägg blinkar fram.
 - Identiska Geoapify-sökningar och autocompleteanrop kan återanvända en
   kortlivad servercache för att minska onödiga provideranrop.
 - Exempel- och demoläget använder samma sökintent med deterministiska lokala
