@@ -6,6 +6,23 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_30_0_CHANGELOG: ChangelogEntry = {
+  version: "1.30.0",
+  date: "2026-08-08",
+  summary: "Platsunderhåll samlar neutrala förbättringskandidater i en global intern kö.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "En särskilt behörig platsunderhållare kan granska neutrala förbättringskandidater utan att se ursprungsgrupp, medlemskap eller privata gruppuppgifter.",
+        "Extern matchning kontrolleras server-side och en verifierad källa länkas till samma kanoniska matställe utan att besök eller grupprelationer flyttas.",
+        "Ställen som kräver manuellt OpenStreetMap-arbete kan markeras för OSM-åtgärd utan att Matrundan skriver något externt i detta steg.",
+        "Platsunderhåll har lokal fiktiv demodata för granskning av kö, karta och åtgärder utan provider-, databas- eller OSM-skrivningar.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_29_1_CHANGELOG: ChangelogEntry = {
   version: "1.29.1",
   date: "2026-08-08",
@@ -162,6 +179,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_30_0_CHANGELOG,
   VERSION_1_29_1_CHANGELOG,
   VERSION_1_29_0_CHANGELOG,
   VERSION_1_28_0_CHANGELOG,
