@@ -80,7 +80,27 @@ describe("Fyllnad till hela listsidor", () => {
     expect(discoverySource).toContain("Visar {actionableResultCount}");
     expect(discoverySource).toContain("shownActionableCount + RESULT_PAGE_SIZE");
   });
+
+  test("startar inte sökningen förrän gömda förslag är inlästa", () => {
+    const effectIndex = discoverySource.indexOf("React.useEffect(() => {\n    // Vänta in gömda");
+    expect(effectIndex).toBeGreaterThanOrEqual(0);
+
+    const effectSource = discoverySource.slice(effectIndex);
+    const gateIndex = effectSource.indexOf("if (hiddenLoading) return;");
+    const skipIndex = effectSource.indexOf("if (skipInitialSearchRef.current)");
+
+    expect(gateIndex).toBeGreaterThanOrEqual(0);
+    // Gaten måste ligga före snapshot-skippen så en återställd snapshot bara
+    // skippar den första sökningen efter att hidden-data är känd.
+    expect(skipIndex).toBeGreaterThan(gateIndex);
+
+    const dependencyIndex = effectSource.indexOf(
+      "[activeAreas, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]",
+    );
+    expect(dependencyIndex).toBeGreaterThan(skipIndex);
+  });
 });
+
 
 const dialogSource = await Bun.file("src/components/matrundan/AddPlaceDialogImplV16.tsx").text();
 
