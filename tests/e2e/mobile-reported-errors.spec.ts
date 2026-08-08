@@ -15,10 +15,10 @@ test("Rapporterade fel är inte längre en separat grupparbetskö", async ({ pag
   await page.goto("/rapporterade-fel?demo=1");
 
   await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
-  await expect(page.getByText("Den tidigare gruppspecifika arbetskön används inte längre.")).toBeVisible();
   await expect(
-    page.getByText(/handläggningen sker centralt i Platsunderhåll/),
+    page.getByText("Den tidigare gruppspecifika arbetskön används inte längre."),
   ).toBeVisible();
+  await expect(page.getByText(/handläggningen sker centralt i Platsunderhåll/)).toBeVisible();
   await expect(
     page.getByText(/Gruppnamn, medlemskap och historisk privat rapporttext skickas inte/),
   ).toBeVisible();
