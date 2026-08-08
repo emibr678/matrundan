@@ -14,6 +14,25 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.30.0] – 2026-08-08
+
+### Ändrat
+
+- **Platsunderhåll** samlar neutrala förbättringskandidater i en global intern kö
+  för särskilt behöriga platsunderhållare utan att exponera ursprungsgrupp,
+  medlemskap eller privata gruppuppgifter.
+- Extern matchning kontrolleras server-side och en verifierad provideridentitet
+  länkas till samma kanoniska matställe utan att besök eller grupprelationer
+  flyttas.
+- Kandidater kan markeras som **OSM-åtgärd** för manuellt arbete i
+  OpenStreetMap. Matrundan gör ingen extern OSM-skrivning i detta steg.
+- Strukturerat avfärdande och en privat auditlogg bevarar underhållshistoriken
+  utan fri privat text.
+- En lokal, tydligt märkt fiktiv demo visar kö, karta och åtgärder utan
+  provider-, databas- eller OSM-skrivningar.
+- Gruppens befintliga **Rapporterade fel** och OSM Note-flöde förblir separat
+  gruppadministration och ändras inte av Platsunderhåll.
+
 ## [1.29.1] – 2026-08-08
 
 ### Rättat
