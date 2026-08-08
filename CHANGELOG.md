@@ -18,20 +18,27 @@ Inga ändringar ännu.
 
 ### Ändrat
 
-- **Platsunderhåll** samlar neutrala förbättringskandidater i en global intern kö
-  för särskilt behöriga platsunderhållare utan att exponera ursprungsgrupp,
-  medlemskap eller privata gruppuppgifter.
+- **Platsunderhåll** samlar rapporterade platsfel och neutrala
+  förbättringskandidater i en gemensam global arbetskö för särskilt behöriga
+  platsunderhållare.
+- Backendkällorna förblir separata men projiceras genom ett minimerat
+  serverkontrakt med strukturerad feltyp och neutral platsinformation. Den
+  globala kön får inte exponera ursprungsgrupp, medlemskap, rapportör eller
+  historisk privat rapporttext.
 - Extern matchning kontrolleras server-side och en verifierad provideridentitet
   länkas till samma kanoniska matställe utan att besök eller grupprelationer
   flyttas.
-- Kandidater kan markeras som **OSM-åtgärd** för manuellt arbete i
-  OpenStreetMap. Matrundan gör ingen extern OSM-skrivning i detta steg.
-- Strukturerat avfärdande och en privat auditlogg bevarar underhållshistoriken
-  utan fri privat text.
-- En lokal, tydligt märkt fiktiv demo visar kö, karta och åtgärder utan
-  provider-, databas- eller OSM-skrivningar.
-- Gruppens befintliga **Rapporterade fel** och OSM Note-flöde förblir separat
-  gruppadministration och ändras inte av Platsunderhåll.
+- Ärenden kan markeras som **OSM-åtgärd** för manuellt arbete i OpenStreetMap.
+  Matrundan gör ingen automatisk extern OSM-skrivning i detta steg och befintlig
+  offentlig OSM Note-historik bevaras.
+- Strukturerat avfärdande och privata auditloggar bevarar
+  underhållshistoriken utan att kopiera privat rapporttext.
+- Den tidigare separata gruppkön **Rapporterade fel** är reducerad. Vanliga
+  användare kan fortsatt rapportera fel från matställen och sökträffar, medan
+  handläggningen sker centralt i Platsunderhåll.
+- En lokal, tydligt märkt fiktiv demo visar både rapporterade fel och
+  förbättringskandidater, karta och åtgärder utan provider-, databas- eller
+  OSM-skrivningar.
 
 ## [1.29.1] – 2026-08-08
 
