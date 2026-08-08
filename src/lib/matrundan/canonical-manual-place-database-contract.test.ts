@@ -4,14 +4,16 @@ const migrationPath = "supabase/migrations/20260808064500_canonical_manual_place
 const sql = await Bun.file(migrationPath).text();
 
 describe("kanonisk återanvändning och manuell fallback", () => {
-  test("den interna förbättringskön saknar direkt klientåtkomst", () => {
+  test("den interna förbättringskön saknar direkt klientåtkomst och kopplas inte till OSM-rapporttabellen", () => {
     expect(sql).toContain("CREATE TABLE IF NOT EXISTS public.place_improvement_candidates");
     expect(sql).toContain(
       "ALTER TABLE public.place_improvement_candidates ENABLE ROW LEVEL SECURITY",
     );
     expect(sql).toContain("REVOKE ALL ON TABLE public.place_improvement_candidates");
     expect(sql).toContain("FROM PUBLIC, anon, authenticated");
-    expect(sql).not.toContain("place_data_reports");
+    expect(sql).not.toMatch(
+      /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|ALTER\s+TABLE|JOIN|FROM)\s+public\.place_data_reports\b/i,
+    );
   });
 
   test("aktiv extern källa löser öppna neutrala förbättringskandidater", () => {
