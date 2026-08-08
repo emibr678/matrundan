@@ -15,8 +15,9 @@ const VERSION_1_29_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Förbättrat",
       items: [
-        "Sökningen är huvudvägen i Lägg till ställen och den manuella vägen visas som den sekundära handlingen Lägg till ett ställe som saknas.",
+        "Sökningen är huvudvägen i Lägg till ställen och Lägg till ett ställe som saknas visas först i anslutning till autocomplete, sökresultat eller ett tomt resultat.",
         "Fallbackformuläret prioriterar namn, kategori, kök eller inriktning och ett sammanhållet verifierat platsval utan teknisk OpenStreetMap-copy.",
+        "Webbplats kan anges frivilligt tillsammans med Passar för och anteckning under Fler uppgifter, medan symbol väljs automatiskt utifrån ställets kategori i stället för manuellt i fallbacken.",
         "Verifierat namn och plats kan matchas konservativt mot redan kända kanoniska Matrundan-ställen utan att andra gruppers medlemskap eller privata metadata exponeras.",
         "Ett valt befintligt ställe återanvänder samma platsidentitet; osäkra kandidater slås aldrig ihop automatiskt och kan uttryckligen avböjas.",
         "Nya verifierade manuella ställen utan aktiv extern källa skapar ett privat systeminternt underlag för senare källmatchning, utan automatisk extern publicering.",
