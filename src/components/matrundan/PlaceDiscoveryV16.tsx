@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, List, Loader2, Map, Search } from "lucide-react";
+import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
@@ -39,9 +39,7 @@ import {
   countActionableSuggestions,
   mergePlaceSearchPages,
 } from "@/lib/matrundan/place-search-pagination";
-
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
-
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -82,6 +80,7 @@ export function PlaceDiscoveryV16({
   onAddSelected,
   onBeginAdd,
   onLinkSource,
+  onMissingPlace,
   onClose,
 }: {
   addedResultIds: Set<string>;
@@ -94,6 +93,7 @@ export function PlaceDiscoveryV16({
   onAddSelected: () => void;
   onBeginAdd: (suggestion: PlaceSuggestion) => void;
   onLinkSource: (match: SourceMatchResult) => void;
+  onMissingPlace: () => void;
   onClose: () => void;
 }) {
   const { state, submitting } = useStore();
@@ -138,7 +138,6 @@ export function PlaceDiscoveryV16({
   const [loadingMore, setLoadingMore] = React.useState(false);
   const requestRef = React.useRef(0);
   const skipInitialSearchRef = React.useRef(Boolean(snapshot));
-
   const previousBulkBusyRef = React.useRef(false);
   const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
@@ -211,7 +210,6 @@ export function PlaceDiscoveryV16({
       setHiddenLoading(false);
       return;
     }
-
     setHiddenLoading(true);
     try {
       const rows = isLive
@@ -234,10 +232,6 @@ export function PlaceDiscoveryV16({
       window.removeEventListener("matrundan:hidden-place-suggestions-changed", handleChanged);
   }, [loadHiddenSuggestions]);
 
-  /**
-   * En träff är handlingsbar när den varken är dold eller redan aktiv i gruppen.
-   * Länkbara träffar räknas som handlingsbara eftersom de kan kopplas.
-   */
   const isActionableSuggestion = React.useCallback(
     (suggestion: PlaceSuggestion) => {
       if (hiddenKeys.has(hiddenPlaceSuggestionKey(suggestion))) return false;
@@ -254,12 +248,6 @@ export function PlaceDiscoveryV16({
     isActionableRef.current = isActionableSuggestion;
   }, [isActionableSuggestion]);
 
-  /**
-   * Läser vidare i providerns offset-paginering tills listan innehåller
-   * `targetActionable` faktiskt handlingsbara träffar, providern är slut eller
-   * det defensiva taket på antal provideranrop nås. Stoppar direkt när målet
-   * är uppnått och avbryter om användaren har ändrat sökningen (`isStale`).
-   */
   const fillProviderPages = React.useCallback(
     async ({
       seed,
@@ -294,17 +282,13 @@ export function PlaceDiscoveryV16({
           },
         });
         if (isStale()) return null;
-
         pages += 1;
         collected = mergePlaceSearchPages(collected, response.results.map(toPlaceSuggestion));
         response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
-
         if (!moreAvailable) break;
-        if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable) {
-          break;
-        }
+        if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable) break;
       }
 
       return {
@@ -325,7 +309,6 @@ export function PlaceDiscoveryV16({
       skipInitialSearchRef.current = false;
       return;
     }
-
     if (activeAreas.length === 0) {
       setResults([]);
       setFailedAreas([]);
@@ -336,7 +319,6 @@ export function PlaceDiscoveryV16({
       return;
     }
     const requestId = ++requestRef.current;
-
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError(null);
@@ -372,13 +354,7 @@ export function PlaceDiscoveryV16({
           );
           const successful = settled.flatMap((outcome) =>
             outcome.status === "fulfilled"
-              ? [
-                  {
-                    areaId: outcome.value.area.id,
-                    areaLabel: shortSearchAreaLabel(outcome.value.area.label),
-                    results: outcome.value.results,
-                  },
-                ]
+              ? [{ areaId: outcome.value.area.id, areaLabel: shortSearchAreaLabel(outcome.value.area.label), results: outcome.value.results }]
               : [],
           );
           nextFailedAreas = settled.flatMap((outcome, index) =>
@@ -414,18 +390,11 @@ export function PlaceDiscoveryV16({
     [hiddenKeys, results],
   );
   const visibleResults = React.useMemo(
-    () =>
-      filteredResults.slice(
-        0,
-        actionableSliceIndex(filteredResults, isActionableSuggestion, displayLimit),
-      ),
+    () => filteredResults.slice(0, actionableSliceIndex(filteredResults, isActionableSuggestion, displayLimit)),
     [displayLimit, filteredResults, isActionableSuggestion],
   );
   const shownActionableCount = countActionableSuggestions(visibleResults, isActionableSuggestion);
-  const bufferedActionableCount = countActionableSuggestions(
-    filteredResults,
-    isActionableSuggestion,
-  );
+  const bufferedActionableCount = countActionableSuggestions(filteredResults, isActionableSuggestion);
   const bufferedRemaining = Math.max(0, bufferedActionableCount - shownActionableCount);
   const canShowMore = bufferedRemaining > 0 || hasMore;
   const searchInFlight = loading || hiddenLoading;
@@ -439,7 +408,6 @@ export function PlaceDiscoveryV16({
       if (bufferedActionableCount >= targetActionable) return;
     }
     if (!hasMore || !isLive || loadingMore) return;
-
     const requestId = requestRef.current;
     setLoadingMore(true);
     try {
@@ -463,17 +431,7 @@ export function PlaceDiscoveryV16({
     } finally {
       if (requestId === requestRef.current) setLoadingMore(false);
     }
-  }, [
-    bufferedActionableCount,
-    bufferedRemaining,
-    fillProviderPages,
-    hasMore,
-    isLive,
-    loadingMore,
-    nextOffset,
-    results,
-    shownActionableCount,
-  ]);
+  }, [bufferedActionableCount, bufferedRemaining, fillProviderPages, hasMore, isLive, loadingMore, nextOffset, results, shownActionableCount]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
     if (!canLinkSources) return [];
@@ -482,9 +440,7 @@ export function PlaceDiscoveryV16({
         addedResultIds.has(result.externalId) ||
         state.places.some((place) => hasActiveProviderSource(place, result)) ||
         hasLocalManualSourceLink(localSourceLinks, result)
-      ) {
-        return [];
-      }
+      ) return [];
       const match = findManualSourceLinkCandidate(state.places, result);
       return match ? [{ result, place: match.place, reason: match.reason }] : [];
     });
@@ -500,9 +456,7 @@ export function PlaceDiscoveryV16({
         addedResultIds.has(suggestion.externalId) ||
         state.places.some((place) => hasActiveProviderSource(place, suggestion)) ||
         hasLocalManualSourceLink(localSourceLinks, suggestion)
-      ) {
-        return "existing";
-      }
+      ) return "existing";
       if (sourceMatchIds.has(suggestion.externalId)) return "linkable";
       const match = matchingPlace(state.places, suggestion);
       return match && match.collectionStatus !== "archived" ? "existing" : "available";
@@ -560,18 +514,10 @@ export function PlaceDiscoveryV16({
     category: result.category,
     actionable: statusForResult(result) === "available",
     bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
-    eyebrow: `${CATEGORY_LABEL[result.category]}${
-      result.distanceKm != null
-        ? ` · ~${result.distanceKm} km${
-            result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""
-          }`
-        : ""
-    }`,
+    eyebrow: `${CATEGORY_LABEL[result.category]}${result.distanceKm != null ? ` · ~${result.distanceKm} km${result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""}` : ""}`,
     description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
   }));
-  const unmappedCount = mapResults.filter(
-    (result) => result.lat == null || result.lng == null,
-  ).length;
+  const unmappedCount = mapResults.filter((result) => result.lat == null || result.lng == null).length;
   const actionableResultCount = sourceMatches.length + availableResults.length;
   const resultSections = (
     <SearchResultSectionsV16
@@ -594,12 +540,7 @@ export function PlaceDiscoveryV16({
   const map = (
     <MultiAreaPlaceMap
       items={mapItems}
-      centers={activeAreas.map((area) => ({
-        id: area.id,
-        label: shortSearchAreaLabel(area.label),
-        lat: area.lat,
-        lng: area.lng,
-      }))}
+      centers={activeAreas.map((area) => ({ id: area.id, label: shortSearchAreaLabel(area.label), lat: area.lat, lng: area.lng }))}
       radiusKm={radiusKm}
       selectedId={selectedId}
       onSelect={handleMapSelect}
@@ -644,6 +585,7 @@ export function PlaceDiscoveryV16({
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
         onSelectPlace={(suggestion) => setSelectedId(suggestion.externalId)}
+        onMissingPlace={onMissingPlace}
       />
 
       {activeAreas.length === 0 ? (
@@ -655,24 +597,14 @@ export function PlaceDiscoveryV16({
       ) : error ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
           <p className="min-w-0 flex-1 text-destructive">{error}</p>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="min-h-11"
-            onClick={() => setRetry((value) => value + 1)}
-          >
+          <Button type="button" variant="secondary" size="sm" className="min-h-11" onClick={() => setRetry((value) => value + 1)}>
             Försök igen
           </Button>
         </div>
       ) : (
         <>
           {isReloadingResults ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className="flex min-h-6 items-center gap-2 text-xs text-muted-foreground"
-            >
+            <div role="status" aria-live="polite" className="flex min-h-6 items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Söker…
             </div>
           ) : null}
@@ -682,7 +614,15 @@ export function PlaceDiscoveryV16({
             </div>
           ) : null}
           {visibleResults.length === 0 ? (
-            <Empty text="Inga matställen hittades. Prova större radie, andra områden eller lägg till manuellt." />
+            <div className="space-y-3 rounded-xl border border-dashed border-border/70 bg-card/60 p-5 text-center">
+              <div>
+                <p className="text-sm font-medium">Inga matställen hittades</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Prova större radie eller andra sökområden. Om stället saknas kan du lägga till det.
+                </p>
+              </div>
+              <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
+            </div>
           ) : (
             <>
               <h3 className="text-sm font-medium lg:hidden">Ställen att lägga till</h3>
@@ -690,18 +630,10 @@ export function PlaceDiscoveryV16({
                 <ResultToggle value={resultView} onChange={setResultView} />
                 <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
                   <span className="text-xs text-muted-foreground">
-                    Visar {actionableResultCount}{" "}
-                    {actionableResultCount === 1 ? "träff" : "träffar"}
+                    Visar {actionableResultCount} {actionableResultCount === 1 ? "träff" : "träffar"}
                   </span>
                   {availableResults.length > 0 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-11 shrink-0"
-                      disabled={interactionsDisabled}
-                      onClick={toggleBulkMode}
-                    >
+                    <Button type="button" variant="ghost" size="sm" className="min-h-11 shrink-0" disabled={interactionsDisabled} onClick={toggleBulkMode}>
                       {bulkMode ? "Avbryt" : "Välj flera"}
                     </Button>
                   ) : null}
@@ -711,14 +643,7 @@ export function PlaceDiscoveryV16({
               <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
                 <h3 className="text-sm font-medium">Ställen att lägga till</h3>
                 {availableResults.length > 0 ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-11 shrink-0"
-                    disabled={interactionsDisabled}
-                    onClick={toggleBulkMode}
-                  >
+                  <Button type="button" variant="ghost" size="sm" className="min-h-11 shrink-0" disabled={interactionsDisabled} onClick={toggleBulkMode}>
                     {bulkMode ? "Avbryt" : "Välj flera"}
                   </Button>
                 ) : null}
@@ -729,30 +654,23 @@ export function PlaceDiscoveryV16({
               </div>
               {canShowMore ? (
                 <div className="flex justify-center">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="min-h-11 w-full sm:w-auto"
-                    disabled={loadingMore || interactionsDisabled}
-                    onClick={() => void showMoreResults()}
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
-                      </>
-                    ) : (
-                      "Visa fler"
-                    )}
+                  <Button type="button" variant="secondary" size="sm" className="min-h-11 w-full sm:w-auto" disabled={loadingMore || interactionsDisabled} onClick={() => void showMoreResults()}>
+                    {loadingMore ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…</> : "Visa fler"}
                   </Button>
                 </div>
               ) : null}
               {unmappedCount > 0 ? (
                 <p className="text-[11px] text-muted-foreground">
-                  {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
-                  kartposition och visas bara i listan.
+                  {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"} kartposition och visas bara i listan.
                 </p>
               ) : null}
+              <div className="flex min-w-0 flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Hittar du inte rätt ställe?</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">Lägg till det som saknas först när sökningen inte räcker.</p>
+                </div>
+                <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
+              </div>
             </>
           )}
         </>
@@ -762,26 +680,13 @@ export function PlaceDiscoveryV16({
         <div className="sticky bottom-2 z-30 rounded-2xl border border-primary/25 bg-background/95 p-2 shadow-lg backdrop-blur">
           <div className="flex min-w-0 items-center gap-2">
             <span className="min-w-0 flex-1 text-sm font-medium">
-              {selectedResults.length}{" "}
-              {selectedResults.length === 1 ? "ställe valt" : "ställen valda"}
+              {selectedResults.length} {selectedResults.length === 1 ? "ställe valt" : "ställen valda"}
             </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="min-h-11 shrink-0"
-              disabled={interactionsDisabled}
-              onClick={onClearSelected}
-            >
+            <Button type="button" variant="ghost" size="sm" className="min-h-11 shrink-0" disabled={interactionsDisabled} onClick={onClearSelected}>
               Rensa
             </Button>
           </div>
-          <Button
-            type="button"
-            className="mt-1 min-h-11 w-full"
-            disabled={interactionsDisabled}
-            onClick={onAddSelected}
-          >
+          <Button type="button" className="mt-1 min-h-11 w-full" disabled={interactionsDisabled} onClick={onAddSelected}>
             {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Lägg till {selectedResults.length} {selectedResults.length === 1 ? "ställe" : "ställen"}
           </Button>
@@ -789,57 +694,29 @@ export function PlaceDiscoveryV16({
       ) : null}
 
       {addedResultIds.size > 0 ? (
-        <div
-          className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm"
-          role="status"
-        >
+        <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm" role="status">
           <Check className="h-4 w-4 shrink-0 text-primary" />
-          {addedResultIds.size}{" "}
-          {addedResultIds.size === 1 ? "ställe hanterat" : "ställen hanterade"} i den här omgången
+          {addedResultIds.size} {addedResultIds.size === 1 ? "ställe hanterat" : "ställen hanterade"} i den här omgången
         </div>
       ) : null}
 
       <p className="text-[11px] text-muted-foreground">
-        {isLive
-          ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
-          : "Fiktiv demodata för utveckling."}
+        {isLive ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare." : "Fiktiv demodata för utveckling."}
       </p>
       <div className="flex justify-end">
-        <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
-          Klar
-        </Button>
+        <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>Klar</Button>
       </div>
     </div>
   );
 }
 
-function ResultToggle({
-  value,
-  onChange,
-}: {
-  value: ResultView;
-  onChange: (value: ResultView) => void;
-}) {
+function ResultToggle({ value, onChange }: { value: ResultView; onChange: (value: ResultView) => void }) {
   return (
     <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
-      <button
-        type="button"
-        className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
-          value === "lista" ? "bg-background shadow-sm" : "text-muted-foreground"
-        }`}
-        onClick={() => onChange("lista")}
-        aria-pressed={value === "lista"}
-      >
+      <button type="button" className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${value === "lista" ? "bg-background shadow-sm" : "text-muted-foreground"}`} onClick={() => onChange("lista")} aria-pressed={value === "lista"}>
         <List className="h-4 w-4" /> Lista
       </button>
-      <button
-        type="button"
-        className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${
-          value === "karta" ? "bg-background shadow-sm" : "text-muted-foreground"
-        }`}
-        onClick={() => onChange("karta")}
-        aria-pressed={value === "karta"}
-      >
+      <button type="button" className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium ${value === "karta" ? "bg-background shadow-sm" : "text-muted-foreground"}`} onClick={() => onChange("karta")} aria-pressed={value === "karta"}>
         <Map className="h-4 w-4" /> Karta
       </button>
     </div>
@@ -847,11 +724,7 @@ function ResultToggle({
 }
 
 function Empty({ text }: { text: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-border/70 bg-card/60 p-6 text-center text-sm text-muted-foreground">
-      {text}
-    </div>
-  );
+  return <div className="rounded-xl border border-dashed border-border/70 bg-card/60 p-6 text-center text-sm text-muted-foreground">{text}</div>;
 }
 
 type PlaceSearchOption =
@@ -859,23 +732,11 @@ type PlaceSearchOption =
   | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion };
 
 function placeOptionMeta(suggestion: PlaceSuggestion): string {
-  const location =
-    suggestion.address?.trim() ||
-    [suggestion.area, suggestion.city].filter(Boolean).join(" · ") ||
-    suggestion.city ||
-    "";
+  const location = suggestion.address?.trim() || [suggestion.area, suggestion.city].filter(Boolean).join(" · ") || suggestion.city || "";
   const city = suggestion.address?.trim() && suggestion.city ? suggestion.city : "";
   return [CATEGORY_LABEL[suggestion.category], location, city].filter(Boolean).join(" · ");
 }
 
-/**
- * Presentationsfält för "Sök matställen".
- *
- * Fältet gör inga egna dataanrop: generella förslag kommer från
- * genericPlaceSearchSuggestions och specifika matställen från samma
- * providerresultat som resultatlistan. Val av ett matställe markerar bara den
- * verksamheten och rör aldrig sökområden eller radie.
- */
 function PlaceSearchCombobox({
   query,
   onQueryChange,
@@ -883,6 +744,7 @@ function PlaceSearchCombobox({
   genericSuggestions,
   placeSuggestions,
   onSelectPlace,
+  onMissingPlace,
 }: {
   query: string;
   onQueryChange: (value: string) => void;
@@ -890,48 +752,34 @@ function PlaceSearchCombobox({
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
+  onMissingPlace: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const [activeIx, setActiveIx] = React.useState(-1);
-
-  const genericOptions: PlaceSearchOption[] = genericSuggestions.map((suggestion) => ({
-    kind: "generic",
-    key: suggestion.id,
-    label: suggestion.label,
-    meta: suggestion.groupLabel,
-    searchValue: suggestion.searchValue,
-  }));
-  const placeOptions: PlaceSearchOption[] = placeSuggestions.map((suggestion) => ({
-    kind: "place",
-    key: suggestion.externalId,
-    label: suggestion.name,
-    meta: placeOptionMeta(suggestion),
-    suggestion,
-  }));
+  const genericOptions: PlaceSearchOption[] = genericSuggestions.map((suggestion) => ({ kind: "generic", key: suggestion.id, label: suggestion.label, meta: suggestion.groupLabel, searchValue: suggestion.searchValue }));
+  const placeOptions: PlaceSearchOption[] = placeSuggestions.map((suggestion) => ({ kind: "place", key: suggestion.externalId, label: suggestion.name, meta: placeOptionMeta(suggestion), suggestion }));
   const options = [...genericOptions, ...placeOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = open && hasQuery;
 
-  React.useEffect(() => {
-    setActiveIx(-1);
-  }, [query]);
+  React.useEffect(() => { setActiveIx(-1); }, [query]);
 
   function select(option: PlaceSearchOption) {
-    if (option.kind === "generic") {
-      onQueryChange(option.label);
-    } else {
-      onSelectPlace(option.suggestion);
-    }
+    if (option.kind === "generic") onQueryChange(option.label);
+    else onSelectPlace(option.suggestion);
     setOpen(false);
     setActiveIx(-1);
   }
 
+  function activateMissingPlace() {
+    setOpen(false);
+    setActiveIx(-1);
+    onMissingPlace();
+  }
+
   function move(direction: 1 | -1) {
     if (options.length === 0) return;
-    setActiveIx((current) => {
-      if (current < 0) return direction === 1 ? 0 : options.length - 1;
-      return (current + direction + options.length) % options.length;
-    });
+    setActiveIx((current) => current < 0 ? (direction === 1 ? 0 : options.length - 1) : (current + direction + options.length) % options.length);
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -956,42 +804,15 @@ function PlaceSearchCombobox({
   function renderGroup(label: string, groupOptions: PlaceSearchOption[], offset: number) {
     if (groupOptions.length === 0) return null;
     return (
-      <div
-        role="group"
-        aria-label={label}
-        className="border-t border-border/60 pt-1 first:border-t-0 first:pt-0"
-      >
-        <p className="px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
+      <div role="group" aria-label={label} className="border-t border-border/60 pt-1 first:border-t-0 first:pt-0">
+        <p className="px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
         {groupOptions.map((option, index) => {
           const optionIndex = offset + index;
           return (
-            <div
-              key={`${option.kind}:${option.key}`}
-              id={`place-search-opt-${optionIndex}`}
-              role="option"
-              aria-selected={optionIndex === activeIx}
-            >
-              <button
-                type="button"
-                className={[
-                  "w-full min-w-0 rounded px-2 py-2 text-left hover:bg-accent",
-                  optionIndex === activeIx ? "bg-accent" : "",
-                ].join(" ")}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  select(option);
-                }}
-              >
-                <span className="block min-w-0 break-words font-medium text-foreground">
-                  {option.label}
-                </span>
-                {option.meta ? (
-                  <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">
-                    {option.meta}
-                  </span>
-                ) : null}
+            <div key={`${option.kind}:${option.key}`} id={`place-search-opt-${optionIndex}`} role="option" aria-selected={optionIndex === activeIx}>
+              <button type="button" className={["w-full min-w-0 rounded px-2 py-2 text-left hover:bg-accent", optionIndex === activeIx ? "bg-accent" : ""].join(" ")} onMouseDown={(event) => { event.preventDefault(); select(option); }}>
+                <span className="block min-w-0 break-words font-medium text-foreground">{option.label}</span>
+                {option.meta ? <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">{option.meta}</span> : null}
               </button>
             </div>
           );
@@ -1004,16 +825,13 @@ function PlaceSearchCombobox({
     <div className="space-y-1.5">
       <Label htmlFor="place-query">Sök matställen</Label>
       <div className="relative min-w-0">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3 top-[22px] h-4 w-4 -translate-y-1/2 text-muted-foreground sm:top-1/2" />
         <Input
           id="place-query"
           className="pl-9"
           placeholder="Namn, kök eller typ"
           value={query}
-          onChange={(event) => {
-            onQueryChange(event.target.value);
-            setOpen(true);
-          }}
+          onChange={(event) => { onQueryChange(event.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onBlur={() => window.setTimeout(() => setOpen(false), 150)}
           onKeyDown={onKeyDown}
@@ -1025,28 +843,54 @@ function PlaceSearchCombobox({
           aria-activedescendant={activeIx >= 0 ? `place-search-opt-${activeIx}` : undefined}
         />
         {showList ? (
-          <div
-            id="place-search-listbox"
-            role="listbox"
-            aria-label="Förslag på kök, typer och matställen"
-            className="absolute z-30 mt-1 max-h-72 w-full min-w-0 overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
-          >
+          <div id="place-search-listbox" role="listbox" aria-label="Förslag på kök, typer och matställen" className="relative z-30 mt-1 max-h-[min(42dvh,20rem)] w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md sm:absolute sm:max-h-72">
             {options.length === 0 ? (
-              <p className="px-2 py-2 text-muted-foreground">
-                {loading ? "Söker…" : "Inga förslag"}
-              </p>
+              <p className="px-2 py-2 text-muted-foreground">{loading ? "Söker…" : "Inga förslag"}</p>
             ) : (
               <>
                 {renderGroup("Kök och typer", genericOptions, 0)}
                 {renderGroup("Matställen", placeOptions, genericOptions.length)}
-                {loading ? (
-                  <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p>
-                ) : null}
+                {loading ? <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p> : null}
               </>
             )}
+            <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
+              <p className="px-2 pt-1 text-xs text-muted-foreground">Hittar du inte rätt ställe?</p>
+              <MissingPlaceButton className="mt-1 w-full justify-start" disabled={loading} onActivate={activateMissingPlace} />
+            </div>
           </div>
         ) : null}
       </div>
     </div>
+  );
+}
+
+function MissingPlaceButton({
+  disabled,
+  onActivate,
+  className = "",
+}: {
+  disabled?: boolean;
+  onActivate: () => void;
+  className?: string;
+}) {
+  const armedRef = React.useRef(false);
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className={`min-h-11 ${className}`}
+      disabled={disabled}
+      onPointerDown={() => { armedRef.current = true; }}
+      onClick={(event) => {
+        const fromKeyboard = event.detail === 0;
+        const fromOwnPointer = armedRef.current;
+        armedRef.current = false;
+        if (!fromKeyboard && !fromOwnPointer) return;
+        onActivate();
+      }}
+    >
+      <Plus className="h-4 w-4" />
+      Lägg till ett ställe som saknas
+    </Button>
   );
 }
