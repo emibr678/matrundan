@@ -6,6 +6,12 @@ import type { NormalizedLocationSuggestion } from "@/lib/matrundan/geoapify-norm
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import { isBroadAdministrativeSearchArea } from "@/lib/matrundan/search-areas";
 
+export type VerifiedLocationSelection = VerifiedHomeLocation & {
+  city: string;
+  area?: string;
+  resultType?: string;
+};
+
 type LocationSuggestion = {
   label: string;
   primaryLabel: string;
@@ -13,6 +19,8 @@ type LocationSuggestion = {
   placeId: string;
   lat: number;
   lng: number;
+  city: string;
+  area?: string;
   resultType?: string;
   blocked: boolean;
 };
@@ -25,6 +33,8 @@ function toLocationSuggestion(row: NormalizedLocationSuggestion): LocationSugges
     placeId: row.placeId,
     lat: row.lat,
     lng: row.lng,
+    city: row.city,
+    area: row.area,
     resultType: row.resultType,
     blocked: isBroadAdministrativeSearchArea(row.resultType, row.label),
   };
@@ -38,12 +48,13 @@ function matchesDemoInputExactly(suggestion: LocationSuggestion, value: string):
 }
 
 /**
- * Val-baserat autocomplete-fält för verifierade sökområden.
+ * Val-baserat autocomplete-fält för verifierade sökområden och platsval.
  *
  * Live använder Geoapify via serverfunktionen. Exempel/demo kan använda en
  * deterministisk lokal fixture, men båda följer samma presentations- och
  * tangentbordskontrakt. Rå fritext utan explicit val räknas aldrig som en
- * verifierad plats.
+ * verifierad plats. Vid val följer strukturerad ort/områdeskontext med så att
+ * andra flöden inte behöver gissa geografi från etiketten.
  */
 export function GeoapifyLocationInput({
   id,
@@ -60,7 +71,7 @@ export function GeoapifyLocationInput({
   id?: string;
   value: string;
   onChange: (text: string) => void;
-  onSelect: (value: VerifiedHomeLocation) => void;
+  onSelect: (value: VerifiedLocationSelection) => void;
   onClearVerified?: () => void;
   placeholder?: string;
   disabled?: boolean;
@@ -120,6 +131,9 @@ export function GeoapifyLocationInput({
       lng: suggestion.lng,
       provider: "geoapify",
       placeId: suggestion.placeId,
+      city: suggestion.city,
+      area: suggestion.area,
+      resultType: suggestion.resultType,
     });
     setOpen(false);
     setActiveIx(-1);
