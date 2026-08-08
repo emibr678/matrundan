@@ -343,24 +343,17 @@ export function PlaceDiscoveryV16({
         let moreAvailable = false;
         let followingOffset = 0;
         if (isLive) {
-          const response = await geoapifySearchPlacesMulti({
-            data: {
-              text: query.trim() || undefined,
-              centers: activeAreas.map((area) => ({
-                id: area.id,
-                label: shortSearchAreaLabel(area.label),
-                lat: area.lat,
-                lng: area.lng,
-              })),
-              radiusKm,
-              limit: RESULT_PAGE_SIZE,
-              offset: 0,
-            },
+          const filled = await fillProviderPages({
+            seed: [],
+            startOffset: 0,
+            targetActionable: RESULT_PAGE_SIZE,
+            isStale: () => requestId !== requestRef.current,
           });
-          nextResults = response.results.map(toPlaceSuggestion);
-          nextFailedAreas = response.failedAreaLabels;
-          moreAvailable = response.hasMore;
-          followingOffset = response.nextOffset;
+          if (!filled) return;
+          nextResults = filled.results;
+          nextFailedAreas = filled.failedAreaLabels;
+          moreAvailable = filled.hasMore;
+          followingOffset = filled.nextOffset;
         } else {
           const settled = await Promise.allSettled(
             activeAreas.map(async (area) => ({
