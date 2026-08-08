@@ -550,11 +550,7 @@ export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
         <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={onClose}>
           Avbryt
         </Button>
-        <Button
-          className="min-h-11"
-          disabled={isBusy || candidateLoading}
-          onClick={submit}
-        >
+        <Button className="min-h-11" disabled={isBusy || candidateLoading} onClick={submit}>
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Lägg till i gruppen
         </Button>
