@@ -6,7 +6,7 @@ on:
       paths:
         description: Komma- eller radseparerade demosökvägar att fånga
         required: false
-        default: /?demo=1,/matstallen?demo=1,/matstallen/p7?demo=1
+        default: /?demo=1,/matstallen?demo=1,/matstallen/p7?demo=1,/platsunderhall?demo=1
   pull_request:
     branches:
       - main
