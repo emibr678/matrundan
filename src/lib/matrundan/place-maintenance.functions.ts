@@ -34,8 +34,13 @@ const candidateContextSchema = z.object({
   website: z.string().nullable(),
 });
 
-const inputSchema = z.object({ candidateId: z.string().uuid() });
-const linkInputSchema = inputSchema.extend({ providerPlaceId: z.string().trim().min(1).max(240) });
+const workItemInputSchema = z.object({
+  kind: z.literal("improvement_candidate"),
+  workItemId: z.string().uuid(),
+});
+const linkInputSchema = workItemInputSchema.extend({
+  providerPlaceId: z.string().trim().min(1).max(240),
+});
 
 export interface PlaceMaintenanceProviderMatch {
   providerPlaceId: string;
@@ -64,9 +69,9 @@ function rpcError(error: { message?: string } | null, fallback: string): Error {
   return new Error(error?.message?.trim() || fallback);
 }
 
-async function loadCandidate(rpc: RpcCall, candidateId: string) {
+async function loadCandidate(rpc: RpcCall, workItemId: string) {
   const result = await rpc("get_place_improvement_candidate_for_maintenance_v1", {
-    _candidate_id: candidateId,
+    _candidate_id: workItemId,
   });
   if (result.error) throw rpcError(result.error, "Kunde inte läsa underhållsärendet.");
   return candidateContextSchema.parse(result.data);
@@ -150,10 +155,10 @@ function toPublicMatch(match: NormalizedPlaceSuggestion): PlaceMaintenanceProvid
 
 export const searchPlaceMaintenanceProviderMatches = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => inputSchema.parse(input))
+  .inputValidator((input) => workItemInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<PlaceMaintenanceProviderMatch[]> => {
     const rpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
-    const candidate = await loadCandidate(rpc, data.candidateId);
+    const candidate = await loadCandidate(rpc, data.workItemId);
     if (!["open", "needs_osm"].includes(candidate.status)) return [];
     return (await fetchProviderMatches(candidate)).map(toPublicMatch);
   });
@@ -163,13 +168,13 @@ export const linkPlaceMaintenanceProviderMatch = createServerFn({ method: "POST"
   .inputValidator((input) => linkInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ placeId: string }> => {
     const rpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
-    const candidate = await loadCandidate(rpc, data.candidateId);
+    const candidate = await loadCandidate(rpc, data.workItemId);
     if (!["open", "needs_osm"].includes(candidate.status)) {
       throw new Error("Underhållsärendet är redan avslutat.");
     }
 
     // Gör en färsk serversökning vid själva länkningsögonblicket. Klienten får
-    // aldrig skicka rå Geoapify-data eller en egen cross-group-position.
+    // aldrig skicka rå Geoapify-data, gruppidentitet eller en egen position.
     const match = (await fetchProviderMatches(candidate)).find(
       (item) => item.externalId === data.providerPlaceId,
     );
@@ -187,8 +192,9 @@ export const linkPlaceMaintenanceProviderMatch = createServerFn({ method: "POST"
       raw = {};
     }
 
-    const linked = await rpc("link_provider_source_for_maintenance_v1", {
-      _candidate_id: candidate.candidateId,
+    const linked = await rpc("link_provider_source_for_maintenance_work_item_v1", {
+      _kind: data.kind,
+      _work_item_id: candidate.candidateId,
       _provider: match.provider,
       _provider_place_id: match.externalId,
       _name: match.name,
