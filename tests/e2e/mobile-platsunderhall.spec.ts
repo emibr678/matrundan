@@ -28,6 +28,7 @@ test("Platsunderhåll samlar rapporter och kandidater utan horisontell overflow"
   const sourceQueue = page.getByRole("button", { name: /^Saknar extern källa \d+$/ });
   const osmQueue = page.getByRole("button", { name: /^OSM-åtgärd \d+$/ });
   const closedQueue = page.getByRole("button", { name: /^Klart \d+$/ });
+  const detail = page.getByRole("region", { name: "Underhållsdetalj" });
 
   await expect(page.getByRole("heading", { name: "Platsunderhåll" })).toBeVisible();
   await expect(page.getByText("Fiktiv demodata för utveckling")).toBeVisible();
@@ -37,7 +38,7 @@ test("Platsunderhåll samlar rapporter och kandidater utan horisontell overflow"
   await expect(osmQueue).toBeVisible();
   await expect(closedQueue).toBeVisible();
   await expect(page.getByRole("heading", { name: "Kajkanten" })).toBeVisible();
-  await expect(page.getByText("Fel webbplats", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Fel webbplats", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Markera klart" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – rapporterat fel");
 
