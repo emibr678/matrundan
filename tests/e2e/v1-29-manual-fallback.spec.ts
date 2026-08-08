@@ -41,11 +41,11 @@ test("sista sökområdes-pillen kan tas bort på mobil utan att fallbackformulä
   while ((await pills.count()) > 0) {
     await pills.first().getByRole("button").tap();
     await page.waitForTimeout(150);
+    await expect(manualForm(page)).toHaveCount(0);
   }
 
   for (let step = 0; step < 10; step += 1) {
     await expect(manualForm(page)).toHaveCount(0);
-    await expect(fallbackButton(page)).toBeVisible();
     await page.waitForTimeout(80);
   }
 
@@ -70,6 +70,20 @@ test("spökklick utan pekning öppnar inte fallbacken men en riktig aktivering g
   await expect(page.getByRole("heading", { name: "Stället saknas i sökningen" })).toBeVisible();
   await expect(manualForm(page)).toBeVisible();
   await expect(page.getByRole("button", { name: "Tillbaka till sök" })).toBeVisible();
+});
+
+test("fallbacken har en gemensam frivillig sektion med webbplats men inget symbolval", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await openSearchDialog(page);
+  await fallbackButton(page).tap();
+
+  await page.getByRole("button", { name: "Fler uppgifter (valfritt)", exact: true }).click();
+  await expect(page.locator("#manual-website")).toBeVisible();
+  await expect(page.getByText("Webbplats", { exact: true })).toBeVisible();
+  await expect(page.getByText("För gruppen (valfritt)", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Symbol", { exact: true })).toHaveCount(0);
 });
 
 test("exempelgruppen återanvänder ett arkiverat kanoniskt ställe med samma placeId", async ({
