@@ -99,12 +99,14 @@ har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk f
 platskandidater och tillagda matställen** genomfördes i v1.27.0.
 
 **Paket B – Sök och geografi** är aktivt. **#147 Visa naturliga svenska
-etiketter för geografiska sökträffar** genomfördes i v1.27.1 och **#148 Gör Lägg
-till ställen begripligt med Sök i före intelligent matställessökning**
-genomfördes i v1.28.0 via PR #154. Nästa steg är **#156 Återanvänd befintliga
-kanoniska Matrundan-ställen före nytt manuellt ställe**, följt av **#155 Gör
-ställen som saknas till en snabb fallback och samla förbättringsunderlag** och
-sedan **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**.
+etiketter för geografiska sökträffar** genomfördes i v1.27.1, **#148 Gör Lägg
+till ställen begripligt med Sök i före intelligent matställessökning** i v1.28.0
+och **#156 Återanvänd befintliga kanoniska Matrundan-ställen före nytt manuellt
+ställe** tillsammans med **#155 Gör ställen som saknas till en snabb fallback och
+samla förbättringsunderlag** i v1.29.0 via PR #161. Nästa produktsteg är **#163
+Gör neutrala förbättringskandidater granskningsbara för Matrundan-underhåll**,
+följt av **#149 Stöd geografiska boundaries och visualisera sökområden på
+kartan**.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -160,20 +162,25 @@ Rekommenderad ordning:
    eller typ med grupperad autocomplete. Specifika matställen visas med
    trovärdig adress eller relevant geografisk fallback. Genomförd i v1.28.0 via
    PR #154.
-3. **#156 Återanvänd befintliga kanoniska Matrundan-ställen före nytt manuellt
-   ställe**  
-   När extern sökning inte identifierar rätt ställe ska en begränsad och
-   integritetssäker kontroll kunna hitta relevanta redan kända kanoniska
-   Matrundan-ställen. Ett valt ställe återanvänder samma `place_id` och skapar
-   endast eller återaktiverar målgruppens `group_places`-relation. Ingen
-   ursprungsgrupp, medlemsinformation eller privat gruppmetadata exponeras.
-4. **#155 Gör ställen som saknas till en snabb fallback och samla
+3. ✅ **#156 Återanvänd befintliga kanoniska Matrundan-ställen före nytt
+   manuellt ställe**  
+   När extern sökning inte identifierar rätt ställe gör Matrundan en begränsad
+   och integritetssäker kontroll mot redan kända kanoniska ställen. Ett valt
+   ställe återanvänder samma `place_id` utan att exponera ursprungsgrupp eller
+   privat metadata. Genomförd i v1.29.0 via PR #161.
+4. ✅ **#155 Gör ställen som saknas till en snabb fallback och samla
    förbättringsunderlag**  
-   Gör vägen för ett ställe som inte hittas till en naturlig fortsättning på
-   sökningen med ett kort kärnformulär. Verifierbar platsinformation kan skapa
-   ett neutralt internt förbättringsunderlag utan att användaren behöver förstå
-   OpenStreetMap eller att något publiceras externt.
-5. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
+   Fallbacken är en naturlig fortsättning på sökningen med ett kort formulär och
+   kan skapa ett neutralt internt förbättringsunderlag utan att kalla det ett
+   verifierat OSM-fel. Genomförd i v1.29.0 via PR #161.
+5. **#163 Gör neutrala förbättringskandidater granskningsbara för
+   Matrundan-underhåll**  
+   Gör det neutrala underlaget användbart i en separat intern underhållsyta med
+   en smal serverstyrd Matrundan-behörighet. Underhållaren ska kunna verifiera
+   extern platsidentitet, markera behov av manuell OSM-åtgärd eller avfärda en
+   kandidat utan att ursprungsgrupp, medlemskap eller privat gruppmetadata
+   exponeras och utan automatisk extern publicering.
+6. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
    Utöka sökområdesmodellen så verifierade kommuner, stadsdelar och andra
    områden kan sökas inom sin faktiska providergräns, medan adresser och andra
    punktplatser behåller närhetsavstånd. Polygoner och radier ska kunna
@@ -185,10 +192,11 @@ Alla sparade områden är fortsatt valda när sökningen öppnas och inget områ
 primärt. Befintliga punktområden får inte tyst få ny geografisk innebörd när
 boundary-stödet införs.
 
-#156 och #155 ska förebygga nya kanoniska dubbletter i tilläggsflödet, men de
-omfattar inte generell historisk deduplicering eller automatisk sammanföring av
-befintliga `places`-rader. Det senare hör till Paket F och blockerar varken #155
-eller #149.
+#156 och #155 förebygger nya kanoniska dubbletter och skapar neutralt
+förbättringsunderlag. #163 gör underlaget granskningsbart utan att göra det till
+gruppdata eller automatisk OSM-publicering. Generell historisk deduplicering och
+automatisk sammanföring av befintliga `places`-rader ingår fortfarande inte;
+det hör till Paket F och blockerar varken #163 eller #149.
 
 Boundary-steget ändrar ett varaktigt arkitekturbeslut och kräver därför en
 aktuell arkitektur- och migrationsplan innan implementation. Egenritade
@@ -255,8 +263,8 @@ Rekommenderad ordning:
    administrativt granskad och transaktionell merge för bekräftade historiska
    dubbletter. Ingen fuzzy automatisk massmerge ingår.
 
-Paket F bygger vidare på den serverprincip som etableras i #156, men är inte ett
-beroende för #155 eller #149. Det ska stärka kanonisk identitet utan att skapa en
+Paket F bygger vidare på den serverprincip som etablerats i #156, men är inte ett
+beroende för #163 eller #149. Det ska stärka kanonisk identitet utan att skapa en
 publik katalog eller exponera vilka andra grupper som använder samma plats.
 
 ## Genomförda paket
