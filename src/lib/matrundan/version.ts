@@ -6,6 +6,21 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_29_1_CHANGELOG: ChangelogEntry = {
+  version: "1.29.1",
+  date: "2026-08-08",
+  summary: "Webbplats från fallbackflödet sparas korrekt med stället i gruppen.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "En webbplats som anges när Lägg till ett ställe som saknas används sparas nu med stället i gruppen i stället för att försvinna efter tillägget.",
+        "Webbplatsens egen URL används som källänk när ingen separat källänk eller observation finns, utan att försvaga källkravet för andra praktiska uppgifter.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_29_0_CHANGELOG: ChangelogEntry = {
   version: "1.29.0",
   date: "2026-08-08",
@@ -147,6 +162,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_29_1_CHANGELOG,
   VERSION_1_29_0_CHANGELOG,
   VERSION_1_28_0_CHANGELOG,
   VERSION_1_27_1_CHANGELOG,
