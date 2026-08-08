@@ -93,7 +93,9 @@ async function fetchProviderMatches(candidate: z.infer<typeof candidateContextSc
       signal: controller.signal,
     });
     if (response.status === 429) {
-      throw new Error("GEOAPIFY_RATE_LIMIT: Karttjänsten används mycket just nu. Försök igen snart.");
+      throw new Error(
+        "GEOAPIFY_RATE_LIMIT: Karttjänsten används mycket just nu. Försök igen snart.",
+      );
     }
     if (!response.ok) {
       throw new Error(`GEOAPIFY_UNAVAILABLE: Karttjänsten svarade med status ${response.status}.`);
@@ -152,7 +154,7 @@ export const searchPlaceMaintenanceProviderMatches = createServerFn({ method: "P
   .handler(async ({ data, context }): Promise<PlaceMaintenanceProviderMatch[]> => {
     const rpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
     const candidate = await loadCandidate(rpc, data.candidateId);
-    if (!['open', 'needs_osm'].includes(candidate.status)) return [];
+    if (!["open", "needs_osm"].includes(candidate.status)) return [];
     return (await fetchProviderMatches(candidate)).map(toPublicMatch);
   });
 
@@ -162,7 +164,7 @@ export const linkPlaceMaintenanceProviderMatch = createServerFn({ method: "POST"
   .handler(async ({ data, context }): Promise<{ placeId: string }> => {
     const rpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
     const candidate = await loadCandidate(rpc, data.candidateId);
-    if (!['open', 'needs_osm'].includes(candidate.status)) {
+    if (!["open", "needs_osm"].includes(candidate.status)) {
       throw new Error("Underhållsärendet är redan avslutat.");
     }
 
