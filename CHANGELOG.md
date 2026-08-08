@@ -14,6 +14,29 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.28.0] – 2026-08-07
+
+### Ändrat
+
+- Lägg till ställen etablerar sökområdet före matställessökningen: geografifältet
+  visas före valda områdes-pills och avståndet beskrivs som `Sök inom X km`.
+- Kända kök, inriktningar och typer som sushi, pasta och café tolkas semantiskt
+  i stället för att enbart matchas mot verksamhetsnamn.
+- Matställessökningen skiljer generella köks- och typförslag från specifika
+  verksamheter utan att ett verksamhetsval ändrar sökområde eller avstånd.
+- En ny sökning behåller redan visade träffar under omladdningen och visar en
+  diskret `Söker…`-status i stället för att tömma resultatytan.
+- Sökresultat visas i mindre omgångar och varje listsida fylls med upp till 20
+  faktiskt visningsbara träffar när providern har fler. **Visa fler** ger upp
+  till nästa 20 visningsbara träffar och lägger dem sist utan att kasta om
+  redan visade resultat.
+- Att ta bort det sista sökområdet på mobil lämnar kvar fliken **Sök**, utan att
+  formuläret för manuellt tillägg blinkar fram.
+- Identiska Geoapify-sökningar och autocompleteanrop kan återanvända en
+  kortlivad servercache för att minska onödiga provideranrop.
+- Exempel- och demoläget använder samma sökintent med deterministiska lokala
+  matställen och utan externa provideranrop.
+
 ## [1.27.1] – 2026-08-07
 
 ### Rättat
@@ -56,7 +79,7 @@ Inga ändringar ännu.
 
 ### Rättat
 
-- Nya breda kommun-, läns-, region- och landsområden blockeras åter av
+- Nya breda kommun-, län-, region- och landsområden blockeras åter av
   servern innan gruppens befintliga sökområden ersätts.
 - Befintliga breda sökområden kan ligga kvar oförändrade tills gruppen väljer
   ett mer precist område.

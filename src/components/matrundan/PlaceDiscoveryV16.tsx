@@ -1,5 +1,7 @@
 import * as React from "react";
 import { Check, List, Loader2, Map, Search } from "lucide-react";
+import { toast } from "sonner";
+
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
 import { SearchAreaControlsV16 } from "./SearchAreaControlsV16";
 import { SearchResultSectionsV16, type SourceMatchResult } from "./SearchResultSectionsV16";
@@ -28,7 +30,18 @@ import {
   listLocalManualSourceLinks,
   type LocalManualSourceLink,
 } from "@/lib/matrundan/manual-place-source-links";
+import {
+  genericPlaceSearchSuggestions,
+  type GenericPlaceSearchSuggestion,
+} from "@/lib/matrundan/place-search-intent";
+import {
+  actionableSliceIndex,
+  countActionableSuggestions,
+  mergePlaceSearchPages,
+} from "@/lib/matrundan/place-search-pagination";
+
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
+
 import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -36,6 +49,10 @@ import { CATEGORY_LABEL, type SearchArea, type SearchRadiusKm } from "@/lib/matr
 
 type ResultView = "lista" | "karta";
 type ResultStatus = "available" | "linkable" | "existing";
+
+const RESULT_PAGE_SIZE = 20;
+/** Defensivt tak på provideranrop per användarhandling. */
+const MAX_PROVIDER_PAGES_PER_ACTION = 5;
 
 export interface PlaceDiscoverySnapshot {
   query: string;
@@ -49,6 +66,9 @@ export interface PlaceDiscoverySnapshot {
   existingOpen: boolean;
   bulkMode: boolean;
   error: string | null;
+  displayLimit: number;
+  hasMore: boolean;
+  nextOffset: number;
 }
 
 export function PlaceDiscoveryV16({
@@ -110,7 +130,15 @@ export function PlaceDiscoveryV16({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(snapshot?.error ?? null);
   const [retry, setRetry] = React.useState(0);
+  const [displayLimit, setDisplayLimit] = React.useState(
+    snapshot?.displayLimit ?? RESULT_PAGE_SIZE,
+  );
+  const [hasMore, setHasMore] = React.useState(snapshot?.hasMore ?? false);
+  const [nextOffset, setNextOffset] = React.useState(snapshot?.nextOffset ?? 0);
+  const [loadingMore, setLoadingMore] = React.useState(false);
   const requestRef = React.useRef(0);
+  const skipInitialSearchRef = React.useRef(Boolean(snapshot));
+
   const previousBulkBusyRef = React.useRef(false);
   const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
@@ -128,12 +156,18 @@ export function PlaceDiscoveryV16({
       existingOpen,
       bulkMode,
       error,
+      displayLimit,
+      hasMore,
+      nextOffset,
     });
   }, [
     bulkMode,
+    displayLimit,
     error,
     existingOpen,
     failedAreas,
+    hasMore,
+    nextOffset,
     onSnapshotChange,
     query,
     radiusKm,
@@ -200,14 +234,109 @@ export function PlaceDiscoveryV16({
       window.removeEventListener("matrundan:hidden-place-suggestions-changed", handleChanged);
   }, [loadHiddenSuggestions]);
 
+  /**
+   * En träff är handlingsbar när den varken är dold eller redan aktiv i gruppen.
+   * Länkbara träffar räknas som handlingsbara eftersom de kan kopplas.
+   */
+  const isActionableSuggestion = React.useCallback(
+    (suggestion: PlaceSuggestion) => {
+      if (hiddenKeys.has(hiddenPlaceSuggestionKey(suggestion))) return false;
+      if (addedResultIds.has(suggestion.externalId)) return false;
+      if (state.places.some((place) => hasActiveProviderSource(place, suggestion))) return false;
+      if (hasLocalManualSourceLink(localSourceLinks, suggestion)) return false;
+      const match = matchingPlace(state.places, suggestion);
+      return !(match && match.collectionStatus !== "archived");
+    },
+    [addedResultIds, hiddenKeys, localSourceLinks, state.places],
+  );
+  const isActionableRef = React.useRef(isActionableSuggestion);
   React.useEffect(() => {
+    isActionableRef.current = isActionableSuggestion;
+  }, [isActionableSuggestion]);
+
+  /**
+   * Läser vidare i providerns offset-paginering tills listan innehåller
+   * `targetActionable` faktiskt handlingsbara träffar, providern är slut eller
+   * det defensiva taket på antal provideranrop nås. Stoppar direkt när målet
+   * är uppnått och avbryter om användaren har ändrat sökningen (`isStale`).
+   */
+  const fillProviderPages = React.useCallback(
+    async ({
+      seed,
+      startOffset,
+      targetActionable,
+      isStale,
+    }: {
+      seed: PlaceSuggestion[];
+      startOffset: number;
+      targetActionable: number;
+      isStale: () => boolean;
+    }) => {
+      let collected = seed;
+      const failedAreaLabels = new Set<string>();
+      let offset = startOffset;
+      let moreAvailable = false;
+      let pages = 0;
+
+      while (pages < MAX_PROVIDER_PAGES_PER_ACTION) {
+        const response = await geoapifySearchPlacesMulti({
+          data: {
+            text: query.trim() || undefined,
+            centers: activeAreas.map((area) => ({
+              id: area.id,
+              label: shortSearchAreaLabel(area.label),
+              lat: area.lat,
+              lng: area.lng,
+            })),
+            radiusKm,
+            limit: RESULT_PAGE_SIZE,
+            offset,
+          },
+        });
+        if (isStale()) return null;
+
+        pages += 1;
+        collected = mergePlaceSearchPages(collected, response.results.map(toPlaceSuggestion));
+        response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
+        moreAvailable = response.hasMore;
+        offset = response.nextOffset;
+
+        if (!moreAvailable) break;
+        if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable) {
+          break;
+        }
+      }
+
+      return {
+        results: collected,
+        failedAreaLabels: [...failedAreaLabels],
+        hasMore: moreAvailable,
+        nextOffset: offset,
+      };
+    },
+    [activeAreas, query, radiusKm],
+  );
+
+  React.useEffect(() => {
+    // Vänta in gömda förslag: fyllnaden till 20 handlingsbara träffar räknar mot
+    // hiddenKeys, så en sökning som startar under laddningen kan bli underfylld.
+    if (hiddenLoading) return;
+    if (skipInitialSearchRef.current) {
+      skipInitialSearchRef.current = false;
+      return;
+    }
+
     if (activeAreas.length === 0) {
       setResults([]);
       setFailedAreas([]);
       setError(null);
+      setDisplayLimit(RESULT_PAGE_SIZE);
+      setHasMore(false);
+      setNextOffset(0);
       return;
     }
     const requestId = ++requestRef.current;
+
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError(null);
@@ -215,22 +344,20 @@ export function PlaceDiscoveryV16({
       try {
         let nextResults: PlaceSuggestion[];
         let nextFailedAreas: string[] = [];
+        let moreAvailable = false;
+        let followingOffset = 0;
         if (isLive) {
-          const response = await geoapifySearchPlacesMulti({
-            data: {
-              text: query.trim() || undefined,
-              centers: activeAreas.map((area) => ({
-                id: area.id,
-                label: shortSearchAreaLabel(area.label),
-                lat: area.lat,
-                lng: area.lng,
-              })),
-              radiusKm,
-              limit: 50,
-            },
+          const filled = await fillProviderPages({
+            seed: [],
+            startOffset: 0,
+            targetActionable: RESULT_PAGE_SIZE,
+            isStale: () => requestId !== requestRef.current,
           });
-          nextResults = response.results.map(toPlaceSuggestion);
-          nextFailedAreas = response.failedAreaLabels;
+          if (!filled) return;
+          nextResults = filled.results;
+          nextFailedAreas = filled.failedAreaLabels;
+          moreAvailable = filled.hasMore;
+          followingOffset = filled.nextOffset;
         } else {
           const settled = await Promise.allSettled(
             activeAreas.map(async (area) => ({
@@ -265,22 +392,88 @@ export function PlaceDiscoveryV16({
         if (requestId !== requestRef.current) return;
         setResults(nextResults);
         setFailedAreas(nextFailedAreas);
+        setDisplayLimit(RESULT_PAGE_SIZE);
+        setHasMore(moreAvailable);
+        setNextOffset(followingOffset);
         setSelectedId(nextResults[0]?.externalId ?? null);
       } catch (caught) {
         if (requestId !== requestRef.current) return;
         setResults([]);
+        setHasMore(false);
+        setNextOffset(0);
         setError(providerMessage(caught));
       } finally {
         if (requestId === requestRef.current) setLoading(false);
       }
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [activeAreas, isLive, query, radiusKm, retry]);
+  }, [activeAreas, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]);
 
-  const visibleResults = React.useMemo(
+  const filteredResults = React.useMemo(
     () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
     [hiddenKeys, results],
   );
+  const visibleResults = React.useMemo(
+    () =>
+      filteredResults.slice(
+        0,
+        actionableSliceIndex(filteredResults, isActionableSuggestion, displayLimit),
+      ),
+    [displayLimit, filteredResults, isActionableSuggestion],
+  );
+  const shownActionableCount = countActionableSuggestions(visibleResults, isActionableSuggestion);
+  const bufferedActionableCount = countActionableSuggestions(
+    filteredResults,
+    isActionableSuggestion,
+  );
+  const bufferedRemaining = Math.max(0, bufferedActionableCount - shownActionableCount);
+  const canShowMore = bufferedRemaining > 0 || hasMore;
+  const searchInFlight = loading || hiddenLoading;
+  const isReloadingResults = searchInFlight && visibleResults.length > 0;
+  const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
+
+  const showMoreResults = React.useCallback(async () => {
+    const targetActionable = shownActionableCount + RESULT_PAGE_SIZE;
+    if (bufferedRemaining > 0) {
+      setDisplayLimit(targetActionable);
+      if (bufferedActionableCount >= targetActionable) return;
+    }
+    if (!hasMore || !isLive || loadingMore) return;
+
+    const requestId = requestRef.current;
+    setLoadingMore(true);
+    try {
+      const filled = await fillProviderPages({
+        seed: results,
+        startOffset: nextOffset,
+        targetActionable,
+        isStale: () => requestId !== requestRef.current,
+      });
+      if (!filled) return;
+      setResults(filled.results);
+      setHasMore(filled.hasMore);
+      setNextOffset(filled.nextOffset);
+      setDisplayLimit(targetActionable);
+    } catch (caught) {
+      if (requestId !== requestRef.current) return;
+      console.warn("[Matrundan] kunde inte hämta fler sökträffar:", caught);
+      toast.error(providerMessage(caught), {
+        description: "Träffarna du redan ser ligger kvar. Försök gärna igen.",
+      });
+    } finally {
+      if (requestId === requestRef.current) setLoadingMore(false);
+    }
+  }, [
+    bufferedActionableCount,
+    bufferedRemaining,
+    fillProviderPages,
+    hasMore,
+    isLive,
+    loadingMore,
+    nextOffset,
+    results,
+    shownActionableCount,
+  ]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
     if (!canLinkSources) return [];
@@ -422,24 +615,17 @@ export function PlaceDiscoveryV16({
       className="h-[55vh] min-h-[340px] lg:h-[52vh] lg:min-h-[390px]"
     />
   );
+  const genericSuggestions = React.useMemo(() => genericPlaceSearchSuggestions(query, 4), [query]);
+  const placeAutocompleteSuggestions = React.useMemo(
+    () => (query.trim().length < 2 ? [] : visibleResults.slice(0, 5)),
+    [query, visibleResults],
+  );
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="place-query">Sök</Label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="place-query"
-            className="pl-9"
-            placeholder="Namn, kök eller kategori"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-      </div>
-
       <SearchAreaControlsV16
+        heading="Sök i"
+        addAreaActionLabel="Lägg till område eller adress"
         savedAreas={savedAreas}
         selectedAreaIds={selectedAreaIds}
         onSelectedAreaIdsChange={setSelectedAreaIds}
@@ -451,9 +637,18 @@ export function PlaceDiscoveryV16({
         fallbackCity={state.group.city}
       />
 
+      <PlaceSearchCombobox
+        query={query}
+        onQueryChange={setQuery}
+        loading={loading}
+        genericSuggestions={genericSuggestions}
+        placeSuggestions={placeAutocompleteSuggestions}
+        onSelectPlace={(suggestion) => setSelectedId(suggestion.externalId)}
+      />
+
       {activeAreas.length === 0 ? (
         <Empty text="Sök och välj minst ett sökområde." />
-      ) : loading || hiddenLoading ? (
+      ) : isInitialSearchLoading ? (
         <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
         </div>
@@ -472,6 +667,15 @@ export function PlaceDiscoveryV16({
         </div>
       ) : (
         <>
+          {isReloadingResults ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex min-h-6 items-center gap-2 text-xs text-muted-foreground"
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Söker…
+            </div>
+          ) : null}
           {failedAreas.length > 0 ? (
             <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
               Kunde inte söka i {failedAreas.join(", ")}. Övriga resultat visas.
@@ -486,7 +690,8 @@ export function PlaceDiscoveryV16({
                 <ResultToggle value={resultView} onChange={setResultView} />
                 <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
                   <span className="text-xs text-muted-foreground">
-                    {actionableResultCount} {actionableResultCount === 1 ? "träff" : "träffar"}
+                    Visar {actionableResultCount}{" "}
+                    {actionableResultCount === 1 ? "träff" : "träffar"}
                   </span>
                   {availableResults.length > 0 ? (
                     <Button
@@ -522,6 +727,26 @@ export function PlaceDiscoveryV16({
                 <div className="max-h-[52vh] overflow-y-auto pr-1">{resultSections}</div>
                 {map}
               </div>
+              {canShowMore ? (
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="min-h-11 w-full sm:w-auto"
+                    disabled={loadingMore || interactionsDisabled}
+                    onClick={() => void showMoreResults()}
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
+                      </>
+                    ) : (
+                      "Visa fler"
+                    )}
+                  </Button>
+                </div>
+              ) : null}
               {unmappedCount > 0 ? (
                 <p className="text-[11px] text-muted-foreground">
                   {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
@@ -625,6 +850,203 @@ function Empty({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-dashed border-border/70 bg-card/60 p-6 text-center text-sm text-muted-foreground">
       {text}
+    </div>
+  );
+}
+
+type PlaceSearchOption =
+  | { kind: "generic"; key: string; label: string; meta: string; searchValue: string }
+  | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion };
+
+function placeOptionMeta(suggestion: PlaceSuggestion): string {
+  const location =
+    suggestion.address?.trim() ||
+    [suggestion.area, suggestion.city].filter(Boolean).join(" · ") ||
+    suggestion.city ||
+    "";
+  const city = suggestion.address?.trim() && suggestion.city ? suggestion.city : "";
+  return [CATEGORY_LABEL[suggestion.category], location, city].filter(Boolean).join(" · ");
+}
+
+/**
+ * Presentationsfält för "Sök matställen".
+ *
+ * Fältet gör inga egna dataanrop: generella förslag kommer från
+ * genericPlaceSearchSuggestions och specifika matställen från samma
+ * providerresultat som resultatlistan. Val av ett matställe markerar bara den
+ * verksamheten och rör aldrig sökområden eller radie.
+ */
+function PlaceSearchCombobox({
+  query,
+  onQueryChange,
+  loading,
+  genericSuggestions,
+  placeSuggestions,
+  onSelectPlace,
+}: {
+  query: string;
+  onQueryChange: (value: string) => void;
+  loading: boolean;
+  genericSuggestions: GenericPlaceSearchSuggestion[];
+  placeSuggestions: PlaceSuggestion[];
+  onSelectPlace: (suggestion: PlaceSuggestion) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [activeIx, setActiveIx] = React.useState(-1);
+
+  const genericOptions: PlaceSearchOption[] = genericSuggestions.map((suggestion) => ({
+    kind: "generic",
+    key: suggestion.id,
+    label: suggestion.label,
+    meta: suggestion.groupLabel,
+    searchValue: suggestion.searchValue,
+  }));
+  const placeOptions: PlaceSearchOption[] = placeSuggestions.map((suggestion) => ({
+    kind: "place",
+    key: suggestion.externalId,
+    label: suggestion.name,
+    meta: placeOptionMeta(suggestion),
+    suggestion,
+  }));
+  const options = [...genericOptions, ...placeOptions];
+  const hasQuery = query.trim().length >= 2;
+  const showList = open && hasQuery;
+
+  React.useEffect(() => {
+    setActiveIx(-1);
+  }, [query]);
+
+  function select(option: PlaceSearchOption) {
+    if (option.kind === "generic") {
+      onQueryChange(option.label);
+    } else {
+      onSelectPlace(option.suggestion);
+    }
+    setOpen(false);
+    setActiveIx(-1);
+  }
+
+  function move(direction: 1 | -1) {
+    if (options.length === 0) return;
+    setActiveIx((current) => {
+      if (current < 0) return direction === 1 ? 0 : options.length - 1;
+      return (current + direction + options.length) % options.length;
+    });
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (options.length === 0) return;
+      event.preventDefault();
+      setOpen(true);
+      move(event.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+    if (event.key === "Enter" && showList && activeIx >= 0) {
+      event.preventDefault();
+      select(options[activeIx]);
+      return;
+    }
+    if (event.key === "Escape") {
+      setOpen(false);
+      setActiveIx(-1);
+    }
+  }
+
+  function renderGroup(label: string, groupOptions: PlaceSearchOption[], offset: number) {
+    if (groupOptions.length === 0) return null;
+    return (
+      <div
+        role="group"
+        aria-label={label}
+        className="border-t border-border/60 pt-1 first:border-t-0 first:pt-0"
+      >
+        <p className="px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        {groupOptions.map((option, index) => {
+          const optionIndex = offset + index;
+          return (
+            <div
+              key={`${option.kind}:${option.key}`}
+              id={`place-search-opt-${optionIndex}`}
+              role="option"
+              aria-selected={optionIndex === activeIx}
+            >
+              <button
+                type="button"
+                className={[
+                  "w-full min-w-0 rounded px-2 py-2 text-left hover:bg-accent",
+                  optionIndex === activeIx ? "bg-accent" : "",
+                ].join(" ")}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  select(option);
+                }}
+              >
+                <span className="block min-w-0 break-words font-medium text-foreground">
+                  {option.label}
+                </span>
+                {option.meta ? (
+                  <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">
+                    {option.meta}
+                  </span>
+                ) : null}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor="place-query">Sök matställen</Label>
+      <div className="relative min-w-0">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          id="place-query"
+          className="pl-9"
+          placeholder="Namn, kök eller typ"
+          value={query}
+          onChange={(event) => {
+            onQueryChange(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+          onKeyDown={onKeyDown}
+          autoComplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={showList}
+          aria-controls="place-search-listbox"
+          aria-activedescendant={activeIx >= 0 ? `place-search-opt-${activeIx}` : undefined}
+        />
+        {showList ? (
+          <div
+            id="place-search-listbox"
+            role="listbox"
+            aria-label="Förslag på kök, typer och matställen"
+            className="absolute z-30 mt-1 max-h-72 w-full min-w-0 overflow-auto rounded-md border bg-popover p-1 text-sm shadow-md"
+          >
+            {options.length === 0 ? (
+              <p className="px-2 py-2 text-muted-foreground">
+                {loading ? "Söker…" : "Inga förslag"}
+              </p>
+            ) : (
+              <>
+                {renderGroup("Kök och typer", genericOptions, 0)}
+                {renderGroup("Matställen", placeOptions, genericOptions.length)}
+                {loading ? (
+                  <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

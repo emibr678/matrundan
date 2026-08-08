@@ -412,7 +412,17 @@ export function AddPlaceDialogV16({
   );
 }
 
+/**
+ * Flikväxlaren byter läge först när klicket hör ihop med en pekning på samma
+ * knapp, eller när det kommer från tangentbordet (`detail === 0`).
+ *
+ * Det skyddar mot spökklick och click-through: när sista sökområdes-pillen tas
+ * bort krymper dialogens innehåll och kan hamna under fingret, vilket annars
+ * kan aktivera "Lägg till manuellt" en kort stund.
+ */
 function TabToggle({ value, onChange }: { value: Tab; onChange: (value: Tab) => void }) {
+  const pointerTabRef = React.useRef<Tab | null>(null);
+
   return (
     <div className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
       {(["sok", "manuell"] as const).map((tab) => (
@@ -423,7 +433,16 @@ function TabToggle({ value, onChange }: { value: Tab; onChange: (value: Tab) => 
             value === tab ? "bg-background shadow-sm" : "text-muted-foreground"
           }`}
           aria-pressed={value === tab}
-          onClick={() => onChange(tab)}
+          onPointerDown={() => {
+            pointerTabRef.current = tab;
+          }}
+          onClick={(event) => {
+            const fromKeyboard = event.detail === 0;
+            const fromOwnPointer = pointerTabRef.current === tab;
+            pointerTabRef.current = null;
+            if (!fromKeyboard && !fromOwnPointer) return;
+            onChange(tab);
+          }}
         >
           {tab === "sok" ? "Sök" : "Lägg till manuellt"}
         </button>

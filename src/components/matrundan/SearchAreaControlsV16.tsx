@@ -20,6 +20,8 @@ const MAX_SEARCH_CENTERS = 5;
 const SEARCH_PLACEHOLDER = "Sök ort, stadsdel eller adress";
 
 interface SearchAreaControlsProps {
+  heading: string;
+  addAreaActionLabel: string;
   savedAreas: SearchArea[];
   selectedAreaIds: string[];
   onSelectedAreaIdsChange: (ids: string[]) => void;
@@ -82,11 +84,7 @@ function SelectedAreas({
   onRemoveTemporary,
 }: SelectedAreasProps) {
   if (savedAreas.length === 0 && temporaryAreas.length === 0) {
-    return (
-      <p className="rounded-xl border border-dashed border-border/70 px-3 py-3 text-sm text-muted-foreground">
-        Sök och välj minst en plats att utgå från.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">Välj minst en plats att söka runt.</p>;
   }
 
   return (
@@ -115,7 +113,7 @@ function SelectedAreas({
   );
 }
 
-function SearchRadiusSelect({
+function InlineSearchRadius({
   radiusKm,
   onRadiusChange,
 }: {
@@ -123,28 +121,31 @@ function SearchRadiusSelect({
   onRadiusChange: (radius: SearchRadiusKm) => void;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor="place-radius">Sökradie</Label>
-      <Select
-        value={String(radiusKm)}
-        onValueChange={(value) => onRadiusChange(Number(value) as SearchRadiusKm)}
+    <Select
+      value={String(radiusKm)}
+      onValueChange={(value) => onRadiusChange(Number(value) as SearchRadiusKm)}
+    >
+      <SelectTrigger
+        id="place-radius"
+        aria-label="Sökavstånd runt valda platser"
+        className="h-8 w-auto shrink-0 gap-1 rounded-full border-border/60 bg-muted/50 px-2.5 text-xs font-normal text-muted-foreground"
       >
-        <SelectTrigger id="place-radius" className="min-h-11">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {SEARCH_RADIUS_OPTIONS.map((value) => (
-            <SelectItem key={value} value={String(value)}>
-              {value === 50 ? "Större område · inom 50 km" : `Inom ${value} km`}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {SEARCH_RADIUS_OPTIONS.map((value) => (
+          <SelectItem key={value} value={String(value)}>
+            {`Sök inom ${value} km`}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
 export function SearchAreaControlsV16({
+  heading,
+  addAreaActionLabel,
   savedAreas,
   selectedAreaIds,
   onSelectedAreaIdsChange,
@@ -159,6 +160,10 @@ export function SearchAreaControlsV16({
   const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
+
+  React.useEffect(() => {
+    if (atLimit) setAreaQuery("");
+  }, [atLimit]);
 
   function addArea(area: SearchArea) {
     if (activeAreas.some((current) => sameSearchArea(current, area))) {
@@ -201,21 +206,28 @@ export function SearchAreaControlsV16({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="search-area-query">Sökområden</Label>
-        {atLimit ? (
-          <div
-            role="status"
-            className="flex min-h-10 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm text-muted-foreground"
-          >
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>
-              <span className="font-medium text-foreground">5 av 5 områden valda.</span> Ta bort ett
-              område för att söka efter ett annat.
-            </span>
-          </div>
-        ) : (
+    <section className="space-y-2" aria-label={heading}>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-medium">{heading}</h3>
+        <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
+      </div>
+
+      {atLimit ? (
+        <div
+          role="status"
+          className="flex min-h-10 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm text-muted-foreground"
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>
+            <span className="font-medium text-foreground">5 av 5 områden valda.</span> Ta bort ett
+            område för att söka efter ett annat.
+          </span>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <Label htmlFor="search-area-query" className="sr-only">
+            {addAreaActionLabel}
+          </Label>
           <SearchAreaField
             isLive={isLive}
             query={areaQuery}
@@ -225,18 +237,15 @@ export function SearchAreaControlsV16({
             onQueryChange={setAreaQuery}
             onSelect={addVerifiedArea}
           />
-        )}
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Ändringar här gäller bara den här sökningen.
-        </p>
-        <SelectedAreas
-          savedAreas={selectedSavedAreas}
-          temporaryAreas={temporaryAreas}
-          onRemoveSaved={removeSavedArea}
-          onRemoveTemporary={removeTemporaryArea}
-        />
-      </div>
-      <SearchRadiusSelect radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
-    </div>
+        </div>
+      )}
+
+      <SelectedAreas
+        savedAreas={selectedSavedAreas}
+        temporaryAreas={temporaryAreas}
+        onRemoveSaved={removeSavedArea}
+        onRemoveTemporary={removeTemporaryArea}
+      />
+    </section>
   );
 }

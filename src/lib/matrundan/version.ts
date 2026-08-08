@@ -6,6 +6,28 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_28_0_CHANGELOG: ChangelogEntry = {
+  version: "1.28.0",
+  date: "2026-08-07",
+  summary:
+    "Lägg till ställen får tydligare geografi, intelligent sökning och stegvis fler resultat.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Sök i visar geografifältet före valda områden och beskriver punktavståndet som Sök inom X km.",
+        "Kända kök, inriktningar och typer som sushi, pasta och café tolkas semantiskt i stället för att enbart matchas mot verksamhetsnamn.",
+        "Matställessökningen kan skilja generella köks- och typförslag från specifika verksamheter utan att ett platsval ändrar sökområdet.",
+        "En ny sökning behåller redan visade träffar medan den laddar och visar en diskret status i stället för att tömma resultatytan.",
+        "Varje listsida med sökträffar fylls med upp till 20 faktiskt visningsbara träffar och Visa fler ger upp till nästa 20 utan att kasta om redan visade.",
+        "Att ta bort det sista sökområdet på mobil lämnar kvar fliken Sök utan att formuläret för manuellt tillägg blinkar fram.",
+        "Kortlivad återanvändning av identiska provideranrop minskar onödiga Geoapify-anrop utan långlivad klientcache.",
+        "Exempel- och demoläget använder samma sökintent med deterministiska lokala matställen och utan externa provideranrop.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_27_1_CHANGELOG: ChangelogEntry = {
   version: "1.27.1",
   date: "2026-08-07",
@@ -62,7 +84,7 @@ const VERSION_1_26_4_CHANGELOG: ChangelogEntry = {
     {
       kind: "Rättat",
       items: [
-        "Nya breda kommun-, läns-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
+        "Nya breda kommun-, län-, region- och landsområden blockeras åter på servern utan att befintliga sparade områden raderas.",
         "Besöksfoton skyddas åter av en privat Storage-bucket med högst 1,5 MB och endast JPEG.",
       ],
     },
@@ -104,6 +126,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_28_0_CHANGELOG,
   VERSION_1_27_1_CHANGELOG,
   VERSION_1_27_0_CHANGELOG,
   VERSION_1_26_5_CHANGELOG,
