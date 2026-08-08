@@ -4,6 +4,8 @@ const discoverySource = await Bun.file("src/components/matrundan/PlaceDiscoveryV
 const areaControlsSource = await Bun.file(
   "src/components/matrundan/SearchAreaControlsV16.tsx",
 ).text();
+const dialogSource = await Bun.file("src/components/matrundan/AddPlaceDialogImplV16.tsx").text();
+const locationSource = await Bun.file("src/components/matrundan/GeoapifyLocationInput.tsx").text();
 
 describe("Lägg till ställens sökflöde", () => {
   test("etablerar Sök i före Sök matställen", () => {
@@ -90,8 +92,6 @@ describe("Fyllnad till hela listsidor", () => {
     const skipIndex = effectSource.indexOf("if (skipInitialSearchRef.current)");
 
     expect(gateIndex).toBeGreaterThanOrEqual(0);
-    // Gaten måste ligga före snapshot-skippen så en återställd snapshot bara
-    // skippar den första sökningen efter att hidden-data är känd.
     expect(skipIndex).toBeGreaterThan(gateIndex);
 
     const dependencyIndex = effectSource.indexOf(
@@ -101,14 +101,28 @@ describe("Fyllnad till hela listsidor", () => {
   });
 });
 
-const dialogSource = await Bun.file("src/components/matrundan/AddPlaceDialogImplV16.tsx").text();
-
 describe("Sekundär fallback i Lägg till matställe", () => {
+  test("ligger i sök/autocomplete och resultat i stället för före Sök i", () => {
+    expect(dialogSource).not.toContain("Hittar du inte stället?");
+    expect(discoverySource).toContain("Hittar du inte rätt ställe?");
+    expect(discoverySource).toContain("Inga matställen hittades");
+    expect(discoverySource).toContain("Lägg till ett ställe som saknas");
+    expect(discoverySource).not.toContain("lägg till manuellt");
+  });
+
   test("öppnar fallbacken bara vid egen pekning eller tangentbord", () => {
-    expect(dialogSource).toContain("function FallbackTrigger");
-    expect(dialogSource).toContain("onPointerDown");
-    expect(dialogSource).toContain("armedRef");
-    expect(dialogSource).toContain("event.detail === 0");
-    expect(dialogSource).toContain("if (!fromKeyboard && !fromOwnPointer) return;");
+    expect(discoverySource).toContain("function MissingPlaceButton");
+    expect(discoverySource).toContain("onPointerDown");
+    expect(discoverySource).toContain("armedRef");
+    expect(discoverySource).toContain("event.detail === 0");
+    expect(discoverySource).toContain("if (!fromKeyboard && !fromOwnPointer) return;");
+  });
+
+  test("autocomplete deltar i mobilens scroll men är dropdown på större skärm", () => {
+    expect(discoverySource).toContain("max-h-[min(42dvh,20rem)]");
+    expect(discoverySource).toContain("sm:absolute sm:max-h-72");
+    expect(locationSource).toContain("max-h-[min(38dvh,18rem)]");
+    expect(locationSource).toContain("sm:absolute sm:max-h-72");
+    expect(dialogSource).toContain("max-h-[94dvh]");
   });
 });
