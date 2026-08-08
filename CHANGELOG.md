@@ -68,7 +68,7 @@ Inga ändringar ännu.
 
 - Geografisk autocomplete visar kort platsnamn med svensk resulttyp och relevant
   ort, kommun eller län i stället för rå providertext som `Stavsnäs, AB`.
-- Breda kommun-, läns- och regionträffar förklaras tydligt men förblir ovalbara
+- Breda kommun-, län- och regionträffar förklaras tydligt men förblir ovalbara
   så länge sökområden använder punkt och radie.
 - Exempel- och demoläget använder samma autocompletepresentation utan externa
   Geoapify-anrop.
