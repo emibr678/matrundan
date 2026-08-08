@@ -44,7 +44,7 @@ test("Platsunderhåll fungerar i demo utan horisontell overflow", async ({ page 
   await expectNoHorizontalOverflow(page, "Platsunderhåll – OSM-åtgärd");
 
   await closedQueue.click();
-  await expect(page.getByText("Kajkanten")).toBeVisible();
-  await expect(page.getByText("Hamnboden")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kajkanten" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Hamnboden / })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – avslutade");
 });
