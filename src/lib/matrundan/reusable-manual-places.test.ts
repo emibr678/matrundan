@@ -43,10 +43,11 @@ describe("återanvändning av manuella kanoniska ställen", () => {
   });
 
   test("tillåter en försiktig namnvariant bara mycket nära samma plats", () => {
-    const result = listLocalReusableManualPlaceCandidates(
-      [place({ name: "Bistro Malma Kvarn" })],
-      { ...query, name: "Bistro Malma Kvarn & Krog", address: "Malma Kvarnväg 1" },
-    );
+    const result = listLocalReusableManualPlaceCandidates([place({ name: "Bistro Malma Kvarn" })], {
+      ...query,
+      name: "Bistro Malma Kvarn & Krog",
+      address: "Malma Kvarnväg 1",
+    });
 
     expect(result).toHaveLength(1);
     expect(result[0]?.matchKind).toBe("similar");
