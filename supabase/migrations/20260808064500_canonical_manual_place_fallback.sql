@@ -345,7 +345,8 @@ CREATE OR REPLACE FUNCTION public.create_manual_place_fallback_v1(
   _lat double precision DEFAULT NULL,
   _lng double precision DEFAULT NULL,
   _notes text DEFAULT NULL,
-  _photo_url text DEFAULT NULL
+  _photo_url text DEFAULT NULL,
+  _declined_place_ids uuid[] DEFAULT '{}'
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -356,6 +357,7 @@ DECLARE
   _uid uuid := auth.uid();
   _place_id uuid;
   _candidates jsonb := '[]'::jsonb;
+  _unresolved_candidate_count integer := 0;
   _normalized_name text := public.normalize_place_match_text_v1(_name);
 BEGIN
   IF _uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
@@ -399,7 +401,14 @@ BEGIN
       _category
     );
 
-    IF jsonb_array_length(_candidates) > 0 THEN
+    SELECT count(*)
+    INTO _unresolved_candidate_count
+    FROM jsonb_array_elements(_candidates) AS candidate
+    WHERE NOT (
+      (candidate->>'placeId')::uuid = ANY(COALESCE(_declined_place_ids, ARRAY[]::uuid[]))
+    );
+
+    IF _unresolved_candidate_count > 0 THEN
       RAISE EXCEPTION 'REUSABLE_PLACE_FOUND';
     END IF;
   END IF;
@@ -471,11 +480,11 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.create_manual_place_fallback_v1(
   uuid, text, text, text[], text[], text, text, text,
-  double precision, double precision, text, text
+  double precision, double precision, text, text, uuid[]
 ) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_manual_place_fallback_v1(
   uuid, text, text, text[], text[], text, text, text,
-  double precision, double precision, text, text
+  double precision, double precision, text, text, uuid[]
 ) TO authenticated;
 
 -- Den neutrala systemkategorin får granskas och avslutas, men aldrig markeras
