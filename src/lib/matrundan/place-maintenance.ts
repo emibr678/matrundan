@@ -6,6 +6,25 @@ import type { PlaceCategory } from "./types";
 export const PLACE_MAINTENANCE_STATUSES = ["open", "needs_osm", "resolved", "dismissed"] as const;
 export type PlaceMaintenanceStatus = (typeof PLACE_MAINTENANCE_STATUSES)[number];
 
+export const PLACE_MAINTENANCE_KINDS = ["improvement_candidate", "reported_error"] as const;
+export type PlaceMaintenanceKind = (typeof PLACE_MAINTENANCE_KINDS)[number];
+
+export const PLACE_MAINTENANCE_TARGET_KINDS = ["canonical_place", "provider_suggestion"] as const;
+export type PlaceMaintenanceTargetKind = (typeof PLACE_MAINTENANCE_TARGET_KINDS)[number];
+
+export const PLACE_MAINTENANCE_ISSUE_CATEGORIES = [
+  "unmatched_verified_manual",
+  "missing_in_osm",
+  "closed_or_replaced",
+  "wrong_name",
+  "wrong_address",
+  "wrong_website",
+  "wrong_opening_hours",
+  "duplicate",
+  "other",
+] as const;
+export type PlaceMaintenanceIssueCategory = (typeof PLACE_MAINTENANCE_ISSUE_CATEGORIES)[number];
+
 export const PLACE_MAINTENANCE_DISMISSAL_REASONS = [
   "not_relevant",
   "insufficient_evidence",
@@ -16,60 +35,79 @@ export type PlaceMaintenanceDismissalReason = (typeof PLACE_MAINTENANCE_DISMISSA
 
 const categorySchema = z.enum(["restaurang", "café", "bageri", "snabbmat", "pub", "matvagn"]);
 const statusSchema = z.enum(PLACE_MAINTENANCE_STATUSES);
+const kindSchema = z.enum(PLACE_MAINTENANCE_KINDS);
+const targetKindSchema = z.enum(PLACE_MAINTENANCE_TARGET_KINDS);
+const issueCategorySchema = z.enum(PLACE_MAINTENANCE_ISSUE_CATEGORIES);
 const dismissalReasonSchema = z.enum(PLACE_MAINTENANCE_DISMISSAL_REASONS);
 
-const activeSourceSchema = z.object({
+const sourceSchema = z.object({
   provider: z.string().min(1),
   providerPlaceId: z.string().min(1),
 });
 
-const candidateSchema = z.object({
-  candidateId: z.string().uuid(),
-  placeId: z.string().uuid(),
-  reason: z.literal("unmatched_verified_manual"),
+const osmNoteSchema = z.object({
+  submissionState: z.string().nullable(),
+  url: z.string().nullable(),
+  status: z.string().nullable(),
+});
+
+const workItemSchema = z.object({
+  workItemId: z.string().uuid(),
+  kind: kindSchema,
+  targetKind: targetKindSchema,
+  placeId: z.string().uuid().nullable(),
+  issueCategory: issueCategorySchema,
   status: statusSchema,
   createdAt: z.string(),
+  updatedAt: z.string(),
   resolvedAt: z.string().nullable(),
   dismissalReason: dismissalReasonSchema.nullable(),
   name: z.string().min(1),
-  category: categorySchema,
+  category: categorySchema.nullable(),
   address: z.string(),
   area: z.string().nullable(),
   city: z.string(),
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
+  lat: z.number().min(-90).max(90).nullable(),
+  lng: z.number().min(-180).max(180).nullable(),
   website: z.string().nullable(),
-  activeSource: activeSourceSchema.nullable().optional(),
+  activeSource: sourceSchema.nullable(),
+  externalReference: sourceSchema.nullable(),
+  osmNote: osmNoteSchema.nullable(),
 });
 
 const pageSchema = z.object({
-  items: z.array(candidateSchema),
+  items: z.array(workItemSchema),
   total: z.number().int().nonnegative(),
   limit: z.number().int().positive(),
   offset: z.number().int().nonnegative(),
 });
 
-export interface PlaceMaintenanceCandidate {
-  candidateId: string;
-  placeId: string;
-  reason: "unmatched_verified_manual";
+export interface PlaceMaintenanceWorkItem {
+  workItemId: string;
+  kind: PlaceMaintenanceKind;
+  targetKind: PlaceMaintenanceTargetKind;
+  placeId: string | null;
+  issueCategory: PlaceMaintenanceIssueCategory;
   status: PlaceMaintenanceStatus;
   createdAt: string;
+  updatedAt: string;
   resolvedAt: string | null;
   dismissalReason: PlaceMaintenanceDismissalReason | null;
   name: string;
-  category: PlaceCategory;
+  category: PlaceCategory | null;
   address: string;
   area: string | null;
   city: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   website: string | null;
-  activeSource?: { provider: string; providerPlaceId: string } | null;
+  activeSource: { provider: string; providerPlaceId: string } | null;
+  externalReference: { provider: string; providerPlaceId: string } | null;
+  osmNote: { submissionState: string | null; url: string | null; status: string | null } | null;
 }
 
 export interface PlaceMaintenancePage {
-  items: PlaceMaintenanceCandidate[];
+  items: PlaceMaintenanceWorkItem[];
   total: number;
   limit: number;
   offset: number;
@@ -84,15 +122,17 @@ export async function getPlaceMaintenanceAccess(): Promise<boolean> {
   );
 }
 
-export async function listPlaceMaintenanceCandidates(input?: {
+export async function listPlaceMaintenanceWorkItems(input?: {
   status?: PlaceMaintenanceStatus | null;
+  kind?: PlaceMaintenanceKind | null;
   limit?: number;
   offset?: number;
 }): Promise<PlaceMaintenancePage> {
   return rpcClient.call(
-    "list_place_improvement_candidates_for_maintenance_v1",
+    "list_place_maintenance_work_items_v1",
     {
       _status: input?.status ?? null,
+      _kind: input?.kind ?? null,
       _limit: input?.limit ?? 50,
       _offset: input?.offset ?? 0,
     },
@@ -101,26 +141,59 @@ export async function listPlaceMaintenanceCandidates(input?: {
   );
 }
 
-export async function markPlaceMaintenanceNeedsOsm(candidateId: string): Promise<void> {
+export async function markPlaceMaintenanceWorkItemNeedsOsm(
+  kind: PlaceMaintenanceKind,
+  workItemId: string,
+): Promise<void> {
   await rpcClient.call(
-    "mark_place_improvement_candidate_needs_osm_v1",
-    { _candidate_id: candidateId },
+    "mark_place_maintenance_work_item_needs_osm_v1",
+    { _kind: kind, _work_item_id: workItemId },
     z.literal("needs_osm"),
     "Kunde inte markera ärendet för OSM-åtgärd.",
   );
 }
 
-export async function dismissPlaceMaintenanceCandidate(
-  candidateId: string,
+export async function dismissPlaceMaintenanceWorkItem(
+  kind: PlaceMaintenanceKind,
+  workItemId: string,
   reason: PlaceMaintenanceDismissalReason,
 ): Promise<void> {
   await rpcClient.call(
-    "dismiss_place_improvement_candidate_v1",
-    { _candidate_id: candidateId, _reason: reason },
+    "dismiss_place_maintenance_work_item_v1",
+    { _kind: kind, _work_item_id: workItemId, _reason: reason },
     z.literal("dismissed"),
     "Kunde inte avfärda underhållsärendet.",
   );
 }
+
+export async function resolvePlaceMaintenanceWorkItem(
+  kind: PlaceMaintenanceKind,
+  workItemId: string,
+): Promise<void> {
+  await rpcClient.call(
+    "resolve_place_maintenance_work_item_v1",
+    { _kind: kind, _work_item_id: workItemId },
+    z.literal("resolved"),
+    "Kunde inte markera underhållsärendet som klart.",
+  );
+}
+
+export const PLACE_MAINTENANCE_KIND_LABEL: Record<PlaceMaintenanceKind, string> = {
+  improvement_candidate: "Saknar extern källa",
+  reported_error: "Rapporterat fel",
+};
+
+export const PLACE_MAINTENANCE_ISSUE_LABEL: Record<PlaceMaintenanceIssueCategory, string> = {
+  unmatched_verified_manual: "Saknar extern källa",
+  missing_in_osm: "Saknas i OpenStreetMap",
+  closed_or_replaced: "Kan ha stängt eller ersatts",
+  wrong_name: "Fel namn",
+  wrong_address: "Fel adress eller kartposition",
+  wrong_website: "Fel webbplats",
+  wrong_opening_hours: "Fel öppettider",
+  duplicate: "Möjlig dubblett",
+  other: "Annat platsdatafel",
+};
 
 export const PLACE_MAINTENANCE_DISMISSAL_LABEL: Record<PlaceMaintenanceDismissalReason, string> = {
   not_relevant: "Inte relevant",
