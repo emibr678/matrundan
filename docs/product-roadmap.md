@@ -98,12 +98,13 @@ använd** och **#137 Återställ produktionsvakter för sökområden och besöks
 har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
 platskandidater och tillagda matställen** genomfördes i v1.27.0.
 
-**Paket B – Sök och geografi** är nu aktivt. **#147 Visa naturliga svenska
-etiketter för geografiska sökträffar** genomfördes i v1.27.1. **#148 Gör Lägg
-till ställen begripligt med Sök i före intelligent matställessökning** är
-implementerad som v1.28.0-kandidat i PR #154 och inväntar preview- och
-mergegranskning. När den är mergad är **#149 Stöd geografiska boundaries och
-visualisera sökområden på kartan** nästa steg.
+**Paket B – Sök och geografi** är aktivt. **#147 Visa naturliga svenska
+etiketter för geografiska sökträffar** genomfördes i v1.27.1 och **#148 Gör Lägg
+till ställen begripligt med Sök i före intelligent matställessökning**
+genomfördes i v1.28.0 via PR #154. Nästa steg är **#156 Återanvänd befintliga
+kanoniska Matrundan-ställen före nytt manuellt ställe**, följt av **#155 Gör
+ställen som saknas till en snabb fallback och samla förbättringsunderlag** och
+sedan **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -153,15 +154,26 @@ Rekommenderad ordning:
    Ersätt rå providertext som `Stavsnäs, AB` med begripligt namn, resulttyp och
    relevant geografisk kontext utan att ändra den underliggande punktmodellen.
    Genomförd i v1.27.1.
-2. **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
+2. ✅ **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
    matställessökning**  
    Visa valda områden först som tydliga pills och sök därefter efter namn, kök
-   eller typ med grupperad autocomplete. Specifika matställen ska visas med
-   trovärdig adress eller relevant geografisk fallback. Den visuella lösningen
-   ska återanvända Matrundans befintliga språk och #108:s platsidentitet.
-   Implementerad som v1.28.0-kandidat i PR #154; markeras som genomförd när PR:n
-   mergas och issue #148 stängs.
-3. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
+   eller typ med grupperad autocomplete. Specifika matställen visas med
+   trovärdig adress eller relevant geografisk fallback. Genomförd i v1.28.0 via
+   PR #154.
+3. **#156 Återanvänd befintliga kanoniska Matrundan-ställen före nytt manuellt
+   ställe**  
+   När extern sökning inte identifierar rätt ställe ska en begränsad och
+   integritetssäker kontroll kunna hitta relevanta redan kända kanoniska
+   Matrundan-ställen. Ett valt ställe återanvänder samma `place_id` och skapar
+   endast eller återaktiverar målgruppens `group_places`-relation. Ingen
+   ursprungsgrupp, medlemsinformation eller privat gruppmetadata exponeras.
+4. **#155 Gör ställen som saknas till en snabb fallback och samla
+   förbättringsunderlag**  
+   Gör vägen för ett ställe som inte hittas till en naturlig fortsättning på
+   sökningen med ett kort kärnformulär. Verifierbar platsinformation kan skapa
+   ett neutralt internt förbättringsunderlag utan att användaren behöver förstå
+   OpenStreetMap eller att något publiceras externt.
+5. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
    Utöka sökområdesmodellen så verifierade kommuner, stadsdelar och andra
    områden kan sökas inom sin faktiska providergräns, medan adresser och andra
    punktplatser behåller närhetsavstånd. Polygoner och radier ska kunna
@@ -172,6 +184,11 @@ sökningar**, inte en permanent spärr för vilka matställen gruppen får anvä
 Alla sparade områden är fortsatt valda när sökningen öppnas och inget område är
 primärt. Befintliga punktområden får inte tyst få ny geografisk innebörd när
 boundary-stödet införs.
+
+#156 och #155 ska förebygga nya kanoniska dubbletter i tilläggsflödet, men de
+omfattar inte generell historisk deduplicering eller automatisk sammanföring av
+befintliga `places`-rader. Det senare hör till Paket F och blockerar varken #155
+eller #149.
 
 Boundary-steget ändrar ett varaktigt arkitekturbeslut och kräver därför en
 aktuell arkitektur- och migrationsplan innan implementation. Egenritade
@@ -220,6 +237,27 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 Kommentarer och enkla reaktioner ska vara förankrade i ett verkligt besök och i
 den aktuella gruppens besökslänk. Funktionen ska vara privat och sekundär, utan
 global feed, följare, offentliga likes eller progression för social aktivitet.
+
+## Paket F – Kanonisk platsidentitet och återanvändning
+
+**Prioritet:** `priority:later`
+
+Rekommenderad ordning:
+
+1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
+   besök**  
+   Gör återanvändning av samma kanoniska `place_id` explicit från en redan känd
+   plats. Endast målgruppens `group_places`-relation skapas eller återaktiveras;
+   besök, anteckningar, favoriter och annan privat gruppdata följer inte med.
+2. **#158 Stöd platsalias och säker sammanföring av kanoniska
+   matställesdubletter**  
+   Lägg senare till konservativa alias och dubblettkandidater samt en explicit,
+   administrativt granskad och transaktionell merge för bekräftade historiska
+   dubbletter. Ingen fuzzy automatisk massmerge ingår.
+
+Paket F bygger vidare på den serverprincip som etableras i #156, men är inte ett
+beroende för #155 eller #149. Det ska stärka kanonisk identitet utan att skapa en
+publik katalog eller exponera vilka andra grupper som använder samma plats.
 
 ## Genomförda paket
 
