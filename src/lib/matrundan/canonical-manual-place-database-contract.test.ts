@@ -6,7 +6,9 @@ const sql = await Bun.file(migrationPath).text();
 describe("kanonisk återanvändning och manuell fallback", () => {
   test("den interna förbättringskön saknar direkt klientåtkomst", () => {
     expect(sql).toContain("CREATE TABLE IF NOT EXISTS public.place_improvement_candidates");
-    expect(sql).toContain("ALTER TABLE public.place_improvement_candidates ENABLE ROW LEVEL SECURITY");
+    expect(sql).toContain(
+      "ALTER TABLE public.place_improvement_candidates ENABLE ROW LEVEL SECURITY",
+    );
     expect(sql).toContain("REVOKE ALL ON TABLE public.place_improvement_candidates");
     expect(sql).toContain("FROM PUBLIC, anon, authenticated");
     expect(sql).not.toContain("place_data_reports");
@@ -21,10 +23,14 @@ describe("kanonisk återanvändning och manuell fallback", () => {
   });
 
   test("kandidat-RPC kräver aktiv grupp och medlemskap", () => {
-    expect(sql).toContain("CREATE OR REPLACE FUNCTION public.find_reusable_manual_place_candidates_v1");
+    expect(sql).toContain(
+      "CREATE OR REPLACE FUNCTION public.find_reusable_manual_place_candidates_v1",
+    );
     expect(sql).toContain("public.group_is_active(_group_id)");
     expect(sql).toContain("public.has_membership(_group_id, _uid)");
-    expect(sql).toContain("AND NOT EXISTS (\n        SELECT 1\n        FROM public.place_sources ps");
+    expect(sql).toContain(
+      "AND NOT EXISTS (\n        SELECT 1\n        FROM public.place_sources ps",
+    );
   });
 
   test("kandidatpayloaden är neutral och innehåller ingen cross-group-metadata", () => {
@@ -67,7 +73,10 @@ describe("kanonisk återanvändning och manuell fallback", () => {
 
   test("ny fallback serialiseras och kandidatkontrolleras igen före create_place_v4b", () => {
     const lock = sql.indexOf("pg_advisory_xact_lock");
-    const candidateCheck = sql.indexOf("_candidates := public.find_reusable_manual_place_candidates_v1", lock);
+    const candidateCheck = sql.indexOf(
+      "_candidates := public.find_reusable_manual_place_candidates_v1",
+      lock,
+    );
     const create = sql.indexOf("_place_id := public.create_place_v4b", candidateCheck);
 
     expect(lock).toBeGreaterThan(-1);
