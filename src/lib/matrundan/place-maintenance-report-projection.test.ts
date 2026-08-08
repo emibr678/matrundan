@@ -79,7 +79,10 @@ describe("gemensam Platsunderhåll-projektion", () => {
     for (const [name, next] of [
       ["mark_place_maintenance_work_item_needs_osm_v1", "dismiss_place_maintenance_work_item_v1"],
       ["dismiss_place_maintenance_work_item_v1", "resolve_place_maintenance_work_item_v1"],
-      ["resolve_place_maintenance_work_item_v1", "link_provider_source_for_maintenance_work_item_v1"],
+      [
+        "resolve_place_maintenance_work_item_v1",
+        "link_provider_source_for_maintenance_work_item_v1",
+      ],
     ] as const) {
       const fn = functionSql(name, next);
       expect(fn).toContain("FROM public.place_maintainers pm");
@@ -96,6 +99,8 @@ describe("gemensam Platsunderhåll-projektion", () => {
     expect(sql).toContain(
       "REVOKE ALL ON TABLE public.place_maintenance_events FROM PUBLIC, anon, authenticated",
     );
-    expect(sql).not.toContain("INSERT INTO public.place_maintenance_events(work_item_kind, work_item_id, place_id, action, actor_id, description");
+    expect(sql).not.toContain(
+      "INSERT INTO public.place_maintenance_events(work_item_kind, work_item_id, place_id, action, actor_id, description",
+    );
   });
 });
