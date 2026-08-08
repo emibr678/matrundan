@@ -234,6 +234,26 @@ export function PlaceDiscoveryV16({
       window.removeEventListener("matrundan:hidden-place-suggestions-changed", handleChanged);
   }, [loadHiddenSuggestions]);
 
+  /**
+   * En träff är handlingsbar när den varken är dold eller redan aktiv i gruppen.
+   * Länkbara träffar räknas som handlingsbara eftersom de kan kopplas.
+   */
+  const isActionableSuggestion = React.useCallback(
+    (suggestion: PlaceSuggestion) => {
+      if (hiddenKeys.has(hiddenPlaceSuggestionKey(suggestion))) return false;
+      if (addedResultIds.has(suggestion.externalId)) return false;
+      if (state.places.some((place) => hasActiveProviderSource(place, suggestion))) return false;
+      if (hasLocalManualSourceLink(localSourceLinks, suggestion)) return false;
+      const match = matchingPlace(state.places, suggestion);
+      return !(match && match.collectionStatus !== "archived");
+    },
+    [addedResultIds, hiddenKeys, localSourceLinks, state.places],
+  );
+  const isActionableRef = React.useRef(isActionableSuggestion);
+  React.useEffect(() => {
+    isActionableRef.current = isActionableSuggestion;
+  }, [isActionableSuggestion]);
+
   React.useEffect(() => {
     if (skipInitialSearchRef.current) {
       skipInitialSearchRef.current = false;
