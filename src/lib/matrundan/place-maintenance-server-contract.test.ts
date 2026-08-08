@@ -12,9 +12,10 @@ function between(startText: string, endText?: string) {
 }
 
 describe("Platsunderhålls serverkontrakt", () => {
-  test("klienten kan bara välja kandidat och provideridentitet", () => {
-    const input = between("const inputSchema", "export interface PlaceMaintenanceProviderMatch");
-    expect(input).toContain("candidateId: z.string().uuid()");
+  test("klienten kan bara välja förbättringsärende och provideridentitet", () => {
+    const input = between("const workItemInputSchema", "export interface PlaceMaintenanceProviderMatch");
+    expect(input).toContain('kind: z.literal("improvement_candidate")');
+    expect(input).toContain("workItemId: z.string().uuid()");
     expect(input).toContain("providerPlaceId: z.string().trim().min(1).max(240)");
     expect(input).not.toContain("lat:");
     expect(input).not.toContain("lng:");
@@ -25,7 +26,7 @@ describe("Platsunderhålls serverkontrakt", () => {
   test("sökcentrum läses från maintenance-RPC på servern", () => {
     const load = between("async function loadCandidate", "async function fetchProviderMatches");
     expect(load).toContain("get_place_improvement_candidate_for_maintenance_v1");
-    expect(load).toContain("_candidate_id: candidateId");
+    expect(load).toContain("_candidate_id: workItemId");
 
     const search = between("async function fetchProviderMatches", "function toPublicMatch");
     expect(search).toContain("candidate.lng");
@@ -44,15 +45,19 @@ describe("Platsunderhålls serverkontrakt", () => {
     expect(publicMatch).not.toContain("GEOAPIFY_API_KEY");
   });
 
-  test("länkning gör en färsk serversökning före databas-RPC", () => {
+  test("länkning gör en färsk serversökning före den gemensamma maintenance-RPC:n", () => {
     const link = between("export const linkPlaceMaintenanceProviderMatch");
     const loadIndex = link.indexOf("await loadCandidate");
     const searchIndex = link.indexOf("await fetchProviderMatches", loadIndex);
-    const rpcIndex = link.indexOf('rpc("link_provider_source_for_maintenance_v1"', searchIndex);
+    const rpcIndex = link.indexOf(
+      'rpc("link_provider_source_for_maintenance_work_item_v1"',
+      searchIndex,
+    );
     expect(loadIndex).toBeGreaterThan(-1);
     expect(searchIndex).toBeGreaterThan(loadIndex);
     expect(rpcIndex).toBeGreaterThan(searchIndex);
-    expect(link).toContain("_candidate_id: candidate.candidateId");
+    expect(link).toContain("_kind: data.kind");
+    expect(link).toContain("_work_item_id: candidate.candidateId");
     expect(link).toContain("_provider_place_id: match.externalId");
     expect(link).toContain("_raw: raw");
   });
