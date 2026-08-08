@@ -254,6 +254,69 @@ export function PlaceDiscoveryV16({
     isActionableRef.current = isActionableSuggestion;
   }, [isActionableSuggestion]);
 
+  /**
+   * Läser vidare i providerns offset-paginering tills listan innehåller
+   * `targetActionable` faktiskt handlingsbara träffar, providern är slut eller
+   * det defensiva taket på antal provideranrop nås. Stoppar direkt när målet
+   * är uppnått och avbryter om användaren har ändrat sökningen (`isStale`).
+   */
+  const fillProviderPages = React.useCallback(
+    async ({
+      seed,
+      startOffset,
+      targetActionable,
+      isStale,
+    }: {
+      seed: PlaceSuggestion[];
+      startOffset: number;
+      targetActionable: number;
+      isStale: () => boolean;
+    }) => {
+      let collected = seed;
+      const failedAreaLabels = new Set<string>();
+      let offset = startOffset;
+      let moreAvailable = false;
+      let pages = 0;
+
+      while (pages < MAX_PROVIDER_PAGES_PER_ACTION) {
+        const response = await geoapifySearchPlacesMulti({
+          data: {
+            text: query.trim() || undefined,
+            centers: activeAreas.map((area) => ({
+              id: area.id,
+              label: shortSearchAreaLabel(area.label),
+              lat: area.lat,
+              lng: area.lng,
+            })),
+            radiusKm,
+            limit: RESULT_PAGE_SIZE,
+            offset,
+          },
+        });
+        if (isStale()) return null;
+
+        pages += 1;
+        collected = mergePlaceSearchPages(collected, response.results.map(toPlaceSuggestion));
+        response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
+        moreAvailable = response.hasMore;
+        offset = response.nextOffset;
+
+        if (!moreAvailable) break;
+        if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable) {
+          break;
+        }
+      }
+
+      return {
+        results: collected,
+        failedAreaLabels: [...failedAreaLabels],
+        hasMore: moreAvailable,
+        nextOffset: offset,
+      };
+    },
+    [activeAreas, query, radiusKm],
+  );
+
   React.useEffect(() => {
     if (skipInitialSearchRef.current) {
       skipInitialSearchRef.current = false;
