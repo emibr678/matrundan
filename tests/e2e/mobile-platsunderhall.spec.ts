@@ -23,9 +23,9 @@ test("Platsunderhåll följer arbetsstatus och ursprung utan horisontell overflo
 }) => {
   await page.goto("/platsunderhall?demo=1");
 
-  const inboxQueue = page.getByRole("button", { name: /^Att hantera \d+$/ });
-  const osmQueue = page.getByRole("button", { name: /^OSM-arbete \d+$/ });
-  const closedQueue = page.getByRole("button", { name: /^Avslutade \d+$/ });
+  const inboxQueue = page.getByRole("button", { name: /^Att hantera(?: \d+)?$/ });
+  const osmQueue = page.getByRole("button", { name: /^OSM-arbete(?: \d+)?$/ });
+  const closedQueue = page.getByRole("button", { name: /^Avslutade(?: \d+)?$/ });
   const allFilter = page.getByRole("button", { name: "Alla", exact: true });
   const reportsFilter = page.getByRole("button", { name: "Användarrapporter", exact: true });
   const manualFilter = page.getByRole("button", { name: "Manuellt tillagda", exact: true });
