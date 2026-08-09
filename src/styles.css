@@ -177,24 +177,8 @@
   max-width: none;
 }
 
-/* Keep the three Platsunderhåll work-status labels readable at the 360 px target. */
-@media (max-width: 399px) {
-  [aria-label="Arbetsstatus"] > button {
-    justify-content: center;
-    padding-inline: 0.5rem;
-  }
 
-  [aria-label="Arbetsstatus"] > button > span:first-child {
-    overflow: visible;
-    text-overflow: clip;
-    white-space: nowrap;
-    font-size: 0.75rem;
-  }
 
-  [aria-label="Arbetsstatus"] > button > :last-child {
-    display: none;
-  }
-}
 
 @utility paper-grain {
   background-image:
