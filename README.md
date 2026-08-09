@@ -46,11 +46,12 @@ individuell matdagbok, social feed eller global ranking.
   fältvist förslag i andra grupper som redan använder samma kanoniska
   matställe. Varje grupp väljer själv om förslaget ska användas. Motstridiga
   uppgifter visas som osäkra och ingen gruppuppgift skrivs över automatiskt.
-- Manuella matställen kan få en verifierad kartposition och ett privat underlag
-  om att verksamheten saknas i OpenStreetMap. Inget publiceras automatiskt.
+- Manuella matställen kan få en verifierad kartposition och ett privat neutralt
+  underlag om att en extern källa behöver kontrolleras eller länkas. Inget
+  publiceras automatiskt.
 - När en senare Geoapify- eller OSM-träff säkert motsvarar ett providerlöst
-  manuellt ställe kan ägare/admin länka källan till det befintliga stället utan
-  att skapa en dubblett eller skriva om gruppens historik.
+  manuellt ställe kan källan länkas till det befintliga stället utan att skapa
+  en dubblett eller skriva om gruppens historik.
 - Flera nya sökträffar kan markeras och läggas till i samma omgång. Providerdata
   används där den finns och osäkra gruppuppgifter kan kompletteras senare.
 - Filter för **Saknar uppgifter** hjälper gruppen hitta ställen utan kök och
@@ -63,11 +64,20 @@ individuell matdagbok, social feed eller global ranking.
   gruppinställningarna för kontroll, rapportering och återställning.
 - Alla aktiva medlemmar kan rapportera felaktig platsinformation privat både
   från matställets detaljsida och från en sökträff innan den läggs till.
-  Ägare och administratörer hanterar rapporterna på den separata sidan
-  **Rapporterade fel**, som nås från gruppinställningarna.
-- Rapportering och döljning är separata handlingar. En rapport går till gruppens
-  admin, medan döljning bara påverkar den aktuella gruppens sökningar och kan
-  ångras när som helst.
+  Rapporten behåller sin gruppbundna data, medan strukturerad feltyp och säker
+  neutral platsinformation kan projiceras till den globala arbetsytan
+  **Platsunderhåll**.
+- **Platsunderhåll** samlar rapporterade platsfel och neutrala
+  förbättringskandidater i en gemensam arbetskö för särskilt behöriga
+  platsunderhållare. Ursprunglig grupp, rapportör, medlemskap och historisk
+  privat rapporttext visas inte där.
+- Rapportering och döljning är separata handlingar. Rapportering skapar ett
+  privat underlag för datakvalitetsarbete, medan döljning bara påverkar den
+  aktuella gruppens sökningar och kan ångras när som helst.
+- Ärenden i Platsunderhåll kan markeras för manuellt OSM-arbete. Matrundan gör
+  ingen automatisk OSM-publicering eller redigering i det globala
+  underhållsflödet; befintlig offentlig OSM Note-historik bevaras när sådan redan
+  finns.
 - Anonyma och åldrande platsdatasignaler kan varna om att ett ställe kan ha
   stängt permanent utan att ursprungsgrupp, medlem, rapporttext, antal eller
   interna identifierare lämnas ut. Den aktuella gruppens privata underlag
@@ -78,10 +88,6 @@ individuell matdagbok, social feed eller global ranking.
 - **Begränsad platsinformation** visas separat när både webbplats och
   öppettider uttryckligen saknas i providerträffen. Det betyder inte att
   verksamheten har stängt.
-- Efter granskning kan en administratör skicka ett rättelseförslag till
-  OpenStreetMap. Matrundan förklarar först vad tjänsten är och visar exakt
-  vilken text och kartposition som blir offentliga. Ditt namn, gruppens namn och
-  den interna anteckningen skickas inte, och ärendets status kan följas i appen.
 - Nästa stopp kan föreslås manuellt eller slumpas.
 - Gruppen kan föreslå datum och valfri tid, svara **Passar**, **Passar inte**
   eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.
@@ -116,18 +122,20 @@ exempelgruppen.
 
 En interaktiv, helt fiktiv grupp som återanvänder produktens vanliga gränssnitt.
 Ändringar sparas endast i den aktuella flikens `sessionStorage` och gör inga
-live-skrivningar. OSM-publicering, statuskontroll och källkoppling simuleras
-lokalt utan externa nätverksanrop.
+live-skrivningar. Externa OSM-skrivningar görs inte.
 
 ### Intern testsandbox (`?demo=1`)
 
 En separat skrivbar sandbox för utveckling och regressionstester. Den använder
-lokal testdata och är inte en publik onboardingväg. Externa OSM-anrop görs inte.
+lokal testdata och är inte en publik onboardingväg. Platsunderhåll har en
+separat deterministisk fixture med rapporter och förbättringskandidater utan
+provider-, databas- eller OSM-skrivningar.
 
 ### Live-läge
 
 Aktiveras efter inloggning. Läsning och skrivning går mot Supabase genom
-gruppscopade read-models, serverfunktioner och validerade RPC-anrop.
+gruppscopade read-models, serverfunktioner och validerade RPC-anrop. Globalt
+Platsunderhåll kräver dessutom en separat databasstyrd `place_maintainer`-roll.
 
 ## Arkitektur och integritet
 
@@ -169,18 +177,29 @@ Gruppen är den primära produkt- och integritetsgränsen.
   normaliserad webbplats. Döljningen raderar inte det kanoniska matstället och
   påverkar aldrig andra grupper.
 - `place_data_reports` innehåller gruppprivata rapporter, en begränsad
-  ögonblicksbild av platsinformationen och eventuell OSM-note-status. En rapport
-  kan rikta sig mot ett kanoniskt ställe eller en exakt provideridentitet utan
-  att en tom platsrad skapas. Tabellen har ingen direkt klientåtkomst; aktiva
-  medlemmar får rapportera och endast ägare/admin får läsa kön, granska den
-  offentliga texten och starta publicering.
+  ögonblicksbild av platsinformationen och eventuell befintlig OSM-note-status.
+  En rapport kan rikta sig mot ett kanoniskt ställe eller en exakt
+  provideridentitet utan att en tom platsrad skapas. Tabellen har ingen direkt
+  klientåtkomst. Aktiva medlemmar rapporterar genom validerade RPC:er och endast
+  strukturerad felkategori samt säker neutral platsinformation får projiceras
+  till globalt Platsunderhåll; grupp, rapportör och privat fritext stannar kvar i
+  den gruppbundna källan.
+- `place_improvement_candidates` innehåller neutrala interna kandidater, bland
+  annat verifierade manuella ställen som behöver extern källkontroll. Tabellen
+  är separat från `place_data_reports`, men båda projiceras till samma globala
+  underhålls-UX.
+- `place_maintainers` är den privata globala behörighetsgränsen för
+  Platsunderhåll och är frikopplad från gruppens owner/admin-roller.
+- `place_maintenance_events` auditerar globala maintainerhandlingar för både
+  rapporter och förbättringskandidater utan att kopiera historisk privat
+  rapporttext.
 - `place_data_signal_confirmations` innehåller privata, fritextfria
   bekräftelser. Den klientexponerade RPC:n lämnar bara en härledd neutral status
   och kvalitetsflaggor; grupp, medlem, rapporttext, antal och interna ID:n
   lämnar aldrig servern.
-- OSM-publiceringen reserveras gruppscopat i databasen. Bara serverrollen får
-  spara ett bekräftat note-ID eller en extern status. En neutral offentlig
-  referens används för säker återhämtning efter nätverksavbrott.
+- Den äldre serverseparerade OSM Note-infrastrukturen och redan skapade
+  offentliga referenser bevaras för historik och kompatibilitet. #163 aktiverar
+  ingen automatisk OSM-publicering; OSM-åtgärder i Platsunderhåll är manuella.
 - `visits` representerar kanoniska verkliga besök.
 - `visit_group_links` kopplar original- och mottagargrupper till samma besök.
 - `visit_participants` innehåller de faktiska gruppmedlemmar som deltog och är
@@ -197,14 +216,14 @@ Gruppen är den primära produkt- och integritetsgränsen.
 Den primära live-läsningen går genom `get_group_app_state_v5h` med strikt
 fallback till `get_group_app_state_v5g` endast när den nya funktionen uttryckligen
 saknas. Rå providerdata stannar på serversidan. Känsliga skrivningar använder
-validerade `SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering,
-medlemskapskontroller och relevanta rollkrav.
+validerade `SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering och
+relevanta medlemskaps- eller globala rollkontroller.
 
 Ursprungsgruppens identitet, privata kommentarer, gästnamn och medlemskap lämnar
-aldrig servern vid delning eller källkoppling. Vid OSM-publicering lämnar bara
-den uttryckligt granskade offentliga texten, kartpositionen och en neutral
-Matrundan-referens appen. Endast faktiska deltagare får progression;
-registreraren får ingen extra kredit och återbesök räknas.
+aldrig servern vid delning, källkoppling eller den globala
+Platsunderhåll-projektionen. Historisk privat rapporttext görs inte global. Endast
+faktiska deltagare får progression; registreraren får ingen extra kredit och
+återbesök räknas.
 
 Den kanoniska arkitekturkällan finns i
 [docs/architecture.md](./docs/architecture.md).
@@ -279,9 +298,11 @@ privilegierade hemligheter får aldrig exponeras i klientkod eller `VITE_`-
 variabler.
 
 `GEOAPIFY_API_KEY` lagras i Lovable Cloud Secrets och används endast av
-serverkod för sökning och platsdetaljer. OSM Notes API kräver ingen ny
-applikationshemlighet; anropen görs serverstyrt med identifierbar User-Agent och
-referer. Inga produktionshemligheter ska committas till repot.
+serverkod för sökning och platsdetaljer. Den äldre OSM Notes-integrationen kräver
+ingen ny applikationshemlighet och används inte automatiskt av Platsunderhåll.
+En framtida autentiserad OSM-koppling för Matrundans eget konto kräver ett
+separat feature- och secret/auth-beslut. Inga produktionshemligheter ska
+committas till repot.
 
 ## Lovable och publicering
 

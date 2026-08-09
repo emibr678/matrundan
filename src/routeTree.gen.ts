@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RapporteradeFelRouteImport } from './routes/rapporterade-fel'
+import { Route as PlatsunderhallRouteImport } from './routes/platsunderhall'
 import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnostik'
 import { Route as NyttLosenordRouteImport } from './routes/nytt-losenord'
 import { Route as MatstallenRouteImport } from './routes/matstallen'
@@ -26,6 +27,11 @@ import { Route as ApiPublicHooksPushDispatchRouteImport } from './routes/api/pub
 const RapporteradeFelRoute = RapporteradeFelRouteImport.update({
   id: '/rapporterade-fel',
   path: '/rapporterade-fel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatsunderhallRoute = PlatsunderhallRouteImport.update({
+  id: '/platsunderhall',
+  path: '/platsunderhall',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlacemapdiagnostikRoute = PlacemapdiagnostikRouteImport.update({
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/matstallen': typeof MatstallenRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
+  '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/matstallen': typeof MatstallenRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
+  '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/matstallen': typeof MatstallenRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
+  '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/matstallen'
     | '/nytt-losenord'
     | '/placemapdiagnostik'
+    | '/platsunderhall'
     | '/rapporterade-fel'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/matstallen'
     | '/nytt-losenord'
     | '/placemapdiagnostik'
+    | '/platsunderhall'
     | '/rapporterade-fel'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/matstallen'
     | '/nytt-losenord'
     | '/placemapdiagnostik'
+    | '/platsunderhall'
     | '/rapporterade-fel'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   MatstallenRoute: typeof MatstallenRouteWithChildren
   NyttLosenordRoute: typeof NyttLosenordRoute
   PlacemapdiagnostikRoute: typeof PlacemapdiagnostikRoute
+  PlatsunderhallRoute: typeof PlatsunderhallRoute
   RapporteradeFelRoute: typeof RapporteradeFelRoute
   InbjudanTokenRoute: typeof InbjudanTokenRoute
   ApiPublicHooksPushDispatchRoute: typeof ApiPublicHooksPushDispatchRoute
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/rapporterade-fel'
       fullPath: '/rapporterade-fel'
       preLoaderRoute: typeof RapporteradeFelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platsunderhall': {
+      id: '/platsunderhall'
+      path: '/platsunderhall'
+      fullPath: '/platsunderhall'
+      preLoaderRoute: typeof PlatsunderhallRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/placemapdiagnostik': {
@@ -317,6 +337,7 @@ const rootRouteChildren: RootRouteChildren = {
   MatstallenRoute: MatstallenRouteWithChildren,
   NyttLosenordRoute: NyttLosenordRoute,
   PlacemapdiagnostikRoute: PlacemapdiagnostikRoute,
+  PlatsunderhallRoute: PlatsunderhallRoute,
   RapporteradeFelRoute: RapporteradeFelRoute,
   InbjudanTokenRoute: InbjudanTokenRoute,
   ApiPublicHooksPushDispatchRoute: ApiPublicHooksPushDispatchRoute,

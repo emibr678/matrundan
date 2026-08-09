@@ -6,6 +6,25 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_30_0_CHANGELOG: ChangelogEntry = {
+  version: "1.30.0",
+  date: "2026-08-08",
+  summary: "Platsunderhåll samlar rapporterade platsfel och förbättringskandidater i en global kö.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "En särskilt behörig platsunderhållare kan granska både rapporterade platsfel och neutrala förbättringskandidater i samma globala arbetsyta utan att se ursprungsgrupp, medlemskap eller historisk privat rapporttext.",
+        "Backendkällorna förblir separata och projiceras genom ett minimerat serverkontrakt med strukturerad feltyp och neutral platsinformation.",
+        "Extern matchning kontrolleras server-side och en verifierad källa länkas till samma kanoniska matställe utan att besök eller grupprelationer flyttas.",
+        "Ärenden som kräver manuellt OpenStreetMap-arbete kan markeras för OSM-åtgärd utan att Matrundan skriver något externt i detta steg, samtidigt som befintlig offentlig OSM Note-historik bevaras.",
+        "Den tidigare separata gruppkön Rapporterade fel är reducerad; vanliga användare kan fortsatt rapportera fel i sina naturliga platsflöden medan handläggningen sker centralt.",
+        "Platsunderhåll har lokal fiktiv demodata för både rapporter och förbättringskandidater utan provider-, databas- eller OSM-skrivningar.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_29_1_CHANGELOG: ChangelogEntry = {
   version: "1.29.1",
   date: "2026-08-08",
@@ -162,6 +181,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_30_0_CHANGELOG,
   VERSION_1_29_1_CHANGELOG,
   VERSION_1_29_0_CHANGELOG,
   VERSION_1_28_0_CHANGELOG,
