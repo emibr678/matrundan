@@ -752,12 +752,8 @@ function PlaceMaintenancePage() {
                   <ArrowLeft className="h-4 w-4" /> Tillbaka till listan
                 </Button>
               </div>
-
-                >
-                  <ArrowLeft className="h-4 w-4" /> Tillbaka till listan
-                </Button>
-              </div>
               <Card className="min-w-0 space-y-5 rounded-2xl border-border/70 p-4 sm:p-5">
+
 
               <div className="min-w-0">
                 <div className="flex flex-wrap items-start justify-between gap-2">
