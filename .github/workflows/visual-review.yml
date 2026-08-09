@@ -62,8 +62,13 @@ jobs:
           path: ~/.cache/ms-playwright
           key: visual-review-playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
-      - name: Install Chromium
+      - name: Install Chromium on GitHub-hosted runner
+        if: vars.MATRUNDAN_CI_RUNNER != 'self-hosted'
         run: bunx playwright install --with-deps chromium
+
+      - name: Install Chromium on self-hosted runner
+        if: vars.MATRUNDAN_CI_RUNNER == 'self-hosted'
+        run: bunx playwright install chromium
 
       - name: Capture review screenshots
         env:
