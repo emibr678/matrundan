@@ -80,7 +80,21 @@ lokal Node-preview.
 Workflowen kan startas på två sätt:
 
 - manuellt med **Run workflow** och valfri branch/ref;
-- från en PR genom att markera `Skapa visuella granskningsbilder` i PR-mallen.
+- från en icke-draft PR genom att markera `Skapa visuella granskningsbilder` i
+  PR-mallen.
+
+Under draft körs vid behov samma bildgenerering lokalt med:
+
+```bash
+bun run test:visual-review
+```
+
+Det gör att visuella iterationer inte förbrukar GitHub-runnerkapacitet före en
+sammanhållen kandidat.
+
+Workflowen använder samma runner-val som ordinarie CI. Repository-variabeln
+`MATRUNDAN_CI_RUNNER=self-hosted` gör därför även visuella artifacts möjliga när
+GitHub-hostade minuter är slut; utan variabel används `ubuntu-24.04`.
 
 Standardmatrisen fångar följande demosökvägar:
 
@@ -115,7 +129,7 @@ inte att diffen eller CI är godkänd.
 Redovisa separat:
 
 - PR-branch och head-SHA;
-- PR och CI;
+- PR och CI samt runnerläge;
 - vald Lovable-branch och verifierad synk;
 - previewlänk och datum när den lämnades i chatten;
 - användarens preview- och mergegodkännande;
