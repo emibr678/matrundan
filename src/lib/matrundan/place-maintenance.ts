@@ -149,7 +149,7 @@ export async function markPlaceMaintenanceWorkItemNeedsOsm(
     "mark_place_maintenance_work_item_needs_osm_v1",
     { _kind: kind, _work_item_id: workItemId },
     z.literal("needs_osm"),
-    "Kunde inte markera ärendet för OSM-åtgärd.",
+    "Kunde inte markera ärendet för OSM-arbete.",
   );
 }
 
@@ -174,17 +174,17 @@ export async function resolvePlaceMaintenanceWorkItem(
     "resolve_place_maintenance_work_item_v1",
     { _kind: kind, _work_item_id: workItemId },
     z.literal("resolved"),
-    "Kunde inte markera underhållsärendet som klart.",
+    "Kunde inte markera underhållsärendet som löst.",
   );
 }
 
 export const PLACE_MAINTENANCE_KIND_LABEL: Record<PlaceMaintenanceKind, string> = {
-  improvement_candidate: "Saknar extern källa",
-  reported_error: "Rapporterat fel",
+  improvement_candidate: "Manuellt tillagt",
+  reported_error: "Användarrapport",
 };
 
 export const PLACE_MAINTENANCE_ISSUE_LABEL: Record<PlaceMaintenanceIssueCategory, string> = {
-  unmatched_verified_manual: "Saknar extern källa",
+  unmatched_verified_manual: "Behöver kartkontroll",
   missing_in_osm: "Saknas i OpenStreetMap",
   closed_or_replaced: "Kan ha stängt eller ersatts",
   wrong_name: "Fel namn",
