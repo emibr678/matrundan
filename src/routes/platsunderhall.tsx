@@ -1022,7 +1022,9 @@ function PlaceMaintenancePage() {
                   </div>
                 </Card>
               ) : null}
-            </Card>
+              </Card>
+            </>
+
           ) : (
             <Card className="rounded-2xl border-border/70 p-5 text-sm text-muted-foreground">
               Välj ett ärende i kön för att granska underlaget.
