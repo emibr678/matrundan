@@ -75,11 +75,11 @@ test("Platsunderhåll följer arbetsstatus och ursprung utan horisontell overflo
 
   await closedQueue.click();
   await expect(page.getByRole("heading", { name: "Hamnboden" })).toBeVisible();
-  await expect(detail.getByText("Avfärdat", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Avfärdat", { exact: true }).last()).toBeVisible();
 
   await manualFilter.click();
   await expect(page.getByRole("heading", { name: "Hamnkrogen" })).toBeVisible();
-  await expect(detail.getByText("Löst", { exact: true })).toBeVisible();
+  await expect(detail.getByText("Löst", { exact: true }).last()).toBeVisible();
   await expect(page.getByText("En kartkälla är kopplad och ärendet är avslutat.")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – avslutade");
 });
