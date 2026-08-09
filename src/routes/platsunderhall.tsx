@@ -375,14 +375,14 @@ function PlaceMaintenancePage() {
   }, [demo, loadLive, mode]);
 
   const visible = React.useMemo(
-    () =>
-      items.filter((item) => queueIncludes(queue, item) && originIncludes(originFilter, item)),
+    () => items.filter((item) => queueIncludes(queue, item) && originIncludes(originFilter, item)),
     [items, originFilter, queue],
   );
   const selected = items.find((item) => item.workItemId === selectedId) ?? null;
 
   React.useEffect(() => {
-    if (selected && queueIncludes(queue, selected) && originIncludes(originFilter, selected)) return;
+    if (selected && queueIncludes(queue, selected) && originIncludes(originFilter, selected))
+      return;
     setSelectedId(visible[0]?.workItemId ?? null);
     setProviderMatches([]);
   }, [originFilter, queue, selected, visible]);
@@ -466,7 +466,9 @@ function PlaceMaintenancePage() {
       setProviderMatches([]);
       toast.success("Ärendet är markerat för OSM-arbete.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera underhållsärendet.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte uppdatera underhållsärendet.",
+      );
     } finally {
       setActionBusy(false);
     }
@@ -490,7 +492,9 @@ function PlaceMaintenancePage() {
       setProviderMatches([]);
       toast.success("Rapporten är markerad som löst.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte markera rapporten som löst.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte markera rapporten som löst.",
+      );
     } finally {
       setActionBusy(false);
     }
@@ -514,7 +518,9 @@ function PlaceMaintenancePage() {
       setDismissOpen(false);
       setQueue("closed");
       setProviderMatches([]);
-      toast.success(selected.kind === "reported_error" ? "Rapporten är avfärdad." : "Ärendet är avfärdat.");
+      toast.success(
+        selected.kind === "reported_error" ? "Rapporten är avfärdad." : "Ärendet är avfärdat.",
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte avfärda underhållsärendet.");
     } finally {
@@ -601,7 +607,8 @@ function PlaceMaintenancePage() {
               hantera ändringar i OpenStreetMap eller avsluta ärenden som inte kräver mer arbete.
             </p>
             <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
-              Här visas bara neutral platsdata – aldrig gruppnamn, medlemmar eller privata kommentarer.
+              Här visas bara neutral platsdata – aldrig gruppnamn, medlemmar eller privata
+              kommentarer.
             </p>
           </div>
           {demo ? (
@@ -795,7 +802,8 @@ function PlaceMaintenancePage() {
                 <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
                   <div className="text-sm font-medium">Befintlig offentlig OSM-not</div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Tidigare offentlig OSM-historik finns kvar. Ingen privat gruppinformation visas här.
+                    Tidigare offentlig OSM-historik finns kvar. Ingen privat gruppinformation visas
+                    här.
                   </p>
                   <Button asChild variant="outline" size="sm" className="mt-3 min-h-11">
                     <a href={selected.osmNote.url} target="_blank" rel="noreferrer">
