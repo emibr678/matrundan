@@ -625,19 +625,25 @@ function PlaceMaintenancePage() {
             key={item}
             type="button"
             variant={queue === item ? "default" : "outline"}
-            className="min-h-11 w-full justify-between rounded-xl px-3 sm:justify-center"
+            className="h-auto min-h-14 w-full rounded-xl px-2 py-2 sm:min-h-11 sm:px-3"
             onClick={() => setQueue(item)}
           >
-            <span className="min-w-0 truncate">{QUEUE_LABEL[item]}</span>
-            <Badge
-              variant={queue === item ? "secondary" : "outline"}
-              className="ml-2 shrink-0 rounded-full px-1.5"
-            >
-              {counts[item]}
-            </Badge>
+            <span className="flex w-full min-w-0 flex-col items-center justify-center gap-0.5 leading-tight sm:flex-row sm:gap-2">
+              <span className="w-full text-center text-[13px] font-medium [overflow-wrap:anywhere] sm:w-auto sm:text-sm">
+                {QUEUE_LABEL[item]}
+              </span>
+              <span className="text-[11px] font-medium opacity-80 sm:hidden">{counts[item]}</span>
+              <Badge
+                variant={queue === item ? "secondary" : "outline"}
+                className="hidden shrink-0 rounded-full px-1.5 sm:inline-flex"
+              >
+                {counts[item]}
+              </Badge>
+            </span>
           </Button>
         ))}
       </div>
+
 
       <div className="flex flex-wrap items-center gap-2" aria-label="Filtrera efter ursprung">
         <span className="mr-1 text-xs font-medium text-muted-foreground">Visa</span>
