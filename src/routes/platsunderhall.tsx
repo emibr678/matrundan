@@ -388,6 +388,8 @@ function PlaceMaintenancePage() {
       return;
     setSelectedId(visible[0]?.workItemId ?? null);
     setProviderMatches([]);
+    setMobileDetailOpen(false);
+
   }, [originFilter, queue, selected, visible]);
 
   function patchItem(workItemId: string, patch: Partial<PlaceMaintenanceWorkItem>) {
