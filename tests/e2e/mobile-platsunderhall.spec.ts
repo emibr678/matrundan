@@ -18,7 +18,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("Platsunderhåll följer arbetsstatus och ursprung utan horisontell overflow", async ({ page }) => {
+test("Platsunderhåll följer arbetsstatus och ursprung utan horisontell overflow", async ({
+  page,
+}) => {
   await page.goto("/platsunderhall?demo=1");
 
   const inboxQueue = page.getByRole("button", { name: /^Att hantera \d+$/ });
