@@ -724,11 +724,32 @@ function PlaceMaintenancePage() {
         </section>
 
         <section
-          className="min-w-0 lg:sticky lg:top-20 lg:self-start"
+          className={`min-w-0 lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:sticky lg:top-20 lg:self-start ${
+            selected
+              ? "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:max-h-[85dvh] max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-t-2xl max-lg:border-t max-lg:border-border max-lg:bg-background max-lg:p-3 max-lg:shadow-[0_-10px_30px_rgba(0,0,0,0.22)]"
+              : "max-lg:hidden"
+          }`}
           aria-label="Underhållsdetalj"
         >
           {selected ? (
-            <Card className="min-w-0 space-y-5 rounded-2xl border-border/70 p-4 sm:p-5">
+            <>
+              <div className="sticky top-0 z-10 -mx-3 mb-2 flex items-center justify-between gap-2 border-b border-border/60 bg-background/95 px-3 pb-2 backdrop-blur lg:hidden">
+                <span className="text-xs font-medium text-muted-foreground">Underhållsdetalj</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-11 -mr-2"
+                  onClick={() => {
+                    setSelectedId(null);
+                    setProviderMatches([]);
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4" /> Tillbaka till listan
+                </Button>
+              </div>
+              <Card className="min-w-0 space-y-5 rounded-2xl border-border/70 p-4 sm:p-5">
+
               <div className="min-w-0">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
