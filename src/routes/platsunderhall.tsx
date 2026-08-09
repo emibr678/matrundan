@@ -71,27 +71,32 @@ export const Route = createFileRoute("/platsunderhall")({
       { title: "Platsunderhåll · Matrundan" },
       {
         name: "description",
-        content: "Intern global arbetsyta för neutral granskning av Matrundans platsdata.",
+        content: "Intern global arbetsyta för granskning och underhåll av Matrundans platsdata.",
       },
     ],
   }),
   component: PlaceMaintenancePage,
 });
 
-type QueueMode = "open" | "reported" | "source_missing" | "needs_osm" | "closed";
+type QueueMode = "inbox" | "osm" | "closed";
+type OriginFilter = "all" | "reported" | "manual";
 type AccessState = "loading" | "allowed" | "denied";
 
 const QUEUE_LABEL: Record<QueueMode, string> = {
-  open: "Att kontrollera",
-  reported: "Rapporterade fel",
-  source_missing: "Saknar extern källa",
-  needs_osm: "OSM-åtgärd",
-  closed: "Klart",
+  inbox: "Att hantera",
+  osm: "OSM-arbete",
+  closed: "Avslutade",
+};
+
+const ORIGIN_LABEL: Record<OriginFilter, string> = {
+  all: "Alla",
+  reported: "Användarrapporter",
+  manual: "Manuellt tillagda",
 };
 
 const STATUS_LABEL: Record<PlaceMaintenanceWorkItem["status"], string> = {
-  open: "Att kontrollera",
-  needs_osm: "Behöver OSM-åtgärd",
+  open: "Att hantera",
+  needs_osm: "OSM-arbete",
   resolved: "Löst",
   dismissed: "Avfärdat",
 };
@@ -226,7 +231,7 @@ const DEMO_ITEMS: PlaceMaintenanceWorkItem[] = [
     createdAt: "2026-08-03T10:15:00.000Z",
     updatedAt: "2026-08-04T08:00:00.000Z",
     resolvedAt: "2026-08-04T08:00:00.000Z",
-    dismissalReason: null,
+    dismissalReason: "not_relevant",
     name: "Hamnboden",
     category: "café",
     address: "Hamnplan 1",
@@ -234,6 +239,29 @@ const DEMO_ITEMS: PlaceMaintenanceWorkItem[] = [
     city: "Stavsnäs",
     lat: 59.289,
     lng: 18.6924,
+    website: null,
+    activeSource: null,
+    externalReference: null,
+    osmNote: null,
+  },
+  {
+    workItemId: "10000000-0000-4000-8000-000000000007",
+    kind: "improvement_candidate",
+    targetKind: "canonical_place",
+    placeId: "20000000-0000-4000-8000-000000000007",
+    issueCategory: "unmatched_verified_manual",
+    status: "needs_osm",
+    createdAt: "2026-08-06T08:10:00.000Z",
+    updatedAt: "2026-08-08T07:20:00.000Z",
+    resolvedAt: null,
+    dismissalReason: null,
+    name: "Sjöstugan",
+    category: "café",
+    address: "Bryggvägen 7",
+    area: null,
+    city: "Djurö",
+    lat: 59.3058,
+    lng: 18.7042,
     website: null,
     activeSource: null,
     externalReference: null,
@@ -271,17 +299,15 @@ function formatDate(value: string) {
 }
 
 function queueIncludes(mode: QueueMode, item: PlaceMaintenanceWorkItem) {
-  if (mode === "open") return item.status === "open";
-  if (mode === "reported") {
-    return (
-      item.kind === "reported_error" && (item.status === "open" || item.status === "needs_osm")
-    );
-  }
-  if (mode === "source_missing") {
-    return item.kind === "improvement_candidate" && item.status === "open";
-  }
-  if (mode === "needs_osm") return item.status === "needs_osm";
+  if (mode === "inbox") return item.status === "open";
+  if (mode === "osm") return item.status === "needs_osm";
   return item.status === "resolved" || item.status === "dismissed";
+}
+
+function originIncludes(filter: OriginFilter, item: PlaceMaintenanceWorkItem) {
+  if (filter === "all") return true;
+  if (filter === "reported") return item.kind === "reported_error";
+  return item.kind === "improvement_candidate";
 }
 
 function itemLocation(item: PlaceMaintenanceWorkItem) {
@@ -301,7 +327,8 @@ function PlaceMaintenancePage() {
   const [access, setAccess] = React.useState<AccessState>(demo ? "allowed" : "loading");
   const [items, setItems] = React.useState<PlaceMaintenanceWorkItem[]>(demo ? DEMO_ITEMS : []);
   const [loading, setLoading] = React.useState(!demo);
-  const [queue, setQueue] = React.useState<QueueMode>("open");
+  const [queue, setQueue] = React.useState<QueueMode>("inbox");
+  const [originFilter, setOriginFilter] = React.useState<OriginFilter>("all");
   const [selectedId, setSelectedId] = React.useState<string | null>(
     demo ? (DEMO_ITEMS[0]?.workItemId ?? null) : null,
   );
@@ -348,16 +375,17 @@ function PlaceMaintenancePage() {
   }, [demo, loadLive, mode]);
 
   const visible = React.useMemo(
-    () => items.filter((item) => queueIncludes(queue, item)),
-    [items, queue],
+    () =>
+      items.filter((item) => queueIncludes(queue, item) && originIncludes(originFilter, item)),
+    [items, originFilter, queue],
   );
   const selected = items.find((item) => item.workItemId === selectedId) ?? null;
 
   React.useEffect(() => {
-    if (selected && queueIncludes(queue, selected)) return;
+    if (selected && queueIncludes(queue, selected) && originIncludes(originFilter, selected)) return;
     setSelectedId(visible[0]?.workItemId ?? null);
     setProviderMatches([]);
-  }, [queue, selected, visible]);
+  }, [originFilter, queue, selected, visible]);
 
   function patchItem(workItemId: string, patch: Partial<PlaceMaintenanceWorkItem>) {
     setItems((current) =>
@@ -381,11 +409,9 @@ function PlaceMaintenancePage() {
             data: { kind: selected.kind, workItemId: selected.workItemId },
           });
       setProviderMatches(matches);
-      if (matches.length === 0) toast.message("Ingen tydlig extern träff hittades nära platsen.");
+      if (matches.length === 0) toast.message("Ingen tydlig kartträff hittades nära platsen.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte kontrollera extern matchning.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte söka efter kartträffar.");
     } finally {
       setProviderLoading(false);
     }
@@ -415,9 +441,9 @@ function PlaceMaintenancePage() {
       setProviderMatches([]);
       setLinkMatch(null);
       setQueue("closed");
-      toast.success("Den externa källan är länkad till samma matställe.");
+      toast.success("Kartträffen är kopplad till matstället.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte länka den externa källan.");
+      toast.error(error instanceof Error ? error.message : "Kunde inte koppla kartträffen.");
     } finally {
       setActionBusy(false);
     }
@@ -436,13 +462,11 @@ function PlaceMaintenancePage() {
         await markPlaceMaintenanceWorkItemNeedsOsm(selected.kind, selected.workItemId);
         await refreshAfterAction(selected.workItemId);
       }
-      setQueue("needs_osm");
+      setQueue("osm");
       setProviderMatches([]);
-      toast.success("Ärendet är markerat för manuell OSM-åtgärd.");
+      toast.success("Ärendet är markerat för OSM-arbete.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte uppdatera underhållsärendet.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera underhållsärendet.");
     } finally {
       setActionBusy(false);
     }
@@ -464,11 +488,9 @@ function PlaceMaintenancePage() {
       }
       setQueue("closed");
       setProviderMatches([]);
-      toast.success("Rapporten är markerad som klar.");
+      toast.success("Rapporten är markerad som löst.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte markera rapporten som klar.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte markera rapporten som löst.");
     } finally {
       setActionBusy(false);
     }
@@ -492,7 +514,7 @@ function PlaceMaintenancePage() {
       setDismissOpen(false);
       setQueue("closed");
       setProviderMatches([]);
-      toast.success("Underhållsärendet är avfärdat.");
+      toast.success(selected.kind === "reported_error" ? "Rapporten är avfärdad." : "Ärendet är avfärdat.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte avfärda underhållsärendet.");
     } finally {
@@ -503,7 +525,7 @@ function PlaceMaintenancePage() {
   async function copyPlaceInfo(item: PlaceMaintenanceWorkItem) {
     const text = [
       item.name,
-      item.category ? CATEGORY_LABEL[item.category] : "Rapporterad sökträff",
+      item.category ? CATEGORY_LABEL[item.category] : "Rapporterad kartträff",
       PLACE_MAINTENANCE_ISSUE_LABEL[item.issueCategory],
       itemLocation(item),
       item.lat != null && item.lng != null ? `${item.lat.toFixed(6)}, ${item.lng.toFixed(6)}` : "",
@@ -513,7 +535,7 @@ function PlaceMaintenancePage() {
       .join("\n");
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Neutral platsinformation kopierad.");
+      toast.success("Platsinformationen är kopierad.");
     } catch {
       toast.error("Kunde inte kopiera platsinformationen.");
     }
@@ -558,6 +580,7 @@ function PlaceMaintenancePage() {
   ) as Record<QueueMode, number>;
 
   const selectedOsmUrl = selected ? osmMapUrl(selected) : null;
+  const selectedIsReport = selected?.kind === "reported_error";
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 pt-2 pb-8">
@@ -573,9 +596,12 @@ function PlaceMaintenancePage() {
               <Wrench className="h-5 w-5 text-primary" />
               <h1 className="font-display text-2xl font-semibold sm:text-3xl">Platsunderhåll</h1>
             </div>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              En gemensam arbetskö för rapporterade platsfel och neutrala förbättringskandidater,
-              utan gruppnamn, medlemskap eller privat rapporttext.
+            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+              Granska platser där kartdatan behöver kontrolleras. Koppla befintliga kartträffar,
+              hantera ändringar i OpenStreetMap eller avsluta ärenden som inte kräver mer arbete.
+            </p>
+            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
+              Här visas bara neutral platsdata – aldrig gruppnamn, medlemmar eller privata kommentarer.
             </p>
           </div>
           {demo ? (
@@ -586,7 +612,7 @@ function PlaceMaintenancePage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" aria-label="Underhållskö">
+      <div className="grid grid-cols-3 gap-2" aria-label="Arbetsstatus">
         {(Object.keys(QUEUE_LABEL) as QueueMode[]).map((item) => (
           <Button
             key={item}
@@ -606,6 +632,22 @@ function PlaceMaintenancePage() {
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2" aria-label="Filtrera efter ursprung">
+        <span className="mr-1 text-xs font-medium text-muted-foreground">Visa</span>
+        {(Object.keys(ORIGIN_LABEL) as OriginFilter[]).map((item) => (
+          <Button
+            key={item}
+            type="button"
+            size="sm"
+            variant={originFilter === item ? "secondary" : "ghost"}
+            className="min-h-9 rounded-full px-3"
+            onClick={() => setOriginFilter(item)}
+          >
+            {ORIGIN_LABEL[item]}
+          </Button>
+        ))}
+      </div>
+
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <section className="min-w-0 space-y-2" aria-label={QUEUE_LABEL[queue]}>
           <div className="px-1 text-sm font-medium">{QUEUE_LABEL[queue]}</div>
@@ -616,7 +658,7 @@ function PlaceMaintenancePage() {
                 <div>
                   <div className="font-medium">Inget här just nu</div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Välj ett annat filter för att se övriga underhållsärenden.
+                    Byt arbetsstatus eller filter för att se övriga underhållsärenden.
                   </p>
                 </div>
               </div>
@@ -637,12 +679,7 @@ function PlaceMaintenancePage() {
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="break-words text-sm font-medium">{item.name}</span>
-                        <Badge variant="secondary" className="rounded-full text-[10px]">
-                          {PLACE_MAINTENANCE_KIND_LABEL[item.kind]}
-                        </Badge>
-                      </div>
+                      <span className="break-words text-sm font-medium">{item.name}</span>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {PLACE_MAINTENANCE_ISSUE_LABEL[item.issueCategory]}
                       </div>
@@ -653,12 +690,19 @@ function PlaceMaintenancePage() {
                         </span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="shrink-0 rounded-full text-[10px]">
-                      {STATUS_LABEL[item.status]}
-                    </Badge>
+                    {queue === "closed" ? (
+                      <Badge variant="outline" className="shrink-0 rounded-full text-[10px]">
+                        {STATUS_LABEL[item.status]}
+                      </Badge>
+                    ) : null}
                   </div>
-                  <div className="mt-2 text-[11px] text-muted-foreground">
-                    Uppdaterad {formatDate(item.updatedAt)}
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <Badge variant="secondary" className="rounded-full text-[10px]">
+                      {PLACE_MAINTENANCE_KIND_LABEL[item.kind]}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground">
+                      Uppdaterad {formatDate(item.updatedAt)}
+                    </span>
                   </div>
                 </button>
               ))}
@@ -676,7 +720,7 @@ function PlaceMaintenancePage() {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      {selected.kind === "reported_error" ? (
+                      {selectedIsReport ? (
                         <CircleAlert className="h-4 w-4 text-primary" />
                       ) : (
                         <Wrench className="h-4 w-4 text-primary" />
@@ -692,9 +736,11 @@ function PlaceMaintenancePage() {
                       {PLACE_MAINTENANCE_ISSUE_LABEL[selected.issueCategory]}
                     </p>
                   </div>
-                  <Badge variant="outline" className="rounded-full">
-                    {STATUS_LABEL[selected.status]}
-                  </Badge>
+                  {queue === "closed" ? (
+                    <Badge variant="outline" className="rounded-full">
+                      {STATUS_LABEL[selected.status]}
+                    </Badge>
+                  ) : null}
                 </div>
 
                 <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
@@ -716,11 +762,6 @@ function PlaceMaintenancePage() {
                       <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                     </a>
                   ) : null}
-                  {selected.externalReference ? (
-                    <div className="text-xs">
-                      Extern referens: {selected.externalReference.provider}
-                    </div>
-                  ) : null}
                 </div>
               </div>
 
@@ -735,7 +776,7 @@ function PlaceMaintenancePage() {
                       category: selected.category ?? undefined,
                       eyebrow: selected.category
                         ? CATEGORY_LABEL[selected.category]
-                        : "Rapporterad sökträff",
+                        : "Rapporterad kartträff",
                       description: itemLocation(selected),
                     },
                   ]}
@@ -746,7 +787,7 @@ function PlaceMaintenancePage() {
                 />
               ) : (
                 <Card className="rounded-xl border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground">
-                  Kartposition saknas i det neutrala underlaget.
+                  Kartposition saknas i underlaget.
                 </Card>
               )}
 
@@ -754,8 +795,7 @@ function PlaceMaintenancePage() {
                 <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
                   <div className="text-sm font-medium">Befintlig offentlig OSM-not</div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Tidigare offentlig historik bevaras utan att grupp eller privat rapporttext
-                    visas här.
+                    Tidigare offentlig OSM-historik finns kvar. Ingen privat gruppinformation visas här.
                   </p>
                   <Button asChild variant="outline" size="sm" className="mt-3 min-h-11">
                     <a href={selected.osmNote.url} target="_blank" rel="noreferrer">
@@ -765,8 +805,14 @@ function PlaceMaintenancePage() {
                 </Card>
               ) : null}
 
-              {selected.status === "open" || selected.status === "needs_osm" ? (
+              {selected.status === "open" ? (
                 <div className="space-y-3">
+                  <div>
+                    <div className="text-sm font-medium">Vad behöver göras?</div>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Kontrollera underlaget och välj nästa steg för platsen.
+                    </p>
+                  </div>
                   <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     {selected.kind === "improvement_candidate" ? (
                       <Button
@@ -783,21 +829,19 @@ function PlaceMaintenancePage() {
                         ) : (
                           <Search className="h-4 w-4" />
                         )}
-                        {providerMatches.length > 0 ? "Kontrollera igen" : "Sök extern matchning"}
+                        {providerMatches.length > 0 ? "Sök igen" : "Sök efter kartträff"}
                       </Button>
                     ) : null}
-                    {selected.status === "open" ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="min-h-11"
-                        disabled={actionBusy}
-                        onClick={() => void markNeedsOsm()}
-                      >
-                        <Wrench className="h-4 w-4" /> Behöver OSM-åtgärd
-                      </Button>
-                    ) : null}
-                    {selected.kind === "reported_error" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      disabled={actionBusy}
+                      onClick={() => void markNeedsOsm()}
+                    >
+                      <Wrench className="h-4 w-4" /> Markera för OSM-arbete
+                    </Button>
+                    {selectedIsReport ? (
                       <Button
                         type="button"
                         variant="outline"
@@ -805,7 +849,7 @@ function PlaceMaintenancePage() {
                         disabled={actionBusy}
                         onClick={() => void resolveReport()}
                       >
-                        <CheckCircle2 className="h-4 w-4" /> Markera klart
+                        <CheckCircle2 className="h-4 w-4" /> Markera som löst
                       </Button>
                     ) : null}
                     <Button
@@ -815,76 +859,114 @@ function PlaceMaintenancePage() {
                       disabled={actionBusy}
                       onClick={() => setDismissOpen(true)}
                     >
-                      <XCircle className="h-4 w-4" /> Avfärda
+                      <XCircle className="h-4 w-4" />
+                      {selectedIsReport ? "Avfärda rapporten" : "Avfärda ärendet"}
                     </Button>
                   </div>
+                </div>
+              ) : null}
 
-                  {selected.status === "needs_osm" ? (
-                    <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
-                      <div className="text-sm font-medium">Manuellt OSM-arbete</div>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        Arbeta manuellt i OpenStreetMap eller Every Door och markera rapporter som
-                        klara när uppgiften är hanterad. Matrundan skriver inget till OSM i detta
-                        steg.
-                      </p>
-                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                        {selectedOsmUrl ? (
-                          <Button asChild variant="outline" size="sm" className="min-h-11">
-                            <a href={selectedOsmUrl} target="_blank" rel="noreferrer">
-                              <ExternalLink className="h-4 w-4" /> Öppna OpenStreetMap
-                            </a>
-                          </Button>
-                        ) : null}
+              {selected.status === "needs_osm" ? (
+                <div className="space-y-3">
+                  <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
+                    <div className="text-sm font-medium">OSM-arbete</div>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {selectedIsReport
+                        ? "Rätta uppgiften i OpenStreetMap eller Every Door. När ändringen är hanterad kan rapporten markeras som löst."
+                        : "Kontrollera om stället finns i OpenStreetMap och lägg till eller rätta det vid behov. När det finns som en tydlig kartträff, sök igen och koppla den till Matrundan."}
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      {selectedOsmUrl ? (
+                        <Button asChild variant="outline" size="sm" className="min-h-11">
+                          <a href={selectedOsmUrl} target="_blank" rel="noreferrer">
+                            <ExternalLink className="h-4 w-4" /> Öppna OpenStreetMap
+                          </a>
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="min-h-11"
+                        onClick={() => void copyPlaceInfo(selected)}
+                      >
+                        <Clipboard className="h-4 w-4" /> Kopiera platsinfo
+                      </Button>
+                      {selected.kind === "improvement_candidate" ? (
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           className="min-h-11"
-                          onClick={() => void copyPlaceInfo(selected)}
+                          disabled={providerLoading || actionBusy}
+                          onClick={() => void searchMatches()}
                         >
-                          <Clipboard className="h-4 w-4" /> Kopiera platsinfo
+                          {providerLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Search className="h-4 w-4" />
+                          )}
+                          Sök efter kartträff igen
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="min-h-11"
+                          disabled={actionBusy}
+                          onClick={() => void resolveReport()}
+                        >
+                          <CheckCircle2 className="h-4 w-4" /> Markera som löst
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="min-h-11 text-muted-foreground"
+                    disabled={actionBusy}
+                    onClick={() => setDismissOpen(true)}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    {selectedIsReport ? "Avfärda rapporten" : "Avfärda ärendet"}
+                  </Button>
+                </div>
+              ) : null}
+
+              {providerMatches.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Möjliga kartträffar</div>
+                  {providerMatches.map((match) => (
+                    <Card key={match.providerPlaceId} className="rounded-xl border-border/70 p-3">
+                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="break-words text-sm font-medium">{match.name}</div>
+                          <div className="mt-0.5 break-words text-xs text-muted-foreground">
+                            {[match.address, match.area, match.city].filter(Boolean).join(" · ")}
+                          </div>
+                          <div className="mt-1 text-[11px] text-muted-foreground">
+                            {match.distanceKm == null
+                              ? "Avstånd saknas"
+                              : `${Math.round(match.distanceKm * 1000)} m från platsens position`}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="min-h-11 shrink-0"
+                          onClick={() => setLinkMatch(match)}
+                        >
+                          Koppla till stället
                         </Button>
                       </div>
                     </Card>
-                  ) : null}
-
-                  {providerMatches.length > 0 ? (
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium">Möjliga externa träffar</div>
-                      {providerMatches.map((match) => (
-                        <Card
-                          key={match.providerPlaceId}
-                          className="rounded-xl border-border/70 p-3"
-                        >
-                          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="min-w-0">
-                              <div className="break-words text-sm font-medium">{match.name}</div>
-                              <div className="mt-0.5 break-words text-xs text-muted-foreground">
-                                {[match.address, match.area, match.city]
-                                  .filter(Boolean)
-                                  .join(" · ")}
-                              </div>
-                              <div className="mt-1 text-[11px] text-muted-foreground">
-                                {match.distanceKm == null
-                                  ? "Avstånd saknas"
-                                  : `${Math.round(match.distanceKm * 1000)} m från kandidatens position`}
-                              </div>
-                            </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="min-h-11 shrink-0"
-                              onClick={() => setLinkMatch(match)}
-                            >
-                              Länka som samma ställe
-                            </Button>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : null}
+                  ))}
                 </div>
-              ) : (
+              ) : null}
+
+              {selected.status === "resolved" || selected.status === "dismissed" ? (
                 <Card className="rounded-xl border-border/70 bg-muted/30 p-3 text-sm">
                   <div className="flex items-start gap-2">
                     {selected.status === "resolved" ? (
@@ -898,13 +980,13 @@ function PlaceMaintenancePage() {
                         {selected.status === "dismissed" && selected.dismissalReason
                           ? PLACE_MAINTENANCE_DISMISSAL_LABEL[selected.dismissalReason]
                           : selected.activeSource
-                            ? `Aktiv extern källa: ${selected.activeSource.provider}.`
-                            : "Ärendet är avslutat."}
+                            ? "En kartkälla är kopplad och ärendet är avslutat."
+                            : "Ärendet är markerat som löst."}
                       </p>
                     </div>
                   </div>
                 </Card>
-              )}
+              ) : null}
             </Card>
           ) : (
             <Card className="rounded-2xl border-border/70 p-5 text-sm text-muted-foreground">
@@ -917,10 +999,11 @@ function PlaceMaintenancePage() {
       <AlertDialog open={Boolean(linkMatch)} onOpenChange={(open) => !open && setLinkMatch(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Länka som samma ställe?</AlertDialogTitle>
+            <AlertDialogTitle>Koppla kartträffen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Den externa identiteten kopplas till samma kanoniska matställe och kandidaten löses.
-              Befintliga besök och grupprelationer påverkas inte.
+              {selected && linkMatch
+                ? `Bekräfta att ${selected.name} och ${linkMatch.name} är samma ställe. Kartkällan kopplas till Matrundans ställe. Besök och gruppdata påverkas inte.`
+                : "Kartkällan kopplas till Matrundans ställe. Besök och gruppdata påverkas inte."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {linkMatch && selected ? (
@@ -933,7 +1016,7 @@ function PlaceMaintenancePage() {
             <AlertDialogCancel disabled={actionBusy}>Avbryt</AlertDialogCancel>
             <AlertDialogAction disabled={actionBusy} onClick={() => void confirmLink()}>
               {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Länka
+              Koppla
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -942,10 +1025,10 @@ function PlaceMaintenancePage() {
       <Dialog open={dismissOpen} onOpenChange={(open) => !actionBusy && setDismissOpen(open)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Avfärda underhållsärende</DialogTitle>
+            <DialogTitle>{selectedIsReport ? "Avfärda rapporten" : "Avfärda ärendet"}</DialogTitle>
             <DialogDescription>
-              Välj en strukturerad orsak. Privat rapporttext kopieras inte till den globala
-              underhållshistoriken.
+              Välj varför ärendet inte behöver mer arbete. Privat rapporttext kopieras inte till den
+              globala underhållshistoriken.
             </DialogDescription>
           </DialogHeader>
           <Select
@@ -981,7 +1064,7 @@ function PlaceMaintenancePage() {
               onClick={() => void confirmDismiss()}
             >
               {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Avfärda
+              {selectedIsReport ? "Avfärda rapporten" : "Avfärda ärendet"}
             </Button>
           </DialogFooter>
         </DialogContent>
