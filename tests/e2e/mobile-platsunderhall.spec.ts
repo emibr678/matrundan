@@ -80,6 +80,18 @@ test("Arbetsstatusknapparna trunkeras inte och detaljen är nåbar utan horisont
   await manualFilter.click();
   await openItem(page, "Bistro Malma Kvarn");
   await expect(detail.getByText("Behöver kartkontroll", { exact: true })).toBeVisible();
+  const dismissManual = page.getByRole("button", { name: "Avfärda ärendet" });
+  await dismissManual.scrollIntoViewIfNeeded();
+  await expect(dismissManual).toBeVisible();
+  const mobileNav = page.getByRole("navigation", { name: "Huvudmeny" }).last();
+  const dismissBox = await dismissManual.boundingBox();
+  const navBox = await mobileNav.boundingBox();
+  expect(dismissBox, "Avfärda ärendet ska ha en mätbar position").not.toBeNull();
+  expect(navBox, "Mobilnavigationen ska ha en mätbar position").not.toBeNull();
+  expect(
+    dismissBox!.y + dismissBox!.height,
+    "Avfärda ärendet får inte hamna under mobilnavigationen",
+  ).toBeLessThanOrEqual(navBox!.y);
   await page.getByRole("button", { name: "Sök efter kartträff" }).click();
   await expect(page.getByText("Möjliga kartträffar")).toBeVisible();
   await expect(page.getByText("Bistro Malma Kvarn & Krog")).toBeVisible();
