@@ -9,7 +9,6 @@ on:
       - synchronize
       - reopened
       - ready_for_review
-      - converted_to_draft
   push:
     branches:
       - main
@@ -36,7 +35,6 @@ jobs:
       base_sha: ${{ steps.changes.outputs.base_sha }}
       has_ui: ${{ steps.changes.outputs.has_ui }}
       has_map: ${{ steps.changes.outputs.has_map }}
-      full: ${{ steps.verification.outputs.full }}
 
     steps:
       - name: Check out repository
@@ -45,11 +43,9 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Set verification level
-        id: verification
+      - name: Report verification mode
         shell: bash
         run: |
-          echo "full=true" >> "$GITHUB_OUTPUT"
           echo "Full verification: browser checks run when relevant." >> "$GITHUB_STEP_SUMMARY"
           echo "Runner: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
 
