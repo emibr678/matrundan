@@ -51,7 +51,8 @@ Motivering eller berört scenario:
 
 Markera när ändringen påverkar layout, hierarki, responsivitet eller ett
 huvudflöde. Workflowen **Visual review artifacts** körs när den särskilda rutan
-nedan är markerad.
+nedan är markerad på en icke-draft PR. Under draft används lokal
+`bun run test:visual-review` vid behov.
 
 ### Lovable-användning
 
@@ -123,6 +124,9 @@ Motivering om version inte är relevant:
 
 ## Verifiering
 
+Draft-iteration ska verifieras lokalt/Codex. GitHub CI förväntas först på en
+redo-kandidat och kan köras på hosted eller self-hosted runner.
+
 - [ ] `bun run check:release`
 - [ ] `bun run check:database`
 - [ ] Prettier på ändrade filer
@@ -145,6 +149,7 @@ Utförda kommandon och resultat:
 - Commit:
 - PR:
 - CI:
+- CI-runner: `ubuntu-24.04` / `self-hosted` / ej körd
 - Lovable-konsultation:
 - Vald Lovable-branch:
 - Lovable-synk:
