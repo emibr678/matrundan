@@ -166,23 +166,43 @@ Dessutom inkluderas staged, unstaged och otrackade filer. Samma klassificering a
 
 De statiska kontrollerna och browserverifieringen körs i separata jobb. Ett browsertestfel kan därför läsas och återköras utan att döljas längst ned i samma jobb som format, typning och bygge.
 
-Draft-PR kör:
+Draft-PR startar inga runnerjobb i GitHub Actions. Under implementation och diagnostik körs i stället de kanoniska lokala/Codex-kontrollerna, normalt:
 
-- miljökontroll;
-- lockfils- och verktygsskydd;
-- syntaxkontroll av shellscript;
-- release-, databas- och dödkodskontrakt;
-- Prettier och ESLint på ändrade filer;
-- alla enhetstester under `src`;
-- TypeScript för appkod, Bun-enhetstester och Playwright-svit;
-- produktionsbygge;
-- en preliminär mobil Chromium-körning med `--only-changed` när UI har ändrats.
+```bash
+bun run verify:changed
+```
 
-Den preliminära browserkörningen har ingen automatisk retry och stoppar vid första fel. Syftet är snabb diagnostik, inte att ersätta full regressionsverifiering.
+och för UI:
 
-När PR:n markeras redo, när `main` uppdateras eller vid manuell körning körs i stället hela mobil Chromium-sviten för UI-ändringar samt WebKit och desktop Chromium för kartrelaterade ändringar.
+```bash
+bun run verify:agent
+```
+
+Det gör att en serie draft-pushar inte förbrukar GitHub-hostade minuter. När PR:n markeras redo, när en redan redo PR uppdateras, när `main` uppdateras eller vid manuell workflow-körning körs full CI. För UI ingår hela mobil Chromium-sviten; kartrelaterade ändringar kör även WebKit/iPhone och desktop Chromium.
 
 Playwrights browserfiler cachelagras per runner, lockfil och kartbehov. Systemberoenden verifieras fortfarande av Playwright vid varje browserjobb.
+
+### Runner-val och fallback när hosted-minuter saknas
+
+Både **CI** och **Visual review artifacts** läser repository-variabeln `MATRUNDAN_CI_RUNNER` för `runs-on`.
+
+- Om variabeln saknas används `ubuntu-24.04` på GitHub-hostad runner.
+- Om variabeln är `self-hosted` används en registrerad self-hosted runner för repot.
+
+Detta är projektets fallback när GitHub-hostade Actions-minuter eller billing gör hosted runners otillgängliga. Samma workflow, jobb och checknamn används, så mergegrinden behöver inte sänkas eller kringgås.
+
+En self-hosted runner ska vara betrodd och repository-scopad till Matrundan. För ett privat hobbyrepo bör den inte delas med okända repositories eller användas för obetrodda pull requests. Workflowen kör endast PR-kod från samma repository.
+
+Rekommenderad runner är Linux. Förbered arbetsmiljön med repots vanliga setup och verifiera att Playwright-systemberoenden kan installeras. GitHub visar den aktuella registreringskommandokedjan under **Settings → Actions → Runners → New self-hosted runner**; registreringstoken är kortlivad och ska aldrig sparas i repot.
+
+När runnern är registrerad och online:
+
+1. skapa repository-variabeln `MATRUNDAN_CI_RUNNER` med värdet `self-hosted` under GitHub Actions variables;
+2. markera en färdig draft-PR som redo eller uppdatera en redan redo PR;
+3. bekräfta att både `verify` och relevanta `browser`-jobb kör på self-hosted runner och blir gröna;
+4. redovisa runnerläget i PR-kvittot.
+
+När de inkluderade hosted-minuterna åter finns kan variabeln tas bort eller ändras till `ubuntu-24.04`. Ingen kodändring krävs.
 
 ## Iterationsdisciplin
 
