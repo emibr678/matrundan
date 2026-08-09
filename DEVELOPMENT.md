@@ -180,7 +180,7 @@ bun run verify:agent
 
 Det gör att en serie draft-pushar inte förbrukar GitHub-hostade minuter. När PR:n markeras redo, när en redan redo PR uppdateras, när `main` uppdateras eller vid manuell workflow-körning körs full CI. För UI ingår hela mobil Chromium-sviten; kartrelaterade ändringar kör även WebKit/iPhone och desktop Chromium.
 
-Playwrights browserfiler cachelagras per runner, lockfil och kartbehov. Systemberoenden verifieras fortfarande av Playwright vid varje browserjobb.
+På GitHub-hostade runners installerar Playwright både browser och systemberoenden i jobbet. En self-hosted runner ska i stället förberedas en gång med systemberoenden; CI-jobbet installerar därefter bara den browserversion som matchar den aktuella Playwright-versionen och behöver därför inte `sudo` under varje körning.
 
 ### Runner-val och fallback när hosted-minuter saknas
 
@@ -193,7 +193,16 @@ Detta är projektets fallback när GitHub-hostade Actions-minuter eller billing 
 
 En self-hosted runner ska vara betrodd och repository-scopad till Matrundan. För ett privat hobbyrepo bör den inte delas med okända repositories eller användas för obetrodda pull requests. Workflowen kör endast PR-kod från samma repository.
 
-Rekommenderad runner är Linux. Förbered arbetsmiljön med repots vanliga setup och verifiera att Playwright-systemberoenden kan installeras. GitHub visar den aktuella registreringskommandokedjan under **Settings → Actions → Runners → New self-hosted runner**; registreringstoken är kortlivad och ska aldrig sparas i repot.
+Rekommenderad runner är Linux. GitHub visar den aktuella registreringskommandokedjan under **Settings → Actions → Runners → New self-hosted runner**; registreringstoken är kortlivad och ska aldrig sparas i repot.
+
+När runner-applikationen är installerad, förbered samma användarkonto som ska köra runnern i en checkout av Matrundan:
+
+```bash
+bash scripts/bootstrap-agent.sh
+bunx playwright install --with-deps chromium webkit
+```
+
+Det andra kommandot kan behöva administratörsrättigheter för systempaketen. Kör det som en medveten engångssetup på den betrodda runner-maskinen, inte som ett automatiskt CI-steg.
 
 När runnern är registrerad och online:
 
