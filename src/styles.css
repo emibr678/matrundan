@@ -177,6 +177,13 @@
   max-width: none;
 }
 
+@media (max-width: 1023px) {
+  [aria-label="Underhållsdetalj"] {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+}
+
 @utility paper-grain {
   background-image:
     radial-gradient(
