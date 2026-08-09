@@ -693,7 +693,9 @@ function PlaceMaintenancePage() {
                   onClick={() => {
                     setSelectedId(item.workItemId);
                     setProviderMatches([]);
+                    setMobileDetailOpen(true);
                   }}
+
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
