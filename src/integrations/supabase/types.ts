@@ -541,6 +541,7 @@ export type Database = {
           id: string
           invited_by: string
           invited_email: string | null
+          is_multi_use: boolean
           revoked_at: string | null
           role: string
           token_hash: string
@@ -554,6 +555,7 @@ export type Database = {
           id?: string
           invited_by: string
           invited_email?: string | null
+          is_multi_use?: boolean
           revoked_at?: string | null
           role?: string
           token_hash: string
@@ -567,6 +569,7 @@ export type Database = {
           id?: string
           invited_by?: string
           invited_email?: string | null
+          is_multi_use?: boolean
           revoked_at?: string | null
           role?: string
           token_hash?: string
@@ -1158,6 +1161,64 @@ export type Database = {
           },
         ]
       }
+      place_improvement_candidates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          group_id: string
+          id: string
+          place_id: string
+          reason: string
+          resolution: string | null
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          group_id: string
+          id?: string
+          place_id: string
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          group_id?: string
+          id?: string
+          place_id?: string
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_improvement_candidates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_improvement_candidates_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_improvement_candidates_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       place_sources: {
         Row: {
           fetched_at: string
@@ -1741,6 +1802,24 @@ export type Database = {
         }
         Returns: string
       }
+      create_manual_place_fallback_v1: {
+        Args: {
+          _address?: string
+          _area?: string
+          _category: string
+          _city?: string
+          _cuisines?: string[]
+          _declined_place_ids?: string[]
+          _group_id: string
+          _lat?: number
+          _lng?: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _photo_url?: string
+        }
+        Returns: Json
+      }
       create_or_link_provider_place: {
         Args: {
           _address?: string
@@ -1915,6 +1994,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      find_reusable_manual_place_candidates_v1: {
+        Args: {
+          _address: string
+          _category?: string
+          _city: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _name: string
+        }
+        Returns: Json
+      }
       get_account_deletion_requirements: { Args: never; Returns: Json }
       get_cross_group_practical_info_suggestions_v1: {
         Args: { _group_id: string; _place_id: string }
@@ -2006,6 +2097,20 @@ export type Database = {
         }
         Returns: string
       }
+      link_reusable_manual_place_v1: {
+        Args: {
+          _address: string
+          _city: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _place_id: string
+        }
+        Returns: Json
+      }
       list_group_hidden_place_suggestions: {
         Args: { _group_id: string }
         Returns: {
@@ -2071,6 +2176,10 @@ export type Database = {
         Returns: Json
       }
       normalize_food_tags: { Args: { _values: string[] }; Returns: string[] }
+      normalize_place_match_text_v1: {
+        Args: { _value: string }
+        Returns: string
+      }
       normalize_place_website: { Args: { _value: string }; Returns: string }
       notification_type_enabled: {
         Args: { _type: string; _user_id: string }
@@ -2191,6 +2300,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      search_area_label_is_broad: { Args: { _label: string }; Returns: boolean }
       set_member_role: {
         Args: { _group_id: string; _role: string; _user_id: string }
         Returns: undefined

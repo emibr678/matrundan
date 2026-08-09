@@ -12,7 +12,15 @@ Tidigare historik är bevarad i:
 
 ## [Unreleased]
 
-Inga ändringar ännu.
+### Ändrat
+
+- **Platsunderhåll** på mobil: arbetsstatusknapparna Att hantera, OSM-arbete och
+  Avslutade visar hela namnet centrerat med antalet på egen rad, så de inte
+  trunkeras vid 360–430 px eller större text.
+- **Platsunderhåll** på mobil öppnar vald underhållsdetalj som en scrollbar panel
+  ovanpå listan med tydlig återgång, i stället för under hela listan. Desktop
+  behåller split-vyn med sticky detalj och listans scrollposition bevaras.
+
 
 ## [1.30.0] – 2026-08-08
 

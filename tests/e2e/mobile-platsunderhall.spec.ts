@@ -18,7 +18,24 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("Platsunderhåll följer arbetsstatus och ursprung utan horisontell overflow", async ({
+async function openItem(page: Page, name: string) {
+  await closeMobileDetail(page);
+  await page
+    .locator("section:not([aria-label='Underhållsdetalj']) button", { hasText: name })
+    .first()
+    .click();
+  await expect(page.getByRole("region", { name: "Underhållsdetalj" })).toBeVisible();
+}
+
+async function closeMobileDetail(page: Page) {
+  const back = page.getByRole("button", { name: "Tillbaka till listan" });
+  if (await back.isVisible()) {
+    await back.click();
+    await expect(back).toBeHidden();
+  }
+}
+
+test("Arbetsstatusknapparna trunkeras inte och detaljen är nåbar utan horisontell overflow", async ({
   page,
 }) => {
   await page.goto("/platsunderhall?demo=1");
@@ -40,14 +57,28 @@ test("Platsunderhåll följer arbetsstatus och ursprung utan horisontell overflo
   await expect(allFilter).toBeVisible();
   await expect(reportsFilter).toBeVisible();
   await expect(manualFilter).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Kajkanten" })).toBeVisible();
+
+  for (const label of ["Att hantera", "OSM-arbete", "Avslutade"]) {
+    const overflow = await page
+      .locator("[aria-label='Arbetsstatus'] button", { hasText: label })
+      .first()
+      .evaluate((element) => {
+        const labelSpan = element.querySelector("span span");
+        if (!labelSpan) return 0;
+        return labelSpan.scrollWidth - labelSpan.clientWidth;
+      });
+    expect(overflow, `${label} får inte trunkeras`).toBeLessThanOrEqual(0);
+  }
+
+  await openItem(page, "Kajkanten");
   await expect(detail.getByText("Fel webbplats", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Markera för OSM-arbete" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Markera som löst" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – att hantera");
+  await closeMobileDetail(page);
 
   await manualFilter.click();
-  await expect(page.getByRole("heading", { name: "Bistro Malma Kvarn" })).toBeVisible();
+  await openItem(page, "Bistro Malma Kvarn");
   await expect(detail.getByText("Behöver kartkontroll", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Sök efter kartträff" }).click();
   await expect(page.getByText("Möjliga kartträffar")).toBeVisible();
@@ -57,28 +88,32 @@ test("Platsunderhåll följer arbetsstatus och ursprung utan horisontell overflo
   await expect(page.getByRole("alertdialog")).toContainText("Besök och gruppdata påverkas inte");
   await page.getByRole("button", { name: "Avbryt" }).click();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – kartträff");
+  await closeMobileDetail(page);
 
   await osmQueue.click();
-  await expect(page.getByRole("heading", { name: "Sjöstugan" })).toBeVisible();
+  await openItem(page, "Sjöstugan");
   await expect(page.getByText(/När det finns som en tydlig kartträff/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Öppna OpenStreetMap" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Kopiera platsinfo" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sök efter kartträff igen" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – manuellt OSM-arbete");
+  await closeMobileDetail(page);
 
   await reportsFilter.click();
-  await expect(page.getByRole("heading", { name: "Bryggans Bageri" })).toBeVisible();
+  await openItem(page, "Bryggans Bageri");
   await expect(page.getByRole("link", { name: "Öppna OSM-not" })).toBeVisible();
   await expect(page.getByText(/Rätta uppgiften i OpenStreetMap eller Every Door/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Markera som löst" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – rapport i OSM-arbete");
+  await closeMobileDetail(page);
 
   await closedQueue.click();
-  await expect(page.getByRole("heading", { name: "Hamnboden" })).toBeVisible();
+  await openItem(page, "Hamnboden");
   await expect(detail.getByText("Avfärdat", { exact: true }).last()).toBeVisible();
+  await closeMobileDetail(page);
 
   await manualFilter.click();
-  await expect(page.getByRole("heading", { name: "Hamnkrogen" })).toBeVisible();
+  await openItem(page, "Hamnkrogen");
   await expect(detail.getByText("Löst", { exact: true }).last()).toBeVisible();
   await expect(page.getByText("En kartkälla är kopplad och ärendet är avslutat.")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – avslutade");
