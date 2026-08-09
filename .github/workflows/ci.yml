@@ -12,16 +12,16 @@ on:
       - converted_to_draft
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: ci-restore-${{ github.ref }}
+  group: ci-tree-inspect-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  restore-verified-files:
+  inspect-tree:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - name: Check out PR branch
         uses: actions/checkout@v4
@@ -30,30 +30,10 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Restore unrelated files exactly from verified head
+      - name: Report exact tree SHAs
         shell: bash
         run: |
           set -euo pipefail
-          git checkout fe84082e3a8c0e5b592099bcc5da7798a629d6da -- \
-            CHANGELOG.md \
-            package.json \
-            bun.lock \
-            src/integrations/supabase/types.ts \
-            src/routeTree.gen.ts \
-            .github/workflows/ci.yml
-          git rm -f .github/workflows/restore-verified-files.yml || true
-
-      - name: Commit exact cleanup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet && git diff --cached --quiet; then
-            echo "Nothing to restore"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md package.json bun.lock src/integrations/supabase/types.ts src/routeTree.gen.ts .github/workflows/ci.yml
-          git add -u .github/workflows/restore-verified-files.yml || true
-          git commit -m "chore: restore verified generated files"
-          git push origin HEAD:agent/issue-163-platsunderhall
+          echo "CURRENT_COMMIT=$(git rev-parse HEAD)"
+          echo "CURRENT_TREE=$(git rev-parse 'HEAD^{tree}')"
+          echo "VERIFIED_TREE=$(git rev-parse 'fe84082e3a8c0e5b592099bcc5da7798a629d6da^{tree}')"
