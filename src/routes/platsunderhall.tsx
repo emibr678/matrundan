@@ -724,7 +724,7 @@ function PlaceMaintenancePage() {
         </section>
 
         <section
-          className={`min-w-0 lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:sticky lg:top-20 lg:self-start ${
+          className={`min-w-0 lg:sticky lg:top-20 lg:self-start ${
             selected
               ? "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:max-h-[85dvh] max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-t-2xl max-lg:border-t max-lg:border-border max-lg:bg-background max-lg:p-3 max-lg:shadow-[0_-10px_30px_rgba(0,0,0,0.22)]"
               : "max-lg:hidden"
