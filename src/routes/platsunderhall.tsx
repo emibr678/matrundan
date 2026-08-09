@@ -339,6 +339,9 @@ function PlaceMaintenancePage() {
   const [dismissReason, setDismissReason] =
     React.useState<PlaceMaintenanceDismissalReason>("insufficient_evidence");
   const [actionBusy, setActionBusy] = React.useState(false);
+  // Mobil visar detaljen som en panel ovanpå listan; desktop behåller split-vyn.
+  const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
+
 
   const loadLive = React.useCallback(async () => {
     setLoading(true);
