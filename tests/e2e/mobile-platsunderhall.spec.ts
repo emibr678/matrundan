@@ -20,7 +20,10 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 
 async function openItem(page: Page, name: string) {
   await closeMobileDetail(page);
-  await page.getByRole("heading", { name }).click();
+  await page
+    .locator("section:not([aria-label='Underhållsdetalj']) button", { hasText: name })
+    .first()
+    .click();
   await expect(page.getByRole("region", { name: "Underhållsdetalj" })).toBeVisible();
 }
 

@@ -342,7 +342,6 @@ function PlaceMaintenancePage() {
   // Mobil visar detaljen som en panel ovanpå listan; desktop behåller split-vyn.
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
 
-
   const loadLive = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -389,7 +388,6 @@ function PlaceMaintenancePage() {
     setSelectedId(visible[0]?.workItemId ?? null);
     setProviderMatches([]);
     setMobileDetailOpen(false);
-
   }, [originFilter, queue, selected, visible]);
 
   function patchItem(workItemId: string, patch: Partial<PlaceMaintenanceWorkItem>) {
@@ -649,7 +647,6 @@ function PlaceMaintenancePage() {
         ))}
       </div>
 
-
       <div className="flex flex-wrap items-center gap-2" aria-label="Filtrera efter ursprung">
         <span className="mr-1 text-xs font-medium text-muted-foreground">Visa</span>
         {(Object.keys(ORIGIN_LABEL) as OriginFilter[]).map((item) => (
@@ -695,7 +692,6 @@ function PlaceMaintenancePage() {
                     setProviderMatches([]);
                     setMobileDetailOpen(true);
                   }}
-
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -753,145 +749,213 @@ function PlaceMaintenancePage() {
                 </Button>
               </div>
               <Card className="min-w-0 space-y-5 rounded-2xl border-border/70 p-4 sm:p-5">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {selectedIsReport ? (
+                          <CircleAlert className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Wrench className="h-4 w-4 text-primary" />
+                        )}
+                        <span className="text-xs font-medium text-primary">
+                          {PLACE_MAINTENANCE_KIND_LABEL[selected.kind]}
+                        </span>
+                      </div>
+                      <h2 className="mt-1 break-words font-display text-xl font-semibold">
+                        {selected.name}
+                      </h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {PLACE_MAINTENANCE_ISSUE_LABEL[selected.issueCategory]}
+                      </p>
+                    </div>
+                    {queue === "closed" ? (
+                      <Badge variant="outline" className="rounded-full">
+                        {STATUS_LABEL[selected.status]}
+                      </Badge>
+                    ) : null}
+                  </div>
 
-
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {selectedIsReport ? (
-                        <CircleAlert className="h-4 w-4 text-primary" />
-                      ) : (
-                        <Wrench className="h-4 w-4 text-primary" />
-                      )}
-                      <span className="text-xs font-medium text-primary">
-                        {PLACE_MAINTENANCE_KIND_LABEL[selected.kind]}
+                  <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
+                    {selected.category ? <div>{CATEGORY_LABEL[selected.category]}</div> : null}
+                    <div className="flex min-w-0 items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span className="break-words">
+                        {itemLocation(selected) || "Platsadress saknas"}
                       </span>
                     </div>
-                    <h2 className="mt-1 break-words font-display text-xl font-semibold">
-                      {selected.name}
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {PLACE_MAINTENANCE_ISSUE_LABEL[selected.issueCategory]}
-                    </p>
-                  </div>
-                  {queue === "closed" ? (
-                    <Badge variant="outline" className="rounded-full">
-                      {STATUS_LABEL[selected.status]}
-                    </Badge>
-                  ) : null}
-                </div>
-
-                <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                  {selected.category ? <div>{CATEGORY_LABEL[selected.category]}</div> : null}
-                  <div className="flex min-w-0 items-start gap-2">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span className="break-words">
-                      {itemLocation(selected) || "Platsadress saknas"}
-                    </span>
-                  </div>
-                  {selected.website ? (
-                    <a
-                      href={selected.website}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex max-w-full items-center gap-1 break-all text-primary hover:underline"
-                    >
-                      {selected.website}
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-
-              {selected.lat != null && selected.lng != null ? (
-                <PlaceMap
-                  items={[
-                    {
-                      id: selected.placeId ?? selected.workItemId,
-                      name: selected.name,
-                      lat: selected.lat,
-                      lng: selected.lng,
-                      category: selected.category ?? undefined,
-                      eyebrow: selected.category
-                        ? CATEGORY_LABEL[selected.category]
-                        : "Rapporterad kartträff",
-                      description: itemLocation(selected),
-                    },
-                  ]}
-                  selectedId={selected.placeId ?? selected.workItemId}
-                  center={{ lat: selected.lat, lng: selected.lng }}
-                  className="min-h-[280px]"
-                  ariaLabel={`Position för ${selected.name}`}
-                />
-              ) : (
-                <Card className="rounded-xl border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground">
-                  Kartposition saknas i underlaget.
-                </Card>
-              )}
-
-              {selected.osmNote?.url ? (
-                <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
-                  <div className="text-sm font-medium">Befintlig offentlig OSM-not</div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Tidigare offentlig OSM-historik finns kvar. Ingen privat gruppinformation visas
-                    här.
-                  </p>
-                  <Button asChild variant="outline" size="sm" className="mt-3 min-h-11">
-                    <a href={selected.osmNote.url} target="_blank" rel="noreferrer">
-                      <ExternalLink className="h-4 w-4" /> Öppna OSM-not
-                    </a>
-                  </Button>
-                </Card>
-              ) : null}
-
-              {selected.status === "open" ? (
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-sm font-medium">Vad behöver göras?</div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Kontrollera underlaget och välj nästa steg för platsen.
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                    {selected.kind === "improvement_candidate" ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="min-h-11"
-                        disabled={providerLoading || actionBusy}
-                        onClick={() => void searchMatches()}
+                    {selected.website ? (
+                      <a
+                        href={selected.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex max-w-full items-center gap-1 break-all text-primary hover:underline"
                       >
-                        {providerLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : providerMatches.length > 0 ? (
-                          <RefreshCw className="h-4 w-4" />
-                        ) : (
-                          <Search className="h-4 w-4" />
-                        )}
-                        {providerMatches.length > 0 ? "Sök igen" : "Sök efter kartträff"}
-                      </Button>
+                        {selected.website}
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                      </a>
                     ) : null}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11"
-                      disabled={actionBusy}
-                      onClick={() => void markNeedsOsm()}
-                    >
-                      <Wrench className="h-4 w-4" /> Markera för OSM-arbete
+                  </div>
+                </div>
+
+                {selected.lat != null && selected.lng != null ? (
+                  <PlaceMap
+                    items={[
+                      {
+                        id: selected.placeId ?? selected.workItemId,
+                        name: selected.name,
+                        lat: selected.lat,
+                        lng: selected.lng,
+                        category: selected.category ?? undefined,
+                        eyebrow: selected.category
+                          ? CATEGORY_LABEL[selected.category]
+                          : "Rapporterad kartträff",
+                        description: itemLocation(selected),
+                      },
+                    ]}
+                    selectedId={selected.placeId ?? selected.workItemId}
+                    center={{ lat: selected.lat, lng: selected.lng }}
+                    className="min-h-[280px]"
+                    ariaLabel={`Position för ${selected.name}`}
+                  />
+                ) : (
+                  <Card className="rounded-xl border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground">
+                    Kartposition saknas i underlaget.
+                  </Card>
+                )}
+
+                {selected.osmNote?.url ? (
+                  <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
+                    <div className="text-sm font-medium">Befintlig offentlig OSM-not</div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Tidigare offentlig OSM-historik finns kvar. Ingen privat gruppinformation
+                      visas här.
+                    </p>
+                    <Button asChild variant="outline" size="sm" className="mt-3 min-h-11">
+                      <a href={selected.osmNote.url} target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-4 w-4" /> Öppna OSM-not
+                      </a>
                     </Button>
-                    {selectedIsReport ? (
+                  </Card>
+                ) : null}
+
+                {selected.status === "open" ? (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-sm font-medium">Vad behöver göras?</div>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        Kontrollera underlaget och välj nästa steg för platsen.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      {selected.kind === "improvement_candidate" ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="min-h-11"
+                          disabled={providerLoading || actionBusy}
+                          onClick={() => void searchMatches()}
+                        >
+                          {providerLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : providerMatches.length > 0 ? (
+                            <RefreshCw className="h-4 w-4" />
+                          ) : (
+                            <Search className="h-4 w-4" />
+                          )}
+                          {providerMatches.length > 0 ? "Sök igen" : "Sök efter kartträff"}
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         variant="outline"
                         className="min-h-11"
                         disabled={actionBusy}
-                        onClick={() => void resolveReport()}
+                        onClick={() => void markNeedsOsm()}
                       >
-                        <CheckCircle2 className="h-4 w-4" /> Markera som löst
+                        <Wrench className="h-4 w-4" /> Markera för OSM-arbete
                       </Button>
-                    ) : null}
+                      {selectedIsReport ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="min-h-11"
+                          disabled={actionBusy}
+                          onClick={() => void resolveReport()}
+                        >
+                          <CheckCircle2 className="h-4 w-4" /> Markera som löst
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="min-h-11 text-muted-foreground"
+                        disabled={actionBusy}
+                        onClick={() => setDismissOpen(true)}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        {selectedIsReport ? "Avfärda rapporten" : "Avfärda ärendet"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {selected.status === "needs_osm" ? (
+                  <div className="space-y-3">
+                    <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
+                      <div className="text-sm font-medium">OSM-arbete</div>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        {selectedIsReport
+                          ? "Rätta uppgiften i OpenStreetMap eller Every Door. När ändringen är hanterad kan rapporten markeras som löst."
+                          : "Kontrollera om stället finns i OpenStreetMap och lägg till eller rätta det vid behov. När det finns som en tydlig kartträff, sök igen och koppla den till Matrundan."}
+                      </p>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                        {selectedOsmUrl ? (
+                          <Button asChild variant="outline" size="sm" className="min-h-11">
+                            <a href={selectedOsmUrl} target="_blank" rel="noreferrer">
+                              <ExternalLink className="h-4 w-4" /> Öppna OpenStreetMap
+                            </a>
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="min-h-11"
+                          onClick={() => void copyPlaceInfo(selected)}
+                        >
+                          <Clipboard className="h-4 w-4" /> Kopiera platsinfo
+                        </Button>
+                        {selected.kind === "improvement_candidate" ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="min-h-11"
+                            disabled={providerLoading || actionBusy}
+                            onClick={() => void searchMatches()}
+                          >
+                            {providerLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Search className="h-4 w-4" />
+                            )}
+                            Sök efter kartträff igen
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="min-h-11"
+                            disabled={actionBusy}
+                            onClick={() => void resolveReport()}
+                          >
+                            <CheckCircle2 className="h-4 w-4" /> Markera som löst
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
                     <Button
                       type="button"
                       variant="ghost"
@@ -903,133 +967,62 @@ function PlaceMaintenancePage() {
                       {selectedIsReport ? "Avfärda rapporten" : "Avfärda ärendet"}
                     </Button>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {selected.status === "needs_osm" ? (
-                <div className="space-y-3">
-                  <Card className="rounded-xl border-border/70 bg-muted/30 p-3">
-                    <div className="text-sm font-medium">OSM-arbete</div>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {selectedIsReport
-                        ? "Rätta uppgiften i OpenStreetMap eller Every Door. När ändringen är hanterad kan rapporten markeras som löst."
-                        : "Kontrollera om stället finns i OpenStreetMap och lägg till eller rätta det vid behov. När det finns som en tydlig kartträff, sök igen och koppla den till Matrundan."}
-                    </p>
-                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                      {selectedOsmUrl ? (
-                        <Button asChild variant="outline" size="sm" className="min-h-11">
-                          <a href={selectedOsmUrl} target="_blank" rel="noreferrer">
-                            <ExternalLink className="h-4 w-4" /> Öppna OpenStreetMap
-                          </a>
-                        </Button>
-                      ) : null}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="min-h-11"
-                        onClick={() => void copyPlaceInfo(selected)}
-                      >
-                        <Clipboard className="h-4 w-4" /> Kopiera platsinfo
-                      </Button>
-                      {selected.kind === "improvement_candidate" ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="min-h-11"
-                          disabled={providerLoading || actionBusy}
-                          onClick={() => void searchMatches()}
-                        >
-                          {providerLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Search className="h-4 w-4" />
-                          )}
-                          Sök efter kartträff igen
-                        </Button>
+                {providerMatches.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Möjliga kartträffar</div>
+                    {providerMatches.map((match) => (
+                      <Card key={match.providerPlaceId} className="rounded-xl border-border/70 p-3">
+                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="break-words text-sm font-medium">{match.name}</div>
+                            <div className="mt-0.5 break-words text-xs text-muted-foreground">
+                              {[match.address, match.area, match.city].filter(Boolean).join(" · ")}
+                            </div>
+                            <div className="mt-1 text-[11px] text-muted-foreground">
+                              {match.distanceKm == null
+                                ? "Avstånd saknas"
+                                : `${Math.round(match.distanceKm * 1000)} m från platsens position`}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="min-h-11 shrink-0"
+                            onClick={() => setLinkMatch(match)}
+                          >
+                            Koppla till stället
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : null}
+
+                {selected.status === "resolved" || selected.status === "dismissed" ? (
+                  <Card className="rounded-xl border-border/70 bg-muted/30 p-3 text-sm">
+                    <div className="flex items-start gap-2">
+                      {selected.status === "resolved" ? (
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                       ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="min-h-11"
-                          disabled={actionBusy}
-                          onClick={() => void resolveReport()}
-                        >
-                          <CheckCircle2 className="h-4 w-4" /> Markera som löst
-                        </Button>
+                        <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
                       )}
+                      <div>
+                        <div className="font-medium">{STATUS_LABEL[selected.status]}</div>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          {selected.status === "dismissed" && selected.dismissalReason
+                            ? PLACE_MAINTENANCE_DISMISSAL_LABEL[selected.dismissalReason]
+                            : selected.activeSource
+                              ? "En kartkälla är kopplad och ärendet är avslutat."
+                              : "Ärendet är markerat som löst."}
+                        </p>
+                      </div>
                     </div>
                   </Card>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="min-h-11 text-muted-foreground"
-                    disabled={actionBusy}
-                    onClick={() => setDismissOpen(true)}
-                  >
-                    <XCircle className="h-4 w-4" />
-                    {selectedIsReport ? "Avfärda rapporten" : "Avfärda ärendet"}
-                  </Button>
-                </div>
-              ) : null}
-
-              {providerMatches.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Möjliga kartträffar</div>
-                  {providerMatches.map((match) => (
-                    <Card key={match.providerPlaceId} className="rounded-xl border-border/70 p-3">
-                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                          <div className="break-words text-sm font-medium">{match.name}</div>
-                          <div className="mt-0.5 break-words text-xs text-muted-foreground">
-                            {[match.address, match.area, match.city].filter(Boolean).join(" · ")}
-                          </div>
-                          <div className="mt-1 text-[11px] text-muted-foreground">
-                            {match.distanceKm == null
-                              ? "Avstånd saknas"
-                              : `${Math.round(match.distanceKm * 1000)} m från platsens position`}
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="min-h-11 shrink-0"
-                          onClick={() => setLinkMatch(match)}
-                        >
-                          Koppla till stället
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : null}
-
-              {selected.status === "resolved" || selected.status === "dismissed" ? (
-                <Card className="rounded-xl border-border/70 bg-muted/30 p-3 text-sm">
-                  <div className="flex items-start gap-2">
-                    {selected.status === "resolved" ? (
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                    ) : (
-                      <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    )}
-                    <div>
-                      <div className="font-medium">{STATUS_LABEL[selected.status]}</div>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                        {selected.status === "dismissed" && selected.dismissalReason
-                          ? PLACE_MAINTENANCE_DISMISSAL_LABEL[selected.dismissalReason]
-                          : selected.activeSource
-                            ? "En kartkälla är kopplad och ärendet är avslutat."
-                            : "Ärendet är markerat som löst."}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ) : null}
+                ) : null}
               </Card>
             </>
-
           ) : (
             <Card className="rounded-2xl border-border/70 p-5 text-sm text-muted-foreground">
               Välj ett ärende i kön för att granska underlaget.
