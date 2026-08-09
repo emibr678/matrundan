@@ -732,7 +732,7 @@ function PlaceMaintenancePage() {
 
         <section
           className={`min-w-0 lg:sticky lg:top-20 lg:self-start ${
-            selected
+            selected && mobileDetailOpen
               ? "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:max-h-[85dvh] max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-t-2xl max-lg:border-t max-lg:border-border max-lg:bg-background max-lg:p-3 max-lg:shadow-[0_-10px_30px_rgba(0,0,0,0.22)]"
               : "max-lg:hidden"
           }`}
@@ -746,11 +746,13 @@ function PlaceMaintenancePage() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="min-h-11 -mr-2"
-                  onClick={() => {
-                    setSelectedId(null);
-                    setProviderMatches([]);
-                  }}
+                  className="-mr-2 min-h-11"
+                  onClick={() => setMobileDetailOpen(false)}
+                >
+                  <ArrowLeft className="h-4 w-4" /> Tillbaka till listan
+                </Button>
+              </div>
+
                 >
                   <ArrowLeft className="h-4 w-4" /> Tillbaka till listan
                 </Button>
