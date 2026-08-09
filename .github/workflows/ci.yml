@@ -183,13 +183,21 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}-map-${{ needs.verify.outputs.has_map }}
 
-      - name: Install Chromium
-        if: needs.verify.outputs.has_map != 'true'
+      - name: Install Chromium on GitHub-hosted runner
+        if: vars.MATRUNDAN_CI_RUNNER != 'self-hosted' && needs.verify.outputs.has_map != 'true'
         run: bunx playwright install --with-deps chromium
 
-      - name: Install Chromium and WebKit
-        if: needs.verify.outputs.has_map == 'true'
+      - name: Install Chromium and WebKit on GitHub-hosted runner
+        if: vars.MATRUNDAN_CI_RUNNER != 'self-hosted' && needs.verify.outputs.has_map == 'true'
         run: bunx playwright install --with-deps chromium webkit
+
+      - name: Install Chromium on self-hosted runner
+        if: vars.MATRUNDAN_CI_RUNNER == 'self-hosted' && needs.verify.outputs.has_map != 'true'
+        run: bunx playwright install chromium
+
+      - name: Install Chromium and WebKit on self-hosted runner
+        if: vars.MATRUNDAN_CI_RUNNER == 'self-hosted' && needs.verify.outputs.has_map == 'true'
+        run: bunx playwright install chromium webkit
 
       - name: Full mobile Chromium smoke test
         run: bun run test:mobile
