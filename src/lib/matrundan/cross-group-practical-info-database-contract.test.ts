@@ -8,7 +8,7 @@ const migration = readFileSync(
     "supabase/migrations/20260802194000_cross_group_practical_info_suggestions.sql",
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("anonyma förslag för praktisk information", () => {
   test("markerar fältvis och tidsbegränsad delningsbarhet utan ny offentlig tabell", () => {
