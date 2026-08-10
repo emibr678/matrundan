@@ -21,7 +21,24 @@ function trackedFiles(ref = "HEAD") {
     .filter(Boolean);
 }
 
-const allowedEnvFiles = new Set([".env.example"]);
+function parseEnv(content) {
+  const entries = new Map();
+  for (const [index, rawLine] of content.split("\n").entries()) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (!match) {
+      fail(`ogiltig env-rad på rad ${index + 1}`);
+      continue;
+    }
+    const [, key, value] = match;
+    if (entries.has(key)) fail(`duplicerad env-variabel: ${key}`);
+    entries.set(key, value);
+  }
+  return entries;
+}
+
+const allowedEnvFiles = new Set([".env", ".env.example"]);
 const secretFilePatterns = [
   /^\.env(?:\.|$)/,
   /\.pem$/i,
@@ -40,6 +57,35 @@ if (unsafeTrackedPaths.length > 0) {
   fail(`secret-liknande filer är versionshanterade: ${unsafeTrackedPaths.join(", ")}`);
 }
 
+const allowedTrackedEnvKeys = new Set([
+  "SUPABASE_PROJECT_ID",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_URL",
+  "VITE_SUPABASE_PROJECT_ID",
+  "VITE_SUPABASE_PUBLISHABLE_KEY",
+  "VITE_SUPABASE_URL",
+  "VITE_GEOAPIFY_MAPS_KEY",
+]);
+
+let trackedEnv = "";
+try {
+  trackedEnv = git(["show", "HEAD:.env"]);
+} catch {
+  fail("Lovables versionshanterade .env saknas från HEAD");
+}
+
+const trackedEnvEntries = parseEnv(trackedEnv);
+for (const key of trackedEnvEntries.keys()) {
+  if (!allowedTrackedEnvKeys.has(key)) {
+    fail(`.env innehåller en icke-godkänd variabel: ${key}`);
+  }
+}
+for (const key of allowedTrackedEnvKeys) {
+  if (!trackedEnvEntries.has(key)) {
+    fail(`.env saknar Lovable/public konfiguration: ${key}`);
+  }
+}
+
 const suspiciousValuePatterns = [
   "sb_secret_[A-Za-z0-9._-]{20,}",
   "github_pat_[A-Za-z0-9_]{40,}",
@@ -48,6 +94,13 @@ const suspiciousValuePatterns = [
   "-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----",
 ];
 const combinedPattern = suspiciousValuePatterns.join("|");
+
+const trackedEnvForbiddenNamePattern = /(SECRET|SERVICE_ROLE|PRIVATE_KEY|PASSWORD|DATABASE_URL|ACCESS_TOKEN)/i;
+for (const key of trackedEnvEntries.keys()) {
+  if (trackedEnvForbiddenNamePattern.test(key)) {
+    fail(`.env innehåller ett secret-liknande variabelnamn: ${key}`);
+  }
+}
 
 let historyMatch = false;
 try {
@@ -116,6 +169,6 @@ for (const marker of requiredTemplateMarkers) {
 
 if (!process.exitCode) {
   console.log(
-    "public-readiness: current tree och nåbar Git-historik passerar grundkontrollen. Gör även manuell granskning av issues, PR:er, Actions-loggar, branches och licens innan visibility ändras.",
+    "public-readiness: tracked Lovable-env, current tree och nåbar Git-historik passerar grundkontrollen. Gör även manuell granskning av issues, PR:er, Actions-loggar, branches och licens innan visibility ändras.",
   );
 }
