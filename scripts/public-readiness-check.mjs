@@ -45,7 +45,7 @@ const suspiciousValuePatterns = [
   "github_pat_[A-Za-z0-9_]{40,}",
   "ghp_[A-Za-z0-9]{30,}",
   "AKIA[0-9A-Z]{16}",
-  "-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+  "-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----",
 ];
 const combinedPattern = suspiciousValuePatterns.join("|");
 
