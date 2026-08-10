@@ -75,6 +75,7 @@ jobs:
         run: echo "Bun ${{ steps.bun.outputs.bun-version }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cache Bun downloads
+        if: runner.environment != 'self-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -194,6 +195,7 @@ jobs:
         uses: ./.github/actions/setup-bun
 
       - name: Cache Bun downloads
+        if: runner.environment != 'self-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -205,6 +207,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Cache Playwright browsers
+        if: runner.environment != 'self-hosted'
         uses: actions/cache@v4
         with:
           path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
