@@ -210,7 +210,7 @@ bash --version
 git --version
 ```
 
-`oven-sh/setup-bun` installerar den låsta Bun-versionen i jobbet och Playwright-steget installerar Chromium samt vid behov WebKit. Runnern behöver därför inte provisioneras med Linux-kommandot ovan.
+Den lokala setup-actionen använder `oven-sh/setup-bun` på hosted och icke-Windows runners. På self-hosted Windows laddar den i stället ned den officiella, låsta Bun-zippen och skapar `bunx.exe` som en vanlig fil, så runnern behöver varken symbolisk länkrättighet, Developer Mode eller administratörsbehörighet. Playwright-steget installerar Chromium samt vid behov WebKit. Runnern behöver därför inte provisioneras med Linux-kommandot ovan.
 
 När runnern är registrerad och online:
 
