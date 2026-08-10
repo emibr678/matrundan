@@ -20,6 +20,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: visual-review-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -59,15 +63,15 @@ jobs:
       - name: Cache Playwright Chromium
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
+          path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
           key: visual-review-playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
       - name: Install Chromium on GitHub-hosted runner
-        if: vars.MATRUNDAN_CI_RUNNER != 'self-hosted'
+        if: runner.environment != 'self-hosted'
         run: bunx playwright install --with-deps chromium
 
       - name: Install Chromium on self-hosted runner
-        if: vars.MATRUNDAN_CI_RUNNER == 'self-hosted'
+        if: runner.environment == 'self-hosted'
         run: bunx playwright install chromium
 
       - name: Capture review screenshots
