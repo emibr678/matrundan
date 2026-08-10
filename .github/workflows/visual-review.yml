@@ -50,7 +50,9 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           git config core.autocrlf false
-          git checkout-index --force --all
+          while IFS= read -r -d '' file; do
+            sed -i 's/\r$//' "$file"
+          done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
 
       - name: Set up pinned Bun
         uses: ./.github/actions/setup-bun
