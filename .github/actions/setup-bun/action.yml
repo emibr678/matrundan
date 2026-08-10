@@ -30,7 +30,10 @@ runs:
         $downloadUrl = "https://github.com/oven-sh/bun/releases/download/bun-v$version/bun-windows-x64.zip"
 
         New-Item -ItemType Directory -Force -Path $installRoot | Out-Null
-        Invoke-WebRequest -UseBasicParsing -Uri $downloadUrl -OutFile $archivePath
+        & curl.exe --fail --location --retry 3 --silent --show-error --output $archivePath $downloadUrl
+        if ($LASTEXITCODE -ne 0) {
+          throw "Bun download failed with curl exit code $LASTEXITCODE."
+        }
         Expand-Archive -LiteralPath $archivePath -DestinationPath $installRoot -Force
 
         $binDirectory = Join-Path $installRoot "bun-windows-x64"
