@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-const discoverySource = await Bun.file("src/components/matrundan/PlaceDiscoveryV16.tsx").text();
+const discoverySource = (\n  await Bun.file("src/components/matrundan/PlaceDiscoveryV16.tsx").text()\n).replace(/\\r\\n/g, "\\n");
 const areaControlsSource = await Bun.file(
   "src/components/matrundan/SearchAreaControlsV16.tsx",
 ).text();
