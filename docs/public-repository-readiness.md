@@ -16,14 +16,14 @@ Det här dokumentet är en säkerhets- och underhållschecklista. Att checklista
 
 ### 1. Aktuellt träd
 
-- Kör `bun run verify:public` i en fullständig checkout med alla relevanta refs hämtade.
+- Kör `bun run verify:full` i en fullständig checkout.
+- Kör `bun scripts/public-readiness-check.mjs` efter att alla relevanta refs har hämtats.
 - Verifiera att ingen `.env`, privatnyckel, credentials-fil eller motsvarande är versionshanterad.
 - Verifiera att `.env.example` endast innehåller placeholders och tydligt skiljer browser-exponerade värden från serverhemligheter.
-- Kör repots normala relevanta verifiering för kandidaten.
 
 ### 2. Hela Git-historiken och refs
 
-`verify:public` söker efter ett litet antal starka hemlighetsmönster i alla lokalt nåbara Git-refs utan att skriva ut de misstänkta värdena. Den är ett skyddsräcke, inte en fullständig secretscanner.
+`scripts/public-readiness-check.mjs` söker efter ett litet antal starka hemlighetsmönster i alla lokalt nåbara Git-refs utan att skriva ut de misstänkta värdena. Den är ett skyddsräcke, inte en fullständig secretscanner.
 
 Före faktisk offentlig visibility ska dessutom:
 
@@ -67,7 +67,8 @@ Matrundan-namn, logotyp och eventuell framtida varumärkesstrategi bedöms separ
 Före visibility-byte ska leveranskvittot minst ange:
 
 - verifierad `main`-SHA;
-- resultat från `bun run verify:public`;
+- resultat från `bun run verify:full`;
+- resultat från `bun scripts/public-readiness-check.mjs`;
 - resultat från history-aware secretscan;
 - vilka branches/tags som ingick;
 - manuell granskning av issues/PR/Actions/artifacts;
