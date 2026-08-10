@@ -17,6 +17,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -47,7 +51,8 @@ jobs:
         shell: bash
         run: |
           echo "Full verification: browser checks run when relevant." >> "$GITHUB_STEP_SUMMARY"
-          echo "Runner: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Configured target: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Actual runner: ${{ runner.name }} (${{ runner.os }}/${{ runner.arch }}, ${{ runner.environment }})" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up pinned Bun
         id: bun
@@ -176,23 +181,23 @@ jobs:
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
+          path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}-map-${{ needs.verify.outputs.has_map }}
 
       - name: Install Chromium on GitHub-hosted runner
-        if: vars.MATRUNDAN_CI_RUNNER != 'self-hosted' && needs.verify.outputs.has_map != 'true'
+        if: runner.environment != 'self-hosted' && needs.verify.outputs.has_map != 'true'
         run: bunx playwright install --with-deps chromium
 
       - name: Install Chromium and WebKit on GitHub-hosted runner
-        if: vars.MATRUNDAN_CI_RUNNER != 'self-hosted' && needs.verify.outputs.has_map == 'true'
+        if: runner.environment != 'self-hosted' && needs.verify.outputs.has_map == 'true'
         run: bunx playwright install --with-deps chromium webkit
 
       - name: Install Chromium on self-hosted runner
-        if: vars.MATRUNDAN_CI_RUNNER == 'self-hosted' && needs.verify.outputs.has_map != 'true'
+        if: runner.environment == 'self-hosted' && needs.verify.outputs.has_map != 'true'
         run: bunx playwright install chromium
 
       - name: Install Chromium and WebKit on self-hosted runner
-        if: vars.MATRUNDAN_CI_RUNNER == 'self-hosted' && needs.verify.outputs.has_map == 'true'
+        if: runner.environment == 'self-hosted' && needs.verify.outputs.has_map == 'true'
         run: bunx playwright install chromium webkit
 
       - name: Full mobile Chromium smoke test
