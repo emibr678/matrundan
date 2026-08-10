@@ -163,7 +163,7 @@ För större ändringar av layout, informationshierarki, responsivitet eller
 huvudflöde måste följande vara uppfyllt före merge:
 
 - exakt PR-branch och aktuell head-SHA är dokumenterade;
-- samma branch är vald i Lovable;
+- samma PR-branch är vald i Lovable;
 - Lovable-synken motsvarar aktuell PR-head eller en dokumenterad senare commit
   på samma PR-branch;
 - en aktuell Lovable-previewlänk har lämnats till användaren i chatten;
@@ -238,32 +238,45 @@ Databas- och RPC-ändringar kräver manuell granskning av:
 - isolering mellan grupper;
 - bevarande av befintliga produktionsrader.
 
-## 8. CI-nivåer
+## 8. CI-nivåer och runnerläge
 
-Statiska kontroller och browsertester körs i separata jobb. Browserjobbet startar
-först när kodjobbet är grönt.
+GitHub Actions används som mergekvitto, men runnerkapacitet ska inte förbrukas
+under normal draft-iteration.
 
-Draft-PR kör:
+Draft-PR startar inga CI-runnerjobb. Under draft körs i stället den smalaste
+relevanta verifieringen i den verifierade arbetsytan, normalt `bun run
+verify:changed` och för UI `bun run verify:agent`. Pusha sammanhängande
+checkpoints, men förvänta dig inte hosted CI förrän PR:n är redo.
 
-- miljö- och verktygskontroller;
-- shellsyntax;
-- Prettier och ESLint på ändrade filer;
-- enhetstester;
-- TypeScript;
-- produktionsbygge.
-
-När en draft-PR ändrar UI körs dessutom preliminär mobil Chromium med
-Playwrights `--only-changed`, utan retry och med stopp vid första fel.
-
-När PR:n markeras redo, när `main` uppdateras eller vid manuell fullkörning körs
-relevanta fulla browserkontroller:
+När PR:n markeras redo, när en redan redo PR uppdateras, när `main` uppdateras
+eller vid manuell körning kör CI full verifiering. Relevanta browserkontroller är:
 
 - hela mobil Chromium-sviten för UI-ändringar;
 - WebKit/iPhone och desktop Chromium för kartrelaterade ändringar.
 
-Workflowen **Visual review artifacts** är fristående från ordinarie CI och gör
-ingen pixeljämförelse. Ett misslyckat bygge eller screenshot-test ska utredas
-innan artefakten används som granskningsunderlag.
+Workflowen väljer runner via repository-variabeln `MATRUNDAN_CI_RUNNER`.
+Variabeln är valfri:
+
+- utan variabel används `ubuntu-24.04` på GitHub-hostad runner;
+- värdet `matrundan-self-hosted` flyttar samma CI-jobb till den registrerade,
+  betrodda repository-runner som har denna custom label.
+
+Self-hosted-läget är projektets fallback när GitHub-hostade minuter, billing eller
+runnerkapacitet gör hosted CI otillgängligt. Det sänker inte verifieringskraven:
+samma workflow och checknamn ska bli gröna före merge. Runnern ska vara
+repository-scopad och endast användas för betrodd kod. Linux-runners ska ha
+Playwrights systemberoenden; Windows-runners ska ha Git for Windows Bash i
+runnerprocessens PATH. Den låsta Bun-versionen och browserbinärerna installeras
+av workflowen enligt `DEVELOPMENT.md`.
+
+När hosted kapacitet åter finns kan `MATRUNDAN_CI_RUNNER` tas bort eller sättas
+till `ubuntu-24.04` utan kodändring.
+
+Workflowen **Visual review artifacts** använder samma runner-val. Automatisk
+artifact-körning sker bara för en icke-draft PR där checkboxen är markerad;
+under draft används lokal `bun run test:visual-review` när sådana bilder behövs.
+Workflowen gör ingen pixeljämförelse. Ett misslyckat bygge eller screenshot-test
+ska utredas innan artefakten används som granskningsunderlag.
 
 ## 9. PR och merge
 
@@ -287,7 +300,8 @@ Innan den markeras redo ska följande vara tydligt:
 
 Merge får ske när scope är uppfyllt, diffen är granskad, relevant CI är grön,
 krävd visuell granskning och användargranskning är dokumenterad och inga kända
-blockerare återstår.
+blockerare återstår. CI kan vara GitHub-hostad eller self-hosted, men runnerläget
+ska framgå av PR-kvittot.
 
 Merge innebär inte automatiskt att databasen är driftsatt, att `main` har
 synkat i Lovable eller att den publika appen är publicerad.
@@ -346,6 +360,7 @@ Branch:
 Commit:
 PR:
 CI:
+CI-runner:
 Issue:
 Issue stängd:
 Roadmap:

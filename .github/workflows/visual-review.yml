@@ -20,6 +20,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: visual-review-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -28,8 +32,12 @@ jobs:
   screenshots:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      contains(github.event.pull_request.body || '', '- [x] Skapa visuella granskningsbilder')
-    runs-on: ubuntu-24.04
+      (
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(github.event.pull_request.body || '', '- [x] Skapa visuella granskningsbilder')
+      )
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 15
 
     steps:
@@ -38,10 +46,24 @@ jobs:
         with:
           show-progress: false
 
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          while IFS= read -r -d '' file; do
+            sed -i 's/\r$//' "$file"
+          done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
       - name: Set up pinned Bun
-        uses: oven-sh/setup-bun@v2
+        uses: ./.github/actions/setup-bun
 
       - name: Cache Bun downloads
+        if: runner.environment != 'self-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -53,13 +75,19 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Cache Playwright Chromium
+        if: runner.environment != 'self-hosted'
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
+          path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
           key: visual-review-playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
-      - name: Install Chromium
+      - name: Install Chromium on GitHub-hosted runner
+        if: runner.environment != 'self-hosted'
         run: bunx playwright install --with-deps chromium
+
+      - name: Install Chromium on self-hosted runner
+        if: runner.environment == 'self-hosted'
+        run: bunx playwright install chromium
 
       - name: Capture review screenshots
         env:
