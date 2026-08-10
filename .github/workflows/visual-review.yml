@@ -46,6 +46,12 @@ jobs:
         with:
           show-progress: false
 
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          git checkout-index --force --all
+
       - name: Set up pinned Bun
         uses: ./.github/actions/setup-bun
 
