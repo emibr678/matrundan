@@ -47,6 +47,12 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          git checkout-index --force --all
+
       - name: Report verification mode
         shell: bash
         run: |
@@ -163,6 +169,12 @@ jobs:
         with:
           fetch-depth: 0
           show-progress: false
+
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          git checkout-index --force --all
 
       - name: Set up pinned Bun
         uses: ./.github/actions/setup-bun
