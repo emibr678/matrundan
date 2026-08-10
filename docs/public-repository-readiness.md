@@ -12,14 +12,41 @@ Det här dokumentet är en säkerhets- och underhållschecklista. Att checklista
 - Demo- och exempeldata i repot ska vara uttryckligen fiktiva och får inte härledas från riktiga privata grupper.
 - Ett framtida visibility-byte är en separat administrativ åtgärd som kräver uttryckligt godkännande.
 
+## Lovable och den versionshanterade `.env`
+
+Matrundan använder Lovable Cloud. Lovables nuvarande projektkontrakt använder en versionshanterad `.env` för projektets public-safe Supabase-/browserkonfiguration. Den filen ska därför **inte** tas bort eller generellt ignoreras som en vanlig lokal secret-fil.
+
+Den versionshanterade `.env` får endast innehålla följande granskade public-safe konfiguration:
+
+- `SUPABASE_PROJECT_ID`;
+- `SUPABASE_PUBLISHABLE_KEY`;
+- `SUPABASE_URL`;
+- `VITE_SUPABASE_PROJECT_ID`;
+- `VITE_SUPABASE_PUBLISHABLE_KEY`;
+- `VITE_SUPABASE_URL`;
+- `VITE_GEOAPIFY_MAPS_KEY`.
+
+Supabase publishable key och `VITE_*`-värden ska behandlas som publika. Geoapify-kartnyckeln skickas till browsern och ska begränsas hos leverantören med tillåtna origins/referrers.
+
+Följande får aldrig läggas i den versionshanterade `.env`:
+
+- Supabase service-role/secret key;
+- Geoapify servernyckel;
+- VAPID private key;
+- databaslösenord eller `DATABASE_URL`;
+- access tokens, GitHub tokens eller andra privata credentials.
+
+Lokala privata overrides ska använda `.env.local` eller motsvarande ignorerad fil. Serverhemligheter ska i normal drift konfigureras i Lovable/deploymentens secret store.
+
 ## Före varje framtida visibility-byte
 
 ### 1. Aktuellt träd
 
 - Kör `bun run verify:full` i en fullständig checkout.
 - Kör `bun scripts/public-readiness-check.mjs` efter att alla relevanta refs har hämtats.
-- Verifiera att ingen `.env`, privatnyckel, credentials-fil eller motsvarande är versionshanterad.
-- Verifiera att `.env.example` endast innehåller placeholders och tydligt skiljer browser-exponerade värden från serverhemligheter.
+- Verifiera att den tracked `.env` endast innehåller den uttryckliga public-safe whitelist som kontrollscriptet tillåter.
+- Verifiera att inga andra `.env.*`, privatnyckel-, credentials- eller motsvarande secret-filer är versionshanterade.
+- Verifiera att `.env.example` tydligt skiljer browser-exponerade värden från serverhemligheter och endast använder placeholders för privata värden.
 
 ### 2. Hela Git-historiken och refs
 
@@ -72,6 +99,7 @@ Före visibility-byte ska leveranskvittot minst ange:
 - resultat från history-aware secretscan;
 - vilka branches/tags som ingick;
 - manuell granskning av issues/PR/Actions/artifacts;
+- verifiering att Lovable fortfarande bygger/previewar från exakt kandidat;
 - licensbeslut;
 - eventuella roterade nycklar;
 - uttryckligt godkännande att ändra repository visibility.
