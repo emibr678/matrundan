@@ -180,35 +180,43 @@ bun run verify:agent
 
 Det gör att en serie draft-pushar inte förbrukar GitHub-hostade minuter. När PR:n markeras redo, när en redan redo PR uppdateras, när `main` uppdateras eller vid manuell workflow-körning körs full CI. För UI ingår hela mobil Chromium-sviten; kartrelaterade ändringar kör även WebKit/iPhone och desktop Chromium.
 
-På GitHub-hostade runners installerar Playwright både browser och systemberoenden i jobbet. En self-hosted runner ska i stället förberedas en gång med systemberoenden; CI-jobbet installerar därefter bara den browserversion som matchar den aktuella Playwright-versionen och behöver därför inte `sudo` under varje körning.
+På GitHub-hostade Linux-runners installerar Playwright både browser och systemberoenden i jobbet. På en self-hosted Windows-runner behövs inga separata Playwright-systempaket; workflowen installerar de browserbinärer som matchar den låsta Playwright-versionen. Workflowens `run`-steg använder Bash på båda plattformarna, så Git for Windows Bash måste finnas i PATH för runnerprocessen.
 
 ### Runner-val och fallback när hosted-minuter saknas
 
 Både **CI** och **Visual review artifacts** läser repository-variabeln `MATRUNDAN_CI_RUNNER` för `runs-on`.
 
 - Om variabeln saknas används `ubuntu-24.04` på GitHub-hostad runner.
-- Om variabeln är `self-hosted` används en registrerad self-hosted runner för repot.
+- Om variabeln är `matrundan-self-hosted` används den betrodda repository-runner som har denna custom label.
 
 Detta är projektets fallback när GitHub-hostade Actions-minuter eller billing gör hosted runners otillgängliga. Samma workflow, jobb och checknamn används, så mergegrinden behöver inte sänkas eller kringgås.
 
 En self-hosted runner ska vara betrodd och repository-scopad till Matrundan. För ett privat hobbyrepo bör den inte delas med okända repositories eller användas för obetrodda pull requests. Workflowen kör endast PR-kod från samma repository.
 
-Rekommenderad runner är Linux. GitHub visar den aktuella registreringskommandokedjan under **Settings → Actions → Runners → New self-hosted runner**; registreringstoken är kortlivad och ska aldrig sparas i repot.
+GitHub visar registreringskommandokedjan under **Settings → Actions → Runners → New self-hosted runner**; registreringstoken är kortlivad och ska aldrig sparas i repot.
 
-När runner-applikationen är installerad, förbered samma användarkonto som ska köra runnern i en checkout av Matrundan:
+För en Linux-runner kan samma användarkonto som kör runnern förberedas i en checkout av Matrundan:
 
 ```bash
 bash scripts/bootstrap-agent.sh
 bunx playwright install --with-deps chromium webkit
 ```
 
-Det andra kommandot kan behöva administratörsrättigheter för systempaketen. Kör det som en medveten engångssetup på den betrodda runner-maskinen, inte som ett automatiskt CI-steg.
+För en Windows-runner ska Git, Git for Windows Bash och runnerprocessen använda samma PATH. Kontrollera detta i PowerShell innan `run.cmd` startas:
+
+```powershell
+$env:Path = "C:\Program Files\Git\bin;$env:Path"
+bash --version
+git --version
+```
+
+`oven-sh/setup-bun` installerar den låsta Bun-versionen i jobbet och Playwright-steget installerar Chromium samt vid behov WebKit. Runnern behöver därför inte provisioneras med Linux-kommandot ovan.
 
 När runnern är registrerad och online:
 
-1. skapa repository-variabeln `MATRUNDAN_CI_RUNNER` med värdet `self-hosted` under GitHub Actions variables;
+1. skapa repository-variabeln `MATRUNDAN_CI_RUNNER` med värdet `matrundan-self-hosted` under GitHub Actions variables;
 2. markera en färdig draft-PR som redo eller uppdatera en redan redo PR;
-3. bekräfta att både `verify` och relevanta `browser`-jobb kör på self-hosted runner och blir gröna;
+3. bekräfta i jobbsammanfattningen att rätt runnernamn, operativsystem och miljö användes och att `verify` samt relevanta `browser`-jobb blev gröna;
 4. redovisa runnerläget i PR-kvittot.
 
 När de inkluderade hosted-minuterna åter finns kan variabeln tas bort eller ändras till `ubuntu-24.04`. Ingen kodändring krävs.
