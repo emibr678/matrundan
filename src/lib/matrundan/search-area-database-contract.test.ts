@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 const migrationPath = "supabase/migrations/20260806175500_restore_production_guards.sql";
-const sql = await Bun.file(migrationPath).text();
+const sql = (await Bun.file(migrationPath).text()).replace(/\r\n/g, "\n");
 
 describe("sökområdenas databaskontrakt", () => {
   test("nya kommun-, läns- och regionval blockeras", () => {
