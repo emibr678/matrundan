@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const migration = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260802023000_place_data_signals.sql"),
   "utf8",
-).replace(/\r\n/g, "\n");
+);
 
 function functionBody(name: string): string {
   const start = migration.indexOf(`CREATE OR REPLACE FUNCTION public.${name}`);
