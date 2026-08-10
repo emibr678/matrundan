@@ -93,7 +93,7 @@ Det gör att visuella iterationer inte förbrukar GitHub-runnerkapacitet före e
 sammanhållen kandidat.
 
 Workflowen använder samma runner-val som ordinarie CI. Repository-variabeln
-`MATRUNDAN_CI_RUNNER=self-hosted` gör därför även visuella artifacts möjliga när
+`MATRUNDAN_CI_RUNNER=matrundan-self-hosted` gör därför även visuella artifacts möjliga när
 GitHub-hostade minuter är slut; utan variabel används `ubuntu-24.04`.
 
 Standardmatrisen fångar följande demosökvägar:
