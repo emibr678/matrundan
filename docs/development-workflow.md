@@ -258,15 +258,16 @@ Workflowen väljer runner via repository-variabeln `MATRUNDAN_CI_RUNNER`.
 Variabeln är valfri:
 
 - utan variabel används `ubuntu-24.04` på GitHub-hostad runner;
-- värdet `self-hosted` flyttar samma CI-jobb till en registrerad, betrodd
-  repository-runner.
+- värdet `matrundan-self-hosted` flyttar samma CI-jobb till den registrerade,
+  betrodda repository-runner som har denna custom label.
 
 Self-hosted-läget är projektets fallback när GitHub-hostade minuter, billing eller
 runnerkapacitet gör hosted CI otillgängligt. Det sänker inte verifieringskraven:
 samma workflow och checknamn ska bli gröna före merge. Runnern ska vara
-repository-scopad, endast användas för betrodd kod och ha projektets låsta Bun-
-version, beroenden och Playwright-systemberoenden tillgängliga enligt
-`DEVELOPMENT.md`.
+repository-scopad och endast användas för betrodd kod. Linux-runners ska ha
+Playwrights systemberoenden; Windows-runners ska ha Git for Windows Bash i
+runnerprocessens PATH. Den låsta Bun-versionen och browserbinärerna installeras
+av workflowen enligt `DEVELOPMENT.md`.
 
 När hosted kapacitet åter finns kan `MATRUNDAN_CI_RUNNER` tas bort eller sättas
 till `ubuntu-24.04` utan kodändring.
