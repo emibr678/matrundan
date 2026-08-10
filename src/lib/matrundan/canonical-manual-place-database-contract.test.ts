@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 const migrationPath = "supabase/migrations/20260808064500_canonical_manual_place_fallback.sql";
-const sql = (await Bun.file(migrationPath).text()).replace(/\\r\\n/g, "\\n");
+const sql = await Bun.file(migrationPath).text();
 
 describe("kanonisk återanvändning och manuell fallback", () => {
   test("den interna förbättringskön saknar direkt klientåtkomst och kopplas inte till OSM-rapporttabellen", () => {
