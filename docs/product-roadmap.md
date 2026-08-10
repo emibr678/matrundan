@@ -240,11 +240,23 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 **Prioritet:** `priority:later`
 
-- **#101 Privata kommentarer och reaktioner på besök**
+Rekommenderad ordning fastställs när paketet prioriteras. Två separata behov är
+redan överenskomna:
 
-Kommentarer och enkla reaktioner ska vara förankrade i ett verkligt besök och i
-den aktuella gruppens besökslänk. Funktionen ska vara privat och sekundär, utan
-global feed, följare, offentliga likes eller progression för social aktivitet.
+- **#169 Bekräfta deltagande och komplettera gemensamma besök**  
+  Låt faktiska deltagare självkorrigera felaktig deltagarstatus och komplettera
+  samma kanoniska besök med eget omdöme. Vid delning får en fri gäst endast
+  kopplas till en medlem i målgruppen genom ett uttryckligt val följt av den
+  utpekade personens bekräftelse. Namn är presentation, aldrig identitet; ingen
+  fuzzy personmatchning, besöksdublett eller cross-group exponering får uppstå.
+- **#101 Privata kommentarer och reaktioner på besök**  
+  Lägg privat gruppdiskussion och enkla reaktioner på gruppens besökslänk.
+
+Båda funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
+gruppens gemensamma minne. #169 gäller sann deltagaridentitet och strukturerade
+personliga omdömen på samma besök; #101 gäller privat gruppdiskussion kring
+besöket. Ingen av funktionerna får skapa global feed, offentlig social graf,
+offentliga likes eller progression för social aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
