@@ -47,7 +47,7 @@ jobs:
           show-progress: false
 
       - name: Set up pinned Bun
-        uses: oven-sh/setup-bun@v2
+        uses: ./.github/actions/setup-bun
 
       - name: Cache Bun downloads
         uses: actions/cache@v4
