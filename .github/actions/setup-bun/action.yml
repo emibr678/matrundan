@@ -15,7 +15,7 @@ runs:
 
     - name: Set up Bun on self-hosted Windows runner
       if: runner.environment == 'self-hosted' && runner.os == 'Windows'
-      shell: powershell
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
       run: |
         $ErrorActionPreference = "Stop"
 
