@@ -6,6 +6,24 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_31_0_CHANGELOG: ChangelogEntry = {
+  version: "1.31.0",
+  date: "2026-08-11",
+  summary: "Sökningar kan kombinera riktiga områdesgränser med adresser och andra punktval.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Kommuner och annan verifierad geografi kan sökas inom sin faktiska providergräns i stället för att behandlas som en godtycklig punkt och radie.",
+        "Samma sökning kan kombinera boundaryområden med adresser, orter eller andra punktval; sökavståndet påverkar bara punktvalen och gemensamma träffar dedupliceras.",
+        "Kartan visar verifierade Polygon/MultiPolygon-gränser tillsammans med punktområdenas radier och befintliga matställespins.",
+        "Befintliga sparade sökområden behåller sin tidigare punktsemantik tills användaren uttryckligen väljer om ett område med verifierad gräns.",
+        "Exempel- och demoläget kan verifiera boundaryflödet med lokal geometri och fiktiva matställen utan externa provideranrop.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_30_1_CHANGELOG: ChangelogEntry = {
   version: "1.30.1",
   date: "2026-08-11",
@@ -196,6 +214,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_31_0_CHANGELOG,
   VERSION_1_30_1_CHANGELOG,
   VERSION_1_30_0_CHANGELOG,
   VERSION_1_29_1_CHANGELOG,
