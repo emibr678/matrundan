@@ -7,7 +7,12 @@
 
 import { normalizeFoodTags } from "./food-tags";
 import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
-import type { PlaceCategory, SearchArea, SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
+import type {
+  PlaceCategory,
+  SearchArea,
+  SearchAreaBoundaryGeometry,
+  SearchAreaMode,
+} from "./types";
 
 export interface PlaceSuggestion {
   externalId: string;
@@ -125,7 +130,7 @@ function pointInRing(point: [number, number], ring: number[][]): boolean {
       continue;
     }
     const intersects =
-      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi || Number.EPSILON) + xi;
     if (intersects) inside = !inside;
   }
   return inside;
@@ -137,16 +142,11 @@ function pointInPolygon(point: [number, number], rings: number[][][]): boolean {
   return !holes.some((hole) => pointInRing(point, hole));
 }
 
-function pointInBoundary(
-  point: [number, number],
-  boundary: SearchAreaBoundaryGeometry,
-): boolean {
+function pointInBoundary(point: [number, number], boundary: SearchAreaBoundaryGeometry): boolean {
   if (boundary.type === "Polygon") {
     return pointInPolygon(point, boundary.coordinates as number[][][]);
   }
-  return (boundary.coordinates as number[][][][]).some((polygon) =>
-    pointInPolygon(point, polygon),
-  );
+  return (boundary.coordinates as number[][][][]).some((polygon) => pointInPolygon(point, polygon));
 }
 
 const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
