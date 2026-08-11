@@ -14,6 +14,16 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.30.1] – 2026-08-11
+
+### Rättat
+
+- Behöriga deltagare, gruppägare och administratörer kan åter ladda upp och byta
+  privata besöksfoton utan `permission denied` från Storage-policyn.
+- Storage-policyn använder en smal kontroll för den aktuella användaren medan
+  den interna hjälpfunktionen med valfritt användar-ID fortsatt är spärrad för
+  direkta klientanrop.
+
 ## [1.30.0] – 2026-08-08
 
 ### Ändrat
