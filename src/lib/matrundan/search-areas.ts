@@ -1,5 +1,5 @@
 import type { PlaceSuggestion } from "./places-provider";
-import type { SearchArea, SearchRadiusKm } from "./types";
+import type { SearchArea, SearchAreaMode, SearchRadiusKm } from "./types";
 
 export const SEARCH_RADIUS_OPTIONS = [
   1, 2, 3, 5, 10, 25, 50,
@@ -12,6 +12,20 @@ const BROAD_ADMINISTRATIVE_RESULT_TYPES = new Set([
   "municipality",
   "region",
 ]);
+const BOUNDARY_ELIGIBLE_RESULT_TYPES = new Set([
+  "municipality",
+  "county",
+  "state",
+  "region",
+  "city",
+  "town",
+  "village",
+  "locality",
+  "suburb",
+  "district",
+  "neighbourhood",
+  "quarter",
+]);
 const BROAD_ADMINISTRATIVE_LABEL =
   /(^region\s|\s(?:kommun|län|region|municipality|county|state|country)$)/iu;
 
@@ -19,10 +33,22 @@ export function isSearchRadiusKm(value: number): value is SearchRadiusKm {
   return (SEARCH_RADIUS_OPTIONS as readonly number[]).includes(value);
 }
 
+export function searchAreaMode(area: Pick<SearchArea, "searchMode">): SearchAreaMode {
+  return area.searchMode === "boundary" ? "boundary" : "point";
+}
+
+export function isBoundarySearchArea(area: Pick<SearchArea, "searchMode">): boolean {
+  return searchAreaMode(area) === "boundary";
+}
+
+export function isBoundaryEligibleResultType(resultType?: string): boolean {
+  return BOUNDARY_ELIGIBLE_RESULT_TYPES.has(resultType?.trim().toLowerCase() ?? "");
+}
+
 /**
- * Geoapify-resultat på kommun-, läns-, region- eller landsnivå är för stora för
- * Matrundans punkt + radie-modell. Geoapify kan klassificera svenska kommuner
- * som `city`, därför kontrolleras både result_type och den första etikettdelen.
+ * Identifierar geografiska träffar som inte får behandlas som ett vanligt
+ * punktcentrum. De får däremot väljas när Geoapify först har verifierat en
+ * boundary och sökområdet därför får searchMode=boundary.
  */
 export function isBroadAdministrativeSearchArea(resultType?: string, label?: string): boolean {
   const normalizedType = resultType?.trim().toLowerCase() ?? "";
