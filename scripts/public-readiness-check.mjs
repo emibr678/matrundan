@@ -95,7 +95,8 @@ const suspiciousValuePatterns = [
 ];
 const combinedPattern = suspiciousValuePatterns.join("|");
 
-const trackedEnvForbiddenNamePattern = /(SECRET|SERVICE_ROLE|PRIVATE_KEY|PASSWORD|DATABASE_URL|ACCESS_TOKEN)/i;
+const trackedEnvForbiddenNamePattern =
+  /(SECRET|SERVICE_ROLE|PRIVATE_KEY|PASSWORD|DATABASE_URL|ACCESS_TOKEN)/i;
 for (const key of trackedEnvEntries.keys()) {
   if (trackedEnvForbiddenNamePattern.test(key)) {
     fail(`.env innehåller ett secret-liknande variabelnamn: ${key}`);
@@ -112,15 +113,11 @@ try {
   for (let index = 0; index < revisions.length; index += 50) {
     const batch = revisions.slice(index, index + 50);
     try {
-      const output = execFileSync(
-        "git",
-        ["grep", "-I", "-l", "-E", combinedPattern, ...batch],
-        {
-          cwd: process.cwd(),
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
-        },
-      ).trim();
+      const output = execFileSync("git", ["grep", "-I", "-l", "-E", combinedPattern, ...batch], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }).trim();
       if (output) {
         const paths = Array.from(
           new Set(
@@ -141,7 +138,9 @@ try {
     }
   }
 } catch (error) {
-  fail(`kunde inte skanna Git-historiken: ${error instanceof Error ? error.message : String(error)}`);
+  fail(
+    `kunde inte skanna Git-historiken: ${error instanceof Error ? error.message : String(error)}`,
+  );
 }
 
 if (historyMatch) process.exitCode = 1;
