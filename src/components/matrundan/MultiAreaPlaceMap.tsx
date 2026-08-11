@@ -8,15 +8,22 @@ import {
   type MapLibreMap,
 } from "@/lib/matrundan/maplibre-client";
 import {
+  EMPTY_MULTI_AREA_BOUNDARIES,
   EMPTY_MULTI_AREA_CENTERS,
   EMPTY_MULTI_AREA_POINTS,
   EMPTY_MULTI_AREA_RADII,
+  multiAreaBoundariesCollection,
+  multiAreaBoundaryPositions,
   multiAreaCentersCollection,
   multiAreaItemsCollection,
   multiAreaRadiiCollection,
   multiAreaSelectedCollection,
 } from "@/lib/matrundan/multi-area-map-data";
-import type { PlaceCategory } from "@/lib/matrundan/types";
+import type {
+  PlaceCategory,
+  SearchAreaBoundaryGeometry,
+  SearchAreaMode,
+} from "@/lib/matrundan/types";
 
 export interface MultiAreaMapItem {
   id: string;
@@ -35,6 +42,8 @@ export interface MultiAreaMapCenter {
   label: string;
   lat: number;
   lng: number;
+  searchMode?: SearchAreaMode;
+  boundary?: SearchAreaBoundaryGeometry;
 }
 
 const SOURCE = "multi-area-items";
@@ -45,6 +54,9 @@ const POINT_ICONS = "multi-area-point-icons";
 const SELECTED_SOURCE = "multi-area-selected";
 const SELECTED = "multi-area-selected-point";
 const SELECTED_ICON = "multi-area-selected-icon";
+const BOUNDARY_SOURCE = "multi-area-boundaries";
+const BOUNDARY_FILL = "multi-area-boundary-fill";
+const BOUNDARY_LINE = "multi-area-boundary-line";
 const CENTER_SOURCE = "multi-area-centers";
 const CENTERS = "multi-area-center-points";
 const CENTER_LABELS = "multi-area-center-labels";
@@ -249,6 +261,19 @@ export function MultiAreaPlaceMap({
 
     try {
       registerCategoryIcons(map, foreground);
+      map.addSource(BOUNDARY_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_BOUNDARIES });
+      map.addLayer({
+        id: BOUNDARY_FILL,
+        type: "fill",
+        source: BOUNDARY_SOURCE,
+        paint: { "fill-color": primary, "fill-opacity": 0.08 },
+      });
+      map.addLayer({
+        id: BOUNDARY_LINE,
+        type: "line",
+        source: BOUNDARY_SOURCE,
+        paint: { "line-color": primary, "line-opacity": 0.75, "line-width": 2 },
+      });
       map.addSource(RADIUS_SOURCE, { type: "geojson", data: EMPTY_MULTI_AREA_RADII });
       map.addLayer({
         id: RADIUS_FILL,
@@ -405,6 +430,9 @@ export function MultiAreaPlaceMap({
     (map.getSource(SELECTED_SOURCE) as MapLibreGeoJSONSource)?.setData(
       multiAreaSelectedCollection(selected),
     );
+    (map.getSource(BOUNDARY_SOURCE) as MapLibreGeoJSONSource)?.setData(
+      multiAreaBoundariesCollection(centers),
+    );
     (map.getSource(CENTER_SOURCE) as MapLibreGeoJSONSource)?.setData(
       multiAreaCentersCollection(centers),
     );
@@ -418,6 +446,7 @@ export function MultiAreaPlaceMap({
     if (status !== "ready" || !layersReady || !map) return;
     const points: [number, number][] = [
       ...centers.map((center) => [center.lng, center.lat] as [number, number]),
+      ...centers.flatMap(multiAreaBoundaryPositions),
       ...mappedItems.map((item) => [item.lng!, item.lat!] as [number, number]),
     ];
     if (points.length === 0) return;
@@ -452,6 +481,10 @@ export function MultiAreaPlaceMap({
   const ready = status === "ready" && layersReady;
   const tileStatus = mapsKey ? (status === "ready" ? "ready" : status) : "missing";
   const bulkSelectedCount = mappedItems.filter((item) => item.bulkSelected).length;
+  const boundaryCount = centers.filter(
+    (center) => center.searchMode === "boundary" && center.boundary,
+  ).length;
+  const pointAreaCount = centers.filter((center) => center.searchMode !== "boundary").length;
 
   return (
     <div
@@ -470,6 +503,11 @@ export function MultiAreaPlaceMap({
       data-map-icon-layer={ready && mapRef.current?.getLayer(POINT_ICONS) ? "ready" : "missing"}
       data-map-category-icon-count="6"
       data-search-center-count={centers.length}
+      data-search-boundary-count={boundaryCount}
+      data-search-point-area-count={pointAreaCount}
+      data-map-boundary-layer={
+        ready && mapRef.current?.getLayer(BOUNDARY_LINE) ? "ready" : "missing"
+      }
       data-bulk-selected-count={bulkSelectedCount}
     >
       <div ref={containerRef} className="absolute inset-0" />
