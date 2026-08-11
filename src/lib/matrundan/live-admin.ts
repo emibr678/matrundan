@@ -6,7 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { flushNotificationOutbox } from "./notifications.functions";
-import type { SearchRadiusKm } from "./types";
+import type { SearchAreaMode, SearchRadiusKm } from "./types";
 
 function toErr(e: unknown): Error {
   const msg =
@@ -114,6 +114,8 @@ export interface VerifiedSearchArea {
   lng: number;
   provider: "geoapify";
   placeId: string;
+  searchMode?: SearchAreaMode;
+  resultType?: string;
 }
 
 /** Legacy-alias medan äldre gruppflöden fortfarande kan referera till namnet. */
@@ -165,6 +167,18 @@ export async function updateGroupSettings(
   if (error) throw toErr(error);
 }
 
+function searchAreaPayload(area: VerifiedSearchArea) {
+  return {
+    label: area.label,
+    lat: area.lat,
+    lng: area.lng,
+    provider: area.provider,
+    placeId: area.placeId,
+    searchMode: area.searchMode === "boundary" ? "boundary" : "point",
+    resultType: area.resultType?.trim() || undefined,
+  };
+}
+
 export async function replaceGroupSearchSettings(
   groupId: string,
   areas: VerifiedSearchArea[],
@@ -174,13 +188,7 @@ export async function replaceGroupSearchSettings(
     "replace_group_search_settings" as never,
     {
       _group_id: groupId,
-      _areas: areas.map((area) => ({
-        label: area.label,
-        lat: area.lat,
-        lng: area.lng,
-        provider: area.provider,
-        placeId: area.placeId,
-      })),
+      _areas: areas.map(searchAreaPayload),
       _default_radius_km: defaultRadiusKm,
     } as never,
   );
@@ -233,13 +241,7 @@ export async function createGroupWithOwner(
     {
       _name: name,
       _emoji: emoji ?? undefined,
-      _search_areas: areas.map((area) => ({
-        label: area.label,
-        lat: area.lat,
-        lng: area.lng,
-        provider: area.provider,
-        placeId: area.placeId,
-      })),
+      _search_areas: areas.map(searchAreaPayload),
       _default_radius_km: defaultRadiusKm,
     } as never,
   );
