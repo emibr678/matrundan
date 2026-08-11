@@ -9,7 +9,6 @@ on:
       - synchronize
       - reopened
       - ready_for_review
-      - converted_to_draft
   push:
     branches:
       - main
@@ -18,19 +17,28 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   verify:
-    runs-on: ubuntu-24.04
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 20
     outputs:
       base_sha: ${{ steps.changes.outputs.base_sha }}
       has_ui: ${{ steps.changes.outputs.has_ui }}
       has_map: ${{ steps.changes.outputs.has_map }}
-      full: ${{ steps.verification.outputs.full }}
 
     steps:
       - name: Check out repository
@@ -39,26 +47,35 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Set verification level
-        id: verification
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          while IFS= read -r -d '' file; do
+            sed -i 's/\r$//' "$file"
+          done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Report verification mode
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.pull_request.draft }}" != "true" ]]; then
-            echo "full=true" >> "$GITHUB_OUTPUT"
-            echo "Full verification: browser checks run when relevant." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "full=false" >> "$GITHUB_OUTPUT"
-            echo "Draft verification: static checks plus affected mobile tests when UI changed." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "Full verification: browser checks run when relevant." >> "$GITHUB_STEP_SUMMARY"
+          echo "Configured target: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Actual runner: ${{ runner.name }} (${{ runner.os }}/${{ runner.arch }}, ${{ runner.environment }})" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up pinned Bun
         id: bun
-        uses: oven-sh/setup-bun@v2
+        uses: ./.github/actions/setup-bun
 
       - name: Report runtime
         run: echo "Bun ${{ steps.bun.outputs.bun-version }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cache Bun downloads
+        if: runner.environment != 'self-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -150,8 +167,8 @@ jobs:
 
   browser:
     needs: verify
-    if: needs.verify.outputs.has_ui == 'true'
-    runs-on: ubuntu-24.04
+    if: needs.verify.result == 'success' && needs.verify.outputs.has_ui == 'true'
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 25
 
     steps:
@@ -161,10 +178,24 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          while IFS= read -r -d '' file; do
+            sed -i 's/\r$//' "$file"
+          done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
       - name: Set up pinned Bun
-        uses: oven-sh/setup-bun@v2
+        uses: ./.github/actions/setup-bun
 
       - name: Cache Bun downloads
+        if: runner.environment != 'self-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
@@ -176,29 +207,33 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Cache Playwright browsers
+        if: runner.environment != 'self-hosted'
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
+          path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}-map-${{ needs.verify.outputs.has_map }}
 
-      - name: Install Chromium
-        if: needs.verify.outputs.full != 'true' || needs.verify.outputs.has_map != 'true'
+      - name: Install Chromium on GitHub-hosted runner
+        if: runner.environment != 'self-hosted' && needs.verify.outputs.has_map != 'true'
         run: bunx playwright install --with-deps chromium
 
-      - name: Install Chromium and WebKit
-        if: needs.verify.outputs.full == 'true' && needs.verify.outputs.has_map == 'true'
+      - name: Install Chromium and WebKit on GitHub-hosted runner
+        if: runner.environment != 'self-hosted' && needs.verify.outputs.has_map == 'true'
         run: bunx playwright install --with-deps chromium webkit
 
-      - name: Affected mobile Chromium tests
-        if: needs.verify.outputs.full != 'true'
-        run: bun run test:mobile:changed -- --only-changed="${{ needs.verify.outputs.base_sha }}"
+      - name: Install Chromium on self-hosted runner
+        if: runner.environment == 'self-hosted' && needs.verify.outputs.has_map != 'true'
+        run: bunx playwright install chromium
+
+      - name: Install Chromium and WebKit on self-hosted runner
+        if: runner.environment == 'self-hosted' && needs.verify.outputs.has_map == 'true'
+        run: bunx playwright install chromium webkit
 
       - name: Full mobile Chromium smoke test
-        if: needs.verify.outputs.full == 'true'
         run: bun run test:mobile
 
       - name: iPhone and desktop map compatibility
-        if: needs.verify.outputs.full == 'true' && needs.verify.outputs.has_map == 'true'
+        if: needs.verify.outputs.has_map == 'true'
         run: bun run test:map:cross-browser
 
       - name: Upload browser report on failure
