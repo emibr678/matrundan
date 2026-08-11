@@ -166,7 +166,10 @@ if (base) {
   const changelogChanged = files.includes("CHANGELOG.md");
   const versionChanged = files.includes("src/lib/matrundan/version.ts");
   const userFacingChanged = files.some(isUserFacing);
-  const exempt = process.env.MATRUNDAN_VERSION_EXEMPT === "1";
+  const eventName = process.env.MATRUNDAN_CI_EVENT_NAME ?? "";
+  const exempt =
+    process.env.MATRUNDAN_VERSION_EXEMPT === "1" ||
+    (eventName.length > 0 && eventName !== "pull_request");
 
   if (userFacingChanged && exempt) {
     errors.push(

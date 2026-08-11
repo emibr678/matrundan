@@ -11,6 +11,16 @@ function run(cwd: string, command: string, args: string[] = []) {
   return spawnSync(command, args, { cwd, encoding: "utf8" });
 }
 
+function runReleaseCheck(cwd: string, base: string, eventName?: string) {
+  const env = { ...process.env };
+  if (eventName) env.MATRUNDAN_CI_EVENT_NAME = eventName;
+  return spawnSync(process.execPath, [releaseCheckPath, base], {
+    cwd,
+    encoding: "utf8",
+    env,
+  });
+}
+
 function writeFixtureFile(root: string, path: string, content: string) {
   const target = join(root, path);
   mkdirSync(resolve(target, ".."), { recursive: true });
@@ -86,9 +96,30 @@ describe("releasekontrollens versionsskydd", () => {
     expect(run(root, "git", ["add", "."]).status).toBe(0);
     expect(run(root, "git", ["commit", "-m", "ui without version bump"]).status).toBe(0);
 
-    const result = run(root, process.execPath, [releaseCheckPath, base]);
+    const result = runReleaseCheck(root, base);
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("utan versionshöjning i version.ts");
-  });
+
+    const pushResult = runReleaseCheck(root, base, "push");
+
+    expect(pushResult.status).toBe(1);
+    expect(pushResult.stderr).toContain(
+      "Version: inte relevant får endast användas för ändringar utan användarsynlig kod",
+    );
+  }, 15_000);
+
+  test("godkänner verktygsändring efter merge till main", () => {
+    const { root, base } = createReleaseFixture();
+    writeFixtureFile(root, "docs/maintenance.md", "# Underhåll\n");
+    expect(run(root, "git", ["add", "."]).status).toBe(0);
+    expect(run(root, "git", ["commit", "-m", "maintenance only"]).status).toBe(0);
+
+    const pullRequestResult = runReleaseCheck(root, base);
+    expect(pullRequestResult.status).toBe(1);
+    expect(pullRequestResult.stderr).toContain("Markera Version: inte relevant i PR:n");
+
+    const pushResult = runReleaseCheck(root, base, "push");
+    expect(pushResult.status).toBe(0);
+  }, 15_000);
 });
