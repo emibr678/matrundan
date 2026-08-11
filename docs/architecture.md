@@ -194,9 +194,10 @@ behörighet att läsa den.
 
 ## Gruppstate
 
-`get_group_app_state_v5h(uuid)` är nuvarande primära read-RPC för gruppens
-applikationsstate. Äldre kompatibla läs-RPC:er får finnas som fallback så länge
-de behövs för säkra rullningar.
+`get_group_app_state_v5i(uuid)` är nuvarande primära read-RPC för gruppens
+applikationsstate. `get_group_app_state_v5h(uuid)` är den närmast föregående
+kompatibla läs-RPC:n och får användas som strikt fallback när v5i uttryckligen
+saknas under en säker rullning.
 
 Read-RPC:n ska:
 
@@ -231,13 +232,26 @@ Alla sparade områden är valda när sökningen öppnas och inget område är pr
 Temporära ändringar i en söksession får inte tyst skriva om gruppens sparade
 områden.
 
-Dagens produktionsmodell är punkt + radie. Bred administrativ geografi som inte
-kan representeras säkert som punkt blockeras därför av servern i
-`replace_group_search_settings`.
+`group_search_areas` använder en explicit hybridmodell:
 
-När boundary-stöd införs måste gamla punktområden behålla sin tidigare betydelse
-tills en säker provideridentifierad gräns uttryckligen kan verifieras. Ingen
-migration får tyst omtolka historisk geografi.
+- `point` är ett verifierat centrum som söks med den valda punkt-radien;
+- `boundary` är ett verifierat providerområde som söks inom providergränsen.
+
+En söksession får kombinera båda typerna samtidigt, upp till samma gräns på fem
+områden. Radievalet påverkar endast `point`. Resultat från flera områden
+sammanförs och dedupliceras på provider + provideridentitet så samma verkliga
+matställe inte visas flera gånger bara för att det matchar både en boundary och
+en punkt.
+
+Boundaryläget kräver en verifierad provideridentitet och en providergeometri som
+kan representeras som Polygon eller MultiPolygon. Bred administrativ geografi
+får inte sparas som en ny godtycklig punkt när gränsen inte kan verifieras.
+Själva polygonen är sessions-/cachedata för kartpresentation och lagras inte som
+privat gruppgeometri i `group_search_areas`.
+
+Historiska områden får aldrig omtolkas tyst. `search_mode` har därför `point` som
+bakåtkompatibelt defaultvärde, och ett äldre område blir boundary först efter ett
+nytt uttryckligt val där providergränsen verifieras.
 
 ## Provider och Geoapify
 
@@ -250,6 +264,11 @@ men cache-nycklar ska inte innehålla gruppmedlemskap eller privat gruppdata.
 Providerresultat normaliseras till produktdomänen. Rå payload används som
 server-side bevis eller underlag när det behövs, men ska inte spridas genom
 klienten.
+
+För boundarysökning är provideridentiteten den auktoritativa filtreringsnyckeln.
+Klienten får inte själv avgöra vilka live-matställen som ligger inom en kommun
+utifrån den ritade polygonen. Polygon/MultiPolygon används för verifiering och
+kartpresentation; själva live-sökningen sker server-side mot providern.
 
 Autocomplete för geografi och matställen ska hålla isär:
 
