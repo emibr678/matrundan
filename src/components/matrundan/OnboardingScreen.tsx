@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/matrundan/session";
 import { toast } from "sonner";
-import { createGroupWithOwner, type VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
+import { createGroupWithOwner, type VerifiedSearchArea } from "@/lib/matrundan/live-admin";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
 const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
@@ -17,7 +17,7 @@ export function OnboardingScreen() {
   const [name, setName] = React.useState("");
   const [emoji, setEmoji] = React.useState("🍽️");
   const [locationText, setLocationText] = React.useState("");
-  const [verified, setVerified] = React.useState<VerifiedHomeLocation | null>(null);
+  const [verified, setVerified] = React.useState<VerifiedSearchArea | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [locationOpen, setLocationOpen] = React.useState(false);
 
@@ -121,11 +121,20 @@ export function OnboardingScreen() {
                     if (verified && text !== verified.label) setVerified(null);
                   }}
                   onSelect={(v) => {
-                    setVerified(v);
+                    setVerified({
+                      label: v.label,
+                      lat: v.lat,
+                      lng: v.lng,
+                      provider: "geoapify",
+                      placeId: v.placeId,
+                      searchMode: v.searchMode ?? "point",
+                      resultType: v.resultType,
+                    });
                     setLocationText(v.label);
                   }}
                   onClearVerified={() => setVerified(null)}
-                  placeholder="t.ex. Gamla Enskede, Stockholm"
+                  placeholder="t.ex. Värmdö kommun eller Gamla Enskede"
+                  allowBoundaryAreas
                 />
                 {locInvalid ? (
                   <p className="text-xs text-amber-700 dark:text-amber-400">
@@ -133,7 +142,8 @@ export function OnboardingScreen() {
                   </p>
                 ) : null}
                 <p className="text-xs text-muted-foreground">
-                  Används som startpunkt när ni söker efter ställen. Kan ändras för varje sökning.
+                  Områden med verifierad gräns söks inom hela området. Adresser och andra punktval
+                  använder gruppens sökavstånd.
                 </p>
               </div>
             </CollapsibleContent>
