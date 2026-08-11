@@ -151,7 +151,7 @@ function boundaryGeometry(feature: unknown): SearchAreaBoundaryGeometry | null {
 
 async function loadBoundaryWithFeatures(
   placeId: string,
-  features: "details" | "details.full_geometry",
+  features: "details" | "details,details.full_geometry",
 ): Promise<SearchAreaBoundaryGeometry | null> {
   const url = new URL("https://api.geoapify.com/v2/place-details");
   url.searchParams.set("id", placeId);
@@ -170,10 +170,9 @@ async function loadBoundary(placeId: string): Promise<SearchAreaBoundaryGeometry
   const detailsBoundary = await loadBoundaryWithFeatures(placeId, "details");
   if (detailsBoundary) return detailsBoundary;
 
-  // Normal Place Details är förstahandsvalet. Full originalgeometri kostar en
-  // extra providerrequest och används bara när samma verifierade place-id inte
-  // gav Polygon/MultiPolygon i standarddetaljerna.
-  return loadBoundaryWithFeatures(placeId, "details.full_geometry");
+  // Normal Place Details är förstahandsvalet. Geoapifys full_geometry är en
+  // tilläggsfeature till details och begärs därför tillsammans med basdetaljen.
+  return loadBoundaryWithFeatures(placeId, "details,details.full_geometry");
 }
 
 async function resolveSearchAreaBoundary(input: {
