@@ -6,6 +6,21 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_30_1_CHANGELOG: ChangelogEntry = {
+  version: "1.30.1",
+  date: "2026-08-11",
+  summary: "Besöksfoton kan åter laddas upp av behöriga deltagare och gruppadministratörer.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Behöriga deltagare, gruppägare och administratörer kan åter ladda upp och byta privata besöksfoton utan permission denied från Storage-policyn.",
+        "Storage-policyn använder en smal current-user-kontroll medan den interna hjälpfunktionen med valfritt användar-ID fortsatt är spärrad för direkta klientanrop.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_30_0_CHANGELOG: ChangelogEntry = {
   version: "1.30.0",
   date: "2026-08-08",
@@ -181,6 +196,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_30_1_CHANGELOG,
   VERSION_1_30_0_CHANGELOG,
   VERSION_1_29_1_CHANGELOG,
   VERSION_1_29_0_CHANGELOG,
