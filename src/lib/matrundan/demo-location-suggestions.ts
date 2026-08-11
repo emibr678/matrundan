@@ -85,12 +85,12 @@ const DEMO_BOUNDARIES: Record<string, SearchAreaBoundaryGeometry> = {
     coordinates: [
       [
         [
-          [18.30, 59.23],
+          [18.3, 59.23],
           [18.61, 59.22],
           [18.73, 59.33],
           [18.57, 59.43],
           [18.31, 59.38],
-          [18.30, 59.23],
+          [18.3, 59.23],
         ],
       ],
       [
@@ -109,7 +109,7 @@ const DEMO_BOUNDARIES: Record<string, SearchAreaBoundaryGeometry> = {
     coordinates: [
       [
         [18.018, 59.299],
-        [18.111, 59.300],
+        [18.111, 59.3],
         [18.111, 59.329],
         [18.032, 59.329],
         [18.018, 59.299],
