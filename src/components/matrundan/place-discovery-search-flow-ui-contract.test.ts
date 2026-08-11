@@ -29,10 +29,23 @@ describe("Lägg till ställens sökflöde", () => {
     expect(areaControlsSource).not.toContain("Lägg till område eller adress</span>");
   });
 
-  test("använder sökavståndscopy och beskrivande aria-label", () => {
-    expect(areaControlsSource).toContain("Sök inom ${value} km");
-    expect(areaControlsSource).toContain("Sökavstånd runt valda platser");
-    expect(areaControlsSource).not.toContain("Avstånd ${value} km");
+  test("förklarar att avstånd bara gäller punktval", () => {
+    expect(areaControlsSource).toContain("Inom ${value} km från punktval");
+    expect(areaControlsSource).toContain("Avstånd runt adresser och platser");
+    expect(areaControlsSource).toContain(
+      "Områden söks inom sin gräns. Avståndet gäller bara adresser och andra punktval.",
+    );
+    expect(areaControlsSource).toContain("Söker inom områdesgränser");
+    expect(areaControlsSource).not.toContain("Sökavstånd runt valda platser");
+  });
+
+  test("kombinerar boundary- och punktområden utan att ändra matställesscope", () => {
+    expect(discoverySource).toContain("searchAreaMode(area)");
+    expect(discoverySource).toContain("placeId: area.placeId");
+    expect(discoverySource).toContain("boundary: area.boundary");
+    expect(discoverySource).toContain("geoapifyLoadSearchAreaBoundaries");
+    expect(discoverySource).toContain("failedBoundaryGeometryLabels");
+    expect(areaControlsSource).toContain("allowBoundaryAreas");
   });
 
   test("behåller resultatytan vid omladdning och visar diskret status", () => {
