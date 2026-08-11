@@ -83,6 +83,13 @@ Workflowen kan startas på två sätt:
 - från en icke-draft PR genom att markera `Skapa visuella granskningsbilder` i
   PR-mallen.
 
+Den automatiska PR-körningen sker när en PR öppnas, återöppnas eller markeras
+redo med checkboxen redan markerad, eller när checkboxen ändras från omarkerad
+till markerad. Vanliga nya pushar till PR-branchen skapar inte längre en ny
+screenshot-artifact. Om koden ändras efter den senaste bildkörningen ska en ny
+artifact begäras uttryckligen med **Run workflow** eller genom att avmarkera och
+markera checkboxen igen.
+
 Under draft körs vid behov samma bildgenerering lokalt med:
 
 ```bash
@@ -104,7 +111,7 @@ Standardmatrisen fångar följande demosökvägar:
 
 Vid manuell körning kan andra komma- eller radseparerade sökvägar anges. Bilder
 skapas för 360 × 800 och 1280 × 900 och laddas upp som en GitHub Actions-artifakt
-i 14 dagar.
+i 5 dagar.
 
 Skärmbilderna är granskningsunderlag, inte golden snapshots. Workflowen gör ingen
 pixeljämförelse och ska inte användas för att låsa normal responsiv layout.
