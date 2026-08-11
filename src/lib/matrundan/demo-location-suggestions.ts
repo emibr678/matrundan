@@ -1,5 +1,6 @@
 import type { NormalizedLocationSuggestion } from "./geoapify-normalize";
 import { demoSearchAreaFromText } from "./places-provider";
+import type { SearchAreaBoundaryGeometry } from "./types";
 
 const DEMO_LOCATION_SUGGESTIONS: NormalizedLocationSuggestion[] = [
   {
@@ -72,6 +73,66 @@ const DEMO_LOCATION_SUGGESTIONS: NormalizedLocationSuggestion[] = [
     resultType: "municipality",
   },
 ];
+
+/**
+ * Förenklade, avsiktligt deterministiska demoformer. De är inte officiella
+ * administrativa gränser och används bara för att efterlikna boundary-UX utan
+ * externa provideranrop.
+ */
+const DEMO_BOUNDARIES: Record<string, SearchAreaBoundaryGeometry> = {
+  "demo-location-varmdo-kommun": {
+    type: "MultiPolygon",
+    coordinates: [
+      [
+        [
+          [18.30, 59.23],
+          [18.61, 59.22],
+          [18.73, 59.33],
+          [18.57, 59.43],
+          [18.31, 59.38],
+          [18.30, 59.23],
+        ],
+      ],
+      [
+        [
+          [18.77, 59.25],
+          [18.96, 59.24],
+          [19.02, 59.34],
+          [18.84, 59.37],
+          [18.77, 59.25],
+        ],
+      ],
+    ],
+  },
+  "demo-location-sodermalm": {
+    type: "Polygon",
+    coordinates: [
+      [
+        [18.018, 59.299],
+        [18.111, 59.300],
+        [18.111, 59.329],
+        [18.032, 59.329],
+        [18.018, 59.299],
+      ],
+    ],
+  },
+  "demo-location-majorna": {
+    type: "Polygon",
+    coordinates: [
+      [
+        [11.88, 57.682],
+        [11.94, 57.682],
+        [11.94, 57.711],
+        [11.89, 57.711],
+        [11.88, 57.682],
+      ],
+    ],
+  },
+};
+
+export function demoBoundaryForPlaceId(placeId: string): SearchAreaBoundaryGeometry | null {
+  return DEMO_BOUNDARIES[placeId] ?? null;
+}
 
 function searchableText(suggestion: NormalizedLocationSuggestion): string {
   return [suggestion.primaryLabel, suggestion.secondaryLabel, suggestion.label]
