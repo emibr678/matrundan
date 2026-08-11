@@ -14,6 +14,23 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.31.0] – 2026-08-11
+
+### Ändrat
+
+- Kommuner och annan verifierad geografi kan användas som sökområden inom sin
+  faktiska providergräns i stället för att behandlas som en godtycklig punkt och
+  radie.
+- Samma sökning kan kombinera boundaryområden med adresser, orter och andra
+  punktval. Sökavståndet påverkar bara punktvalen och samma providerställe
+  dedupliceras om det matchar flera valda områden.
+- Kartan visar verifierade Polygon/MultiPolygon-gränser tillsammans med
+  punktområdenas radier, matställespins och befintlig klustring.
+- Befintliga sparade sökområden behåller sin tidigare punktsemantik tills ett
+  område uttryckligen väljs om och får en verifierad gräns.
+- Exempel- och demoläget kan verifiera samma boundary- och punktflöden med lokal
+  geometri och fiktiva matställen utan externa provideranrop.
+
 ## [1.30.1] – 2026-08-11
 
 ### Rättat
