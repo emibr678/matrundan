@@ -57,6 +57,10 @@ export type MultiAreaPlaceSuggestion = NormalizedPlaceSuggestion & {
   matchingAreaLabels: string[];
 };
 
+type RankedMultiAreaPlaceSuggestion = MultiAreaPlaceSuggestion & {
+  nearestAreaSearchMode: SearchAreaMode;
+};
+
 export interface MultiAreaSearchResponse {
   results: MultiAreaPlaceSuggestion[];
   failedAreaLabels: string[];
@@ -145,10 +149,13 @@ function boundaryGeometry(feature: unknown): SearchAreaBoundaryGeometry | null {
   return geometry as SearchAreaBoundaryGeometry;
 }
 
-async function loadBoundary(placeId: string): Promise<SearchAreaBoundaryGeometry | null> {
+async function loadBoundaryWithFeatures(
+  placeId: string,
+  features: "details" | "details.full_geometry",
+): Promise<SearchAreaBoundaryGeometry | null> {
   const url = new URL("https://api.geoapify.com/v2/place-details");
   url.searchParams.set("id", placeId);
-  url.searchParams.set("features", "details");
+  url.searchParams.set("features", features);
   url.searchParams.set("lang", "sv");
   url.searchParams.set("apiKey", readKey());
   const json = await callGeoapify(url);
@@ -157,6 +164,16 @@ async function loadBoundary(placeId: string): Promise<SearchAreaBoundaryGeometry
     if (geometry) return geometry;
   }
   return null;
+}
+
+async function loadBoundary(placeId: string): Promise<SearchAreaBoundaryGeometry | null> {
+  const detailsBoundary = await loadBoundaryWithFeatures(placeId, "details");
+  if (detailsBoundary) return detailsBoundary;
+
+  // Normal Place Details är förstahandsvalet. Full originalgeometri kostar en
+  // extra providerrequest och används bara när samma verifierade place-id inte
+  // gav Polygon/MultiPolygon i standarddetaljerna.
+  return loadBoundaryWithFeatures(placeId, "details.full_geometry");
 }
 
 async function resolveSearchAreaBoundary(input: {
@@ -378,7 +395,7 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
     );
 
     const failedAreaLabels: string[] = [];
-    const merged = new Map<string, MultiAreaPlaceSuggestion>();
+    const merged = new Map<string, RankedMultiAreaPlaceSuggestion>();
     let firstFailure: unknown = null;
     let hasMore = false;
     let nextOffset = data.offset ?? 0;
@@ -393,6 +410,7 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
 
       hasMore ||= outcome.value.page.hasMore;
       nextOffset = Math.max(nextOffset, outcome.value.page.nextOffset);
+      const centerMode: SearchAreaMode = center.searchMode === "boundary" ? "boundary" : "point";
 
       for (const place of outcome.value.page.results) {
         const key = `${place.provider}:${place.externalId}`;
@@ -402,12 +420,17 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
         const matchingAreaLabels = Array.from(
           new Set([...(current?.matchingAreaLabels ?? []), center.label]),
         );
+        const preferNext =
+          !current ||
+          (centerMode === "point" && current.nearestAreaSearchMode !== "point") ||
+          (centerMode === current.nearestAreaSearchMode && nextDistance < currentDistance);
 
-        if (!current || nextDistance < currentDistance) {
+        if (preferNext) {
           merged.set(key, {
             ...place,
             nearestAreaLabel: center.label,
             matchingAreaLabels,
+            nearestAreaSearchMode: centerMode,
           });
         } else {
           merged.set(key, { ...current, matchingAreaLabels });
@@ -421,11 +444,15 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
         : new Error("GEOAPIFY_UNAVAILABLE: Inga områden kunde sökas just nu.");
     }
 
-    const results = [...merged.values()].sort((a, b) => {
+    const rankedResults = [...merged.values()].sort((a, b) => {
       const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
       const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
       return da - db || a.name.localeCompare(b.name, "sv-SE");
     });
+    const results: MultiAreaPlaceSuggestion[] = rankedResults.map(
+      ({ nearestAreaSearchMode, ...result }) =>
+        nearestAreaSearchMode === "boundary" ? { ...result, distanceKm: undefined } : result,
+    );
 
     return { results, failedAreaLabels, hasMore, nextOffset };
   });

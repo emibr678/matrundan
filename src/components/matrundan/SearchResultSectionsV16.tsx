@@ -261,6 +261,18 @@ export function SearchResultSectionsV16({
   );
 }
 
+function searchAreaContextFor(result: PlaceSuggestion): string {
+  if (result.distanceKm != null) return "";
+  const label = result.nearestAreaLabel?.trim();
+  if (!label) return "";
+
+  const alreadyShown = [result.area, result.city].some(
+    (value) =>
+      value?.trim().localeCompare(label, "sv-SE", { sensitivity: "base" }) === 0,
+  );
+  return alreadyShown ? "" : ` · ${label}`;
+}
+
 function SuggestionRowV16({
   result,
   signal,
@@ -313,7 +325,7 @@ function SuggestionRowV16({
               ? ` · ~${result.distanceKm} km${
                   result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""
                 }`
-              : ""}
+              : searchAreaContextFor(result)}
           </span>
           {result.address ? (
             <span className="block break-words text-[11px] text-muted-foreground">

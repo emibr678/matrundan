@@ -34,7 +34,9 @@ För `point` används providerfiltrering med cirkel runt centrum och vald radie.
 
 För `boundary` används provideridentiteten som sökfilter. Providerresultatet är sanningen för vilka matställen som matchar området; kartpolygonen är en presentation och får inte bli en separat säkerhets- eller filtreringsmekanism i live-läget.
 
-Vid val av en boundary-kandidat verifieras först att Geoapify kan returnera Polygon eller MultiPolygon för platsidentiteten. Bred administrativ geografi får inte sparas eller användas som ny punkt om gränsen inte kan verifieras. Mindre lokal geografi kan behålla punktbeteende när ingen gräns finns, eftersom den redan är säker i punkt + radie-modellen.
+Vid val av en boundary-kandidat verifieras först att Geoapify kan returnera Polygon eller MultiPolygon för platsidentiteten. Normal Place Details-geometri är förstahandsvalet. Om samma boundary-kapabla `place_id` saknar Polygon/MultiPolygon där får serveradaptern som riktad fallback fråga efter `details.full_geometry`; den tyngre originalgeometrin ska inte begäras när standarddetaljerna redan räcker. Bred administrativ geografi får inte sparas eller användas som ny punkt om gränsen fortfarande inte kan verifieras. Mindre lokal geografi kan behålla punktbeteende när ingen gräns finns, eftersom den redan är säker i punkt + radie-modellen.
+
+Geoapifys proximity-bias får användas för stabil intern rangordning även när `filter=place:<place_id>` avgränsar en boundary. Ett sådant bias-avstånd är däremot avståndet till områdets representativa punkt, inte avståndet till kommunen eller dess gräns, och får därför aldrig presenteras som `km från <boundary>`. Användarsynligt avstånd hör bara till en faktisk `point`-match. Om samma matställe matchar både boundary och punkt ska punktmatchningens riktiga avstånd vinna för avståndspresentationen; en boundary-only-träff får i stället bära neutral områdeskontext.
 
 ## Blandade områden och deduplicering
 

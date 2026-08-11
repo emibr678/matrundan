@@ -426,7 +426,12 @@ const demoProvider: PlacesProvider = {
       (a, b) =>
         (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || a.name.localeCompare(b.name, "sv-SE"),
     );
-    return filtered;
+
+    // Boundaryns centrumavstånd används bara för deterministisk intern sortering.
+    // Det är inte ett användaravstånd till kommunen/området.
+    return searchMode === "boundary"
+      ? filtered.map((suggestion) => ({ ...suggestion, distanceKm: undefined }))
+      : filtered;
   },
 };
 
