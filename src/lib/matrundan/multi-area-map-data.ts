@@ -1,11 +1,4 @@
-import type {
-  Feature,
-  FeatureCollection,
-  MultiPolygon,
-  Point,
-  Polygon,
-  Position,
-} from "geojson";
+import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon, Position } from "geojson";
 import type {
   MultiAreaMapCenter,
   MultiAreaMapItem,
