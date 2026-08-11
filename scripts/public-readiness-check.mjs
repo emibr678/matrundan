@@ -105,9 +105,7 @@ for (const key of trackedEnvEntries.keys()) {
 
 // This blob is an old, deleted test fixture that only constructs fake values at runtime.
 // Allowlisting the immutable blob, rather than its path, keeps later file versions scannable.
-const knownSafeHistoryBlobs = new Set([
-  "1dbb5e0d00f19eed3daaf52dbbcbe922439af7fd",
-]);
+const knownSafeHistoryBlobs = new Set(["1dbb5e0d00f19eed3daaf52dbbcbe922439af7fd"]);
 
 function isKnownSafeHistoryMatch(match) {
   const separator = match.indexOf(":");
