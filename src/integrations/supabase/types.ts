@@ -541,6 +541,7 @@ export type Database = {
           id: string
           invited_by: string
           invited_email: string | null
+          is_multi_use: boolean
           revoked_at: string | null
           role: string
           token_hash: string
@@ -554,6 +555,7 @@ export type Database = {
           id?: string
           invited_by: string
           invited_email?: string | null
+          is_multi_use?: boolean
           revoked_at?: string | null
           role?: string
           token_hash: string
@@ -567,6 +569,7 @@ export type Database = {
           id?: string
           invited_by?: string
           invited_email?: string | null
+          is_multi_use?: boolean
           revoked_at?: string | null
           role?: string
           token_hash?: string
@@ -1158,6 +1161,180 @@ export type Database = {
           },
         ]
       }
+      place_improvement_candidate_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          candidate_id: string
+          created_at: string
+          id: string
+          metadata: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          candidate_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_improvement_candidate_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_improvement_candidate_events_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "place_improvement_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_improvement_candidates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dismissal_reason: string | null
+          group_id: string
+          id: string
+          place_id: string
+          reason: string
+          resolution: string | null
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dismissal_reason?: string | null
+          group_id: string
+          id?: string
+          place_id: string
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dismissal_reason?: string | null
+          group_id?: string
+          id?: string
+          place_id?: string
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_improvement_candidates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_improvement_candidates_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_improvement_candidates_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_maintainers: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_maintainers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_maintenance_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          place_id: string | null
+          work_item_id: string
+          work_item_kind: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          place_id?: string | null
+          work_item_id: string
+          work_item_kind: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          place_id?: string | null
+          work_item_id?: string
+          work_item_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_maintenance_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_maintenance_events_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       place_sources: {
         Row: {
           fetched_at: string
@@ -1741,6 +1918,24 @@ export type Database = {
         }
         Returns: string
       }
+      create_manual_place_fallback_v1: {
+        Args: {
+          _address?: string
+          _area?: string
+          _category: string
+          _city?: string
+          _cuisines?: string[]
+          _declined_place_ids?: string[]
+          _group_id: string
+          _lat?: number
+          _lng?: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _photo_url?: string
+        }
+        Returns: Json
+      }
       create_or_link_provider_place: {
         Args: {
           _address?: string
@@ -1907,6 +2102,14 @@ export type Database = {
         Args: { _group_id: string; _visit_id: string }
         Returns: string
       }
+      dismiss_place_improvement_candidate_v1: {
+        Args: { _candidate_id: string; _reason: string }
+        Returns: string
+      }
+      dismiss_place_maintenance_work_item_v1: {
+        Args: { _kind: string; _reason: string; _work_item_id: string }
+        Returns: string
+      }
       fail_place_data_report_osm_submission_v1: {
         Args: {
           _error_code: string
@@ -1914,6 +2117,18 @@ export type Database = {
           _report_id: string
         }
         Returns: undefined
+      }
+      find_reusable_manual_place_candidates_v1: {
+        Args: {
+          _address: string
+          _category?: string
+          _city: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _name: string
+        }
+        Returns: Json
       }
       get_account_deletion_requirements: { Args: never; Returns: Json }
       get_cross_group_practical_info_suggestions_v1: {
@@ -1954,6 +2169,11 @@ export type Database = {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
       }
+      get_place_improvement_candidate_for_maintenance_v1: {
+        Args: { _candidate_id: string }
+        Returns: Json
+      }
+      get_place_maintenance_access_v1: { Args: never; Returns: boolean }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
@@ -1991,6 +2211,35 @@ export type Database = {
         Returns: undefined
       }
       leave_group: { Args: { _group_id: string }; Returns: undefined }
+      link_provider_source_for_maintenance_v1: {
+        Args: {
+          _address: string
+          _candidate_id: string
+          _city: string
+          _lat: number
+          _lng: number
+          _name: string
+          _provider: string
+          _provider_place_id: string
+          _raw?: Json
+        }
+        Returns: string
+      }
+      link_provider_source_for_maintenance_work_item_v1: {
+        Args: {
+          _address: string
+          _city: string
+          _kind: string
+          _lat: number
+          _lng: number
+          _name: string
+          _provider: string
+          _provider_place_id: string
+          _raw?: Json
+          _work_item_id: string
+        }
+        Returns: string
+      }
       link_provider_source_to_existing_place_v1: {
         Args: {
           _address: string
@@ -2005,6 +2254,20 @@ export type Database = {
           _raw?: Json
         }
         Returns: string
+      }
+      link_reusable_manual_place_v1: {
+        Args: {
+          _address: string
+          _city: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _name: string
+          _notes?: string
+          _occasions?: string[]
+          _place_id: string
+        }
+        Returns: Json
       }
       list_group_hidden_place_suggestions: {
         Args: { _group_id: string }
@@ -2060,6 +2323,19 @@ export type Database = {
         Args: { _place_id: string; _target_group_id: string }
         Returns: Json
       }
+      list_place_improvement_candidates_for_maintenance_v1: {
+        Args: { _limit?: number; _offset?: number; _status?: string }
+        Returns: Json
+      }
+      list_place_maintenance_work_items_v1: {
+        Args: {
+          _kind?: string
+          _limit?: number
+          _offset?: number
+          _status?: string
+        }
+        Returns: Json
+      }
       list_place_share_targets_v4b: {
         Args: { _place_id: string }
         Returns: Json
@@ -2070,7 +2346,19 @@ export type Database = {
         Args: { _visit_id: string }
         Returns: Json
       }
+      mark_place_improvement_candidate_needs_osm_v1: {
+        Args: { _candidate_id: string }
+        Returns: string
+      }
+      mark_place_maintenance_work_item_needs_osm_v1: {
+        Args: { _kind: string; _work_item_id: string }
+        Returns: string
+      }
       normalize_food_tags: { Args: { _values: string[] }; Returns: string[] }
+      normalize_place_match_text_v1: {
+        Args: { _value: string }
+        Returns: string
+      }
       normalize_place_website: { Args: { _value: string }; Returns: string }
       notification_type_enabled: {
         Args: { _type: string; _user_id: string }
@@ -2126,6 +2414,10 @@ export type Database = {
       replace_group_search_settings: {
         Args: { _areas: Json; _default_radius_km: number; _group_id: string }
         Returns: undefined
+      }
+      resolve_place_maintenance_work_item_v1: {
+        Args: { _kind: string; _work_item_id: string }
+        Returns: string
       }
       respond_next_stop_date: {
         Args: { _group_id: string; _proposal_id: string; _response: string }
@@ -2191,6 +2483,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      search_area_label_is_broad: { Args: { _label: string }; Returns: boolean }
       set_member_role: {
         Args: { _group_id: string; _role: string; _user_id: string }
         Returns: undefined
