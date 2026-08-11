@@ -267,7 +267,8 @@ function searchAreaContextFor(result: PlaceSuggestion): string {
   if (!label) return "";
 
   const alreadyShown = [result.area, result.city].some(
-    (value) => value?.trim().localeCompare(label, "sv-SE", { sensitivity: "base" }) === 0,
+    (value) =>
+      value?.trim().localeCompare(label, "sv-SE", { sensitivity: "base" }) === 0,
   );
   return alreadyShown ? "" : ` · ${label}`;
 }
