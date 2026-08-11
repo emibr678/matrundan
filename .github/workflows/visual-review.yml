@@ -12,7 +12,6 @@ on:
       - main
     types:
       - opened
-      - synchronize
       - reopened
       - edited
       - ready_for_review
@@ -35,7 +34,14 @@ jobs:
       (
         github.event.pull_request.draft == false &&
         github.event.pull_request.head.repo.full_name == github.repository &&
-        contains(github.event.pull_request.body || '', '- [x] Skapa visuella granskningsbilder')
+        contains(github.event.pull_request.body || '', '- [x] Skapa visuella granskningsbilder') &&
+        (
+          github.event.action != 'edited' ||
+          (
+            github.event.changes.body.from != null &&
+            !contains(github.event.changes.body.from || '', '- [x] Skapa visuella granskningsbilder')
+          )
+        )
       )
     runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 15
@@ -101,4 +107,4 @@ jobs:
           name: visual-review-${{ github.run_id }}
           path: visual-review
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 5
