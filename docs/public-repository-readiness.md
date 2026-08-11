@@ -61,6 +61,32 @@ Före faktisk offentlig visibility ska dessutom:
 
 Skriv inte om Git-historiken enbart för kosmetik. Om en riktig hemlighet hittas ska rotation komma först; eventuell historikrensning är en separat riskbedömd operation.
 
+### Reproducerbar Gitleaks-kontroll
+
+Workflowen `Public readiness` kan startas manuellt och använder samma `MATRUNDAN_CI_RUNNER`-variabel som ordinarie CI. Den fungerar därför både med GitHub-hosted och self-hosted runner. Workflowen kör både repots egen grundkontroll och Gitleaks 8.30.1 mot hela den hämtade historiken.
+
+Gitleaks-undantag ligger i `.gitleaksignore` som exakta, immutabla fingerprints. Hela filer, `.env` generellt eller nyckelnamn allowlistas inte. En ny eller flyttad träff måste därför granskas på nytt.
+
+Vid lokal slutkontroll:
+
+```text
+gitleaks git --redact=100 --log-opts="--all" .
+```
+
+Skanningsrapporter med misstänkta värden får inte laddas upp som publika artifacts. Den manuella workflowen har därför kommentarer, summary och rapport-artifact avstängda.
+
+#### Verifierad basrevision 2026-08-11
+
+- Kandidat: `2db98fbc888118059dbdbfcd4f408c5977e7def4`.
+- Scanner: Gitleaks 8.30.1, officiell Windows x64-release med verifierad SHA-256-checksumma.
+- Omfattning: 1 362 commits, alla sex dåvarande GitHub-brancher, inga tags samt lokalt tillgängliga merge-refs för PR #170 och PR #172.
+- Resultat före exakt allowlist: åtta `generic-api-key`-träffar.
+- Klassificering: två Supabase publishable-konfigurationer i historiska versioner av `.env`, browsernyckeln `VITE_GEOAPIFY_MAPS_KEY` samt två lokala lagringsnycklar i klientkod.
+- Inga Supabase secret/service-role-nycklar, privata nyckelblock, GitHub PAT, AWS access keys eller server-secret-tilldelningar hittades.
+- Issues/PR-sökning på starka secret-mönster gav endast dokumenterade variabelnamn i #171/PR #172 och äldre Geoapify-härdning i PR #1; en separat innehållskontroll hittade inga värdetilldelningar eller starka tokenmönster där.
+
+Revisionen är ett kvitto för den angivna SHA:n, inte ett evigt godkännande. Kör om workflowen och granska GitHub-innehåll utanför Git före ett faktiskt visibility-byte.
+
 ### 3. GitHub-innehåll utanför kodträdet
 
 Granska manuellt sådant som också kan bli offentligt:
