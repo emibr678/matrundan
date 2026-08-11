@@ -31,7 +31,7 @@ describe("sökområden i gruppinställningar", () => {
   test("bevarar äldre breda punktval men förklarar hur de uppgraderas till boundary", () => {
     expect(settingsSource).toContain("broadLegacyPoints");
     expect(settingsSource).toContain(
-      "area.searchMode !== \"boundary\" &&\n      isBroadAdministrativeSearchArea(area.resultType, area.label)",
+      'area.searchMode !== "boundary" &&\n      isBroadAdministrativeSearchArea(area.resultType, area.label)',
     );
     expect(settingsSource).toContain("behåller sitt tidigare punktbeteende");
     expect(settingsSource).toContain("Ta bort och välj området");
