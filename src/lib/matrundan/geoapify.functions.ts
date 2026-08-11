@@ -167,9 +167,7 @@ async function resolveSearchAreaBoundary(input: {
     return { searchMode: "point", boundary: null };
   }
   const boundary = await loadBoundary(input.placeId);
-  return boundary
-    ? { searchMode: "boundary", boundary }
-    : { searchMode: "point", boundary: null };
+  return boundary ? { searchMode: "boundary", boundary } : { searchMode: "point", boundary: null };
 }
 
 async function searchPlacesAtArea(
@@ -287,7 +285,9 @@ export const geoapifyResolveSearchAreaBoundary = createServerFn({ method: "POST"
       })
       .parse(input),
   )
-  .handler(async ({ data }): Promise<SearchAreaBoundaryResponse> => resolveSearchAreaBoundary(data));
+  .handler(
+    async ({ data }): Promise<SearchAreaBoundaryResponse> => resolveSearchAreaBoundary(data),
+  );
 
 export const geoapifyLoadSearchAreaBoundaries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
