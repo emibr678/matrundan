@@ -16,6 +16,13 @@ dist-ssr
 .nitro
 *.local
 
+# Local environment and secrets
+# `.env` is intentionally tracked because Lovable Cloud uses it for public-safe
+# browser/runtime configuration. Keep real secrets out of it.
+.env.*
+!.env.example
+.dev.vars
+
 # Test and visual review artifacts
 playwright-report/
 test-results/
@@ -23,7 +30,6 @@ visual-review/
 
 # Wrangler / Cloudflare
 .wrangler/
-.dev.vars
 
 # Editor directories and files
 .vscode/*
