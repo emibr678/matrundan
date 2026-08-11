@@ -113,6 +113,7 @@ jobs:
 
       - name: Release and changelog contract
         env:
+          MATRUNDAN_CI_EVENT_NAME: "${{ github.event_name }}"
           MATRUNDAN_VERSION_EXEMPT: "${{ contains(github.event.pull_request.body || '', '- [x] Version: inte relevant') && '1' || '0' }}"
         run: bun scripts/release-check.mjs "${{ steps.changes.outputs.base_sha }}"
 
