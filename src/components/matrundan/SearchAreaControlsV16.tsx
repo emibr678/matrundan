@@ -1,10 +1,7 @@
 import * as React from "react";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  GeoapifyLocationInput,
-  type VerifiedLocationSelection,
-} from "./GeoapifyLocationInput";
+import { GeoapifyLocationInput, type VerifiedLocationSelection } from "./GeoapifyLocationInput";
 import { SearchAreaPill } from "./SearchAreaPill";
 import { Label } from "@/components/ui/label";
 import {
