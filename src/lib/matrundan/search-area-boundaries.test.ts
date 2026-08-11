@@ -45,13 +45,16 @@ describe("boundarybaserade sökområden", () => {
     expect(typeof gustavsberg?.distanceKm).toBe("number");
   });
 
-  test("Geoapify provar full originalgeometri först när standarddetaljer saknar polygon", () => {
+  test("Geoapify begär full originalgeometri som tillägg till details", () => {
     const detailsCall = geoapifySource.indexOf('loadBoundaryWithFeatures(placeId, "details")');
     const fullGeometryCall = geoapifySource.indexOf(
-      'loadBoundaryWithFeatures(placeId, "details.full_geometry")',
+      'loadBoundaryWithFeatures(placeId, "details,details.full_geometry")',
     );
 
     expect(detailsCall).toBeGreaterThanOrEqual(0);
     expect(fullGeometryCall).toBeGreaterThan(detailsCall);
+    expect(geoapifySource).not.toContain(
+      'loadBoundaryWithFeatures(placeId, "details.full_geometry")',
+    );
   });
 });
