@@ -137,7 +137,7 @@ try {
       }).trim();
       if (output) {
         const suspiciousMatches = output
-          .split("\\n")
+          .split("\n")
           .filter(Boolean)
           .filter((match) => !isKnownSafeHistoryMatch(match));
         if (suspiciousMatches.length === 0) continue;
