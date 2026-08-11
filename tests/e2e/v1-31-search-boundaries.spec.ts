@@ -35,7 +35,9 @@ test.describe("v1.31 sökområdesgränser", () => {
     await expect(map).toHaveAttribute("data-search-point-area-count", "1");
     await expect(map).toHaveAttribute("data-map-boundary-layer", "ready", { timeout: 15_000 });
 
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
