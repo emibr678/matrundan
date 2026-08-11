@@ -103,6 +103,25 @@ for (const key of trackedEnvEntries.keys()) {
   }
 }
 
+// This blob is an old, deleted test fixture that only constructs fake values at runtime.
+// Allowlisting the immutable blob, rather than its path, keeps later file versions scannable.
+const knownSafeHistoryBlobs = new Set([
+  "1dbb5e0d00f19eed3daaf52dbbcbe922439af7fd",
+]);
+
+function isKnownSafeHistoryMatch(match) {
+  const separator = match.indexOf(":");
+  if (separator < 1) return false;
+  const revision = match.slice(0, separator);
+  const path = match.slice(separator + 1);
+  try {
+    const blob = git(["rev-parse", `${revision}:${path}`]);
+    return knownSafeHistoryBlobs.has(blob);
+  } catch {
+    return false;
+  }
+}
+
 let historyMatch = false;
 try {
   const revisions = git(["rev-list", "--all"])
@@ -119,13 +138,14 @@ try {
         stdio: ["ignore", "pipe", "pipe"],
       }).trim();
       if (output) {
+        const suspiciousMatches = output
+          .split("\\n")
+          .filter(Boolean)
+          .filter((match) => !isKnownSafeHistoryMatch(match));
+        if (suspiciousMatches.length === 0) continue;
+
         const paths = Array.from(
-          new Set(
-            output
-              .split("\n")
-              .map((line) => line.replace(/^[0-9a-f]{40}:/, ""))
-              .filter(Boolean),
-          ),
+          new Set(suspiciousMatches.map((line) => line.replace(/^[0-9a-f]{40}:/, ""))),
         );
         console.error(
           `public-readiness: misstänkt hemlighetsmönster finns i nåbar Git-historik (${paths.join(", ")}). Värden skrivs inte ut.`,
