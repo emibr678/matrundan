@@ -144,6 +144,7 @@ jobs:
           name: formatting-patch
           path: formatting.patch
           if-no-files-found: error
+          retention-days: 5
 
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'
@@ -246,3 +247,4 @@ jobs:
             playwright-report
             test-results
           if-no-files-found: ignore
+          retention-days: 5
