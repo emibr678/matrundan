@@ -105,7 +105,8 @@ export function GroupSearchSettingsSection({
   const atAreaLimit = areas.length >= MAX_SEARCH_AREAS;
   const broadLegacyPoints = areas.filter(
     (area) =>
-      area.searchMode !== "boundary" && isBroadAdministrativeSearchArea(area.resultType, area.label),
+      area.searchMode !== "boundary" &&
+      isBroadAdministrativeSearchArea(area.resultType, area.label),
   );
   const boundaryCount = areas.filter((area) => area.searchMode === "boundary").length;
   const legacyOnly = areas.length === 0 && !!initialHome && !initialHome.verified;
@@ -234,8 +235,8 @@ export function GroupSearchSettingsSection({
 
           {broadLegacyPoints.length > 0 ? (
             <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
-              Ett äldre brett val behåller sitt tidigare punktbeteende. Ta bort och välj området igen
-              om ni vill använda dess verifierade geografiska gräns.
+              Ett äldre brett val behåller sitt tidigare punktbeteende. Ta bort och välj området
+              igen om ni vill använda dess verifierade geografiska gräns.
             </p>
           ) : null}
           {legacyOnly ? (
