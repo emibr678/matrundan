@@ -12,6 +12,10 @@ WITH checks(name, ok) AS (
       to_regprocedure('public.get_group_app_state_v5h(uuid)') IS NOT NULL
     ),
     (
+      'read_rpc_internal:get_group_app_state_v5h_boundary_base',
+      to_regprocedure('public.get_group_app_state_v5h_boundary_base(uuid)') IS NOT NULL
+    ),
+    (
       'group_search_areas.search_mode',
       EXISTS (
         SELECT 1
@@ -72,6 +76,15 @@ WITH checks(name, ok) AS (
       )
     ),
     (
+      'search-area:legacy-v5h-point-only',
+      COALESCE(
+        position('search_mode = ''point''' IN pg_get_functiondef(
+          to_regprocedure('public.get_group_app_state_v5h(uuid)')
+        )) > 0,
+        false
+      )
+    ),
+    (
       'isolation:read-v5i-authenticated-only',
       has_function_privilege(
         'authenticated',
@@ -81,6 +94,32 @@ WITH checks(name, ok) AS (
       AND NOT has_function_privilege(
         'anon',
         'public.get_group_app_state_v5i(uuid)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'isolation:read-v5h-authenticated-only',
+      has_function_privilege(
+        'authenticated',
+        'public.get_group_app_state_v5h(uuid)',
+        'EXECUTE'
+      )
+      AND NOT has_function_privilege(
+        'anon',
+        'public.get_group_app_state_v5h(uuid)',
+        'EXECUTE'
+      )
+    ),
+    (
+      'isolation:legacy-v5h-base-not-client-executable',
+      NOT has_function_privilege(
+        'authenticated',
+        'public.get_group_app_state_v5h_boundary_base(uuid)',
+        'EXECUTE'
+      )
+      AND NOT has_function_privilege(
+        'anon',
+        'public.get_group_app_state_v5h_boundary_base(uuid)',
         'EXECUTE'
       )
     ),
