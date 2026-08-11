@@ -25,9 +25,7 @@ describe("databaskontrakt för sökområdesgränser", () => {
   });
 
   test("äldre v5h-klienter får bara point-rader efter boundarymigration", () => {
-    expect(legacyGuardMigration).toContain(
-      "RENAME TO get_group_app_state_v5h_boundary_base",
-    );
+    expect(legacyGuardMigration).toContain("RENAME TO get_group_app_state_v5h_boundary_base");
     expect(legacyGuardMigration).toContain("AND a.search_mode = 'point'");
     expect(legacyGuardMigration).toContain(
       "REVOKE ALL ON FUNCTION public.get_group_app_state_v5h_boundary_base(uuid)",
