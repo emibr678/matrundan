@@ -124,6 +124,8 @@ type Payload = {
       lng: number;
       provider: string;
       placeId: string;
+      searchMode?: string;
+      resultType?: string | null;
     }[];
     homeLocation: {
       label: string;
@@ -280,6 +282,8 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
         lng: area.lng,
         provider: "geoapify" as const,
         placeId: area.placeId,
+        searchMode: area.searchMode === "boundary" ? ("boundary" as const) : ("point" as const),
+        resultType: area.resultType ?? undefined,
       })),
     homeLocation: home
       ? {
