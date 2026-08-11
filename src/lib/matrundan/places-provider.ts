@@ -7,12 +7,7 @@
 
 import { normalizeFoodTags } from "./food-tags";
 import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
-import type {
-  PlaceCategory,
-  SearchArea,
-  SearchAreaBoundaryGeometry,
-  SearchAreaMode,
-} from "./types";
+import type { PlaceCategory, SearchArea, SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
 
 export interface PlaceSuggestion {
   externalId: string;
@@ -117,7 +112,18 @@ function pointInRing(point: [number, number], ring: number[][]): boolean {
     const yi = ring[i]?.[1];
     const xj = ring[j]?.[0];
     const yj = ring[j]?.[1];
-    if (![xi, yi, xj, yj].every(Number.isFinite)) continue;
+    if (
+      typeof xi !== "number" ||
+      typeof yi !== "number" ||
+      typeof xj !== "number" ||
+      typeof yj !== "number" ||
+      !Number.isFinite(xi) ||
+      !Number.isFinite(yi) ||
+      !Number.isFinite(xj) ||
+      !Number.isFinite(yj)
+    ) {
+      continue;
+    }
     const intersects =
       yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON) + xi;
     if (intersects) inside = !inside;
