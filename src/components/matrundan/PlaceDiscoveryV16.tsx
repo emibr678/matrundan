@@ -260,12 +260,7 @@ export function PlaceDiscoveryV16({
     return () => {
       cancelled = true;
     };
-  }, [
-    activeAreas,
-    boundaryGeometryByAreaId,
-    failedBoundaryGeometryIds,
-    isLive,
-  ]);
+  }, [activeAreas, boundaryGeometryByAreaId, failedBoundaryGeometryIds, isLive]);
 
   React.useEffect(() => {
     if (previousBulkBusyRef.current && !bulkBusy && selectedResults.length === 0) {
