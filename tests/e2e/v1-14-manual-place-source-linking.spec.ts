@@ -66,6 +66,7 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   await areaInput.fill("Vasastan, Göteborg");
   await areaInput.press("Enter");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Vasastan");
+  await addDialog.getByRole("combobox", { name: "Sök matställen" }).fill("Päronträdets Trattoria");
 
   const matchRegion = addDialog.getByRole("region", { name: "Möjliga matchningar i gruppen" });
   await expect(matchRegion.getByText("Möjlig match i gruppen", { exact: true })).toBeVisible();
