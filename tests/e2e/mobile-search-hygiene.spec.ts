@@ -244,7 +244,6 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
 
-  await searchDialog.getByRole("button", { name: "Klar", exact: true }).click().catch(() => {});
   await page.goto("/rapporterade-fel?demo=1");
   await expect(
     page.getByText("Den tidigare gruppspecifika arbetskön används inte längre."),
