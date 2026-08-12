@@ -44,7 +44,8 @@ export function selectMatchingGeoapifyBoundary(
     const row = objectValue(feature);
     const properties = objectValue(row?.properties);
     const name = typeof properties?.name === "string" ? properties.name : "";
-    const placeId = typeof properties?.place_id === "string" ? properties.place_id.trim() : "";
+    const placeId =
+      typeof properties?.place_id === "string" ? properties.place_id.trim() : "";
     if (!placeId || comparableBoundaryName(name) !== targetName) continue;
 
     const boundary = boundaryGeometry(row?.geometry);
