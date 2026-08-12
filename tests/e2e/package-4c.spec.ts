@@ -71,9 +71,7 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   const addDialog = await openManualAdd(page);
   await addDialog.getByLabel("Namn").fill("Glöd & Grönska");
   await addDialog.getByPlaceholder("Sök adress eller plats").fill("Grönskans gränd 3");
-  await addDialog
-    .getByRole("button", { name: "Fler uppgifter (valfritt)", exact: true })
-    .click();
+  await addDialog.getByRole("button", { name: "Fler uppgifter (valfritt)", exact: true }).click();
   await addDialog.getByRole("button", { name: "Passar för: Något extra", exact: true }).click();
   await addDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
 
