@@ -9,9 +9,13 @@ function searchResult(searchDialog: import("@playwright/test").Locator) {
   });
 }
 
+function searchInput(searchDialog: import("@playwright/test").Locator) {
+  return searchDialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+}
+
 async function openSearchResult(page: import("@playwright/test").Page) {
   const searchDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await searchDialog.getByLabel("Sök", { exact: true }).fill(PLACE_NAME);
+  await searchInput(searchDialog).fill(PLACE_NAME);
   const result = searchResult(searchDialog);
   await expect(result).toBeVisible();
   await searchDialog.evaluate((element) => {
@@ -36,7 +40,7 @@ test("kryss och Tillbaka återgår till samma sökning med ett aktivt dialoglage
   await resultDialog.getByRole("button", { name: "Stäng", exact: true }).click();
 
   await expect(searchDialog).toBeVisible();
-  await expect(searchDialog.getByLabel("Sök", { exact: true })).toHaveValue(PLACE_NAME);
+  await expect(searchInput(searchDialog)).toHaveValue(PLACE_NAME);
   await expect(searchResult(searchDialog)).toBeInViewport();
 
   await searchResult(searchDialog).click();
@@ -47,6 +51,6 @@ test("kryss och Tillbaka återgår till samma sökning med ett aktivt dialoglage
   await resultDialog.getByRole("button", { name: "Tillbaka", exact: true }).click();
 
   await expect(searchDialog).toBeVisible();
-  await expect(searchDialog.getByLabel("Sök", { exact: true })).toHaveValue(PLACE_NAME);
+  await expect(searchInput(searchDialog)).toHaveValue(PLACE_NAME);
   await expect(searchResult(searchDialog)).toBeInViewport();
 });
