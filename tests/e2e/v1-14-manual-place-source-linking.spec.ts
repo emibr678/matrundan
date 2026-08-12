@@ -49,9 +49,7 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   await manualDialog.getByLabel("Namn").fill("Päronträdets Trattoria");
   await manualDialog.getByPlaceholder("Sök adress eller plats").fill("Pärongränden 6");
   await expectNoHorizontalOverflow(page, "Manuellt tillägg på mobil");
-  await manualDialog
-    .getByRole("button", { name: "Lägg till i gruppen", exact: true })
-    .click();
+  await manualDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
   await expect(manualDialog).toBeHidden();
 
   const placeLink = page.getByRole("link", { name: /Päronträdets Trattoria/ });
