@@ -69,7 +69,9 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expectNoHorizontalOverflow(page, "Platsinfo före tillägg");
   await resultDialog.getByRole("button", { name: "Tillbaka", exact: true }).click();
 
-  await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
+  await addDialog
+    .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+    .click();
   await addDialog.getByLabel("Namn").fill("Testköket");
   await addDialog.getByLabel("Adress").fill("Testgatan 1");
 
