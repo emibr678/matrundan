@@ -55,7 +55,9 @@ test.describe("v1.31 sökområdesgränser", () => {
     await expect(
       dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }),
     ).toHaveCount(0);
-    await expect(dialog.getByText("Stavsnäs Sjökrog")).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Visa information om Stavsnäs Sjökrog", exact: true }),
+    ).toBeVisible();
     await expect(dialog.getByText(/km från Värmdö kommun/i)).toHaveCount(0);
   });
 });
