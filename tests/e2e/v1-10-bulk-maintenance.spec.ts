@@ -37,7 +37,7 @@ test("ställen med saknade uppgifter kan filtreras fram och kompletteras", async
 
   const addDialog = await openManualAdd(page);
   await addDialog.getByLabel("Namn").fill("Ofullständiga Hörnet");
-  await addDialog.getByLabel("Adress").fill("Kompletteringsgatan 10");
+  await addDialog.getByPlaceholder("Sök adress eller plats").fill("Kompletteringsgatan 10");
   await addDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
 
   await applyMissingFilters(page);
