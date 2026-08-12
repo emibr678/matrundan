@@ -10,7 +10,10 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { selectMatchingGeoapifyBoundary } from "./geoapify-boundary-selection";
-import { isBoundaryEligibleResultType } from "./search-areas";
+import {
+  isBoundaryEligibleResultType,
+  isBroadAdministrativeSearchArea,
+} from "./search-areas";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
 
@@ -150,6 +153,17 @@ async function loadPartOfBoundary(placeId: string, label: string): Promise<{
   return selectMatchingGeoapifyBoundary(payload.features, label);
 }
 
+function boundaryResponse(resolved: {
+  boundary: SearchAreaBoundaryGeometry;
+  placeId: string;
+}): SearchAreaBoundaryResponse {
+  return {
+    searchMode: "boundary",
+    boundary: resolved.boundary,
+    boundaryPlaceId: resolved.placeId,
+  };
+}
+
 async function resolveSearchAreaBoundary(input: {
   placeId: string;
   label: string;
@@ -159,23 +173,26 @@ async function resolveSearchAreaBoundary(input: {
     return { searchMode: "point", boundary: null, boundaryPlaceId: null };
   }
 
-  const direct = await loadPlaceDetailsBoundary(input.placeId);
-  if (direct) {
-    return {
-      searchMode: "boundary",
-      boundary: direct.boundary,
-      boundaryPlaceId: direct.placeId,
-    };
+  // Kommuner, län och andra tydligt breda administrativa val behöver normalt
+  // sin överordnade OSM-boundary, inte autocomplete-objektets punktgeometri.
+  // Gå därför direkt till Boundaries API och undvik två onödiga Place Details-
+  // anrop. Om providern redan gav en direkt boundaryidentitet finns fallbacken
+  // kvar för robusthet.
+  if (isBroadAdministrativeSearchArea(input.resultType, input.label)) {
+    const inherited = await loadPartOfBoundary(input.placeId, input.label);
+    if (inherited) return boundaryResponse(inherited);
+
+    const direct = await loadPlaceDetailsBoundary(input.placeId);
+    if (direct) return boundaryResponse(direct);
+
+    return { searchMode: "point", boundary: null, boundaryPlaceId: null };
   }
 
+  const direct = await loadPlaceDetailsBoundary(input.placeId);
+  if (direct) return boundaryResponse(direct);
+
   const inherited = await loadPartOfBoundary(input.placeId, input.label);
-  if (inherited) {
-    return {
-      searchMode: "boundary",
-      boundary: inherited.boundary,
-      boundaryPlaceId: inherited.placeId,
-    };
-  }
+  if (inherited) return boundaryResponse(inherited);
 
   return { searchMode: "point", boundary: null, boundaryPlaceId: null };
 }
