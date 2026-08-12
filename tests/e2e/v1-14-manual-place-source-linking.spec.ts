@@ -36,7 +36,9 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   let addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
+  await addDialog
+    .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+    .click();
   await addDialog.getByLabel("Namn").fill("Päronträdets Trattoria");
   await addDialog.getByLabel("Adress").fill("Pärongränden 6");
   await expectNoHorizontalOverflow(page, "Manuellt tillägg på mobil");
