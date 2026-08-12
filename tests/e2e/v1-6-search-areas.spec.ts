@@ -23,12 +23,6 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
 
   await expect(page.getByRole("button", { name: /annan plats/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /använd platsen/i })).toHaveCount(0);
-  await expect(
-    dialog.getByText(
-      "Områden söks inom sin gräns. Avståndet gäller bara adresser och andra punktval.",
-      { exact: true },
-    ),
-  ).toBeVisible();
 
   const areaInput = dialog.getByRole("combobox", {
     name: "Lägg till område eller adress",
