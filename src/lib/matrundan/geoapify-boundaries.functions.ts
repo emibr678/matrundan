@@ -10,10 +10,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { selectMatchingGeoapifyBoundary } from "./geoapify-boundary-selection";
-import {
-  isBoundaryEligibleResultType,
-  isBroadAdministrativeSearchArea,
-} from "./search-areas";
+import { isBoundaryEligibleResultType, isBroadAdministrativeSearchArea } from "./search-areas";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
 
@@ -90,9 +87,7 @@ function callGeoapify(url: URL): Promise<GeoapifyPayload> {
 }
 
 function objectValue(value: unknown): JsonRecord | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as JsonRecord)
-    : null;
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : null;
 }
 
 function directBoundary(feature: unknown): {
