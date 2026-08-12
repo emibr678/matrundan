@@ -122,6 +122,7 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
   await page.goto("/");
 
   const pendingGroupMenu = page.getByRole("button", { name: /^Profil och grupp:/ });
+  // Självhostad CI kan behöva längre än Playwrights standardtimeout för auth-initiering.
   await expect(pendingGroupMenu).toBeVisible({ timeout: 20_000 });
   await expect(pendingGroupMenu).toHaveAccessibleName("Profil och grupp: Grupp");
   await expect(page.getByText("Något gick snett")).toHaveCount(0);
