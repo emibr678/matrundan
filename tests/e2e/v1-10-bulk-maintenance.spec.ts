@@ -26,7 +26,9 @@ test("ställen med saknade uppgifter kan filtreras fram och kompletteras", async
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
+  await addDialog
+    .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+    .click();
   await addDialog.getByLabel("Namn").fill("Ofullständiga Hörnet");
   await addDialog.getByLabel("Adress").fill("Kompletteringsgatan 10");
   await addDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
