@@ -35,9 +35,7 @@ describe("boundarybaserade sökområden", () => {
       searchMode: "point",
     });
     const ids = results.map((result) => result.externalId);
-    const gustavsberg = results.find(
-      (result) => result.externalId === "demo-varmdo-gustavsberg",
-    );
+    const gustavsberg = results.find((result) => result.externalId === "demo-varmdo-gustavsberg");
 
     expect(ids).toContain("demo-varmdo-gustavsberg");
     expect(ids).not.toContain("demo-varmdo-stavnas");
@@ -46,9 +44,7 @@ describe("boundarybaserade sökområden", () => {
   });
 
   test("Geoapify begär full originalgeometri som tillägg till details", () => {
-    const detailsCall = geoapifySource.indexOf(
-      'loadBoundaryWithFeatures(placeId, "details")',
-    );
+    const detailsCall = geoapifySource.indexOf('loadBoundaryWithFeatures(placeId, "details")');
     const fullGeometryCall = geoapifySource.indexOf(
       'loadBoundaryWithFeatures(placeId, "details,details.full_geometry")',
     );
