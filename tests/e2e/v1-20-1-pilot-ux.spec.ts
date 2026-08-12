@@ -81,6 +81,7 @@ async function installOwnerSession(page: Page) {
     }
 
     if (
+      rpc === "get_group_app_state_v5i" ||
       rpc === "get_group_app_state_v5h" ||
       rpc === "get_group_app_state_v5g" ||
       rpc === "get_group_app_state_v5f"
