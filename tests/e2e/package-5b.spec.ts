@@ -53,10 +53,13 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(dialog).toBeVisible();
 
-  const radius = dialog.getByRole("combobox", { name: "Sökradie", exact: true });
+  const radius = dialog.getByRole("combobox", {
+    name: "Avstånd runt adresser och platser",
+    exact: true,
+  });
   await radius.click();
-  await page.getByRole("option", { name: "Inom 10 km" }).click();
-  await expect(radius).toContainText("Inom 10 km");
+  await page.getByRole("option", { name: "Inom 10 km från punktval" }).click();
+  await expect(radius).toContainText("Inom 10 km från punktval");
   const firstRow = suggestionRow(dialog, "Päronträdets Trattoria");
   await expect(firstRow).toBeVisible();
   await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toBeVisible();
@@ -116,7 +119,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(dialog.getByText(/ställen valda/)).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Välj flera", exact: true })).toBeVisible();
   await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(radius).toContainText("Inom 10 km");
+  await expect(radius).toContainText("Inom 10 km från punktval");
 
   await dialog.getByRole("button", { name: "Lista", exact: true }).click();
   const existing = existingSection(dialog, initialExistingCount + 2);
@@ -137,8 +140,10 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const reopened = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await reopened.getByRole("combobox", { name: "Sökradie", exact: true }).click();
-  await page.getByRole("option", { name: "Inom 10 km" }).click();
+  await reopened
+    .getByRole("combobox", { name: "Avstånd runt adresser och platser", exact: true })
+    .click();
+  await page.getByRole("option", { name: "Inom 10 km från punktval" }).click();
 
   const reopenedExisting = existingSection(reopened, initialExistingCount + 2);
   await expect(reopenedExisting).toHaveAttribute("data-state", "closed");
