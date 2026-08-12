@@ -75,7 +75,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   const manualDialog = page.getByRole("dialog", { name: "Stället saknas i sökningen" });
   await expect(manualDialog).toBeVisible();
   await manualDialog.getByLabel("Namn").fill("Testköket");
-  await manualDialog.getByLabel("Adress").fill("Testgatan 1");
+  await manualDialog.getByPlaceholder("Sök adress eller plats").fill("Testgatan 1");
 
   const addButton = manualDialog.getByRole("button", { name: "Lägg till", exact: true });
   await expect(addButton).toBeEnabled();
