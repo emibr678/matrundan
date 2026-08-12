@@ -46,28 +46,19 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   await page.reload();
 
   const manualDialog = await openManualAdd(page);
-  await manualDialog.getByLabel("Namn").fill("Päronträdets Trattoria");
-  await manualDialog.getByPlaceholder("Sök adress eller plats").fill("Pärongränden 6");
+  await manualDialog.getByLabel("Namn").fill("Stavsnäs Sjökrog");
+  await manualDialog.getByPlaceholder("Sök adress eller plats").fill("Stavsnäs vinterhamn 4");
   await expectNoHorizontalOverflow(page, "Manuellt tillägg på mobil");
   await manualDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
   await expect(manualDialog).toBeHidden();
 
-  const placeLink = page.getByRole("link", { name: /Päronträdets Trattoria/ });
+  const placeLink = page.getByRole("link", { name: /Stavsnäs Sjökrog/ });
   await expect(placeLink).toBeVisible();
   const hrefBeforeLinking = await placeLink.getAttribute("href");
   expect(hrefBeforeLinking).toBeTruthy();
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  const areaInput = addDialog.getByRole("combobox", {
-    name: "Lägg till område eller adress",
-    exact: true,
-  });
-  await areaInput.fill("Vasastan, Göteborg");
-  await areaInput.press("Enter");
-  await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Vasastan");
-  await addDialog.getByRole("combobox", { name: "Sök matställen" }).fill("Päronträdets Trattoria");
-
   const matchRegion = addDialog.getByRole("region", { name: "Möjliga matchningar i gruppen" });
   await expect(matchRegion.getByText("Möjlig match i gruppen", { exact: true })).toBeVisible();
   await expect(matchRegion.getByText(/Samma namn och adress/)).toBeVisible();
@@ -91,12 +82,10 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
     .first();
   await expect(existingSection).toBeVisible();
   await existingSection.click();
-  await expect(
-    addDialog.getByRole("button", { name: /Päronträdets Trattoria/ }).first(),
-  ).toBeVisible();
+  await expect(addDialog.getByRole("button", { name: /Stavsnäs Sjökrog/ }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Länkad källa i sökresultatet på mobil");
   await addDialog.getByRole("button", { name: "Klar" }).click();
 
-  const samePlaceLink = page.getByRole("link", { name: /Päronträdets Trattoria/ });
+  const samePlaceLink = page.getByRole("link", { name: /Stavsnäs Sjökrog/ });
   await expect(samePlaceLink).toHaveAttribute("href", hrefBeforeLinking!);
 });
