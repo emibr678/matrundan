@@ -235,14 +235,18 @@ test("en felaktig demoträff kan rapporteras, döljas och återställas utan ove
 
   const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
   await expect(reportedErrorsSection.getByText("Ingen separat gruppkö längre")).toBeVisible();
-  await expect(reportedErrorsSection.getByText(/handläggningen sker centralt i Platsunderhåll/)).toBeVisible();
+  await expect(
+    reportedErrorsSection.getByText(/handläggningen sker centralt i Platsunderhåll/),
+  ).toBeVisible();
 
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
 
   await page.goto("/rapporterade-fel?demo=1");
   await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
-  await expect(page.getByText("Den tidigare gruppspecifika arbetskön används inte längre.")).toBeVisible();
+  await expect(
+    page.getByText("Den tidigare gruppspecifika arbetskön används inte längre."),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Pensionerad gruppkö för rapporterade fel");
 
   await openPlaceSearch(page);
