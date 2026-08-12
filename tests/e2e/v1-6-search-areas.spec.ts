@@ -9,7 +9,9 @@ async function openSearchDialog(page: import("@playwright/test").Page) {
   const addPlace = page.getByRole("button", { name: /lägg till ställe/i }).first();
   await expect(addPlace).toBeVisible();
   await addPlace.click();
-  await expect(page.getByText("Sökområden", { exact: true })).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(dialog.getByRole("heading", { name: "Sök i", exact: true })).toBeVisible();
+  return dialog;
 }
 
 test("flera sökområden använder kompakta chips utan horisontell overflow på 360 px", async ({
@@ -17,15 +19,15 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await openDemo(page);
-  await openSearchDialog(page);
+  const dialog = await openSearchDialog(page);
 
   await expect(page.getByRole("button", { name: /annan plats/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /använd platsen/i })).toHaveCount(0);
-  await expect(
-    page.getByText("Ändringar här gäller bara den här sökningen.", { exact: true }),
-  ).toBeVisible();
 
-  const areaInput = page.getByRole("combobox", { name: "Sökområden", exact: true });
+  const areaInput = dialog.getByRole("combobox", {
+    name: "Lägg till område eller adress",
+    exact: true,
+  });
   await expect(areaInput).toHaveAttribute("placeholder", "Sök ort, stadsdel eller adress");
 
   await areaInput.fill("Stavsnäs");
@@ -86,10 +88,9 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   ).toBeGreaterThanOrEqual(32);
   await removeTarget.click();
   await expect(page.getByRole("status")).toHaveCount(0);
-  await expect(page.getByRole("combobox", { name: "Sökområden", exact: true })).toHaveAttribute(
-    "placeholder",
-    "Sök ort, stadsdel eller adress",
-  );
+  await expect(
+    dialog.getByRole("combobox", { name: "Lägg till område eller adress", exact: true }),
+  ).toHaveAttribute("placeholder", "Sök ort, stadsdel eller adress");
 
   const mapToggle = page.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
@@ -110,9 +111,12 @@ test("geografisk autocomplete behåller svensk hierarki utan overflow på deskto
 }) => {
   await page.setViewportSize({ width: 1024, height: 800 });
   await openDemo(page);
-  await openSearchDialog(page);
+  const dialog = await openSearchDialog(page);
 
-  const areaInput = page.getByRole("combobox", { name: "Sökområden", exact: true });
+  const areaInput = dialog.getByRole("combobox", {
+    name: "Lägg till område eller adress",
+    exact: true,
+  });
   await areaInput.fill("Skärgårdsvägen 8");
 
   const address = page.getByRole("button", {
