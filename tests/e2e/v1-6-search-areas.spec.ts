@@ -31,10 +31,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
     name: "Lägg till område eller adress",
     exact: true,
   });
-  await expect(areaInput).toHaveAttribute(
-    "placeholder",
-    "Sök kommun, ort, stadsdel eller adress",
-  );
+  await expect(areaInput).toHaveAttribute("placeholder", "Sök kommun, ort, stadsdel eller adress");
 
   await areaInput.fill("Stavsnäs");
   const stavnas = page.getByRole("button", { name: "Stavsnäs. Ort · Värmdö kommun" });
