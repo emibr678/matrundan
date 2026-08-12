@@ -233,7 +233,11 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
 
   const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
-  await expect(reportedErrorsSection).toHaveCount(0);
+  await expect(reportedErrorsSection).toBeVisible();
+  await expect(reportedErrorsSection.getByText("Ingen separat gruppkö längre")).toBeVisible();
+  await expect(
+    reportedErrorsSection.getByText(/handläggningen sker centralt i Platsunderhåll/),
+  ).toBeVisible();
 
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);

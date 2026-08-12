@@ -77,14 +77,18 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await manualDialog.getByLabel("Namn").fill("Testköket");
   await manualDialog.getByPlaceholder("Sök adress eller plats").fill("Testgatan 1");
 
-  const addButton = manualDialog.getByRole("button", { name: "Lägg till", exact: true });
+  const addButton = manualDialog.getByRole("button", {
+    name: "Lägg till i gruppen",
+    exact: true,
+  });
   await expect(addButton).toBeEnabled();
+  await manualDialog
+    .getByRole("button", { name: "Fler uppgifter (valfritt)", exact: true })
+    .click();
   await expect(manualDialog.getByText("Välj minst ett alternativ för att fortsätta.")).toHaveCount(
     0,
   );
-  await expect(
-    manualDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
-  ).toBeVisible();
+  await expect(manualDialog.getByText("Kan också fyllas i senare.", { exact: true })).toBeVisible();
   await expect(manualDialog.getByText("Passar bäst för", { exact: true })).toHaveCount(0);
   await expect(manualDialog.getByText("Passar också för", { exact: true })).toHaveCount(0);
   await expect(
