@@ -8,17 +8,11 @@ export interface GeoapifyBoundarySelection {
 }
 
 function objectValue(value: unknown): JsonRecord | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as JsonRecord)
-    : null;
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : null;
 }
 
 function comparableBoundaryName(value: string): string {
-  return value
-    .split(",")[0]
-    ?.trim()
-    .replace(/\s+/g, " ")
-    .toLocaleLowerCase("sv-SE");
+  return value.split(",")[0]?.trim().replace(/\s+/g, " ").toLocaleLowerCase("sv-SE");
 }
 
 function boundaryGeometry(value: unknown): SearchAreaBoundaryGeometry | null {
@@ -44,8 +38,7 @@ export function selectMatchingGeoapifyBoundary(
     const row = objectValue(feature);
     const properties = objectValue(row?.properties);
     const name = typeof properties?.name === "string" ? properties.name : "";
-    const placeId =
-      typeof properties?.place_id === "string" ? properties.place_id.trim() : "";
+    const placeId = typeof properties?.place_id === "string" ? properties.place_id.trim() : "";
     if (!placeId || comparableBoundaryName(name) !== targetName) continue;
 
     const boundary = boundaryGeometry(row?.geometry);
