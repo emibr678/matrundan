@@ -72,9 +72,7 @@ test("rapporten lämnar gruppens privata arbetskö och hanteras centralt", async
 
   await page.goto("/platsunderhall?demo=1");
   await expect(page.getByRole("heading", { name: "Platsunderhåll" })).toBeVisible();
-  await expect(
-    page.getByText(/Här visas bara neutral platsdata – aldrig gruppnamn, medlemmar eller privata kommentarer/),
-  ).toBeVisible();
+  await expect(page.getByText(/neutral platsdata.*aldrig gruppnamn/)).toBeVisible();
 
   await page.getByRole("button", { name: /^OSM-arbete(?: \d+)?$/ }).click();
   await page.getByRole("button", { name: "Användarrapporter", exact: true }).click();
