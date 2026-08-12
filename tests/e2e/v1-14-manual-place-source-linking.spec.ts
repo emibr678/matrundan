@@ -18,6 +18,17 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
+async function openManualAdd(page: Page) {
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const searchDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await searchDialog
+    .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+    .click();
+  const manualDialog = page.getByRole("dialog", { name: "Stället saknas i sökningen" });
+  await expect(manualDialog).toBeVisible();
+  return manualDialog;
+}
+
 test("ett manuellt ställe behåller sin historik när en senare källa länkas", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
@@ -34,14 +45,12 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   });
   await page.reload();
 
-  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
-  let addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
-  await addDialog.getByLabel("Namn").fill("Päronträdets Trattoria");
-  await addDialog.getByLabel("Adress").fill("Pärongränden 6");
+  const manualDialog = await openManualAdd(page);
+  await manualDialog.getByLabel("Namn").fill("Päronträdets Trattoria");
+  await manualDialog.getByLabel("Adress").fill("Pärongränden 6");
   await expectNoHorizontalOverflow(page, "Manuellt tillägg på mobil");
-  await addDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
-  await expect(addDialog).toBeHidden();
+  await manualDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await expect(manualDialog).toBeHidden();
 
   const placeLink = page.getByRole("link", { name: /Päronträdets Trattoria/ });
   await expect(placeLink).toBeVisible();
@@ -49,7 +58,7 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   expect(hrefBeforeLinking).toBeTruthy();
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
-  addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   const matchRegion = addDialog.getByRole("region", { name: "Möjliga matchningar i gruppen" });
   await expect(matchRegion.getByText("Möjlig match i gruppen", { exact: true })).toBeVisible();
   await expect(matchRegion.getByText(/Samma namn och adress/)).toBeVisible();
