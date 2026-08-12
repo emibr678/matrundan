@@ -18,7 +18,10 @@ const partOfFeatures = [
 
 describe("Geoapify boundaryurval", () => {
   test("väljer den boundary som exakt motsvarar den valda kommunen", () => {
-    const selected = selectMatchingGeoapifyBoundary(partOfFeatures, "Nacka kommun, Stockholms län");
+    const selected = selectMatchingGeoapifyBoundary(
+      partOfFeatures,
+      "Nacka kommun, Stockholms län",
+    );
 
     expect(selected?.placeId).toBe("boundary-nacka");
     expect(selected?.boundary.type).toBe("Polygon");
@@ -32,8 +35,14 @@ describe("Geoapify boundaryurval", () => {
     expect(
       selectMatchingGeoapifyBoundary(
         [
-          { geometry: { type: "Point", coordinates: [18, 59] }, properties: { name: "Nacka kommun", place_id: "point" } },
-          { geometry: { type: "Polygon", coordinates: [] }, properties: { name: "Nacka kommun" } },
+          {
+            geometry: { type: "Point", coordinates: [18, 59] },
+            properties: { name: "Nacka kommun", place_id: "point" },
+          },
+          {
+            geometry: { type: "Polygon", coordinates: [] },
+            properties: { name: "Nacka kommun" },
+          },
         ],
         "Nacka kommun",
       ),
