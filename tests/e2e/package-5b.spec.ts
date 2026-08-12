@@ -21,7 +21,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 }
 
 function suggestionRow(dialog: Locator, name: string) {
-  return dialog.locator("[data-bulk-selected]").filter({ hasText: name }).first();
+  return dialog.locator("[data-bulk-selected]:visible").filter({ hasText: name }).first();
 }
 
 function existingSection(dialog: Locator, count: number) {
@@ -53,10 +53,13 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(dialog).toBeVisible();
 
-  const radius = dialog.getByRole("combobox", { name: "Sökradie", exact: true });
+  const radius = dialog.getByRole("combobox", {
+    name: "Avstånd runt adresser och platser",
+    exact: true,
+  });
   await radius.click();
-  await page.getByRole("option", { name: "Inom 10 km" }).click();
-  await expect(radius).toContainText("Inom 10 km");
+  await page.getByRole("option", { name: "Inom 10 km från punktval" }).click();
+  await expect(radius).toContainText("Inom 10 km från punktval");
   const firstRow = suggestionRow(dialog, "Päronträdets Trattoria");
   await expect(firstRow).toBeVisible();
   await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toBeVisible();
@@ -87,7 +90,12 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
   await selectForBulk(dialog, "Päronträdets Trattoria");
   await expect(dialog.getByText("1 ställe valt", { exact: true })).toBeVisible();
-  await expect(firstRow).toHaveAttribute("data-bulk-selected", "true");
+  await expect(
+    dialog.getByRole("checkbox", {
+      name: "Välj Päronträdets Trattoria för masstillägg",
+      exact: true,
+    }),
+  ).toBeChecked();
 
   await dialog.getByRole("button", { name: "Avbryt", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Välj flera", exact: true })).toBeVisible();
@@ -96,17 +104,14 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
 
   await dialog.getByRole("button", { name: "Välj flera", exact: true }).click();
   await selectForBulk(dialog, "Päronträdets Trattoria");
+  await selectForBulk(dialog, "Deg & Dagg");
+  await expect(dialog.getByText("2 ställen valda", { exact: true })).toBeVisible();
 
   const mapToggle = dialog.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
   await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
-  const visibleMap = dialog.locator('[data-bulk-selected-count="1"]:visible');
-  await expect(visibleMap).toBeVisible();
-  await expect(visibleMap.getByText("Deg & Dagg", { exact: true })).toBeVisible();
-  await visibleMap.getByRole("button", { name: "Markera", exact: true }).click();
   const selectedMap = dialog.locator('[data-bulk-selected-count="2"]:visible');
   await expect(selectedMap).toBeVisible();
-  await expect(selectedMap.getByRole("button", { name: "Avmarkera", exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Valda sökträffar på kartan");
 
   await dialog.getByRole("button", { name: "Lägg till 2 ställen", exact: true }).click();
@@ -116,7 +121,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(dialog.getByText(/ställen valda/)).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Välj flera", exact: true })).toBeVisible();
   await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(radius).toContainText("Inom 10 km");
+  await expect(radius).toContainText("Inom 10 km från punktval");
 
   await dialog.getByRole("button", { name: "Lista", exact: true }).click();
   const existing = existingSection(dialog, initialExistingCount + 2);
@@ -137,8 +142,10 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const reopened = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await reopened.getByRole("combobox", { name: "Sökradie", exact: true }).click();
-  await page.getByRole("option", { name: "Inom 10 km" }).click();
+  await reopened
+    .getByRole("combobox", { name: "Avstånd runt adresser och platser", exact: true })
+    .click();
+  await page.getByRole("option", { name: "Inom 10 km från punktval" }).click();
 
   const reopenedExisting = existingSection(reopened, initialExistingCount + 2);
   await expect(reopenedExisting).toHaveAttribute("data-state", "closed");

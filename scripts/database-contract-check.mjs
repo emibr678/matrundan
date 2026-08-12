@@ -13,6 +13,7 @@ const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const migrationRoot = resolve(root, "supabase/migrations");
 const preflightPath = resolve(root, "supabase/production-preflight.sql");
 const preflightLocationPath = resolve(root, "supabase/production-preflight-place-location.sql");
+const preflightBoundaryPath = resolve(root, "supabase/production-preflight-search-boundaries.sql");
 const errors = [];
 
 function git(args, allowFailure = false) {
@@ -103,6 +104,8 @@ for (const table of [
 }
 for (const column of [
   "default_search_radius_km",
+  "search_mode",
+  "result_type",
   "website",
   "website_override",
   "opening_hours_override",
@@ -175,11 +178,18 @@ if (!existsSync(preflightPath)) {
 if (!existsSync(preflightLocationPath)) {
   errors.push("supabase/production-preflight-place-location.sql saknas.");
 }
-if (existsSync(preflightPath) && existsSync(preflightLocationPath)) {
+if (!existsSync(preflightBoundaryPath)) {
+  errors.push("supabase/production-preflight-search-boundaries.sql saknas.");
+}
+if (
+  existsSync(preflightPath) &&
+  existsSync(preflightLocationPath) &&
+  existsSync(preflightBoundaryPath)
+) {
   const preflight = `${readFileSync(preflightPath, "utf8")}\n${readFileSync(
     preflightLocationPath,
     "utf8",
-  )}`;
+  )}\n${readFileSync(preflightBoundaryPath, "utf8")}`;
   for (const name of requiredFunctions) {
     if (!preflight.includes(name)) {
       errors.push(`Produktions-preflight saknar ${name}.`);
@@ -187,10 +197,14 @@ if (existsSync(preflightPath) && existsSync(preflightLocationPath)) {
   }
   for (const object of [
     "search-area:broad-label-guard",
+    "search-area:hybrid-mode",
+    "search-area:existing-point-default",
     "storage:visit-photo-limit",
     "isolation:no-anon-search-area-helper",
     "isolation:no-authenticated-search-area-helper",
     "group_search_areas",
+    "group_search_areas.search_mode",
+    "group_search_areas.result_type",
     "group_hidden_place_suggestions",
     "place_data_reports",
     "place_data_report_osm_submission_attempts",

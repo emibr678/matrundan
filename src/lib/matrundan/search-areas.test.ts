@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import type { PlaceSuggestion } from "./places-provider";
 import {
+  isBoundaryEligibleResultType,
   isBroadAdministrativeSearchArea,
   isSearchRadiusKm,
   mergeAreaSearchResults,
   SEARCH_RADIUS_OPTIONS,
+  searchAreaMode,
   shortSearchAreaLabel,
 } from "./search-areas";
 
@@ -27,10 +29,25 @@ function place(
 }
 
 describe("flera sökområden", () => {
-  test("2 km är en tillåten gemensam radie", () => {
+  test("2 km är ett tillåtet avstånd för punktområden", () => {
     expect(SEARCH_RADIUS_OPTIONS).toContain(2);
     expect(isSearchRadiusKm(2)).toBe(true);
     expect(isSearchRadiusKm(4)).toBe(false);
+  });
+
+  test("äldre områden utan searchMode behåller punktsemantik", () => {
+    expect(searchAreaMode({})).toBe("point");
+    expect(searchAreaMode({ searchMode: "point" })).toBe("point");
+    expect(searchAreaMode({ searchMode: "boundary" })).toBe("boundary");
+  });
+
+  test("kommun och lokal geografi kan vara boundary men adress är punkt", () => {
+    expect(isBoundaryEligibleResultType("municipality")).toBe(true);
+    expect(isBoundaryEligibleResultType("suburb")).toBe(true);
+    expect(isBoundaryEligibleResultType("city")).toBe(true);
+    expect(isBoundaryEligibleResultType("building")).toBe(false);
+    expect(isBoundaryEligibleResultType("street")).toBe(false);
+    expect(isBoundaryEligibleResultType("country")).toBe(false);
   });
 
   test("kommun-, läns-, region- och landsnivå används inte som punktcentrum", () => {
@@ -48,24 +65,24 @@ describe("flera sökområden", () => {
     expect(isBroadAdministrativeSearchArea(undefined)).toBe(false);
   });
 
-  test("samma providerställe visas en gång med kortaste avståndet", () => {
+  test("samma providerställe från boundary och punkt visas bara en gång", () => {
     const merged = mergeAreaSearchResults([
       {
-        areaId: "a",
-        areaLabel: "Gamla Enskede",
-        results: [place("same", "Samma ställe", 1.4)],
+        areaId: "boundary",
+        areaLabel: "Värmdö kommun",
+        results: [place("same", "Samma ställe", 7.4)],
       },
       {
-        areaId: "b",
-        areaLabel: "Slakthusområdet",
+        areaId: "point",
+        areaLabel: "Skärgårdsvägen 8",
         results: [place("same", "Samma ställe", 0.4)],
       },
     ]);
 
     expect(merged).toHaveLength(1);
     expect(merged[0].distanceKm).toBe(0.4);
-    expect(merged[0].nearestAreaLabel).toBe("Slakthusområdet");
-    expect(merged[0].matchingAreaLabels).toEqual(["Gamla Enskede", "Slakthusområdet"]);
+    expect(merged[0].nearestAreaLabel).toBe("Skärgårdsvägen 8");
+    expect(merged[0].matchingAreaLabels).toEqual(["Värmdö kommun", "Skärgårdsvägen 8"]);
   });
 
   test("olika leverantörer dedupliceras inte av misstag", () => {

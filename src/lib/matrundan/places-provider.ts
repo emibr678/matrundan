@@ -7,7 +7,12 @@
 
 import { normalizeFoodTags } from "./food-tags";
 import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
-import type { PlaceCategory, SearchArea } from "./types";
+import type {
+  PlaceCategory,
+  SearchArea,
+  SearchAreaBoundaryGeometry,
+  SearchAreaMode,
+} from "./types";
 
 export interface PlaceSuggestion {
   externalId: string;
@@ -34,6 +39,8 @@ export interface PlacesSearchOpts {
   center?: { lat: number; lng: number };
   areaLabel?: string;
   radiusKm: number | null;
+  searchMode?: SearchAreaMode;
+  boundary?: SearchAreaBoundaryGeometry;
 }
 
 export interface PlacesProvider {
@@ -50,6 +57,8 @@ const AREA_CENTERS: Record<string, { lat: number; lng: number }> = {
   linné: { lat: 57.6963, lng: 11.9464 },
   rosenlund: { lat: 57.7005, lng: 11.9514 },
   södermalm: { lat: 59.3153, lng: 18.0711 },
+  stavsnäs: { lat: 59.287, lng: 18.692 },
+  gustavsberg: { lat: 59.3264, lng: 18.3895 },
 };
 
 const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
@@ -57,6 +66,8 @@ const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
   stockholm: { lat: 59.3293, lng: 18.0686 },
   malmö: { lat: 55.6049, lng: 13.0038 },
   uppsala: { lat: 59.8586, lng: 17.6389 },
+  stavsnäs: { lat: 59.287, lng: 18.692 },
+  gustavsberg: { lat: 59.3264, lng: 18.3895 },
 };
 
 function centerFor(city = "Göteborg", area?: string) {
@@ -83,6 +94,7 @@ export function demoSearchAreaFromText(text: string, fallbackCity = "Göteborg")
     lng: center.lng,
     provider: "demo",
     placeId: `demo:${parts.join(":").toLocaleLowerCase("sv-SE")}`,
+    searchMode: "point",
   };
 }
 
@@ -95,6 +107,46 @@ function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: num
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * radius * Math.asin(Math.sqrt(value));
+}
+
+function pointInRing(point: [number, number], ring: number[][]): boolean {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const xi = ring[i]?.[0];
+    const yi = ring[i]?.[1];
+    const xj = ring[j]?.[0];
+    const yj = ring[j]?.[1];
+    if (
+      typeof xi !== "number" ||
+      typeof yi !== "number" ||
+      typeof xj !== "number" ||
+      typeof yj !== "number" ||
+      !Number.isFinite(xi) ||
+      !Number.isFinite(yi) ||
+      !Number.isFinite(xj) ||
+      !Number.isFinite(yj)
+    ) {
+      continue;
+    }
+    const intersects =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi || Number.EPSILON) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInPolygon(point: [number, number], rings: number[][][]): boolean {
+  const [outer, ...holes] = rings;
+  if (!outer || !pointInRing(point, outer)) return false;
+  return !holes.some((hole) => pointInRing(point, hole));
+}
+
+function pointInBoundary(point: [number, number], boundary: SearchAreaBoundaryGeometry): boolean {
+  if (boundary.type === "Polygon") {
+    return pointInPolygon(point, boundary.coordinates as number[][][]);
+  }
+  return (boundary.coordinates as number[][][][]).some((polygon) => pointInPolygon(point, polygon));
 }
 
 const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
@@ -265,11 +317,56 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
     lat: 57.6996,
     lng: 11.9552,
   },
+  {
+    externalId: "demo-varmdo-stavnas",
+    provider: "demo",
+    name: "Stavsnäs Sjökrog",
+    category: "restaurang",
+    address: "Stavsnäs vinterhamn 4",
+    area: "Stavsnäs",
+    city: "Stavsnäs",
+    cuisines: ["fisk", "svenskt"],
+    lat: 59.286,
+    lng: 18.691,
+  },
+  {
+    externalId: "demo-varmdo-gustavsberg",
+    provider: "demo",
+    name: "Hamnbageriet",
+    category: "bageri",
+    address: "Odelbergs väg 5",
+    area: "Gustavsberg",
+    city: "Gustavsberg",
+    cuisines: ["surdeg", "fika"],
+    lat: 59.326,
+    lng: 18.39,
+  },
+  {
+    externalId: "demo-varmdo-island",
+    provider: "demo",
+    name: "Öbordet",
+    category: "restaurang",
+    address: "Bryggan 2",
+    area: "Skärgården",
+    city: "Värmdö",
+    cuisines: ["fisk", "smårätter"],
+    lat: 59.31,
+    lng: 18.86,
+  },
 ];
 
 const demoProvider: PlacesProvider = {
   id: "demo",
-  async search({ query, city = "", area, center: suppliedCenter, areaLabel, radiusKm }) {
+  async search({
+    query,
+    city = "",
+    area,
+    center: suppliedCenter,
+    areaLabel,
+    radiusKm,
+    searchMode = "point",
+    boundary,
+  }) {
     await new Promise((resolve) => setTimeout(resolve, 220));
     if (!suppliedCenter && !city.trim()) return [];
 
@@ -310,17 +407,31 @@ const demoProvider: PlacesProvider = {
     }));
 
     const filtered =
-      radiusKm == null || !Number.isFinite(radiusKm)
-        ? withDistance
-        : withDistance.filter(
-            (suggestion) => suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
-          );
+      searchMode === "boundary"
+        ? boundary
+          ? withDistance.filter(
+              (suggestion) =>
+                suggestion.lat != null &&
+                suggestion.lng != null &&
+                pointInBoundary([suggestion.lng, suggestion.lat], boundary),
+            )
+          : []
+        : radiusKm == null || !Number.isFinite(radiusKm)
+          ? withDistance
+          : withDistance.filter(
+              (suggestion) => suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
+            );
 
     filtered.sort(
       (a, b) =>
         (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || a.name.localeCompare(b.name, "sv-SE"),
     );
-    return filtered;
+
+    // Boundaryns centrumavstånd används bara för deterministisk intern sortering.
+    // Det är inte ett användaravstånd till kommunen/området.
+    return searchMode === "boundary"
+      ? filtered.map((suggestion) => ({ ...suggestion, distanceKm: undefined }))
+      : filtered;
   },
 };
 

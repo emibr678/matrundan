@@ -133,11 +133,14 @@ export function CreateGroupDialog({
                   lng: value.lng,
                   provider: "geoapify",
                   placeId: value.placeId,
+                  searchMode: value.searchMode ?? "point",
+                  resultType: value.resultType,
                 });
                 setLocationText(value.label);
               }}
               onClearVerified={() => setVerified(null)}
-              placeholder="t.ex. Gamla Enskede, Stockholm"
+              placeholder="t.ex. Värmdö kommun eller Gamla Enskede"
+              allowBoundaryAreas
             />
             {locInvalid ? (
               <p className="text-xs text-amber-700 dark:text-amber-400">
@@ -149,7 +152,7 @@ export function CreateGroupDialog({
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cg-radius">Vanlig sökradie</Label>
+            <Label htmlFor="cg-radius">Avstånd runt adresser och platser</Label>
             <Select
               value={String(radius)}
               onValueChange={(value) => setRadius(Number(value) as SearchRadiusKm)}
@@ -160,13 +163,13 @@ export function CreateGroupDialog({
               <SelectContent>
                 {SEARCH_RADIUS_OPTIONS.map((value) => (
                   <SelectItem key={value} value={String(value)}>
-                    {value === 50 ? "Större område · inom 50 km" : `Inom ${value} km`}
+                    {value === 50 ? "Större avstånd · inom 50 km" : `Inom ${value} km`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Samma radie används runt alla gruppens valda sökområden.
+              Gäller punktval som adresser. Områden med verifierad gräns söks inom hela området.
             </p>
           </div>
           <DialogFooter>

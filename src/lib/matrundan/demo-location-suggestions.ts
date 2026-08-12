@@ -1,5 +1,6 @@
 import type { NormalizedLocationSuggestion } from "./geoapify-normalize";
 import { demoSearchAreaFromText } from "./places-provider";
+import type { SearchAreaBoundaryGeometry } from "./types";
 
 const DEMO_LOCATION_SUGGESTIONS: NormalizedLocationSuggestion[] = [
   {
@@ -72,6 +73,88 @@ const DEMO_LOCATION_SUGGESTIONS: NormalizedLocationSuggestion[] = [
     resultType: "municipality",
   },
 ];
+
+/**
+ * Förenklade, avsiktligt deterministiska demoformer. De är inte officiella
+ * administrativa gränser och används bara för att efterlikna boundary-UX utan
+ * externa provideranrop.
+ */
+const DEMO_BOUNDARIES: Record<string, SearchAreaBoundaryGeometry> = {
+  "demo-location-varmdo-kommun": {
+    type: "MultiPolygon",
+    coordinates: [
+      [
+        [
+          [18.29, 59.235],
+          [18.34, 59.225],
+          [18.4, 59.232],
+          [18.47, 59.224],
+          [18.54, 59.235],
+          [18.6, 59.245],
+          [18.66, 59.255],
+          [18.715, 59.275],
+          [18.735, 59.31],
+          [18.72, 59.345],
+          [18.68, 59.372],
+          [18.63, 59.402],
+          [18.56, 59.425],
+          [18.49, 59.421],
+          [18.43, 59.405],
+          [18.37, 59.398],
+          [18.32, 59.37],
+          [18.3, 59.33],
+          [18.285, 59.285],
+          [18.29, 59.235],
+        ],
+      ],
+      [
+        [
+          [18.78, 59.255],
+          [18.82, 59.245],
+          [18.88, 59.25],
+          [18.94, 59.265],
+          [18.98, 59.295],
+          [19, 59.33],
+          [18.97, 59.355],
+          [18.92, 59.375],
+          [18.86, 59.37],
+          [18.81, 59.35],
+          [18.78, 59.32],
+          [18.77, 59.285],
+          [18.78, 59.255],
+        ],
+      ],
+    ],
+  },
+  "demo-location-sodermalm": {
+    type: "Polygon",
+    coordinates: [
+      [
+        [18.018, 59.299],
+        [18.111, 59.3],
+        [18.111, 59.329],
+        [18.032, 59.329],
+        [18.018, 59.299],
+      ],
+    ],
+  },
+  "demo-location-majorna": {
+    type: "Polygon",
+    coordinates: [
+      [
+        [11.88, 57.682],
+        [11.94, 57.682],
+        [11.94, 57.711],
+        [11.89, 57.711],
+        [11.88, 57.682],
+      ],
+    ],
+  },
+};
+
+export function demoBoundaryForPlaceId(placeId: string): SearchAreaBoundaryGeometry | null {
+  return DEMO_BOUNDARIES[placeId] ?? null;
+}
 
 function searchableText(suggestion: NormalizedLocationSuggestion): string {
   return [suggestion.primaryLabel, suggestion.secondaryLabel, suggestion.label]

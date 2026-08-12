@@ -18,7 +18,15 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("gruppen granskar och simulerar ett rättelseförslag privat", async ({ page }) => {
+async function openMaintenanceItem(page: Page, name: string) {
+  await page
+    .locator("section:not([aria-label='Underhållsdetalj']) button", { hasText: name })
+    .first()
+    .click();
+  await expect(page.getByRole("region", { name: "Underhållsdetalj" })).toBeVisible();
+}
+
+test("rapporten lämnar gruppens privata arbetskö och hanteras centralt", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen/p5?demo=1");
   await page.evaluate(() => {
@@ -35,12 +43,6 @@ test("gruppen granskar och simulerar ett rättelseförslag privat", async ({ pag
   });
   await page.goto("/matstallen/p5?demo=1");
 
-  await expect(
-    page.getByText(
-      "Stället räknas som provat så fort någon i gänget varit här — alla behöver inte gå hit.",
-      { exact: true },
-    ),
-  ).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Om stället", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Rapportera felaktig information" }).click();
   const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktig uppgift" });
@@ -55,66 +57,30 @@ test("gruppen granskar och simulerar ett rättelseförslag privat", async ({ pag
   await reportDialog.getByRole("button", { name: "Skicka underlag" }).click();
   await expect(reportDialog).toBeHidden();
 
-  await page.goto("/gruppen?demo=1");
-  await page.getByRole("button", { name: "Gruppinställningar" }).click();
-  const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  await settings.getByRole("button", { name: /Underhåll av matställen/, exact: false }).click();
-  const maintenance = page.getByRole("dialog", { name: "Underhåll av matställen" });
-  const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
-
-  await expect(reportedErrorsSection.getByText("1 att granska")).toBeVisible();
-  await expect(
-    reportedErrorsSection.getByText(/Stängda matställen, fel namn, adresser/),
-  ).toBeVisible();
-  await reportedErrorsSection.getByRole("link", { name: /Hantera rapporterade fel/ }).click();
-
+  await page.goto("/rapporterade-fel?demo=1");
   await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Att granska 1/ })).toBeVisible();
-  await page.getByText("Glöd & Grönska", { exact: true }).click();
-
-  const reportSheet = page.getByRole("dialog");
-  await expect(reportSheet.getByRole("heading", { name: "Glöd & Grönska" })).toBeVisible();
-  await expect(reportSheet.getByText("Välj nästa steg", { exact: true })).toBeVisible();
   await expect(
-    reportSheet.getByText("OpenStreetMap, en öppen karta", { exact: false }),
-  ).toHaveCount(0);
-  await reportSheet
-    .getByLabel("Intern anteckning")
-    .fill("Kontrollerad mot verksamhetens officiella information.");
-  await expectNoHorizontalOverflow(page, "Granskningskö på mobil");
-  await reportSheet.getByRole("button", { name: "Fortsätt till rättelseförslag" }).click();
-
-  await expect(reportSheet.getByText("Hjälp till att rätta uppgiften på kartan")).toBeVisible();
-  await expect(
-    reportSheet.getByText("OpenStreetMap, en öppen karta", { exact: false }),
+    page.getByText("Den tidigare gruppspecifika arbetskön används inte längre."),
   ).toBeVisible();
-
-  const publicText = reportSheet.getByLabel("Text som skickas till OpenStreetMap");
-  await expect(publicText).toHaveValue(/Webbplatsen i kartdatan verkar vara fel/);
-  await publicText.fill(
-    "Webbplatsen i kartdatan verkar vara inaktuell. Verksamhetens skylt visar en annan officiell webbplats.",
-  );
-  await expectNoHorizontalOverflow(page, "Text för rättelseförslag på mobil");
-  await reportSheet.getByRole("button", { name: "Skicka rättelseförslag" }).click();
-
-  const confirmation = page.getByRole("alertdialog", {
-    name: "Skicka rättelseförslaget?",
-  });
+  await expect(page.getByText(/handläggningen sker centralt i Platsunderhåll/)).toBeVisible();
   await expect(
-    confirmation.getByText(/kan inte redigeras eller tas bort från Matrundan/),
+    page.getByText(/Gruppnamn, medlemskap och historisk privat rapporttext skickas inte/),
   ).toBeVisible();
-  await confirmation.getByRole("button", { name: "Skicka förslaget" }).click();
+  await expect(page.getByRole("button", { name: /Att granska/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Skicka rättelseförslag/ })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Pensionerad grupparbetskö");
 
-  await expect(reportSheet.getByText("Väntar på granskning", { exact: true })).toBeVisible();
-  await expect(
-    reportSheet.getByText(
-      "Rättelseförslaget har skickats till OpenStreetMap och väntar på att granskas.",
-      { exact: true },
-    ),
-  ).toBeVisible();
-  await expect(reportSheet.getByRole("button", { name: "Skicka rättelseförslag" })).toHaveCount(0);
-  await expectNoHorizontalOverflow(page, "Simulerat rättelseförslag på mobil");
+  await page.goto("/platsunderhall?demo=1");
+  await expect(page.getByRole("heading", { name: "Platsunderhåll" })).toBeVisible();
+  await expect(page.getByText(/neutral platsdata.*aldrig gruppnamn/)).toBeVisible();
 
-  await reportSheet.getByRole("button", { name: "Uppdatera status" }).click();
-  await expect(reportSheet.getByText(/Senast uppdaterad/)).toBeVisible();
+  await page.getByRole("button", { name: /^OSM-arbete(?: \d+)?$/ }).click();
+  await page.getByRole("button", { name: "Användarrapporter", exact: true }).click();
+  await openMaintenanceItem(page, "Bryggans Bageri");
+
+  const detail = page.getByRole("region", { name: "Underhållsdetalj" });
+  await expect(detail.getByRole("link", { name: "Öppna OSM-not" })).toBeVisible();
+  await expect(detail.getByText(/Rätta uppgiften i OpenStreetMap eller Every Door/)).toBeVisible();
+  await expect(detail.getByRole("button", { name: "Markera som löst" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Central platsunderhållsdetalj");
 });

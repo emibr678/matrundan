@@ -21,6 +21,7 @@ import {
 import {
   isBroadAdministrativeSearchArea,
   SEARCH_RADIUS_OPTIONS,
+  searchAreaMode,
 } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import type { HomeLocation, SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
@@ -36,17 +37,21 @@ function toVerifiedAreas(areas: SearchArea[]): VerifiedSearchArea[] {
       lng: area.lng,
       provider: "geoapify",
       placeId: area.placeId,
+      searchMode: searchAreaMode(area),
+      resultType: area.resultType,
     }));
 }
 
 function areasKey(areas: VerifiedSearchArea[]): string {
   return JSON.stringify(
-    areas.map(({ label, lat, lng, provider, placeId }) => ({
+    areas.map(({ label, lat, lng, provider, placeId, searchMode, resultType }) => ({
       label,
       lat,
       lng,
       provider,
       placeId,
+      searchMode: searchMode === "boundary" ? "boundary" : "point",
+      resultType: resultType ?? null,
     })),
   );
 }
@@ -98,7 +103,12 @@ export function GroupSearchSettingsSection({
   }, [dirty, onDirtyChange]);
 
   const atAreaLimit = areas.length >= MAX_SEARCH_AREAS;
-  const broadAreas = areas.filter((area) => isBroadAdministrativeSearchArea(undefined, area.label));
+  const broadLegacyPoints = areas.filter(
+    (area) =>
+      area.searchMode !== "boundary" &&
+      isBroadAdministrativeSearchArea(area.resultType, area.label),
+  );
+  const boundaryCount = areas.filter((area) => area.searchMode === "boundary").length;
   const legacyOnly = areas.length === 0 && !!initialHome && !initialHome.verified;
 
   function addArea(value: VerifiedSearchArea) {
@@ -191,9 +201,16 @@ export function GroupSearchSettingsSection({
             </div>
           ) : (
             <p className="rounded-xl border border-dashed p-2.5 text-xs text-muted-foreground">
-              Inga vanliga sökområden ännu. Ni kan fortfarande välja en plats direkt i sökningen.
+              Inga vanliga sökområden ännu. Ni kan fortfarande välja ett område direkt i sökningen.
             </p>
           )}
+
+          {boundaryCount > 0 ? (
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {boundaryCount === 1 ? "Ett område söks" : `${boundaryCount} områden söks`} inom sin
+              verifierade geografiska gräns.
+            </p>
+          ) : null}
 
           {atAreaLimit ? (
             <p className="text-[11px] text-muted-foreground">
@@ -209,16 +226,17 @@ export function GroupSearchSettingsSection({
                 value={locationText}
                 onChange={setLocationText}
                 onSelect={addArea}
-                placeholder="Sök ort, stadsdel eller adress"
+                placeholder="Sök kommun, ort, stadsdel eller adress"
                 disabled={busy}
+                allowBoundaryAreas
               />
             </div>
           )}
 
-          {broadAreas.length > 0 ? (
+          {broadLegacyPoints.length > 0 ? (
             <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
-              Ett äldre val är en kommun, ett län eller en region och motsvarar bara en punkt på
-              kartan. Ta bort det och välj en ort, stadsdel eller adress.
+              Ett äldre brett val behåller sitt tidigare punktbeteende. Ta bort och välj området
+              igen om ni vill använda dess verifierade geografiska gräns.
             </p>
           ) : null}
           {legacyOnly ? (
@@ -229,7 +247,7 @@ export function GroupSearchSettingsSection({
 
           <div className="space-y-1">
             <Label htmlFor="gs-radius" className="text-xs">
-              Vanlig sökradie
+              Avstånd runt adresser och platser
             </Label>
             <Select
               value={String(radius)}
@@ -242,13 +260,13 @@ export function GroupSearchSettingsSection({
               <SelectContent>
                 {SEARCH_RADIUS_OPTIONS.map((value) => (
                   <SelectItem key={value} value={String(value)}>
-                    {value === 50 ? "Större område · inom 50 km" : `Inom ${value} km`}
+                    {value === 50 ? "Större avstånd · inom 50 km" : `Inom ${value} km`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Samma radie används runt alla områden och kan ändras för en enskild sökning.
+              Gäller punktbaserade val som adresser. Boundaryområden söks inom sin egen gräns.
             </p>
           </div>
         </div>

@@ -18,7 +18,9 @@ import {
   hasStructuredGeoapifyMapping,
 } from "./geoapify-place-search";
 import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
+import { isBoundaryEligibleResultType } from "./search-areas";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
+import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const WIDE_AREA_RADIUS_KM = 50;
@@ -27,6 +29,10 @@ const FALLBACK_PROVIDER_LIMIT = 50;
 const GEOAPIFY_CACHE_TTL_MS = 5 * 60_000;
 
 type GeoapifyPayload = { features?: unknown[] };
+type GeoapifyFeature = {
+  geometry?: { type?: unknown; coordinates?: unknown } | null;
+  properties?: Record<string, unknown>;
+};
 
 const geoapifyResponseCache = createShortLivedRequestCache<GeoapifyPayload>({
   ttlMs: GEOAPIFY_CACHE_TTL_MS,
@@ -44,9 +50,15 @@ const radiusSchema = z.union([
   z.null(),
 ]);
 
+const searchModeSchema = z.enum(["point", "boundary"]);
+
 export type MultiAreaPlaceSuggestion = NormalizedPlaceSuggestion & {
   nearestAreaLabel: string;
   matchingAreaLabels: string[];
+};
+
+type RankedMultiAreaPlaceSuggestion = MultiAreaPlaceSuggestion & {
+  nearestAreaSearchMode: SearchAreaMode;
 };
 
 export interface MultiAreaSearchResponse {
@@ -56,10 +68,23 @@ export interface MultiAreaSearchResponse {
   nextOffset: number;
 }
 
+export interface SearchAreaBoundaryResponse {
+  searchMode: SearchAreaMode;
+  boundary: SearchAreaBoundaryGeometry | null;
+}
+
 type PlaceSearchPage = {
   results: NormalizedPlaceSuggestion[];
   hasMore: boolean;
   nextOffset: number;
+};
+
+type SearchAreaInput = {
+  lat: number;
+  lng: number;
+  radiusKm: 1 | 2 | 3 | 5 | 10 | 25 | 50 | null;
+  searchMode?: SearchAreaMode;
+  placeId?: string;
 };
 
 function readKey(): string {
@@ -116,14 +141,58 @@ async function callGeoapify(url: URL): Promise<GeoapifyPayload> {
   return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () => fetchGeoapify(url));
 }
 
-async function searchPlacesAtCenter(input: {
-  text?: string;
-  lat: number;
-  lng: number;
-  radiusKm: 1 | 2 | 3 | 5 | 10 | 25 | 50 | null;
-  limit?: number;
-  offset?: number;
-}): Promise<PlaceSearchPage> {
+function boundaryGeometry(feature: unknown): SearchAreaBoundaryGeometry | null {
+  if (!feature || typeof feature !== "object") return null;
+  const geometry = (feature as GeoapifyFeature).geometry;
+  if (!geometry || !Array.isArray(geometry.coordinates)) return null;
+  if (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon") return null;
+  return geometry as SearchAreaBoundaryGeometry;
+}
+
+async function loadBoundaryWithFeatures(
+  placeId: string,
+  features: "details" | "details,details.full_geometry",
+): Promise<SearchAreaBoundaryGeometry | null> {
+  const url = new URL("https://api.geoapify.com/v2/place-details");
+  url.searchParams.set("id", placeId);
+  url.searchParams.set("features", features);
+  url.searchParams.set("lang", "sv");
+  url.searchParams.set("apiKey", readKey());
+  const json = await callGeoapify(url);
+  for (const feature of json.features ?? []) {
+    const geometry = boundaryGeometry(feature);
+    if (geometry) return geometry;
+  }
+  return null;
+}
+
+async function loadBoundary(placeId: string): Promise<SearchAreaBoundaryGeometry | null> {
+  const detailsBoundary = await loadBoundaryWithFeatures(placeId, "details");
+  if (detailsBoundary) return detailsBoundary;
+
+  // Normal Place Details är förstahandsvalet. Geoapifys full_geometry är en
+  // tilläggsfeature till details och begärs därför tillsammans med basdetaljen.
+  return loadBoundaryWithFeatures(placeId, "details,details.full_geometry");
+}
+
+async function resolveSearchAreaBoundary(input: {
+  placeId: string;
+  resultType?: string;
+}): Promise<SearchAreaBoundaryResponse> {
+  if (!isBoundaryEligibleResultType(input.resultType)) {
+    return { searchMode: "point", boundary: null };
+  }
+  const boundary = await loadBoundary(input.placeId);
+  return boundary ? { searchMode: "boundary", boundary } : { searchMode: "point", boundary: null };
+}
+
+async function searchPlacesAtArea(
+  input: SearchAreaInput & {
+    text?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<PlaceSearchPage> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
   const intent = resolvePlaceSearchIntent(input.text);
   const requestedLimit = Math.min(input.limit ?? DISCOVERY_PAGE_SIZE, 50);
@@ -135,10 +204,20 @@ async function searchPlacesAtCenter(input: {
     ? Math.max(requestedLimit, FALLBACK_PROVIDER_LIMIT)
     : requestedLimit;
   const offset = input.offset ?? 0;
+  const searchMode = input.searchMode === "boundary" ? "boundary" : "point";
+
+  if (searchMode === "boundary" && !input.placeId?.trim()) {
+    throw new Error("GEOAPIFY_MALFORMED: Sökområdet saknar verifierad provideridentitet.");
+  }
 
   const url = new URL("https://api.geoapify.com/v2/places");
   url.searchParams.set("categories", geoapifyCategoriesForPlaceSearchIntent(intent).join(","));
-  url.searchParams.set("filter", `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`);
+  url.searchParams.set(
+    "filter",
+    searchMode === "boundary"
+      ? `place:${input.placeId!.trim()}`
+      : `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`,
+  );
   url.searchParams.set("bias", `proximity:${input.lng},${input.lat}`);
   url.searchParams.set("lang", "sv");
   url.searchParams.set("limit", String(providerLimit));
@@ -212,6 +291,47 @@ export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
     return result.slice(0, data.limit ?? 6);
   });
 
+export const geoapifyResolveSearchAreaBoundary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        placeId: z.string().trim().min(1).max(240),
+        resultType: z.string().trim().max(40).optional(),
+      })
+      .parse(input),
+  )
+  .handler(
+    async ({ data }): Promise<SearchAreaBoundaryResponse> => resolveSearchAreaBoundary(data),
+  );
+
+export const geoapifyLoadSearchAreaBoundaries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        areas: z
+          .array(
+            z.object({
+              id: z.string().min(1).max(120),
+              placeId: z.string().trim().min(1).max(240),
+              resultType: z.string().trim().max(40).optional(),
+            }),
+          )
+          .max(5),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const rows = await Promise.all(
+      data.areas.map(async (area) => ({
+        id: area.id,
+        ...(await resolveSearchAreaBoundary(area)),
+      })),
+    );
+    return rows;
+  });
+
 export const geoapifySearchPlaces = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -227,7 +347,7 @@ export const geoapifySearchPlaces = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }): Promise<NormalizedPlaceSuggestion[]> => {
-    const page = await searchPlacesAtCenter(data);
+    const page = await searchPlacesAtArea({ ...data, searchMode: "point" });
     return page.results.slice(0, data.limit ?? DISCOVERY_PAGE_SIZE);
   });
 
@@ -244,6 +364,8 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
               label: z.string().trim().min(1).max(180),
               lat: z.number().min(-90).max(90),
               lng: z.number().min(-180).max(180),
+              searchMode: searchModeSchema.optional(),
+              placeId: z.string().trim().min(1).max(240).optional(),
             }),
           )
           .min(1)
@@ -258,10 +380,12 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
     const settled = await Promise.allSettled(
       data.centers.map(async (center) => ({
         center,
-        page: await searchPlacesAtCenter({
+        page: await searchPlacesAtArea({
           text: data.text,
           lat: center.lat,
           lng: center.lng,
+          searchMode: center.searchMode ?? "point",
+          placeId: center.placeId,
           radiusKm: data.radiusKm,
           limit: data.limit ?? DISCOVERY_PAGE_SIZE,
           offset: data.offset ?? 0,
@@ -270,7 +394,7 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
     );
 
     const failedAreaLabels: string[] = [];
-    const merged = new Map<string, MultiAreaPlaceSuggestion>();
+    const merged = new Map<string, RankedMultiAreaPlaceSuggestion>();
     let firstFailure: unknown = null;
     let hasMore = false;
     let nextOffset = data.offset ?? 0;
@@ -285,6 +409,7 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
 
       hasMore ||= outcome.value.page.hasMore;
       nextOffset = Math.max(nextOffset, outcome.value.page.nextOffset);
+      const centerMode: SearchAreaMode = center.searchMode === "boundary" ? "boundary" : "point";
 
       for (const place of outcome.value.page.results) {
         const key = `${place.provider}:${place.externalId}`;
@@ -294,12 +419,17 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
         const matchingAreaLabels = Array.from(
           new Set([...(current?.matchingAreaLabels ?? []), center.label]),
         );
+        const preferNext =
+          !current ||
+          (centerMode === "point" && current.nearestAreaSearchMode !== "point") ||
+          (centerMode === current.nearestAreaSearchMode && nextDistance < currentDistance);
 
-        if (!current || nextDistance < currentDistance) {
+        if (preferNext) {
           merged.set(key, {
             ...place,
             nearestAreaLabel: center.label,
             matchingAreaLabels,
+            nearestAreaSearchMode: centerMode,
           });
         } else {
           merged.set(key, { ...current, matchingAreaLabels });
@@ -313,11 +443,15 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
         : new Error("GEOAPIFY_UNAVAILABLE: Inga områden kunde sökas just nu.");
     }
 
-    const results = [...merged.values()].sort((a, b) => {
+    const rankedResults = [...merged.values()].sort((a, b) => {
       const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
       const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
       return da - db || a.name.localeCompare(b.name, "sv-SE");
     });
+    const results: MultiAreaPlaceSuggestion[] = rankedResults.map(
+      ({ nearestAreaSearchMode, ...result }) =>
+        nearestAreaSearchMode === "boundary" ? { ...result, distanceKm: undefined } : result,
+    );
 
     return { results, failedAreaLabels, hasMore, nextOffset };
   });

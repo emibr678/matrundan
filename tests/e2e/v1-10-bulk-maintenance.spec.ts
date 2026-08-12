@@ -20,16 +20,25 @@ async function applyMissingFilters(page: Page) {
   await filterSheet.getByRole("button", { name: /Visa \d+/ }).click();
 }
 
+async function openManualAdd(page: Page) {
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const searchDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await searchDialog
+    .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+    .click();
+  const manualDialog = page.getByRole("dialog", { name: "Stället saknas i sökningen" });
+  await expect(manualDialog).toBeVisible();
+  return manualDialog;
+}
+
 test("ställen med saknade uppgifter kan filtreras fram och kompletteras", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
-  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
-  const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
+  const addDialog = await openManualAdd(page);
   await addDialog.getByLabel("Namn").fill("Ofullständiga Hörnet");
-  await addDialog.getByLabel("Adress").fill("Kompletteringsgatan 10");
-  await addDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await addDialog.getByPlaceholder("Sök adress eller plats").fill("Kompletteringsgatan 10");
+  await addDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
 
   await applyMissingFilters(page);
   const placeLink = page.getByRole("link", { name: /Ofullständiga Hörnet/ });

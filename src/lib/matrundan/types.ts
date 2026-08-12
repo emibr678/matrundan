@@ -1,3 +1,5 @@
+import type { MultiPolygon, Polygon } from "geojson";
+
 export type PlaceCategory = "restaurang" | "café" | "bageri" | "snabbmat" | "pub" | "matvagn";
 
 export type Occasion = "snabbt" | "avslappnat" | "middag";
@@ -7,6 +9,8 @@ export type GroupLifecycleStatus = "active" | "archived";
 export type PlaceCollectionStatus = "active" | "archived";
 export type PlaceSourceStatus = "active" | "superseded";
 export type SearchRadiusKm = 1 | 2 | 3 | 5 | 10 | 25 | 50;
+export type SearchAreaMode = "point" | "boundary";
+export type SearchAreaBoundaryGeometry = Polygon | MultiPolygon;
 
 export interface Member {
   id: string;
@@ -158,7 +162,10 @@ export interface HomeLocation {
   placeId?: string;
 }
 
-/** Ett verifierat sökcentrum som tillhör en grupp. */
+/**
+ * Ett verifierat sökområde. Äldre klientobjekt utan searchMode behandlas som
+ * point så att punkt + radie-semantiken aldrig ändras tyst.
+ */
 export interface SearchArea {
   id: string;
   label: string;
@@ -166,6 +173,10 @@ export interface SearchArea {
   lng: number;
   provider: "geoapify" | "demo";
   placeId: string;
+  searchMode?: SearchAreaMode;
+  resultType?: string;
+  /** Sessionsdata för kartan; sparas inte i group_search_areas. */
+  boundary?: SearchAreaBoundaryGeometry;
 }
 
 export interface Group {
@@ -185,7 +196,7 @@ export interface Group {
   homeLocation?: HomeLocation | null;
   /** Gruppens vanliga sökområden. Alla är valda när sökningen öppnas. */
   searchAreas?: SearchArea[];
-  /** En gemensam standardradie för samtliga valda sökområden. */
+  /** Standardavstånd för punktbaserade sökområden. */
   defaultSearchRadiusKm?: SearchRadiusKm;
 }
 

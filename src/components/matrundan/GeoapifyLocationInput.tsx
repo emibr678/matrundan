@@ -1,15 +1,25 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
-import { demoAutocompleteLocations } from "@/lib/matrundan/demo-location-suggestions";
+import {
+  demoAutocompleteLocations,
+  demoBoundaryForPlaceId,
+} from "@/lib/matrundan/demo-location-suggestions";
+import { geoapifyResolveSearchAreaBoundary } from "@/lib/matrundan/geoapify-boundaries.functions";
 import { geoapifyAutocompleteLocation } from "@/lib/matrundan/geoapify.functions";
 import type { NormalizedLocationSuggestion } from "@/lib/matrundan/geoapify-normalize";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
-import { isBroadAdministrativeSearchArea } from "@/lib/matrundan/search-areas";
+import {
+  isBoundaryEligibleResultType,
+  isBroadAdministrativeSearchArea,
+} from "@/lib/matrundan/search-areas";
+import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "@/lib/matrundan/types";
 
 export type VerifiedLocationSelection = VerifiedHomeLocation & {
   city: string;
   area?: string;
   resultType?: string;
+  searchMode?: SearchAreaMode;
+  boundary?: SearchAreaBoundaryGeometry;
 };
 
 type LocationSuggestion = {
@@ -25,7 +35,12 @@ type LocationSuggestion = {
   blocked: boolean;
 };
 
-function toLocationSuggestion(row: NormalizedLocationSuggestion): LocationSuggestion {
+function toLocationSuggestion(
+  row: NormalizedLocationSuggestion,
+  allowBoundaryAreas: boolean,
+): LocationSuggestion {
+  const broad = isBroadAdministrativeSearchArea(row.resultType, row.label);
+  const boundaryCandidate = isBoundaryEligibleResultType(row.resultType);
   return {
     label: row.label,
     primaryLabel: row.primaryLabel || row.label,
@@ -36,7 +51,7 @@ function toLocationSuggestion(row: NormalizedLocationSuggestion): LocationSugges
     city: row.city,
     area: row.area,
     resultType: row.resultType,
-    blocked: isBroadAdministrativeSearchArea(row.resultType, row.label),
+    blocked: broad && (!allowBoundaryAreas || !boundaryCandidate),
   };
 }
 
@@ -50,11 +65,9 @@ function matchesDemoInputExactly(suggestion: LocationSuggestion, value: string):
 /**
  * Val-baserat autocomplete-fält för verifierade sökområden och platsval.
  *
- * Live använder Geoapify via serverfunktionen. Exempel/demo kan använda en
- * deterministisk lokal fixture, men båda följer samma presentations- och
- * tangentbordskontrakt. Rå fritext utan explicit val räknas aldrig som en
- * verifierad plats. Vid val följer strukturerad ort/områdeskontext med så att
- * andra flöden inte behöver gissa geografi från etiketten.
+ * När allowBoundaryAreas=true verifieras en boundary-kandidat server-side mot
+ * Geoapify innan den lämnas vidare. Breda administrativa träffar får aldrig
+ * falla tillbaka till en godtycklig punkt om providergränsen saknas.
  */
 export function GeoapifyLocationInput({
   id,
@@ -67,6 +80,7 @@ export function GeoapifyLocationInput({
   ariaInvalid,
   demoMode = false,
   demoFallbackCity = "Göteborg",
+  allowBoundaryAreas = false,
 }: {
   id?: string;
   value: string;
@@ -78,16 +92,20 @@ export function GeoapifyLocationInput({
   ariaInvalid?: boolean;
   demoMode?: boolean;
   demoFallbackCity?: string;
+  allowBoundaryAreas?: boolean;
 }) {
   const [suggestions, setSuggestions] = React.useState<LocationSuggestion[]>([]);
   const [open, setOpen] = React.useState(false);
   const [activeIx, setActiveIx] = React.useState(-1);
   const [loading, setLoading] = React.useState(false);
+  const [resolving, setResolving] = React.useState(false);
+  const [selectionError, setSelectionError] = React.useState<string | null>(null);
   const [done, setDone] = React.useState(false);
   const reqRef = React.useRef(0);
 
   React.useEffect(() => {
     const text = value.trim();
+    setSelectionError(null);
     if (text.length < 2) {
       setSuggestions([]);
       setLoading(false);
@@ -106,7 +124,7 @@ export function GeoapifyLocationInput({
       request
         .then((rows) => {
           if (reqId !== reqRef.current) return;
-          const mapped = rows.map(toLocationSuggestion);
+          const mapped = rows.map((row) => toLocationSuggestion(row, allowBoundaryAreas));
           setSuggestions(mapped);
           setActiveIx(-1);
           setLoading(false);
@@ -121,19 +139,70 @@ export function GeoapifyLocationInput({
         });
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [demoFallbackCity, demoMode, value]);
+  }, [allowBoundaryAreas, demoFallbackCity, demoMode, value]);
 
-  function pick(suggestion: LocationSuggestion) {
-    if (suggestion.blocked) return;
+  async function pick(suggestion: LocationSuggestion) {
+    if (suggestion.blocked || resolving) return;
+    setSelectionError(null);
+
+    let searchMode: SearchAreaMode = "point";
+    let boundary: SearchAreaBoundaryGeometry | undefined;
+    let selectedPlaceId = suggestion.placeId;
+    const boundaryCandidate =
+      allowBoundaryAreas && isBoundaryEligibleResultType(suggestion.resultType);
+
+    if (boundaryCandidate) {
+      setResolving(true);
+      try {
+        if (demoMode) {
+          const demoBoundary = demoBoundaryForPlaceId(suggestion.placeId);
+          if (demoBoundary) {
+            searchMode = "boundary";
+            boundary = demoBoundary;
+          }
+        } else {
+          const resolved = await geoapifyResolveSearchAreaBoundary({
+            data: {
+              placeId: suggestion.placeId,
+              label: suggestion.primaryLabel,
+              resultType: suggestion.resultType,
+            },
+          });
+          searchMode = resolved.searchMode;
+          boundary = resolved.boundary ?? undefined;
+          if (resolved.searchMode === "boundary" && resolved.boundaryPlaceId) {
+            selectedPlaceId = resolved.boundaryPlaceId;
+          }
+        }
+      } catch {
+        setSelectionError("Kunde inte verifiera områdets gräns. Försök igen.");
+        return;
+      } finally {
+        setResolving(false);
+      }
+    }
+
+    if (
+      isBroadAdministrativeSearchArea(suggestion.resultType, suggestion.label) &&
+      searchMode !== "boundary"
+    ) {
+      setSelectionError(
+        "Det här området saknar en verifierad gräns. Välj en ort, stadsdel eller adress i området.",
+      );
+      return;
+    }
+
     onSelect({
       label: suggestion.label,
       lat: suggestion.lat,
       lng: suggestion.lng,
       provider: "geoapify",
-      placeId: suggestion.placeId,
+      placeId: selectedPlaceId,
       city: suggestion.city,
       area: suggestion.area,
       resultType: suggestion.resultType,
+      searchMode,
+      boundary,
     });
     setOpen(false);
     setActiveIx(-1);
@@ -179,13 +248,13 @@ export function GeoapifyLocationInput({
       const activeSuggestion = activeIx >= 0 ? suggestions[activeIx] : undefined;
       const demoSuggestion = demoMode
         ? demoAutocompleteLocations(value, demoFallbackCity, 6)
-            .map(toLocationSuggestion)
+            .map((row) => toLocationSuggestion(row, allowBoundaryAreas))
             .find((suggestion) => !suggestion.blocked && matchesDemoInputExactly(suggestion, value))
         : undefined;
       const suggestion = activeSuggestion ?? demoSuggestion;
       if (suggestion && !suggestion.blocked) {
         event.preventDefault();
-        pick(suggestion);
+        void pick(suggestion);
       }
       return;
     }
@@ -213,14 +282,23 @@ export function GeoapifyLocationInput({
         onKeyDown={onKeyDown}
         placeholder={placeholder ?? "Sök ort, stadsdel eller adress"}
         autoComplete="off"
-        disabled={disabled}
-        aria-invalid={ariaInvalid}
+        disabled={disabled || resolving}
+        aria-invalid={ariaInvalid || !!selectionError}
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={showList}
         aria-controls={id ? `${id}-listbox` : undefined}
         aria-activedescendant={activeIx >= 0 && id ? `${id}-opt-${activeIx}` : undefined}
       />
+      {selectionError ? (
+        <p className="mt-1 text-xs leading-snug text-destructive" role="alert">
+          {selectionError}
+        </p>
+      ) : resolving ? (
+        <p className="mt-1 text-xs text-muted-foreground" role="status">
+          Kontrollerar områdets gräns…
+        </p>
+      ) : null}
       {showList ? (
         <ul
           id={id ? `${id}-listbox` : undefined}
@@ -242,7 +320,7 @@ export function GeoapifyLocationInput({
               >
                 <button
                   type="button"
-                  disabled={suggestion.blocked}
+                  disabled={suggestion.blocked || resolving}
                   aria-label={`${suggestion.primaryLabel}. ${suggestion.secondaryLabel}`}
                   className={[
                     "w-full min-w-0 rounded px-2 py-2 text-left",
@@ -253,7 +331,7 @@ export function GeoapifyLocationInput({
                   ].join(" ")}
                   onMouseDown={(event) => {
                     event.preventDefault();
-                    pick(suggestion);
+                    void pick(suggestion);
                   }}
                 >
                   <span className="block min-w-0 break-words font-medium text-foreground">
@@ -264,7 +342,7 @@ export function GeoapifyLocationInput({
                   </span>
                   {suggestion.blocked ? (
                     <span className="mt-1 block text-xs leading-snug">
-                      Välj en ort, stadsdel eller adress i området.
+                      Välj en kommun, ort, stadsdel eller adress som kan avgränsas säkert.
                     </span>
                   ) : null}
                 </button>

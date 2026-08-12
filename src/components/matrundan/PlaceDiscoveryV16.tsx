@@ -14,7 +14,10 @@ import {
   providerMessage,
   toPlaceSuggestion,
 } from "@/lib/matrundan/add-place-v16-utils";
-import { geoapifySearchPlacesMulti } from "@/lib/matrundan/geoapify.functions";
+import {
+  geoapifyLoadSearchAreaBoundaries,
+  geoapifySearchPlacesMulti,
+} from "@/lib/matrundan/geoapify.functions";
 import {
   hiddenPlaceRecordKey,
   hiddenPlaceSuggestionKey,
@@ -40,10 +43,19 @@ import {
   mergePlaceSearchPages,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
-import { mergeAreaSearchResults, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
+import {
+  mergeAreaSearchResults,
+  searchAreaMode,
+  shortSearchAreaLabel,
+} from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
-import { CATEGORY_LABEL, type SearchArea, type SearchRadiusKm } from "@/lib/matrundan/types";
+import {
+  CATEGORY_LABEL,
+  type SearchArea,
+  type SearchAreaBoundaryGeometry,
+  type SearchRadiusKm,
+} from "@/lib/matrundan/types";
 
 type ResultView = "lista" | "karta";
 type ResultStatus = "available" | "linkable" | "existing";
@@ -136,6 +148,12 @@ export function PlaceDiscoveryV16({
   const [hasMore, setHasMore] = React.useState(snapshot?.hasMore ?? false);
   const [nextOffset, setNextOffset] = React.useState(snapshot?.nextOffset ?? 0);
   const [loadingMore, setLoadingMore] = React.useState(false);
+  const [boundaryGeometryByAreaId, setBoundaryGeometryByAreaId] = React.useState<
+    Record<string, SearchAreaBoundaryGeometry>
+  >({});
+  const [failedBoundaryGeometryIds, setFailedBoundaryGeometryIds] = React.useState<Set<string>>(
+    () => new Set(),
+  );
   const requestRef = React.useRef(0);
   const skipInitialSearchRef = React.useRef(Boolean(snapshot));
   const previousBulkBusyRef = React.useRef(false);
@@ -181,6 +199,68 @@ export function PlaceDiscoveryV16({
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
     return [...selected, ...temporaryAreas].slice(0, 5);
   }, [savedAreas, selectedAreaIds, temporaryAreas]);
+
+  const activeAreasWithGeometry = React.useMemo(
+    () =>
+      activeAreas.map((area) => {
+        const boundary = area.boundary ?? boundaryGeometryByAreaId[area.id];
+        return boundary ? { ...area, boundary } : area;
+      }),
+    [activeAreas, boundaryGeometryByAreaId],
+  );
+  const hasPointAreas = activeAreas.some((area) => searchAreaMode(area) === "point");
+  const failedBoundaryGeometryLabels = activeAreas
+    .filter((area) => failedBoundaryGeometryIds.has(area.id))
+    .map((area) => shortSearchAreaLabel(area.label));
+
+  React.useEffect(() => {
+    if (!isLive) return;
+    const pending = activeAreas.filter(
+      (area) =>
+        searchAreaMode(area) === "boundary" &&
+        !area.boundary &&
+        !boundaryGeometryByAreaId[area.id] &&
+        !failedBoundaryGeometryIds.has(area.id),
+    );
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+    void geoapifyLoadSearchAreaBoundaries({
+      data: {
+        areas: pending.map((area) => ({
+          id: area.id,
+          placeId: area.placeId,
+          resultType: area.resultType,
+        })),
+      },
+    })
+      .then((rows) => {
+        if (cancelled) return;
+        const resolved: Record<string, SearchAreaBoundaryGeometry> = {};
+        const failed = new Set<string>();
+        for (const row of rows) {
+          if (row.searchMode === "boundary" && row.boundary) resolved[row.id] = row.boundary;
+          else failed.add(row.id);
+        }
+        if (Object.keys(resolved).length > 0) {
+          setBoundaryGeometryByAreaId((current) => ({ ...current, ...resolved }));
+        }
+        if (failed.size > 0) {
+          setFailedBoundaryGeometryIds((current) => new Set([...current, ...failed]));
+        }
+      })
+      .catch((caught) => {
+        if (cancelled) return;
+        console.warn("[Matrundan] kunde inte hämta sökområdesgränser för kartan:", caught);
+        setFailedBoundaryGeometryIds(
+          (current) => new Set([...current, ...pending.map((area) => area.id)]),
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeAreas, boundaryGeometryByAreaId, failedBoundaryGeometryIds, isLive]);
 
   React.useEffect(() => {
     if (previousBulkBusyRef.current && !bulkBusy && selectedResults.length === 0) {
@@ -275,6 +355,8 @@ export function PlaceDiscoveryV16({
               label: shortSearchAreaLabel(area.label),
               lat: area.lat,
               lng: area.lng,
+              searchMode: searchAreaMode(area),
+              placeId: area.placeId,
             })),
             radiusKm,
             limit: RESULT_PAGE_SIZE,
@@ -350,6 +432,8 @@ export function PlaceDiscoveryV16({
                 center: { lat: area.lat, lng: area.lng },
                 areaLabel: shortSearchAreaLabel(area.label),
                 radiusKm,
+                searchMode: searchAreaMode(area),
+                boundary: area.boundary,
               }),
             })),
           );
@@ -532,17 +616,31 @@ export function PlaceDiscoveryV16({
   }
 
   const mapResults = existingOpen ? [...availableResults, ...existingResults] : availableResults;
-  const mapItems: MultiAreaMapItem[] = mapResults.map((result) => ({
-    id: result.externalId,
-    name: result.name,
-    lat: result.lat,
-    lng: result.lng,
-    category: result.category,
-    actionable: statusForResult(result) === "available",
-    bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
-    eyebrow: `${CATEGORY_LABEL[result.category]}${result.distanceKm != null ? ` · ~${result.distanceKm} km${result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""}` : ""}`,
-    description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
-  }));
+  const mapItems: MultiAreaMapItem[] = mapResults.map((result) => {
+    const nearestArea = activeAreas.find(
+      (area) => shortSearchAreaLabel(area.label) === result.nearestAreaLabel,
+    );
+    const areaContext = nearestArea
+      ? searchAreaMode(nearestArea) === "boundary"
+        ? ` · i ${shortSearchAreaLabel(nearestArea.label)}`
+        : result.distanceKm != null
+          ? ` · ~${result.distanceKm} km från ${shortSearchAreaLabel(nearestArea.label)}`
+          : ` · nära ${shortSearchAreaLabel(nearestArea.label)}`
+      : result.distanceKm != null
+        ? ` · ~${result.distanceKm} km`
+        : "";
+    return {
+      id: result.externalId,
+      name: result.name,
+      lat: result.lat,
+      lng: result.lng,
+      category: result.category,
+      actionable: statusForResult(result) === "available",
+      bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
+      eyebrow: `${CATEGORY_LABEL[result.category]}${areaContext}`,
+      description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
+    };
+  });
   const unmappedCount = mapResults.filter(
     (result) => result.lat == null || result.lng == null,
   ).length;
@@ -568,11 +666,13 @@ export function PlaceDiscoveryV16({
   const map = (
     <MultiAreaPlaceMap
       items={mapItems}
-      centers={activeAreas.map((area) => ({
+      centers={activeAreasWithGeometry.map((area) => ({
         id: area.id,
         label: shortSearchAreaLabel(area.label),
         lat: area.lat,
         lng: area.lng,
+        searchMode: searchAreaMode(area),
+        boundary: area.boundary,
       }))}
       radiusKm={radiusKm}
       selectedId={selectedId}
@@ -656,13 +756,20 @@ export function PlaceDiscoveryV16({
               Kunde inte söka i {failedAreas.join(", ")}. Övriga resultat visas.
             </div>
           ) : null}
+          {failedBoundaryGeometryLabels.length > 0 ? (
+            <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              Kunde inte visa gränsen för {failedBoundaryGeometryLabels.join(", ")} på kartan.
+              Sökningen använder fortfarande det valda området.
+            </div>
+          ) : null}
           {visibleResults.length === 0 ? (
             <div className="space-y-3 rounded-xl border border-dashed border-border/70 bg-card/60 p-5 text-center">
               <div>
                 <p className="text-sm font-medium">Inga matställen hittades</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Prova större radie eller andra sökområden. Om stället saknas kan du lägga till
-                  det.
+                  {hasPointAreas
+                    ? "Prova större avstånd runt punktvalen eller andra sökområden. Om stället saknas kan du lägga till det."
+                    : "Prova andra sökområden. Om stället saknas kan du lägga till det."}
                 </p>
               </div>
               <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />

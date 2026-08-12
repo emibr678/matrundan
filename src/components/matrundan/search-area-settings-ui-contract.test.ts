@@ -10,6 +10,7 @@ describe("sökområden i gruppinställningar", () => {
   test("använder samma autocomplete-till-pill-mönster som sökdialogen", () => {
     expect(settingsSource).toContain("<GeoapifyLocationInput");
     expect(settingsSource).toContain("onSelect={addArea}");
+    expect(settingsSource).toContain("allowBoundaryAreas");
     expect(settingsSource).toContain("<SearchAreaPill");
     expect(settingsSource).toContain("Spara ändringar");
     expect(settingsSource).not.toContain("<Plus");
@@ -27,9 +28,21 @@ describe("sökområden i gruppinställningar", () => {
     expect(settingsSource).not.toContain("Ta bort ett område för att lägga till ett nytt");
   });
 
-  test("förklarar hur äldre kommun- och regionval ska bytas", () => {
-    expect(settingsSource).toContain("isBroadAdministrativeSearchArea(undefined, area.label)");
-    expect(settingsSource).toContain("motsvarar bara en punkt på");
-    expect(settingsSource).toContain("Ta bort det och välj en ort, stadsdel eller adress");
+  test("bevarar äldre breda punktval men förklarar hur de uppgraderas till boundary", () => {
+    expect(settingsSource).toContain("broadLegacyPoints");
+    expect(settingsSource).toContain(
+      'area.searchMode !== "boundary" &&\n      isBroadAdministrativeSearchArea(area.resultType, area.label)',
+    );
+    expect(settingsSource).toContain("behåller sitt tidigare punktbeteende");
+    expect(settingsSource).toContain("Ta bort och välj området");
+    expect(settingsSource).toContain("verifierade geografiska gräns");
+  });
+
+  test("beskriver avstånd som punkt-specifikt när boundaryområden finns", () => {
+    expect(settingsSource).toContain("Avstånd runt adresser och platser");
+    expect(settingsSource).toContain(
+      "Gäller punktbaserade val som adresser. Boundaryområden söks inom sin egen gräns.",
+    );
+    expect(settingsSource).toContain("boundaryCount");
   });
 });

@@ -26,6 +26,17 @@ async function removeCurrentPlace(page: Page) {
     .click();
 }
 
+async function openManualAdd(page: Page) {
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const searchDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await searchDialog
+    .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+    .click();
+  const manualDialog = page.getByRole("dialog", { name: "Stället saknas i sökningen" });
+  await expect(manualDialog).toBeVisible();
+  return manualDialog;
+}
+
 test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka utan tappad metadata", async ({
   page,
 }) => {
@@ -57,13 +68,12 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
   await expect(page.getByText("Glöd & Grönska", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Arkiverade ställen", { exact: true })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
-  const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
+  const addDialog = await openManualAdd(page);
   await addDialog.getByLabel("Namn").fill("Glöd & Grönska");
-  await addDialog.getByLabel("Adress").fill("Grönskans gränd 3");
+  await addDialog.getByPlaceholder("Sök adress eller plats").fill("Grönskans gränd 3");
+  await addDialog.getByRole("button", { name: "Fler uppgifter (valfritt)", exact: true }).click();
   await addDialog.getByRole("button", { name: "Passar för: Något extra", exact: true }).click();
-  await addDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await addDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
 
   const restoredLink = page.getByRole("link", { name: /Glöd & Grönska/ });
   await expect(restoredLink).toHaveCount(1);
@@ -105,9 +115,7 @@ test("kök och inriktning fungerar med mobilt tangentbord och utan fri text", as
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
 
-  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await dialog.getByRole("button", { name: "Lägg till manuellt" }).click();
+  const dialog = await openManualAdd(page);
   await dialog.getByRole("combobox", { name: "Kök och inriktning" }).click();
 
   const drawer = page.getByRole("dialog", { name: "Kök och inriktning" });
