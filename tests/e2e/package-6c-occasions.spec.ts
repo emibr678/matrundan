@@ -69,23 +69,29 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expectNoHorizontalOverflow(page, "Platsinfo före tillägg");
   await resultDialog.getByRole("button", { name: "Tillbaka", exact: true }).click();
 
-  await addDialog.getByRole("button", { name: "Lägg till manuellt" }).click();
-  await addDialog.getByLabel("Namn").fill("Testköket");
-  await addDialog.getByLabel("Adress").fill("Testgatan 1");
+  await addDialog
+    .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+    .click();
+  const manualDialog = page.getByRole("dialog", { name: "Stället saknas i sökningen" });
+  await expect(manualDialog).toBeVisible();
+  await manualDialog.getByLabel("Namn").fill("Testköket");
+  await manualDialog.getByLabel("Adress").fill("Testgatan 1");
 
-  const addButton = addDialog.getByRole("button", { name: "Lägg till", exact: true });
+  const addButton = manualDialog.getByRole("button", { name: "Lägg till", exact: true });
   await expect(addButton).toBeEnabled();
-  await expect(addDialog.getByText("Välj minst ett alternativ för att fortsätta.")).toHaveCount(0);
+  await expect(manualDialog.getByText("Välj minst ett alternativ för att fortsätta.")).toHaveCount(
+    0,
+  );
   await expect(
-    addDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
+    manualDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
   ).toBeVisible();
-  await expect(addDialog.getByText("Passar bäst för", { exact: true })).toHaveCount(0);
-  await expect(addDialog.getByText("Passar också för", { exact: true })).toHaveCount(0);
+  await expect(manualDialog.getByText("Passar bäst för", { exact: true })).toHaveCount(0);
+  await expect(manualDialog.getByText("Passar också för", { exact: true })).toHaveCount(0);
   await expect(
-    addDialog.getByRole("button", { name: "Lägg till ett alternativ till (valfritt)" }),
+    manualDialog.getByRole("button", { name: "Lägg till ett alternativ till (valfritt)" }),
   ).toHaveCount(0);
 
-  await addDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
+  await manualDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
   const guide = page.getByRole("dialog", { name: "Så fungerar Passar för" });
   await expect(guide).toContainText("inte objektiv kvalitet");
   await expect(guide).toContainText("pizzeria");
@@ -96,15 +102,15 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await guide.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guide).toBeHidden();
 
-  const relaxedButton = addDialog.getByRole("button", {
+  const relaxedButton = manualDialog.getByRole("button", {
     name: "Passar för: Avslappnat",
     exact: true,
   });
-  const extraButton = addDialog.getByRole("button", {
+  const extraButton = manualDialog.getByRole("button", {
     name: "Passar för: Något extra",
     exact: true,
   });
-  const quickButton = addDialog.getByRole("button", {
+  const quickButton = manualDialog.getByRole("button", {
     name: "Passar för: Snabbt och enkelt",
     exact: true,
   });
