@@ -98,15 +98,15 @@ använd** och **#137 Återställ produktionsvakter för sökområden och besöks
 har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
 platskandidater och tillagda matställen** genomfördes i v1.27.0.
 
-**Paket B – Sök och geografi** är aktivt. **#147 Visa naturliga svenska
-etiketter för geografiska sökträffar** genomfördes i v1.27.1, **#148 Gör Lägg
-till ställen begripligt med Sök i före intelligent matställessökning** i v1.28.0,
-**#156 Återanvänd befintliga kanoniska Matrundan-ställen före nytt manuellt
-ställe** tillsammans med **#155 Gör ställen som saknas till en snabb fallback och
-samla förbättringsunderlag** i v1.29.0 via PR #161 och **#163 Samla
-platsrapportering och förbättringskandidater i globalt Platsunderhåll** i v1.30.0
-via PR #166. Nästa produktsteg är **#149 Stöd geografiska boundaries och
-visualisera sökområden på kartan**.
+**Paket B – Sök och geografi** är genomfört. Det sista steget, **#149 Stöd
+geografiska boundaries och visualisera sökområden på kartan**, genomfördes i
+v1.31.0 via PR #180.
+
+Efter den planerade avstickaren till Paket B återupptas **Paket A – Grundplatta
+och konsekvens**. Nästa roadmap-issue är **#104 Tydligare
+informationsarkitektur i gruppinställningarna**. **Paket C – Nästa stopp v2**
+förblir nästa större kärnproduktsteg efter de återstående prioriterade delarna av
+Paket A.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -114,8 +114,8 @@ visualisera sökområden på kartan**.
 
 Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
 kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
-Efter #108 går arbetet till Paket B innan återstående delar av Paket A tas upp
-igen.
+Efter #108 gick arbetet till Paket B. Paket B är nu genomfört och Paket A
+återupptas med #104.
 
 Intern ordning när Paket A återupptas:
 
@@ -141,78 +141,16 @@ Intern ordning när Paket A återupptas:
    kategori när ingen uttrycklig symbol finns. Manuellt gruppval ska ha
    företräde och breda eller motstridiga utbud ska få en neutral fallback.
 
-## Paket B – Sök och geografi
-
-**Prioritet:** `priority:now`
-
-Paketet löser observerade problem i det centrala flödet för att hitta och lägga
-till matställen. Användaren ska först förstå **var** gruppen söker och därefter
-**vad** den söker efter. Geografiska val ska vara explicita och synliga, medan
-matställessökningen ska vara tolerant och hjälpsam utan att dölja sitt scope.
-
-Rekommenderad ordning:
-
-1. ✅ **#147 Visa naturliga svenska etiketter för geografiska sökträffar**  
-   Ersätt rå providertext som `Stavsnäs, AB` med begripligt namn, resulttyp och
-   relevant geografisk kontext utan att ändra den underliggande punktmodellen.
-   Genomförd i v1.27.1.
-2. ✅ **#148 Gör Lägg till ställen begripligt med Sök i före intelligent
-   matställessökning**  
-   Visa valda områden först som tydliga pills och sök därefter efter namn, kök
-   eller typ med grupperad autocomplete. Specifika matställen visas med
-   trovärdig adress eller relevant geografisk fallback. Genomförd i v1.28.0 via
-   PR #154.
-3. ✅ **#156 Återanvänd befintliga kanoniska Matrundan-ställen före nytt
-   manuellt ställe**  
-   När extern sökning inte identifierar rätt ställe gör Matrundan en begränsad
-   och integritetssäker kontroll mot redan kända kanoniska ställen. Ett valt
-   ställe återanvänder samma `place_id` utan att exponera ursprungsgrupp eller
-   privat metadata. Genomförd i v1.29.0 via PR #161.
-4. ✅ **#155 Gör ställen som saknas till en snabb fallback och samla
-   förbättringsunderlag**  
-   Fallbacken är en naturlig fortsättning på sökningen med ett kort formulär och
-   kan skapa ett neutralt internt förbättringsunderlag utan att kalla det ett
-   verifierat OSM-fel. Genomförd i v1.29.0 via PR #161.
-5. ✅ **#163 Samla platsrapportering och förbättringskandidater i globalt
-   Platsunderhåll**  
-   Rapporterade platsfel och neutrala förbättringskandidater samlas i en global
-   arbetskö för särskilt behöriga platsunderhållare. Arbetskön exponerar inte
-   ursprungsgrupp, medlemskap eller historisk privat rapporttext och kan länka en
-   verifierad extern källa, markera manuellt OSM-arbete eller avfärda ett ärende
-   utan automatisk extern publicering. Genomförd i v1.30.0 via PR #166; mobilens
-   avslutande åtgärd korrigerades därefter via PR #168.
-6. **#149 Stöd geografiska boundaries och visualisera sökområden på kartan**  
-   Utöka sökområdesmodellen så verifierade kommuner, stadsdelar och andra
-   områden kan sökas inom sin faktiska providergräns, medan adresser och andra
-   punktplatser behåller närhetsavstånd. Polygoner och radier ska kunna
-   kombineras och visas i samma kartvy.
-
-Paketet behåller principen att gruppens sparade sökområden är **förval för nya
-sökningar**, inte en permanent spärr för vilka matställen gruppen får använda.
-Alla sparade områden är fortsatt valda när sökningen öppnas och inget område är
-primärt. Befintliga punktområden får inte tyst få ny geografisk innebörd när
-boundary-stödet införs.
-
-#156 och #155 förebygger nya kanoniska dubbletter och skapar neutralt
-förbättringsunderlag. Genom #163 är underlaget nu granskningsbart utan att bli
-gruppdata eller automatisk OSM-publicering. Generell historisk deduplicering och
-automatisk sammanföring av befintliga `places`-rader ingår fortfarande inte;
-det hör till Paket F och blockerar inte #149.
-
-Boundary-steget ändrar ett varaktigt arkitekturbeslut och kräver därför en
-aktuell arkitektur- och migrationsplan innan implementation. Egenritade
-polygoner och generell kartredigering är uttryckliga icke-mål.
-
 ## Paket C – Nästa stopp v2
 
-**Prioritet:** `priority:next`, efter Paket B
+**Prioritet:** `priority:next`, efter återstående prioriterade delar av Paket A
 
 - **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
 
-Det här är nästa större kärnproduktsteg efter sök- och geografipaketet. Gruppen
-ska kunna föreslå alternativa matställen och flera tider utan att ett nytt
-förslag skriver över det som redan diskuteras. Frågorna **vart** och **när** hålls
-separata, medan ett aktuellt nästa stopp förblir tydligt.
+Det här är nästa större kärnproduktsteg efter grundplattan. Gruppen ska kunna
+föreslå alternativa matställen och flera tider utan att ett nytt förslag skriver
+över det som redan diskuteras. Frågorna **vart** och **när** hålls separata,
+medan ett aktuellt nästa stopp förblir tydligt.
 
 Det övergripande issuen får delas i mindre underissues efter en aktuell
 arkitektur- och implementationsplan. En stor plats × datum-matris och automatisk
@@ -241,7 +179,7 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 **Prioritet:** `priority:later`
 
-Rekommenderad ordning fastställs när paketet prioriteras. Två separata behov är
+Rekommenderad ordning fastställs när paketet prioriteras. Tre separata behov är
 redan överenskomna:
 
 - **#169 Bekräfta deltagande och komplettera gemensamma besök**  
@@ -250,14 +188,20 @@ redan överenskomna:
   kopplas till en medlem i målgruppen genom ett uttryckligt val följt av den
   utpekade personens bekräftelse. Namn är presentation, aldrig identitet; ingen
   fuzzy personmatchning, besöksdublett eller cross-group exponering får uppstå.
+- **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**  
+  Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
+  en viss målgrupp när samma kanoniska besök delas. Fotoåtkomsten ska vara
+  serverstyrd per målgrupp och får inte exponera ursprungsgrupp eller ge
+  mottagargruppen rätt att ändra originalfotot.
 - **#101 Privata kommentarer och reaktioner på besök**  
   Lägg privat gruppdiskussion och enkla reaktioner på gruppens besökslänk.
 
-Båda funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
+Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
 gruppens gemensamma minne. #169 gäller sann deltagaridentitet och strukturerade
-personliga omdömen på samma besök; #101 gäller privat gruppdiskussion kring
-besöket. Ingen av funktionerna får skapa global feed, offentlig social graf,
-offentliga likes eller progression för social aktivitet.
+personliga omdömen på samma besök, #179 gäller uttrycklig och behörighetsstyrd
+fotodelning och #101 gäller privat gruppdiskussion kring besöket. Ingen av
+funktionerna får skapa global feed, offentlig social graf, offentliga likes eller
+progression för social aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
@@ -276,9 +220,9 @@ Rekommenderad ordning:
    administrativt granskad och transaktionell merge för bekräftade historiska
    dubbletter. Ingen fuzzy automatisk massmerge ingår.
 
-Paket F bygger vidare på den serverprincip som etablerats i #156, men är inte ett
-beroende för #149. Det ska stärka kanonisk identitet utan att skapa en publik
-katalog eller exponera vilka andra grupper som använder samma plats.
+Paket F bygger vidare på den serverprincip som etablerats i #156 och ska stärka
+kanonisk identitet utan att skapa en publik katalog eller exponera vilka andra
+grupper som använder samma plats.
 
 ## Genomförda paket
 
@@ -290,7 +234,9 @@ Roadmapen ska inte återge full implementation eller releasehistorik. Den finns 
 stängda issues, mergade PR:er, `CHANGELOG.md` och vid behov
 `docs/architecture.md`.
 
-Inga paket är ännu markerade som genomförda.
+- ✅ **Paket B – Sök och geografi**  
+  Genomfört genom #147, #148, #156, #155, #163 och #149. Paketet löpte från
+  v1.27.1 till v1.31.0; sista steget #149 mergades via PR #180.
 
 ## Exempelgruppen som permanent kontrakt
 
