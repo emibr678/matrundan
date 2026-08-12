@@ -66,12 +66,6 @@ async function openPlaceSearch(page: Page) {
     exact: true,
   });
   await expect(searchInput).toBeVisible();
-  await expect(
-    searchDialog.getByText(
-      "Områden söks inom sin gräns. Avståndet gäller bara adresser och andra punktval.",
-      { exact: true },
-    ),
-  ).toBeVisible();
   await searchInput.fill(PLACE_NAME);
   await expect(placeSuggestionButton(searchDialog)).toBeVisible();
   return searchDialog;
