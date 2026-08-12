@@ -28,10 +28,11 @@ async function openItem(page: Page, name: string) {
 }
 
 async function closeMobileDetail(page: Page) {
-  const back = page.getByRole("button", { name: "Tillbaka till listan" });
+  const detail = page.getByRole("region", { name: "Underhållsdetalj" });
+  const back = detail.getByRole("button", { name: "Tillbaka till listan" });
   if (await back.isVisible()) {
     await back.click();
-    await expect(back).toBeHidden();
+    await expect(detail).toBeHidden();
   }
 }
 
@@ -40,9 +41,10 @@ test("Arbetsstatusknapparna trunkeras inte och detaljen är nåbar utan horisont
 }) => {
   await page.goto("/platsunderhall?demo=1");
 
-  const inboxQueue = page.getByRole("button", { name: /^Att hantera(?: \d+)?$/ });
-  const osmQueue = page.getByRole("button", { name: /^OSM-arbete(?: \d+)?$/ });
-  const closedQueue = page.getByRole("button", { name: /^Avslutade(?: \d+)?$/ });
+  const workStatus = page.getByLabel("Arbetsstatus");
+  const inboxQueue = workStatus.getByRole("button", { name: /^Att hantera(?: \d+)?$/ });
+  const osmQueue = workStatus.getByRole("button", { name: /^OSM-arbete(?: \d+)?$/ });
+  const closedQueue = workStatus.getByRole("button", { name: /^Avslutade(?: \d+)?$/ });
   const allFilter = page.getByRole("button", { name: "Alla", exact: true });
   const reportsFilter = page.getByRole("button", { name: "Användarrapporter", exact: true });
   const manualFilter = page.getByRole("button", { name: "Manuellt tillagda", exact: true });
@@ -96,9 +98,11 @@ test("Arbetsstatusknapparna trunkeras inte och detaljen är nåbar utan horisont
   await expect(page.getByText("Möjliga kartträffar")).toBeVisible();
   await expect(page.getByText("Bistro Malma Kvarn & Krog")).toBeVisible();
   await page.getByRole("button", { name: "Koppla till stället" }).click();
-  await expect(page.getByRole("alertdialog")).toContainText("Koppla kartträffen?");
-  await expect(page.getByRole("alertdialog")).toContainText("Besök och gruppdata påverkas inte");
-  await page.getByRole("button", { name: "Avbryt" }).click();
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation).toContainText("Koppla kartträffen?");
+  await expect(confirmation).toContainText("Besök och gruppdata påverkas inte");
+  await confirmation.getByRole("button", { name: "Avbryt" }).click();
+  await expect(confirmation).toBeHidden();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – kartträff");
   await closeMobileDetail(page);
 
