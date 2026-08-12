@@ -28,10 +28,11 @@ async function openItem(page: Page, name: string) {
 }
 
 async function closeMobileDetail(page: Page) {
+  const detail = page.getByRole("region", { name: "Underhållsdetalj" });
   const back = page.getByRole("button", { name: "Tillbaka till listan" });
   if (await back.isVisible()) {
     await back.click();
-    await expect(back).toBeHidden();
+    await expect(detail).toBeHidden();
   }
 }
 
