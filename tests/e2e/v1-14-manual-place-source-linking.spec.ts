@@ -46,13 +46,16 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   await page.reload();
 
   const manualDialog = await openManualAdd(page);
-  await manualDialog.getByLabel("Namn").fill("Stavsnäs Sjökrog");
-  await manualDialog.getByPlaceholder("Sök adress eller plats").fill("Stavsnäs vinterhamn 4");
+  await manualDialog.getByLabel("Namn").fill("Hamnbageriet");
+  const locationInput = manualDialog.getByPlaceholder("Sök adress eller plats");
+  await locationInput.fill("Odelbergs väg 5, Gustavsberg");
+  await locationInput.press("Enter");
+  await expect(manualDialog.getByText(/Verifierad plats.*Gustavsberg/)).toBeVisible();
   await expectNoHorizontalOverflow(page, "Manuellt tillägg på mobil");
   await manualDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
   await expect(manualDialog).toBeHidden();
 
-  const placeLink = page.getByRole("link", { name: /Stavsnäs Sjökrog/ });
+  const placeLink = page.getByRole("link", { name: /Hamnbageriet/ });
   await expect(placeLink).toBeVisible();
   const hrefBeforeLinking = await placeLink.getAttribute("href");
   expect(hrefBeforeLinking).toBeTruthy();
@@ -61,7 +64,7 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   const matchRegion = addDialog.getByRole("region", { name: "Möjliga matchningar i gruppen" });
   await expect(matchRegion.getByText("Möjlig match i gruppen", { exact: true })).toBeVisible();
-  await expect(matchRegion.getByText(/Samma namn och adress/)).toBeVisible();
+  await expect(matchRegion.getByText(/Samma namn och kartposition i närheten/)).toBeVisible();
   await expectNoHorizontalOverflow(page, "Möjlig källmatchning på mobil");
   await matchRegion.getByRole("button", { name: "Granska länk" }).click();
 
@@ -82,10 +85,10 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
     .first();
   await expect(existingSection).toBeVisible();
   await existingSection.click();
-  await expect(addDialog.getByRole("button", { name: /Stavsnäs Sjökrog/ }).first()).toBeVisible();
+  await expect(addDialog.getByRole("button", { name: /Hamnbageriet/ }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Länkad källa i sökresultatet på mobil");
   await addDialog.getByRole("button", { name: "Klar" }).click();
 
-  const samePlaceLink = page.getByRole("link", { name: /Stavsnäs Sjökrog/ });
+  const samePlaceLink = page.getByRole("link", { name: /Hamnbageriet/ });
   await expect(samePlaceLink).toHaveAttribute("href", hrefBeforeLinking!);
 });

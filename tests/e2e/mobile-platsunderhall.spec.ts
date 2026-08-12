@@ -30,10 +30,9 @@ async function openItem(page: Page, name: string) {
 async function closeMobileDetail(page: Page) {
   const detail = page.getByRole("region", { name: "Underhållsdetalj" });
   const back = page.getByRole("button", { name: "Tillbaka till listan" });
-  if (await back.isVisible()) {
-    await back.click();
-    await expect(detail).toBeHidden();
-  }
+  if (await back.isVisible()) await back.click();
+  await expect(back).toBeHidden();
+  await expect(detail).toBeHidden();
 }
 
 test("Arbetsstatusknapparna trunkeras inte och detaljen är nåbar utan horisontell overflow", async ({
@@ -97,9 +96,11 @@ test("Arbetsstatusknapparna trunkeras inte och detaljen är nåbar utan horisont
   await expect(page.getByText("Möjliga kartträffar")).toBeVisible();
   await expect(page.getByText("Bistro Malma Kvarn & Krog")).toBeVisible();
   await page.getByRole("button", { name: "Koppla till stället" }).click();
-  await expect(page.getByRole("alertdialog")).toContainText("Koppla kartträffen?");
-  await expect(page.getByRole("alertdialog")).toContainText("Besök och gruppdata påverkas inte");
-  await page.getByRole("button", { name: "Avbryt" }).click();
+  const linkDialog = page.getByRole("alertdialog");
+  await expect(linkDialog).toContainText("Koppla kartträffen?");
+  await expect(linkDialog).toContainText("Besök och gruppdata påverkas inte");
+  await linkDialog.getByRole("button", { name: "Avbryt" }).click();
+  await expect(linkDialog).toBeHidden();
   await expectNoHorizontalOverflow(page, "Platsunderhåll – kartträff");
   await closeMobileDetail(page);
 
