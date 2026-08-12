@@ -1,8 +1,16 @@
-name: Cleanup visual review artifacts
+name: Cleanup Actions artifacts
 
 on:
   workflow_dispatch:
     inputs:
+      artifact_family:
+        description: Vilken artifact-typ ska granskas eller rensas?
+        required: true
+        default: playwright-report
+        type: choice
+        options:
+          - playwright-report
+          - visual-review
       mode:
         description: Dry-run listar kandidater; delete raderar dem
         required: true
@@ -12,12 +20,12 @@ on:
           - dry-run
           - delete
       keep_latest:
-        description: Antal senaste visual-review-artifacts att behålla
+        description: Antal senaste matchande artifacts att behålla
         required: true
         default: "1"
         type: string
       confirm_delete:
-        description: Skriv DELETE VISUAL REVIEW för att tillåta delete-läge
+        description: Skriv exakt bekräftelsetext för vald artifact-typ i delete-läge
         required: false
         default: ""
         type: string
@@ -27,7 +35,7 @@ permissions:
   actions: write
 
 concurrency:
-  group: cleanup-visual-review-artifacts
+  group: cleanup-actions-artifacts
   cancel-in-progress: false
 
 jobs:
@@ -36,18 +44,39 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Inspect or delete visual review artifacts
+      - name: Inspect or delete selected artifacts
         uses: actions/github-script@v7
         env:
+          ARTIFACT_FAMILY: ${{ inputs.artifact_family }}
           MODE: ${{ inputs.mode }}
           KEEP_LATEST: ${{ inputs.keep_latest }}
           CONFIRM_DELETE: ${{ inputs.confirm_delete }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const artifactFamily = process.env.ARTIFACT_FAMILY;
             const mode = process.env.MODE;
             const keepLatest = Number.parseInt(process.env.KEEP_LATEST || '1', 10);
             const confirmation = process.env.CONFIRM_DELETE || '';
+
+            const families = {
+              'playwright-report': {
+                label: 'playwright-report',
+                confirmation: 'DELETE PLAYWRIGHT REPORTS',
+                matches: (artifact) => artifact.name === 'playwright-report',
+              },
+              'visual-review': {
+                label: 'visual-review-*',
+                confirmation: 'DELETE VISUAL REVIEW',
+                matches: (artifact) => artifact.name.startsWith('visual-review-'),
+              },
+            };
+
+            const family = families[artifactFamily];
+            if (!family) {
+              core.setFailed(`Ogiltig artifact_family: ${artifactFamily}`);
+              return;
+            }
 
             if (!['dry-run', 'delete'].includes(mode)) {
               core.setFailed(`Ogiltigt mode: ${mode}`);
@@ -59,8 +88,8 @@ jobs:
               return;
             }
 
-            if (mode === 'delete' && confirmation !== 'DELETE VISUAL REVIEW') {
-              core.setFailed('Delete-läge kräver exakt bekräftelse: DELETE VISUAL REVIEW');
+            if (mode === 'delete' && confirmation !== family.confirmation) {
+              core.setFailed(`Delete-läge för ${family.label} kräver exakt bekräftelse: ${family.confirmation}`);
               return;
             }
 
@@ -70,16 +99,17 @@ jobs:
               { owner, repo, per_page: 100 },
             );
 
-            const visualArtifacts = artifacts
-              .filter((artifact) => !artifact.expired && artifact.name.startsWith('visual-review-'))
+            const matchingArtifacts = artifacts
+              .filter((artifact) => !artifact.expired && family.matches(artifact))
               .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-            const kept = visualArtifacts.slice(0, keepLatest);
-            const targets = visualArtifacts.slice(keepLatest);
+            const kept = matchingArtifacts.slice(0, keepLatest);
+            const targets = matchingArtifacts.slice(keepLatest);
             const targetBytes = targets.reduce((sum, artifact) => sum + artifact.size_in_bytes, 0);
             const targetMiB = (targetBytes / 1024 / 1024).toFixed(1);
 
-            core.info(`Aktiva visual-review-artifacts: ${visualArtifacts.length}`);
+            core.info(`Artifact-typ: ${family.label}`);
+            core.info(`Aktiva matchande artifacts: ${matchingArtifacts.length}`);
             core.info(`Behåller senaste: ${kept.length}`);
             core.info(`${mode === 'delete' ? 'Raderar' : 'Skulle radera'}: ${targets.length} artifacts (${targetMiB} MiB)`);
 
@@ -123,22 +153,24 @@ jobs:
             const deletedMiB = (deletedBytes / 1024 / 1024).toFixed(1);
 
             await core.summary
-              .addHeading('Visual review artifact cleanup')
+              .addHeading('Actions artifact cleanup')
               .addTable([
                 [
+                  { data: 'Artifact-typ', header: true },
                   { data: 'Läge', header: true },
-                  { data: 'Aktiva visual-review', header: true },
+                  { data: 'Aktiva', header: true },
                   { data: 'Behålls', header: true },
                   { data: mode === 'delete' ? 'Raderade' : 'Skulle raderas', header: true },
                   { data: mode === 'delete' ? 'Frigjort' : 'Möjligt att frigöra', header: true },
                 ],
                 [
+                  family.label,
                   mode,
-                  String(visualArtifacts.length),
+                  String(matchingArtifacts.length),
                   String(kept.length),
                   String(mode === 'delete' ? deleted : targets.length),
                   `${mode === 'delete' ? deletedMiB : targetMiB} MiB`,
                 ],
               ])
-              .addRaw('\nWorkflowen matchar endast artifacts vars namn börjar med `visual-review-`.\n')
+              .addRaw(`\nWorkflowen matchar endast vald artifact-typ: \`${family.label}\`.\n`)
               .write();
