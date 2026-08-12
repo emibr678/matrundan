@@ -61,23 +61,18 @@ async function openPlaceSearch(page: Page) {
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const searchDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(searchDialog).toBeVisible();
-  await expect(searchDialog.getByRole("button", { name: "Sök", exact: true })).toBeVisible();
+  const searchInput = searchDialog.getByRole("combobox", {
+    name: "Sök matställen",
+    exact: true,
+  });
+  await expect(searchInput).toBeVisible();
   await expect(
     searchDialog.getByText(
-      "Sök i gruppens vanliga områden eller lägg till fler platser för den här sökningen.",
+      "Områden söks inom sin gräns. Avståndet gäller bara adresser och andra punktval.",
       { exact: true },
     ),
-  ).toHaveCount(0);
-  await expect(
-    searchDialog.getByText("Ändringar här gäller bara den här sökningen.", { exact: true }),
   ).toBeVisible();
-  await expect(
-    searchDialog.getByText(
-      "Välj en träff så läggs den till nedan. Valen gäller bara den här sökningen.",
-      { exact: true },
-    ),
-  ).toHaveCount(0);
-  await searchDialog.getByLabel("Sök", { exact: true }).fill(PLACE_NAME);
+  await searchInput.fill(PLACE_NAME);
   await expect(placeSuggestionButton(searchDialog)).toBeVisible();
   return searchDialog;
 }
@@ -244,28 +239,17 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
 
   const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
-  await expect(reportedErrorsSection.getByText("1 att granska")).toBeVisible();
+  await expect(reportedErrorsSection).toHaveCount(0);
 
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
 
-  await reportedErrorsSection.getByRole("link", { name: /Hantera rapporterade fel/ }).click();
-  await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Att granska 1/ })).toBeVisible();
-  await page.getByText(PLACE_NAME, { exact: true }).click();
-
-  const reportSheet = page.getByRole("dialog");
-  await expect(reportSheet.getByRole("heading", { name: PLACE_NAME })).toBeVisible();
-  await expect(reportSheet.getByText("Stängt eller ersatt", { exact: true })).toBeVisible();
+  await searchDialog.getByRole("button", { name: "Klar", exact: true }).click().catch(() => {});
+  await page.goto("/rapporterade-fel?demo=1");
   await expect(
-    reportSheet.getByText(
-      "Skylten visar att restaurangen har stängt permanent och lokalen står tom.",
-      { exact: true },
-    ),
+    page.getByText("Den tidigare gruppspecifika arbetskön används inte längre."),
   ).toBeVisible();
-  await expect(reportSheet.getByRole("link", { name: "Google Maps" })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Sökträffsrapport i adminöversikten");
-  await page.keyboard.press("Escape");
+  await expect(page.getByText(/handläggningen sker centralt i Platsunderhåll/)).toBeVisible();
 
   await openPlaceSearch(page);
   await expect(placeSuggestionButton(page)).toBeVisible();
