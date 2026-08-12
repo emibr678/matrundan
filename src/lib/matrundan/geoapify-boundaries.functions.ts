@@ -138,7 +138,10 @@ async function loadPlaceDetailsBoundary(placeId: string): Promise<{
   return null;
 }
 
-async function loadPartOfBoundary(placeId: string, label: string): Promise<{
+async function loadPartOfBoundary(
+  placeId: string,
+  label: string,
+): Promise<{
   boundary: SearchAreaBoundaryGeometry;
   placeId: string;
 } | null> {
