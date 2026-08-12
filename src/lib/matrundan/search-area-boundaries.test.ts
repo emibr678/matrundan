@@ -46,7 +46,9 @@ describe("boundarybaserade sökområden", () => {
   });
 
   test("Geoapify begär full originalgeometri som tillägg till details", () => {
-    const detailsCall = geoapifySource.indexOf('loadBoundaryWithFeatures(placeId, "details")');
+    const detailsCall = geoapifySource.indexOf(
+      'loadBoundaryWithFeatures(placeId, "details")',
+    );
     const fullGeometryCall = geoapifySource.indexOf(
       'loadBoundaryWithFeatures(placeId, "details,details.full_geometry")',
     );
