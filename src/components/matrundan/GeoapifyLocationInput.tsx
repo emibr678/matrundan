@@ -4,10 +4,8 @@ import {
   demoAutocompleteLocations,
   demoBoundaryForPlaceId,
 } from "@/lib/matrundan/demo-location-suggestions";
-import {
-  geoapifyAutocompleteLocation,
-  geoapifyResolveSearchAreaBoundary,
-} from "@/lib/matrundan/geoapify.functions";
+import { geoapifyResolveSearchAreaBoundary } from "@/lib/matrundan/geoapify-boundaries.functions";
+import { geoapifyAutocompleteLocation } from "@/lib/matrundan/geoapify.functions";
 import type { NormalizedLocationSuggestion } from "@/lib/matrundan/geoapify-normalize";
 import type { VerifiedHomeLocation } from "@/lib/matrundan/live-admin";
 import {
@@ -149,6 +147,7 @@ export function GeoapifyLocationInput({
 
     let searchMode: SearchAreaMode = "point";
     let boundary: SearchAreaBoundaryGeometry | undefined;
+    let selectedPlaceId = suggestion.placeId;
     const boundaryCandidate =
       allowBoundaryAreas && isBoundaryEligibleResultType(suggestion.resultType);
 
@@ -163,10 +162,17 @@ export function GeoapifyLocationInput({
           }
         } else {
           const resolved = await geoapifyResolveSearchAreaBoundary({
-            data: { placeId: suggestion.placeId, resultType: suggestion.resultType },
+            data: {
+              placeId: suggestion.placeId,
+              label: suggestion.primaryLabel,
+              resultType: suggestion.resultType,
+            },
           });
           searchMode = resolved.searchMode;
           boundary = resolved.boundary ?? undefined;
+          if (resolved.searchMode === "boundary" && resolved.boundaryPlaceId) {
+            selectedPlaceId = resolved.boundaryPlaceId;
+          }
         }
       } catch {
         setSelectionError("Kunde inte verifiera områdets gräns. Försök igen.");
@@ -191,7 +197,7 @@ export function GeoapifyLocationInput({
       lat: suggestion.lat,
       lng: suggestion.lng,
       provider: "geoapify",
-      placeId: suggestion.placeId,
+      placeId: selectedPlaceId,
       city: suggestion.city,
       area: suggestion.area,
       resultType: suggestion.resultType,
