@@ -1,0 +1,52 @@
+name: Format search-area diagnostics
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - synchronize
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  format:
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          while IFS= read -r -d '' file; do
+            sed -i 's/\r$//' "$file"
+          done < <(git ls-files -z -- '*.ts' '*.tsx')
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Print Prettier patch
+        run: |
+          bunx prettier --write tests/e2e/v1-6-search-areas.spec.ts
+          echo '--- PRETTIER PATCH START ---'
+          git diff --no-ext-diff -- tests/e2e/v1-6-search-areas.spec.ts
+          echo '--- PRETTIER PATCH END ---'
