@@ -182,7 +182,7 @@ test("samma ställe behåller detaljidentiteten före och efter tillägg på des
   await expectNoHorizontalOverflow(page, "Tillagd platsdetalj på desktop");
 });
 
-test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow", async ({
+test("en felaktig demoträff kan rapporteras, döljas och återställas utan overflow", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 620 });
@@ -234,28 +234,16 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
 
   const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
-  await expect(reportedErrorsSection.getByText("1 att granska")).toBeVisible();
+  await expect(reportedErrorsSection.getByText("Ingen separat gruppkö längre")).toBeVisible();
+  await expect(reportedErrorsSection.getByText(/handläggningen sker centralt i Platsunderhåll/)).toBeVisible();
 
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
 
-  await reportedErrorsSection.getByRole("link", { name: /Hantera rapporterade fel/ }).click();
+  await page.goto("/rapporterade-fel?demo=1");
   await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Att granska 1/ })).toBeVisible();
-  await page.getByText(PLACE_NAME, { exact: true }).click();
-
-  const reportSheet = page.getByRole("dialog");
-  await expect(reportSheet.getByRole("heading", { name: PLACE_NAME })).toBeVisible();
-  await expect(reportSheet.getByText("Stängt eller ersatt", { exact: true })).toBeVisible();
-  await expect(
-    reportSheet.getByText(
-      "Skylten visar att restaurangen har stängt permanent och lokalen står tom.",
-      { exact: true },
-    ),
-  ).toBeVisible();
-  await expect(reportSheet.getByRole("link", { name: "Google Maps" })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Sökträffsrapport i adminöversikten");
-  await page.keyboard.press("Escape");
+  await expect(page.getByText("Den tidigare gruppspecifika arbetskön används inte längre.")).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Pensionerad gruppkö för rapporterade fel");
 
   await openPlaceSearch(page);
   await expect(placeSuggestionButton(page)).toBeVisible();
