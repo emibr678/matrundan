@@ -21,7 +21,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 }
 
 function suggestionRow(dialog: Locator, name: string) {
-  return dialog.locator("[data-bulk-selected]").filter({ hasText: name }).first();
+  return dialog.locator("[data-bulk-selected]:visible").filter({ hasText: name }).first();
 }
 
 function existingSection(dialog: Locator, count: number) {
