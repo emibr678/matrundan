@@ -90,7 +90,12 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
   await selectForBulk(dialog, "Päronträdets Trattoria");
   await expect(dialog.getByText("1 ställe valt", { exact: true })).toBeVisible();
-  await expect(firstRow).toHaveAttribute("data-bulk-selected", "true");
+  await expect(
+    dialog.getByRole("checkbox", {
+      name: "Välj Päronträdets Trattoria för masstillägg",
+      exact: true,
+    }),
+  ).toBeChecked();
 
   await dialog.getByRole("button", { name: "Avbryt", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Välj flera", exact: true })).toBeVisible();
