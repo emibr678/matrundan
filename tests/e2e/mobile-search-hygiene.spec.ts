@@ -61,23 +61,13 @@ async function openPlaceSearch(page: Page) {
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const searchDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(searchDialog).toBeVisible();
-  await expect(searchDialog.getByRole("button", { name: "Sök", exact: true })).toBeVisible();
-  await expect(
-    searchDialog.getByText(
-      "Sök i gruppens vanliga områden eller lägg till fler platser för den här sökningen.",
-      { exact: true },
-    ),
-  ).toHaveCount(0);
-  await expect(
-    searchDialog.getByText("Ändringar här gäller bara den här sökningen.", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    searchDialog.getByText(
-      "Välj en träff så läggs den till nedan. Valen gäller bara den här sökningen.",
-      { exact: true },
-    ),
-  ).toHaveCount(0);
-  await searchDialog.getByLabel("Sök", { exact: true }).fill(PLACE_NAME);
+  await expect(searchDialog.getByRole("region", { name: "Sök i", exact: true })).toBeVisible();
+  const searchInput = searchDialog.getByRole("combobox", {
+    name: "Sök matställen",
+    exact: true,
+  });
+  await expect(searchInput).toHaveAttribute("placeholder", "Namn, kök eller typ");
+  await searchInput.fill(PLACE_NAME);
   await expect(placeSuggestionButton(searchDialog)).toBeVisible();
   return searchDialog;
 }
