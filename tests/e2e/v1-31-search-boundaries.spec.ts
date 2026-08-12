@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 async function openAddPlaces(page: import("@playwright/test").Page) {
-  await page.goto("/matstallen?demo=1");
+  await page.goto("/exempel");
   const trigger = page.getByRole("button", { name: /lägg till.*ställ/i }).first();
   await expect(trigger).toBeVisible();
   await trigger.click();
-  const dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(dialog).toBeVisible();
   return dialog;
 }
