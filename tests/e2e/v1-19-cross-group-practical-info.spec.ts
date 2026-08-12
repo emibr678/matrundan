@@ -172,6 +172,7 @@ async function mockGroup(page: Page) {
     });
   });
   for (const rpc of [
+    "get_group_app_state_v5i",
     "get_group_app_state_v5h",
     "get_group_app_state_v5g",
     "get_group_app_state_v5f",
