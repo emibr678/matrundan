@@ -59,15 +59,19 @@ test("rapporten lämnar gruppkön och handläggningen sker centralt i Platsunder
   const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
 
   await expect(reportedErrorsSection.getByText("Ingen separat gruppkö längre")).toBeVisible();
-  await expect(reportedErrorsSection.getByText(/handläggningen sker centralt i Platsunderhåll/)).toBeVisible();
-  await expect(reportedErrorsSection.getByRole("link", { name: /Hantera rapporterade fel/ })).toHaveCount(
-    0,
-  );
+  await expect(
+    reportedErrorsSection.getByText(/handläggningen sker centralt i Platsunderhåll/),
+  ).toBeVisible();
+  await expect(
+    reportedErrorsSection.getByRole("link", { name: /Hantera rapporterade fel/ }),
+  ).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Reducerad gruppvy för rapporterade fel");
 
   await page.goto("/rapporterade-fel?demo=1");
   await expect(page.getByRole("heading", { name: "Rapporterade fel", level: 1 })).toBeVisible();
-  await expect(page.getByText("Den tidigare gruppspecifika arbetskön används inte längre.")).toBeVisible();
+  await expect(
+    page.getByText("Den tidigare gruppspecifika arbetskön används inte längre."),
+  ).toBeVisible();
   await expect(page.getByText(/handläggningen sker centralt i Platsunderhåll/)).toBeVisible();
 
   await page.goto("/platsunderhall?demo=1");
@@ -76,7 +80,9 @@ test("rapporten lämnar gruppkön och handläggningen sker centralt i Platsunder
   await expect(page.getByText("Bryggans Bageri", { exact: true })).toBeVisible();
   await expect(page.getByText(privateObservation, { exact: true })).toHaveCount(0);
   await expect(
-    page.getByText(/Här visas bara neutral platsdata – aldrig gruppnamn, medlemmar eller privata kommentarer/),
+    page.getByText(
+      /Här visas bara neutral platsdata – aldrig gruppnamn, medlemmar eller privata kommentarer/,
+    ),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Central platsunderhållskö på mobil");
 });
