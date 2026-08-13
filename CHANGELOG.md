@@ -14,6 +14,18 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.33.0] – 2026-08-13
+
+### Ändrat
+
+- Matrundans egna varumärkesytor använder samma centrala appikon och ordmärke i
+  landning, exempelgrupp och inloggat läge i stället för en generisk
+  tallriksemoji.
+- **Om Matrundan** återanvänder samma dialog och varumärkesmarkering oavsett var
+  den öppnas.
+- Grupp- och matställeemojis behåller sin innehållsbetydelse och påverkas inte av
+  varumärkesändringen.
+
 ## [1.32.0] – 2026-08-13
 
 ### Ändrat
