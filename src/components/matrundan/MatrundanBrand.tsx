@@ -33,7 +33,9 @@ export function MatrundanBrand({
         className={`shrink-0 object-contain ${markSize[size]}`}
       />
       {variant === "lockup" ? (
-        <span className={`font-display font-semibold leading-tight tracking-tight ${labelSize[size]}`}>
+        <span
+          className={`font-display font-semibold leading-tight tracking-tight ${labelSize[size]}`}
+        >
           {APP_NAME}
         </span>
       ) : null}
