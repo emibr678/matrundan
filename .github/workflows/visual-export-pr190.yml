@@ -8,115 +8,59 @@ on:
 permissions:
   contents: write
 
-defaults:
-  run:
-    shell: bash
-
 jobs:
-  export:
+  shrink:
     runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
-      - name: Check out exact PR head
+      - name: Check out exported visual assets
         uses: actions/checkout@v4
         with:
-          ref: 2aae52dcb02549eba0955d209694fc9e340116af
+          ref: agent/visual-assets-pr190
           fetch-depth: 0
           show-progress: false
 
-      - name: Set up pinned Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.12.0
-
-      - name: Set up pinned Bun
-        uses: ./.github/actions/setup-bun
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Install Chromium
-        run: bunx playwright install chromium
-
-      - name: Build and capture targeted screenshots
+      - name: Create small contact sheet
+        if: runner.os == 'Windows'
+        shell: powershell
         run: |
-          bun run build
-          bunx playwright test tests/visual-review/group-settings.spec.ts --config=playwright.visual.config.ts
+          Add-Type -AssemblyName System.Drawing
+          $source = Join-Path $PWD 'visual-review/contact-sheet.jpg'
+          $target = Join-Path $PWD 'visual-review/contact-sheet-small.jpg'
+          $image = [System.Drawing.Image]::FromFile($source)
+          $width = 500
+          $height = [int][Math]::Round($image.Height * $width / $image.Width)
+          $bitmap = New-Object System.Drawing.Bitmap($width, $height)
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+          $graphics.DrawImage($image, 0, 0, $width, $height)
+          $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
+          $qualityEncoder = [System.Drawing.Imaging.Encoder]::Quality
+          $parameters = New-Object System.Drawing.Imaging.EncoderParameters(1)
+          $parameters.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter($qualityEncoder, [long]12)
+          $bitmap.Save($target, $codec, $parameters)
+          $graphics.Dispose()
+          $bitmap.Dispose()
+          $image.Dispose()
 
-      - name: Build visual contact sheet
+      - name: Split small contact sheet
+        shell: bash
         run: |
-          node - <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const { chromium } = require('@playwright/test');
+          rm -rf visual-review/contact-sheet-small-b64
+          mkdir -p visual-review/contact-sheet-small-b64
+          base64 -w 0 visual-review/contact-sheet-small.jpg > visual-review/contact-sheet-small-b64/all.txt
+          length=$(wc -c < visual-review/contact-sheet-small-b64/all.txt | tr -d ' ')
+          split -b 3000 -d -a 3 visual-review/contact-sheet-small-b64/all.txt visual-review/contact-sheet-small-b64/part-
+          rm visual-review/contact-sheet-small-b64/all.txt
+          for file in visual-review/contact-sheet-small-b64/part-*; do mv "$file" "$file.txt"; done
+          parts=$(find visual-review/contact-sheet-small-b64 -name 'part-*.txt' | wc -l | tr -d ' ')
+          printf 'length=%s\nparts=%s\n' "$length" "$parts" > visual-review/contact-sheet-small-b64/manifest.txt
 
-          (async () => {
-            const root = path.resolve('visual-review');
-            const files = [
-              ['Mobile — meny', 'mobile-360/gruppinstallningar-meny.png'],
-              ['Mobile — sökområden', 'mobile-360/gruppinstallningar-sokomraden.png'],
-              ['Mobile — gruppen', 'mobile-360/gruppinstallningar-gruppen.png'],
-              ['Desktop — meny', 'desktop-1280/gruppinstallningar-meny.png'],
-              ['Desktop — sökområden', 'desktop-1280/gruppinstallningar-sokomraden.png'],
-              ['Desktop — gruppen', 'desktop-1280/gruppinstallningar-gruppen.png'],
-            ];
-            const cells = files.map(([label, rel]) => {
-              const uri = 'file:///' + path.join(root, rel).replace(/\\/g, '/');
-              return `<figure><figcaption>${label}</figcaption><img src="${uri}"></figure>`;
-            }).join('');
-            const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-              body{margin:0;background:#ddd;font-family:Arial,sans-serif}
-              main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}
-              figure{margin:0;background:white;padding:8px}
-              figcaption{font:700 16px Arial;margin-bottom:6px}
-              img{display:block;width:100%;height:auto;max-height:800px;object-fit:contain;object-position:top}
-            </style></head><body><main>${cells}</main></body></html>`;
-            fs.writeFileSync(path.join(root, 'contact-sheet.html'), html);
-            const browser = await chromium.launch();
-            const page = await browser.newPage({ viewport: { width: 1000, height: 800 } });
-            await page.goto('file:///' + path.join(root, 'contact-sheet.html').replace(/\\/g, '/'));
-            await page.screenshot({
-              path: path.join(root, 'contact-sheet.jpg'),
-              fullPage: true,
-              type: 'jpeg',
-              quality: 28,
-            });
-            await browser.close();
-
-            const b64 = fs.readFileSync(path.join(root, 'contact-sheet.jpg')).toString('base64');
-            const out = path.join(root, 'contact-sheet-b64');
-            fs.mkdirSync(out, { recursive: true });
-            const chunkSize = 8000;
-            let parts = 0;
-            for (let i = 0; i < b64.length; i += chunkSize) {
-              fs.writeFileSync(
-                path.join(out, `part-${String(parts).padStart(3, '0')}.txt`),
-                b64.slice(i, i + chunkSize),
-              );
-              parts += 1;
-            }
-            fs.writeFileSync(path.join(out, 'manifest.txt'), `length=${b64.length}\nparts=${parts}\n`);
-          })().catch((error) => {
-            console.error(error);
-            process.exit(1);
-          });
-          NODE
-
-      - name: Publish screenshots to isolated temporary branch
+      - name: Push small visual assets
+        shell: bash
         run: |
-          export_dir="$RUNNER_TEMP/pr190-visual-export"
-          rm -rf "$export_dir"
-          mkdir -p "$export_dir"
-          cp -R visual-review/. "$export_dir/"
-          printf '%s\n' 'source_sha=2aae52dcb02549eba0955d209694fc9e340116af' > "$export_dir/SOURCE.txt"
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git branch -D visual-assets-pr190 2>/dev/null || true
-          git checkout --orphan visual-assets-pr190
-          git rm -rf .
-          mkdir -p visual-review
-          cp -R "$export_dir"/. visual-review/
-          git add visual-review
-          git commit -m "Temporary visual assets for PR #190"
-          git push --force origin HEAD:refs/heads/agent/visual-assets-pr190
+          git add visual-review/contact-sheet-small.jpg visual-review/contact-sheet-small-b64
+          git commit -m "Add temporary small visual contact sheet" || exit 0
+          git push origin HEAD:refs/heads/agent/visual-assets-pr190
