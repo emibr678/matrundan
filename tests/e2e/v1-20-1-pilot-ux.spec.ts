@@ -244,9 +244,7 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
   await expectNoHorizontalOverflow(page, "medlemshanteringen");
 });
 
-test("gruppinställningarna är uppgiftsbaserade och sparar grupp respektive sökområden separat", async ({
-  page,
-}) => {
+test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   const { mutations } = await installOwnerSession(page);
   await page.goto("/gruppen");
