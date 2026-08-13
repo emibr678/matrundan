@@ -41,5 +41,7 @@ test("exempelgruppen använder samma brand utan att ersätta gruppemojin", async
 
   await groupMenu.click();
   await page.getByRole("menuitem", { name: "Om Matrundan" }).click();
-  await expect(page.getByRole("dialog").getByRole("heading", { name: "Om Matrundan" })).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByRole("heading", { name: "Om Matrundan" }),
+  ).toBeVisible();
 });
