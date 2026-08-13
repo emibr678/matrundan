@@ -6,6 +6,23 @@ import {
 export { APP_NAME, formatRating } from "./version-through-1-26-1";
 export type { ChangelogEntry };
 
+const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
+  version: "1.32.0",
+  date: "2026-08-13",
+  summary: "Gruppinställningarna är uppdelade efter tydliga uppgifter.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Gruppinställningarna har separata ingångar för Gruppen, Sökområden, Medlemmar och inbjudningar, Matställen, Besök och progression samt Gruppstatus.",
+        "Gruppnamn och symbol sparas separat från sökområden och sökavstånd så ändringar inte behöver skriva om varandra.",
+        "Dolda sökträffar ligger kvar som gruppspecifikt matställeunderhåll, medan den gamla informationen om den flyttade rapportkön har tagits bort eftersom handläggningen sker i globala Platsunderhåll.",
+        "Om Matrundan och versionshistoriken nås från profil- och gruppmenyn i stället för Gruppinställningar.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_31_0_CHANGELOG: ChangelogEntry = {
   version: "1.31.0",
   date: "2026-08-11",
@@ -214,6 +231,7 @@ const VERSION_1_26_2_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_32_0_CHANGELOG,
   VERSION_1_31_0_CHANGELOG,
   VERSION_1_30_1_CHANGELOG,
   VERSION_1_30_0_CHANGELOG,
