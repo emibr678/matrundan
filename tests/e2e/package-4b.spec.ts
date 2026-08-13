@@ -26,7 +26,7 @@ test("demo-läget samlar lokala inställningar utan livegruppens statuskontrolle
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
   await expect(settings.getByRole("button", { name: /Medlemmar och inbjudningar/ })).toBeVisible();
-  await expect(settings.getByRole("button", { name: /Matställen och rapporter/ })).toBeVisible();
+  await expect(settings.getByRole("button", { name: /Matställen/ })).toBeVisible();
   await settings.getByRole("button", { name: /Gruppstatus/ }).click();
 
   const status = page.getByRole("dialog", { name: "Gruppstatus" });
