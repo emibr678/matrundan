@@ -36,7 +36,7 @@ test("exempelgruppen använder samma brand utan att ersätta gruppemojin", async
 
   const groupMenu = page.getByRole("button", { name: /^Profil och grupp:/ });
   await expect(groupMenu).toBeVisible();
-  await expect(groupMenu).toContainText("🍕");
+  await expect(groupMenu).toContainText("🍝");
   await expectNoHorizontalOverflow(page);
 
   await groupMenu.click();
