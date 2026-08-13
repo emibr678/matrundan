@@ -9,7 +9,8 @@ export type { ChangelogEntry };
 const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
   version: "1.32.0",
   date: "2026-08-13",
-  summary: "Gruppinställningarna är ordnade efter tydliga uppgifter och appinformationen ligger separat.",
+  summary:
+    "Gruppinställningarna är ordnade efter tydliga uppgifter och appinformationen ligger separat.",
   sections: [
     {
       kind: "Förbättrat",
@@ -23,7 +24,10 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [VERSION_1_32_0_CHANGELOG, ...CHANGELOG_THROUGH_1_31];
+export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_32_0_CHANGELOG,
+  ...CHANGELOG_THROUGH_1_31,
+];
 
 const currentRelease = CHANGELOG[0];
 if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");
