@@ -3,6 +3,7 @@ import {
   Archive,
   ChevronDown,
   Home,
+  Info,
   LogIn,
   LogOut,
   Mail,
@@ -11,7 +12,15 @@ import {
   Wrench,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { AboutContent } from "./AboutContent";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,10 +31,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
+import { APP_NAME } from "@/lib/matrundan/version";
 import { toast } from "sonner";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { EmailAuthDialog } from "./EmailAuthDialog";
+
+function AboutDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Om {APP_NAME}</DialogTitle>
+          <DialogDescription>Om appen, aktuell version och tidigare uppdateringar.</DialogDescription>
+        </DialogHeader>
+        <AboutContent />
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function GroupMenuItem({
   group,
@@ -81,6 +105,7 @@ export function AuthMenu({
   } = useSession();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
   const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
@@ -135,9 +160,15 @@ export function AuthMenu({
               <Mail className="mr-2 h-4 w-4" />
               Fortsätt med e-post
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
+              <Info className="mr-2 h-4 w-4" />
+              Om {APP_NAME}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+        <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
       </>
     );
   }
@@ -184,9 +215,15 @@ export function AuthMenu({
               <Mail className="mr-2 h-4 w-4" />
               Logga in med e-post
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
+              <Info className="mr-2 h-4 w-4" />
+              Om {APP_NAME}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+        <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
       </>
     );
   }
@@ -251,6 +288,10 @@ export function AuthMenu({
           <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
             <UserCog className="mr-2 h-4 w-4" />
             Min profil
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
+            <Info className="mr-2 h-4 w-4" />
+            Om {APP_NAME}
           </DropdownMenuItem>
           {hasPlaceMaintenanceAccess ? (
             <DropdownMenuItem onSelect={() => void navigate({ to: "/platsunderhall" })}>
@@ -318,6 +359,7 @@ export function AuthMenu({
         onOpenChange={setProfileOpen}
         onSaved={() => void refreshGroups()}
       />
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
       <CreateGroupDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );
