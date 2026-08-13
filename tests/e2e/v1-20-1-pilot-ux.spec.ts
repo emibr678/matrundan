@@ -255,7 +255,7 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
     /^Gruppen/,
     /^Sökområden/,
     /Medlemmar och inbjudningar/,
-    /Matställen och rapporter/,
+    /Matställen/,
     /Besök och progression/,
     /Gruppstatus/,
   ]) {
