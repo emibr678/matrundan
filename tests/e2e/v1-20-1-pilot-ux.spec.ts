@@ -227,7 +227,7 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
   await expectNoHorizontalOverflow(page, "medlemshanteringen");
 });
 
-test("gruppinställningarna använder en kompakt meny och skyddar osparade ändringar", async ({
+test("gruppinställningarna är uppgiftsindelade och skyddar osparade ändringar", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
@@ -237,17 +237,19 @@ test("gruppinställningarna använder en kompakt meny och skyddar osparade ändr
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const menu = page.getByRole("dialog", { name: "Gruppinställningar" });
   for (const name of [
-    /Grupp och sökning/,
+    /^Gruppen/,
+    /^Sökområden/,
     /Medlemmar och inbjudningar/,
-    /Underhåll av matställen/,
-    /Inställningar och status/,
-    /Om Matrundan/,
+    /^Matställen/,
+    /Besök och progression/,
+    /^Gruppstatus/,
   ]) {
     await expect(menu.getByRole("button", { name })).toBeVisible();
   }
+  await expect(menu.getByRole("button", { name: /Om Matrundan/ })).toHaveCount(0);
 
-  await menu.getByRole("button", { name: /Grupp och sökning/ }).click();
-  const groupSettings = page.getByRole("dialog", { name: "Grupp och sökning" });
+  await menu.getByRole("button", { name: /^Gruppen/ }).click();
+  const groupSettings = page.getByRole("dialog", { name: "Gruppen" });
   await groupSettings.getByLabel("Namn").fill("Ändrat namn");
   await expect(groupSettings.getByText("Osparade ändringar", { exact: true })).toBeVisible();
 
@@ -263,5 +265,24 @@ test("gruppinställningarna använder en kompakt meny och skyddar osparade ändr
   page.once("dialog", (dialog) => dialog.accept());
   await groupSettings.getByRole("button", { name: "Till inställningar" }).click();
   await expect(menu).toBeVisible();
-  await expectNoHorizontalOverflow(page, "navigerade gruppinställningar");
+
+  await menu.getByRole("button", { name: /^Sökområden/ }).click();
+  const searchSettings = page.getByRole("dialog", { name: "Sökområden" });
+  const radius = searchSettings.getByRole("combobox", {
+    name: "Avstånd runt adresser och platser",
+  });
+  await radius.click();
+  await page.getByRole("option", { name: "Inom 2 km", exact: true }).click();
+  await expect(searchSettings.getByText("Osparade ändringar", { exact: true })).toBeVisible();
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await searchSettings.getByRole("button", { name: "Till inställningar" }).click();
+  await expect(menu).toBeVisible();
+  await expectNoHorizontalOverflow(page, "uppgiftsindelade gruppinställningar");
+
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await page.getByRole("button", { name: "Profil och grupp: Testgruppen" }).click();
+  await page.getByRole("menuitem", { name: "Om Matrundan" }).click();
+  await expect(page.getByRole("dialog", { name: "Om Matrundan" })).toBeVisible();
 });

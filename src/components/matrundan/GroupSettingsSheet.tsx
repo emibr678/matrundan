@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ChevronRight,
   Copy,
-  Info,
   LogOut,
   Mail,
   RotateCcw,
@@ -18,8 +17,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { AboutContent } from "@/components/matrundan/AboutContent";
-import { GroupSettingsSectionV16 } from "@/components/matrundan/GroupSettingsSectionV16";
+import { GroupBasicsSettingsSection } from "@/components/matrundan/GroupBasicsSettingsSection";
+import { GroupSearchSettingsSection } from "@/components/matrundan/GroupSearchSettingsSection";
 import { HiddenPlaceSuggestionsSection } from "@/components/matrundan/HiddenPlaceSuggestionsSection";
 import { MemberManagementSection } from "@/components/matrundan/MemberManagementSection";
 import {
@@ -55,40 +54,51 @@ import {
 } from "@/lib/matrundan/live-admin";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
-import { APP_NAME, APP_VERSION } from "@/lib/matrundan/version";
+import { APP_NAME } from "@/lib/matrundan/version";
 
-type SettingsView = "menu" | "group" | "members" | "maintenance" | "status" | "about";
+type SettingsView =
+  | "menu"
+  | "group"
+  | "search"
+  | "members"
+  | "places"
+  | "progression"
+  | "status";
 
 const VIEW_COPY: Record<SettingsView, { title: string; description: string }> = {
   menu: {
     title: "Gruppinställningar",
-    description: "Välj vad du vill hantera.",
+    description: "Välj vad du vill hantera i den här gruppen.",
   },
   group: {
-    title: "Grupp och sökning",
-    description: "Namn, emoji, vanliga sökområden och sökradie.",
+    title: "Gruppen",
+    description: "Namn och symbol för gruppen.",
+  },
+  search: {
+    title: "Sökområden",
+    description: "Områden ni ofta söker i.",
   },
   members: {
     title: "Medlemmar och inbjudningar",
-    description: "Se gruppen och hantera roller eller inbjudningar när du har behörighet.",
+    description: "Se medlemmar och hantera roller eller inbjudningar när du har behörighet.",
   },
-  maintenance: {
-    title: "Underhåll av matställen",
-    description: "Granska dolda sökträffar och rapporterade fel utan att belasta vardagsflödet.",
+  places: {
+    title: "Matställen",
+    description: "Dolda sökträffar för den här gruppen.",
+  },
+  progression: {
+    title: "Besök och progression",
+    description: "Hur gruppens delade besök räknas.",
   },
   status: {
-    title: "Inställningar och status",
-    description: "Progression, gruppstatus och din åtkomst till gruppen.",
-  },
-  about: {
-    title: `Om ${APP_NAME}`,
-    description: "Version, vad som är nytt och tidigare uppdateringar.",
+    title: "Gruppstatus",
+    description: "Lämna, arkivera eller återaktivera gruppen när din roll tillåter det.",
   },
 };
 
 export function GroupSettingsSheet() {
   const { state, resetDemo } = useStore();
-  const { mode, activeGroupId, activeGroupRole, refreshGroups, user } = useSession();
+  const { mode, activeGroupId, activeGroupRole, refreshGroups } = useSession();
   const [open, setOpen] = React.useState(false);
   const [view, setView] = React.useState<SettingsView>("menu");
   const [settingsDirty, setSettingsDirty] = React.useState(false);
@@ -99,19 +109,26 @@ export function GroupSettingsSheet() {
   const isAdmin = isLive && (activeGroupRole === "owner" || activeGroupRole === "admin");
   const canChangeGroupStatus = isLive && ownStoredRole === "ägare";
   const canMaintainPlaces = isAdmin || mode === "demo";
+  const canEditGroupSettings = isAdmin && Boolean(activeGroupId);
+  const canConfigureProgression = isAdmin && Boolean(activeGroupId);
+  const canOpenStatus = isLive || mode === "demo";
+
+  function viewCanBeDirty(current: SettingsView): boolean {
+    return current === "group" || current === "search";
+  }
 
   function canLeaveSettings(): boolean {
     return !settingsDirty || window.confirm("Du har osparade ändringar. Lämna utan att spara?");
   }
 
   function changeView(next: SettingsView) {
-    if (view === "group" && next !== "group" && !canLeaveSettings()) return;
+    if (viewCanBeDirty(view) && next !== view && !canLeaveSettings()) return;
     setSettingsDirty(false);
     setView(next);
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && view === "group" && !canLeaveSettings()) return;
+    if (!nextOpen && viewCanBeDirty(view) && !canLeaveSettings()) return;
     setOpen(nextOpen);
     if (!nextOpen) {
       setView("menu");
@@ -152,17 +169,26 @@ export function GroupSettingsSheet() {
         <div className="space-y-5 py-4">
           {view === "menu" ? (
             <SettingsMenu
-              showGroup={isAdmin && Boolean(activeGroupId)}
-              showMaintenance={canMaintainPlaces}
+              showGroupAndSearch={canEditGroupSettings}
+              showPlaces={canMaintainPlaces}
+              showProgression={canConfigureProgression}
+              showStatus={canOpenStatus}
               onSelect={changeView}
             />
           ) : null}
 
           {view === "group" && isAdmin && activeGroupId ? (
-            <GroupSettingsSectionV16
+            <GroupBasicsSettingsSection
               groupId={activeGroupId}
               initialName={state.group.name}
               initialEmoji={state.group.emoji}
+              onDirtyChange={setSettingsDirty}
+            />
+          ) : null}
+
+          {view === "search" && isAdmin && activeGroupId ? (
+            <GroupSearchSettingsSection
+              groupId={activeGroupId}
               initialSearchAreas={state.group.searchAreas ?? []}
               initialRadius={state.group.defaultSearchRadiusKm ?? 1}
               initialHome={state.group.homeLocation ?? null}
@@ -184,13 +210,14 @@ export function GroupSettingsSheet() {
             </>
           ) : null}
 
-          {view === "maintenance" && canMaintainPlaces ? <HiddenPlaceSuggestionsSection /> : null}
+          {view === "places" && canMaintainPlaces ? <HiddenPlaceSuggestionsSection /> : null}
+
+          {view === "progression" && isAdmin && activeGroupId ? (
+            <ProgressionSettingsSection groupId={activeGroupId} />
+          ) : null}
 
           {view === "status" ? (
             <>
-              {isAdmin && activeGroupId ? (
-                <ProgressionSettingsSection groupId={activeGroupId} />
-              ) : null}
               {isLive && activeGroupId ? (
                 <LeaveGroupSection
                   groupId={activeGroupId}
@@ -220,12 +247,6 @@ export function GroupSettingsSheet() {
               ) : null}
             </>
           ) : null}
-
-          {view === "about" ? <AboutContent /> : null}
-
-          {isLive && user && view === "menu" ? (
-            <div className="text-[11px] text-muted-foreground">Inloggad som {user.email}</div>
-          ) : null}
         </div>
       </SheetContent>
     </Sheet>
@@ -233,50 +254,66 @@ export function GroupSettingsSheet() {
 }
 
 function SettingsMenu({
-  showGroup,
-  showMaintenance,
+  showGroupAndSearch,
+  showPlaces,
+  showProgression,
+  showStatus,
   onSelect,
 }: {
-  showGroup: boolean;
-  showMaintenance: boolean;
+  showGroupAndSearch: boolean;
+  showPlaces: boolean;
+  showProgression: boolean;
+  showStatus: boolean;
   onSelect: (view: SettingsView) => void;
 }) {
   return (
     <Card className="divide-y divide-border/60 rounded-2xl border-border/70 p-0">
-      {showGroup ? (
-        <MenuRow
-          icon={Search}
-          title="Grupp och sökning"
-          description="Namn, emoji och vanliga sökområden"
-          onClick={() => onSelect("group")}
-        />
+      {showGroupAndSearch ? (
+        <>
+          <MenuRow
+            icon={Settings}
+            title="Gruppen"
+            description="Namn och symbol för gruppen"
+            onClick={() => onSelect("group")}
+          />
+          <MenuRow
+            icon={Search}
+            title="Sökområden"
+            description="Områden ni ofta söker i"
+            onClick={() => onSelect("search")}
+          />
+        </>
       ) : null}
       <MenuRow
         icon={Users}
         title="Medlemmar och inbjudningar"
-        description="Profiler, roller och länkar"
+        description="Medlemmar, roller och inbjudningslänkar"
         onClick={() => onSelect("members")}
       />
-      {showMaintenance ? (
+      {showPlaces ? (
         <MenuRow
           icon={Wrench}
-          title="Underhåll av matställen"
-          description="Dolda sökträffar och rapporterade fel"
-          onClick={() => onSelect("maintenance")}
+          title="Matställen"
+          description="Dolda sökträffar att hantera"
+          onClick={() => onSelect("places")}
         />
       ) : null}
-      <MenuRow
-        icon={SlidersHorizontal}
-        title="Inställningar och status"
-        description="Progression, åtkomst och arkivering"
-        onClick={() => onSelect("status")}
-      />
-      <MenuRow
-        icon={Info}
-        title={`Om ${APP_NAME}`}
-        description={`Version ${APP_VERSION} och tidigare uppdateringar`}
-        onClick={() => onSelect("about")}
-      />
+      {showProgression ? (
+        <MenuRow
+          icon={SlidersHorizontal}
+          title="Besök och progression"
+          description="Hur gruppens besök räknas"
+          onClick={() => onSelect("progression")}
+        />
+      ) : null}
+      {showStatus ? (
+        <MenuRow
+          icon={Archive}
+          title="Gruppstatus"
+          description="Lämna, arkivera eller återaktivera gruppen"
+          onClick={() => onSelect("status")}
+        />
+      ) : null}
     </Card>
   );
 }

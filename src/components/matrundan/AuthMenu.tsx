@@ -3,6 +3,7 @@ import {
   Archive,
   ChevronDown,
   Home,
+  Info,
   LogIn,
   LogOut,
   Mail,
@@ -23,6 +24,7 @@ import {
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { toast } from "sonner";
+import { AboutDialog } from "./AboutDialog";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { EmailAuthDialog } from "./EmailAuthDialog";
@@ -83,6 +85,7 @@ export function AuthMenu({
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
   const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
 
   React.useEffect(() => {
@@ -135,9 +138,15 @@ export function AuthMenu({
               <Mail className="mr-2 h-4 w-4" />
               Fortsätt med e-post
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
+              <Info className="mr-2 h-4 w-4" />
+              Om Matrundan
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+        <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
       </>
     );
   }
@@ -184,9 +193,15 @@ export function AuthMenu({
               <Mail className="mr-2 h-4 w-4" />
               Logga in med e-post
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
+              <Info className="mr-2 h-4 w-4" />
+              Om Matrundan
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <EmailAuthDialog open={emailCodeOpen} onOpenChange={setEmailCodeOpen} />
+        <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
       </>
     );
   }
@@ -258,6 +273,10 @@ export function AuthMenu({
               Platsunderhåll
             </DropdownMenuItem>
           ) : null}
+          <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
+            <Info className="mr-2 h-4 w-4" />
+            Om Matrundan
+          </DropdownMenuItem>
           {activeGroups.length > 0 ? (
             <>
               <DropdownMenuSeparator />
@@ -319,6 +338,7 @@ export function AuthMenu({
         onSaved={() => void refreshGroups()}
       />
       <CreateGroupDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </>
   );
 }
