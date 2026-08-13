@@ -14,6 +14,21 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.32.0] – 2026-08-13
+
+### Ändrat
+
+- Gruppinställningarna är uppdelade efter tydliga uppgifter: **Gruppen**,
+  **Sökområden**, **Medlemmar och inbjudningar**, **Matställen**, **Besök och
+  progression** samt **Gruppstatus**.
+- Gruppnamn och symbol sparas separat från sökområden och sökavstånd så en
+  ändring inte behöver skriva om den andra delen.
+- Dolda sökträffar ligger kvar som gruppspecifikt matställeunderhåll. Den gamla
+  informationsrutan om den flyttade rapportkön har tagits bort eftersom
+  handläggningen sker i globala **Platsunderhåll**.
+- **Om Matrundan** och versionshistoriken nås från profil- och gruppmenyn i
+  stället för Gruppinställningar.
+
 ## [1.31.0] – 2026-08-11
 
 ### Ändrat

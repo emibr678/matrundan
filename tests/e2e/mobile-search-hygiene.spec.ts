@@ -212,8 +212,8 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  await settings.getByRole("button", { name: /Underhåll av matställen/, exact: false }).click();
-  const maintenance = page.getByRole("dialog", { name: "Underhåll av matställen" });
+  await settings.getByRole("button", { name: /Matställen/, exact: false }).click();
+  const maintenance = page.getByRole("dialog", { name: "Matställen" });
   const hiddenHeading = maintenance.getByRole("heading", { name: "Dolda sökträffar" });
   const hiddenSection = hiddenHeading.locator("..");
   await expect(hiddenSection.getByText(PLACE_NAME)).toBeVisible();
@@ -232,12 +232,7 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await expectNoHorizontalOverflow(page, "Dold sökträff");
   await hiddenDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
 
-  const reportedErrorsSection = maintenance.getByRole("region", { name: "Rapporterade fel" });
-  await expect(reportedErrorsSection).toBeVisible();
-  await expect(reportedErrorsSection.getByText("Ingen separat gruppkö längre")).toBeVisible();
-  await expect(
-    reportedErrorsSection.getByText(/handläggningen sker centralt i Platsunderhåll/),
-  ).toBeVisible();
+  await expect(maintenance.getByRole("region", { name: "Rapporterade fel" })).toHaveCount(0);
 
   await hiddenSection.getByRole("button", { name: "Återställ", exact: true }).click();
   await expect(hiddenSection.getByText(PLACE_NAME)).toHaveCount(0);
