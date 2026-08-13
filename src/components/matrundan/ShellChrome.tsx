@@ -4,6 +4,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
 import { CreateGroupAuthDialog } from "@/components/matrundan/CreateGroupAuthDialog";
+import { MatrundanBrand } from "@/components/matrundan/MatrundanBrand";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -29,14 +30,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
       : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
   const currentMember = state.members.find((member) => member.id === state.currentUserId);
-  const brand = (
-    <>
-      <span className="shrink-0 text-2xl">🍽️</span>
-      <span className="font-display text-xl font-semibold leading-tight tracking-tight">
-        Matrundan
-      </span>
-    </>
-  );
+  const brand = <MatrundanBrand />;
 
   function resetExample() {
     resetDemo();
@@ -51,7 +45,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
           {exampleMode ? (
             <a
               href="/"
-              className="flex shrink-0 items-center gap-2"
+              className="shrink-0"
               onClick={(event) => {
                 event.preventDefault();
                 exitExampleMode();
@@ -60,7 +54,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
               {brand}
             </a>
           ) : (
-            <Link to={homeTarget} className="flex shrink-0 items-center gap-2">
+            <Link to={homeTarget} className="shrink-0">
               {brand}
             </Link>
           )}

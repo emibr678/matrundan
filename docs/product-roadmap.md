@@ -104,10 +104,11 @@ v1.31.0 via PR #180.
 
 Efter den planerade avstickaren till Paket B återupptogs **Paket A – Grundplatta
 och konsekvens**. **#104 Tydligare informationsarkitektur i
-gruppinställningarna** genomfördes i v1.32.0 via PR #190. Nästa roadmap-issue är
-**#103 Central Matrundan-symbol och konsekvent varumärkesanvändning**. **Paket C
-– Nästa stopp v2** förblir nästa större kärnproduktsteg efter de återstående
-prioriterade delarna av Paket A.
+gruppinställningarna** genomfördes i v1.32.0 via PR #190 och **#103 Central
+Matrundan-symbol och konsekvent varumärkesanvändning** genomfördes i v1.33.0 via
+PR #194. Nästa roadmap-issue är **#105 Utökat emoji- och symbolstöd för grupper
+och matställen**. **Paket C – Nästa stopp v2** förblir nästa större
+kärnproduktsteg efter de återstående prioriterade delarna av Paket A.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -115,8 +116,8 @@ prioriterade delarna av Paket A.
 
 Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
 kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
-Efter #108 gick arbetet till Paket B. Paket B är nu genomfört, #104 är klar och
-Paket A fortsätter med #103.
+Efter #108 gick arbetet till Paket B. Paket B är nu genomfört, #104 och #103 är
+klara och Paket A fortsätter med #105.
 
 Intern ordning när Paket A återupptas:
 
@@ -132,9 +133,10 @@ Intern ordning när Paket A återupptas:
    Organisera gruppytan efter konkreta uppgifter och separera gruppspecifikt
    innehåll från personliga app- och kontoinställningar. Genomförd i v1.32.0 via
    PR #190.
-4. **#103 Central Matrundan-symbol och konsekvent varumärkesanvändning**  
+4. ✅ **#103 Central Matrundan-symbol och konsekvent varumärkesanvändning**  
    Använd en central varumärkeskomponent där symbolen representerar Matrundan,
    men behåll matsymboler där de representerar grupper eller matställen.
+   Genomförd i v1.33.0 via PR #194.
 5. **#105 Utökat emoji- och symbolstöd för grupper och matställen**  
    Utöka kurerade symbolval och stöd ett gruppspecifikt manuellt val.
    Bilduppladdning ingår uttryckligen inte i detta scope.
