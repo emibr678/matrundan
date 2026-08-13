@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_33_0_CHANGELOG: ChangelogEntry = {
+  version: "1.33.0",
+  date: "2026-08-13",
+  summary: "Matrundan har en gemensam appikon och konsekvent varumärkesyta i hela appen.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Matrundans egna varumärkesytor använder samma centrala appikon och ordmärke i landning, exempelgrupp och inloggat läge i stället för en generisk tallriksemoji.",
+        "Om Matrundan återanvänder samma dialog och varumärkesmarkering oavsett var den öppnas.",
+        "Grupp- och matställeemojis behåller sin innehållsbetydelse och påverkas inte av varumärkesändringen.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
   version: "1.32.0",
   date: "2026-08-13",
@@ -22,7 +38,11 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [VERSION_1_32_0_CHANGELOG, ...CHANGELOG_THROUGH_1_31];
+export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_33_0_CHANGELOG,
+  VERSION_1_32_0_CHANGELOG,
+  ...CHANGELOG_THROUGH_1_31,
+];
 
 const currentRelease = CHANGELOG[0];
 if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");
