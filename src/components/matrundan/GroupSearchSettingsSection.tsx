@@ -56,18 +56,94 @@ function areasKey(areas: VerifiedSearchArea[]): string {
   );
 }
 
-export function GroupSearchSettingsSection({
+export function GroupBasicsSettingsSection({
   groupId,
   initialName,
   initialEmoji,
+  onDirtyChange,
+}: {
+  groupId: string;
+  initialName: string;
+  initialEmoji: string;
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
+  const [name, setName] = React.useState(initialName);
+  const [emoji, setEmoji] = React.useState(initialEmoji);
+  const [busy, setBusy] = React.useState(false);
+  const [saved, setSaved] = React.useState(() => ({
+    name: initialName.trim(),
+    emoji: initialEmoji,
+  }));
+  const { refreshGroups } = useSession();
+
+  const dirty = name.trim() !== saved.name || emoji !== saved.emoji;
+
+  React.useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
+
+  async function save() {
+    const normalizedName = name.trim();
+    if (normalizedName.length < 2) {
+      toast.error("Gruppnamnet måste vara minst två tecken.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await updateGroupSettings(groupId, {
+        name: normalizedName,
+        emoji,
+        homeLocation: null,
+      });
+      await refreshGroups();
+      setName(normalizedName);
+      setSaved({ name: normalizedName, emoji });
+      window.dispatchEvent(new CustomEvent("matrundan:reload"));
+      toast.success("Gruppuppgifterna är uppdaterade.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte spara gruppuppgifterna.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="space-y-4 rounded-2xl border-border/70 p-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="gs-name">Namn</Label>
+        <Input id="gs-name" value={name} onChange={(event) => setName(event.target.value)} />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="gs-emoji">Emoji</Label>
+        <Input
+          id="gs-emoji"
+          value={emoji}
+          onChange={(event) => setEmoji(event.target.value)}
+          maxLength={4}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs text-muted-foreground">
+          {dirty ? "Osparade ändringar" : "Alla ändringar är sparade"}
+        </span>
+        <Button onClick={() => void save()} disabled={busy || !dirty} className="min-h-11">
+          {busy ? "Sparar…" : "Spara ändringar"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+export function GroupSearchAreasSettingsSection({
+  groupId,
   initialSearchAreas,
   initialRadius,
   initialHome,
   onDirtyChange,
 }: {
   groupId: string;
-  initialName: string;
-  initialEmoji: string;
   initialSearchAreas: SearchArea[];
   initialRadius: SearchRadiusKm;
   initialHome: HomeLocation | null;
@@ -77,25 +153,17 @@ export function GroupSearchSettingsSection({
     () => toVerifiedAreas(initialSearchAreas),
     [initialSearchAreas],
   );
-  const [name, setName] = React.useState(initialName);
-  const [emoji, setEmoji] = React.useState(initialEmoji);
   const [areas, setAreas] = React.useState<VerifiedSearchArea[]>(initialAreas);
   const [radius, setRadius] = React.useState<SearchRadiusKm>(initialRadius);
   const [locationText, setLocationText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [saved, setSaved] = React.useState(() => ({
-    name: initialName.trim(),
-    emoji: initialEmoji,
     areas: areasKey(initialAreas),
     radius: initialRadius,
   }));
   const { refreshGroups } = useSession();
 
-  const dirty =
-    name.trim() !== saved.name ||
-    emoji !== saved.emoji ||
-    areasKey(areas) !== saved.areas ||
-    radius !== saved.radius;
+  const dirty = areasKey(areas) !== saved.areas || radius !== saved.radius;
 
   React.useEffect(() => {
     onDirtyChange?.(dirty);
@@ -126,160 +194,175 @@ export function GroupSearchSettingsSection({
   }
 
   async function save() {
-    const normalizedName = name.trim();
-    if (normalizedName.length < 2) {
-      toast.error("Gruppnamnet måste vara minst två tecken.");
-      return;
-    }
     setBusy(true);
     try {
-      await updateGroupSettings(groupId, {
-        name: normalizedName,
-        emoji,
-        homeLocation: null,
-      });
       await replaceGroupSearchSettings(groupId, areas, radius);
       await refreshGroups();
-      setName(normalizedName);
-      setSaved({ name: normalizedName, emoji, areas: areasKey(areas), radius });
+      setSaved({ areas: areasKey(areas), radius });
       window.dispatchEvent(new CustomEvent("matrundan:reload"));
-      toast.success("Gruppen är uppdaterad.");
+      toast.success("Sökområdena är uppdaterade.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
+      toast.error(error instanceof Error ? error.message : "Kunde inte spara sökområdena.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <section>
-      <h3 className="mb-2 text-sm font-medium">Grunduppgifter och sökning</h3>
-      <Card className="space-y-4 rounded-2xl border-border/70 p-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="gs-name">Namn</Label>
-          <Input id="gs-name" value={name} onChange={(event) => setName(event.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="gs-emoji">Emoji</Label>
-          <Input
-            id="gs-emoji"
-            value={emoji}
-            onChange={(event) => setEmoji(event.target.value)}
-            maxLength={4}
-          />
-        </div>
-
-        <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/20 p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-medium">Vanliga sökområden</div>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                Alla är valda när sökningen öppnas och kan avmarkeras tillfälligt.
-              </p>
-            </div>
-            <span className="shrink-0 text-[11px] text-muted-foreground">
-              {areas.length} av {MAX_SEARCH_AREAS}
-            </span>
-          </div>
-
-          {areas.length > 0 ? (
-            <div
-              className="flex min-w-0 flex-wrap gap-1.5"
-              role="list"
-              aria-label="Sparade sökområden"
-            >
-              {areas.map((area) => (
-                <SearchAreaPill
-                  key={`${area.provider}:${area.placeId}`}
-                  area={area}
-                  onRemove={() =>
-                    setAreas((current) => current.filter((item) => item.placeId !== area.placeId))
-                  }
-                  removeAriaLabel={`Ta bort ${area.label} från gruppens sökområden`}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-xl border border-dashed p-2.5 text-xs text-muted-foreground">
-              Inga vanliga sökområden ännu. Ni kan fortfarande välja ett område direkt i sökningen.
-            </p>
-          )}
-
-          {boundaryCount > 0 ? (
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {boundaryCount === 1 ? "Ett område söks" : `${boundaryCount} områden söks`} inom sin
-              verifierade geografiska gräns.
-            </p>
-          ) : null}
-
-          {atAreaLimit ? (
-            <p className="text-[11px] text-muted-foreground">
-              Fem områden är valda. Ta bort ett för att lägga till ett annat.
-            </p>
-          ) : (
-            <div className="space-y-1.5">
-              <Label htmlFor="gs-add-area" className="text-xs">
-                Lägg till område
-              </Label>
-              <GeoapifyLocationInput
-                id="gs-add-area"
-                value={locationText}
-                onChange={setLocationText}
-                onSelect={addArea}
-                placeholder="Sök kommun, ort, stadsdel eller adress"
-                disabled={busy}
-                allowBoundaryAreas
-              />
-            </div>
-          )}
-
-          {broadLegacyPoints.length > 0 ? (
-            <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
-              Ett äldre brett val behåller sitt tidigare punktbeteende. Ta bort och välj området
-              igen om ni vill använda dess verifierade geografiska gräns.
-            </p>
-          ) : null}
-          {legacyOnly ? (
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              Gruppen har ett äldre område ({initialHome?.label}). Välj det igen från listan.
-            </p>
-          ) : null}
-
-          <div className="space-y-1">
-            <Label htmlFor="gs-radius" className="text-xs">
-              Avstånd runt adresser och platser
-            </Label>
-            <Select
-              value={String(radius)}
-              onValueChange={(value) => setRadius(Number(value) as SearchRadiusKm)}
-              disabled={busy}
-            >
-              <SelectTrigger id="gs-radius" className="min-h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SEARCH_RADIUS_OPTIONS.map((value) => (
-                  <SelectItem key={value} value={String(value)}>
-                    {value === 50 ? "Större avstånd · inom 50 km" : `Inom ${value} km`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Gäller punktbaserade val som adresser. Boundaryområden söks inom sin egen gräns.
+    <Card className="space-y-4 rounded-2xl border-border/70 p-4">
+      <div className="space-y-2.5 rounded-xl border border-border/60 bg-muted/20 p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium">Vanliga sökområden</div>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+              Alla är valda när sökningen öppnas och kan avmarkeras tillfälligt.
             </p>
           </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-muted-foreground">
-            {dirty ? "Osparade ändringar" : "Alla ändringar är sparade"}
+          <span className="shrink-0 text-[11px] text-muted-foreground">
+            {areas.length} av {MAX_SEARCH_AREAS}
           </span>
-          <Button onClick={() => void save()} disabled={busy || !dirty} className="min-h-11">
-            {busy ? "Sparar…" : "Spara ändringar"}
-          </Button>
         </div>
-      </Card>
-    </section>
+
+        {areas.length > 0 ? (
+          <div
+            className="flex min-w-0 flex-wrap gap-1.5"
+            role="list"
+            aria-label="Sparade sökområden"
+          >
+            {areas.map((area) => (
+              <SearchAreaPill
+                key={`${area.provider}:${area.placeId}`}
+                area={area}
+                onRemove={() =>
+                  setAreas((current) => current.filter((item) => item.placeId !== area.placeId))
+                }
+                removeAriaLabel={`Ta bort ${area.label} från gruppens sökområden`}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-dashed p-2.5 text-xs text-muted-foreground">
+            Inga vanliga sökområden ännu. Ni kan fortfarande välja ett område direkt i sökningen.
+          </p>
+        )}
+
+        {boundaryCount > 0 ? (
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            {boundaryCount === 1 ? "Ett område söks" : `${boundaryCount} områden söks`} inom sin
+            verifierade geografiska gräns.
+          </p>
+        ) : null}
+
+        {atAreaLimit ? (
+          <p className="text-[11px] text-muted-foreground">
+            Fem områden är valda. Ta bort ett för att lägga till ett annat.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            <Label htmlFor="gs-add-area" className="text-xs">
+              Lägg till område
+            </Label>
+            <GeoapifyLocationInput
+              id="gs-add-area"
+              value={locationText}
+              onChange={setLocationText}
+              onSelect={addArea}
+              placeholder="Sök kommun, ort, stadsdel eller adress"
+              disabled={busy}
+              allowBoundaryAreas
+            />
+          </div>
+        )}
+
+        {broadLegacyPoints.length > 0 ? (
+          <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+            Ett äldre brett val behåller sitt tidigare punktbeteende. Ta bort och välj området igen
+            om ni vill använda dess verifierade geografiska gräns.
+          </p>
+        ) : null}
+        {legacyOnly ? (
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            Gruppen har ett äldre område ({initialHome?.label}). Välj det igen från listan.
+          </p>
+        ) : null}
+
+        <div className="space-y-1">
+          <Label htmlFor="gs-radius" className="text-xs">
+            Avstånd runt adresser och platser
+          </Label>
+          <Select
+            value={String(radius)}
+            onValueChange={(value) => setRadius(Number(value) as SearchRadiusKm)}
+            disabled={busy}
+          >
+            <SelectTrigger id="gs-radius" className="min-h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SEARCH_RADIUS_OPTIONS.map((value) => (
+                <SelectItem key={value} value={String(value)}>
+                  {value === 50 ? "Större avstånd · inom 50 km" : `Inom ${value} km`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Gäller punktbaserade val som adresser. Boundaryområden söks inom sin egen gräns.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs text-muted-foreground">
+          {dirty ? "Osparade ändringar" : "Alla ändringar är sparade"}
+        </span>
+        <Button onClick={() => void save()} disabled={busy || !dirty} className="min-h-11">
+          {busy ? "Sparar…" : "Spara ändringar"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+export function GroupSearchSettingsSection({
+  groupId,
+  initialName,
+  initialEmoji,
+  initialSearchAreas,
+  initialRadius,
+  initialHome,
+  onDirtyChange,
+}: {
+  groupId: string;
+  initialName: string;
+  initialEmoji: string;
+  initialSearchAreas: SearchArea[];
+  initialRadius: SearchRadiusKm;
+  initialHome: HomeLocation | null;
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
+  const [basicsDirty, setBasicsDirty] = React.useState(false);
+  const [searchDirty, setSearchDirty] = React.useState(false);
+
+  React.useEffect(() => {
+    onDirtyChange?.(basicsDirty || searchDirty);
+  }, [basicsDirty, onDirtyChange, searchDirty]);
+
+  return (
+    <div className="space-y-5">
+      <GroupBasicsSettingsSection
+        groupId={groupId}
+        initialName={initialName}
+        initialEmoji={initialEmoji}
+        onDirtyChange={setBasicsDirty}
+      />
+      <GroupSearchAreasSettingsSection
+        groupId={groupId}
+        initialSearchAreas={initialSearchAreas}
+        initialRadius={initialRadius}
+        initialHome={initialHome}
+        onDirtyChange={setSearchDirty}
+      />
+    </div>
   );
 }
