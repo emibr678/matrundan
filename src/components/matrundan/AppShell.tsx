@@ -2,6 +2,7 @@ import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router"
 import * as React from "react";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
 import { LandingScreen } from "@/components/matrundan/LandingScreen";
+import { MatrundanBrand } from "@/components/matrundan/MatrundanBrand";
 import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { ShellChrome } from "@/components/matrundan/ShellChrome";
 import { Button } from "@/components/ui/button";
@@ -183,9 +184,8 @@ function ShellBody() {
 function Header({ showAuth }: { showAuth: boolean }) {
   return (
     <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 pt-6 pb-3 md:pt-8">
-      <Link to="/" className="flex items-center gap-2">
-        <span className="text-2xl">🍽️</span>
-        <span className="font-display text-xl font-semibold tracking-tight">Matrundan</span>
+      <Link to="/" className="shrink-0">
+        <MatrundanBrand />
       </Link>
       {showAuth ? <AuthMenu /> : null}
     </header>
