@@ -12,8 +12,9 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Förbättrat",
       items: [
-        "Gruppinställningarna är uppdelade i Gruppen, Sökområden, Medlemmar och inbjudningar, Matställen och rapporter, Besök och progression samt Gruppstatus.",
+        "Gruppinställningarna är uppdelade i Gruppen, Sökområden, Medlemmar och inbjudningar, Matställen, Besök och progression samt Gruppstatus.",
         "Gruppnamn och symbol sparas separat från sökområden och sökavstånd, så en ändring inte behöver skriva om den andra delen.",
+        "Dolda sökträffar ligger kvar som gruppspecifikt matställeunderhåll, medan den tidigare informationen om en gruppspecifik rapportkö har tagits bort eftersom handläggningen sker globalt i Platsunderhåll.",
         "Sällan använda och destruktiva gruppåtgärder ligger samlade sist under Gruppstatus utan att ändra befintliga roller eller behörigheter.",
         "Om Matrundan med aktuell version och versionshistorik ligger i profil- och inloggningsmenyn i stället för bland gruppens inställningar.",
       ],
