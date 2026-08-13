@@ -102,11 +102,12 @@ platskandidater och tillagda matställen** genomfördes i v1.27.0.
 geografiska boundaries och visualisera sökområden på kartan**, genomfördes i
 v1.31.0 via PR #180.
 
-Efter den planerade avstickaren till Paket B återupptas **Paket A – Grundplatta
-och konsekvens**. Nästa roadmap-issue är **#104 Tydligare
-informationsarkitektur i gruppinställningarna**. **Paket C – Nästa stopp v2**
-förblir nästa större kärnproduktsteg efter de återstående prioriterade delarna av
-Paket A.
+Efter den planerade avstickaren till Paket B återupptogs **Paket A – Grundplatta
+och konsekvens**. **#104 Tydligare informationsarkitektur i
+gruppinställningarna** genomfördes i v1.32.0 via PR #190. Nästa roadmap-issue är
+**#103 Central Matrundan-symbol och konsekvent varumärkesanvändning**. **Paket C
+– Nästa stopp v2** förblir nästa större kärnproduktsteg efter de återstående
+prioriterade delarna av Paket A.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -114,8 +115,8 @@ Paket A.
 
 Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
 kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
-Efter #108 gick arbetet till Paket B. Paket B är nu genomfört och Paket A
-återupptas med #104.
+Efter #108 gick arbetet till Paket B. Paket B är nu genomfört, #104 är klar och
+Paket A fortsätter med #103.
 
 Intern ordning när Paket A återupptas:
 
@@ -127,9 +128,10 @@ Intern ordning när Paket A återupptas:
    matställen**  
    Återanvänd platsidentitet och visuell hierarki utan att göra sökresultat och
    detaljvy innehållsmässigt identiska. Genomförd i v1.27.0 via #151.
-3. **#104 Tydligare informationsarkitektur i gruppinställningarna**  
+3. ✅ **#104 Tydligare informationsarkitektur i gruppinställningarna**  
    Organisera gruppytan efter konkreta uppgifter och separera gruppspecifikt
-   innehåll från personliga app- och kontoinställningar.
+   innehåll från personliga app- och kontoinställningar. Genomförd i v1.32.0 via
+   PR #190.
 4. **#103 Central Matrundan-symbol och konsekvent varumärkesanvändning**  
    Använd en central varumärkeskomponent där symbolen representerar Matrundan,
    men behåll matsymboler där de representerar grupper eller matställen.
