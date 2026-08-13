@@ -212,8 +212,8 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
-  await settings.getByRole("button", { name: /Underhåll av matställen/, exact: false }).click();
-  const maintenance = page.getByRole("dialog", { name: "Underhåll av matställen" });
+  await settings.getByRole("button", { name: /Matställen och rapporter/, exact: false }).click();
+  const maintenance = page.getByRole("dialog", { name: "Matställen och rapporter" });
   const hiddenHeading = maintenance.getByRole("heading", { name: "Dolda sökträffar" });
   const hiddenSection = hiddenHeading.locator("..");
   await expect(hiddenSection.getByText(PLACE_NAME)).toBeVisible();
