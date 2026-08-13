@@ -1,5 +1,6 @@
 import * as React from "react";
 import { AboutContent } from "@/components/matrundan/AboutContent";
+import { MatrundanBrand } from "@/components/matrundan/MatrundanBrand";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +26,7 @@ export function AboutDialog({
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-secondary text-2xl">
-              🍽️
-            </div>
+            <MatrundanBrand variant="mark" size="lg" />
             <div className="min-w-0 flex-1">
               <DialogTitle className="font-display text-2xl">Om {APP_NAME}</DialogTitle>
               <DialogDescription>
