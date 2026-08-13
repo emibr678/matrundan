@@ -30,26 +30,25 @@ async function expectTransparentBrandMark(
   expect(styles.loaded).toBe(true);
 }
 
-
 test("landningen använder central brand och gemensam Om-dialog", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
 
-  await expectTransparentVectorMark(page.locator("header"), "lockup");
+  await expectTransparentBrandMark(page.locator("header"), "lockup");
   await expect(page.getByRole("link", { name: "Matrundan" }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole("button", { name: "Om Matrundan" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "Om Matrundan" })).toBeVisible();
-  await expectTransparentVectorMark(dialog, "mark");
+  await expectTransparentBrandMark(dialog, "mark");
 });
 
 test("exempelgruppen använder samma brand utan att ersätta gruppemojin", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
 
-  await expectTransparentVectorMark(page.locator("header"), "lockup");
+  await expectTransparentBrandMark(page.locator("header"), "lockup");
 
   const groupMenu = page.getByRole("button", { name: /^Profil och grupp:/ });
   await expect(groupMenu).toBeVisible();
