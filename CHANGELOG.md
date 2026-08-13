@@ -18,11 +18,13 @@ Inga ändringar ännu.
 
 ### Ändrat
 
-- Matrundans egna varumärkesytor använder samma centrala appikon och ordmärke i
-  landning, exempelgrupp och inloggat läge i stället för en generisk
+- Matrundans egna varumärkesytor använder samma transparenta markering och
+  ordmärke i landning, exempelgrupp och inloggat läge i stället för en generisk
   tallriksemoji.
 - **Om Matrundan** återanvänder samma dialog och varumärkesmarkering oavsett var
   den öppnas.
+- Installeringsikoner för PWA och favicon ligger kvar separat och används inte
+  som inline-märke i appens gränssnitt.
 - Grupp- och matställeemojis behåller sin innehållsbetydelse och påverkas inte av
   varumärkesändringen.
 
