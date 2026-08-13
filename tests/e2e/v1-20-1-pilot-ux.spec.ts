@@ -278,7 +278,10 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   await expect(basics).toBeVisible();
 
   await basics.getByRole("button", { name: "Spara ändringar" }).click();
-  await expect.poll(() => mutations.map(({ rpc }) => rpc)).toEqual(["update_group_settings"]);
+  await expect(
+    page.getByText("Gruppuppgifterna är uppdaterade.", { exact: true }),
+  ).toBeVisible();
+  expect(mutations.map(({ rpc }) => rpc)).toEqual(["update_group_settings"]);
   expect(mutations[0]?.payload._name).toBe("Ändrat namn");
   await basics.getByRole("button", { name: "Till inställningar" }).click();
 
@@ -299,7 +302,8 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   await expect(search).toBeVisible();
 
   await search.getByRole("button", { name: "Spara ändringar" }).click();
-  await expect.poll(() => mutations.map(({ rpc }) => rpc)).toEqual([
+  await expect(page.getByText("Sökområdena är uppdaterade.", { exact: true })).toBeVisible();
+  expect(mutations.map(({ rpc }) => rpc)).toEqual([
     "update_group_settings",
     "replace_group_search_settings",
   ]);
