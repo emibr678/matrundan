@@ -112,6 +112,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git branch -D visual-assets-pr190 2>/dev/null || true
           git checkout --orphan visual-assets-pr190
           git rm -rf .
           mkdir -p visual-review
