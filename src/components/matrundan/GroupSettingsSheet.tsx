@@ -85,8 +85,8 @@ const VIEW_COPY: Record<SettingsView, { title: string; description: string }> = 
     description: "Se gruppen och hantera roller eller inbjudningar när du har behörighet.",
   },
   maintenance: {
-    title: "Matställen och rapporter",
-    description: "Dolda träffar och platsuppgifter att hantera.",
+    title: "Matställen",
+    description: "Dolda sökträffar som gäller den här gruppen.",
   },
   progression: {
     title: "Besök och progression",
@@ -295,8 +295,8 @@ function SettingsMenu({
       {showMaintenance ? (
         <MenuRow
           icon={Wrench}
-          title="Matställen och rapporter"
-          description="Dolda träffar och platsuppgifter att hantera"
+          title="Matställen"
+          description="Dolda sökträffar för gruppen"
           onClick={() => onSelect("maintenance")}
         />
       ) : null}
