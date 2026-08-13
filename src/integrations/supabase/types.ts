@@ -422,6 +422,8 @@ export type Database = {
           lng: number
           provider: string
           provider_place_id: string
+          result_type: string | null
+          search_mode: string
           sort_order: number
           updated_at: string
         }
@@ -434,6 +436,8 @@ export type Database = {
           lng: number
           provider: string
           provider_place_id: string
+          result_type?: string | null
+          search_mode?: string
           sort_order?: number
           updated_at?: string
         }
@@ -446,6 +450,8 @@ export type Database = {
           lng?: number
           provider?: string
           provider_place_id?: string
+          result_type?: string | null
+          search_mode?: string
           sort_order?: number
           updated_at?: string
         }
@@ -1858,6 +1864,10 @@ export type Database = {
         Args: { _group_id: string; _user_id: string; _visit_id: string }
         Returns: boolean
       }
+      can_manage_own_visit_photo: {
+        Args: { _group_id: string; _visit_id: string }
+        Returns: boolean
+      }
       can_manage_visit_photo: {
         Args: { _group_id: string; _user_id: string; _visit_id: string }
         Returns: boolean
@@ -2143,6 +2153,11 @@ export type Database = {
       get_group_app_state_v5f: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5g: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5h: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5h_boundary_base: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      get_group_app_state_v5i: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json

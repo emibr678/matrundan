@@ -7,32 +7,49 @@ async function expectNoHorizontalOverflow(page: import("@playwright/test").Page)
   expect(hasOverflow).toBe(false);
 }
 
+async function expectTransparentVectorMark(
+  scope: import("@playwright/test").Locator,
+  variant: "lockup" | "mark",
+) {
+  const brand = scope.locator(`[data-matrundan-brand='${variant}']`).first();
+  await expect(brand).toBeVisible();
+
+  const mark = brand.locator("svg[data-matrundan-brand-mark='vector']").first();
+  await expect(mark).toHaveCount(1);
+  await expect(brand.locator("img")).toHaveCount(0);
+
+  const styles = await mark.evaluate((node) => {
+    const computed = window.getComputedStyle(node);
+    return {
+      fill: computed.fill,
+      background: computed.backgroundColor,
+      stroke: computed.stroke,
+    };
+  });
+  expect(styles.fill).toBe("none");
+  expect(styles.background).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+  expect(styles.stroke).not.toBe("none");
+}
+
 test("landningen använder central brand och gemensam Om-dialog", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
 
-  const headerBrand = page.locator("header [data-matrundan-brand='lockup']").first();
-  await expect(headerBrand).toBeVisible();
-  await expect(headerBrand.locator("img")).toHaveAttribute("src", "/icons/matrundan-192.png");
+  await expectTransparentVectorMark(page.locator("header"), "lockup");
   await expect(page.getByRole("link", { name: "Matrundan" }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole("button", { name: "Om Matrundan" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "Om Matrundan" })).toBeVisible();
-  await expect(dialog.locator("[data-matrundan-brand='mark'] img")).toHaveAttribute(
-    "src",
-    "/icons/matrundan-192.png",
-  );
+  await expectTransparentVectorMark(dialog, "mark");
 });
 
 test("exempelgruppen använder samma brand utan att ersätta gruppemojin", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
 
-  const headerBrand = page.locator("header [data-matrundan-brand='lockup']").first();
-  await expect(headerBrand).toBeVisible();
-  await expect(headerBrand.locator("img")).toHaveAttribute("src", "/icons/matrundan-192.png");
+  await expectTransparentVectorMark(page.locator("header"), "lockup");
 
   const groupMenu = page.getByRole("button", { name: /^Profil och grupp:/ });
   await expect(groupMenu).toBeVisible();
