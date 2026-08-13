@@ -1,7 +1,4 @@
-import {
-  CHANGELOG as CHANGELOG_THROUGH_1_31,
-  type ChangelogEntry,
-} from "./version-through-1-31";
+import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./version-through-1-31";
 
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
@@ -24,10 +21,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
   ],
 };
 
-export const CHANGELOG: ChangelogEntry[] = [
-  VERSION_1_32_0_CHANGELOG,
-  ...CHANGELOG_THROUGH_1_31,
-];
+export const CHANGELOG: ChangelogEntry[] = [VERSION_1_32_0_CHANGELOG, ...CHANGELOG_THROUGH_1_31];
 
 const currentRelease = CHANGELOG[0];
 if (!currentRelease) throw new Error("Matrundans versionshistorik är tom.");
