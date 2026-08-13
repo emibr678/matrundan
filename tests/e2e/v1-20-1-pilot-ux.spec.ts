@@ -2,6 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 const SUPABASE_AUTH_STORAGE_KEY = "sb-bkyzxkfrenbbkgiymofk-auth-token";
 
+type RecordedMutation = {
+  rpc: string;
+  payload: Record<string, unknown>;
+};
+
 async function expectNoHorizontalOverflow(page: Page, context: string) {
   const metrics = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -19,6 +24,7 @@ async function installOwnerSession(page: Page) {
   const now = new Date().toISOString();
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60;
   let memberRole: "medlem" | "admin" = "medlem";
+  const mutations: RecordedMutation[] = [];
 
   await page.addInitScript(
     ({ storageKey, session }) => {
@@ -61,7 +67,7 @@ async function installOwnerSession(page: Page) {
   );
 
   await page.route("**/rest/v1/rpc/**", async (route) => {
-    const rpc = new URL(route.request().url()).pathname.split("/").pop();
+    const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
 
     if (rpc === "list_user_groups_v4b") {
       await route.fulfill({
@@ -140,8 +146,19 @@ async function installOwnerSession(page: Page) {
       return;
     }
 
+    if (rpc === "update_group_settings" || rpc === "replace_group_search_settings") {
+      mutations.push({
+        rpc,
+        payload: route.request().postDataJSON() as Record<string, unknown>,
+      });
+      await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+      return;
+    }
+
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
+
+  return { mutations };
 }
 
 test("exempelgruppen använder konsekvent ort och erbjuder båda inloggningssätten", async ({
@@ -227,41 +244,67 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
   await expectNoHorizontalOverflow(page, "medlemshanteringen");
 });
 
-test("gruppinställningarna använder en kompakt meny och skyddar osparade ändringar", async ({
+test("gruppinställningarna är uppgiftsbaserade och sparar grupp respektive sökområden separat", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await installOwnerSession(page);
+  const { mutations } = await installOwnerSession(page);
   await page.goto("/gruppen");
 
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const menu = page.getByRole("dialog", { name: "Gruppinställningar" });
   for (const name of [
-    /Grupp och sökning/,
+    /^Gruppen/,
+    /^Sökområden/,
     /Medlemmar och inbjudningar/,
-    /Underhåll av matställen/,
-    /Inställningar och status/,
-    /Om Matrundan/,
+    /Matställen och rapporter/,
+    /Besök och progression/,
+    /Gruppstatus/,
   ]) {
     await expect(menu.getByRole("button", { name })).toBeVisible();
   }
+  await expect(menu.getByRole("button", { name: /Om Matrundan/ })).toHaveCount(0);
 
-  await menu.getByRole("button", { name: /Grupp och sökning/ }).click();
-  const groupSettings = page.getByRole("dialog", { name: "Grupp och sökning" });
-  await groupSettings.getByLabel("Namn").fill("Ändrat namn");
-  await expect(groupSettings.getByText("Osparade ändringar", { exact: true })).toBeVisible();
+  await menu.getByRole("button", { name: /^Gruppen/ }).click();
+  const basics = page.getByRole("dialog", { name: "Gruppen" });
+  await basics.getByLabel("Namn").fill("Ändrat namn");
+  await expect(basics.getByText("Osparade ändringar", { exact: true })).toBeVisible();
 
   let warning = "";
   page.once("dialog", async (dialog) => {
     warning = dialog.message();
     await dialog.dismiss();
   });
-  await groupSettings.getByRole("button", { name: "Till inställningar" }).click();
+  await basics.getByRole("button", { name: "Till inställningar" }).click();
   expect(warning).toContain("osparade ändringar");
-  await expect(groupSettings).toBeVisible();
+  await expect(basics).toBeVisible();
 
-  page.once("dialog", (dialog) => dialog.accept());
-  await groupSettings.getByRole("button", { name: "Till inställningar" }).click();
-  await expect(menu).toBeVisible();
+  await basics.getByRole("button", { name: "Spara ändringar" }).click();
+  await expect.poll(() => mutations.map(({ rpc }) => rpc)).toEqual(["update_group_settings"]);
+  expect(mutations[0]?.payload._name).toBe("Ändrat namn");
+  await basics.getByRole("button", { name: "Till inställningar" }).click();
+
+  await menu.getByRole("button", { name: /^Sökområden/ }).click();
+  const search = page.getByRole("dialog", { name: "Sökområden" });
+  const radius = search.getByLabel("Avstånd runt adresser och platser");
+  await radius.click();
+  await page.getByRole("option", { name: "Inom 2 km" }).click();
+  await expect(search.getByText("Osparade ändringar", { exact: true })).toBeVisible();
+
+  warning = "";
+  page.once("dialog", async (dialog) => {
+    warning = dialog.message();
+    await dialog.dismiss();
+  });
+  await search.getByRole("button", { name: "Till inställningar" }).click();
+  expect(warning).toContain("osparade ändringar");
+  await expect(search).toBeVisible();
+
+  await search.getByRole("button", { name: "Spara ändringar" }).click();
+  await expect.poll(() => mutations.map(({ rpc }) => rpc)).toEqual([
+    "update_group_settings",
+    "replace_group_search_settings",
+  ]);
+  expect(mutations[1]?.payload._default_radius_km).toBe(2);
   await expectNoHorizontalOverflow(page, "navigerade gruppinställningar");
 });
