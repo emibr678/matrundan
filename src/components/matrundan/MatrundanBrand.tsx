@@ -1,3 +1,4 @@
+import { Utensils } from "lucide-react";
 import { APP_NAME } from "@/lib/matrundan/version";
 
 type BrandVariant = "lockup" | "mark";
@@ -24,13 +25,11 @@ export function MatrundanBrand({
 }) {
   return (
     <span data-matrundan-brand={variant} className="inline-flex min-w-0 items-center gap-2">
-      <img
-        src="/icons/matrundan-192.png"
-        alt=""
-        width={192}
-        height={192}
-        draggable={false}
-        className={`shrink-0 object-contain ${markSize[size]}`}
+      <Utensils
+        aria-hidden="true"
+        data-matrundan-brand-mark="vector"
+        strokeWidth={1.75}
+        className={`shrink-0 text-primary ${markSize[size]}`}
       />
       {variant === "lockup" ? (
         <span
