@@ -22,7 +22,7 @@ jobs:
 
       - name: Create small contact sheet
         if: runner.os == 'Windows'
-        shell: powershell
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -File {0}
         run: |
           Add-Type -AssemblyName System.Drawing
           $source = Join-Path $PWD 'visual-review/contact-sheet.jpg'
