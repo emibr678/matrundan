@@ -1,126 +1,326 @@
 # Produktroadmap och backlog
 
-Det här dokumentet är den kanoniska översikten över Matrundans beslutade produktinriktning, prioriterade paket och aktiva feature-issues. GitHub Issues bär detaljerat scope; aktuell kod, databas och arkitektur visar vad som faktiskt är implementerat.
+Det här dokumentet är den kanoniska översikten över Matrundans beslutade
+produktinriktning, prioriterade paket och aktiva feature-issues.
+
+Roadmapen ska göra det möjligt att fortsätta arbetet i en ny chatt eller
+arbetsmiljö utan att tidigare produktdiskussioner behöver återberättas.
+GitHub Issues innehåller det detaljerade scopet för varje funktion. Aktuell kod,
+databas och arkitekturdokumentation är fortfarande källan till sanningen för hur
+produkten faktiskt är implementerad.
 
 ## Produktprincip
 
-Matrundan är en privat, gruppcentrerad app för vänner och familjer som vill upptäcka, välja, besöka och minnas matställen tillsammans. Roadmapen prioriterar därför gruppens kärnloop: samla ställen → bestäm nästa stopp → registrera faktiska deltagare och besök → bygg ett gemensamt privat minne → använd historiken till nästa upplevelse.
+Matrundan är en privat, gruppcentrerad app för vänner och familjer som vill
+upptäcka, välja, besöka och minnas matställen tillsammans.
 
-Sökning, kartor, statistik, rekommendationer, personalisering och gamification är stöd. De får inte göra Matrundan till en offentlig restaurangkatalog, individuell matdagbok, social feed eller global ranking.
+En roadmapfunktion ska i första hand hjälpa gruppen att:
+
+1. hitta och samla intressanta matställen;
+2. bestämma nästa gemensamma stopp;
+3. dokumentera verkliga besök och faktiska deltagare;
+4. förstå och fortsätta sin gemensamma mathistorik.
+
+Sökning, kartor, statistik, rekommendationer, personalisering och gamification är
+stöd för den gemensamma matresan. De får inte göra Matrundan till en offentlig
+restaurangkatalog, individuell matdagbok, social feed eller global ranking.
+
+## Källor och ansvar
+
+- **Det här dokumentet** beskriver paket, prioritering och varaktiga
+  produktbeslut.
+- **GitHub Issues** beskriver användarbehov, överenskommet scope, icke-mål,
+  öppna beslut, integritet, exempeldata och verifiering för en konkret funktion.
+- **`docs/architecture.md`** beskriver varaktiga arkitektur- och
+  säkerhetsbeslut.
+- **`docs/development-workflow.md`** beskriver planering, godkännande,
+  implementation, verifiering, merge och publicering.
+- **Kod och migrationer på `main`** visar vad som faktiskt är implementerat.
+
+En chatt är aldrig den enda källan till ett produktbeslut. När en diskussion är
+klar ska slutsatserna föras in i relevant issue och vid behov i roadmapen.
 
 ## Backlogflöde
 
-- `status:inbox` – ny idé.
-- `status:agreed` – produktinriktning och huvudscope är överenskomna.
-- `status:ready` – aktuell plan finns och implementationen är uttryckligen godkänd.
-- `status:blocked` – ett beskrivet hinder stoppar arbetet.
-- `priority:now` – närmast prioriterade arbete.
-- `priority:next` – nästa större produktsteg.
-- `priority:later` – överenskommen riktning som väntar.
+### Statusetiketter
 
-En implementerande PR refererar eller stänger sitt issue. Merge, databasdriftsättning och publicering är separata steg. En chatt får aldrig vara enda källan till ett varaktigt produktbeslut.
+- `status:inbox` – ny idé som ännu inte har produktbedömts.
+- `status:agreed` – produktinriktning och huvudscope är överenskomna.
+- `status:ready` – aktuell implementationsplan finns och implementationen är
+  uttryckligen godkänd.
+- `status:blocked` – arbetet kan inte fortsätta innan ett beskrivet hinder är
+  löst.
+
+En PR visar normalt att arbetet pågår. När en PR mergas kan dess issue stängas.
+Merge innebär inte att databas, Lovable-preview eller publik app är driftsatt.
+Ett stängt issue är den kanoniska signalen för att arbetet är genomfört; en
+separat `status:done`-etikett behövs därför inte.
+
+### Prioritetsetiketter
+
+- `priority:now` – grundplatta eller närmast prioriterade arbete.
+- `priority:next` – nästa större produktsteg när pågående paket är klart.
+- `priority:later` – överenskommen riktning som väntar på tidigare beroenden.
+
+### Typetiketter
+
+- `type:feature`
+- `type:bug`
+- `type:maintenance`
+
+### Från idé till release
+
+1. Registrera idén som ett issue med `status:inbox`.
+2. Produktbedöm idén mot den gemensamma matresan.
+3. Dokumentera överenskommet scope och icke-mål i issuen och sätt
+   `status:agreed`.
+4. Inspektera aktuell kod, databas och dokumentation när funktionen närmar sig
+   implementation.
+5. Lägg en konkret implementationsplan i issuen.
+6. Invänta uttryckligt implementationsgodkännande och sätt därefter
+   `status:ready`.
+7. Implementera i en avgränsad branch och PR som refererar eller stänger
+   issuen.
+8. Verifiera och merge enligt utvecklingsflödet.
+9. Bekräfta efter merge att rätt issue stängdes och ta bort `status:ready` om
+   etiketten ligger kvar.
+10. Driftsätt databas och publicera endast efter separat uttryckligt
+    godkännande.
+
+Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
+chatt. De får omprövas när aktuell kod, nya fakta eller ett tydligt
+produktproblem visar att beslutet behöver ändras.
 
 ## Aktuellt arbete
 
-**Paket B – Sök och geografi** är genomfört; sista steget #149 genomfördes i v1.31.0 via PR #180.
+Driftgrinderna **#142 Nygenererad öppen inbjudningslänk behandlas som redan
+använd** och **#137 Återställ produktionsvakter för sökområden och besöksfoton**
+har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
+platskandidater och tillagda matställen** genomfördes i v1.27.0.
 
-**Paket A – Grundplatta och konsekvens** har nått tillräcklig grundnivå för att gå vidare i kärnprodukten. **#104 Tydligare informationsarkitektur i gruppinställningarna** genomfördes i v1.32.0 via PR #190 och **#103 Central Matrundan-symbol och konsekvent varumärkesanvändning** i v1.33.0 via PR #194. #105 och #135 ligger kvar som senare symbolpolish.
+**Paket B – Sök och geografi** är genomfört. Det sista steget, **#149 Stöd
+geografiska boundaries och visualisera sökområden på kartan**, genomfördes i
+v1.31.0 via PR #180.
 
-Närmaste ordning är:
+Efter den planerade avstickaren till Paket B återupptogs **Paket A – Grundplatta
+och konsekvens**. **#104 Tydligare informationsarkitektur i
+gruppinställningarna** genomfördes i v1.32.0 via PR #190 och **#103 Central
+Matrundan-symbol och konsekvent varumärkesanvändning** genomfördes i v1.33.0 via
+PR #194. Paket A har därmed nått tillräcklig grundnivå för att nästa
+kärnproduktproblem ska prioriteras före återstående symbolpolish i #105 och
+#135.
 
-1. **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** – litet maintenance-steg så driftpreflighten åter blir tillförlitlig.
-2. **#169 Bekräfta deltagande och komplettera gemensamma besök** – första avgränsade leveransen med eget omdöme för identifierade deltagare, självkorrigering av deltagande och korrekt kanonisk deltagarsanning.
-3. **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning** – nästa större planeringssteg i kärnloopen.
-4. **#101 Privata kommentarer och reaktioner på besök** – privat socialt lager kring gruppens verkliga besöksminnen.
-5. Fortsatt #169 för känsligare cross-group-identitetsfall och därefter **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**.
+Närmaste ordning är **#189 Uppdatera guest-privacy-preflight efter
+v5h-wrappern** som ett litet maintenance-steg, därefter den första avgränsade
+leveransen av **#169 Bekräfta deltagande och komplettera gemensamma besök**.
+Efter den leveransen följer **#106 Nästa stopp v2: alternativ för plats och tid
+utan överskrivning**, sedan **#101 Privata kommentarer och reaktioner på besök**.
+De känsligare cross-group-delarna av #169 och **#179 Dela besöksfoto uttryckligen
+tillsammans med delat besök** kommer därefter.
 
 ## Paket A – Grundplatta och konsekvens
 
 **Prioritet:** `priority:later` för återstående delar
 
-- ✅ **#107 Levande exempelgrupp med scenariokontrakt** – v1.26.3 via PR #138.
-- ✅ **#108 Gemensamt visuellt språk för platskandidater och tillagda matställen** – v1.27.0 via PR #151.
-- ✅ **#104 Tydligare informationsarkitektur i gruppinställningarna** – v1.32.0 via PR #190.
-- ✅ **#103 Central Matrundan-symbol och konsekvent varumärkesanvändning** – v1.33.0 via PR #194.
-- **#105 Utökat emoji- och symbolstöd för grupper och matställen** – kurerade symbolval och gruppspecifikt manuellt val; ingen bilduppladdning.
-- **#135 Härled representativa matställessymboler från kök och inriktning** – automatisk fallback från normaliserad inriktning, kök och kategori; ligger i inbox tills scope blir aktuellt igen.
+Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
+kommande funktioner. Efter #108 gick arbetet till Paket B. Paket B är nu
+genomfört och #104 samt #103 är klara. #105 och #135 ligger kvar som värdefull
+visuell polish men blockerar inte nästa kärnproduktsteg.
+
+Intern ordning när Paket A återupptas:
+
+1. ✅ **#107 Levande exempelgrupp med scenariokontrakt**  
+   Gör exempelgruppen till en liten, representativ och löpande underhållen
+   produktfixture. Genomförd i v1.26.3 via #138. Nya större funktioner ska
+   bedöma behovet av nya exempeldata och regressionsscenarier.
+2. ✅ **#108 Gemensamt visuellt språk för platskandidater och tillagda
+   matställen**  
+   Återanvänd platsidentitet och visuell hierarki utan att göra sökresultat och
+   detaljvy innehållsmässigt identiska. Genomförd i v1.27.0 via #151.
+3. ✅ **#104 Tydligare informationsarkitektur i gruppinställningarna**  
+   Organisera gruppytan efter konkreta uppgifter och separera gruppspecifikt
+   innehåll från personliga app- och kontoinställningar. Genomförd i v1.32.0 via
+   PR #190.
+4. ✅ **#103 Central Matrundan-symbol och konsekvent varumärkesanvändning**  
+   Använd en central varumärkeskomponent där symbolen representerar Matrundan,
+   men behåll matsymboler där de representerar grupper eller matställen.
+   Genomförd i v1.33.0 via PR #194.
+5. **#105 Utökat emoji- och symbolstöd för grupper och matställen**  
+   Utöka kurerade symbolval och stöd ett gruppspecifikt manuellt val.
+   Bilduppladdning ingår uttryckligen inte i detta scope.
+6. **#135 Härled representativa matställessymboler från kök och inriktning**  
+   Ge ställen en stabil automatisk symbol från normaliserad inriktning, kök och
+   kategori när ingen uttrycklig symbol finns. Manuellt gruppval ska ha
+   företräde och breda eller motstridiga utbud ska få en neutral fallback.
+
+## Paket C – Nästa stopp v2
+
+**Prioritet:** `priority:next`, efter första avgränsade leveransen av #169
+
+- **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
+
+Det här är nästa större planeringssteg efter att gruppens genomförda besök kan
+kompletteras korrekt av faktiska deltagare. Gruppen ska kunna föreslå alternativa
+matställen och flera tider utan att ett nytt förslag skriver över det som redan
+diskuteras. Frågorna **vart** och **när** hålls separata, medan ett aktuellt nästa
+stopp förblir tydligt.
+
+Det övergripande issuen får delas i mindre underissues efter en aktuell
+arkitektur- och implementationsplan. En stor plats × datum-matris och automatisk
+majoritetsvinnare är uttryckliga icke-mål.
+
+## Paket D – Personlig inspiration
+
+**Prioritet:** `priority:later`, efter Paket C
+
+Rekommenderad ordning:
+
+1. **#109 Personlig yta med Min matresa och Mina favoriter**  
+   Börja med en tydlig personlig yta och Mina favoriter. Lägg därefter till
+   deduplicerad privat statistik över användarens faktiska deltagande i flera
+   grupper. Gruppspecifika profiler, progression och privat innehåll förblir
+   isolerade.
+2. **#102 Genererade personliga avatarer**  
+   Lägg till enkel lokal eller integritetssäker avatargenerering med seed och
+   möjlighet att slumpa om. Ingen avancerad avatarbyggare eller uppladdning av
+   egna profilbilder ingår.
+
+Personliga funktioner får inte skapa offentlig profil, global ranking eller en
+individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
 **Prioritet:** `priority:now` för första delen av #169
 
-Paketet stärker steget efter ett verkligt besök: vilka var faktiskt med, vad tyckte var och en och hur blir händelsen ett gemensamt privat minne.
+Rekommenderad ordning:
 
-### #169 Bekräfta deltagande och komplettera gemensamma besök
+1. **#169 Bekräfta deltagande och komplettera gemensamma besök – första
+   leveransen**  
+   Låt redan identifierade faktiska deltagare komplettera samma kanoniska besök
+   med eget omdöme och självkorrigera **Jag var inte med** / **Jag var med**.
+   Progression, statistik och aktivt deltagaromdöme ska följa den korrigerade
+   deltagarsanningen. Registreraren ska inte få ett aktivt deltagaromdöme om hen
+   själv inte var deltagare. Samma identifierade deltagande återanvänds över
+   gruppkontexter där användaren legitimt kan se samma besök.
+2. **#101 Privata kommentarer och reaktioner på besök**  
+   Efter #106: lägg privat gruppdiskussion och enkla reaktioner på gruppens
+   besökslänk. Funktionen är `priority:next` och får inte ge progression eller
+   exponera en annan grupps diskussion när besöket delas.
+3. **#169 – fortsatta cross-group-identitetsfall**  
+   Gäst→medlem-koppling kräver uttryckligt val och den utpekade personens
+   bekräftelse. Namn är presentation, aldrig identitet; ingen fuzzy
+   personmatchning eller cross-group-personkatalog får uppstå.
+4. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**  
+   Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
+   en viss målgrupp. Fotoåtkomsten ska vara serverstyrd per målgrupp och får inte
+   exponera ursprungsgrupp eller ge mottagargruppen rätt att ändra originalfotot.
 
-Första prioriterade leveransen:
-
-- identifierad faktisk deltagare kan lägga sitt eget omdöme på samma kanoniska besök;
-- deltagaren kan välja **Jag var inte med** och senare återställa **Jag var med**;
-- progression, statistik och aktivt deltagaromdöme följer korrigerad deltagarsanning;
-- samma identifierade deltagande återanvänds när samma kanoniska besök visas i flera grupper där användaren redan är medlem;
-- registreraren får inte ett aktivt deltagaromdöme om hen själv inte var deltagare;
-- dubblettskydd är konservativt och får bara använda besök som aktuell användare legitimt får känna till.
-
-Gäst→medlem-koppling över gruppgräns, mottagarens bekräftelse och mer avancerad deduplicering kommer senare. Namn är presentation, aldrig identitet.
-
-### #101 Privata kommentarer och reaktioner på besök
-
-**Prioritet:** `priority:next`, efter #106
-
-Kommentarer och enkla reaktioner hör till **gruppens besökslänk**, inte till det kanoniska besöket globalt. Delade besök får aldrig föra med ursprungsgruppens diskussion. Ingen progression, offentlig feed eller globala likes.
-
-### #179 Dela besöksfoto uttryckligen tillsammans med delat besök
-
-**Prioritet:** `priority:later`
-
-Fotoåtkomst ska vara uttrycklig och serverstyrd per målgrupp. Mottagargruppen får inte ursprungsgruppens identitet eller rätt att ändra originalfotot. Arbetet görs efter att #169:s besöks- och deltagarsemanik är stabil.
-
-## Paket C – Nästa stopp v2
-
-**Prioritet:** `priority:next`, efter första leveransen av #169
-
-- **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
-
-Gruppen ska kunna föreslå alternativa matställen och flera tider utan att ett nytt förslag skriver över det som redan diskuteras. Frågorna **vart** och **när** hålls separata. Stor plats × datum-matris och automatisk majoritetsvinnare är icke-mål.
-
-## Paket D – Personlig inspiration
-
-**Prioritet:** `priority:later`
-
-1. **#109 Personlig yta med Min matresa och Mina favoriter**.
-2. **#102 Genererade personliga avatarer**.
-
-Personliga funktioner får inte skapa offentlig profil, global ranking eller en individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
+Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
+gruppens gemensamma minne. #169 gäller sann deltagaridentitet och strukturerade
+personliga omdömen på samma besök, #179 gäller uttrycklig och behörighetsstyrd
+fotodelning och #101 gäller privat gruppdiskussion kring besöket. Ingen av
+funktionerna får skapa global feed, offentlig social graf, offentliga likes eller
+progression för social aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
 **Prioritet:** `priority:later`
 
-1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela besök** – återanvänd samma kanoniska `place_id`; privata gruppuppgifter och besök följer inte med.
-2. **#158 Stöd platsalias och säker sammanföring av kanoniska matställesdubletter** – konservativa alias/dubblettkandidater och explicit administrativ merge; ingen fuzzy automatisk massmerge.
+Rekommenderad ordning:
+
+1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
+   besök**  
+   Gör återanvändning av samma kanoniska `place_id` explicit från en redan känd
+   plats. Endast målgruppens `group_places`-relation skapas eller återaktiveras;
+   besök, anteckningar, favoriter och annan privat gruppdata följer inte med.
+2. **#158 Stöd platsalias och säker sammanföring av kanoniska
+   matställesdubletter**  
+   Lägg senare till konservativa alias och dubblettkandidater samt en explicit,
+   administrativt granskad och transaktionell merge för bekräftade historiska
+   dubbletter. Ingen fuzzy automatisk massmerge ingår.
+
+Paket F bygger vidare på den serverprincip som etablerats i #156 och ska stärka
+kanonisk identitet utan att skapa en publik katalog eller exponera vilka andra
+grupper som använder samma plats.
 
 ## Parallellt maintenance- och kvalitetsspår
 
-Maintenance konkurrerar inte automatiskt med produktroadmapen. Små tillitskritiska korrigeringar får göras mellan produktsteg; större DX-arbete prioriteras när det ger konkret utvecklingsnytta.
+Maintenance konkurrerar inte automatiskt med produktroadmapen. Små blockerande
+eller tillitskritiska korrigeringar får göras mellan produktsteg; större DX- och
+refaktoriseringsarbete prioriteras först när det ger konkret utvecklingsnytta.
 
-- **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** ligger närmast.
-- **#127 DX2B**, **#128 DX2C**, **#129 DX2D1** och **#130 DX2D2** ligger kvar som underhållsskuld.
-- **#143 Utred föräldralöst objekt i besöksfoto-bucketen** är separat driftfynd; ingen destruktiv åtgärd utan uttryckligt godkännande.
-- **#133 Samla rättning och komplettering av platsuppgifter i ett begripligt flöde** är den bredare framtida platsdatafrågan. **#132 Gör saknad säker gatuadress handlingsbar i kontrollflödet** behandlas som en lägre prioriterad delmängd tills #133 planeras.
+- **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** ligger närmast
+  eftersom en känd falskt röd kontroll minskar tilliten till driftverifieringen.
+- **#127 DX2B: Konsolidera Playwright-fixtures och minska sköra layouttester**,
+  **#128 DX2C: Inför ändringsfragment och separat release-PR**, **#129 DX2D1:
+  Automatisera branchstädning och förbättra repohygien** och **#130 DX2D2:
+  Åtgärda deprecated API:er, döda beroenden och byggvarningar** ligger kvar som
+  underhållsskuld och ska tas evidensbaserat.
+- **#143 Utred föräldralöst objekt i besöksfoto-bucketen** är ett separat
+  driftfynd; ingen destruktiv åtgärd får göras utan uttryckligt godkännande.
+- **#133 Samla rättning och komplettering av platsuppgifter i ett begripligt
+  flöde** är den bredare framtida produktfrågan för platsdatakorrigering.
+  **#132 Gör saknad säker gatuadress handlingsbar i kontrollflödet** behandlas
+  som en lägre prioriterad delmängd tills #133 planeras.
 
 ## Genomförda paket
 
-- ✅ **Paket B – Sök och geografi** – #147, #148, #156, #155, #163 och #149; v1.27.1–v1.31.0, sista steget via PR #180.
+När ett pakets sista issue är mergat flyttas paketet från den aktiva delen hit
+som en kort historisk post med paketnamn, datum eller version och länk till de
+stängda issues som bär detaljerna.
+
+Roadmapen ska inte återge full implementation eller releasehistorik. Den finns i
+stängda issues, mergade PR:er, `CHANGELOG.md` och vid behov
+`docs/architecture.md`.
+
+- ✅ **Paket B – Sök och geografi**  
+  Genomfört genom #147, #148, #156, #155, #163 och #149. Paketet löpte från
+  v1.27.1 till v1.31.0; sista steget #149 mergades via PR #180.
 
 ## Exempelgruppen som permanent kontrakt
 
-Varje större feature-issue och PR ska bedöma om exempelgruppen eller scenariokontraktet behöver uppdateras. Ett nej ska motiveras när ändringen påverkar ett användarflöde.
+Exempelgruppen ska hållas aktuell med produktens bredd utan att växa till
+produktionslik volym. Varje större feature-issue och PR ska besvara:
+
+> Behöver exempelgruppen eller dess scenariokontrakt uppdateras för att visa och
+> verifiera den här funktionen?
+
+Ett nej ska motiveras när ändringen påverkar ett användarflöde men exempeldata
+inte uppdateras.
 
 ## Löpande prioritering
 
-När nästa arbete väljs bedöms produktvärde för den gemensamma matresan, problemets vikt, beroenden/integritetsrisk, paketplacering och roadmapbehov. Ett paket flyttas inte automatiskt till `priority:now`; ändrad prioritering ska synkas mellan roadmap och issues.
+Nya idéer läggs först i inboxen. De ska inte automatiskt bredda ett pågående
+paket. När nästa arbete väljs bedöms:
+
+1. om idén stärker den gemensamma matresan;
+2. om den löser ett viktigare problem än nuvarande prioritering;
+3. vilka beroenden och integritetsrisker som finns;
+4. om den hör till ett befintligt paket eller ett nytt framtida paket;
+5. om roadmapen behöver uppdateras.
+
+När ett paket avslutas ska nästa paket inte automatiskt flyttas till
+`priority:now` utan en kort produktbedömning. Om prioriteringen ändras ska både
+roadmapen och berörda öppna issues uppdateras i samma PR eller i en omedelbart
+följande docs-only PR.
+
+GitHub Projects införs först om issues, labels och roadmapen inte längre ger en
+tydlig överblick, exempelvis vid många parallella utvecklare eller ett betydligt
+större antal aktiva backlogposter.
 
 ## När roadmapen uppdateras
 
-Uppdatera dokumentet när paket/prioritet eller ett varaktigt produktbeslut ändras, ett övergripande issue delas upp/ersätts eller en större funktion/paket markeras genomfört. Uppdatera inte för varje commit, liten buggrättning eller ren implementationdetalj.
+Uppdatera dokumentet när:
+
+- ett paket eller en prioritering ändras;
+- ett varaktigt produktbeslut tillkommer eller tas bort;
+- ett övergripande feature-issue delas upp eller ersätts;
+- en funktion är genomförd och ska markeras som klar inom ett pågående paket;
+- ett pakets sista issue är genomfört och paketet flyttas till historik.
+
+Roadmapen ska normalt **inte** uppdateras för:
+
+- varje commit eller patchversion;
+- små buggrättningar som inte ändrar produktens riktning;
+- tekniska implementationdetaljer som redan hör hemma i kod, PR eller
+  arkitekturdokumentation.
