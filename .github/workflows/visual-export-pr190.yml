@@ -1,0 +1,62 @@
+name: Visual export PR190
+
+on:
+  push:
+    branches:
+      - agent/visual-export-pr190
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  export:
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: 2aae52dcb02549eba0955d209694fc9e340116af
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium
+        run: bunx playwright install chromium
+
+      - name: Build and capture targeted screenshots
+        run: |
+          bun run build
+          bunx playwright test tests/visual-review/group-settings.spec.ts --config=playwright.visual.config.ts
+
+      - name: Publish screenshots to isolated temporary branch
+        run: |
+          export_dir="$RUNNER_TEMP/pr190-visual-export"
+          rm -rf "$export_dir"
+          mkdir -p "$export_dir"
+          cp -R visual-review/. "$export_dir/"
+          printf '%s\n' 'source_sha=2aae52dcb02549eba0955d209694fc9e340116af' > "$export_dir/SOURCE.txt"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan visual-assets-pr190
+          git rm -rf .
+          mkdir -p visual-review
+          cp -R "$export_dir"/. visual-review/
+          git add visual-review
+          git commit -m "Temporary visual assets for PR #190"
+          git push --force origin HEAD:refs/heads/agent/visual-assets-pr190
