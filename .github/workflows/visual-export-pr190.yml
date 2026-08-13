@@ -43,6 +43,65 @@ jobs:
           bun run build
           bunx playwright test tests/visual-review/group-settings.spec.ts --config=playwright.visual.config.ts
 
+      - name: Build visual contact sheet
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const { chromium } = require('@playwright/test');
+
+          (async () => {
+            const root = path.resolve('visual-review');
+            const files = [
+              ['Mobile — meny', 'mobile-360/gruppinstallningar-meny.png'],
+              ['Mobile — sökområden', 'mobile-360/gruppinstallningar-sokomraden.png'],
+              ['Mobile — gruppen', 'mobile-360/gruppinstallningar-gruppen.png'],
+              ['Desktop — meny', 'desktop-1280/gruppinstallningar-meny.png'],
+              ['Desktop — sökområden', 'desktop-1280/gruppinstallningar-sokomraden.png'],
+              ['Desktop — gruppen', 'desktop-1280/gruppinstallningar-gruppen.png'],
+            ];
+            const cells = files.map(([label, rel]) => {
+              const uri = 'file:///' + path.join(root, rel).replace(/\\/g, '/');
+              return `<figure><figcaption>${label}</figcaption><img src="${uri}"></figure>`;
+            }).join('');
+            const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+              body{margin:0;background:#ddd;font-family:Arial,sans-serif}
+              main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}
+              figure{margin:0;background:white;padding:8px}
+              figcaption{font:700 16px Arial;margin-bottom:6px}
+              img{display:block;width:100%;height:auto;max-height:800px;object-fit:contain;object-position:top}
+            </style></head><body><main>${cells}</main></body></html>`;
+            fs.writeFileSync(path.join(root, 'contact-sheet.html'), html);
+            const browser = await chromium.launch();
+            const page = await browser.newPage({ viewport: { width: 1000, height: 800 } });
+            await page.goto('file:///' + path.join(root, 'contact-sheet.html').replace(/\\/g, '/'));
+            await page.screenshot({
+              path: path.join(root, 'contact-sheet.jpg'),
+              fullPage: true,
+              type: 'jpeg',
+              quality: 28,
+            });
+            await browser.close();
+
+            const b64 = fs.readFileSync(path.join(root, 'contact-sheet.jpg')).toString('base64');
+            const out = path.join(root, 'contact-sheet-b64');
+            fs.mkdirSync(out, { recursive: true });
+            const chunkSize = 8000;
+            let parts = 0;
+            for (let i = 0; i < b64.length; i += chunkSize) {
+              fs.writeFileSync(
+                path.join(out, `part-${String(parts).padStart(3, '0')}.txt`),
+                b64.slice(i, i + chunkSize),
+              );
+              parts += 1;
+            }
+            fs.writeFileSync(path.join(out, 'manifest.txt'), `length=${b64.length}\nparts=${parts}\n`);
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
       - name: Publish screenshots to isolated temporary branch
         run: |
           export_dir="$RUNNER_TEMP/pr190-visual-export"
