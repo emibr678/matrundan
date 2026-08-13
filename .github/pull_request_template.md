@@ -136,6 +136,14 @@ redo-kandidat och kan köras på hosted eller self-hosted runner.
 - [ ] Fokuserade tester
 - [ ] Mobil Chromium när UI har ändrats
 - [ ] WebKit/iPhone och desktop Chromium när kartan har ändrats
+- [ ] **Roadmapgrind:** bedöm om merge färdigställer en roadmapfunktion, ändrar
+      paketstatus eller påverkar nästa prioritet. Uppdatera i så fall
+      `docs/product-roadmap.md`; annars dokumentera uttryckligen att roadmapen
+      inte påverkas.
+
+Roadmapbedömning: uppdaterad / inte relevant
+
+Motivering:
 
 Utförda kommandon och resultat:
 
