@@ -7,29 +7,29 @@ async function expectNoHorizontalOverflow(page: import("@playwright/test").Page)
   expect(hasOverflow).toBe(false);
 }
 
-async function expectTransparentVectorMark(
+async function expectTransparentBrandMark(
   scope: import("@playwright/test").Locator,
   variant: "lockup" | "mark",
 ) {
   const brand = scope.locator(`[data-matrundan-brand='${variant}']`).first();
   await expect(brand).toBeVisible();
 
-  const mark = brand.locator("svg[data-matrundan-brand-mark='vector']").first();
+  const mark = brand.locator("img[data-matrundan-brand-mark='image']").first();
   await expect(mark).toHaveCount(1);
-  await expect(brand.locator("img")).toHaveCount(0);
+  await expect(mark).toHaveAttribute("src", "/brand/matrundan-mark.png");
+  await expect(brand.locator("svg.lucide-utensils")).toHaveCount(0);
 
   const styles = await mark.evaluate((node) => {
     const computed = window.getComputedStyle(node);
     return {
-      fill: computed.fill,
       background: computed.backgroundColor,
-      stroke: computed.stroke,
+      loaded: (node as HTMLImageElement).naturalWidth > 0,
     };
   });
-  expect(styles.fill).toBe("none");
   expect(styles.background).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
-  expect(styles.stroke).not.toBe("none");
+  expect(styles.loaded).toBe(true);
 }
+
 
 test("landningen använder central brand och gemensam Om-dialog", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
