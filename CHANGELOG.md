@@ -16,17 +16,18 @@ Inga ändringar ännu.
 
 ## [1.32.0] – 2026-08-13
 
-### Förbättrat
+### Ändrat
 
-- Gruppinställningarna är uppdelade i tydliga uppgifter för gruppen,
-  sökområden, medlemmar och inbjudningar, matställen och rapporter, besök och
-  progression samt gruppstatus.
-- Gruppnamn och symbol sparas separat från sökområden och sökavstånd, så en
+- Gruppinställningarna är uppdelade efter tydliga uppgifter: **Gruppen**,
+  **Sökområden**, **Medlemmar och inbjudningar**, **Matställen**, **Besök och
+  progression** samt **Gruppstatus**.
+- Gruppnamn och symbol sparas separat från sökområden och sökavstånd så en
   ändring inte behöver skriva om den andra delen.
-- Gruppens livscykelåtgärder ligger sist under Gruppstatus med samma roller och
-  behörigheter som tidigare.
-- **Om Matrundan**, aktuell version och versionshistorik ligger i profil- och
-  inloggningsmenyn i stället för bland gruppens inställningar.
+- Dolda sökträffar ligger kvar som gruppspecifikt matställeunderhåll. Den gamla
+  informationsrutan om den flyttade rapportkön har tagits bort eftersom
+  handläggningen sker i globala **Platsunderhåll**.
+- **Om Matrundan** och versionshistoriken nås från profil- och gruppmenyn i
+  stället för Gruppinställningar.
 
 ## [1.31.0] – 2026-08-11
 
