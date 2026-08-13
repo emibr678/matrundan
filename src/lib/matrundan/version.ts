@@ -6,13 +6,14 @@ export type { ChangelogEntry };
 const VERSION_1_33_0_CHANGELOG: ChangelogEntry = {
   version: "1.33.0",
   date: "2026-08-13",
-  summary: "Matrundan har en gemensam appikon och konsekvent varumärkesyta i hela appen.",
+  summary: "Matrundan har en gemensam varumärkesmarkering och konsekvent identitet i hela appen.",
   sections: [
     {
       kind: "Förbättrat",
       items: [
-        "Matrundans egna varumärkesytor använder samma centrala appikon och ordmärke i landning, exempelgrupp och inloggat läge i stället för en generisk tallriksemoji.",
+        "Matrundans egna varumärkesytor använder samma transparenta markering och ordmärke i landning, exempelgrupp och inloggat läge i stället för en generisk tallriksemoji.",
         "Om Matrundan återanvänder samma dialog och varumärkesmarkering oavsett var den öppnas.",
+        "Installeringsikoner för PWA och favicon ligger kvar separat och används inte som inline-märke i appens gränssnitt.",
         "Grupp- och matställeemojis behåller sin innehållsbetydelse och påverkas inte av varumärkesändringen.",
       ],
     },
