@@ -14,6 +14,20 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.32.0] – 2026-08-13
+
+### Förbättrat
+
+- Gruppinställningarna är uppdelade i tydliga uppgifter för gruppen,
+  sökområden, medlemmar och inbjudningar, matställen och rapporter, besök och
+  progression samt gruppstatus.
+- Gruppnamn och symbol sparas separat från sökområden och sökavstånd, så en
+  ändring inte behöver skriva om den andra delen.
+- Gruppens livscykelåtgärder ligger sist under Gruppstatus med samma roller och
+  behörigheter som tidigare.
+- **Om Matrundan**, aktuell version och versionshistorik ligger i profil- och
+  inloggningsmenyn i stället för bland gruppens inställningar.
+
 ## [1.31.0] – 2026-08-11
 
 ### Ändrat
