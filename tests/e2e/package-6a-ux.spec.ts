@@ -82,8 +82,8 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expectNoHorizontalOverflow(page, "Besöksdetalj från Aktivitet");
 
   await page.goto("/gruppen?demo=1");
-  await page.getByRole("button", { name: "Gruppinställningar" }).click();
-  await page.getByRole("button", { name: /Om Matrundan/ }).click();
+  await page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }).click();
+  await page.getByRole("menuitem", { name: "Om Matrundan" }).click();
   await expect(page.getByRole("heading", { name: "Om Matrundan" })).toBeVisible();
   await expect(
     page.getByText(/Matrundan hjälper vänner och familjer att samla matställen/),
