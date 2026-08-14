@@ -43,9 +43,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Format changed files and print exact patch
-        env:
-          MATRUNDAN_BASE_SHA: ${{ github.event.before }}
         run: |
+          export MATRUNDAN_BASE_SHA="$(git merge-base origin/main HEAD)"
+          echo "Formatting against $MATRUNDAN_BASE_SHA"
           bun run format:changed
           echo '--- BEGIN FORMAT PATCH ---'
           git diff -- src/components/matrundan/VisitDetailSheet.tsx src/components/matrundan/VisitParticipationControls.tsx src/lib/matrundan/example-data.ts src/lib/matrundan/visit-participation-db-contract.test.ts src/lib/matrundan/visit-participation-example-contract.test.ts
