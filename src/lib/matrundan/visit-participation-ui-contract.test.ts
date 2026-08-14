@@ -5,6 +5,7 @@ const reviewDialog = await Bun.file("src/components/matrundan/AddVisitReviewDial
 const participationControls = await Bun.file(
   "src/components/matrundan/VisitParticipationControls.tsx",
 ).text();
+const visitDetail = await Bun.file("src/components/matrundan/VisitDetailSheet.tsx").text();
 const liveMutations = await Bun.file("src/lib/matrundan/live-mutations.ts").text();
 
 describe("UX-kontrakt för gemensamma besök", () => {
@@ -30,5 +31,10 @@ describe("UX-kontrakt för gemensamma besök", () => {
     expect(participationControls).toContain("Jag var med");
     expect(participationControls).toContain("progression");
     expect(participationControls).toContain("kan återställa");
+  });
+
+  test("besök utan deltagaromdöme visas som obesvarat i stället för nollbetyg", () => {
+    expect(visitDetail).toContain("visit.overall > 0");
+    expect(visitDetail).toContain("Inget omdöme ännu");
   });
 });
