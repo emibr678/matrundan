@@ -115,11 +115,7 @@ export function VisitParticipationControls({
             disabled={!writable || saving}
             onClick={() => void updateParticipation(true)}
           >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Undo2 className="h-4 w-4" />
-            )}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
             Jag var med
           </Button>
         </Card>
@@ -130,9 +126,9 @@ export function VisitParticipationControls({
           <AlertDialogHeader>
             <AlertDialogTitle>Var du inte med på besöket?</AlertDialogTitle>
             <AlertDialogDescription>
-              Då tas du bort som deltagare på samma verkliga besök i alla grupper där det visas.
-              Din progression räknas om och ditt eventuella omdöme döljs. Du kan återställa
-              deltagandet senare om detta var ett misstag.
+              Då tas du bort som deltagare på samma verkliga besök i alla grupper där det visas. Din
+              progression räknas om och ditt eventuella omdöme döljs. Du kan återställa deltagandet
+              senare om detta var ett misstag.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
