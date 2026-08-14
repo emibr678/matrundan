@@ -106,18 +106,26 @@ Efter den planerade avstickaren till Paket B återupptogs **Paket A – Grundpla
 och konsekvens**. **#104 Tydligare informationsarkitektur i
 gruppinställningarna** genomfördes i v1.32.0 via PR #190 och **#103 Central
 Matrundan-symbol och konsekvent varumärkesanvändning** genomfördes i v1.33.0 via
-PR #194. Nästa roadmap-issue är **#105 Utökat emoji- och symbolstöd för grupper
-och matställen**. **Paket C – Nästa stopp v2** förblir nästa större
-kärnproduktsteg efter de återstående prioriterade delarna av Paket A.
+PR #194. Paket A har därmed nått tillräcklig grundnivå för att nästa
+kärnproduktproblem ska prioriteras före återstående symbolpolish i #105 och
+#135.
+
+Närmaste ordning är **#189 Uppdatera guest-privacy-preflight efter
+v5h-wrappern** som ett litet maintenance-steg, därefter den första avgränsade
+leveransen av **#169 Bekräfta deltagande och komplettera gemensamma besök**.
+Efter den leveransen följer **#106 Nästa stopp v2: alternativ för plats och tid
+utan överskrivning**, sedan **#101 Privata kommentarer och reaktioner på besök**.
+De känsligare cross-group-delarna av #169 och **#179 Dela besöksfoto uttryckligen
+tillsammans med delat besök** kommer därefter.
 
 ## Paket A – Grundplatta och konsekvens
 
-**Prioritet:** `priority:now`
+**Prioritet:** `priority:later` för återstående delar
 
 Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
-kommande funktioner. Varje issue genomförs normalt i en egen branch och PR.
-Efter #108 gick arbetet till Paket B. Paket B är nu genomfört, #104 och #103 är
-klara och Paket A fortsätter med #105.
+kommande funktioner. Efter #108 gick arbetet till Paket B. Paket B är nu
+genomfört och #104 samt #103 är klara. #105 och #135 ligger kvar som värdefull
+visuell polish men blockerar inte nästa kärnproduktsteg.
 
 Intern ordning när Paket A återupptas:
 
@@ -147,14 +155,15 @@ Intern ordning när Paket A återupptas:
 
 ## Paket C – Nästa stopp v2
 
-**Prioritet:** `priority:next`, efter återstående prioriterade delar av Paket A
+**Prioritet:** `priority:next`, efter första avgränsade leveransen av #169
 
 - **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
 
-Det här är nästa större kärnproduktsteg efter grundplattan. Gruppen ska kunna
-föreslå alternativa matställen och flera tider utan att ett nytt förslag skriver
-över det som redan diskuteras. Frågorna **vart** och **när** hålls separata,
-medan ett aktuellt nästa stopp förblir tydligt.
+Det här är nästa större planeringssteg efter att gruppens genomförda besök kan
+kompletteras korrekt av faktiska deltagare. Gruppen ska kunna föreslå alternativa
+matställen och flera tider utan att ett nytt förslag skriver över det som redan
+diskuteras. Frågorna **vart** och **när** hålls separata, medan ett aktuellt nästa
+stopp förblir tydligt.
 
 Det övergripande issuen får delas i mindre underissues efter en aktuell
 arkitektur- och implementationsplan. En stor plats × datum-matris och automatisk
@@ -181,24 +190,30 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
-**Prioritet:** `priority:later`
+**Prioritet:** `priority:now` för första delen av #169
 
-Rekommenderad ordning fastställs när paketet prioriteras. Tre separata behov är
-redan överenskomna:
+Rekommenderad ordning:
 
-- **#169 Bekräfta deltagande och komplettera gemensamma besök**  
-  Låt faktiska deltagare självkorrigera felaktig deltagarstatus och komplettera
-  samma kanoniska besök med eget omdöme. Vid delning får en fri gäst endast
-  kopplas till en medlem i målgruppen genom ett uttryckligt val följt av den
-  utpekade personens bekräftelse. Namn är presentation, aldrig identitet; ingen
-  fuzzy personmatchning, besöksdublett eller cross-group exponering får uppstå.
-- **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**  
-  Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
-  en viss målgrupp när samma kanoniska besök delas. Fotoåtkomsten ska vara
-  serverstyrd per målgrupp och får inte exponera ursprungsgrupp eller ge
-  mottagargruppen rätt att ändra originalfotot.
-- **#101 Privata kommentarer och reaktioner på besök**  
-  Lägg privat gruppdiskussion och enkla reaktioner på gruppens besökslänk.
+1. **#169 Bekräfta deltagande och komplettera gemensamma besök – första
+   leveransen**  
+   Låt redan identifierade faktiska deltagare komplettera samma kanoniska besök
+   med eget omdöme och självkorrigera **Jag var inte med** / **Jag var med**.
+   Progression, statistik och aktivt deltagaromdöme ska följa den korrigerade
+   deltagarsanningen. Registreraren ska inte få ett aktivt deltagaromdöme om hen
+   själv inte var deltagare. Samma identifierade deltagande återanvänds över
+   gruppkontexter där användaren legitimt kan se samma besök.
+2. **#101 Privata kommentarer och reaktioner på besök**  
+   Efter #106: lägg privat gruppdiskussion och enkla reaktioner på gruppens
+   besökslänk. Funktionen är `priority:next` och får inte ge progression eller
+   exponera en annan grupps diskussion när besöket delas.
+3. **#169 – fortsatta cross-group-identitetsfall**  
+   Gäst→medlem-koppling kräver uttryckligt val och den utpekade personens
+   bekräftelse. Namn är presentation, aldrig identitet; ingen fuzzy
+   personmatchning eller cross-group-personkatalog får uppstå.
+4. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**  
+   Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
+   en viss målgrupp. Fotoåtkomsten ska vara serverstyrd per målgrupp och får inte
+   exponera ursprungsgrupp eller ge mottagargruppen rätt att ändra originalfotot.
 
 Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
 gruppens gemensamma minne. #169 gäller sann deltagaridentitet och strukturerade
@@ -227,6 +242,26 @@ Rekommenderad ordning:
 Paket F bygger vidare på den serverprincip som etablerats i #156 och ska stärka
 kanonisk identitet utan att skapa en publik katalog eller exponera vilka andra
 grupper som använder samma plats.
+
+## Parallellt maintenance- och kvalitetsspår
+
+Maintenance konkurrerar inte automatiskt med produktroadmapen. Små blockerande
+eller tillitskritiska korrigeringar får göras mellan produktsteg; större DX- och
+refaktoriseringsarbete prioriteras först när det ger konkret utvecklingsnytta.
+
+- **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** ligger närmast
+  eftersom en känd falskt röd kontroll minskar tilliten till driftverifieringen.
+- **#127 DX2B: Konsolidera Playwright-fixtures och minska sköra layouttester**,
+  **#128 DX2C: Inför ändringsfragment och separat release-PR**, **#129 DX2D1:
+  Automatisera branchstädning och förbättra repohygien** och **#130 DX2D2:
+  Åtgärda deprecated API:er, döda beroenden och byggvarningar** ligger kvar som
+  underhållsskuld och ska tas evidensbaserat.
+- **#143 Utred föräldralöst objekt i besöksfoto-bucketen** är ett separat
+  driftfynd; ingen destruktiv åtgärd får göras utan uttryckligt godkännande.
+- **#133 Samla rättning och komplettering av platsuppgifter i ett begripligt
+  flöde** är den bredare framtida produktfrågan för platsdatakorrigering.
+  **#132 Gör saknad säker gatuadress handlingsbar i kontrollflödet** behandlas
+  som en lägre prioriterad delmängd tills #133 planeras.
 
 ## Genomförda paket
 
