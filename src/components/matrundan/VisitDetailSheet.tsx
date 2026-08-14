@@ -221,10 +221,14 @@ export function VisitDetailSheet({
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <RatingStars value={visit.overall} size={18} />
-                    <span className="text-sm font-medium">{formatRating(visit.overall)} / 5</span>
-                  </div>
+                  {visit.overall > 0 ? (
+                    <div className="mt-3 flex items-center justify-between">
+                      <RatingStars value={visit.overall} size={18} />
+                      <span className="text-sm font-medium">{formatRating(visit.overall)} / 5</span>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground">Inget omdöme ännu</p>
+                  )}
                 </Card>
 
                 <section>
