@@ -72,7 +72,9 @@ export function saveOwnDemoReviewForVisit(
     visits: state.visits.map((item) => {
       if (item.id !== visitId) return item;
       const reviews = [
-        ...(item.visibleReviews ?? []).filter((candidate) => candidate.userId !== state.currentUserId),
+        ...(item.visibleReviews ?? []).filter(
+          (candidate) => candidate.userId !== state.currentUserId,
+        ),
         review,
       ];
       return aggregateVisit({
@@ -149,7 +151,9 @@ export function setOwnDemoVisitParticipation(
               ),
               currentUserParticipationStatus: "declined",
               visibleReviews: (item.visibleReviews ?? []).map((review) =>
-                review.userId === state.currentUserId ? { ...review, ratingVisible: false } : review,
+                review.userId === state.currentUserId
+                  ? { ...review, ratingVisible: false }
+                  : review,
               ),
             },
             true,
