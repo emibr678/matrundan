@@ -14,6 +14,10 @@ const migrationRoot = resolve(root, "supabase/migrations");
 const preflightPath = resolve(root, "supabase/production-preflight.sql");
 const preflightLocationPath = resolve(root, "supabase/production-preflight-place-location.sql");
 const preflightBoundaryPath = resolve(root, "supabase/production-preflight-search-boundaries.sql");
+const preflightVisitParticipationPath = resolve(
+  root,
+  "supabase/production-preflight-visit-participation.sql",
+);
 const errors = [];
 
 function git(args, allowFailure = false) {
@@ -47,6 +51,9 @@ const sql = migrationFiles.map((file) => readFileSync(file, "utf8")).join("\n\n"
 const requiredFunctions = [
   PREVIOUS_GROUP_STATE_RPC,
   CURRENT_GROUP_STATE_RPC,
+  "create_visit_with_review_v3",
+  "save_own_review_for_visit_v1",
+  "set_own_visit_participation_v1",
   "replace_group_search_settings",
   "search_area_label_is_broad",
   "create_group_with_owner_v2",
@@ -97,6 +104,7 @@ for (const table of [
   "place_data_signal_confirmations",
   "group_place_practical_info_history",
   "place_external_info_snapshots",
+  "visit_participation_self_corrections",
 ]) {
   if (!new RegExp(`CREATE\\s+TABLE\\s+IF\\s+NOT\\s+EXISTS\\s+public\\.${table}`, "i").test(sql)) {
     errors.push(`Migrationerna saknar tabellen public.${table}.`);
@@ -181,15 +189,22 @@ if (!existsSync(preflightLocationPath)) {
 if (!existsSync(preflightBoundaryPath)) {
   errors.push("supabase/production-preflight-search-boundaries.sql saknas.");
 }
+if (!existsSync(preflightVisitParticipationPath)) {
+  errors.push("supabase/production-preflight-visit-participation.sql saknas.");
+}
 if (
   existsSync(preflightPath) &&
   existsSync(preflightLocationPath) &&
-  existsSync(preflightBoundaryPath)
+  existsSync(preflightBoundaryPath) &&
+  existsSync(preflightVisitParticipationPath)
 ) {
   const preflight = `${readFileSync(preflightPath, "utf8")}\n${readFileSync(
     preflightLocationPath,
     "utf8",
-  )}\n${readFileSync(preflightBoundaryPath, "utf8")}`;
+  )}\n${readFileSync(preflightBoundaryPath, "utf8")}\n${readFileSync(
+    preflightVisitParticipationPath,
+    "utf8",
+  )}`;
   for (const name of requiredFunctions) {
     if (!preflight.includes(name)) {
       errors.push(`Produktions-preflight saknar ${name}.`);
@@ -211,6 +226,10 @@ if (
     "place_data_signal_confirmations",
     "group_place_practical_info_history",
     "place_external_info_snapshots",
+    "visit_participation_self_corrections",
+    "read_rpc:participant-review-filter",
+    "participation_rpc:restore-needs-own-decline",
+    "isolation:no-authenticated-correction-table-read",
     "place_external_info_snapshots.address",
     "place_external_info_snapshots.area",
     "place_external_info_snapshots.city",
