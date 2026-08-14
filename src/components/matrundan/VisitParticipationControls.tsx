@@ -48,7 +48,9 @@ export function VisitParticipationControls({
     setSaving(true);
     try {
       await setOwnVisitParticipation(activeGroupId, visit.id, participating);
-      toast.success(participating ? "Du är åter deltagare på besöket." : "Deltagandet är korrigerat.");
+      toast.success(
+        participating ? "Du är åter deltagare på besöket." : "Deltagandet är korrigerat.",
+      );
       setConfirmDecline(false);
       await onChanged();
     } catch (error) {
@@ -113,7 +115,11 @@ export function VisitParticipationControls({
             disabled={!writable || saving}
             onClick={() => void updateParticipation(true)}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Undo2 className="h-4 w-4" />
+            )}
             Jag var med
           </Button>
         </Card>
