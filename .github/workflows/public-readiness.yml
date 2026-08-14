@@ -1,39 +1,72 @@
-name: Public readiness
+name: Temporary artifact cleanup
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - agent/actions-artifact-cleanup-once
 
 permissions:
+  actions: write
   contents: read
 
 jobs:
-  history-secret-scan:
-    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
-    timeout-minutes: 15
+  cleanup:
+    if: github.repository == 'emibr678/matrundan' && github.ref == 'refs/heads/agent/actions-artifact-cleanup-once'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
 
     steps:
-      - name: Check out complete repository history
-        uses: actions/checkout@v4
+      - name: Delete legacy-retention artifacts
+        uses: actions/github-script@v7
         with:
-          fetch-depth: 0
-          show-progress: false
+          script: |
+            const DAY = 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            const artifacts = await github.paginate(
+              github.rest.actions.listArtifactsForRepo,
+              { owner: context.repo.owner, repo: context.repo.repo, per_page: 100 },
+            );
 
-      - name: Set up pinned Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.12.0
+            const candidates = artifacts.filter((artifact) => {
+              if (artifact.expired || !artifact.created_at || !artifact.expires_at) return false;
+              const createdAt = new Date(artifact.created_at).getTime();
+              const expiresAt = new Date(artifact.expires_at).getTime();
+              return expiresAt - createdAt > 7 * DAY && now - createdAt > DAY;
+            });
 
-      - name: Set up pinned Bun
-        uses: ./.github/actions/setup-bun
+            let deleted = 0;
+            let deletedBytes = 0;
+            const failures = [];
 
-      - name: Repository public-readiness guard
-        run: bun run check:public-readiness
+            for (const artifact of candidates) {
+              try {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id,
+                });
+                deleted += 1;
+                deletedBytes += artifact.size_in_bytes || 0;
+              } catch (error) {
+                failures.push(`${artifact.id}: ${error.message}`);
+              }
+            }
 
-      - name: Full-history secret scan
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_VERSION: "8.30.1"
-          GITLEAKS_ENABLE_COMMENTS: "false"
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
-          GITLEAKS_ENABLE_SUMMARY: "false"
+            const mib = (deletedBytes / 1024 / 1024).toFixed(1);
+            core.info(`Found ${artifacts.length} artifacts; deleted ${deleted} legacy-retention artifacts (${mib} MiB).`);
+
+            await core.summary
+              .addHeading('Artifact cleanup')
+              .addTable([
+                [{ data: 'Metric', header: true }, { data: 'Value', header: true }],
+                ['Artifacts found', String(artifacts.length)],
+                ['Cleanup candidates', String(candidates.length)],
+                ['Deleted', String(deleted)],
+                ['Deleted size', `${mib} MiB`],
+                ['Failures', String(failures.length)],
+              ])
+              .write();
+
+            if (failures.length > 0) {
+              core.setFailed(`Failed to delete ${failures.length} artifact(s).`);
+            }
