@@ -95,6 +95,11 @@ individuell matdagbok, social feed eller global ranking.
   valfritt privat foto. Namngivna besöksgäster kan läggas till utan att bli
   gruppmedlemmar eller få progression; vid delning visas de endast som ett
   anonymt antal.
+- En faktisk deltagare kan komplettera samma kanoniska besök med sitt eget
+  omdöme. Den som felaktigt lagts till kan välja **Jag var inte med** och senare
+  återställa **Jag var med**; progression och aktiva deltagaromdömen följer den
+  korrigerade närvaron. Den som bara registrerar åt gruppen får ingen egen
+  review eller progression om hen själv inte deltog.
 - Gruppens gemensamma besökshistorik nås via **Visa alla besök** på Hem och visar
   det senaste först med samma privata besöksdetaljer som matställesvyn.
 - **Passar för** kan lämnas tomt eller anges med upp till två likvärdiga val. Ett
@@ -202,19 +207,24 @@ Gruppen är den primära produkt- och integritetsgränsen.
   ingen automatisk OSM-publicering; OSM-åtgärder i Platsunderhåll är manuella.
 - `visits` representerar kanoniska verkliga besök.
 - `visit_group_links` kopplar original- och mottagargrupper till samma besök.
-- `visit_participants` innehåller de faktiska gruppmedlemmar som deltog och är
-  den enda källan till medlemsprogression; registreraren får ingen automatisk
-  deltagarkredit.
+- `visit_participants` innehåller den aktuella faktiska identifierade närvaron
+  och är den enda källan till medlemsprogression; registreraren får ingen
+  automatisk deltagarkredit eller review.
+- `visit_participation_self_corrections` är ett server-only spår för den
+  inloggade användarens **Jag var inte med** / **Jag var med**. Klientroller har
+  ingen direkt tabellåtkomst.
+- `reviews` innehåller högst ett kanoniskt eget omdöme per besök och användare.
+  `review_group_visibility` styr därefter betygs- och kommentarssynlighet per
+  grupp; en review dupliceras inte för att samma besök visas i flera grupper.
 - `visit_guests` innehåller privata, besökslokala visningsnamn. Gäster blir inte
   medlemmar eller profiler, får ingen progression och visas bara med namn i
   ursprungsgruppen. Mottagande grupper ser endast ett anonymt antal.
-- `review_group_visibility` styr betygs- och kommentarssynlighet per grupp.
 - `visit_media` kopplar ett privat foto till besökets ursprungsgrupp.
 - `next_stop_date_proposals` och `next_stop_date_responses` innehåller gruppens
   privata planering.
 
-Den primära live-läsningen går genom `get_group_app_state_v5h` med strikt
-fallback till `get_group_app_state_v5g` endast när den nya funktionen uttryckligen
+Den primära live-läsningen går genom `get_group_app_state_v5j` med strikt
+fallback till `get_group_app_state_v5i` endast när den nya funktionen uttryckligen
 saknas. Rå providerdata stannar på serversidan. Känsliga skrivningar använder
 validerade `SECURITY DEFINER`-RPC:er med låst `search_path`, autentisering och
 relevanta medlemskaps- eller globala rollkontroller.
