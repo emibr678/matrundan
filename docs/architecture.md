@@ -123,7 +123,9 @@ säkert och semantiskt korrekt.
 
 Nya tabeller som innehåller `created_by`, `updated_by`, submitter-ID eller annan
 användarreferens ska därför granskas mot kontoraderingsflödet innan de räknas som
-färdiga.
+färdiga. `visit_participation_self_corrections.user_id` refererar profilen med
+`ON DELETE CASCADE`, så det privata korrigeringsspåret försvinner automatiskt
+när profilen raderas och kräver ingen separat scrubbrad.
 
 ## Kanonisk datamodell
 
@@ -194,34 +196,74 @@ behörighet att läsa den.
 
 ## Gruppstate
 
-`get_group_app_state_v5i(uuid)` är nuvarande primära read-RPC för gruppens
-applikationsstate. `get_group_app_state_v5h(uuid)` är den närmast föregående
-kompatibla läs-RPC:n och får användas som strikt fallback när v5i uttryckligen
+`get_group_app_state_v5j(uuid)` är nuvarande primära read-RPC för gruppens
+applikationsstate. `get_group_app_state_v5i(uuid)` är den närmast föregående
+kompatibla läs-RPC:n och får användas som strikt fallback när v5j uttryckligen
 saknas under en säker rullning.
+
+Efter deltagarändringen är v5i en kompatibilitetswrapper över den serverinterna
+`get_group_app_state_v5i_participation_base(uuid)`. Basfunktionen får inte vara
+direkt körbar av `anon` eller `authenticated`. Wrappern filtrerar synliga
+reviews mot aktuella rader i `visit_participants` och exponerar endast den
+inloggade användarens minimerade deltagarstatus (`participant`, `declined` eller
+`none`).
 
 Read-RPC:n ska:
 
 - verifiera medlemskap;
 - bara returnera data för vald grupp;
 - bevara integritetsregler för delade besök och gäster;
+- bara visa deltagaromdömen från personer som fortfarande är faktiska deltagare;
 - undvika att exponera interna tabellfält som klienten inte behöver.
 
 ## Besök och deltagare
 
 Ett besök är gruppens verkliga händelse, inte registrerarens individuella logg.
+Samma `visits.id` är därför kanoniskt även när besöket visas genom flera
+`visit_group_links`.
 
-`create_visit_with_review_v2` är den serverstyrda mutationsytan för nytt besök
-med omdöme.
+`visit_participants` betyder **aktuell faktisk identifierad närvaro** på det
+kanoniska besöket. Progression, deltagarlistor, delningsbehörighet och aktivt
+deltagaromdöme ska härledas från den sanningen i stället för från vem som
+registrerade besöket.
+
+`create_visit_with_review_v3` är den serverstyrda mutationsytan för nya besök i
+den här modellen. Registreraren får bara ett eget omdöme när hen själv finns
+bland de validerade deltagarna. En person kan alltså registrera ett besök åt
+gruppen utan eget omdöme eller egen progression.
+
+`save_own_review_for_visit_v1` kompletterar ett redan existerande kanoniskt
+besök. Servern kräver att användaren är faktisk deltagare och att besöket är
+legitimt synligt i den aktuella gruppen. `reviews` behåller invarianten högst en
+kanonisk review per `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt
+i `review_group_visibility` och löses inte genom reviewkopior.
+
+En användare får självkorrigera sin egen närvaro med
+`set_own_visit_participation_v1`. **Jag var inte med** tar bort den egna aktiva
+`visit_participants`-raden och registrerar en privat server-only korrigering i
+`visit_participation_self_corrections`. **Jag var med** får endast återställa en
+sådan tidigare egen korrigering; RPC:n får inte fungera som godtycklig
+självtaggning. Tabellen kan inte läsas eller skrivas direkt av klientroller.
+
+En review raderas inte destruktivt när deltagandet korrigeras bort. Read-modellen
+slutar i stället exponera den som aktivt deltagaromdöme. Om användaren senare
+återställer sin faktiska närvaro kan samma kanoniska review åter bli relevant.
+Det bevarar historik utan att ge progression eller synligt omdöme för någon som
+inte längre är deltagare.
 
 Regler:
 
-- registreraren kan vara förvald i UI men får ingen automatisk progression om
-  hen avmarkeras;
-- endast valda aktiva gruppmedlemmar får medlemsspecifik progression;
+- registreraren kan vara förvald i UI men får ingen automatisk progression eller
+  review om hen avmarkeras;
+- endast valda eller senare återställda faktiska gruppmedlemmar får
+  medlemsspecifik progression;
+- en användares självkorrigering gäller samma kanoniska besök i alla grupper där
+  besöket legitimt visas; den skapar aldrig en ny `visit`;
 - gäster lagras som besöksbundna gäster, inte som gruppmedlemmar;
+- gästnamn är presentation och får inte användas som kontoidentitet;
 - återbesök är nya verkliga besök och räknas;
-- en delad besöksrepresentation får inte duplicera progression eller skapa ett
-  nytt verkligt besök.
+- en delad besöksrepresentation får inte duplicera progression, deltagande,
+  review eller skapa ett nytt verkligt besök.
 
 ## Sökning och sökområden
 
@@ -519,6 +561,13 @@ verkliga händelser.
 Delningslänken ska därför peka på samma besöksidentitet och bara exponera den
 minsta information som målgruppen behöver.
 
+Identifierat deltagande och en användares kanoniska review hör till själva
+besöket, inte till en kopia per grupp. Gruppkontexten styr fortfarande vilka
+medlemmar, kommentarer och reviewfält som får presenteras. Om användaren
+självkorrigerar sin faktiska närvaro ska samma sanningsändring därför gälla i
+alla gruppvyer av samma besök utan att avslöja vilka andra grupper som länkar
+dit.
+
 Ursprungsgrupp, privata kommentarer, medlemskap och interna ID:n får aldrig
 exponeras i delningspayloaden.
 
@@ -574,7 +623,9 @@ Efter migration ska minst följande verifieras innan publicering:
 
 `supabase/production-preflight.sql` är den kanoniska driftkontrollen och ska
 uppdateras när en release inför nya obligatoriska databasobjekt eller
-behörighetsinvariants.
+behörighetsinvariants. Avgränsade releasepreflight-filer får komplettera den
+kanoniska kontrollen när de uttryckligen körs tillsammans med den vid just den
+release som inför objekten.
 
 ## Migrationer
 
