@@ -14,6 +14,22 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.34.0] – 2026-08-14
+
+### Nytt
+
+- Faktiska deltagare som saknar eget omdöme kan komplettera samma kanoniska
+  besök med helhetsbetyg, smak, service, prisvärdhet och valfri kommentar utan
+  att ett nytt besök skapas.
+- En medlem som felaktigt lagts till som deltagare kan välja **Jag var inte med**
+  och senare återställa **Jag var med**. Progression och synliga
+  deltagaromdömen följer den korrigerade deltagarsanningen.
+
+### Förbättrat
+
+- Den som registrerar ett besök åt gruppen behöver inte lämna ett eget omdöme
+  eller få progression om hen själv inte deltog.
+
 ## [1.33.0] – 2026-08-13
 
 ### Ändrat
