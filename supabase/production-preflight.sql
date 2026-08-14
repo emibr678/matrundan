@@ -197,7 +197,7 @@ WITH checks(name, ok) AS (
     ('grant:authenticated-hidden-hide-v2', has_function_privilege('authenticated', 'public.hide_group_place_suggestion_v2(uuid,text,text,text,text,text,text,text,double precision,double precision,text)', 'EXECUTE')),
     ('grant:authenticated-hidden-restore', has_function_privilege('authenticated', 'public.restore_group_place_suggestion(uuid,text,text)', 'EXECUTE')),
     ('grant:authenticated-place-data-report-create', has_function_privilege('authenticated', 'public.create_place_data_report_v1(uuid,uuid,text,text)', 'EXECUTE')),
-    ('grant:authenticated-place-data_report-create-suggestion', has_function_privilege('authenticated', 'public.create_place_data_report_from_suggestion_v1(uuid,text,text,text,text,text,text,double precision,double precision,text,text)', 'EXECUTE')),
+    ('grant:authenticated-place-data-report-create-suggestion', has_function_privilege('authenticated', 'public.create_place_data_report_from_suggestion_v1(uuid,text,text,text,text,text,text,double precision,double precision,text,text)', 'EXECUTE')),
     ('grant:authenticated-place-data-report-list-v1', has_function_privilege('authenticated', 'public.list_group_place_data_reports_v1(uuid)', 'EXECUTE')),
     ('grant:authenticated-place-data-report-list-v2', has_function_privilege('authenticated', 'public.list_group_place_data_reports_v2(uuid)', 'EXECUTE')),
     ('grant:authenticated-place-data-report-list-v3', has_function_privilege('authenticated', 'public.list_group_place_data_reports_v3(uuid)', 'EXECUTE')),
