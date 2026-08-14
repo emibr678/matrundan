@@ -94,8 +94,8 @@ export function VisitDetailSheet({
   );
   const ownCommentDuplicatesVisitComment = Boolean(
     visit?.comment?.trim() &&
-      myReview?.comment?.trim() &&
-      visit.comment.trim() === myReview.comment.trim(),
+    myReview?.comment?.trim() &&
+    visit.comment.trim() === myReview.comment.trim(),
   );
 
   const [shareOpen, setShareOpen] = React.useState(false);
