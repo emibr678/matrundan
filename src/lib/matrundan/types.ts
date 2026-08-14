@@ -261,3 +261,46 @@ export interface AppState {
   /** Ett öppet eller bekräftat datumförslag för gruppens aktuella nästa stopp. */
   nextStopDateProposal?: NextStopDateProposal | null;
 }
+
+export const CATEGORY_LABEL: Record<PlaceCategory, string> = {
+  restaurang: "Restaurang",
+  café: "Café",
+  bageri: "Bageri",
+  snabbmat: "Snabbmat",
+  pub: "Pub",
+  matvagn: "Matvagn",
+};
+
+export const OCCASION_LABEL: Record<Occasion, string> = {
+  snabbt: "Snabbt och enkelt",
+  avslappnat: "Avslappnat",
+  middag: "Något extra",
+};
+
+export const OCCASION_DESCRIPTION: Record<Occasion, string> = {
+  snabbt: "När det ska vara enkelt att svänga förbi, äta relativt snabbt eller ta med maten.",
+  avslappnat:
+    "För en ledig måltid med partner, vänner eller familj där det är lätt att trivas utan att göra en stor sak av besöket.",
+  middag:
+    "När ni vill göra lite mer av måltiden genom maten, miljön, servicen eller tillfället, utan att det behöver vara finkrog.",
+};
+
+export const OCCASION_VALUES = [
+  "snabbt",
+  "avslappnat",
+  "middag",
+] as const satisfies readonly Occasion[];
+
+export function resolveActivityTarget(a: Activity): ActivityTarget | null {
+  if (a.target) return a.target;
+  if (a.kind === "visited" && a.placeId && a.visitId) {
+    return { kind: "visit", placeId: a.placeId, visitId: a.visitId };
+  }
+  if ((a.kind === "added" || a.kind === "favorited" || a.kind === "next-picked") && a.placeId) {
+    return { kind: "place", placeId: a.placeId };
+  }
+  if (a.kind === "member-joined" && a.memberId) {
+    return { kind: "member", memberId: a.memberId };
+  }
+  return null;
+}
