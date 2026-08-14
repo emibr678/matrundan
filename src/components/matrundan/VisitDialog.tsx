@@ -75,7 +75,6 @@ export function VisitDialog({
   );
   const showShareSection =
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
-  const canShare = showShareSection && shareableGroups.length > 0;
   const [busy, setBusy] = React.useState(false);
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
@@ -99,7 +98,9 @@ export function VisitDialog({
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
-  const hasComment = comment.trim().length > 0;
+  const currentUserParticipates = participants.includes(state.currentUserId);
+  const canShare = showShareSection && currentUserParticipates && shareableGroups.length > 0;
+  const hasComment = currentUserParticipates && comment.trim().length > 0;
   const allShareGroupsSelected =
     shareableGroups.length > 0 &&
     shareableGroups.every((group) => shareGroupIds.includes(group.groupId));
@@ -183,7 +184,7 @@ export function VisitDialog({
       toast.error("Välj minst en gruppmedlem som faktiskt deltog.");
       return;
     }
-    if (overall < 1) {
+    if (currentUserParticipates && overall < 1) {
       toast.error("Ge ett helhetsbetyg");
       return;
     }
@@ -215,11 +216,12 @@ export function VisitDialog({
         meal,
         participantIds: participants,
         participants: participantSnapshots,
-        overall,
-        taste: taste || undefined,
-        value: value || undefined,
-        service: service || undefined,
-        comment: comment.trim() || undefined,
+        currentUserParticipationStatus: currentUserParticipates ? "participant" : "none",
+        overall: currentUserParticipates ? overall : 0,
+        taste: currentUserParticipates ? taste || undefined : undefined,
+        value: currentUserParticipates ? value || undefined : undefined,
+        service: currentUserParticipates ? service || undefined : undefined,
+        comment: currentUserParticipates ? comment.trim() || undefined : undefined,
         createdBy: state.currentUserId,
       });
       let photoError: Error | null = null;
@@ -320,7 +322,8 @@ export function VisitDialog({
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium">Deltagare</legend>
             <p className="text-xs text-muted-foreground">
-              Välj vilka som faktiskt deltog. Du är förvald.
+              Välj vilka som faktiskt deltog. Du är förvald men kan avmarkera dig om du bara
+              registrerar åt gruppen.
             </p>
             <div className="flex flex-wrap gap-2">
               {state.members.map((member) => {
@@ -352,13 +355,13 @@ export function VisitDialog({
                   <Badge
                     key={guest.id}
                     variant="secondary"
-                    className="min-h-9 max-w-full gap-1 rounded-full pl-3 pr-1"
+                    className="min-h-9 max-w-full gap-1 rounded-full pr-1 pl-3"
                   >
                     <span aria-hidden>👤</span>
                     <span className="truncate">{guest.name}</span>
                     <button
                       type="button"
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                       onClick={() =>
                         setGuests((current) => current.filter((item) => item.id !== guest.id))
                       }
@@ -416,48 +419,66 @@ export function VisitDialog({
             </p>
           </fieldset>
 
-          <div className="rounded-2xl bg-secondary/60 p-4">
-            <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
-            <p className="mt-1 text-xs text-muted-foreground">
-              {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
-            </p>
-          </div>
-
-          <Collapsible open={showDetails} onOpenChange={setShowDetails}>
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
-              >
-                <span>Detaljbetyg (frivilligt)</span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
-                />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-3 pt-3">
-              <div className="grid gap-3">
-                <RatingInput value={taste} onChange={setTaste} label="Smak" />
-                <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
-                <RatingInput value={service} onChange={setService} label="Service" />
+          {currentUserParticipates ? (
+            <>
+              <div className="rounded-2xl bg-secondary/60 p-4">
+                <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
+                </p>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+
+              <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
+                  >
+                    <span>Detaljbetyg (frivilligt)</span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-3">
+                  <div className="grid gap-3">
+                    <RatingInput value={taste} onChange={setTaste} label="Smak" />
+                    <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
+                    <RatingInput value={service} onChange={setService} label="Service" />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="comment">Kommentar (frivilligt)</Label>
+                <Textarea
+                  id="comment"
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  rows={2}
+                  placeholder="En liten minnesnotering…"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
+              <p className="text-sm font-medium">Du registrerar besöket åt gruppen</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Eftersom du inte är vald som deltagare lämnar du inget eget omdöme och får ingen
+                progression för besöket.
+              </p>
+            </div>
+          )}
 
           <VisitPhotoField file={photoFile} onFileChange={setPhotoFile} disabled={isBusy} />
 
-          <div className="space-y-1.5">
-            <Label htmlFor="comment">Kommentar (frivilligt)</Label>
-            <Textarea
-              id="comment"
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              rows={2}
-              placeholder="En liten minnesnotering…"
-            />
-          </div>
+          {showShareSection && !currentUserParticipates ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Bara någon som faktiskt deltog kan lägga samma besök i en annan grupp.
+            </p>
+          ) : null}
 
-          {showShareSection && shareTargetsLoading ? (
+          {showShareSection && currentUserParticipates && shareTargetsLoading ? (
             <div
               role="status"
               className="flex min-h-11 items-center gap-2 rounded-2xl border border-border/70 bg-secondary/40 px-4 py-3 text-sm text-muted-foreground"
@@ -466,7 +487,7 @@ export function VisitDialog({
             </div>
           ) : null}
 
-          {showShareSection && shareTargetsError ? (
+          {showShareSection && currentUserParticipates && shareTargetsError ? (
             <div
               role="alert"
               className="rounded-2xl border border-border/70 bg-secondary/40 px-4 py-3 text-sm"
@@ -553,7 +574,11 @@ export function VisitDialog({
           >
             Avbryt
           </Button>
-          <Button onClick={submit} disabled={isBusy || overall === 0} className="w-full sm:w-auto">
+          <Button
+            onClick={submit}
+            disabled={isBusy || (currentUserParticipates && overall === 0)}
+            className="w-full sm:w-auto"
+          >
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara besök
           </Button>
