@@ -44,8 +44,55 @@ function withBoundarySearchScenario(state: AppState): AppState {
   };
 }
 
+function withVisitParticipationScenarios(state: AppState): AppState {
+  const { members, visits } = EXAMPLE_IDS;
+  return {
+    ...state,
+    visits: state.visits.map((visit) => {
+      if (visit.id === visits.guestReviews) {
+        return {
+          ...visit,
+          currentUserParticipationStatus: "participant",
+          // Alex deltog men har ännu inte lämnat ett eget omdöme. Sams omdöme
+          // ligger kvar så besöket fortfarande har en gemensam rating.
+          visibleReviews: (visit.visibleReviews ?? []).filter(
+            (review) => review.userId !== members.alex,
+          ),
+        };
+      }
+
+      if (visit.id === visits.archivedHistory) {
+        return {
+          ...visit,
+          participantIds: visit.participantIds.filter((id) => id !== members.alex),
+          participants: visit.participants?.filter((participant) => participant.id !== members.alex),
+          currentUserParticipationStatus: "declined",
+          // Besöket registrerades av Sam, som inte själv deltog. Kims omdöme
+          // gör scenariot explicit och förhindrar äldre demo-normalisering från
+          // att fabricera ett registreraromdöme.
+          visibleReviews: [
+            {
+              id: "review-v5-kim",
+              userId: members.kim,
+              overall: 5,
+              taste: 5,
+              value: 4,
+              service: 4,
+              comment: "Tidigt, varmt bröd och nästan ingen kö.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+          ],
+        };
+      }
+
+      return visit;
+    }),
+  };
+}
+
 export function buildExampleState(now = new Date()) {
-  return withBoundarySearchScenario(buildBaseExampleState(now));
+  return withVisitParticipationScenarios(withBoundarySearchScenario(buildBaseExampleState(now)));
 }
 
 export const EXAMPLE_STATE = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
