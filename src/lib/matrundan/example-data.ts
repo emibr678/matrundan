@@ -50,14 +50,28 @@ function withVisitParticipationScenarios(state: AppState): AppState {
     ...state,
     visits: state.visits.map((visit) => {
       if (visit.id === visits.guestReviews) {
+        const existing = (visit.visibleReviews ?? []).filter(
+          (review) => review.userId !== members.alex,
+        );
         return {
           ...visit,
           currentUserParticipationStatus: "participant",
-          // Alex deltog men har ännu inte lämnat ett eget omdöme. Sams omdöme
-          // ligger kvar så besöket fortfarande har en gemensam rating.
-          visibleReviews: (visit.visibleReviews ?? []).filter(
-            (review) => review.userId !== members.alex,
-          ),
+          // Alex deltog men har ännu inte lämnat ett eget omdöme. Sam och Kim
+          // håller kvar scenariot med flera synliga omdömen utan att Alex får en review.
+          visibleReviews: [
+            ...existing,
+            {
+              id: "review-v2-kim",
+              userId: members.kim,
+              overall: 4,
+              taste: 4,
+              value: 4,
+              service: 4,
+              comment: "Bra kväll för ett gemensamt stopp och lätt att dela maten.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+          ],
         };
       }
 
