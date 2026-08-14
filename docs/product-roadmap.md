@@ -361,3 +361,10 @@ Uppdatera dokumentet när:
 - ett övergripande feature-issue delas upp eller ersätts;
 - en funktion är genomförd och ska markeras som klar inom ett pågående paket;
 - ett pakets sista issue är genomfört och paketet flyttas till historik.
+
+Roadmapen ska normalt **inte** uppdateras för:
+
+- varje commit eller patchversion;
+- små buggrättningar som inte ändrar produktens riktning;
+- tekniska implementationdetaljer som redan hör hemma i kod, PR eller
+  arkitekturdokumentation.
