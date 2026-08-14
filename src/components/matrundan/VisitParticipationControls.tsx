@@ -59,10 +59,7 @@ export function VisitParticipationControls({
         if (!activeGroupId) throw new Error("Ingen aktiv grupp.");
         await setOwnVisitParticipation(activeGroupId, visit.id, participating);
       } else {
-        persistDemoState(
-          setOwnDemoVisitParticipation(state, visit.id, participating),
-          exampleMode,
-        );
+        persistDemoState(setOwnDemoVisitParticipation(state, visit.id, participating), exampleMode);
       }
       toast.success(
         participating ? "Du är åter deltagare på besöket." : "Deltagandet är korrigerat.",
