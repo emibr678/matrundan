@@ -6,11 +6,13 @@ function average(values: number[]): number | undefined {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function aggregateVisit(visit: Visit): Visit {
-  const reviews = (visit.visibleReviews ?? []).filter((review) =>
-    visit.participantIds.includes(review.userId),
+function aggregateVisit(visit: Visit, preserveInactiveReviews = false): Visit {
+  const reviews = preserveInactiveReviews
+    ? (visit.visibleReviews ?? [])
+    : (visit.visibleReviews ?? []).filter((review) => visit.participantIds.includes(review.userId));
+  const rated = reviews.filter(
+    (review) => review.ratingVisible && visit.participantIds.includes(review.userId),
   );
-  const rated = reviews.filter((review) => review.ratingVisible);
   if (rated.length === 0) {
     return {
       ...visit,
@@ -120,6 +122,9 @@ export function setOwnDemoVisitParticipation(
                 },
               ],
               currentUserParticipationStatus: "participant",
+              visibleReviews: (item.visibleReviews ?? []).map((review) =>
+                review.userId === state.currentUserId ? { ...review, ratingVisible: true } : review,
+              ),
             })
           : item,
       ),
@@ -135,14 +140,20 @@ export function setOwnDemoVisitParticipation(
     ...state,
     visits: state.visits.map((item) =>
       item.id === visitId
-        ? aggregateVisit({
-            ...item,
-            participantIds: item.participantIds.filter((id) => id !== state.currentUserId),
-            participants: item.participants?.filter(
-              (participant) => participant.id !== state.currentUserId,
-            ),
-            currentUserParticipationStatus: "declined",
-          })
+        ? aggregateVisit(
+            {
+              ...item,
+              participantIds: item.participantIds.filter((id) => id !== state.currentUserId),
+              participants: item.participants?.filter(
+                (participant) => participant.id !== state.currentUserId,
+              ),
+              currentUserParticipationStatus: "declined",
+              visibleReviews: (item.visibleReviews ?? []).map((review) =>
+                review.userId === state.currentUserId ? { ...review, ratingVisible: false } : review,
+              ),
+            },
+            true,
+          )
         : item,
     ),
   };
