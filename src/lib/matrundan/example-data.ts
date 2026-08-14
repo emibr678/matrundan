@@ -1,8 +1,5 @@
 import { demoBoundaryForPlaceId } from "./demo-location-suggestions";
-import {
-  buildExampleState as buildBaseExampleState,
-  EXAMPLE_IDS,
-} from "./example-scenarios";
+import { buildExampleState as buildBaseExampleState, EXAMPLE_IDS } from "./example-scenarios";
 import type { AppState } from "./types";
 
 /**
