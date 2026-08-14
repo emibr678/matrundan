@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  EXAMPLE_FIXTURE_REFERENCE_TIME,
-  EXAMPLE_IDS,
-  buildExampleState,
-} from "./example-data";
+import { EXAMPLE_FIXTURE_REFERENCE_TIME, EXAMPLE_IDS, buildExampleState } from "./example-data";
 
 describe("exempelgruppens deltagarscenarier", () => {
   const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
@@ -13,9 +9,9 @@ describe("exempelgruppens deltagarscenarier", () => {
     expect(visit).toBeDefined();
     expect(visit?.currentUserParticipationStatus).toBe("participant");
     expect(visit?.participantIds).toContain(state.currentUserId);
-    expect(
-      visit?.visibleReviews?.some((review) => review.userId === state.currentUserId),
-    ).toBe(false);
+    expect(visit?.visibleReviews?.some((review) => review.userId === state.currentUserId)).toBe(
+      false,
+    );
     expect(visit?.visibleReviews).toHaveLength(2);
   });
 
@@ -25,8 +21,6 @@ describe("exempelgruppens deltagarscenarier", () => {
     expect(visit?.currentUserParticipationStatus).toBe("declined");
     expect(visit?.participantIds).not.toContain(state.currentUserId);
     expect(visit?.participantIds).not.toContain(visit?.createdBy);
-    expect(
-      visit?.visibleReviews?.some((review) => review.userId === visit?.createdBy),
-    ).toBe(false);
+    expect(visit?.visibleReviews?.some((review) => review.userId === visit?.createdBy)).toBe(false);
   });
 });
