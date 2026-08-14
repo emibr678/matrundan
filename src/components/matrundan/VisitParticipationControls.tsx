@@ -14,10 +14,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { persistDemoState } from "@/lib/matrundan/demo-state";
+import { setOwnDemoVisitParticipation } from "@/lib/matrundan/demo-visit-participation";
 import { setOwnVisitParticipation } from "@/lib/matrundan/live-visit-participation";
 import { useSession } from "@/lib/matrundan/session";
+import { useStore } from "@/lib/matrundan/store";
 import type { Visit } from "@/lib/matrundan/types";
 import { AddVisitReviewDialog } from "./AddVisitReviewDialog";
+import { DemoAddVisitReviewDialog } from "./DemoAddVisitReviewDialog";
 
 export function VisitParticipationControls({
   visit,
@@ -34,25 +38,37 @@ export function VisitParticipationControls({
   demoReadOnly: boolean;
   onChanged: () => void | Promise<void>;
 }) {
-  const { mode, activeGroupId } = useSession();
+  const { state } = useStore();
+  const { mode, activeGroupId, exampleMode } = useSession();
   const [confirmDecline, setConfirmDecline] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const status =
     visit.currentUserParticipationStatus ?? (fallbackParticipant ? "participant" : "none");
-  const myReview = visit.visibleReviews?.find((review) => review.userId === currentUserId);
-  const writable = mode === "live" && !!activeGroupId && !groupArchived && !demoReadOnly;
+  const myReview = visit.visibleReviews?.find(
+    (review) => review.userId === currentUserId && review.ratingVisible,
+  );
+  const writable =
+    !groupArchived && !demoReadOnly && (mode === "live" ? Boolean(activeGroupId) : true);
 
   async function updateParticipation(participating: boolean) {
-    if (!activeGroupId || !writable) return;
+    if (!writable) return;
     setSaving(true);
     try {
-      await setOwnVisitParticipation(activeGroupId, visit.id, participating);
+      if (mode === "live") {
+        if (!activeGroupId) throw new Error("Ingen aktiv grupp.");
+        await setOwnVisitParticipation(activeGroupId, visit.id, participating);
+      } else {
+        persistDemoState(
+          setOwnDemoVisitParticipation(state, visit.id, participating),
+          exampleMode,
+        );
+      }
       toast.success(
         participating ? "Du är åter deltagare på besöket." : "Deltagandet är korrigerat.",
       );
       setConfirmDecline(false);
-      await onChanged();
+      if (mode === "live") await onChanged();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte ändra deltagandet.");
     } finally {
@@ -76,12 +92,20 @@ export function VisitParticipationControls({
                   Lägg gärna till din egen upplevelse. Den sparas på samma gemensamma besök.
                 </p>
               </div>
-              <AddVisitReviewDialog
-                visitId={visit.id}
-                placeName={placeName}
-                disabled={!writable}
-                onSaved={onChanged}
-              />
+              {mode === "live" ? (
+                <AddVisitReviewDialog
+                  visitId={visit.id}
+                  placeName={placeName}
+                  disabled={!writable}
+                  onSaved={onChanged}
+                />
+              ) : (
+                <DemoAddVisitReviewDialog
+                  visitId={visit.id}
+                  placeName={placeName}
+                  disabled={!writable}
+                />
+              )}
             </>
           ) : (
             <p className="text-xs leading-relaxed text-muted-foreground">
