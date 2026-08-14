@@ -31,6 +31,7 @@ import { removeSharedVisitFromGroup, setReviewGroupVisibility } from "@/lib/matr
 import { RatingStars } from "./Rating";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { EditReviewDialog } from "./EditReviewDialog";
+import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { canManageVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { canDeleteOriginalVisit } from "@/lib/matrundan/visit-permissions";
@@ -52,7 +53,7 @@ export function VisitDetailSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { state, getPlace, memberById, deleteVisit } = useStore();
+  const { state, getPlace, memberById, deleteVisit, demoReadOnly } = useStore();
   const { mode, activeGroupId, activeGroupRole, userGroups } = useSession();
   const visit = React.useMemo(
     () => (visitId ? state.visits.find((item) => item.id === visitId) : undefined),
@@ -63,7 +64,10 @@ export function VisitDetailSheet({
 
   const isLive = mode === "live" && !!activeGroupId;
   const groupArchived = state.group.lifecycleStatus === "archived";
-  const isParticipant = !!visit && visit.participantIds.includes(state.currentUserId);
+  const participantFallback = !!visit && visit.participantIds.includes(state.currentUserId);
+  const participationStatus =
+    visit?.currentUserParticipationStatus ?? (participantFallback ? "participant" : "none");
+  const isParticipant = participationStatus === "participant";
   const isShared = visit?.linkType === "shared";
   const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
   const canUnlink =
@@ -82,13 +86,16 @@ export function VisitDetailSheet({
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
 
   const myReview = React.useMemo(
-    () => visit?.visibleReviews?.find((review) => review.userId === state.currentUserId),
-    [visit, state.currentUserId],
+    () =>
+      participationStatus === "participant"
+        ? visit?.visibleReviews?.find((review) => review.userId === state.currentUserId)
+        : undefined,
+    [participationStatus, visit, state.currentUserId],
   );
   const ownCommentDuplicatesVisitComment = Boolean(
     visit?.comment?.trim() &&
-    myReview?.comment?.trim() &&
-    visit.comment.trim() === myReview.comment.trim(),
+      myReview?.comment?.trim() &&
+      visit.comment.trim() === myReview.comment.trim(),
   );
 
   const [shareOpen, setShareOpen] = React.useState(false);
@@ -277,6 +284,15 @@ export function VisitDetailSheet({
                   ) : null}
                 </section>
 
+                <VisitParticipationControls
+                  visit={visit}
+                  placeName={place.name}
+                  currentUserId={state.currentUserId}
+                  groupArchived={groupArchived}
+                  demoReadOnly={demoReadOnly}
+                  onChanged={reload}
+                />
+
                 {(visit.taste || visit.value || visit.service) && (
                   <section>
                     <h3 className="mb-2 text-sm font-medium">Detaljbetyg</h3>
@@ -317,9 +333,7 @@ export function VisitDetailSheet({
                           Du har inte skrivit någon kommentar.
                         </p>
                       )}
-                      {isParticipant ? (
-                        <EditReviewDialog review={myReview} placeName={place.name} />
-                      ) : null}
+                      <EditReviewDialog review={myReview} placeName={place.name} />
                     </Card>
                   </section>
                 ) : null}
