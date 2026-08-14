@@ -9,9 +9,7 @@ const storeSource = await Bun.file("src/lib/matrundan/store.tsx").text();
 
 describe("demo-paritet för gemensamma besök", () => {
   test("registreraromdömen filtreras bort när registreraren inte deltog", () => {
-    expect(storeSource).toContain(
-      "visit.participantIds.includes(review.userId)",
-    );
+    expect(storeSource).toContain("visit.participantIds.includes(review.userId)");
     expect(storeSource).toContain("visibleReviews: reviews");
   });
 
