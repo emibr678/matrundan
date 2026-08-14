@@ -1,5 +1,8 @@
 import { demoBoundaryForPlaceId } from "./demo-location-suggestions";
-import { buildExampleState as buildBaseExampleState, EXAMPLE_IDS } from "./example-scenarios";
+import {
+  buildExampleState as buildBaseExampleState,
+  EXAMPLE_IDS,
+} from "./example-scenarios";
 import type { AppState } from "./types";
 
 /**
@@ -79,7 +82,9 @@ function withVisitParticipationScenarios(state: AppState): AppState {
         return {
           ...visit,
           participantIds: visit.participantIds.filter((id) => id !== members.alex),
-          participants: visit.participants?.filter((participant) => participant.id !== members.alex),
+          participants: visit.participants?.filter(
+            (participant) => participant.id !== members.alex,
+          ),
           currentUserParticipationStatus: "declined",
           // Besöket registrerades av Sam, som inte själv deltog. Kims omdöme
           // gör scenariot explicit och förhindrar äldre demo-normalisering från
