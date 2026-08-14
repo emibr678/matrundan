@@ -33,7 +33,11 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expect(page.getByRole("button", { name: /Föreslå som nästa stopp/ })).toBeVisible();
   await page.getByRole("button", { name: "Registrera besök" }).click();
 
-  await expect(page.getByText("Välj vilka som faktiskt deltog. Du är förvald.")).toBeVisible();
+  await expect(
+    page.getByText(
+      "Välj vilka som faktiskt deltog. Du är förvald men kan avmarkera dig om du bara registrerar åt gruppen.",
+    ),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Lägg till gäst" }).click();
   await page.getByLabel("Gästens namn").fill("Maja");
   await page.getByRole("button", { name: "Lägg till", exact: true }).click();
