@@ -116,7 +116,11 @@ leveransen av **#169 Bekräfta deltagande och komplettera gemensamma besök**.
 Efter den leveransen följer **#106 Nästa stopp v2: alternativ för plats och tid
 utan överskrivning**, sedan **#101 Privata kommentarer och reaktioner på besök**.
 De känsligare cross-group-delarna av #169 och **#179 Dela besöksfoto uttryckligen
-tillsammans med delat besök** kommer därefter.
+tillsammans med delat besök** kommer därefter. **#197 Renodla besökskontext med
+Något att dricka och valfri Hämtmat-markering** är nästa överenskomna
+besökskontextsteg efter dessa kärnleveranser. Det nya **Paket G – Gruppens
+platskunskap och historikbaserad vägledning** ligger senare och bygger vidare på
+stabil besöks- och reviewsemantik.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -214,13 +218,19 @@ Rekommenderad ordning:
    Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
    en viss målgrupp. Fotoåtkomsten ska vara serverstyrd per målgrupp och får inte
    exponera ursprungsgrupp eller ge mottagargruppen rätt att ändra originalfotot.
+5. **#197 Renodla besökskontext med Något att dricka och valfri
+   Hämtmat-markering**  
+   Gör besökstillfället semantiskt konsekvent genom att ersätta `Kväll` med
+   `Något att dricka` och låt Hämtmat vara en separat, valfri besöksegenskap där
+   På plats är implicit normalfall. Progression och betydelsen av `besökt` får
+   inte ändras tyst och ska verifieras i implementationsplanen.
 
 Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
 gruppens gemensamma minne. #169 gäller sann deltagaridentitet och strukturerade
 personliga omdömen på samma besök, #179 gäller uttrycklig och behörighetsstyrd
-fotodelning och #101 gäller privat gruppdiskussion kring besöket. Ingen av
-funktionerna får skapa global feed, offentlig social graf, offentliga likes eller
-progression för social aktivitet.
+fotodelning, #101 gäller privat gruppdiskussion kring besöket och #197 renodlar
+själva besökskontexten. Ingen av funktionerna får skapa global feed, offentlig
+social graf, offentliga likes eller progression för social aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
@@ -242,6 +252,40 @@ Rekommenderad ordning:
 Paket F bygger vidare på den serverprincip som etablerats i #156 och ska stärka
 kanonisk identitet utan att skapa en publik katalog eller exponera vilka andra
 grupper som använder samma plats.
+
+## Paket G – Gruppens platskunskap och historikbaserad vägledning
+
+**Prioritet:** `priority:later`
+
+Paketet ska skapa en lågfriktionsloop där gruppens verkliga erfarenheter både
+förbättrar privat platsmetadata och senare hjälper gruppen välja nästa ställe.
+Datan får vara rikare än UI:t: härledda signaler ska bara visas där de faktiskt
+hjälper och får inte skapa context overload eller ett separat statistiksystem.
+
+Rekommenderad ordning:
+
+1. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
+   för**  
+   Gör skillnaden mellan verksamhetstyp, kök/inriktning och gruppens `Passar för`
+   begriplig. Behåll datamodellens ansvar och justera bland annat hjälpcopyn för
+   `Något extra`. Detta är ett litet hygienarbete som kan plockas tidigare om det
+   passar mellan större kärnleveranser, utan att ändra paketets huvudprioritet.
+2. **#200 Uppmuntra faktiska deltagare att komplettera saknad platsmetadata
+   efter besök**  
+   Låt en faktisk deltagare frivilligt komplettera saknat `Passar för` eller kök
+   och inriktning efter att besöket redan sparats. Samordna med #169 så att
+   efterbesöksflödet inte blir en serie konkurrerande prompts.
+3. **#198 Härled filtrering och topplistor från verkliga besökstillfällen**  
+   Använd verkliga besök och transparenta relevanta betyg för historikbaserade
+   signaler som `Bäst för fika` och `Bra för hämtmat`. Synliga betyg ska förbli
+   direkt begripliga från registrerade omdömen; evidensmängd får påverka när en
+   signal kvalificerar eller prioriteras men får inte förvränga betygssiffran.
+   Välj den minsta lämpliga presentationen – label, filter eller topplista – i
+   stället för att exponera varje härledd dimension överallt.
+
+#198 förutsätter stabil semantik för besökstillfällen och Hämtmat från #197 och
+ska beakta reviewmodellen från #169. Paketet är därför senare än de närmaste
+kärnleveranserna även om #199 kan genomföras fristående som mindre UX-hygien.
 
 ## Parallellt maintenance- och kvalitetsspår
 
@@ -317,10 +361,3 @@ Uppdatera dokumentet när:
 - ett övergripande feature-issue delas upp eller ersätts;
 - en funktion är genomförd och ska markeras som klar inom ett pågående paket;
 - ett pakets sista issue är genomfört och paketet flyttas till historik.
-
-Roadmapen ska normalt **inte** uppdateras för:
-
-- varje commit eller patchversion;
-- små buggrättningar som inte ändrar produktens riktning;
-- tekniska implementationdetaljer som redan hör hemma i kod, PR eller
-  arkitekturdokumentation.
