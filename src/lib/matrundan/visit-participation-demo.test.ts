@@ -53,4 +53,29 @@ describe("demo-paritet för gemensamma besök", () => {
     expect(restoredReview?.id).toBe(ownReview?.id);
     expect(restoredReview?.ratingVisible).toBe(true);
   });
+
+  test("icke-deltagare kan inte lägga eget demo-omdöme", () => {
+    const initial = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
+    const visitId = EXAMPLE_IDS.visits.guestReviews;
+    const declined = setOwnDemoVisitParticipation(initial, visitId, false);
+
+    expect(() =>
+      saveOwnDemoReviewForVisit(declined, visitId, {
+        overall: 4,
+        taste: 4,
+        value: 4,
+        service: 4,
+        comment: "Ska inte sparas",
+      }),
+    ).toThrow("Endast faktiska deltagare kan lämna ett omdöme.");
+  });
+
+  test("deltagande kan inte återställas utan en egen tidigare korrigering", () => {
+    const initial = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
+    const visitId = EXAMPLE_IDS.visits.guestReviews;
+
+    expect(() => setOwnDemoVisitParticipation(initial, visitId, true)).toThrow(
+      "Deltagandet kan bara återställas efter en egen korrigering.",
+    );
+  });
 });
