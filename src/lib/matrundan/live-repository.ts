@@ -64,6 +64,7 @@ type VisitRow = {
   externalParticipantCount: number;
   countsForProgression: boolean;
   participantIds: string[];
+  currentUserParticipationStatus?: string;
   participants: {
     id: string;
     name: string;
@@ -358,6 +359,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
   );
 
   const visits: Visit[] = p.visits.map((v) => {
+    const participantIds = v.participantIds ?? [];
     const visibleReviews: VisibleReview[] = v.reviews.map((r) => ({
       id: r.id,
       userId: r.userId,
@@ -376,12 +378,19 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     const value = rated.map((r) => r.value).filter((x): x is number => x != null);
     const service = rated.map((r) => r.service).filter((x): x is number => x != null);
     const comment = rated.find((r) => r.commentVisible && r.comment)?.comment ?? undefined;
+    const currentUserParticipationStatus =
+      v.currentUserParticipationStatus === "declined"
+        ? ("declined" as const)
+        : participantIds.includes(p.currentUserId)
+          ? ("participant" as const)
+          : ("none" as const);
     return {
       id: v.id,
       placeId: v.placeId,
       date: v.date,
       meal: v.meal,
-      participantIds: v.participantIds ?? [],
+      participantIds,
+      currentUserParticipationStatus,
       overall: avg(overall) ?? 0,
       taste: avg(taste),
       value: avg(value),
