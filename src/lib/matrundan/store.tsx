@@ -46,7 +46,8 @@ import { APP_VERSION } from "./version";
 import { canDeleteOriginalVisit } from "./visit-permissions";
 import {
   blobToDataUrl,
-  canManageVisitPhoto,
+  canAddOrReplaceVisitPhoto,
+  canDeleteVisitPhoto,
   liveDeleteVisitPhoto,
   liveSaveVisitPhoto,
   prepareVisitPhoto,
@@ -466,14 +467,14 @@ export function StoreProvider({
         if (!visit) throw new Error("Besöket finns inte.");
         const role = state.members.find((member) => member.id === state.currentUserId)?.role;
         if (
-          !canManageVisitPhoto(
+          !canAddOrReplaceVisitPhoto(
             visit,
             state.currentUserId,
             role,
             state.group.lifecycleStatus === "archived",
           )
         ) {
-          throw new Error("Du saknar behörighet att ändra fotot för det här besöket.");
+          throw new Error("Du kan inte ersätta ett foto som en annan deltagare har lagt till.");
         }
         const prepared = await prepareVisitPhoto(file);
         if (mode === "live") {
@@ -484,8 +485,20 @@ export function StoreProvider({
         const url = await blobToDataUrl(prepared.blob);
         const updatedAt = new Date().toISOString();
         setState((current) => {
-          if (!current.visits.some((item) => item.id === visitId)) {
-            throw new Error("Besöket finns inte.");
+          const currentVisit = current.visits.find((item) => item.id === visitId);
+          if (!currentVisit) throw new Error("Besöket finns inte.");
+          const currentRole = current.members.find(
+            (member) => member.id === current.currentUserId,
+          )?.role;
+          if (
+            !canAddOrReplaceVisitPhoto(
+              currentVisit,
+              current.currentUserId,
+              currentRole,
+              current.group.lifecycleStatus === "archived",
+            )
+          ) {
+            throw new Error("En annan deltagare har redan lagt till ett foto.");
           }
           return {
             ...current,
@@ -514,7 +527,7 @@ export function StoreProvider({
         if (!visit) throw new Error("Besöket finns inte.");
         const role = state.members.find((member) => member.id === state.currentUserId)?.role;
         if (
-          !canManageVisitPhoto(
+          !canDeleteVisitPhoto(
             visit,
             state.currentUserId,
             role,
@@ -528,12 +541,29 @@ export function StoreProvider({
           return;
         }
         assertDemoWritable(state, demoReadOnly);
-        setState((current) => ({
-          ...current,
-          visits: current.visits.map((item) =>
-            item.id === visitId ? { ...item, photo: null } : item,
-          ),
-        }));
+        setState((current) => {
+          const currentVisit = current.visits.find((item) => item.id === visitId);
+          if (!currentVisit) throw new Error("Besöket finns inte.");
+          const currentRole = current.members.find(
+            (member) => member.id === current.currentUserId,
+          )?.role;
+          if (
+            !canDeleteVisitPhoto(
+              currentVisit,
+              current.currentUserId,
+              currentRole,
+              current.group.lifecycleStatus === "archived",
+            )
+          ) {
+            throw new Error("Du saknar behörighet att ta bort fotot för det här besöket.");
+          }
+          return {
+            ...current,
+            visits: current.visits.map((item) =>
+              item.id === visitId ? { ...item, photo: null } : item,
+            ),
+          };
+        });
       },
 
       deleteVisit: async (visitId) => {
