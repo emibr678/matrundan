@@ -140,7 +140,7 @@ describe("publik exempeldata", () => {
     const guest = guestVisit?.participants?.find((participant) => participant.status === "guest");
     expect(guest?.id).toBe(members.guestAya);
     expect(guestVisit?.participantIds).not.toContain(members.guestAya);
-    expect(guestVisit?.visibleReviews).toHaveLength(2);
+    expect(guestVisit?.visibleReviews).toHaveLength(3);
 
     const formerVisit = state.visits.find((visit) => visit.id === visits.formerMemberHistory);
     const former = formerVisit?.participants?.find((participant) => participant.status === "left");
