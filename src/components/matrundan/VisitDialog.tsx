@@ -128,6 +128,14 @@ export function VisitDialog({
   }, [open, state.currentUserId]);
 
   React.useEffect(() => {
+    if (open) {
+      setParticipants((current) =>
+        current.includes(state.currentUserId) ? current : [state.currentUserId, ...current],
+      );
+    }
+  }, [open, state.currentUserId]);
+
+  React.useEffect(() => {
     if (!open || mode !== "live" || !placeId) return;
     let cancelled = false;
     setShareTargetsLoading(true);
@@ -154,8 +162,10 @@ export function VisitDialog({
 
   if (!place) return null;
 
-  const toggleParticipant = (id: string) =>
+  const toggleParticipant = (id: string) => {
+    if (id === state.currentUserId) return;
     setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  };
 
   const toggleShareGroup = (id: string) =>
     setShareGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
@@ -180,11 +190,11 @@ export function VisitDialog({
 
   const submit = async () => {
     if (isBusy) return;
-    if (participants.length === 0) {
-      toast.error("Välj minst en gruppmedlem som faktiskt deltog.");
+    if (!currentUserParticipates) {
+      toast.error("Den som registrerar besöket måste vara deltagare.");
       return;
     }
-    if (currentUserParticipates && overall < 1) {
+    if (overall < 1) {
       toast.error("Ge ett helhetsbetyg");
       return;
     }
@@ -216,12 +226,12 @@ export function VisitDialog({
         meal,
         participantIds: participants,
         participants: participantSnapshots,
-        currentUserParticipationStatus: currentUserParticipates ? "participant" : "none",
-        overall: currentUserParticipates ? overall : 0,
-        taste: currentUserParticipates ? taste || undefined : undefined,
-        value: currentUserParticipates ? value || undefined : undefined,
-        service: currentUserParticipates ? service || undefined : undefined,
-        comment: currentUserParticipates ? comment.trim() || undefined : undefined,
+        currentUserParticipationStatus: "participant",
+        overall,
+        taste: taste || undefined,
+        value: value || undefined,
+        service: service || undefined,
+        comment: comment.trim() || undefined,
         createdBy: state.currentUserId,
       });
       let photoError: Error | null = null;
@@ -322,20 +332,25 @@ export function VisitDialog({
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium">Deltagare</legend>
             <p className="text-xs text-muted-foreground">
-              Välj vilka som faktiskt deltog. Du är förvald men kan avmarkera dig om du bara
-              registrerar åt gruppen.
+              Du registrerar besöket och räknas därför som deltagare. Välj vilka andra som var med.
             </p>
             <div className="flex flex-wrap gap-2">
               {state.members.map((member) => {
                 const active = participants.includes(member.id);
+                const isRegistrar = member.id === state.currentUserId;
                 return (
                   <button
                     key={member.id}
                     type="button"
                     onClick={() => toggleParticipant(member.id)}
                     aria-pressed={active}
-                    aria-label={`${active ? "Ta bort" : "Lägg till"} ${member.name} som deltagare`}
-                    className="min-h-11 rounded-full"
+                    aria-label={
+                      isRegistrar
+                        ? `${member.name} är deltagare eftersom du registrerar besöket`
+                        : `${active ? "Ta bort" : "Lägg till"} ${member.name} som deltagare`
+                    }
+                    disabled={isRegistrar}
+                    className="min-h-11 rounded-full disabled:cursor-default disabled:opacity-100"
                   >
                     <Badge
                       variant={active ? "default" : "outline"}
@@ -419,66 +434,48 @@ export function VisitDialog({
             </p>
           </fieldset>
 
-          {currentUserParticipates ? (
-            <>
-              <div className="rounded-2xl bg-secondary/60 p-4">
-                <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
-                </p>
-              </div>
+          <div className="rounded-2xl bg-secondary/60 p-4">
+            <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
+            </p>
+          </div>
 
-              <Collapsible open={showDetails} onOpenChange={setShowDetails}>
-                <CollapsibleTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
-                  >
-                    <span>Detaljbetyg (frivilligt)</span>
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-3 pt-3">
-                  <div className="grid gap-3">
-                    <RatingInput value={taste} onChange={setTaste} label="Smak" />
-                    <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
-                    <RatingInput value={service} onChange={setService} label="Service" />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="comment">Kommentar (frivilligt)</Label>
-                <Textarea
-                  id="comment"
-                  value={comment}
-                  onChange={(event) => setComment(event.target.value)}
-                  rows={2}
-                  placeholder="En liten minnesnotering…"
+          <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
+              >
+                <span>Detaljbetyg (frivilligt)</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
                 />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-3">
+              <div className="grid gap-3">
+                <RatingInput value={taste} onChange={setTaste} label="Smak" />
+                <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
+                <RatingInput value={service} onChange={setService} label="Service" />
               </div>
-            </>
-          ) : (
-            <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
-              <p className="text-sm font-medium">Du registrerar besöket åt gruppen</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Eftersom du inte är vald som deltagare lämnar du inget eget omdöme och får ingen
-                progression för besöket.
-              </p>
-            </div>
-          )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="comment">Kommentar (frivilligt)</Label>
+            <Textarea
+              id="comment"
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              rows={2}
+              placeholder="En liten minnesnotering…"
+            />
+          </div>
 
           <VisitPhotoField file={photoFile} onFileChange={setPhotoFile} disabled={isBusy} />
 
-          {showShareSection && !currentUserParticipates ? (
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Bara någon som faktiskt deltog kan lägga samma besök i en annan grupp.
-            </p>
-          ) : null}
-
-          {showShareSection && currentUserParticipates && shareTargetsLoading ? (
+          {showShareSection && shareTargetsLoading ? (
             <div
               role="status"
               className="flex min-h-11 items-center gap-2 rounded-2xl border border-border/70 bg-secondary/40 px-4 py-3 text-sm text-muted-foreground"
@@ -487,7 +484,7 @@ export function VisitDialog({
             </div>
           ) : null}
 
-          {showShareSection && currentUserParticipates && shareTargetsError ? (
+          {showShareSection && shareTargetsError ? (
             <div
               role="alert"
               className="rounded-2xl border border-border/70 bg-secondary/40 px-4 py-3 text-sm"
@@ -574,11 +571,7 @@ export function VisitDialog({
           >
             Avbryt
           </Button>
-          <Button
-            onClick={submit}
-            disabled={isBusy || (currentUserParticipates && overall === 0)}
-            className="w-full sm:w-auto"
-          >
+          <Button onClick={submit} disabled={isBusy || overall === 0} className="w-full sm:w-auto">
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara besök
           </Button>
