@@ -14,6 +14,22 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.35.0] – 2026-08-15
+
+### Förbättrat
+
+- Besöksdetaljen samlar gruppens betygssammanfattning och deltagarnas egna
+  omdömen i samma **Gängets omdömen**-yta i stället för flera konkurrerande
+  sektioner.
+- Ditt omdöme ligger tillsammans med övriga deltagares omdömen, med en enda
+  tydlig kompletteringsknapp när du ännu inte har svarat och kompakt redigering
+  när omdömet finns.
+- Flera omdömen visas kompakt med valfria detaljer. Normal
+  deltagarkorrigering ligger sekundärt medan ett tidigare **Jag var inte med**
+  fortfarande får ett tydligt återställningsläge.
+- Exempelgruppen innehåller ett 3-av-4-scenario och ett besök utan aktiva
+  omdömen så flerpersons- och tomlägen kan granskas utan externa anrop.
+
 ## [1.34.0] – 2026-08-14
 
 ### Nytt
@@ -158,7 +174,7 @@ Inga ändringar ännu.
 - Matställessökningen skiljer generella köks- och typförslag från specifika
   verksamheter utan att ett verksamhetsval ändrar sökområde eller avstånd.
 - En ny sökning behåller redan visade träffar under omladdningen och visar en
-  diskret `Söker…`-status i stället för att tömma resultatytan.
+  diskret `Söker…`-status i stället för att töma resultatytan.
 - Sökresultat visas i mindre omgångar och varje listsida fylls med upp till 20
   faktiskt visningsbara träffar när providern har fler. **Visa fler** ger upp
   till nästa 20 visningsbara träffar och lägger dem sist utan att kasta om
