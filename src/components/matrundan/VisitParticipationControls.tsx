@@ -45,6 +45,7 @@ export function VisitParticipationControls({
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const status =
     visit.currentUserParticipationStatus ?? (fallbackParticipant ? "participant" : "none");
+  const isRegistrar = visit.createdBy === currentUserId;
   const myReview = visit.visibleReviews?.find(
     (review) => review.userId === currentUserId && review.ratingVisible,
   );
@@ -110,16 +111,18 @@ export function VisitParticipationControls({
             </p>
           )}
 
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full justify-center text-muted-foreground"
-            disabled={!writable || saving}
-            onClick={() => setConfirmDecline(true)}
-          >
-            <UserMinus className="h-4 w-4" />
-            Jag var inte med
-          </Button>
+          {!isRegistrar ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full justify-center text-muted-foreground"
+              disabled={!writable || saving}
+              onClick={() => setConfirmDecline(true)}
+            >
+              <UserMinus className="h-4 w-4" />
+              Jag var inte med
+            </Button>
+          ) : null}
         </Card>
       ) : (
         <Card className="space-y-3 rounded-2xl border-border/70 bg-secondary/30 p-3">
