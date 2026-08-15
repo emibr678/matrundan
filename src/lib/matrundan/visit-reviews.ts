@@ -41,10 +41,10 @@ export function getVisitReviewSummary(visit: Visit, currentUserId: string): Visi
   const visitComment = visit.comment?.trim();
   const commentAlreadyRepresented = Boolean(
     visitComment &&
-      reviews.some(
-        (review) =>
-          review.commentVisible && review.comment?.trim() && review.comment.trim() === visitComment,
-      ),
+    reviews.some(
+      (review) =>
+        review.commentVisible && review.comment?.trim() && review.comment.trim() === visitComment,
+    ),
   );
 
   return {

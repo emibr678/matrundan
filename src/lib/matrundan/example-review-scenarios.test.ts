@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  EXAMPLE_FIXTURE_REFERENCE_TIME,
-  EXAMPLE_IDS,
-  buildExampleState,
-} from "./example-data";
+import { EXAMPLE_FIXTURE_REFERENCE_TIME, EXAMPLE_IDS, buildExampleState } from "./example-data";
 
 describe("exempelgruppens omdömesscenarier", () => {
   test("Tacoateljén visar 3 av 4 identifierade deltagare med omdöme", () => {

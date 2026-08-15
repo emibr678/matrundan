@@ -5,11 +5,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
@@ -17,10 +13,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit, VisibleReview } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
-import {
-  getVisitReviewSummary,
-  visitReviewProgressLabel,
-} from "@/lib/matrundan/visit-reviews";
+import { getVisitReviewSummary, visitReviewProgressLabel } from "@/lib/matrundan/visit-reviews";
 import { AddVisitReviewDialog } from "./AddVisitReviewDialog";
 import { DemoAddVisitReviewDialog } from "./DemoAddVisitReviewDialog";
 import { EditReviewDialog } from "./EditReviewDialog";
@@ -104,7 +97,9 @@ export function VisitReviewsSection({
                   {formatRating(visit.overall)} / 5
                 </span>
               </div>
-              <span className="sr-only">Gruppens helhetsbetyg {formatRating(visit.overall)} av 5</span>
+              <span className="sr-only">
+                Gruppens helhetsbetyg {formatRating(visit.overall)} av 5
+              </span>
             </div>
           ) : (
             <p className="text-sm font-medium">Inget omdöme ännu</p>
@@ -305,13 +300,17 @@ function ReviewRow({
               </p>
             ) : null}
             {own && comment && !review.commentVisible ? (
-              <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Kommentaren är dold i gruppen.
+              </p>
             ) : null}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <RatingStars value={review.overall} size={13} />
             <span className="text-xs font-medium">{formatRating(review.overall)} / 5</span>
-            <span className="sr-only">{name} gav {formatRating(review.overall)} av 5</span>
+            <span className="sr-only">
+              {name} gav {formatRating(review.overall)} av 5
+            </span>
           </div>
         </div>
 
@@ -401,7 +400,9 @@ function SummaryDetail({ label, value }: { label: string; value?: number | null 
   return (
     <div className="min-w-0">
       <div className="truncate text-[10px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold">{value != null ? formatRating(value) : "–"}</div>
+      <div className="mt-0.5 text-sm font-semibold">
+        {value != null ? formatRating(value) : "–"}
+      </div>
     </div>
   );
 }

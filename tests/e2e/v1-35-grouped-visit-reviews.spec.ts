@@ -32,9 +32,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   const visitDialog = page.getByRole("dialog").first();
 
   await expect(visitDialog.getByRole("heading", { name: "Gängets omdömen" })).toBeVisible();
-  await expect(
-    visitDialog.getByText("3 av 4 deltagare i gruppen har lämnat omdöme"),
-  ).toBeVisible();
+  await expect(visitDialog.getByText("3 av 4 deltagare i gruppen har lämnat omdöme")).toBeVisible();
   await expect(visitDialog.getByText("Sam", { exact: true })).toBeVisible();
   await expect(visitDialog.getByText("Kim", { exact: true })).toBeVisible();
   await expect(visitDialog.getByText("Noor", { exact: true })).toBeVisible();
@@ -43,9 +41,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   ).toHaveCount(0);
   await expect(visitDialog.getByText("Kommentar från gänget", { exact: true })).toHaveCount(0);
   await expect(visitDialog.getByText("Din synlighet", { exact: true })).toHaveCount(0);
-  await expect(
-    visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" }),
-  ).toHaveCount(1);
+  await expect(visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" })).toHaveCount(1);
   await expectNoLocatorOverflow(visitDialog, "Tacoateljéns besöksdetalj");
   await expectNoHorizontalOverflow(page, "Tacoateljéns besöksdetalj på 360 px");
 
@@ -58,12 +54,8 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await reviewDialog.getByRole("button", { name: "Spara omdöme" }).click();
 
   await expect(page.getByText("Ditt omdöme är tillagt.")).toBeVisible();
-  await expect(
-    visitDialog.getByText("4 av 4 deltagare i gruppen har lämnat omdöme"),
-  ).toBeVisible();
-  await expect(
-    visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" }),
-  ).toHaveCount(0);
+  await expect(visitDialog.getByText("4 av 4 deltagare i gruppen har lämnat omdöme")).toBeVisible();
+  await expect(visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" })).toHaveCount(0);
   await expect(visitDialog.getByText("Mitt eget minne från kvällen.")).toBeVisible();
   await expect(visitDialog.getByRole("button", { name: "Ändra" })).toBeVisible();
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");

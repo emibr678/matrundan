@@ -103,12 +103,8 @@ describe("reviewunderlag för besöksvyn", () => {
   });
 
   test("formulerar inkomna omdömen transparent", () => {
-    expect(visitReviewProgressLabel(3, 4)).toBe(
-      "3 av 4 deltagare i gruppen har lämnat omdöme",
-    );
-    expect(visitReviewProgressLabel(0, 4)).toBe(
-      "0 av 4 deltagare i gruppen har lämnat omdöme",
-    );
+    expect(visitReviewProgressLabel(3, 4)).toBe("3 av 4 deltagare i gruppen har lämnat omdöme");
+    expect(visitReviewProgressLabel(0, 4)).toBe("0 av 4 deltagare i gruppen har lämnat omdöme");
     expect(visitReviewProgressLabel(0, 0)).toBe("Inga omdömen ännu");
   });
 });
