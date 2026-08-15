@@ -50,6 +50,40 @@ Produktionskedjan är:
 
 En merge är alltså inte samma sak som databasdriftsättning eller publicering.
 
+## Portabilitet och klientoberoende
+
+Web/PWA är Matrundans nuvarande primärklient och Lovable är fortfarande en del av
+dagens drift- och previewkedja. De är däremot inte Matrundans domän- eller
+säkerhetsgräns.
+
+Följande är varaktiga arkitekturprinciper:
+
+- hosting/runtime, auth delivery, storage/media, notisleverans, schemalagda jobb,
+  kart-rendering, externa providers och observability behandlas som utbytbara
+  plattformsadapters runt Matrundans domän och säkerhetsmodell;
+- leverantörsspecifik kod ska hållas vid tydliga gränser och får inte bli enda
+  platsen där grupp-, medlemskaps-, plats-, besöks-, delnings- eller
+  progressionsregler uttrycks;
+- generell domänlogik ska inte göras beroende av DOM, `window`, TanStack Router
+  eller andra webbspecifika API:er när beteendet inte i sig är webbspecifikt;
+- backendkontrakt, authmodell, kanoniska HTTPS-länkar, mediaåtkomst och
+  notisavsikt ska kunna återanvändas av en framtida native-klient utan att
+  Matrundans kärnmodell omdefinieras;
+- kanoniska koordinater och externa platsidentiteter är produktdata och får inte
+  göras beroende av dagens kart-renderare;
+- stateful produktdata ska ha en dokumenterad export- och recoveryväg utanför
+  den aktiva leverantören när den inte redan kan återskapas deterministiskt från
+  repo;
+- portabilitet betyder inte spekulativ abstraktion: monorepo, egna wrappers och
+  parallella implementationer införs först när en känslig eller kostsam gräns
+  behöver isoleras eller en konkret andra implementation finns.
+
+#207 – **Frikoppla drift från Lovable Cloud och etablera portabel plattform** och
+`docs/platform-migration-plan.md` beskriver den nuvarande målbilden för att
+minska Lovable-runtimeberoendet. Målbilden ändrar inte den faktiska
+produktionskedjan förrän respektive migrationssteg har implementerats,
+verifierats och driftsatts med separata godkännanden.
+
 ## Trust boundaries
 
 ### Klienten
@@ -244,13 +278,22 @@ Samma `visits.id` är därför kanoniskt även när besöket visas genom flera
 
 `visit_participants` betyder **aktuell faktisk identifierad närvaro** på det
 kanoniska besöket. Progression, deltagarlistor, delningsbehörighet och aktivt
-deltagaromdöme ska härledas från den sanningen i stället för från vem som
-registrerade besöket.
+deltagaromdöme ska härledas från den sanningen i stället för från en separat
+registreringspoäng eller administrativ kredit.
 
 `create_visit_with_review_v3` är den serverstyrda mutationsytan för nya besök i
-den här modellen. Registreraren får bara ett eget omdöme när hen själv finns
-bland de validerade deltagarna. En person kan alltså registrera ett besök åt
-gruppen utan eget omdöme eller egen progression.
+den här modellen. Den som registrerar ett nytt besök måste själv finnas bland de
+validerade deltagarna och lämnar sitt eget omdöme i samma flöde. Helhetsbetyg
+krävs; smak, service och prisvärdhet är frivilliga men uppmuntras. Servern
+avvisar ett nytt besök där `auth.uid()` inte finns bland de validerade
+`visit_participants`.
+
+Registreringshandlingen i sig ger ingen extra progression. Registreraren får
+samma progression som andra därför att hen är faktisk deltagare, inte därför att
+hen skapade raden. Om någon registrerat ett besök som hen i verkligheten inte
+deltog i är den avsedda korrigeringen att radera felregistreringen och skapa
+besöket korrekt, inte att använda Matrundan som administrativ registrering åt
+andra.
 
 `save_own_review_for_visit_v1` kompletterar ett redan existerande kanoniskt
 besök. Servern kräver att användaren är faktisk deltagare och att besöket är
@@ -258,27 +301,36 @@ legitimt synligt i den aktuella gruppen. `reviews` behåller invarianten högst 
 kanonisk review per `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt
 i `review_group_visibility` och löses inte genom reviewkopior.
 
-En användare får självkorrigera sin egen närvaro med
+Andra deltagare får självkorrigera sin egen närvaro med
 `set_own_visit_participation_v1`. **Jag var inte med** tar bort den egna aktiva
 `visit_participants`-raden och registrerar en privat server-only korrigering i
 `visit_participation_self_corrections`. **Jag var med** får endast återställa en
 sådan tidigare egen korrigering; RPC:n får inte fungera som godtycklig
-självtaggning. Tabellen kan inte läsas eller skrivas direkt av klientroller.
+självtaggning. Registreraren får inte korrigera bort sitt eget deltagande på ett
+besök hen själv skapat. Tabellen kan inte läsas eller skrivas direkt av
+klientroller.
 
-En review raderas inte destruktivt när deltagandet korrigeras bort. Read-modellen
-slutar i stället exponera den som aktivt deltagaromdöme. Om användaren senare
-återställer sin faktiska närvaro kan samma kanoniska review åter bli relevant.
-Det bevarar historik utan att ge progression eller synligt omdöme för någon som
-inte längre är deltagare.
+En review raderas inte destruktivt när en annan deltagares deltagande korrigeras
+bort. Read-modellen slutar i stället exponera den som aktivt deltagaromdöme. Om
+användaren senare återställer sin faktiska närvaro kan samma kanoniska review åter
+bli relevant. Det bevarar historik utan att ge progression eller synligt
+omdöme för någon som inte längre är deltagare.
+
+Den nya registrerarinvarianten är framåtriktad. Befintlig historik där en äldre
+version tillät en annan relation mellan `created_by` och `visit_participants`
+skrivs inte om automatiskt och får inte backfillas destruktivt bara för att den
+nya regeln införs.
 
 Regler:
 
-- registreraren kan vara förvald i UI men får ingen automatisk progression eller
-  review om hen avmarkeras;
-- endast valda eller senare återställda faktiska gruppmedlemmar får
+- registreraren är låst som faktisk deltagare vid nya besök och lämnar sitt eget
+  omdöme i registreringsflödet;
+- registreraren får ingen extra progression eller belöning för själva
+  registreringshandlingen;
+- andra valda eller senare återställda faktiska gruppmedlemmar får
   medlemsspecifik progression;
-- en användares självkorrigering gäller samma kanoniska besök i alla grupper där
-  besöket legitimt visas; den skapar aldrig en ny `visit`;
+- andra deltagares självkorrigering gäller samma kanoniska besök i alla grupper
+  där besöket legitimt visas; den skapar aldrig en ny `visit`;
 - gäster lagras som besöksbundna gäster, inte som gruppmedlemmar;
 - gästnamn är presentation och får inte användas som kontoidentitet;
 - återbesök är nya verkliga besök och räknas;
@@ -381,7 +433,7 @@ lämna rapportens gruppkontext.
 
 Den äldre OSM Note-infrastrukturen med prepare → extern skrivning → complete/fail
 → statusrefresh finns kvar för redan skapad offentlig historik och kompatibilitet.
-Den ska inte byggas djupare in i gruppadministration och är inte den långsiktiga
+Den ska inte byggas djupare in i gruppadministration och är inte den långsiktliga
 arbetsytan för platsunderhåll.
 
 En användares privata beskrivning eller gruppnamn får aldrig automatiskt bli
@@ -583,7 +635,7 @@ minsta information som målgruppen behöver.
 
 Identifierat deltagande och en användares kanoniska review hör till själva
 besöket, inte till en kopia per grupp. Gruppkontexten styr fortfarande vilka
-medlemmar, kommentarer och reviewfält som får presenteras. Om användaren
+medlemmar, kommentarer och reviewfält som får presenteras. Om en annan deltagare
 självkorrigerar sin faktiska närvaro ska samma sanningsändring därför gälla i
 alla gruppvyer av samma besök utan att avslöja vilka andra grupper som länkar
 dit.
@@ -691,6 +743,8 @@ autentisering, Geoapify, notiser eller gamification ska planen besvara:
 8. Vilka positiva och negativa behörigheter måste verifieras?
 9. Behöver `production-preflight.sql` uppdateras?
 10. Behöver kontoraderingsflödet scrubba en ny användarreferens?
+11. Binder ändringen Matrundans domän onödigt till en viss leverantör eller
+    webbklient, och i så fall varför är det motiverat?
 
 Om någon av dessa frågor saknar ett verifierbart svar är arkitekturplanen inte
 klar.
