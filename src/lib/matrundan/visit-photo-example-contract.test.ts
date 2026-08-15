@@ -13,5 +13,7 @@ test("exempelgruppen visar en annan deltagares foto skrivskyddat för Alex", () 
   expect(
     canAddOrReplaceVisitPhoto(visit!, EXAMPLE_STATE.currentUserId, alex?.role, false),
   ).toBe(false);
-  expect(canDeleteVisitPhoto(visit!, EXAMPLE_STATE.currentUserId, alex?.role, false)).toBe(true);
+  expect(
+    canDeleteVisitPhoto(visit!, EXAMPLE_STATE.currentUserId, alex?.role, false),
+  ).toBe(true);
 });
