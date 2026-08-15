@@ -110,13 +110,19 @@ PR #194. Paket A har därmed nått tillräcklig grundnivå för att nästa
 kärnproduktproblem ska prioriteras före återstående symbolpolish i #105 och
 #135.
 
-Närmaste ordning är **#189 Uppdatera guest-privacy-preflight efter
-v5h-wrappern** som ett litet maintenance-steg, därefter den första avgränsade
-leveransen av **#169 Bekräfta deltagande och komplettera gemensamma besök**.
-Efter den leveransen följer **#106 Nästa stopp v2: alternativ för plats och tid
-utan överskrivning**, sedan **#101 Privata kommentarer och reaktioner på besök**.
+**#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** är genomfört.
+Pågående kärnleverans är den första avgränsade delen av **#169 Bekräfta
+deltagande och komplettera gemensamma besök**. Direkt därefter följer **#203
+Samla deltagaromdömen i en tydlig besöksvy** och **#204 Synliggör besök som
+väntar på ditt omdöme**. Först när den efterbesöksloopen är begriplig går
+roadmapen vidare till **#106 Nästa stopp v2: alternativ för plats och tid utan
+överskrivning**, därefter **#101 Privata kommentarer och reaktioner på besök**.
 De känsligare cross-group-delarna av #169 och **#179 Dela besöksfoto uttryckligen
-tillsammans med delat besök** kommer därefter.
+tillsammans med delat besök** kommer därefter. **#197 Renodla besökskontext med
+Något att dricka och valfri Hämtmat-markering** är nästa överenskomna
+besökskontextsteg efter dessa kärnleveranser. Det nya **Paket G – Gruppens
+platskunskap och historikbaserad vägledning** ligger senare och bygger vidare på
+stabil besöks- och reviewsemantik.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -155,15 +161,16 @@ Intern ordning när Paket A återupptas:
 
 ## Paket C – Nästa stopp v2
 
-**Prioritet:** `priority:next`, efter första avgränsade leveransen av #169
+**Prioritet:** `priority:next`, efter #203 och #204
 
 - **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
 
-Det här är nästa större planeringssteg efter att gruppens genomförda besök kan
-kompletteras korrekt av faktiska deltagare. Gruppen ska kunna föreslå alternativa
-matställen och flera tider utan att ett nytt förslag skriver över det som redan
-diskuteras. Frågorna **vart** och **när** hålls separata, medan ett aktuellt nästa
-stopp förblir tydligt.
+Det här är nästa större planeringssteg efter att gruppens genomförda besök både
+kan kompletteras korrekt av faktiska deltagare och presenteras med en tydlig
+omdömes- och pendingloop. Gruppen ska kunna föreslå alternativa matställen och
+flera tider utan att ett nytt förslag skriver över det som redan diskuteras.
+Frågorna **vart** och **när** hålls separata, medan ett aktuellt nästa stopp
+förblir tydligt.
 
 Det övergripande issuen får delas i mindre underissues efter en aktuell
 arkitektur- och implementationsplan. En stor plats × datum-matris och automatisk
@@ -190,7 +197,8 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
-**Prioritet:** `priority:now` för första delen av #169
+**Prioritet:** `priority:now` för första delen av #169, därefter `priority:next`
+för #203 och #204
 
 Rekommenderad ordning:
 
@@ -202,25 +210,45 @@ Rekommenderad ordning:
    deltagarsanningen. Registreraren ska inte få ett aktivt deltagaromdöme om hen
    själv inte var deltagare. Samma identifierade deltagande återanvänds över
    gruppkontexter där användaren legitimt kan se samma besök.
-2. **#101 Privata kommentarer och reaktioner på besök**  
-   Efter #106: lägg privat gruppdiskussion och enkla reaktioner på gruppens
-   besökslänk. Funktionen är `priority:next` och får inte ge progression eller
-   exponera en annan grupps diskussion när besöket delas.
-3. **#169 – fortsatta cross-group-identitetsfall**  
+2. **#203 Samla deltagaromdömen i en tydlig besöksvy**  
+   Gör besöksdetaljen begriplig när flera faktiska deltagare lämnar egna
+   omdömen. Samla gruppens sammanfattning och individuella deltagaromdömen i en
+   gemensam hierarki, håll redigering och synlighet nära det egna omdömet och gör
+   deltagarkorrigeringen mer kompakt i normalfallet. Exempelgruppen ska visa ett
+   realistiskt besök med minst tre deltagaromdömen.
+3. **#204 Synliggör besök som väntar på ditt omdöme**  
+   Ge identifierade faktiska deltagare en diskret pending-signal på hemvyn och i
+   besökshistoriken när deras eget omdöme saknas. Signalen leder tillbaka till
+   samma kanoniska besök, försvinner efter eget omdöme eller **Jag var inte med**
+   och får inte bli en blockerande appstartmodal, pushkampanj eller cross-group
+   informationskanal.
+4. **#101 Privata kommentarer och reaktioner på besök**  
+   Efter mellansteget #106: lägg privat gruppdiskussion och enkla reaktioner på
+   gruppens besökslänk. Funktionen är `priority:next` och får inte ge progression
+   eller exponera en annan grupps diskussion när besöket delas.
+5. **#169 – fortsatta cross-group-identitetsfall**  
    Gäst→medlem-koppling kräver uttryckligt val och den utpekade personens
    bekräftelse. Namn är presentation, aldrig identitet; ingen fuzzy
    personmatchning eller cross-group-personkatalog får uppstå.
-4. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**  
+6. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**  
    Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
    en viss målgrupp. Fotoåtkomsten ska vara serverstyrd per målgrupp och får inte
    exponera ursprungsgrupp eller ge mottagargruppen rätt att ändra originalfotot.
+7. **#197 Renodla besökskontext med Något att dricka och valfri
+   Hämtmat-markering**  
+   Gör besökstillfället semantiskt konsekvent genom att ersätta `Kväll` med
+   `Något att dricka` och låt Hämtmat vara en separat, valfri besöksegenskap där
+   På plats är implicit normalfall. Progression och betydelsen av `besökt` får
+   inte ändras tyst och ska verifieras i implementationsplanen.
 
 Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
 gruppens gemensamma minne. #169 gäller sann deltagaridentitet och strukturerade
-personliga omdömen på samma besök, #179 gäller uttrycklig och behörighetsstyrd
-fotodelning och #101 gäller privat gruppdiskussion kring besöket. Ingen av
-funktionerna får skapa global feed, offentlig social graf, offentliga likes eller
-progression för social aktivitet.
+personliga omdömen på samma besök, #203 gör flerpersons-omdömena begripliga i
+besöksvyn, #204 gör saknade egna omdömen upptäckbara utan nagging, #179 gäller
+uttrycklig och behörighetsstyrd fotodelning, #101 gäller privat gruppdiskussion
+kring besöket och #197 renodlar själva besökskontexten. Ingen av funktionerna får
+skapa global feed, offentlig social graf, offentliga likes eller progression för
+social aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
@@ -243,14 +271,47 @@ Paket F bygger vidare på den serverprincip som etablerats i #156 och ska stärk
 kanonisk identitet utan att skapa en publik katalog eller exponera vilka andra
 grupper som använder samma plats.
 
+## Paket G – Gruppens platskunskap och historikbaserad vägledning
+
+**Prioritet:** `priority:later`
+
+Paketet ska skapa en lågfriktionsloop där gruppens verkliga erfarenheter både
+förbättrar privat platsmetadata och senare hjälper gruppen välja nästa ställe.
+Datan får vara rikare än UI:t: härledda signaler ska bara visas där de faktiskt
+hjälper och får inte skapa context overload eller ett separat statistiksystem.
+
+Rekommenderad ordning:
+
+1. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
+   för**  
+   Gör skillnaden mellan verksamhetstyp, kök/inriktning och gruppens `Passar för`
+   begriplig. Behåll datamodellens ansvar och justera bland annat hjälpcopyn för
+   `Något extra`. Detta är ett litet hygienarbete som kan plockas tidigare om det
+   passar mellan större kärnleveranser, utan att ändra paketets huvudprioritet.
+2. **#200 Uppmuntra faktiska deltagare att komplettera saknad platsmetadata
+   efter besök**  
+   Låt en faktisk deltagare frivilligt komplettera saknat `Passar för` eller kök
+   och inriktning efter att besöket redan sparats. Samordna med #169 så att
+   efterbesöksflödet inte blir en serie konkurrerande prompts.
+3. **#198 Härled filtrering och topplistor från verkliga besökstillfällen**  
+   Använd verkliga besök och transparenta relevanta betyg för historikbaserade
+   signaler som `Bäst för fika` och `Bra för hämtmat`. Synliga betyg ska förbli
+   direkt begripliga från registrerade omdömen; evidensmängd får påverka när en
+   signal kvalificerar eller prioriteras men får inte förvränga betygssiffran.
+   Välj den minsta lämpliga presentationen – label, filter eller topplista – i
+   stället för att exponera varje härledd dimension överallt.
+
+#198 förutsätter stabil semantik för besökstillfällen och Hämtmat från #197 och
+ska beakta reviewmodellen från #169. Paketet är därför senare än de närmaste
+kärnleveranserna även om #199 kan genomföras fristående som mindre UX-hygien.
+
 ## Parallellt maintenance- och kvalitetsspår
 
 Maintenance konkurrerar inte automatiskt med produktroadmapen. Små blockerande
 eller tillitskritiska korrigeringar får göras mellan produktsteg; större DX- och
 refaktoriseringsarbete prioriteras först när det ger konkret utvecklingsnytta.
 
-- **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** ligger närmast
-  eftersom en känd falskt röd kontroll minskar tilliten till driftverifieringen.
+- ✅ **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** är genomfört.
 - **#127 DX2B: Konsolidera Playwright-fixtures och minska sköra layouttester**,
   **#128 DX2C: Inför ändringsfragment och separat release-PR**, **#129 DX2D1:
   Automatisera branchstädning och förbättra repohygien** och **#130 DX2D2:

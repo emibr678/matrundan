@@ -20,6 +20,9 @@ Read:
 - [`docs/architecture.md`](docs/architecture.md) before changing the data model,
   authentication, sharing, Geoapify, group privacy, notifications or
   gamification;
+- [`docs/platform-migration-plan.md`](docs/platform-migration-plan.md) before
+  changing hosting/runtime, auth delivery, storage/media, deployment, backups,
+  deep links or another platform boundary covered by #207;
 - [`docs/development-workflow.md`](docs/development-workflow.md) before
   implementing, debugging, verifying, merging or reporting Lovable sync;
 - [`docs/visual-review.md`](docs/visual-review.md) before a larger visual,
@@ -50,6 +53,34 @@ Preserve these rules:
 - Product copy is Swedish unless a technical identifier must remain English.
 - Keep example, demo and authenticated live mode working side by side.
 - Treat 360 px layout as a supported target, not an edge case.
+
+## Platform portability and client independence
+
+These are durable architecture guardrails even while Lovable remains the current
+runtime and preview workflow:
+
+- Treat hosting, auth delivery, storage/media, notifications delivery, scheduled
+  jobs, map rendering, provider integrations and observability as replaceable
+  platform adapters around Matrundan's domain and security model.
+- Keep provider-specific code at explicit boundaries. Do not move group,
+  membership, place, visit, sharing or progression rules into deployment
+  bindings, vendor callbacks or React components just because a provider makes
+  that convenient.
+- Web/PWA is the current primary client, not the domain or security boundary.
+  Backend contracts, auth, deep links, media access and notification intent must
+  remain usable by a future native client without redefining Matrundan's core
+  model.
+- Do not make general domain logic depend on DOM, `window`, TanStack Router or
+  other web-only APIs when that dependency is not inherent to the behaviour.
+- Preserve canonical HTTPS links for invitations and shareable objects so they
+  can later become Universal Links/App Links without changing identity.
+- Keep canonical coordinates and external place identities independent of the
+  current map renderer.
+- Portability does not require speculative wrappers, a monorepo or a native app.
+  Introduce an adapter when a boundary is sensitive, stateful, costly to replace
+  or has a concrete second implementation.
+- #207 defines the current migration target. These principles do not authorize
+  implementation, runtime migration, database cutover or publication.
 
 ## Product discussion, planning and implementation
 
@@ -193,6 +224,8 @@ unless explicitly approved as durable documentation.
 - `scripts/` — reproducible setup and verification tooling.
 - `docs/product-roadmap.md` — product packages, priorities and backlog workflow.
 - `docs/architecture.md` — architecture and security decisions.
+- `docs/platform-migration-plan.md` — #207 target architecture, portability and
+  migration/rollback plan.
 - `docs/development-workflow.md` — delivery workflow.
 - `docs/visual-review.md` — Lovable branch, preview and screenshot process.
 - `DEVELOPMENT.md` — runtime, setup and verification commands.
@@ -204,8 +237,8 @@ Inspect the current tree before assuming paths or APIs are unchanged.
 ## Data and security rules
 
 - Sensitive reads remain scoped to one group and require active membership.
-- The primary live read boundary is `get_group_app_state_v5f(_group_id)`, with
-  fallback to v5e only when the newer RPC explicitly does not exist.
+- The primary live read boundary is `get_group_app_state_v5i(_group_id)`, with
+  fallback to v5h only when the newer RPC explicitly does not exist.
 - Do not reintroduce direct client `SELECT` access to canonical visits,
   participants, reviews, sharing links, visibility tables or search-area data.
 - Writes use validated `SECURITY DEFINER` RPCs or server functions with locked
@@ -220,8 +253,10 @@ Inspect the current tree before assuming paths or APIs are unchanged.
   provider place ID. Preserve superseded source links instead of rewriting
   historical visits.
 - Do not guess coordinates from unverified free text.
-- Store secrets only in Lovable Cloud Secrets. Never commit them, expose them
-  through `VITE_`, return them to the client or print them in logs.
+- Store secrets only in Lovable Cloud Secrets while Lovable remains the active
+  production runtime. Never commit them, expose them through `VITE_`, return
+  them to the client or print them in logs. A future runtime secret store must
+  preserve the same server-only boundary.
 - Migrations preserve existing production rows unless destructive behaviour is
   explicitly approved and documented.
 
