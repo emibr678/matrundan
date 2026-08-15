@@ -272,6 +272,8 @@ function ReviewRow({
   const hasDetails = review.taste != null || review.value != null || review.service != null;
   const longComment = Boolean(showComment && (comment?.length ?? 0) > 110);
   const expandable = hasDetails || longComment;
+  const canEditOwn = own && !groupArchived && !demoReadOnly;
+  const canToggleComment = canEditOwn && live && Boolean(comment);
 
   return (
     <div className="p-3">
@@ -279,7 +281,7 @@ function ReviewRow({
         <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
           <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
           <div className="min-w-0">
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-1">
               <p className="max-w-full truncate text-sm font-medium">{name}</p>
               {own ? (
                 <Badge
@@ -288,6 +290,9 @@ function ReviewRow({
                 >
                   Du
                 </Badge>
+              ) : null}
+              {canEditOwn ? (
+                <EditReviewDialog review={review} placeName={placeName} compact />
               ) : null}
             </div>
             {showComment ? (
@@ -320,12 +325,12 @@ function ReviewRow({
               <Button
                 type="button"
                 variant="ghost"
-                className="mt-1 min-h-11 w-full justify-between px-2 text-xs text-muted-foreground"
+                className="mt-0.5 min-h-11 w-auto gap-1 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
                 aria-label={`${expanded ? "Dölj" : "Visa"} detaljer för ${name}`}
               >
-                <span>{expanded ? "Dölj detaljer" : "Visa detaljer"}</span>
+                <span>{expanded ? "Dölj" : "Detaljer"}</span>
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                  className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
                 />
               </Button>
             </CollapsibleTrigger>
@@ -342,32 +347,25 @@ function ReviewRow({
         ) : null}
       </Collapsible>
 
-      {own && !groupArchived && !demoReadOnly ? (
-        <div className="mt-2 border-t border-border/50 pt-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <EditReviewDialog review={review} placeName={placeName} compact />
-            {live && comment ? (
-              <div className="flex min-h-11 items-center gap-2">
-                <Label
-                  htmlFor={`review-comment-visible-${review.id}`}
-                  className="text-xs text-muted-foreground"
-                >
-                  Visa kommentar
-                </Label>
-                <Switch
-                  id={`review-comment-visible-${review.id}`}
-                  checked={review.commentVisible}
-                  disabled={savingVisibility}
-                  onCheckedChange={onToggleVisibility}
-                />
-              </div>
-            ) : null}
+      {canToggleComment ? (
+        <div className="mt-1 border-t border-border/50 pt-2">
+          <div className="flex min-h-11 flex-wrap items-center justify-between gap-2">
+            <Label
+              htmlFor={`review-comment-visible-${review.id}`}
+              className="text-xs text-muted-foreground"
+            >
+              Visa kommentar
+            </Label>
+            <Switch
+              id={`review-comment-visible-${review.id}`}
+              checked={review.commentVisible}
+              disabled={savingVisibility}
+              onCheckedChange={onToggleVisibility}
+            />
           </div>
-          {live && comment ? (
-            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              Betyget visas alltid i gruppen. Du kan dölja kommentaren utan att ta bort omdömet.
-            </p>
-          ) : null}
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Betyget visas alltid i gruppen. Du kan dölja kommentaren utan att ta bort omdömet.
+          </p>
         </div>
       ) : null}
     </div>
