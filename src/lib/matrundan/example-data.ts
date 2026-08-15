@@ -49,6 +49,15 @@ function withVisitParticipationScenarios(state: AppState): AppState {
   return {
     ...state,
     visits: state.visits.map((visit) => {
+      if (visit.id === visits.repeatCafeLatest && visit.photo) {
+        return {
+          ...visit,
+          // Robin har lagt upp bilden. Alex är inloggad owner och ska därför
+          // kunna se och moderera den, men inte ersätta den som sin egen.
+          photo: { ...visit.photo, uploadedBy: members.robin },
+        };
+      }
+
       if (visit.id === visits.guestReviews) {
         const existing = (visit.visibleReviews ?? []).filter(
           (review) => review.userId !== members.alex,
