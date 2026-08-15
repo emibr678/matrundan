@@ -10,10 +10,8 @@ test("exempelgruppen visar en annan deltagares foto skrivskyddat för Alex", () 
 
   expect(visit?.photo?.uploadedBy).toBe(EXAMPLE_IDS.members.robin);
   expect(alex?.role).toBe("ägare");
-  expect(
-    canAddOrReplaceVisitPhoto(visit!, EXAMPLE_STATE.currentUserId, alex?.role, false),
-  ).toBe(false);
-  expect(
-    canDeleteVisitPhoto(visit!, EXAMPLE_STATE.currentUserId, alex?.role, false),
-  ).toBe(true);
+  expect(canAddOrReplaceVisitPhoto(visit!, EXAMPLE_STATE.currentUserId, alex?.role, false)).toBe(
+    false,
+  );
+  expect(canDeleteVisitPhoto(visit!, EXAMPLE_STATE.currentUserId, alex?.role, false)).toBe(true);
 });
