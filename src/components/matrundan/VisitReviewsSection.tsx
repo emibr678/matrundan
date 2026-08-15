@@ -132,7 +132,7 @@ export function VisitReviewsSection({
                 placeName={placeName}
                 currentUserId={currentUserId}
                 writable={writable}
-                mode={mode}
+                mode={mode === "live" ? "live" : "demo"}
                 onChanged={onChanged}
               />
             ) : null}
