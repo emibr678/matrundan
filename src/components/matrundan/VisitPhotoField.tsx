@@ -36,7 +36,7 @@ export function VisitPhotoField({
     <div className="space-y-2">
       <div>
         {showLabel ? <Label htmlFor={inputId}>Foto från besöket (frivilligt)</Label> : null}
-        <p className={showLabel ? "mt-0.5 text-[11px] leading-relaxed text-muted-foreground" : "text-[11px] leading-relaxed text-muted-foreground"}>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
           Bilden beskärs inte, men komprimeras och platsmetadata tas bort innan den sparas.
         </p>
       </div>
