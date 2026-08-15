@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  canAddOrReplaceVisitPhoto,
-  canDeleteVisitPhoto,
-  canManageVisitPhoto,
-} from "./visit-photo";
+import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto, canManageVisitPhoto } from "./visit-photo";
 
 const originalVisit = {
   linkType: "original" as const,
@@ -99,23 +95,13 @@ describe("behörighet för besöksfoto", () => {
       ),
     ).toBe(false);
     expect(
-      canDeleteVisitPhoto(
-        { ...originalVisit, photo: photoByMemberOne },
-        "member-1",
-        "ägare",
-        true,
-      ),
+      canDeleteVisitPhoto({ ...originalVisit, photo: photoByMemberOne }, "member-1", "ägare", true),
     ).toBe(false);
   });
 
   test("kompatibilitetshjälparen betyder att minst en tillåten fotoåtgärd finns", () => {
     expect(
-      canManageVisitPhoto(
-        { ...originalVisit, photo: photoByMemberOne },
-        "admin-1",
-        "admin",
-        false,
-      ),
+      canManageVisitPhoto({ ...originalVisit, photo: photoByMemberOne }, "admin-1", "admin", false),
     ).toBe(true);
     expect(
       canManageVisitPhoto(
