@@ -148,8 +148,9 @@ describe("publik exempeldata", () => {
     expect(state.members.some((member) => member.id === members.formerLina)).toBe(false);
     expect(formerVisit?.participantIds).toContain(members.formerLina);
 
-    const delegatedVisit = state.visits.find((visit) => visit.id === visits.archivedHistory);
-    expect(delegatedVisit?.participantIds).not.toContain(delegatedVisit?.createdBy);
+    const correctedVisit = state.visits.find((visit) => visit.id === visits.archivedHistory);
+    expect(correctedVisit?.participantIds).toContain(correctedVisit?.createdBy);
+    expect(correctedVisit?.participantIds).not.toContain(state.currentUserId);
 
     const archived = state.places.find((place) => place.id === places.archivedBakery);
     expect(archived?.collectionStatus).toBe("archived");
