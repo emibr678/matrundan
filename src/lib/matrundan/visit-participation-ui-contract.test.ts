@@ -26,6 +26,7 @@ describe("UX-kontrakt för gemensamma besök", () => {
     expect(reviewDialog).toContain('label="Prisvärdhet"');
     expect(reviewDialog).toContain("av 4 betyg satta");
     expect(reviewDialog).toContain("inget nytt besök skapas");
+    expect(reviewDialog).toContain("Lägg till ditt omdöme");
   });
 
   test("självkorrigering är tydlig och återställningsbar utan egen review-CTA", () => {
@@ -40,7 +41,8 @@ describe("UX-kontrakt för gemensamma besök", () => {
   test("besöksdetaljen samlar omdömen i en gemensam informationsyta", () => {
     expect(visitDetail).toContain("VisitReviewsSection");
     expect(visitReviews).toContain("Gängets omdömen");
-    expect(visitReviews).toContain("Lägg till ditt omdöme");
+    expect(visitReviews).toContain("AddVisitReviewDialog");
+    expect(visitReviews).toContain("DemoAddVisitReviewDialog");
     expect(visitReviews).toContain("Visa alla");
     expect(visitDetail).not.toContain("Kommentar från gänget");
     expect(visitDetail).not.toContain("Din synlighet");
