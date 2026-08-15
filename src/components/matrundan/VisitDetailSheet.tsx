@@ -28,10 +28,7 @@ import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
-import {
-  canAddOrReplaceVisitPhoto,
-  canDeleteVisitPhoto,
-} from "@/lib/matrundan/visit-photo";
+import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { canDeleteOriginalVisit } from "@/lib/matrundan/visit-permissions";
 
 const MEAL_LABEL: Record<string, string> = {
