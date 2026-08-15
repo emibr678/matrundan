@@ -422,8 +422,6 @@ export type Database = {
           lng: number
           provider: string
           provider_place_id: string
-          result_type: string | null
-          search_mode: string
           sort_order: number
           updated_at: string
         }
@@ -436,8 +434,6 @@ export type Database = {
           lng: number
           provider: string
           provider_place_id: string
-          result_type?: string | null
-          search_mode?: string
           sort_order?: number
           updated_at?: string
         }
@@ -450,8 +446,6 @@ export type Database = {
           lng?: number
           provider?: string
           provider_place_id?: string
-          result_type?: string | null
-          search_mode?: string
           sort_order?: number
           updated_at?: string
         }
@@ -1777,42 +1771,6 @@ export type Database = {
           },
         ]
       }
-      visit_participation_self_corrections: {
-        Row: {
-          status: string
-          updated_at: string
-          user_id: string
-          visit_id: string
-        }
-        Insert: {
-          status: string
-          updated_at?: string
-          user_id: string
-          visit_id: string
-        }
-        Update: {
-          status?: string
-          updated_at?: string
-          user_id?: string
-          visit_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "visit_participation_self_corrections_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "visit_participation_self_corrections_visit_id_fkey"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "visits"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       visits: {
         Row: {
           created_at: string
@@ -1898,10 +1856,6 @@ export type Database = {
       }
       can_delete_original_visit: {
         Args: { _group_id: string; _user_id: string; _visit_id: string }
-        Returns: boolean
-      }
-      can_manage_own_visit_photo: {
-        Args: { _group_id: string; _visit_id: string }
         Returns: boolean
       }
       can_manage_visit_photo: {
@@ -2136,22 +2090,6 @@ export type Database = {
         }
         Returns: string
       }
-      create_visit_with_review_v3: {
-        Args: {
-          _comment?: string
-          _group_id: string
-          _guest_names?: string[]
-          _meal_type: string
-          _overall?: number
-          _participant_ids: string[]
-          _place_id: string
-          _service?: number
-          _taste?: number
-          _value?: number
-          _visited_on: string
-        }
-        Returns: string
-      }
       cross_group_practical_info_candidate_v1: {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json
@@ -2205,16 +2143,6 @@ export type Database = {
       get_group_app_state_v5f: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5g: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5h: { Args: { _group_id: string }; Returns: Json }
-      get_group_app_state_v5h_boundary_base: {
-        Args: { _group_id: string }
-        Returns: Json
-      }
-      get_group_app_state_v5i: { Args: { _group_id: string }; Returns: Json }
-      get_group_app_state_v5i_participation_base: {
-        Args: { _group_id: string }
-        Returns: Json
-      }
-      get_group_app_state_v5j: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2524,18 +2452,6 @@ export type Database = {
         Args: { _value: string }
         Returns: boolean
       }
-      save_own_review_for_visit_v1: {
-        Args: {
-          _comment?: string
-          _group_id: string
-          _overall: number
-          _service?: number
-          _taste?: number
-          _value?: number
-          _visit_id: string
-        }
-        Returns: string
-      }
       save_place_external_info_snapshot_v1: {
         Args: {
           _fetched_at: string
@@ -2582,10 +2498,6 @@ export type Database = {
       }
       set_notification_preference: {
         Args: { _enabled: boolean; _type: string }
-        Returns: undefined
-      }
-      set_own_visit_participation_v1: {
-        Args: { _group_id: string; _participating: boolean; _visit_id: string }
         Returns: undefined
       }
       set_review_group_visibility: {
