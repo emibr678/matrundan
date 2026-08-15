@@ -27,6 +27,9 @@ Inga ändringar ännu.
 - Flera omdömen visas kompakt med valfria detaljer. Normal
   deltagarkorrigering ligger sekundärt medan ett tidigare **Jag var inte med**
   fortfarande får ett tydligt återställningsläge.
+- Ett befintligt besöksfoto kan inte längre ersättas av en annan deltagare.
+  Uppladdaren behåller rätten att byta sin bild medan ägare och admin bara kan
+  ta bort någon annans foto som modereringsåtgärd i väntan på flerfotostödet.
 - Exempelgruppen innehåller ett 3-av-4-scenario och ett besök utan aktiva
   omdömen så flerpersons- och tomlägen kan granskas utan externa anrop.
 
