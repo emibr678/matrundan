@@ -35,9 +35,14 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
 
   await expect(
     page.getByText(
-      "Välj vilka som faktiskt deltog. Du är förvald men kan avmarkera dig om du bara registrerar åt gruppen.",
+      "Du registrerar besöket och räknas därför som deltagare. Välj vilka andra som var med.",
     ),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Alex är deltagare eftersom du registrerar besöket",
+    }),
+  ).toBeDisabled();
   await page.getByRole("button", { name: "Lägg till gäst" }).click();
   await page.getByLabel("Gästens namn").fill("Maja");
   await page.getByRole("button", { name: "Lägg till", exact: true }).click();
@@ -62,6 +67,7 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expect(
     visitDialog.getByText("Gäster hör bara till detta besök och får ingen medlemsprogression."),
   ).toBeVisible();
+  await expect(visitDialog.getByRole("button", { name: "Jag var inte med" })).toHaveCount(0);
   await visitDialog.getByRole("button", { name: "Stäng", exact: true }).click();
 
   await page.goto("/matstallen");
