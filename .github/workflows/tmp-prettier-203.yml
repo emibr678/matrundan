@@ -1,0 +1,59 @@
+name: Temp Prettier Diagnose 203
+
+on:
+  push:
+    branches:
+      - agent/issue-203-grouped-visit-reviews
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  diagnose:
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          while IFS= read -r -d '' file; do
+            sed -i 's/\r$//' "$file"
+          done < <(git ls-files -z -- '*.ts' '*.tsx')
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Print exact Prettier result
+        run: |
+          bunx prettier --write \
+            src/lib/matrundan/visit-photo-example-contract.test.ts \
+            src/lib/matrundan/visit-photo.test.ts
+          echo '--- DIFF START ---'
+          git diff -- \
+            src/lib/matrundan/visit-photo-example-contract.test.ts \
+            src/lib/matrundan/visit-photo.test.ts
+          echo '--- DIFF END ---'
+          echo '--- EXAMPLE FILE START ---'
+          cat src/lib/matrundan/visit-photo-example-contract.test.ts
+          echo '--- EXAMPLE FILE END ---'
+          echo '--- UNIT FILE START ---'
+          cat src/lib/matrundan/visit-photo.test.ts
+          echo '--- UNIT FILE END ---'
