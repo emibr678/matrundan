@@ -76,6 +76,7 @@ export function EditReviewDialog({
       <DialogTrigger asChild>
         <Button
           variant={compact ? "ghost" : "secondary"}
+          aria-label={compact ? "Redigera omdöme" : undefined}
           className={
             compact
               ? "min-h-11 px-2 text-primary"
