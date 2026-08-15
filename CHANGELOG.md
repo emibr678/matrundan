@@ -174,7 +174,7 @@ Inga ändringar ännu.
 - Matställessökningen skiljer generella köks- och typförslag från specifika
   verksamheter utan att ett verksamhetsval ändrar sökområde eller avstånd.
 - En ny sökning behåller redan visade träffar under omladdningen och visar en
-  diskret `Söker…`-status i stället för att töma resultatytan.
+  diskret `Söker…`-status i stället för att tömma resultatytan.
 - Sökresultat visas i mindre omgångar och varje listsida fylls med upp till 20
   faktiskt visningsbara träffar när providern har fler. **Visa fler** ger upp
   till nästa 20 visningsbara träffar och lägger dem sist utan att kasta om
