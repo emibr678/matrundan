@@ -61,6 +61,7 @@ export function VisitPhotoManager({
             onFileChange={setFile}
             existingUrl={visit.photo?.url}
             disabled={disabled}
+            showLabel={false}
           />
         ) : hasPhoto ? (
           <div className="overflow-hidden rounded-2xl border border-border/70 bg-muted">
