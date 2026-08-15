@@ -121,7 +121,12 @@ if (!upsertFunction) {
     /WHERE\s+public\.visit_media\.uploaded_by\s*=\s*EXCLUDED\.uploaded_by/i,
     "Conflict-update får bara ersätta foto för samma uploader.",
   );
-  if (/uploaded_by\s*=\s*EXCLUDED\.uploaded_by/i.test(upsertFunction)) {
+  const conflictAssignments = upsertFunction.match(
+    /ON\s+CONFLICT[\s\S]*?DO\s+UPDATE\s+SET([\s\S]*?)WHERE\s+public\.visit_media\.uploaded_by/i,
+  )?.[1];
+  if (!conflictAssignments) {
+    errors.push("Fotoersättningens conflict-update kunde inte avgränsas.");
+  } else if (/\buploaded_by\s*=/i.test(conflictAssignments)) {
     errors.push("Fotoersättning får inte byta uploaded_by på det befintliga mediaobjektet.");
   }
 }
