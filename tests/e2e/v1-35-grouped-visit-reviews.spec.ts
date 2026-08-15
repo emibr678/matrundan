@@ -26,6 +26,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   page,
 }) => {
   await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await page.goto("/matstallen/p3?visit=v2");
 
   const visitDialog = page.getByRole("dialog").first();
