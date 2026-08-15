@@ -204,12 +204,15 @@ Rekommenderad ordning:
 
 1. **#169 Bekräfta deltagande och komplettera gemensamma besök – första
    leveransen**  
-   Låt redan identifierade faktiska deltagare komplettera samma kanoniska besök
-   med eget omdöme och självkorrigera **Jag var inte med** / **Jag var med**.
-   Progression, statistik och aktivt deltagaromdöme ska följa den korrigerade
-   deltagarsanningen. Registreraren ska inte få ett aktivt deltagaromdöme om hen
-   själv inte var deltagare. Samma identifierade deltagande återanvänds över
-   gruppkontexter där användaren legitimt kan se samma besök.
+   Den som registrerar ett nytt besök är själv faktisk deltagare och lämnar sitt
+   eget omdöme i registreringsflödet; registreringen ger ingen extra progression
+   utöver vanlig deltagarprogression. Andra identifierade deltagare kan
+   komplettera samma kanoniska besök med egna omdömen och självkorrigera **Jag
+   var inte med** / **Jag var med**. Progression, statistik och aktivt
+   deltagaromdöme följer den kanoniska deltagarsanningen, och samma identifierade
+   deltagande återanvänds över gruppkontexter där användaren legitimt kan se
+   samma besök. Befintlig historik skrivs inte om destruktivt när den nya
+   registrerarinvarianten införs.
 2. **#203 Samla deltagaromdömen i en tydlig besöksvy**  
    Gör besöksdetaljen begriplig när flera faktiska deltagare lämnar egna
    omdömen. Samla gruppens sammanfattning och individuella deltagaromdömen i en
