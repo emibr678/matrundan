@@ -92,14 +92,15 @@ individuell matdagbok, social feed eller global ranking.
 - Gruppen kan föreslå datum och valfri tid, svara **Passar**, **Passar inte**
   eller **Osäker** och bekräfta planen utan automatisk majoritetslogik.
 - Besök registreras med datum, måltid, faktiska deltagare, omdömen och ett
-  valfritt privat foto. Namngivna besöksgäster kan läggas till utan att bli
-  gruppmedlemmar eller få progression; vid delning visas de endast som ett
-  anonymt antal.
-- En faktisk deltagare kan komplettera samma kanoniska besök med sitt eget
+  valfritt privat foto. Den som registrerar ett nytt besök räknas alltid som
+  faktisk deltagare och lämnar sitt eget omdöme; namngivna besöksgäster kan
+  läggas till utan att bli gruppmedlemmar eller få progression och visas vid
+  delning endast som ett anonymt antal.
+- En annan faktisk deltagare kan komplettera samma kanoniska besök med sitt eget
   omdöme. Den som felaktigt lagts till kan välja **Jag var inte med** och senare
   återställa **Jag var med**; progression och aktiva deltagaromdömen följer den
-  korrigerade närvaron. Den som bara registrerar åt gruppen får ingen egen
-  review eller progression om hen själv inte deltog.
+  korrigerade närvaron. Registreraren kan inte korrigera bort sin egen närvaro
+  på ett besök hen själv skapat.
 - Gruppens gemensamma besökshistorik nås via **Visa alla besök** på Hem och visar
   det senaste först med samma privata besöksdetaljer som matställesvyn.
 - **Passar för** kan lämnas tomt eller anges med upp till två likvärdiga val. Ett
@@ -208,11 +209,13 @@ Gruppen är den primära produkt- och integritetsgränsen.
 - `visits` representerar kanoniska verkliga besök.
 - `visit_group_links` kopplar original- och mottagargrupper till samma besök.
 - `visit_participants` innehåller den aktuella faktiska identifierade närvaron
-  och är den enda källan till medlemsprogression; registreraren får ingen
-  automatisk deltagarkredit eller review.
-- `visit_participation_self_corrections` är ett server-only spår för den
-  inloggade användarens **Jag var inte med** / **Jag var med**. Klientroller har
-  ingen direkt tabellåtkomst.
+  och är den enda källan till medlemsprogression. Den som registrerar ett nytt
+  besök måste själv ingå som faktisk deltagare; registreringshandlingen ger
+  ingen extra kredit utöver den vanliga deltagarprogressionen.
+- `visit_participation_self_corrections` är ett server-only spår för andra
+  deltagares **Jag var inte med** / **Jag var med**. Registreraren kan inte
+  korrigera bort sitt eget deltagande på ett besök hen själv skapat och
+  klientroller har ingen direkt tabellåtkomst.
 - `reviews` innehåller högst ett kanoniskt eget omdöme per besök och användare.
   `review_group_visibility` styr därefter betygs- och kommentarssynlighet per
   grupp; en review dupliceras inte för att samma besök visas i flera grupper.
