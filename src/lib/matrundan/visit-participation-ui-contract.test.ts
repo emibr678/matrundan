@@ -11,12 +11,18 @@ const visitHistory = await Bun.file("src/routes/besok.tsx").text();
 const liveMutations = await Bun.file("src/lib/matrundan/live-mutations.ts").text();
 
 describe("UX-kontrakt för gemensamma besök", () => {
-  test("registrering skiljer registrerare från faktisk deltagare", () => {
-    expect(visitDialog).toContain("currentUserParticipates");
-    expect(visitDialog).toContain("du bara\n              registrerar åt gruppen");
-    expect(visitDialog).toContain("Du registrerar besöket åt gruppen");
+  test("den som registrerar ett nytt besök är låst som deltagare", () => {
+    expect(visitDialog).toContain("Du registrerar besöket och räknas därför som deltagare");
+    expect(visitDialog).toContain("member.id === state.currentUserId");
+    expect(visitDialog).toContain("Den som registrerar besöket måste vara deltagare");
+    expect(visitDialog).not.toContain("registrerar åt gruppen");
     expect(liveMutations).toContain('"create_visit_with_review_v3"');
-    expect(liveMutations).toContain("registrarParticipates");
+  });
+
+  test("registreraren erbjuds inte att korrigera bort sitt eget deltagande", () => {
+    expect(participationControls).toContain("visit.createdBy === currentUserId");
+    expect(participationControls).toContain("if (isRegistrar) return null");
+    expect(participationControls).toContain("Jag var inte med");
   });
 
   test("kompletteringsflödet visar alla fyra betyg som kärnfält", () => {
@@ -29,7 +35,7 @@ describe("UX-kontrakt för gemensamma besök", () => {
     expect(reviewDialog).toContain("Lägg till ditt omdöme");
   });
 
-  test("självkorrigering är tydlig och återställningsbar utan egen review-CTA", () => {
+  test("andra deltagares självkorrigering är tydlig och återställningsbar utan egen review-CTA", () => {
     expect(participationControls).toContain("Jag var inte med");
     expect(participationControls).toContain("Jag var med");
     expect(participationControls).toContain("progression");
