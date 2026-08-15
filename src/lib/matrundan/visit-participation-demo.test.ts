@@ -8,7 +8,7 @@ import { EXAMPLE_FIXTURE_REFERENCE_TIME, EXAMPLE_IDS, buildExampleState } from "
 const storeSource = await Bun.file("src/lib/matrundan/store.tsx").text();
 
 describe("demo-paritet för gemensamma besök", () => {
-  test("registreraromdömen filtreras bort när registreraren inte deltog", () => {
+  test("reviews filtreras mot faktisk deltagarstatus", () => {
     expect(storeSource).toContain("visit.participantIds.includes(review.userId)");
     expect(storeSource).toContain("visibleReviews: reviews");
   });
@@ -52,6 +52,15 @@ describe("demo-paritet för gemensamma besök", () => {
     expect(restoredVisit?.participantIds).toContain(restored.currentUserId);
     expect(restoredReview?.id).toBe(ownReview?.id);
     expect(restoredReview?.ratingVisible).toBe(true);
+  });
+
+  test("registreraren kan inte korrigera bort sitt eget deltagande", () => {
+    const initial = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
+    const visitId = EXAMPLE_IDS.visits.repeatCafeLatest;
+
+    expect(() => setOwnDemoVisitParticipation(initial, visitId, false)).toThrow(
+      "Den som registrerade besöket måste vara deltagare.",
+    );
   });
 
   test("icke-deltagare kan inte lägga eget demo-omdöme", () => {
