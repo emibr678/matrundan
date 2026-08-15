@@ -49,12 +49,13 @@ describe("exempelgruppens omdömesscenarier", () => {
     expect(visit?.visibleReviews?.every((review) => !review.ratingVisible)).toBe(true);
   });
 
-  test("självkorrigerad frånvaro och registrerare utan deltagande finns kvar", () => {
+  test("självkorrigerad deltagare lämnar registreraren kvar på besöket", () => {
     const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
     const visit = state.visits.find((item) => item.id === EXAMPLE_IDS.visits.archivedHistory);
 
     expect(visit?.currentUserParticipationStatus).toBe("declined");
     expect(visit?.participantIds).not.toContain(state.currentUserId);
-    expect(visit?.participantIds).not.toContain(visit?.createdBy);
+    expect(visit?.participantIds).toContain(visit?.createdBy);
+    expect(visit?.visibleReviews?.some((review) => review.userId === visit?.createdBy)).toBe(true);
   });
 });
