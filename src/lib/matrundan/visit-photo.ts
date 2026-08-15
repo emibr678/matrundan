@@ -17,14 +17,55 @@ export interface PreparedVisitPhoto {
   height: number;
 }
 
-export function canManageVisitPhoto(
+function isGroupAdmin(role: Role | null | undefined) {
+  return role === "ägare" || role === "admin";
+}
+
+function canContributeVisitPhoto(
   visit: Pick<Visit, "linkType" | "participantIds">,
   currentUserId: string,
   role: Role | null | undefined,
   groupArchived: boolean,
 ) {
   if (groupArchived || visit.linkType === "shared") return false;
-  return visit.participantIds.includes(currentUserId) || role === "ägare" || role === "admin";
+  return visit.participantIds.includes(currentUserId) || isGroupAdmin(role);
+}
+
+export function canAddOrReplaceVisitPhoto(
+  visit: Pick<Visit, "linkType" | "participantIds" | "photo">,
+  currentUserId: string,
+  role: Role | null | undefined,
+  groupArchived: boolean,
+) {
+  if (!canContributeVisitPhoto(visit, currentUserId, role, groupArchived)) return false;
+  return !visit.photo || visit.photo.uploadedBy === currentUserId;
+}
+
+export function canDeleteVisitPhoto(
+  visit: Pick<Visit, "linkType" | "photo">,
+  currentUserId: string,
+  role: Role | null | undefined,
+  groupArchived: boolean,
+) {
+  if (groupArchived || visit.linkType === "shared" || !visit.photo) return false;
+  return visit.photo.uploadedBy === currentUserId || isGroupAdmin(role);
+}
+
+/**
+ * Samlad klientindikator för äldre anrop. Skrivningar ska använda de mer precisa
+ * canAddOrReplaceVisitPhoto/canDeleteVisitPhoto så att en annan deltagares foto
+ * aldrig blir ersättningsbart bara för att användaren deltog i besöket.
+ */
+export function canManageVisitPhoto(
+  visit: Pick<Visit, "linkType" | "participantIds" | "photo">,
+  currentUserId: string,
+  role: Role | null | undefined,
+  groupArchived: boolean,
+) {
+  return (
+    canAddOrReplaceVisitPhoto(visit, currentUserId, role, groupArchived) ||
+    canDeleteVisitPhoto(visit, currentUserId, role, groupArchived)
+  );
 }
 
 function loadImage(file: File): Promise<HTMLImageElement> {
