@@ -94,6 +94,10 @@ export function setOwnDemoVisitParticipation(
   const visit = state.visits.find((item) => item.id === visitId);
   if (!visit) throw new Error("Besöket finns inte.");
 
+  if (!participating && visit.createdBy === state.currentUserId) {
+    throw new Error("Den som registrerade besöket måste vara deltagare.");
+  }
+
   const isParticipant = visit.participantIds.includes(state.currentUserId);
   if (participating) {
     if (visit.currentUserParticipationStatus !== "declined") {
