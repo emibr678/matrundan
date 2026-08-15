@@ -13,9 +13,7 @@ describe("databaskontrakt för gemensamma besök och deltagaromdömen", () => {
     expect(registrarGuard).toContain(
       "CREATE OR REPLACE FUNCTION public.create_visit_with_review_v3(",
     );
-    expect(registrarGuard).toContain(
-      "_uid = ANY(COALESCE(_participant_ids, '{}'::uuid[]))",
-    );
+    expect(registrarGuard).toContain("_uid = ANY(COALESCE(_participant_ids, '{}'::uuid[]))");
     expect(registrarGuard).toContain("Den som registrerar besöket måste vara deltagare");
     expect(registrarGuard).toContain("Helhetsbetyg måste vara 1–5");
     expect(registrarGuard).toContain("INSERT INTO public.reviews");
