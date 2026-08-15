@@ -21,9 +21,11 @@ import type { VisibleReview } from "@/lib/matrundan/types";
 export function EditReviewDialog({
   review,
   placeName,
+  compact = false,
 }: {
   review: VisibleReview;
   placeName: string;
+  compact?: boolean;
 }) {
   const { updateOwnReview, submitting, state, demoReadOnly } = useStore();
   const [open, setOpen] = React.useState(false);
@@ -73,10 +75,14 @@ export function EditReviewDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
-          variant="secondary"
-          className="w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
+          variant={compact ? "ghost" : "secondary"}
+          className={
+            compact
+              ? "min-h-11 px-2 text-primary"
+              : "w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
+          }
         >
-          <Pencil className="h-4 w-4" /> Redigera omdöme
+          <Pencil className="h-4 w-4" /> {compact ? "Ändra" : "Redigera omdöme"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
