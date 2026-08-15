@@ -62,5 +62,8 @@ export function visitReviewProgressLabel(reviewCount: number, participantCount: 
     return reviewCount === 1 ? "1 omdöme" : `${reviewCount} omdömen`;
   }
 
-  return `${reviewCount} av ${participantCount} deltagare har lämnat omdöme`;
+  // Nämnaren är identifierade faktiska gruppmedlemmar på besöket. Gäster och
+  // anonyma externa deltagare kan synas i deltagarlistan men har inget eget
+  // medlemskonto att koppla ett deltagaromdöme till i den här leveransen.
+  return `${reviewCount} av ${participantCount} deltagare i gruppen har lämnat omdöme`;
 }
