@@ -9,7 +9,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -170,24 +169,24 @@ export function VisitDetailSheet({
               </SheetHeader>
 
               <div className="space-y-4 p-5">
-                <VisitPhotoManager visit={visit} canManage={canManagePhoto} />
-
-                <Card className="rounded-2xl border-border/70 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-11 w-11 place-items-center rounded-full bg-secondary text-2xl">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <span className="inline-flex min-w-0 items-center gap-1.5">
+                    <span
+                      className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-sm"
+                      aria-hidden="true"
+                    >
                       {author?.avatar ?? "🙂"}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm">
-                        <span className="font-medium">{author?.name ?? "Någon"}</span>
-                        <span className="text-muted-foreground"> registrerade</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {MEAL_LABEL[visit.meal] ?? visit.meal} · {formatDate(visit.date)}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+                    </span>
+                    <span className="min-w-0">
+                      <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
+                      registrerade
+                    </span>
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{MEAL_LABEL[visit.meal] ?? visit.meal}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{formatDate(visit.date)}</span>
+                </div>
 
                 <section>
                   <h3 className="mb-2 text-sm font-medium">Deltagare</h3>
@@ -264,6 +263,18 @@ export function VisitDetailSheet({
                   onChanged={reload}
                 />
 
+                {participationStatus === "participant" ? (
+                  <VisitParticipationControls
+                    visit={visit}
+                    currentUserId={state.currentUserId}
+                    groupArchived={groupArchived}
+                    demoReadOnly={demoReadOnly}
+                    onChanged={reload}
+                  />
+                ) : null}
+
+                <VisitPhotoManager visit={visit} canManage={canManagePhoto} />
+
                 <Button asChild variant="outline" className="w-full">
                   <Link
                     to="/matstallen/$placeId"
@@ -279,16 +290,6 @@ export function VisitDetailSheet({
                     <Share2 className="h-4 w-4" />
                     Lägg till i annan grupp
                   </Button>
-                ) : null}
-
-                {participationStatus === "participant" ? (
-                  <VisitParticipationControls
-                    visit={visit}
-                    currentUserId={state.currentUserId}
-                    groupArchived={groupArchived}
-                    demoReadOnly={demoReadOnly}
-                    onChanged={reload}
-                  />
                 ) : null}
 
                 {canUnlink ? (
@@ -360,7 +361,7 @@ export function VisitDetailSheet({
             <AlertDialogAction
               disabled={deleting}
               onClick={doDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground"
             >
               {deleting ? "Raderar…" : "Radera besöket"}
             </AlertDialogAction>
