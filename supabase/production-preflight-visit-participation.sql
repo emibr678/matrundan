@@ -18,10 +18,11 @@ WITH checks(name, ok) AS (
       )),
     ('visit_rpc:create_visit_with_review_v3',
       to_regprocedure('public.create_visit_with_review_v3(uuid,uuid,date,text,uuid[],smallint,smallint,smallint,smallint,text,text[])') IS NOT NULL),
-    ('visit_rpc:registrar-review-requires-participation',
+    ('visit_rpc:registrar-must-participate',
       COALESCE(
-        position('_registrar_participates' IN pg_get_functiondef(to_regprocedure('public.create_visit_with_review_v3(uuid,uuid,date,text,uuid[],smallint,smallint,smallint,smallint,text,text[])'))) > 0
-        AND position('IF _registrar_participates THEN' IN pg_get_functiondef(to_regprocedure('public.create_visit_with_review_v3(uuid,uuid,date,text,uuid[],smallint,smallint,smallint,smallint,text,text[])'))) > 0,
+        position('_uid = ANY' IN pg_get_functiondef(to_regprocedure('public.create_visit_with_review_v3(uuid,uuid,date,text,uuid[],smallint,smallint,smallint,smallint,text,text[])'))) > 0
+        AND position('Den som registrerar besöket måste vara deltagare' IN pg_get_functiondef(to_regprocedure('public.create_visit_with_review_v3(uuid,uuid,date,text,uuid[],smallint,smallint,smallint,smallint,text,text[])'))) > 0
+        AND position('INSERT INTO public.reviews' IN pg_get_functiondef(to_regprocedure('public.create_visit_with_review_v3(uuid,uuid,date,text,uuid[],smallint,smallint,smallint,smallint,text,text[])'))) > 0,
         false
       )),
     ('review_rpc:save_own_review_for_visit_v1',
@@ -35,6 +36,12 @@ WITH checks(name, ok) AS (
       )),
     ('participation_rpc:set_own_visit_participation_v1',
       to_regprocedure('public.set_own_visit_participation_v1(uuid,uuid,boolean)') IS NOT NULL),
+    ('participation_rpc:registrar-cannot-decline',
+      COALESCE(
+        position('created_by = _uid' IN pg_get_functiondef(to_regprocedure('public.set_own_visit_participation_v1(uuid,uuid,boolean)'))) > 0
+        AND position('Den som registrerade besöket måste vara deltagare' IN pg_get_functiondef(to_regprocedure('public.set_own_visit_participation_v1(uuid,uuid,boolean)'))) > 0,
+        false
+      )),
     ('participation_rpc:restore-needs-own-decline',
       COALESCE(
         position('_correction_status IS DISTINCT FROM ''declined''' IN pg_get_functiondef(to_regprocedure('public.set_own_visit_participation_v1(uuid,uuid,boolean)'))) > 0
