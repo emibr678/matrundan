@@ -134,15 +134,43 @@ function withVisitParticipationScenarios(state: AppState): AppState {
       if (visit.id === visits.archivedHistory) {
         return {
           ...visit,
-          participantIds: visit.participantIds.filter((id) => id !== members.alex),
-          participants: visit.participants?.filter(
-            (participant) => participant.id !== members.alex,
-          ),
+          participantIds: [
+            ...new Set([
+              ...visit.participantIds.filter((id) => id !== members.alex),
+              visit.createdBy,
+            ]),
+          ],
+          participants: visit.participants
+            ? [
+                ...visit.participants.filter((participant) => participant.id !== members.alex),
+                ...(visit.participants.some((participant) => participant.id === visit.createdBy)
+                  ? []
+                  : [
+                      {
+                        id: visit.createdBy,
+                        name: "Sam",
+                        avatar: "🐻",
+                        avatarImage: null,
+                        status: "active" as const,
+                      },
+                    ]),
+              ]
+            : undefined,
           currentUserParticipationStatus: "declined",
-          // Besöket registrerades av Sam, som inte själv deltog. Kims omdöme
-          // gör scenariot explicit och förhindrar äldre demo-normalisering från
-          // att fabricera ett registreraromdöme.
+          // Sam registrerade och deltog. Alex är den separata deltagare som senare
+          // självkorrigerat sin närvaro; registreraren ligger kvar som deltagare.
           visibleReviews: [
+            {
+              id: "review-v5-sam",
+              userId: visit.createdBy,
+              overall: 5,
+              taste: 5,
+              value: 4,
+              service: 4,
+              comment: "Tidigt, varmt bröd och nästan ingen kö.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
             {
               id: "review-v5-kim",
               userId: members.kim,
@@ -150,7 +178,7 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               taste: 5,
               value: 4,
               service: 4,
-              comment: "Tidigt, varmt bröd och nästan ingen kö.",
+              comment: "Bra frukoststopp för gänget.",
               ratingVisible: true,
               commentVisible: true,
             },
