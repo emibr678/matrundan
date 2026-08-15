@@ -1,0 +1,77 @@
+name: Temp issue 203 targeted verification
+
+on:
+  push:
+    branches:
+      - agent/issue-203-grouped-visit-reviews
+
+permissions:
+  contents: write
+
+jobs:
+  targeted:
+    runs-on: matrundan-self-hosted
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/issue-203-grouped-visit-reviews
+          fetch-depth: 0
+
+      - name: Normalize Windows checkout
+        run: |
+          git config core.autocrlf false
+          while IFS= read -r -d '' file; do
+            sed -i 's/\r$//' "$file"
+          done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Format touched files
+        run: |
+          bunx prettier --write \
+            src/components/matrundan/EditReviewDialog.tsx \
+            tests/e2e/v1-35-grouped-visit-reviews.spec.ts
+
+      - name: Commit formatter output if needed
+        run: |
+          if ! git diff --quiet -- src/components/matrundan/EditReviewDialog.tsx tests/e2e/v1-35-grouped-visit-reviews.spec.ts; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/components/matrundan/EditReviewDialog.tsx tests/e2e/v1-35-grouped-visit-reviews.spec.ts
+            git commit -m "style: formatera riktade #203-filer"
+            git push origin HEAD:agent/issue-203-grouped-visit-reviews
+          fi
+
+      - name: Relevant unit tests
+        run: |
+          bun test \
+            src/lib/matrundan/visit-reviews.test.ts \
+            src/lib/matrundan/example-review-scenarios.test.ts \
+            src/lib/matrundan/visit-participation-ui-contract.test.ts
+
+      - name: Playwright TypeScript
+        run: bun run typecheck:e2e
+
+      - name: Install Chromium
+        run: bunx playwright install chromium
+
+      - name: Targeted 360 px browser tests
+        run: |
+          bunx playwright test \
+            tests/e2e/package-4b.spec.ts \
+            tests/e2e/v1-35-grouped-visit-reviews.spec.ts \
+            --project=mobile-chromium \
+            --retries=0
