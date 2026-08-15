@@ -15,12 +15,12 @@ describe("exempelgruppens deltagarscenarier", () => {
     expect(visit?.visibleReviews).toHaveLength(2);
   });
 
-  test("visar självkorrigerat deltagande utan registreraromdöme", () => {
+  test("visar självkorrigerad deltagare medan registreraren ligger kvar", () => {
     const visit = state.visits.find((item) => item.id === EXAMPLE_IDS.visits.archivedHistory);
     expect(visit).toBeDefined();
     expect(visit?.currentUserParticipationStatus).toBe("declined");
     expect(visit?.participantIds).not.toContain(state.currentUserId);
-    expect(visit?.participantIds).not.toContain(visit?.createdBy);
-    expect(visit?.visibleReviews?.some((review) => review.userId === visit?.createdBy)).toBe(false);
+    expect(visit?.participantIds).toContain(visit?.createdBy);
+    expect(visit?.visibleReviews?.some((review) => review.userId === visit?.createdBy)).toBe(true);
   });
 });
