@@ -26,11 +26,10 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   page,
 }) => {
   await page.goto("/exempel");
-  await page.goto("/besok");
+  await page.goto("/matstallen/p3?visit=v2");
 
-  await page.getByRole("button", { name: /Öppna besöket på Tacoateljén/ }).click();
   const visitDialog = page.getByRole("dialog").first();
-
+  await expect(visitDialog.getByRole("heading", { name: "Tacoateljén" })).toBeVisible();
   await expect(visitDialog.getByRole("heading", { name: "Gängets omdömen" })).toBeVisible();
   await expect(visitDialog.getByText("3 av 4 deltagare i gruppen har lämnat omdöme")).toBeVisible();
   await expect(visitDialog.getByText("Sam", { exact: true })).toBeVisible();
@@ -57,6 +56,6 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await expect(visitDialog.getByText("4 av 4 deltagare i gruppen har lämnat omdöme")).toBeVisible();
   await expect(visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" })).toHaveCount(0);
   await expect(visitDialog.getByText("Mitt eget minne från kvällen.")).toBeVisible();
-  await expect(visitDialog.getByRole("button", { name: "Ändra" })).toBeVisible();
+  await expect(visitDialog.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");
 });
