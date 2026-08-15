@@ -27,8 +27,9 @@ Inga ändringar ännu.
 
 ### Förbättrat
 
-- Den som registrerar ett besök åt gruppen behöver inte lämna ett eget omdöme
-  eller få progression om hen själv inte deltog.
+- Den som registrerar ett nytt besök räknas alltid som faktisk deltagare och
+  lämnar sitt eget omdöme i samma flöde. Andra deltagare kan fortfarande
+  korrigera sin närvaro utan att ett nytt besök skapas.
 
 ## [1.33.0] – 2026-08-13
 
