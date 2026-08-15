@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatDate, useStore } from "@/lib/matrundan/store";
+import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { removeSharedVisitFromGroup } from "@/lib/matrundan/live-sharing";
 import { ShareVisitDialog } from "./ShareVisitDialog";
@@ -41,6 +41,15 @@ const MEAL_LABEL: Record<string, string> = {
   middag: "Middag",
   kväll: "Kväll",
 };
+
+function formatVisitDate(iso: string) {
+  const calendarDate = /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(0, 10)}T12:00:00` : iso;
+  return new Date(calendarDate).toLocaleDateString("sv-SE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export function VisitDetailSheet({
   visitId,
@@ -171,26 +180,23 @@ export function VisitDetailSheet({
                   <MapPin className="h-3 w-3" />
                   {place.address}, {place.city}
                 </SheetDescription>
+                <SheetDescription className="mt-1 text-xs">
+                  {formatVisitDate(visit.date)} · {MEAL_LABEL[visit.meal] ?? visit.meal}
+                </SheetDescription>
               </SheetHeader>
 
               <div className="space-y-4 p-5">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <span className="inline-flex min-w-0 items-center gap-1.5">
-                    <span
-                      className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-sm"
-                      aria-hidden="true"
-                    >
-                      {author?.avatar ?? "🙂"}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
-                      registrerade
-                    </span>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-sm"
+                    aria-hidden="true"
+                  >
+                    {author?.avatar ?? "🙂"}
                   </span>
-                  <span aria-hidden="true">·</span>
-                  <span>{MEAL_LABEL[visit.meal] ?? visit.meal}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{formatDate(visit.date)}</span>
+                  <span className="min-w-0">
+                    <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
+                    registrerade besöket
+                  </span>
                 </div>
 
                 <section>
