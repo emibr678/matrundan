@@ -50,6 +50,40 @@ Produktionskedjan är:
 
 En merge är alltså inte samma sak som databasdriftsättning eller publicering.
 
+## Portabilitet och klientoberoende
+
+Web/PWA är Matrundans nuvarande primärklient och Lovable är fortfarande en del av
+dagens drift- och previewkedja. De är däremot inte Matrundans domän- eller
+säkerhetsgräns.
+
+Följande är varaktiga arkitekturprinciper:
+
+- hosting/runtime, auth delivery, storage/media, notisleverans, schemalagda jobb,
+  kart-rendering, externa providers och observability behandlas som utbytbara
+  plattformsadapters runt Matrundans domän och säkerhetsmodell;
+- leverantörsspecifik kod ska hållas vid tydliga gränser och får inte bli enda
+  platsen där grupp-, medlemskaps-, plats-, besöks-, delnings- eller
+  progressionsregler uttrycks;
+- generell domänlogik ska inte göras beroende av DOM, `window`, TanStack Router
+  eller andra webbspecifika API:er när beteendet inte i sig är webbspecifikt;
+- backendkontrakt, authmodell, kanoniska HTTPS-länkar, mediaåtkomst och
+  notisavsikt ska kunna återanvändas av en framtida native-klient utan att
+  Matrundans kärnmodell omdefinieras;
+- kanoniska koordinater och externa platsidentiteter är produktdata och får inte
+  göras beroende av dagens kart-renderare;
+- stateful produktdata ska ha en dokumenterad export- och recoveryväg utanför
+  den aktiva leverantören när den inte redan kan återskapas deterministiskt från
+  repo;
+- portabilitet betyder inte spekulativ abstraktion: monorepo, egna wrappers och
+  parallella implementationer införs först när en känslig eller kostsam gräns
+  behöver isoleras eller en konkret andra implementation finns.
+
+#207 – **Frikoppla drift från Lovable Cloud och etablera portabel plattform** och
+`docs/platform-migration-plan.md` beskriver den nuvarande målbilden för att
+minska Lovable-runtimeberoendet. Målbilden ändrar inte den faktiska
+produktionskedjan förrän respektive migrationssteg har implementerats,
+verifierats och driftsatts med separata godkännanden.
+
 ## Trust boundaries
 
 ### Klienten
@@ -620,6 +654,8 @@ autentisering, Geoapify, notiser eller gamification ska planen besvara:
 8. Vilka positiva och negativa behörigheter måste verifieras?
 9. Behöver `production-preflight.sql` uppdateras?
 10. Behöver kontoraderingsflödet scrubba en ny användarreferens?
+11. Binder ändringen Matrundans domän onödigt till en viss leverantör eller
+    webbklient, och i så fall varför är det motiverat?
 
 Om någon av dessa frågor saknar ett verifierbart svar är arkitekturplanen inte
 klar.
