@@ -6,9 +6,7 @@ test("exempelgruppen visar en annan deltagares foto skrivskyddat för Alex", () 
   const visit = EXAMPLE_STATE.visits.find(
     (item) => item.id === EXAMPLE_IDS.visits.repeatCafeLatest,
   );
-  const alex = EXAMPLE_STATE.members.find(
-    (member) => member.id === EXAMPLE_IDS.members.alex,
-  );
+  const alex = EXAMPLE_STATE.members.find((member) => member.id === EXAMPLE_IDS.members.alex);
 
   expect(visit?.photo?.uploadedBy).toBe(EXAMPLE_IDS.members.robin);
   expect(alex?.role).toBe("ägare");
