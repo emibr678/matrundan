@@ -28,7 +28,10 @@ import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
-import { canManageVisitPhoto } from "@/lib/matrundan/visit-photo";
+import {
+  canAddOrReplaceVisitPhoto,
+  canDeleteVisitPhoto,
+} from "@/lib/matrundan/visit-photo";
 import { canDeleteOriginalVisit } from "@/lib/matrundan/visit-permissions";
 
 const MEAL_LABEL: Record<string, string> = {
@@ -75,8 +78,10 @@ export function VisitDetailSheet({
       activeGroupRole === "admin");
   const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
-  const canManagePhoto =
-    !!visit && canManageVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
+  const canReplacePhoto =
+    !!visit && canAddOrReplaceVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
+  const canRemovePhoto =
+    !!visit && canDeleteVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
 
@@ -273,7 +278,11 @@ export function VisitDetailSheet({
                   />
                 ) : null}
 
-                <VisitPhotoManager visit={visit} canManage={canManagePhoto} />
+                <VisitPhotoManager
+                  visit={visit}
+                  canReplace={canReplacePhoto}
+                  canDelete={canRemovePhoto}
+                />
 
                 <Button asChild variant="outline" className="w-full">
                   <Link
