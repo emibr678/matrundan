@@ -41,6 +41,7 @@ export function VisitParticipationControls({
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const status =
     visit.currentUserParticipationStatus ?? (fallbackParticipant ? "participant" : "none");
+  const isRegistrar = visit.createdBy === currentUserId;
   const writable =
     !groupArchived && !demoReadOnly && (mode === "live" ? Boolean(activeGroupId) : true);
 
@@ -90,6 +91,8 @@ export function VisitParticipationControls({
       </Card>
     );
   }
+
+  if (isRegistrar) return null;
 
   return (
     <>
