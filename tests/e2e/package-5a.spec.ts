@@ -65,7 +65,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(page.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
 
   const storage = await page.evaluate(() => ({
-    current: window.sessionStorage.getItem("matrundan.exampleState.v2"),
+    current: window.sessionStorage.getItem("matrundan.exampleState.v3"),
     legacy: window.sessionStorage.getItem("matrundan.exampleState.v1"),
     sandbox: window.localStorage.getItem("matrundan.state.v1"),
   }));
