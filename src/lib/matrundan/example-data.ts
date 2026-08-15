@@ -53,11 +53,24 @@ function withVisitParticipationScenarios(state: AppState): AppState {
         const existing = (visit.visibleReviews ?? []).filter(
           (review) => review.userId !== members.alex,
         );
+        const participants = [...(visit.participants ?? [])];
+        if (!participants.some((participant) => participant.id === members.noor)) {
+          participants.splice(Math.max(0, participants.length - 1), 0, {
+            id: members.noor,
+            name: "Noor",
+            avatar: "🐿️",
+            avatarImage: null,
+            status: "active",
+          });
+        }
+
         return {
           ...visit,
+          participantIds: [...new Set([...visit.participantIds, members.noor])],
+          participants,
           currentUserParticipationStatus: "participant",
-          // Alex deltog men har ännu inte lämnat ett eget omdöme. Sam och Kim
-          // håller kvar scenariot med flera synliga omdömen utan att Alex får en review.
+          // Alex deltog men har ännu inte lämnat eget omdöme. Sam, Kim och Noor
+          // gör 3-av-4-läget explicit så den kompakta flerpersons-UX:en kan granskas.
           visibleReviews: [
             ...existing,
             {
@@ -70,6 +83,40 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               comment: "Bra kväll för ett gemensamt stopp och lätt att dela maten.",
               ratingVisible: true,
               commentVisible: true,
+            },
+            {
+              id: "review-v2-noor",
+              userId: members.noor,
+              overall: 5,
+              taste: 5,
+              value: 4,
+              service: 5,
+              // Kommentaren finns kanoniskt men är dold i den här gruppkontexten.
+              // Exempelvyn ska därför visa Noors betyg, aldrig den här texten.
+              comment: "Den här dolda kommentaren får inte visas i exempelgruppen.",
+              ratingVisible: true,
+              commentVisible: false,
+            },
+          ],
+        };
+      }
+
+      if (visit.id === visits.providerBistroFirst) {
+        return {
+          ...visit,
+          // Ett explicit nolläge: ett kanoniskt omdöme finns men är inte synligt
+          // i gruppen. Demo-normaliseringen fabricerar då inget registreraromdöme.
+          visibleReviews: [
+            {
+              id: "review-v4-robin-hidden",
+              userId: members.robin,
+              overall: 4,
+              taste: 4,
+              value: 4,
+              service: 4,
+              comment: "Dold fixturetext som inte ska visas i gruppen.",
+              ratingVisible: false,
+              commentVisible: false,
             },
           ],
         };
