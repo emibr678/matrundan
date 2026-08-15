@@ -22,6 +22,17 @@ Ett oväntat produktionsfel ska normalt kunna kopplas till:
 Felsökning ska inte kräva att kommentarer, omdömen, gruppnamn, e-postadresser,
 exakta koordinater, foton eller andra privata payloads skrivs till centrala loggar.
 
+## Releaseidentitet
+
+Observability ska skilja mellan användarsynlig appversion och exakt deployad kod.
+`APP_VERSION` är relevant för support och releasehistorik, medan en oföränderlig
+Git-commit/head-SHA är den tekniska sanningen för vilken kod som körde.
+
+Production och preview ska därför exponera eller injicera en säker releaseidentitet
+vid build/deploy så att server- och klientfel kan kopplas till exakt commit utan
+att runtime behöver fråga GitHub. Preview ska även bära environment/branch-kontekst
+utan att den informationen används som behörighetsbeslut.
+
 ## Lager
 
 ### Server/runtime
