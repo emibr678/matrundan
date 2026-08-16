@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ExternalLink, EyeOff, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { PlaceDataReportsSection } from "@/components/matrundan/PlaceDataReportsSection";
 import { PlaceSuggestionReportDialog } from "@/components/matrundan/PlaceSuggestionReportDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -256,6 +257,8 @@ export function HiddenPlaceSuggestionsSection() {
           </DialogContent>
         ) : null}
       </Dialog>
+
+      <PlaceDataReportsSection />
     </>
   );
 }
