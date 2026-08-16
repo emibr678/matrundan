@@ -107,9 +107,6 @@ export function NextStopCard({
     [getPlace, nextStop?.proposals],
   );
   const selectedPlace = nextStop?.selectedPlaceId ? getPlace(nextStop.selectedPlaceId) : undefined;
-  const selectedProposal = selectedPlace
-    ? proposals.find((item) => item.place.id === selectedPlace.id)?.proposal
-    : undefined;
   const otherProposals = selectedPlace
     ? proposals.filter((item) => item.place.id !== selectedPlace.id)
     : [];
