@@ -590,6 +590,9 @@ export function NextStopCard({
                 {proposals.map((item) => (
                   <ProposalRow
                     key={item.proposal.id}
+                    selectLabel="Bestäm"
+
+                    key={item.proposal.id}
                     item={item}
                     state={state}
                     canInteract={canInteract}
