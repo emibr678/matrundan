@@ -31,6 +31,19 @@ describe("exempelgruppens pending-omdömen", () => {
     expect(isVisitReviewPending(returnRegisteredByAlex!, state.currentUserId)).toBe(false);
   });
 
+  test("håller Tacoateljéns aggregat begripligt när Alex review saknas", () => {
+    const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
+    const pendingVisit = state.visits.find(
+      (visit) => visit.id === EXAMPLE_IDS.visits.guestReviews,
+    );
+
+    expect(pendingVisit?.visibleReviews?.map((review) => review.overall)).toEqual([4, 4, 5]);
+    expect(pendingVisit?.overall).toBeCloseTo(13 / 3);
+    expect(pendingVisit?.taste).toBeCloseTo(13 / 3);
+    expect(pendingVisit?.value).toBe(4);
+    expect(pendingVisit?.service).toBe(4);
+  });
+
   test("behåller äldre kanoniskt pending utan att göra det framträdande", () => {
     const now = new Date(EXAMPLE_FIXTURE_REFERENCE_TIME);
     const state = buildExampleState(now);

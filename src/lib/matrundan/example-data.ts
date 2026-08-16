@@ -94,6 +94,13 @@ function withVisitParticipationScenarios(state: AppState): AppState {
           participantIds: [...new Set([...visit.participantIds, members.noor])],
           participants,
           currentUserParticipationStatus: "participant",
+          // Sam, Kim och Noor ger 4, 4 respektive 5. Aggregatet hålls i synk
+          // med de tre synliga omdömena så exempelgruppen aldrig visar ett
+          // betyg som inte går att förstå från underlaget.
+          overall: 13 / 3,
+          taste: 13 / 3,
+          value: 4,
+          service: 4,
           // Alex deltog men har ännu inte lämnat eget omdöme. Sam, Kim och Noor
           // gör 3-av-4-läget explicit så den kompakta flerpersons-UX:en kan granskas.
           visibleReviews: [
