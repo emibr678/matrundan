@@ -327,6 +327,8 @@ export function useNextStopV2() {
       ...demoState,
       revision: nextRevision(demoState),
       selectedPlaceId: null,
+      // Dagen behålls, men klockslaget hörde till det bestämda stället.
+      plannedTime: null,
     });
   }
 
@@ -342,37 +344,44 @@ export function useNextStopV2() {
     if (!canWithdrawNextStopProposal(state, proposal)) {
       throw new Error("Du kan bara ta bort egna förslag.");
     }
+    const clearedSelection = demoState.selectedPlaceId === proposal.placeId;
     setDemoState({
       ...demoState,
       revision: nextRevision(demoState),
-      selectedPlaceId:
-        demoState.selectedPlaceId === proposal.placeId ? null : demoState.selectedPlaceId,
+      selectedPlaceId: clearedSelection ? null : demoState.selectedPlaceId,
+      plannedTime: clearedSelection ? null : demoState.plannedTime,
       proposals: demoState.proposals.filter((item) => item.id !== proposalId),
     });
   }
 
   async function setSchedule(date: string | null, time: string | null): Promise<void> {
     if (time && !date) throw new Error("Välj en dag innan du lägger till en tid.");
+    if (time && !nextStop?.selectedPlaceId) {
+      throw new Error("Bestäm nästa stopp innan ni lägger till ett klockslag.");
+    }
     const revision = nextStop?.revision ?? 1;
     const dateChanged = (nextStop?.plannedDate ?? null) !== date;
+    // Byter ni dag försvinner klockslaget, oavsett vad anroparen skickar.
+    const effectiveTime = !date || dateChanged ? null : time;
 
     if (mode === "live") {
-      await liveSetNextStopScheduleV2(state.group.id, date, time, revision);
+      await liveSetNextStopScheduleV2(state.group.id, date, effectiveTime, revision);
       if (dateChanged) setDayUnavailableMemberIds([]);
       dispatchReload();
       return;
     }
 
     const base = demoState ?? freshState();
-    if (base.plannedDate === date && (base.plannedTime ?? null) === time) return;
+    if (base.plannedDate === date && (base.plannedTime ?? null) === effectiveTime) return;
     setDemoState({
       ...base,
       revision: nextRevision(base),
       plannedDate: date,
-      plannedTime: date ? time : null,
+      plannedTime: effectiveTime,
     });
     if (dateChanged) setDayUnavailableMemberIds([]);
   }
+
 
   async function setDayUnavailable(unavailable: boolean): Promise<void> {
     const plannedDate = nextStop?.plannedDate ?? null;
