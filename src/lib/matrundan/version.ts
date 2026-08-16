@@ -11,8 +11,9 @@ const VERSION_1_37_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Nytt",
       items: [
-        "Gruppen kan ha flera enkla matställesförslag samtidigt och markera Gärna! på flera alternativ utan automatisk vinnare eller röstning.",
+        "Gruppen kan ha flera enkla matställesförslag samtidigt och markera Går gärna dit på flera alternativ utan automatisk vinnare eller röstning.",
         "Nästa stopp kan bära en gemensam dag oberoende av ställe, med valfri klocktid först när gruppen faktiskt har bestämt den.",
+        "En medlem kan markera Kan inte då på den gemensamma dagen utan att uteblivet svar tolkas som ett nej eller ett RSVP-svar.",
         "En passerad planerad dag följs upp med Blev det av? så ett verkligt besök registreras uttryckligen i stället för att historik gissas fram.",
       ],
     },
@@ -20,6 +21,7 @@ const VERSION_1_37_0_CHANGELOG: ChangelogEntry = {
       kind: "Förbättrat",
       items: [
         "Ett nytt ställesförslag skriver inte längre över gruppens redan valda eller diskuterade nästa stopp, och ett verkligt originalbesök avslutar bara relevant nästa-stopp-flöde.",
+        "När nästa stopp är valt fokuserar Hem på stället och nästa handling medan övriga förslag ligger kollapsade tills gruppen vill ändra valet.",
       ],
     },
   ],
