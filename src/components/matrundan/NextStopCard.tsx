@@ -409,10 +409,13 @@ export function NextStopCard({
             unavailableCount={dayUnavailableMemberIds.length}
             currentUserUnavailable={currentUserUnavailable}
             canInteract={canInteract}
+            canManageTime
             busy={busy}
             onEdit={openSchedule}
+            onEditTime={openTime}
             onToggleUnavailable={() => void toggleDayUnavailable()}
           />
+
           <div className="p-4 sm:p-5">
             <div data-next-stop-proposal="selected">
               <PlaceIdentity place={selectedPlace} prominent />
