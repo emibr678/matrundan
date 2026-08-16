@@ -20,10 +20,15 @@ async function expectNoLocatorOverflow(locator: Locator, context: string) {
   );
 }
 
+async function enterExampleGroup(page: Page) {
+  await page.goto("/exempel");
+  await expect(page.getByText("Du testar gruppen som Alex, gruppens ägare.")).toBeVisible();
+}
+
 test.use({ viewport: { width: 360, height: 800 } });
 
 test("Hem sammanfattar pending omdömen och öppnar rätt kanoniska besök", async ({ page }) => {
-  await page.goto("/exempel");
+  await enterExampleGroup(page);
 
   const pending = page.getByLabel("Omdömen att komplettera");
   await expect(pending).toBeVisible();
@@ -48,7 +53,7 @@ test("Hem sammanfattar pending omdömen och öppnar rätt kanoniska besök", asy
 });
 
 test("Besök markerar bara aktuella pending-besök inom uppmärksamhetsfönstret", async ({ page }) => {
-  await page.goto("/exempel");
+  await enterExampleGroup(page);
   await page.goto("/besok");
 
   const tacoVisit = page.getByRole("button", { name: /Öppna besöket på Tacoateljén/ });
@@ -65,7 +70,7 @@ test("Besök markerar bara aktuella pending-besök inom uppmärksamhetsfönstret
 });
 
 test("Matstället leder till samma pending-besök i stället för nyregistrering", async ({ page }) => {
-  await page.goto("/exempel");
+  await enterExampleGroup(page);
   await page.goto("/matstallen/p3");
 
   const pending = page.getByLabel("Omdöme att komplettera på matstället");
