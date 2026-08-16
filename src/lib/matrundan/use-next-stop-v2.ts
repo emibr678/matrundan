@@ -3,10 +3,8 @@ import {
   canWithdrawNextStopProposal,
   deriveNextStopState,
   liveClearNextStopSelectionV2,
-  liveGetNextStopDayUnavailabilityV2,
   liveProposeNextStopPlaceV2,
   liveSelectNextStopPlaceV2,
-  liveSetNextStopDayUnavailableV2,
   liveSetNextStopPlaceSupportV2,
   liveSetNextStopScheduleV2,
   liveWithdrawNextStopPlaceV2,
@@ -15,7 +13,6 @@ import { useStore } from "./store";
 import type { NextStopState } from "./types";
 
 const DEMO_STORAGE_PREFIX = "matrundan.nextStop.v2";
-const DEMO_UNAVAILABLE_STORAGE_PREFIX = "matrundan.nextStop.v2.unavailable";
 
 function demoStorage(groupId: string): Storage | null {
   if (typeof window === "undefined") return null;
@@ -24,10 +21,6 @@ function demoStorage(groupId: string): Storage | null {
 
 function storageKey(groupId: string): string {
   return `${DEMO_STORAGE_PREFIX}.${groupId}`;
-}
-
-function unavailableStorageKey(groupId: string): string {
-  return `${DEMO_UNAVAILABLE_STORAGE_PREFIX}.${groupId}`;
 }
 
 function sanitizeState(value: NextStopState): NextStopState {
@@ -44,19 +37,6 @@ function readDemoState(groupId: string, fallback: NextStopState | null): NextSto
     return value && Array.isArray(value.proposals) ? sanitizeState(value) : fallback;
   } catch {
     return fallback;
-  }
-}
-
-function readDemoUnavailable(groupId: string): string[] {
-  try {
-    const raw = demoStorage(groupId)?.getItem(unavailableStorageKey(groupId));
-    if (!raw) return [];
-    const value = JSON.parse(raw) as unknown;
-    return Array.isArray(value)
-      ? value.filter((item): item is string => typeof item === "string")
-      : [];
-  } catch {
-    return [];
   }
 }
 
@@ -86,9 +66,6 @@ export function useNextStopV2() {
   const [demoState, setDemoState] = React.useState<NextStopState | null>(() =>
     mode === "demo" ? readDemoState(state.group.id, fallback) : null,
   );
-  const [dayUnavailableMemberIds, setDayUnavailableMemberIds] = React.useState<string[]>(() =>
-    mode === "demo" ? readDemoUnavailable(state.group.id) : [],
-  );
   const initialVisitIds = React.useRef(new Set(state.visits.map((visit) => visit.id)));
 
   const nextStop = mode === "live" ? fallback : demoState;
@@ -106,61 +83,14 @@ export function useNextStopV2() {
   }, [demoState, mode, state.group.id]);
 
   React.useEffect(() => {
-    if (mode !== "demo") return;
-    try {
-      const storage = demoStorage(state.group.id);
-      if (nextStop?.plannedDate && dayUnavailableMemberIds.length > 0) {
-        storage?.setItem(
-          unavailableStorageKey(state.group.id),
-          JSON.stringify(dayUnavailableMemberIds),
-        );
-      } else {
-        storage?.removeItem(unavailableStorageKey(state.group.id));
-      }
-    } catch {
-      /* Demo-lagring får aldrig blockera produktflödet. */
-    }
-  }, [dayUnavailableMemberIds, mode, nextStop?.plannedDate, state.group.id]);
-
-  React.useEffect(() => {
-    if (mode !== "live" || !backendReady || !nextStop?.plannedDate) {
-      if (mode === "live") setDayUnavailableMemberIds([]);
-      return;
-    }
-
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const memberIds = await liveGetNextStopDayUnavailabilityV2(state.group.id);
-        if (!cancelled) setDayUnavailableMemberIds(memberIds);
-      } catch (error) {
-        if (!cancelled) {
-          console.warn("[Matrundan] Kunde inte läsa Kan inte den dagen-markeringar:", error);
-          setDayUnavailableMemberIds([]);
-        }
-      }
-    };
-
-    void load();
-    window.addEventListener("matrundan:reload", load);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("matrundan:reload", load);
-    };
-  }, [backendReady, mode, nextStop?.plannedDate, state.group.id]);
-
-  React.useEffect(() => {
     if (mode !== "demo" || typeof window === "undefined") return;
     const reset = () => {
       try {
-        const storage = demoStorage(state.group.id);
-        storage?.removeItem(storageKey(state.group.id));
-        storage?.removeItem(unavailableStorageKey(state.group.id));
+        demoStorage(state.group.id)?.removeItem(storageKey(state.group.id));
       } catch {
         /* ignore */
       }
       setDemoState(deriveNextStopState(state));
-      setDayUnavailableMemberIds([]);
       initialVisitIds.current = new Set(state.visits.map((visit) => visit.id));
     };
     window.addEventListener("matrundan:demo-reset", reset);
@@ -171,7 +101,6 @@ export function useNextStopV2() {
     if (mode !== "demo") return;
     if (state.group.lifecycleStatus === "archived") {
       setDemoState(null);
-      setDayUnavailableMemberIds([]);
       return;
     }
 
@@ -208,13 +137,6 @@ export function useNextStopV2() {
 
   React.useEffect(() => {
     if (mode !== "demo") return;
-    if (!demoState?.plannedDate && dayUnavailableMemberIds.length > 0) {
-      setDayUnavailableMemberIds([]);
-    }
-  }, [dayUnavailableMemberIds.length, demoState?.plannedDate, mode]);
-
-  React.useEffect(() => {
-    if (mode !== "demo") return;
     const known = initialVisitIds.current;
     const addedVisits = state.visits.filter((visit) => !known.has(visit.id));
     initialVisitIds.current = new Set(state.visits.map((visit) => visit.id));
@@ -230,7 +152,6 @@ export function useNextStopV2() {
     if (!relevantVisit) return;
 
     setDemoState(null);
-    setDayUnavailableMemberIds([]);
   }, [demoState, mode, state.visits]);
 
   async function propose(placeId: string): Promise<void> {
@@ -364,7 +285,6 @@ export function useNextStopV2() {
 
     if (mode === "live") {
       await liveSetNextStopScheduleV2(state.group.id, date, effectiveTime, revision);
-      if (dateChanged) setDayUnavailableMemberIds([]);
       dispatchReload();
       return;
     }
@@ -377,41 +297,16 @@ export function useNextStopV2() {
       plannedDate: date,
       plannedTime: effectiveTime,
     });
-    if (dateChanged) setDayUnavailableMemberIds([]);
-  }
-
-  async function setDayUnavailable(unavailable: boolean): Promise<void> {
-    const plannedDate = nextStop?.plannedDate ?? null;
-    if (!plannedDate) throw new Error("Lägg till en dag först.");
-
-    if (mode === "live") {
-      await liveSetNextStopDayUnavailableV2(state.group.id, plannedDate, unavailable);
-      setDayUnavailableMemberIds((current) =>
-        unavailable
-          ? [...new Set([...current, state.currentUserId])]
-          : current.filter((memberId) => memberId !== state.currentUserId),
-      );
-      dispatchReload();
-      return;
-    }
-
-    setDayUnavailableMemberIds((current) =>
-      unavailable
-        ? [...new Set([...current, state.currentUserId])]
-        : current.filter((memberId) => memberId !== state.currentUserId),
-    );
   }
 
   return {
     nextStop,
     backendReady,
-    dayUnavailableMemberIds,
     propose,
     setSupport,
     select,
     clearSelection,
     withdraw,
     setSchedule,
-    setDayUnavailable,
   };
 }
