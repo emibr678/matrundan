@@ -1,472 +1,239 @@
 # Utvecklings- och leveransflöde
 
-Det här dokumentet är den kanoniska processen för produktdiskussion, planering,
-godkänd implementation, verifiering, merge, Lovable-synk, databasdriftsättning
-och publicering.
-
-Miljösetup och kanoniska kommandon finns i [DEVELOPMENT.md](../DEVELOPMENT.md).
-Arkitektur- och säkerhetsregler finns i [architecture.md](./architecture.md).
-Produktpaket och backlog finns i [product-roadmap.md](./product-roadmap.md).
-Visuell granskning beskrivs i [visual-review.md](./visual-review.md).
-
-## 1. Faser
-
-Arbetet ska alltid kunna beskrivas som en av följande faser:
-
-1. **Produktdiskussion** – mål, användarbehov och avgränsning.
-2. **Planering** – konkret lösning, risker, datamodell och tester.
-3. **Godkänd implementation** – kod och migrationer inom uttryckligen godkänt scope.
-4. **Verifiering** – statiska kontroller, tester, CI och manuell kontroll.
-5. **Merge** – en verifierad ändring förs in i `main`.
-6. **Lovable-synk och preview** – rätt PR-branch synkas och granskas.
-7. **Databasdriftsättning** – godkända migrationer appliceras separat.
-8. **Publicering** – en verifierad version publiceras till användarna.
-
-En ny funktion eller större förändring kräver uttryckligt godkännande före
-implementation. Ett implementationsgodkännande är inte ett godkännande för
-merge, databas eller publicering. Dessa steg kräver separata godkännanden.
-
-Korrigerande dokumentation och små underhållsändringar får göras inom ett
-uttryckligt granskningsuppdrag, men får inte införa nytt produktbeteende.
-
-## 2. Scope, roadmap och issues
-
-Innan en icke-trivial implementation:
-
-1. inspektera aktuell kod, migrationer och dokumentation;
-2. identifiera kanonisk källa;
-3. formulera mål, avgränsningar, edge cases och verifiering;
-4. skilj produktbeslut från tekniskt genomförande;
-5. bedöm om exempelgruppen eller scenariokontraktet måste ändras;
-6. invänta implementationsgodkännande när det krävs.
-
-`docs/product-roadmap.md` är översikten över beslutade paket, prioriteringar och
-varaktiga produktavgränsningar. GitHub Issues och deras labels är den operativa
-backloggen. GitHub Project är en människovänlig vy över samma issues och får
-även innehålla arbete som inte hör hemma i produktroadmapen.
-
-- Nya idéer börjar normalt som `status:inbox`.
-- Överenskommet användarbehov, scope och icke-mål dokumenteras i issuen och får
-  `status:agreed`.
-- `priority:now`, `priority:next` och `priority:later` beskriver ungefärlig
-  horisont, inte en exakt kö.
-- `order:010`, `order:020` och så vidare används endast när en exakt relativ
-  arbetsordning är avsiktligt beslutad. Ett öppet issue får ha högst en
-  `order:*`-label.
-- Avsaknad av `order:*` betyder att issuen ännu inte är exakt sekvenserad. Det är
-  normalt för inbox, större delen av `priority:later` och parallella spår.
-- Parent-/epic-issues som spänner över flera självständiga leveranser ska normalt
-  inte rangordnas själva. Bryt ut konkreta levererbara delissues och rangordna
-  dem när de får en beslutad plats i kön.
-- För roadmap-issues får `order:*` och roadmapens relativa ordning inte
-  motsäga varandra. En agent som ändrar den ena ska kontrollera och vid behov
-  synka den andra i samma arbete.
-- Project-only metadata får inte vara den enda källan till status, prioritet eller
-  ordning när motsvarande uppgift behöver vara läsbar för agenter.
-- En aktuell teknisk plan tas fram när arbetet närmar sig implementation.
-- Efter uttryckligt implementationsgodkännande används `status:ready`.
-- En implementerande PR ska referera eller stänga sitt issue.
-- Uppdatera roadmapen när paket, prioritet, relativ ordning mellan roadmap-issues
-  eller varaktigt produktbeslut ändras, inte för varje implementation eller
-  commit.
-
-När ett issue eller en PR nämns i statusrapportering, planering eller
-leveranskvitto ska typen och titeln följa med när det finns risk för
-sammanblandning: **Issue #204 — Synliggör besök som väntar på ditt omdöme**
-respektive **PR #206 — Samla deltagaromdömen i besöksvyn**. Använd inte nakna
-`#NNN` som primär mänsklig identifierare. Maskinreferenser som `Closes #204` i en
-PR-beskrivning används fortsatt när GitHub ska länka eller stänga ett issue.
-
-Chatten får inte vara enda källan till ett varaktigt produktbeslut. Redan
-dokumenterade beslut ska inte diskuteras om från början utan nya fakta eller ett
-tydligt produktproblem.
-
-## 3. Arbetsyta och Git
-
-Återanvänd en verifierad checkout. Klona endast när miljön är ny, checkouten
-saknas eller dess tillstånd inte kan återställas säkert.
-
-En godkänd uppgift får normalt en branch från verifierad aktuell `main`:
-
-```bash
-git fetch origin --prune
-git switch main
-git pull --ff-only
-git rev-parse HEAD
-git switch -c agent/<beskrivande-namn>
-```
-
-Använd en branch och en PR per sammanhängande uppgift. Skapa inte en ny branch
-eller PR för varje felsökningshypotes.
-
-Historik som redan har pushats eller synkats till Lovable får inte skrivas om med
-force-push, rebase eller amend. GitHub får squash-merga en färdig PR eftersom det
-inte skriver om featurebranchens publicerade historik.
-
-## 4. Diagnostik före fix
-
-En icke-trivial bugg ska börja med reproduktion och bevis:
-
-1. reproducera felet i relevant miljö;
-2. samla runtime-data som skiljer fungerande och trasigt beteende;
-3. klassificera felet, exempelvis data, layout, renderering, nätverk,
-   behörighet, miljö eller integration;
-4. formulera en falsifierbar hypotes;
-5. gör minsta riktade diagnostik eller ändring;
-6. kontrollera resultatet före nästa hypotes;
-7. implementera slutlig fix när grundorsaken stöds av observerade data;
-8. ta bort tillfällig diagnostik.
-
-För kartproblem bör diagnostik i första hand visa container- och canvasmått,
-MapLibre-källor och lager, resursstatus, WebGL/workerstatus och skillnaden mellan
-isolerad komponent och produktflöde.
-
-## 5. Implementation och lokal iteration
-
-Gör flera små iterationer i samma arbetsyta före push:
-
-```text
-reproducera
-→ diagnostik
-→ lokal ändring
-→ riktad kontroll
-→ lokal justering
-→ sammanhängande commit
-→ push
-```
-
-Pusha när det finns en granskbar kandidat, en preview behövs eller en viktig
-checkpoint måste bevaras. Pusha inte varje experiment och skapa inte commits
-bara för att trigga CI.
-
-PR:n ska vara draft medan implementation, visuell justering eller diagnostik
-pågår. Flytta tillbaka en redo-PR till draft om fler designloopar eller hypoteser
-krävs.
-
-GitHub Actions verifierar kod. Workflows får inte patcha, committa eller pusha
-produktkod tillbaka till branchen.
-
-## 6. Lovable: konsultation, implementation och preview
-
-Skilj mellan att konsultera Lovable och att låta Lovable skriva kod.
-
-### 6.1 Konsultation
-
-När användaren uttryckligen ber att bolla UX med Lovable ska Lovable konsulteras
-i Plan mode före den visuella lösningen låses, om verktyget är tillgängligt.
-Konsultationen får inte hoppas över tyst för att branch switching inte kan styras
-automatiskt. Redovisa begränsningen om konsultationen inte kan genomföras.
-
-### 6.2 Implementation på PR-branchen
-
-Lovables normala isolerade arbetsflöde är GitHub-featurebranch tillsammans med
-GitHub branch switching i Lovable:
-
-1. skapa featurebranchen från verifierad aktuell `main`;
-2. öppna eller förbered en draft-PR från samma branch;
-3. välj exakt PR-branchen i Lovable;
-4. verifiera branchens namn och aktuella head-SHA innan Lovable får skriva kod;
-5. använd Agent mode när användaren uttryckligen har bett Lovable implementera
-   UX och krediter finns;
-6. granska Lovables diff och fortsätt genom normal PR- och verifieringsprocess.
-
-Använd inte interna eller odokumenterade variantbegrepp som huvudflöde. Om rätt
-branch inte kan väljas eller verifieras ska Lovable inte skriva kod. Pausa och
-be användaren välja branchen i Lovable-editorn. Gå inte tyst över till egen full
-UX-implementation när användaren uttryckligen bett Lovable implementera.
-
-Codex/ChatGPT ansvarar fortsatt för arkitektur, säkerhet, datagränser,
-teststrategi och slutlig kodgranskning. Lovable används främst för visuell
-hierarki, layout, spacing, responsivitet och interaktionshelhet.
-
-Samla visuella iterationer till en sammanhållen kandidat. Gör inte experiment
-direkt på `main`. En branch innebär inte en isolerad databas.
-
-### 6.3 Previewgrind före merge
-
-För större ändringar av layout, informationshierarki, responsivitet eller
-huvudflöde måste följande vara uppfyllt före merge:
-
-- exakt PR-branch och aktuell head-SHA är dokumenterade;
-- samma PR-branch är vald i Lovable;
-- Lovable-synken motsvarar aktuell PR-head eller en dokumenterad senare commit
-  på samma PR-branch;
-- en aktuell Lovable-previewlänk har lämnats till användaren i chatten;
-- previewn har granskats vid minst 360 px och desktop;
-- demo/exempelgrupp och autentiserat live-läge har jämförts när relevant;
-- användaren har uttryckligen godkänt merge efter previewgranskningen.
-
-Om branch, synk eller preview inte kan verifieras ska PR:n förbli draft eller
-inte markeras redo. En utgången previewlänk ska förnyas.
-
-För rena backend-, dokumentations- eller osynliga teknikändringar är preview
-normalt inte ett mergekrav. Motivera detta i PR:n.
-
-Preview är granskning, inte publicering. Preview, GitHub-diff, browserkontroller,
-screenshot-artifacts och CI är separata bevis och ersätter inte varandra.
-
-`.lovable/plan.md` är tillfällig och får inte följa med till färdig PR eller
-`main` utan uttryckligt godkännande.
-
-## 7. Verifiering
-
-Använd kommandona i `package.json` och [DEVELOPMENT.md](../DEVELOPMENT.md).
-
-Under iteration:
-
-```bash
-bun run doctor
-bun run verify:changed
-```
-
-När UI eller huvudflöden har ändrats:
-
-```bash
-bun run verify:agent
-```
-
-Snabb preliminär browserfeedback:
-
-```bash
-bun run test:mobile:changed -- --only-changed=origin/main
-```
-
-`--only-changed` är en heuristik och ersätter inte full relevant
-browserverifiering för en färdig kandidat.
-
-Visuella granskningsbilder:
-
-```bash
-bun run test:visual-review
-```
-
-Releasekandidat:
-
-```bash
-bun run verify:full
-```
-
-Kör fokuserade tester för berörd domän. Ett test får bara rapporteras som utfört
-när det faktiskt har körts. En saknad autentiserad live-session ska redovisas
-som en begränsning.
-
-Exakta pixelgränser i E2E-test ska endast användas när pixelmåttet är ett
-avsiktligt stabilt kontrakt. För normal responsiv UX ska tester i första hand
-skydda ordning, overflow, minsta tryckyta, synlighet och robusta relativa
-relationer.
-
-Databas- och RPC-ändringar kräver manuell granskning av:
-
-- autentisering, medlemskap och rollkrav;
-- `SECURITY DEFINER` och låst `search_path`;
-- grants för `PUBLIC`, `anon`, `authenticated` och `service_role`;
-- isolering mellan grupper;
-- bevarande av befintliga produktionsrader.
-
-## 8. CI-nivåer och runnerläge
-
-GitHub Actions används som mergekvitto, men runnerkapacitet ska inte förbrukas
-under normal draft-iteration.
-
-Draft-PR startar inga CI-runnerjobb. Under draft körs i stället den smalaste
-relevanta verifieringen i den verifierade arbetsytan, normalt `bun run
-verify:changed` och för UI `bun run verify:agent`. Pusha sammanhängande
-checkpoints, men förvänta dig inte hosted CI förrän PR:n är redo.
-
-När PR:n markeras redo, när en redan redo PR uppdateras, när `main` uppdateras
-eller vid manuell körning kör CI full verifiering. Relevanta browserkontroller är:
-
-- hela mobil Chromium-sviten för UI-ändringar;
-- WebKit/iPhone och desktop Chromium för kartrelaterade ändringar.
-
-Workflowen väljer runner via repository-variabeln `MATRUNDAN_CI_RUNNER`.
-Variabeln är valfri:
-
-- utan variabel används `ubuntu-24.04` på GitHub-hostad runner;
-- värdet `matrundan-self-hosted` flyttar samma CI-jobb till den registrerade,
-  betrodda repository-runner som har denna custom label.
-
-Self-hosted-läget är projektets fallback när GitHub-hostade minuter, billing eller
-runnerkapacitet gör hosted CI otillgängligt. Det sänker inte verifieringskraven:
-samma workflow och checknamn ska bli gröna före merge. Runnern ska vara
-repository-scopad och endast användas för betrodd kod. Linux-runners ska ha
-Playwrights systemberoenden; Windows-runners ska ha Git for Windows Bash i
-runnerprocessens PATH. Den låsta Bun-versionen och browserbinärerna installeras
-av workflowen enligt `DEVELOPMENT.md`.
-
-När hosted kapacitet åter finns kan `MATRUNDAN_CI_RUNNER` tas bort eller sättas
-till `ubuntu-24.04` utan kodändring.
-
-Workflowen **Visual review artifacts** använder samma runner-val. Automatisk
-artifact-körning sker bara för en icke-draft PR där checkboxen är markerad;
-under draft används lokal `bun run test:visual-review` när sådana bilder behövs.
-Workflowen gör ingen pixeljämförelse. Ett misslyckat bygge eller screenshot-test
-ska utredas innan artefakten används som granskningsunderlag.
-
-## 9. PR och merge
-
-En PR ska vara draft medan implementation eller diagnostik pågår.
-
-Innan den markeras redo ska följande vara tydligt:
-
-- relaterat issue och godkänt scope;
-- motivering eller verifierad grundorsak;
-- viktigaste ändringar;
-- databas- och integritetskonsekvenser;
-- exempelgruppens status;
-- Lovable-konsultation eller Lovable-implementation när användaren begärt det;
-- om visuell granskning krävs;
-- PR-branch, head-SHA, vald Lovable-branch, verifierad synk och previewlänk;
-- användarens preview- och mergebesked när previewgrinden gäller;
-- roadmapbehov;
-- utförda kontroller och manuella teststeg;
-- ej verifierade delar;
-- om databas eller publicering ingår.
-
-Merge får ske när scope är uppfyllt, diffen är granskad, relevant CI är grön,
-krävd visuell granskning och användargranskning är dokumenterad och inga kända
-blockerare återstår. CI kan vara GitHub-hostad eller self-hosted, men runnerläget
-ska framgå av PR-kvittot.
-
-Merge innebär inte automatiskt att databasen är driftsatt, att `main` har
-synkat i Lovable eller att den publika appen är publicerad.
-
-### Efter merge: backlog- och roadmapkvitto
-
-Efter merge av en implementerande PR:
-
-1. bekräfta att `Closes #...` stängde rätt issue;
-2. ta bort `status:ready` och eventuell `order:*` om etiketterna ligger kvar på
-   ett stängt issue;
-3. kontrollera att roadmapen beskriver aktivt och kommande arbete;
-4. kontrollera att återstående `order:*` fortfarande speglar beslutad ordning;
-   numrera inte om kön bara för att första posten försvann;
-5. markera en färdig issue kort med `✅` om paketet fortfarande pågår;
-6. flytta paketet till **Genomförda paket** när dess sista issue är klart;
-7. bedöm nästa `priority:now` innan prioritet ändras;
-8. redovisa changelog/version, arkitektur, databas, Lovable-synk, preview och
-   publicering separat.
-
-Roadmap- och labeländringar görs helst i den avslutande PR:n. Annars skapas en
-omedelbart följande docs-only PR. Om ett roadmap-issue flyttas i den operativa
-kön ska roadmapens relativa ordning kontrolleras samtidigt, och om roadmapen
-ändrar ordning ska berörda `order:*`-labels synkas. GitHub Actions får inte välja
-prioritet eller skriva om roadmapen automatiskt.
-
-## 10. Lovable-synk, databas och publicering
-
-Projektets previeworigin är:
-
-`https://id-preview--d389634e-227c-4689-85ed-8714fdc602f7.lovable.app`
-
-Den publika appen är:
-
-`https://matrundan.lovable.app`
+Det här dokumentet äger Matrundans arbets- och leveransprocess. Miljösetup och
+exakta kommandon finns i [DEVELOPMENT.md](../DEVELOPMENT.md), produktordning i
+[product-roadmap.md](./product-roadmap.md), arkitekturregler i
+[architecture.md](./architecture.md) och renderad UX-granskning i
+[visual-review.md](./visual-review.md).
+
+Målet är spårbarhet och säkra gränser utan att varje uppgift behöver bära hela
+processen som checklista.
+
+## 1. Faser och godkännanden
 
 Skilj alltid mellan:
 
-- commit pushad till PR-branchen;
-- PR-branch vald i Lovable;
-- Lovable har synkat aktuell PR-head;
-- en aktuell previewlänk har skapats och lämnats i chatten;
-- användaren har granskat previewn;
-- PR mergad;
-- `main` synkad i Lovable;
-- databasmigration applicerad;
-- funktionen verifierad på verklig mobil enhet;
-- den publika appen publicerad.
+1. **Produktdiskussion** — mål, användarbehov och avgränsning.
+2. **Planering** — konkret teknisk/UX-lösning, risker och verifiering.
+3. **Godkänd implementation** — ändringar inom uttryckligen godkänt scope.
+4. **Verifiering** — tester, CI och manuell/renderad kontroll.
+5. **Merge** — verifierad PR förs in i `main` efter separat godkännande.
+6. **Lovable-synk och preview** — vald branch/head synkas och granskas när relevant.
+7. **Databasdriftsättning** — godkända migrationer eller produktionsskrivningar
+   genomförs separat.
+8. **Publicering** — verifierad version görs publik separat.
 
-Skriv inte att synk, driftsättning eller publicering är klar utan faktisk
-bekräftelse. Databasändringar och produktionsskrivningar får inte göras från en
-featurebranch utan verifierad miljöisolering och separat godkännande.
+En ny funktion eller större förändring får inte implementeras före uttryckligt
+implementationsgodkännande. Implementation innebär inte godkännande för merge,
+databas eller publicering. Bredda inte scope tyst.
 
-## 11. Leveranskvitto
+Korrigerande dokumentation och små maintenanceändringar får göras inom ett
+uttryckligt granskningsuppdrag om de inte skapar nytt produktbeteende.
 
-Efter en push eller merge som är avsedd att testas ska relevanta fält redovisas:
+## 2. Innan arbete påbörjas
 
-```text
-Fas:
-Branch:
-Commit:
-PR:
-CI:
-CI-runner:
-Issue:
-Issue stängd:
-Roadmap:
-Exempelgrupp:
-Changelog/version:
-Arkitektur:
-Lovable-konsultation:
-Vald Lovable-branch:
-Lovable-synk:
-Previewlänk:
-Preview lämnad i chatten:
-Preview granskad av användaren:
-Visuell artifact:
-Manuellt granskade vyer:
-Testa:
-Ej verifierat:
-Databas:
-Publicering:
-Nästa rekommenderade issue:
-```
+För en icke-trivial uppgift:
 
-I mänsklig statusrapportering ska `Issue:` och `PR:` normalt skrivas med både
-nummer och full titel, inte som nakna nummer.
+- kontrollera aktuell `main` och relevanta öppna PR:er för fil- och
+  semantikkonflikter;
+- läs relaterat Issue och endast de specialistdokument som uppgiften kräver;
+- inspektera aktuell kod och berörda databasobjekt i stället för att anta att en
+  äldre plan fortfarande beskriver implementationen;
+- formulera mål, icke-mål, edge cases, integritets-/säkerhetsrisker och hur
+  kandidaten ska falsifieras;
+- bedöm exempelgrupp/demo/live när produktflöden påverkas;
+- invänta implementationsgodkännande när det krävs.
 
-## 12. Dokumentationsansvar
+GitHub Issues + labels är den operativa backloggen. Detaljerade definitioner av
+`status:*`, `priority:*` och `order:*` finns i roadmapen och ska inte dupliceras
+här. `status:ready` betyder att aktuell plan och implementation är godkända.
 
-- `README.md` – kort, aktuell projektöversikt;
-- `CHANGELOG.md` – släppta och ännu inte publicerade användarförändringar;
-- `docs/product-roadmap.md` – paket, strategisk prioritering och backlogprocess;
-- GitHub Issues + labels – detaljerat scope, status, prioritet och beslutad
-  operativ `order:*`;
-- GitHub Project – människovänlig projektion av issues och labels, inklusive
-  arbete som inte behöver finnas i produktroadmapen;
-- `docs/architecture.md` – varaktiga arkitektur- och säkerhetsbeslut;
-- `DEVELOPMENT.md` – miljösetup och kanoniska kommandon;
-- detta dokument – arbets- och leveransprocess;
-- `docs/visual-review.md` – Lovable-branch, preview och screenshot-granskning;
-- `AGENTS.md` – bindande instruktioner för kodande agenter;
-- `docs/archive/` – historiska dokument.
+En implementerande PR ska referera eller stänga sitt Issue. I mänsklig
+statusrapportering används **Issue #NNN — full titel** respektive
+**PR #NNN — full titel** när numren annars kan blandas ihop.
 
-README och GitHub Project ska inte fungera som parallella källor till
-produktbeslut eller agentoläsbar prioritet. Avslutade planer ska tas bort eller
-arkiveras när varaktiga beslut har flyttats till roadmap, arkitektur och
-changelog.
+Roadmapen uppdateras när paket, prioritet, beslutad relativ ordning eller ett
+varaktigt produktbeslut ändras — inte för varje commit eller implementation.
 
-## 13. Antimönster
+## 3. Branch, Git och PR
 
-Undvik:
+Arbeta normalt i en dedikerad branch från verifierad aktuell `main` och håll en
+sammanhängande uppgift i en PR. Pusha granskbara checkpoints, inte varje lokal
+iteration.
 
-- upprepade kloner i samma beständiga arbetsyta;
-- nya branches eller PR:er för varje hypotes;
-- generiska commitmeddelanden;
-- commits som endast triggar workflows;
-- självmodifierande GitHub Actions-workflows;
-- full browsermatris efter varje liten diagnostikändring;
-- att lämna PR:n redo medan visuella hypoteser fortfarande testas;
-- visuella experiment direkt på `main`;
-- att använda interna eller odokumenterade variantbegrepp som huvudflöde;
-- att hoppa över uttryckligen begärd Lovable-konsultation utan att redovisa det;
-- att tyst ersätta begärd Lovable-implementation med egen full UX-implementation;
-- att anta att Lovable-previewn visar PR-branchen utan verifiering;
-- att mergea en större visuell ändring utan previewlänk och användarens
-  granskningsbesked;
-- att behandla preview, screenshot-artifact eller grön CI som ersättning för de
-  andra;
-- pixelassertioner som låser normal responsiv layout utan designkontrakt;
-- global formattering när bara några filer ändrats;
-- parallella verktyg för samma kontroll;
-- att blanda produktfunktion, CI-ombyggnad och publicering i samma PR;
-- att använda en gammal chatt som enda källa till ett produktbeslut;
-- att använda README, `.lovable/plan.md`, GitHub Project-only metadata eller lösa
-  TODO-listor som parallell agentkälla till backlogordning;
-- att ge flera `order:*`-labels till samma öppna issue eller rangordna hela
-  `priority:later` utan ett verkligt beslut;
-- att låta roadmapens relativa ordning och issue-labels motsäga varandra;
-- att använda nakna `#NNN` som primär mänsklig identifierare när Issue och PR kan
-  blandas ihop;
-- att lämna ett stängt issue med `status:ready` eller `order:*`;
-- flera dokument som gör anspråk på att vara kanoniska för samma sak.
+PR:n är draft medan implementation, diagnostik eller visuell iteration pågår.
+Flytta tillbaka till draft om en kandidat behöver en ny större loop.
+
+Pushed historik som kan ha synkats till Lovable får inte skrivas om med
+force-push, rebase eller amend. GitHub Actions används för verifiering, inte för
+att patcha, committa eller pusha produktkod tillbaka till en branch.
+
+PR-mallen är ett evidenskvitto. Den ska beskriva vad som faktiskt ändrades,
+vilken riskprofil som gäller, vad som verifierats och vad som återstår; den ska
+inte återberätta hela detta dokument.
+
+## 4. Diagnostik och implementation
+
+En icke-trivial bugg börjar med reproduktion och observerade data. Formulera en
+falsifierbar hypotes innan upprepade kodändringar och använd minsta riktade
+experiment som kan skilja hypoteserna åt. Ta bort tillfällig diagnostik när
+rotorsaken är löst.
+
+För godkänd implementation:
+
+- gör minsta sammanhängande ändring som uppfyller scopet;
+- undvik orelaterad refaktorering och kosmetiska massändringar;
+- återanvänd etablerade domän- och UI-mönster;
+- låt inte en providers bekvämlighet flytta domän-, integritets- eller
+  behörighetsregler till fel lager;
+- ändra inte produktionsdata från featurebranch utan separat godkännande och
+  verifierad miljögräns.
+
+Under iteration: börja med den smalaste kontroll som kan falsifiera kandidaten.
+Bredda först när den stabiliserats.
+
+## 5. Renderad UX och Lovable
+
+Alla GUI-ändringar följer [visual-review.md](./visual-review.md) och den lokala
+`src/AGENTS.md`:
+
+- nivå 1 för alla renderade GUI-ändringar;
+- nivå 2 när interaktion/användarresa ändras;
+- nivå 3 för större layout-, hierarki- eller huvudflödesändringar.
+
+Temporära screenshots och riktade states är standard under iteration. Breda
+browsermatriser och GitHub-artifacts används först när risk eller färdig kandidat
+motiverar dem.
+
+### Lovable-konsultation
+
+När användaren uttryckligen ber att bolla UX med Lovable används Plan mode före
+låst lösning när verktyget är tillgängligt. Om konsultationen inte kan
+så genomföras ska begränsningen redovisas; den ersätts inte tyst av ett annat
+arbetsflöde.
+
+### Lovable-implementation
+
+När användaren uttryckligen ber Lovable implementera UX:
+
+1. utgå från verifierad featurebranch/PR;
+2. välj exakt PR-branch i Lovable;
+3. verifiera branchnamn och aktuell head-SHA innan Lovable skriver kod;
+4. låt Lovable fokusera på visuell hierarki, layout, spacing, responsivitet och
+   interaktionspolish;
+5. granska diffen och kör normal repo-verifiering efteråt.
+
+Om rätt branch/head inte kan verifieras ska Lovable inte skriva kod. En branch
+innebär inte en isolerad databas.
+
+### Previewgrind
+
+För nivå 3/större visuella ändringar krävs före merge:
+
+- exakt PR-branch och aktuell head-SHA;
+- samma branch vald i Lovable och verifierad synk;
+- aktuell previewlänk i chatten;
+- 360 px och desktop granskade;
+- demo/exempel och live jämförda när relevant;
+- användarens uttryckliga mergegodkännande efter preview.
+
+Om branch, synk eller preview inte kan verifieras är kandidaten inte redo för
+merge. Preview är granskning, inte publicering, och ersätter inte diff, tester,
+browserkontroller eller CI.
+
+Backend-, dokumentations- och andra osynliga ändringar kräver normalt inte
+preview; motivera kort varför.
+
+## 6. Verifiering och CI
+
+Kanoniska kommandon och aktuell runnerinformation finns i `package.json` och
+[DEVELOPMENT.md](../DEVELOPMENT.md). Hårdkoda inte en parallell kommandolista i
+processdokumentation.
+
+Verifieringsprincipen är:
+
+1. riktad kontroll under iteration;
+2. relevant domän-/browserkontroll för kandidatens faktiska risk;
+3. repoets ordinarie kandidat-/CI-kontroller före merge.
+
+GUI-kandidater redovisar reviewnivå, states och viewportar enligt
+`visual-review.md`. Databas/RPC-kandidater granskar minst autentisering,
+medlemskap/roller, `SECURITY DEFINER`/`search_path`, grants, gruppisolering och
+databevarande där detta är relevant.
+
+Påstå aldrig att ett test eller en smoke har körts om det inte finns ett faktiskt
+resultat. Saknad live-session, browser, runner eller annan verifieringsförmåga
+redovisas som en begränsning — den ersätts inte av en gissning.
+
+Draft-iteration ska inte förbruka CI/artifacts utan nytta. När kandidaten är redo
+ska relevant ordinarie CI vara grön före merge. Hosted och self-hosted runner är
+likvärdiga endast när samma avsedda verifieringskontrakt faktiskt passerar.
+
+## 7. Merge
+
+Merge får ske först när:
+
+- godkänt scope är uppfyllt och slutdiffen är granskad;
+- aktuell `main` och öppna PR:er har kontrollerats igen för konflikt/mergeordning;
+- relevant verifiering och CI är grön;
+- renderad UX/previewgrind är uppfylld där den krävs;
+- dokumentation, roadmap och releasehistorik är konsekventa där ändringen kräver
+  det;
+- inga kända blockerare återstår;
+- användaren har uttryckligen godkänt merge.
+
+Merge betyder inte att databasen är driftsatt, att Lovable visar senaste `main`
+eller att den publika appen är publicerad.
+
+Efter merge, bekräfta att rätt Issue stängdes och att stängda issues inte ligger
+kvar med operativa `status:ready`/`order:*`-etiketter. Kontrollera roadmapen bara
+när den faktiska produktordningen eller paketstatusen påverkas.
+
+## 8. Databasdriftsättning och publicering
+
+Databasdriftsättning och publicering är separata handlingar med separata
+uttryckliga godkännanden.
+
+Vid databasarbete ska migrations-/preflightkontraktet i arkitekturen och repots
+SQL-/kontraktskontroller följas. Skriv inte att en migration, schema-cache reload
+eller autentiserad smoke är genomförd utan faktisk bekräftelse.
+
+Publicering kräver konsekvent version, in-app-historik och `CHANGELOG.md` när
+ändringen är releasepliktig. En dokumentations- eller maintenance-PR behöver
+inte publiceras bara för att den mergas.
+
+## 9. Leveranskvitto
+
+Efter en kandidat eller merge redovisas endast relevanta fält, men håll följande
+statusar separata:
+
+- branch och commit/head;
+- **Issue #NNN — titel** och **PR #NNN — titel**;
+- CI och faktisk verifiering;
+- renderad reviewnivå, states, viewportar och konkreta UX-fynd;
+- Lovable-konsultation, vald branch, synk och preview;
+- exempelgrupp och roadmap påverkan;
+- databas/migration;
+- sådant som inte verifierats;
+- publicering.
+
+En kompakt korrekt leveransrapport är bättre än en lång checklista som fyllts i
+mekaniskt.
+
+## 10. Dokumentägarskap
+
+- `README.md` — kort mänsklig projektöversikt.
+- `AGENTS.md` — permanent agentkonstitution + router.
+- `docs/product-roadmap.md` — produktpaket, riktning, prioritet och backlogmodell.
+- GitHub Issues + labels — konkret scope och operativ status/ordning.
+- `docs/architecture.md` + specialistdokument — varaktig arkitektur, integritet
+  och säkerhet.
+- `DEVELOPMENT.md` — miljösetup, tooling och exakta kommandon.
+- detta dokument — arbets- och leveransprocess.
+- `docs/visual-review.md` — renderad UX, Lovable och preview.
+- `CHANGELOG.md` + in-app-version — användarsynlig releasehistorik.
+- `docs/archive/` — historik som fortfarande har ett faktiskt referensvärde.
+
+Skapa inte parallella sanningskällor. Kortlivade implementationsplaner och
+leveransstatus hör normalt i Issue/PR; när arbetet är klart flyttas endast
+varaktiga beslut till deras naturliga ägare.
