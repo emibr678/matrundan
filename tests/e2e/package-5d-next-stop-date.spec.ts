@@ -74,7 +74,7 @@ test("matställedetaljen skapar ett förslag även i demo utan att ersätta valt
   const openCard = page.locator('[data-next-stop-proposal="open"]');
   await expect(selectedCard.getByText("Glöd & Grönska", { exact: true })).toBeVisible();
   await expect(openCard).toHaveCount(1);
-  await expect(openCard.getByText("Lilla Napoli", { exact: true })).toBeVisible();
+  await expect(openCard.getByText("Lilla Myntans Matrum", { exact: true })).toBeVisible();
 
   const widths = await page.evaluate(() => ({
     client: document.documentElement.clientWidth,
