@@ -142,8 +142,12 @@ export function NextStopCard({
 
   function openSchedule() {
     setDate(plannedDate ?? defaultNextStopDateValue());
-    setTime(plannedTime ?? "");
     setScheduleOpen(true);
+  }
+
+  function openTime() {
+    setTime(plannedTime ?? "");
+    setTimeOpen(true);
   }
 
   async function saveSchedule() {
@@ -156,6 +160,22 @@ export function NextStopCard({
       return;
     }
 
+    await run(
+      "schedule",
+      async () => {
+        await setSchedule(date, plannedTime);
+        setScheduleOpen(false);
+      },
+      "Dagen är sparad.",
+    );
+  }
+
+  async function saveTime() {
+    if (!plannedDate) {
+      toast.error("Lägg till en dag först.");
+      return;
+    }
+
     let normalizedTime: string | null;
     try {
       normalizedTime = normalizeNextStopTime(time);
@@ -163,16 +183,33 @@ export function NextStopCard({
       toast.error(error instanceof Error ? error.message : "Kontrollera tiden.");
       return;
     }
+    if (!normalizedTime) {
+      toast.error("Ange ett klockslag.");
+      return;
+    }
 
     await run(
-      "schedule",
+      "time",
       async () => {
-        await setSchedule(date, normalizedTime);
-        setScheduleOpen(false);
+        await setSchedule(plannedDate, normalizedTime);
+        setTimeOpen(false);
       },
-      normalizedTime ? "Dag och tid är sparade." : "Dagen är sparad.",
+      "Tiden är sparad.",
     );
   }
+
+  async function removeTime() {
+    if (!plannedDate) return;
+    await run(
+      "remove-time",
+      async () => {
+        await setSchedule(plannedDate, null);
+        setTimeOpen(false);
+      },
+      "Tiden är borttagen.",
+    );
+  }
+
 
   async function randomProposal() {
     if (proposals.length >= 5) {
