@@ -37,6 +37,7 @@
     "test:mobile:changed": "playwright test --project=mobile-chromium --pass-with-no-tests --max-failures=1 --retries=0",
     "test:map": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-chromium",
     "test:map:cross-browser": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-webkit --project=desktop-chromium",
+    "test:visual-smoke": "bun scripts/visual-review-smoke.mjs",
     "test:visual-review": "bun run build && playwright test --config=playwright.visual.config.ts"
   },
   "dependencies": {
