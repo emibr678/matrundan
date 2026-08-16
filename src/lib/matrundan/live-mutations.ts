@@ -1,6 +1,6 @@
 /**
  * Live-mutationer: tunna wrappers över Supabase RPC:er som utför alla
- * skrivningar atomärt (matställe, besök+review, favorit, nästa stopp och datumförslag).
+ * skrivningar atomärt (matställe, besök+review, favorit och nästa stopp).
  *
  * Klienten skickar aldrig aktivitetsposter direkt – databasfunktionerna
  * ansvarar för att skapa dem tillsammans med den egentliga skrivningen,
@@ -10,7 +10,7 @@ import { z } from "zod";
 import type { BulkPlaceAddResult, ProviderPlaceBatchInput } from "./bulk-place-add";
 import { MAX_BULK_PLACE_COUNT } from "./bulk-place-add";
 import { createManualPlaceFromFallback, reuseManualPlaceInGroup } from "./reusable-manual-places";
-import type { NextStopDateResponseValue, Place, Visit } from "./types";
+import type { Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 import { flushNotificationOutbox } from "./notifications.functions";
 
@@ -204,63 +204,6 @@ export async function liveSetNextPlace(groupId: string, placeId: string | null):
     });
   }
   scheduleNotificationFlush();
-}
-
-export async function liveProposeNextStopDate(
-  groupId: string,
-  date: string,
-  time: string | null,
-): Promise<string> {
-  const proposalId = await rpcClient.call(
-    "propose_next_stop_date",
-    {
-      _group_id: groupId,
-      _proposed_date: date,
-      _proposed_time: nn(time),
-    },
-    ID_SCHEMA,
-    "Kunde inte föreslå datumet.",
-  );
-  scheduleNotificationFlush();
-  return proposalId;
-}
-
-export async function liveRespondNextStopDate(
-  groupId: string,
-  proposalId: string,
-  response: NextStopDateResponseValue,
-): Promise<void> {
-  await rpcClient.callVoid("respond_next_stop_date", {
-    _group_id: groupId,
-    _proposal_id: proposalId,
-    _response: response,
-  });
-}
-
-export async function liveSetNextStopDateStatus(
-  groupId: string,
-  proposalId: string,
-  status: "confirmed" | "cancelled",
-): Promise<void> {
-  await rpcClient.callVoid("set_next_stop_date_status", {
-    _group_id: groupId,
-    _proposal_id: proposalId,
-    _status: status,
-  });
-}
-
-export async function liveUpdateNextStopDateProposal(
-  groupId: string,
-  proposalId: string,
-  date: string,
-  time: string | null,
-): Promise<void> {
-  await rpcClient.callVoid("update_next_stop_date_proposal", {
-    _group_id: groupId,
-    _proposal_id: proposalId,
-    _proposed_date: date,
-    _proposed_time: nn(time),
-  });
 }
 
 /**
