@@ -462,7 +462,7 @@ export function NextStopCard({
               )}
             </button>
             {otherOpen ? (
-              <div className="mt-1 divide-y divide-border/60 border-t border-border/60">
+              <div className="mt-1 divide-y divide-border/60 border-t border-border/60 px-2">
                 {otherProposals.map((item) => (
                   <ProposalRow
                     key={item.proposal.id}
