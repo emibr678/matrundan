@@ -30,16 +30,23 @@ function unavailableStorageKey(groupId: string): string {
   return `${DEMO_UNAVAILABLE_STORAGE_PREFIX}.${groupId}`;
 }
 
+function sanitizeState(value: NextStopState): NextStopState {
+  // Klockslag är praktisk information om ett bestämt stopp och får aldrig ligga kvar utan det.
+  if (!value.selectedPlaceId && value.plannedTime) return { ...value, plannedTime: null };
+  return value;
+}
+
 function readDemoState(groupId: string, fallback: NextStopState | null): NextStopState | null {
   try {
     const raw = demoStorage(groupId)?.getItem(storageKey(groupId));
     if (!raw) return fallback;
     const value = JSON.parse(raw) as NextStopState;
-    return value && Array.isArray(value.proposals) ? value : fallback;
+    return value && Array.isArray(value.proposals) ? sanitizeState(value) : fallback;
   } catch {
     return fallback;
   }
 }
+
 
 function readDemoUnavailable(groupId: string): string[] {
   try {
