@@ -18,10 +18,12 @@ Inga ändringar ännu.
 
 ### Nytt
 
-- Gruppen kan ha flera enkla matställesförslag samtidigt och markera **Gärna!**
+- Gruppen kan ha flera enkla matställesförslag samtidigt och markera **Går gärna dit**
   på flera alternativ utan automatisk vinnare eller formell röstning.
 - **Nästa stopp** kan bära en gemensam dag oberoende av ställe, med valfri
   klocktid först när gruppen faktiskt har bestämt den.
+- En medlem kan markera **Kan inte då** på gruppens gemensamma dag utan att
+  uteblivet svar tolkas som ett nej eller ett RSVP-svar.
 - En passerad planerad dag följs upp med **Blev det av?** så ett verkligt besök
   registreras uttryckligen i stället för att historik gissas fram.
 
@@ -30,6 +32,8 @@ Inga ändringar ännu.
 - Ett nytt ställesförslag skriver inte längre över gruppens redan valda eller
   diskuterade nästa stopp. Ett verkligt originalbesök avslutar bara relevant
   nästa-stopp-flöde.
+- När nästa stopp är valt fokuserar Hem på stället och nästa handling medan
+  övriga förslag ligger kollapsade tills gruppen vill ändra valet.
 
 ## [1.36.0] – 2026-08-16
 
