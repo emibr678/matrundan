@@ -17,7 +17,6 @@ async function resetDemo(page: Page) {
   await page.evaluate(() => {
     window.localStorage.removeItem("matrundan.state.v1");
     window.localStorage.removeItem("matrundan.nextStop.v2.g1");
-    window.localStorage.removeItem("matrundan.nextStop.v2.unavailable.g1");
     window.localStorage.removeItem("matrundan.nextStopDate.v1.g1");
   });
   await page.reload();
@@ -30,13 +29,22 @@ async function proposeAlternativeFromDetail(page: Page) {
   await page.goto("/?demo=1");
 }
 
+function scheduleMenuTrigger(page: Page) {
+  return page.getByRole("button", { name: "Ändra dag eller tid" });
+}
+
+async function openScheduleMenu(page: Page) {
+  await scheduleMenuTrigger(page).click();
+  return page.getByRole("menu");
+}
+
 async function addDay(page: Page, date: string) {
   await page.getByRole("button", { name: "Lägg till dag" }).click();
   const addDialog = page.getByRole("dialog", { name: "Lägg till dag" });
   await expect(addDialog.getByLabel("Tid (valfritt)")).toHaveCount(0);
   await addDialog.getByLabel("Dag").fill(date);
   await addDialog.getByRole("button", { name: "Spara" }).click();
-  await expect(page.getByRole("button", { name: "Ändra dag" })).toBeVisible();
+  await expect(scheduleMenuTrigger(page)).toBeVisible();
 }
 
 async function expectNoOverflow(page: Page) {
@@ -66,6 +74,7 @@ test("bestämt stopp fokuserar på resultatet och håller andra förslag kollaps
 
   const alternative = page.locator('[data-next-stop-proposal="open"]');
   await expect(alternative.getByText("Lilla Myntans Matrum", { exact: true })).toBeVisible();
+  await expect(alternative.getByText(/Föreslaget av/)).toHaveCount(0);
   await alternative.getByRole("button", { name: "Går gärna dit" }).click();
   await expect(alternative.getByRole("button", { name: "Går gärna dit" })).toHaveAttribute(
     "aria-pressed",
@@ -112,36 +121,24 @@ test("matställedetaljen skapar ett förslag utan att ersätta valt stopp", asyn
   await expect(page.getByRole("button", { name: "Andra förslag (1)" })).toBeVisible();
 });
 
-test("Kan inte den dagen är frivilligt och nollställs först när den gemensamma dagen byts", async ({
-  page,
-}) => {
+test("dagen visas som lugn metadata och ändras bakom en enda kontroll", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
   const firstDate = futureDate(10);
   const changedDate = futureDate(12);
 
   await addDay(page, firstDate);
+  await expect(page.getByText(/Kan inte den dagen/)).toHaveCount(0);
 
-  const unavailable = page.getByRole("button", { name: "Kan inte den dagen" });
-  await unavailable.click();
-  await expect(unavailable).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("1 kan inte den dagen", { exact: true })).toBeVisible();
-
-  await page.getByRole("button", { name: "Ändra dag" }).click();
+  const menu = await openScheduleMenu(page);
+  await menu.getByRole("menuitem", { name: "Ändra dag" }).click();
   const dateDialog = page.getByRole("dialog", { name: "Ändra dag" });
-  await expect(dateDialog.getByLabel("Tid (valfritt)")).toHaveCount(0);
   await dateDialog.getByLabel("Dag").fill(changedDate);
   await dateDialog.getByRole("button", { name: "Spara" }).click();
 
-  await expect(page.getByText("1 kan inte den dagen", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Kan inte den dagen" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-
+  await expect(scheduleMenuTrigger(page)).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("button", { name: "Ändra dag" })).toBeVisible();
-  await expect(page.getByText("1 kan inte den dagen", { exact: true })).toHaveCount(0);
+  await expect(scheduleMenuTrigger(page)).toBeVisible();
 
   await expectNoOverflow(page);
 });
@@ -152,26 +149,26 @@ test("klockslag går bara att lägga till efter att stopp och dag finns", async 
 
   const selected = page.locator('[data-next-stop-proposal="selected"]');
   await expect(selected.getByText("Glöd & Grönska", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Lägg till tid" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Lägg till dag" })).toBeVisible();
 
   await addDay(page, futureDate(9));
 
-  const addTime = page.getByRole("button", { name: "Lägg till tid" });
-  await expect(addTime).toBeVisible();
-  await addTime.click();
+  const menu = await openScheduleMenu(page);
+  await menu.getByRole("menuitem", { name: "Lägg till tid" }).click();
   const timeDialog = page.getByRole("dialog", { name: "Lägg till tid" });
   await timeDialog.getByLabel("Tid").fill("18:30");
   await timeDialog.getByRole("button", { name: "Spara" }).click();
 
-  await expect(page.getByText("· 18:30", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ändra tid" })).toBeVisible();
+  await expect(page.getByText(/· 18:30/)).toBeVisible();
   await expectNoOverflow(page);
 
   // Ändra nästa stopp rensar tiden men behåller dagen.
   await page.getByRole("button", { name: "Ändra nästa stopp" }).click();
-  await expect(page.getByText("· 18:30", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Lägg till tid" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Ändra dag" })).toBeVisible();
+  await expect(page.getByText(/· 18:30/)).toHaveCount(0);
+  const openMenu = await openScheduleMenu(page);
+  await expect(openMenu.getByRole("menuitem", { name: "Lägg till tid" })).toHaveCount(0);
+  await expect(openMenu.getByRole("menuitem", { name: "Ändra dag" })).toBeVisible();
+  await page.keyboard.press("Escape");
   await expectNoOverflow(page);
 });
 
@@ -181,11 +178,12 @@ test("direkt byte av bestämt stopp behåller dag och tid", async ({ page }) => 
   await proposeAlternativeFromDetail(page);
   await addDay(page, futureDate(11));
 
-  await page.getByRole("button", { name: "Lägg till tid" }).click();
+  const menu = await openScheduleMenu(page);
+  await menu.getByRole("menuitem", { name: "Lägg till tid" }).click();
   const timeDialog = page.getByRole("dialog", { name: "Lägg till tid" });
   await timeDialog.getByLabel("Tid").fill("19:15");
   await timeDialog.getByRole("button", { name: "Spara" }).click();
-  await expect(page.getByText("· 19:15", { exact: true })).toBeVisible();
+  await expect(page.getByText(/· 19:15/)).toBeVisible();
 
   await page.getByRole("button", { name: "Andra förslag (1)" }).click();
   const alternative = page.locator('[data-next-stop-proposal="open"]');
@@ -198,7 +196,7 @@ test("direkt byte av bestämt stopp behåller dag och tid", async ({ page }) => 
       exact: true,
     }),
   ).toBeVisible();
-  await expect(page.getByText("· 19:15", { exact: true })).toBeVisible();
+  await expect(page.getByText(/· 19:15/)).toBeVisible();
   await expectNoOverflow(page);
 });
 
@@ -227,7 +225,6 @@ test("passerad dag frågar vad som hände och Det blev inte av behåller ställe
         ],
       }),
     );
-    window.localStorage.setItem("matrundan.nextStop.v2.unavailable.g1", JSON.stringify(["m1"]));
   }, pastDate(1));
   await page.reload();
 
@@ -239,5 +236,4 @@ test("passerad dag frågar vad som hände och Det blev inte av behåller ställe
   await expect(page.getByRole("heading", { name: "Blev det av?" })).toHaveCount(0);
   const selected = page.locator('[data-next-stop-proposal="selected"]');
   await expect(selected.getByText("Glöd & Grönska", { exact: true })).toBeVisible();
-  await expect(page.getByText("1 kan inte den dagen", { exact: true })).toHaveCount(0);
 });
