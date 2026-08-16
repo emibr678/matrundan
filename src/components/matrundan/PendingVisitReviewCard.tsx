@@ -36,7 +36,7 @@ export function PendingVisitReviewCard({
         </div>
       </div>
 
-      <div className="mt-2 pl-10.5">
+      <div className="mt-2 pl-10">
         <Button asChild size="sm" className="min-h-11">
           <Link to="/besok" search={{ visit: visitId }}>
             Öppna besöket
