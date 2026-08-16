@@ -47,12 +47,31 @@ Välj ett alternativ och motivera vid behov:
 
 Motivering eller berört scenario:
 
-## Lovable och visuell granskning
+## Lovable och visuell/UX-granskning
 
-Markera när ändringen påverkar layout, hierarki, responsivitet eller ett
-huvudflöde. Workflowen **Visual review artifacts** körs när den särskilda rutan
-nedan är markerad på en icke-draft PR. Under draft används lokal
-`bun run test:visual-review` vid behov.
+Alla ändringar som påverkar renderat GUI ska minst genomföra nivå 1 enligt
+`docs/visual-review.md`. Interaktionsändringar använder minst nivå 2 och större
+huvudflöden nivå 3. Temporära screenshots är förstahandsval under iteration;
+workflowen **Visual review artifacts** är opt-in för färdigare kandidater.
+
+### Renderad review
+
+- Reviewnivå: `1` / `2` / `3` / inte relevant
+- [ ] Berörd GUI-state har renderats och granskats.
+- [ ] 360 px har granskats när GUI påverkas.
+- [ ] Desktop har granskats när layout/hierarki påverkas där.
+- [ ] Interaktionsflödet har klickats igenom när nivå 2 eller 3 används.
+- [ ] Persona-/perspektivreview har genomförts när nivå 3 används.
+- [ ] Skapa visuella granskningsbilder
+- [ ] Renderad review är inte relevant, med motivering nedan.
+
+Granskade routes/states:
+Viewportar:
+Screenshots: temporära / GitHub-artifact / inga
+Konkreta visuella/UX-fynd och korrigeringar:
+Persona-resultat vid nivå 3:
+Ej visuellt verifierat:
+Motivering om inte relevant:
 
 ### Lovable-användning
 
@@ -63,19 +82,16 @@ nedan är markerad på en icke-draft PR. Under draft används lokal
 - [ ] Lovable kunde inte användas; begränsningen är dokumenterad.
 - [ ] Lovable var inte relevant.
 
-### Previewgrind för större visuella ändringar
+### Previewgrind för nivå 3 / större visuella ändringar
 
-- [ ] Visuell granskning krävs.
+- [ ] Full previewgrind krävs.
 - [ ] Exakt PR-branch och aktuell head-SHA är dokumenterade.
 - [ ] Samma PR-branch är vald i Lovable.
 - [ ] Lovable-synken är verifierad mot aktuell PR-head.
 - [ ] En aktuell previewlänk har lämnats till användaren i chatten.
-- [ ] 360 px mobil är manuellt granskad.
-- [ ] Desktop är manuellt granskad.
 - [ ] Demo/exempelgrupp och live-läge är jämförda när relevant.
 - [ ] Användaren har granskat previewn och uttryckligen godkänt merge.
-- [ ] Skapa visuella granskningsbilder
-- [ ] Visuell granskning är inte relevant, med motivering nedan.
+- [ ] Full previewgrind är inte relevant, med motivering nedan.
 
 PR-branch:
 PR-head:
@@ -84,9 +100,7 @@ Verifierad Lovable-commit:
 Previewlänk:
 Preview lämnad i chatten:
 Användarens gransknings-/mergebesked:
-Granskade vyer:
-Ej visuellt verifierat:
-Motivering om inte relevant:
+Motivering om full previewgrind inte är relevant:
 
 ## Produkt- och arkitekturdokumentation
 
@@ -134,6 +148,7 @@ redo-kandidat och kan köras på hosted eller self-hosted runner.
 - [ ] `bun run typecheck`
 - [ ] `bun run build`
 - [ ] Fokuserade tester
+- [ ] Visuell smoke check när GUI har ändrats
 - [ ] Mobil Chromium när UI har ändrats
 - [ ] WebKit/iPhone och desktop Chromium när kartan har ändrats
 - [ ] **Roadmapgrind:** bedöm om merge färdigställer en roadmapfunktion, ändrar
@@ -158,6 +173,9 @@ Utförda kommandon och resultat:
 - PR:
 - CI:
 - CI-runner: `ubuntu-24.04` / `self-hosted` / ej körd
+- Reviewnivå och granskade states:
+- Screenshots/artifact:
+- UX-/persona-resultat:
 - Lovable-konsultation:
 - Vald Lovable-branch:
 - Lovable-synk:
