@@ -990,7 +990,8 @@ function ProposalRow({
             onClick={onSelect}
             disabled={busy !== null}
           >
-            <Flag className="h-4 w-4" /> Välj
+            <Flag className="h-4 w-4" /> {selectLabel}
+
           </Button>
         </div>
       ) : null}
