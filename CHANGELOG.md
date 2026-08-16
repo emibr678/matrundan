@@ -14,6 +14,13 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.35.1] – 2026-08-16
+
+### Rättat
+
+- Versionshistoriken i appen beskriver nu korrekt att den som registrerar ett
+  nytt besök alltid räknas som faktisk deltagare och lämnar sitt eget omdöme.
+
 ## [1.35.0] – 2026-08-15
 
 ### Förbättrat
