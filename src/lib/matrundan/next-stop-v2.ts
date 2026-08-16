@@ -1,0 +1,176 @@
+import { z } from "zod";
+import { flushNotificationOutbox } from "./notifications.functions";
+import { defaultNextStopDateValue } from "./next-stop-date";
+import { rpcClient } from "./rpc-client";
+import type { AppState, NextStopPlaceProposal, NextStopState, Role } from "./types";
+
+const ID_SCHEMA = z.string().min(1);
+const EXAMPLE_GROUP_ID = "example-stockholm";
+
+function scheduleNotificationFlush(): void {
+  void flushNotificationOutbox().catch(() => {
+    /* Notiser får aldrig blockera själva skrivningen. */
+  });
+}
+
+function legacyProposal(state: AppState, placeId: string): NextStopPlaceProposal {
+  const activity = state.activity.find(
+    (item) => item.kind === "next-picked" && item.placeId === placeId,
+  );
+  return {
+    id: `legacy-next-stop:${placeId}`,
+    placeId,
+    proposedBy: activity?.memberId ?? null,
+    createdAt: activity?.at ?? state.group.createdAt,
+    supports: [],
+  };
+}
+
+function exampleNextStopState(state: AppState): NextStopState | null {
+  const selectedPlaceId = state.nextPlaceId;
+  const primaryPlaceId = selectedPlaceId ?? state.places.find((place) => place.id === "p5")?.id;
+  const alternativePlaceId = state.places.find(
+    (place) => place.id === "p1" && place.collectionStatus !== "archived",
+  )?.id;
+  if (!primaryPlaceId && !alternativePlaceId) return null;
+
+  const createdAt = new Date().toISOString();
+  const primarySupports = ["m1", "m2", "m3", "m5"]
+    .filter((memberId) => state.members.some((member) => member.id === memberId))
+    .map((memberId, index) => ({ memberId, updatedAt: new Date(Date.now() + index).toISOString() }));
+  const alternativeSupports = ["m2", "m4"]
+    .filter((memberId) => state.members.some((member) => member.id === memberId))
+    .map((memberId, index) => ({ memberId, updatedAt: new Date(Date.now() + index).toISOString() }));
+  const proposals: NextStopPlaceProposal[] = [];
+
+  if (primaryPlaceId) {
+    proposals.push({
+      id: "example-next-stop-primary",
+      placeId: primaryPlaceId,
+      proposedBy: "m1",
+      createdAt,
+      supports: primarySupports,
+    });
+  }
+  if (alternativePlaceId && alternativePlaceId !== primaryPlaceId) {
+    proposals.push({
+      id: "example-next-stop-alternative",
+      placeId: alternativePlaceId,
+      proposedBy: "m2",
+      createdAt: new Date(Date.now() + 1).toISOString(),
+      supports: alternativeSupports,
+    });
+  }
+
+  return {
+    revision: 1,
+    plannedDate: state.nextStopDateProposal?.date ?? defaultNextStopDateValue(),
+    plannedTime: state.nextStopDateProposal?.time ?? null,
+    selectedPlaceId: selectedPlaceId ?? null,
+    proposals,
+  };
+}
+
+/**
+ * Normaliserar v5j/demo till den nya modellen. Live-v5k lämnas alltid orörd.
+ * Undefined på state.nextStop betyder att databasen ännu inte har v5k.
+ */
+export function deriveNextStopState(state: AppState): NextStopState | null {
+  if (state.group.lifecycleStatus === "archived") return null;
+  if (state.nextStop !== undefined) return state.nextStop;
+  if (state.group.id === EXAMPLE_GROUP_ID) return exampleNextStopState(state);
+
+  if (!state.nextPlaceId && !state.nextStopDateProposal) return null;
+  return {
+    revision: 0,
+    plannedDate: state.nextStopDateProposal?.date ?? null,
+    plannedTime: state.nextStopDateProposal?.time ?? null,
+    selectedPlaceId: state.nextPlaceId,
+    proposals: state.nextPlaceId ? [legacyProposal(state, state.nextPlaceId)] : [],
+  };
+}
+
+export function currentMemberRole(state: AppState): Role | undefined {
+  return state.members.find((member) => member.id === state.currentUserId)?.role;
+}
+
+export function canWithdrawNextStopProposal(
+  state: AppState,
+  proposal: NextStopPlaceProposal,
+): boolean {
+  const role = currentMemberRole(state);
+  return (
+    proposal.proposedBy === state.currentUserId || role === "ägare" || role === "admin"
+  );
+}
+
+export async function liveProposeNextStopPlaceV2(
+  groupId: string,
+  placeId: string,
+): Promise<string> {
+  return rpcClient.call(
+    "propose_next_stop_place_v2",
+    { _group_id: groupId, _place_id: placeId },
+    ID_SCHEMA,
+    "Kunde inte lägga till förslaget.",
+  );
+}
+
+export async function liveSetNextStopPlaceSupportV2(
+  groupId: string,
+  proposalId: string,
+  supported: boolean,
+): Promise<void> {
+  await rpcClient.callVoid("set_next_stop_place_support_v2", {
+    _group_id: groupId,
+    _proposal_id: proposalId,
+    _supported: supported,
+  });
+}
+
+export async function liveSelectNextStopPlaceV2(
+  groupId: string,
+  proposalId: string,
+  expectedRevision: number,
+): Promise<void> {
+  await rpcClient.callVoid("select_next_stop_place_v2", {
+    _group_id: groupId,
+    _proposal_id: proposalId,
+    _expected_revision: expectedRevision,
+  });
+  scheduleNotificationFlush();
+}
+
+export async function liveClearNextStopSelectionV2(
+  groupId: string,
+  expectedRevision: number,
+): Promise<void> {
+  await rpcClient.callVoid("clear_next_stop_selection_v2", {
+    _group_id: groupId,
+    _expected_revision: expectedRevision,
+  });
+}
+
+export async function liveWithdrawNextStopPlaceV2(
+  groupId: string,
+  proposalId: string,
+): Promise<void> {
+  await rpcClient.callVoid("withdraw_next_stop_place_v2", {
+    _group_id: groupId,
+    _proposal_id: proposalId,
+  });
+}
+
+export async function liveSetNextStopScheduleV2(
+  groupId: string,
+  date: string | null,
+  time: string | null,
+  expectedRevision: number,
+): Promise<void> {
+  await rpcClient.callVoid("set_next_stop_schedule_v2", {
+    _group_id: groupId,
+    _planned_date: date,
+    _planned_time: time,
+    _expected_revision: expectedRevision,
+  });
+}
