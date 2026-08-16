@@ -20,19 +20,15 @@ import { setOwnVisitParticipation } from "@/lib/matrundan/live-visit-participati
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit } from "@/lib/matrundan/types";
-import { AddVisitReviewDialog } from "./AddVisitReviewDialog";
-import { DemoAddVisitReviewDialog } from "./DemoAddVisitReviewDialog";
 
 export function VisitParticipationControls({
   visit,
-  placeName,
   currentUserId,
   groupArchived,
   demoReadOnly,
   onChanged,
 }: {
   visit: Visit;
-  placeName: string;
   currentUserId: string;
   groupArchived: boolean;
   demoReadOnly: boolean;
@@ -46,9 +42,6 @@ export function VisitParticipationControls({
   const status =
     visit.currentUserParticipationStatus ?? (fallbackParticipant ? "participant" : "none");
   const isRegistrar = visit.createdBy === currentUserId;
-  const myReview = visit.visibleReviews?.find(
-    (review) => review.userId === currentUserId && review.ratingVisible,
-  );
   const writable =
     !groupArchived && !demoReadOnly && (mode === "live" ? Boolean(activeGroupId) : true);
 
@@ -76,74 +69,43 @@ export function VisitParticipationControls({
 
   if (status === "none") return null;
 
+  if (status === "declined") {
+    return (
+      <Card className="space-y-3 rounded-2xl border-border/70 bg-secondary/30 p-3">
+        <div>
+          <p className="text-sm font-medium">Du har markerat att du inte var med</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Besöket räknas därför inte i din progression och ditt eventuella omdöme visas inte.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={!writable || saving}
+          onClick={() => void updateParticipation(true)}
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
+          Jag var med
+        </Button>
+      </Card>
+    );
+  }
+
+  if (isRegistrar) return null;
+
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-medium">Din medverkan</h3>
-
-      {status === "participant" ? (
-        <Card className="space-y-3 rounded-2xl border-border/70 p-3">
-          {!myReview ? (
-            <>
-              <div>
-                <p className="text-sm font-medium">Du var med på besöket</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Lägg gärna till din egen upplevelse. Den sparas på samma gemensamma besök.
-                </p>
-              </div>
-              {mode === "live" ? (
-                <AddVisitReviewDialog
-                  visitId={visit.id}
-                  placeName={placeName}
-                  disabled={!writable}
-                  onSaved={onChanged}
-                />
-              ) : (
-                <DemoAddVisitReviewDialog
-                  visitId={visit.id}
-                  placeName={placeName}
-                  disabled={!writable}
-                />
-              )}
-            </>
-          ) : (
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Du är registrerad som faktisk deltagare på det här besöket.
-            </p>
-          )}
-
-          {!isRegistrar ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full justify-center text-muted-foreground"
-              disabled={!writable || saving}
-              onClick={() => setConfirmDecline(true)}
-            >
-              <UserMinus className="h-4 w-4" />
-              Jag var inte med
-            </Button>
-          ) : null}
-        </Card>
-      ) : (
-        <Card className="space-y-3 rounded-2xl border-border/70 bg-secondary/30 p-3">
-          <div>
-            <p className="text-sm font-medium">Du har markerat att du inte var med</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Besöket räknas därför inte i din progression och ditt eventuella omdöme visas inte.
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={!writable || saving}
-            onClick={() => void updateParticipation(true)}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
-            Jag var med
-          </Button>
-        </Card>
-      )}
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        className="w-full justify-center text-muted-foreground"
+        disabled={!writable || saving}
+        onClick={() => setConfirmDecline(true)}
+      >
+        <UserMinus className="h-4 w-4" />
+        Jag var inte med
+      </Button>
 
       <AlertDialog open={confirmDecline} onOpenChange={setConfirmDecline}>
         <AlertDialogContent>
@@ -163,6 +125,6 @@ export function VisitParticipationControls({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
+    </>
   );
 }

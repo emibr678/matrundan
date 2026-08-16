@@ -8,11 +8,13 @@ export function VisitPhotoField({
   onFileChange,
   existingUrl,
   disabled = false,
+  showLabel = true,
 }: {
   file: File | null;
   onFileChange: (file: File | null) => void;
   existingUrl?: string;
   disabled?: boolean;
+  showLabel?: boolean;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const inputId = React.useId();
@@ -33,7 +35,7 @@ export function VisitPhotoField({
   return (
     <div className="space-y-2">
       <div>
-        <Label htmlFor={inputId}>Foto från besöket (frivilligt)</Label>
+        {showLabel ? <Label htmlFor={inputId}>Foto från besöket (frivilligt)</Label> : null}
         <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
           Bilden beskärs inte, men komprimeras och platsmetadata tas bort innan den sparas.
         </p>

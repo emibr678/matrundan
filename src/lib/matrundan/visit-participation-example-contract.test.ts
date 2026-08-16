@@ -12,7 +12,7 @@ describe("exempelgruppens deltagarscenarier", () => {
     expect(visit?.visibleReviews?.some((review) => review.userId === state.currentUserId)).toBe(
       false,
     );
-    expect(visit?.visibleReviews).toHaveLength(2);
+    expect(visit?.visibleReviews).toHaveLength(3);
   });
 
   test("visar självkorrigerad deltagare medan registreraren ligger kvar", () => {

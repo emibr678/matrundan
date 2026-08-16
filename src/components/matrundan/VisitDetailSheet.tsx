@@ -1,8 +1,7 @@
-import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, MessageCircle, Share2, Trash2, Users2 } from "lucide-react";
+import { MapPin, Share2, Trash2, Users2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -10,11 +9,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,15 +21,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatDate, useStore } from "@/lib/matrundan/store";
+import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
-import { removeSharedVisitFromGroup, setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
-import { RatingStars } from "./Rating";
+import { removeSharedVisitFromGroup } from "@/lib/matrundan/live-sharing";
 import { ShareVisitDialog } from "./ShareVisitDialog";
-import { EditReviewDialog } from "./EditReviewDialog";
 import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
-import { canManageVisitPhoto } from "@/lib/matrundan/visit-photo";
+import { VisitReviewsSection } from "./VisitReviewsSection";
+import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { canDeleteOriginalVisit } from "@/lib/matrundan/visit-permissions";
 
 const MEAL_LABEL: Record<string, string> = {
@@ -43,6 +38,15 @@ const MEAL_LABEL: Record<string, string> = {
   middag: "Middag",
   kväll: "Kväll",
 };
+
+function formatVisitDate(iso: string) {
+  const calendarDate = /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(0, 10)}T12:00:00` : iso;
+  return new Date(calendarDate).toLocaleDateString("sv-SE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export function VisitDetailSheet({
   visitId,
@@ -80,30 +84,18 @@ export function VisitDetailSheet({
       activeGroupRole === "admin");
   const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
-  const canManagePhoto =
-    !!visit && canManageVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
+  const canReplacePhoto =
+    !!visit && canAddOrReplaceVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
+  const canRemovePhoto =
+    !!visit && canDeleteVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
-
-  const myReview = React.useMemo(
-    () =>
-      participationStatus === "participant"
-        ? visit?.visibleReviews?.find((review) => review.userId === state.currentUserId)
-        : undefined,
-    [participationStatus, visit, state.currentUserId],
-  );
-  const ownCommentDuplicatesVisitComment = Boolean(
-    visit?.comment?.trim() &&
-    myReview?.comment?.trim() &&
-    visit.comment.trim() === myReview.comment.trim(),
-  );
 
   const [shareOpen, setShareOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [unlinking, setUnlinking] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
-  const [savingVisibility, setSavingVisibility] = React.useState(false);
 
   async function reload() {
     if (typeof window !== "undefined") {
@@ -139,22 +131,6 @@ export function VisitDetailSheet({
       toast.error(error instanceof Error ? error.message : "Kunde inte radera besöket.");
     } finally {
       setDeleting(false);
-    }
-  }
-
-  async function toggleCommentVisibility(next: boolean) {
-    if (!myReview || !activeGroupId || groupArchived) return;
-    setSavingVisibility(true);
-    try {
-      await setReviewGroupVisibility(myReview.id, activeGroupId, true, next);
-      toast.success(
-        next ? "Din kommentar är synlig i gruppen." : "Din kommentar är dold i gruppen.",
-      );
-      await reload();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
-    } finally {
-      setSavingVisibility(false);
     }
   }
 
@@ -201,35 +177,24 @@ export function VisitDetailSheet({
                   <MapPin className="h-3 w-3" />
                   {place.address}, {place.city}
                 </SheetDescription>
+                <SheetDescription className="mt-1 text-xs">
+                  {formatVisitDate(visit.date)} · {MEAL_LABEL[visit.meal] ?? visit.meal}
+                </SheetDescription>
               </SheetHeader>
 
               <div className="space-y-4 p-5">
-                <VisitPhotoManager visit={visit} canManage={canManagePhoto} />
-
-                <Card className="rounded-2xl border-border/70 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-11 w-11 place-items-center rounded-full bg-secondary text-2xl">
-                      {author?.avatar ?? "🙂"}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm">
-                        <span className="font-medium">{author?.name ?? "Någon"}</span>
-                        <span className="text-muted-foreground"> registrerade</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {MEAL_LABEL[visit.meal] ?? visit.meal} · {formatDate(visit.date)}
-                      </div>
-                    </div>
-                  </div>
-                  {visit.overall > 0 ? (
-                    <div className="mt-3 flex items-center justify-between">
-                      <RatingStars value={visit.overall} size={18} />
-                      <span className="text-sm font-medium">{formatRating(visit.overall)} / 5</span>
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-sm text-muted-foreground">Inget omdöme ännu</p>
-                  )}
-                </Card>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-sm"
+                    aria-hidden="true"
+                  >
+                    {author?.avatar ?? "🙂"}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
+                    registrerade besöket
+                  </span>
+                </div>
 
                 <section>
                   <h3 className="mb-2 text-sm font-medium">Deltagare</h3>
@@ -288,84 +253,39 @@ export function VisitDetailSheet({
                   ) : null}
                 </section>
 
-                <VisitParticipationControls
+                {participationStatus === "declined" ? (
+                  <VisitParticipationControls
+                    visit={visit}
+                    currentUserId={state.currentUserId}
+                    groupArchived={groupArchived}
+                    demoReadOnly={demoReadOnly}
+                    onChanged={reload}
+                  />
+                ) : null}
+
+                <VisitReviewsSection
                   visit={visit}
                   placeName={place.name}
-                  currentUserId={state.currentUserId}
                   groupArchived={groupArchived}
                   demoReadOnly={demoReadOnly}
                   onChanged={reload}
                 />
 
-                {(visit.taste || visit.value || visit.service) && (
-                  <section>
-                    <h3 className="mb-2 text-sm font-medium">Detaljbetyg</h3>
-                    <Card className="grid grid-cols-3 gap-3 rounded-2xl border-border/70 p-3 text-center">
-                      <Detail label="Smak" value={visit.taste} />
-                      <Detail label="Prisvärd" value={visit.value} />
-                      <Detail label="Service" value={visit.service} />
-                    </Card>
-                  </section>
-                )}
-
-                {visit.comment && !ownCommentDuplicatesVisitComment ? (
-                  <section>
-                    <h3 className="mb-2 text-sm font-medium">Kommentar från gänget</h3>
-                    <Card className="flex items-start gap-2 rounded-2xl border-border/70 p-3 text-sm text-muted-foreground">
-                      <MessageCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <span>{visit.comment}</span>
-                    </Card>
-                  </section>
+                {participationStatus === "participant" ? (
+                  <VisitParticipationControls
+                    visit={visit}
+                    currentUserId={state.currentUserId}
+                    groupArchived={groupArchived}
+                    demoReadOnly={demoReadOnly}
+                    onChanged={reload}
+                  />
                 ) : null}
 
-                {myReview ? (
-                  <section>
-                    <h3 className="mb-2 text-sm font-medium">Ditt omdöme</h3>
-                    <Card className="space-y-3 rounded-2xl border-border/70 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <RatingStars value={myReview.overall} size={16} />
-                        <span className="text-sm font-medium">
-                          {formatRating(myReview.overall)} / 5
-                        </span>
-                      </div>
-                      {myReview.comment ? (
-                        <p className="text-sm leading-relaxed text-muted-foreground">
-                          {myReview.comment}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Du har inte skrivit någon kommentar.
-                        </p>
-                      )}
-                      <EditReviewDialog review={myReview} placeName={place.name} />
-                    </Card>
-                  </section>
-                ) : null}
-
-                {isLive && !groupArchived && myReview?.comment ? (
-                  <section>
-                    <h3 className="mb-2 text-sm font-medium">Din synlighet</h3>
-                    <Card className="flex items-center justify-between gap-2 rounded-2xl border-border/70 p-3">
-                      <Label
-                        htmlFor={`my-comment-visible-${myReview.id}`}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        Visa min kommentar i denna grupp
-                      </Label>
-                      <Switch
-                        id={`my-comment-visible-${myReview.id}`}
-                        checked={myReview.commentVisible}
-                        disabled={savingVisibility}
-                        onCheckedChange={(value) => void toggleCommentVisibility(value)}
-                      />
-                    </Card>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Betyget visas alltid för gruppen. Kommentaren kan du dölja utan att ta bort
-                      besöket.
-                    </p>
-                  </section>
-                ) : null}
+                <VisitPhotoManager
+                  visit={visit}
+                  canReplace={canReplacePhoto}
+                  canDelete={canRemovePhoto}
+                />
 
                 <Button asChild variant="outline" className="w-full">
                   <Link
@@ -453,7 +373,7 @@ export function VisitDetailSheet({
             <AlertDialogAction
               disabled={deleting}
               onClick={doDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground"
             >
               {deleting ? "Raderar…" : "Radera besöket"}
             </AlertDialogAction>
@@ -461,16 +381,5 @@ export function VisitDetailSheet({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-function Detail({ label, value }: { label: string; value?: number }) {
-  return (
-    <div>
-      <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
-      <div className="mt-1 font-display text-lg font-semibold">
-        {value ? formatRating(value) : "–"}
-      </div>
-    </div>
   );
 }

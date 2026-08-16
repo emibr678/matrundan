@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_35_0_CHANGELOG: ChangelogEntry = {
+  version: "1.35.0",
+  date: "2026-08-15",
+  summary: "Gemensamma besök samlar gängets omdömen i en tydlig deltagarvy.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Besöksdetaljen samlar gruppens betygssammanfattning och deltagarnas egna omdömen i samma yta i stället för flera konkurrerande sektioner.",
+        "Ditt omdöme ligger tillsammans med övriga deltagares omdömen, med en enda tydlig kompletteringsknapp när du ännu inte har svarat och kompakt redigering när omdömet finns.",
+        "Flera omdömen visas kompakt med valfria detaljer, medan deltagarkorrigering är sekundär i normalfallet och tydligare när du markerat att du inte var med.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_34_0_CHANGELOG: ChangelogEntry = {
   version: "1.34.0",
   date: "2026-08-14",
@@ -61,6 +77,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_35_0_CHANGELOG,
   VERSION_1_34_0_CHANGELOG,
   VERSION_1_33_0_CHANGELOG,
   VERSION_1_32_0_CHANGELOG,

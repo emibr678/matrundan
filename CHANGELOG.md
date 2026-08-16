@@ -14,6 +14,25 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.35.0] – 2026-08-15
+
+### Förbättrat
+
+- Besöksdetaljen samlar gruppens betygssammanfattning och deltagarnas egna
+  omdömen i samma **Gängets omdömen**-yta i stället för flera konkurrerande
+  sektioner.
+- Ditt omdöme ligger tillsammans med övriga deltagares omdömen, med en enda
+  tydlig kompletteringsknapp när du ännu inte har svarat och kompakt redigering
+  när omdömet finns.
+- Flera omdömen visas kompakt med valfria detaljer. Normal
+  deltagarkorrigering ligger sekundärt medan ett tidigare **Jag var inte med**
+  fortfarande får ett tydligt återställningsläge.
+- Ett befintligt besöksfoto kan inte längre ersättas av en annan deltagare.
+  Uppladdaren behåller rätten att byta sin bild medan ägare och admin bara kan
+  ta bort någon annans foto som modereringsåtgärd i väntan på flerfotostödet.
+- Exempelgruppen innehåller ett 3-av-4-scenario och ett besök utan aktiva
+  omdömen så flerpersons- och tomlägen kan granskas utan externa anrop.
+
 ## [1.34.0] – 2026-08-14
 
 ### Nytt
@@ -169,7 +188,7 @@ Inga ändringar ännu.
 - Identiska Geoapify-sökningar och autocompleteanrop kan återanvända en
   kortlivad servercache för att minska onödiga provideranrop.
 - Exempel- och demoläget använder samma sökintent med deterministiska lokala
-  matställen och utan externa provideranrop.
+  matställen och utan externa Geoapify-anrop.
 
 ## [1.27.1] – 2026-08-07
 

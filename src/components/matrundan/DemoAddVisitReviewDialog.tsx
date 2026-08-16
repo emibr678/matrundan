@@ -77,7 +77,7 @@ export function DemoAddVisitReviewDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary" className="w-full" disabled={disabled}>
+        <Button className="w-full" disabled={disabled}>
           <Star className="h-4 w-4" />
           Lägg till ditt omdöme
         </Button>
@@ -86,7 +86,7 @@ export function DemoAddVisitReviewDialog({
         <DialogHeader>
           <DialogTitle>Ditt omdöme</DialogTitle>
           <DialogDescription>
-            {placeName}. Omdömet hör till dig på samma gemensamma besök — inget nytt besök skapas.
+            {placeName}. Det sparas på samma gemensamma besök — inget nytt besök skapas.
           </DialogDescription>
         </DialogHeader>
 

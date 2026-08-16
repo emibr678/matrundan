@@ -208,6 +208,26 @@ Produktionsvakten för `visit-photos` är:
 Klienten får komprimera och validera för UX, men Storage-reglerna är den
 säkerhetsmässiga sanningen.
 
+Så länge dagens singelfotomodell används är `visit_media.uploaded_by` också en
+serverstyrd skrivgräns. En faktisk deltagare eller owner/admin får lägga den
+första bilden på ett originalbesök, men ett befintligt foto får endast ersättas
+av samma uppladdare. Owner/admin får radera ett foto som modereringsåtgärd och
+den som legitimt raderar hela originalbesöket måste fortsatt kunna städa dess
+media, men ingen av dessa rättigheter innebär rätt att skriva över en annan
+persons bild som sin egen.
+
+Regeln ska verkställas både i RPC/Storage-policy och i klientens presentation.
+Klientkontrollen är bara UX; databasen måste serialisera samtidiga första
+uppladdningar så två deltagare inte får ett last-write-wins-resultat. En
+misslyckad eller konkurrerande uppladdning får samtidigt kunna städa just sin
+egen orefererade Storage-fil utan rätt att radera någon annans media.
+
+Den långsiktiga målbilden i #179 är flera privata, komprimerade bilder per samma
+kanoniska besök, med stabilt individuellt ägarskap per mediaobjekt och explicit
+gruppsynlighet vid cross-group-delning. En framtida karusell/galleri får därför
+inte byggas genom att försvaga `uploaded_by` eller kopiera media mellan grupper
+utan serverstyrd åtkomst.
+
 ## RLS och RPC-mönster
 
 ### Direkt RLS
@@ -413,7 +433,7 @@ lämna rapportens gruppkontext.
 
 Den äldre OSM Note-infrastrukturen med prepare → extern skrivning → complete/fail
 → statusrefresh finns kvar för redan skapad offentlig historik och kompatibilitet.
-Den ska inte byggas djupare in i gruppadministration och är inte den långsiktiga
+Den ska inte byggas djupare in i gruppadministration och är inte den långsiktliga
 arbetsytan för platsunderhåll.
 
 En användares privata beskrivning eller gruppnamn får aldrig automatiskt bli
