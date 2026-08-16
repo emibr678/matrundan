@@ -280,9 +280,7 @@ export function useNextStopV2() {
                       ),
                       { memberId: state.currentUserId, updatedAt },
                     ]
-                  : proposal.supports.filter(
-                      (support) => support.memberId !== state.currentUserId,
-                    ),
+                  : proposal.supports.filter((support) => support.memberId !== state.currentUserId),
               },
         ),
       };
