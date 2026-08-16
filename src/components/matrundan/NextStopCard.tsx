@@ -2,7 +2,6 @@ import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import {
   CalendarDays,
-  CalendarX2,
   Check,
   ChevronDown,
   ChevronRight,
@@ -11,6 +10,7 @@ import {
   Flag,
   Loader2,
   MapPin,
+  MoreHorizontal,
   Shuffle,
   ThumbsUp,
 } from "lucide-react";
@@ -25,6 +25,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -51,24 +57,6 @@ function proposalSupportLabel(count: number): string | null {
   return `${count} går gärna dit`;
 }
 
-function proposalByLabel(
-  proposal: NextStopPlaceProposal,
-  state: ReturnType<typeof useStore>["state"],
-): string {
-  if (!proposal.proposedBy) return "På förslag";
-  const member = state.members.find((item) => item.id === proposal.proposedBy);
-  return member ? `Föreslaget av ${member.name}` : "Föreslaget tidigare";
-}
-
-function proposalMeta(
-  proposal: NextStopPlaceProposal,
-  state: ReturnType<typeof useStore>["state"],
-): string {
-  return [proposalByLabel(proposal, state), proposalSupportLabel(proposal.supports.length)]
-    .filter(Boolean)
-    .join(" · ");
-}
-
 export function NextStopCard({
   activePlaces,
   canWrite,
@@ -82,14 +70,12 @@ export function NextStopCard({
   const {
     nextStop,
     backendReady,
-    dayUnavailableMemberIds,
     propose,
     setSupport,
     select,
     clearSelection,
     withdraw,
     setSchedule,
-    setDayUnavailable,
   } = useNextStopV2();
   const [scheduleOpen, setScheduleOpen] = React.useState(false);
   const [timeOpen, setTimeOpen] = React.useState(false);
@@ -116,7 +102,6 @@ export function NextStopCard({
   const plannedTime = nextStop?.plannedTime ?? null;
   const passed = plannedDate ? isPastDateValue(plannedDate) : false;
   const canInteract = canWrite && backendReady;
-  const currentUserUnavailable = dayUnavailableMemberIds.includes(state.currentUserId);
 
   const untried = React.useMemo(
     () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
@@ -210,6 +195,17 @@ export function NextStopCard({
     );
   }
 
+  async function removeDate() {
+    await run(
+      "remove-date",
+      async () => {
+        await setSchedule(null, null);
+        setScheduleOpen(false);
+      },
+      "Dagen är borttagen.",
+    );
+  }
+
   async function randomProposal() {
     if (proposals.length >= 5) {
       toast.info("Fem ställen är redan på förslag.");
@@ -234,15 +230,6 @@ export function NextStopCard({
       `support:${proposal.id}`,
       () => setSupport(proposal.id, !supported),
       supported ? "Din markering är borttagen." : "Markerat: Går gärna dit.",
-    );
-  }
-
-  async function toggleDayUnavailable() {
-    if (!plannedDate) return;
-    await run(
-      "day-unavailable",
-      () => setDayUnavailable(!currentUserUnavailable),
-      currentUserUnavailable ? "Din markering är borttagen." : "Markerat: Kan inte den dagen.",
     );
   }
 
@@ -279,6 +266,14 @@ export function NextStopCard({
     if (registerCandidates.length > 1) {
       setVisitChooserOpen(true);
     }
+  }
+
+  function withdrawProposal(item: ProposalItem) {
+    void run(
+      `withdraw:${item.proposal.id}`,
+      () => withdraw(item.proposal.id),
+      "Förslaget är borttaget.",
+    );
   }
 
   if (passed && plannedDate) {
@@ -384,7 +379,6 @@ export function NextStopCard({
           open={scheduleOpen}
           onOpenChange={setScheduleOpen}
           plannedDate={plannedDate}
-          unavailableCount={dayUnavailableMemberIds.length}
           date={date}
           onDateChange={setDate}
           busy={busy}
@@ -399,41 +393,41 @@ export function NextStopCard({
     return (
       <section>
         <NextStopHeading showShuffle={false} />
-        <Card className="overflow-hidden rounded-3xl border-border/70 bg-card shadow-sm">
-          <ScheduleRow
+        <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-4 shadow-sm sm:p-5">
+          <div data-next-stop-proposal="selected">
+            <PlaceIdentity place={selectedPlace} prominent />
+          </div>
+
+          <DateLine
             plannedDate={plannedDate}
             plannedTime={plannedTime}
-            unavailableCount={dayUnavailableMemberIds.length}
-            currentUserUnavailable={currentUserUnavailable}
             canInteract={canInteract}
             canManageTime
             busy={busy}
-            onEdit={openSchedule}
+            onEditDate={openSchedule}
             onEditTime={openTime}
-            onToggleUnavailable={() => void toggleDayUnavailable()}
+            onRemoveTime={() => void removeTime()}
+            onRemoveDate={() => void removeDate()}
           />
 
-          <div className="p-4 sm:p-5">
-            <div data-next-stop-proposal="selected">
-              <PlaceIdentity place={selectedPlace} prominent />
-            </div>
+          {canWrite ? (
+            <Button
+              type="button"
+              onClick={() => onRegisterVisit(selectedPlace.id)}
+              className="mt-4 h-12 w-full text-base"
+              size="lg"
+            >
+              <Check className="h-4 w-4" /> Registrera besök
+            </Button>
+          ) : null}
 
-            {canWrite ? (
-              <Button
-                type="button"
-                onClick={() => onRegisterVisit(selectedPlace.id)}
-                className="mt-5 h-12 w-full text-base"
-                size="lg"
-              >
-                <Check className="h-4 w-4" /> Registrera besök
-              </Button>
-            ) : null}
-
-            {canInteract ? (
+          {canInteract ? (
+            <div className="mt-1 flex justify-center">
               <Button
                 type="button"
                 variant="ghost"
-                className="mt-1 min-h-11 w-full text-primary"
+                size="sm"
+                className="min-h-9 px-2 text-xs font-normal text-muted-foreground"
                 onClick={() =>
                   void run(
                     "clear-selection",
@@ -444,78 +438,58 @@ export function NextStopCard({
                 disabled={busy !== null}
               >
                 {busy === "clear-selection" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Flag className="h-4 w-4" />
-                )}
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : null}
                 Ändra nästa stopp
               </Button>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </Card>
 
         {otherProposals.length > 0 ? (
-          <Card className="mt-2 overflow-hidden rounded-2xl border-border/70 bg-card shadow-sm">
+          <div className="mt-2">
             <button
               type="button"
-              className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left"
+              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
               aria-expanded={otherOpen}
               onClick={() => setOtherOpen((current) => !current)}
             >
-              <span className="font-medium">Andra förslag ({otherProposals.length})</span>
+              <span>Andra förslag ({otherProposals.length})</span>
               {otherOpen ? (
-                <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <ChevronUp className="h-4 w-4 shrink-0" />
               ) : (
-                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <ChevronDown className="h-4 w-4 shrink-0" />
               )}
             </button>
             {otherOpen ? (
-              <div className="border-t border-border/60 p-3 sm:p-4">
-                <div className="space-y-2">
-                  {otherProposals.map((item) => (
-                    <ProposalRow
-                      key={item.proposal.id}
-                      selectLabel="Byt till"
-                      item={item}
-                      state={state}
-                      canInteract={canInteract}
-                      busy={busy}
-                      onSupport={() => void toggleSupport(item.proposal)}
-                      onSelect={() => setSelecting(item.proposal)}
-                      onWithdraw={() =>
-                        void run(
-                          `withdraw:${item.proposal.id}`,
-                          () => withdraw(item.proposal.id),
-                          "Förslaget är borttaget.",
-                        )
-                      }
-                    />
-                  ))}
-                </div>
+              <div className="mt-1 divide-y divide-border/60 border-t border-border/60 px-2">
+                {otherProposals.map((item) => (
+                  <ProposalRow
+                    key={item.proposal.id}
+                    selectLabel="Byt till"
+                    item={item}
+                    state={state}
+                    canInteract={canInteract}
+                    busy={busy}
+                    onSupport={() => void toggleSupport(item.proposal)}
+                    onSelect={() => setSelecting(item.proposal)}
+                    onWithdraw={() => withdrawProposal(item)}
+                  />
+                ))}
               </div>
             ) : null}
-          </Card>
+          </div>
         ) : null}
 
         <ScheduleDialog
           open={scheduleOpen}
           onOpenChange={setScheduleOpen}
           plannedDate={plannedDate}
-          unavailableCount={dayUnavailableMemberIds.length}
           date={date}
           onDateChange={setDate}
           busy={busy}
           onSave={() => void saveSchedule()}
-          onRemove={() =>
-            void run(
-              "remove-date",
-              async () => {
-                await setSchedule(null, null);
-                setScheduleOpen(false);
-              },
-              "Dagen är borttagen.",
-            )
-          }
+          onRemove={() => void removeDate()}
         />
         <TimeDialog
           open={timeOpen}
@@ -549,119 +523,97 @@ export function NextStopCard({
         busy={busy}
         onShuffle={() => void randomProposal()}
       />
-      <Card className="overflow-hidden rounded-3xl border-border/70 bg-card shadow-sm">
-        <ScheduleRow
+      <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-4 shadow-sm sm:p-5">
+        {proposals.length === 0 ? (
+          <div className="py-2 text-center">
+            <h2 className="font-display text-lg font-semibold">Vart ska rundan gå härnäst?</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {plannedDate
+                ? "Dagen är satt. Nu återstår bara att hitta nästa ställe."
+                : "Inget ställe är på förslag ännu."}
+            </p>
+            <Button asChild variant="outline" className="mt-4 min-h-11">
+              <Link to="/matstallen">Föreslå ett ställe</Link>
+            </Button>
+          </div>
+        ) : proposals.length === 1 ? (
+          <SingleProposal
+            item={proposals[0]}
+            state={state}
+            canInteract={canInteract}
+            busy={busy}
+            onSupport={() => void toggleSupport(proposals[0].proposal)}
+            onSelect={() => setSelecting(proposals[0].proposal)}
+            onWithdraw={() => withdrawProposal(proposals[0])}
+          />
+        ) : (
+          <div>
+            <h2 className="font-display text-lg font-semibold">Vart ska rundan gå härnäst?</h2>
+            <div className="mt-2 divide-y divide-border/60 border-t border-border/60">
+              {proposals.map((item) => (
+                <ProposalRow
+                  key={item.proposal.id}
+                  selectLabel="Bestäm"
+                  item={item}
+                  state={state}
+                  canInteract={canInteract}
+                  busy={busy}
+                  onSupport={() => void toggleSupport(item.proposal)}
+                  onSelect={() => setSelecting(item.proposal)}
+                  onWithdraw={() => withdrawProposal(item)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <DateLine
           plannedDate={plannedDate}
           plannedTime={plannedTime}
-          unavailableCount={dayUnavailableMemberIds.length}
-          currentUserUnavailable={currentUserUnavailable}
           canInteract={canInteract}
           canManageTime={false}
           busy={busy}
-          onEdit={openSchedule}
+          onEditDate={openSchedule}
           onEditTime={openTime}
-          onToggleUnavailable={() => void toggleDayUnavailable()}
+          onRemoveTime={() => void removeTime()}
+          onRemoveDate={() => void removeDate()}
         />
 
-        <div className="p-4 sm:p-5">
-          {proposals.length === 0 ? (
-            <div className="py-2 text-center">
-              <h2 className="font-display text-lg font-semibold">Vart ska rundan gå härnäst?</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {plannedDate
-                  ? "Dagen är satt. Nu återstår bara att hitta nästa ställe."
-                  : "Inget ställe är på förslag ännu."}
-              </p>
-              <Button asChild variant="outline" className="mt-4 min-h-11">
-                <Link to="/matstallen">Föreslå ett ställe</Link>
+        {proposals.length > 0 ? (
+          <div className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-0">
+            {proposals.length < 5 ? (
+              <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
+                <Link to="/matstallen">Föreslå ett annat ställe</Link>
               </Button>
-            </div>
-          ) : proposals.length === 1 ? (
-            <SingleProposal
-              item={proposals[0]}
-              state={state}
-              canInteract={canInteract}
-              canWrite={canWrite}
-              busy={busy}
-              onSupport={() => void toggleSupport(proposals[0].proposal)}
-              onSelect={() => setSelecting(proposals[0].proposal)}
-              onWithdraw={() =>
-                void run(
-                  `withdraw:${proposals[0].proposal.id}`,
-                  () => withdraw(proposals[0].proposal.id),
-                  "Förslaget är borttaget.",
-                )
-              }
-              onRegister={() => onRegisterVisit(proposals[0].place.id)}
-            />
-          ) : (
-            <div>
-              <h2 className="font-display text-lg font-semibold">Vart ska rundan gå härnäst?</h2>
-              <div className="mt-3 space-y-2">
-                {proposals.map((item) => (
-                  <ProposalRow
-                    key={item.proposal.id}
-                    selectLabel="Bestäm"
-                    item={item}
-                    state={state}
-                    canInteract={canInteract}
-                    busy={busy}
-                    onSupport={() => void toggleSupport(item.proposal)}
-                    onSelect={() => setSelecting(item.proposal)}
-                    onWithdraw={() =>
-                      void run(
-                        `withdraw:${item.proposal.id}`,
-                        () => withdraw(item.proposal.id),
-                        "Förslaget är borttaget.",
-                      )
-                    }
-                  />
-                ))}
-              </div>
-              {canWrite ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="mt-2 min-h-11 w-full text-muted-foreground"
-                  onClick={openRegisterVisit}
-                >
-                  Registrera ett spontant besök
-                </Button>
-              ) : null}
-            </div>
-          )}
-
-          {proposals.length > 0 && proposals.length < 5 ? (
-            <Button asChild variant="ghost" size="sm" className="mt-3 min-h-11 px-2 text-primary">
-              <Link to="/matstallen">Föreslå ett annat ställe</Link>
-            </Button>
-          ) : proposals.length >= 5 ? (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Fem ställen är på förslag – ta bort ett innan ni lägger till fler.
-            </p>
-          ) : null}
-        </div>
+            ) : (
+              <p className="px-2 text-xs text-muted-foreground">
+                Fem ställen är på förslag – ta bort ett innan ni lägger till fler.
+              </p>
+            )}
+            {canWrite ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-10 px-2 text-xs font-normal text-muted-foreground"
+                onClick={openRegisterVisit}
+              >
+                Registrera ett spontant besök
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </Card>
 
       <ScheduleDialog
         open={scheduleOpen}
         onOpenChange={setScheduleOpen}
         plannedDate={plannedDate}
-        unavailableCount={dayUnavailableMemberIds.length}
         date={date}
         onDateChange={setDate}
         busy={busy}
         onSave={() => void saveSchedule()}
-        onRemove={() =>
-          void run(
-            "remove-date",
-            async () => {
-              await setSchedule(null, null);
-              setScheduleOpen(false);
-            },
-            "Dagen är borttagen.",
-          )
-        }
+        onRemove={() => void removeDate()}
       />
       <SelectionDialog
         selecting={selecting}
@@ -720,112 +672,87 @@ function NextStopHeading({
   );
 }
 
-function ScheduleRow({
+function DateLine({
   plannedDate,
   plannedTime,
-  unavailableCount,
-  currentUserUnavailable,
   canInteract,
   canManageTime,
   busy,
-  onEdit,
+  onEditDate,
   onEditTime,
-  onToggleUnavailable,
+  onRemoveTime,
+  onRemoveDate,
 }: {
   plannedDate: string | null;
   plannedTime: string | null;
-  unavailableCount: number;
-  currentUserUnavailable: boolean;
   canInteract: boolean;
   canManageTime: boolean;
   busy: string | null;
-  onEdit: () => void;
+  onEditDate: () => void;
   onEditTime: () => void;
-  onToggleUnavailable: () => void;
+  onRemoveTime: () => void;
+  onRemoveDate: () => void;
 }) {
-  const unavailableLabel =
-    unavailableCount > 0
-      ? unavailableCount === 1
-        ? "1 kan inte den dagen"
-        : `${unavailableCount} kan inte den dagen`
-      : null;
+  if (!plannedDate) {
+    if (!canInteract) return null;
+    return (
+      <div className="mt-3">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="min-h-10 px-2 text-xs font-normal text-muted-foreground"
+          onClick={onEditDate}
+        >
+          <CalendarDays className="h-4 w-4" /> Lägg till dag
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="border-b border-border/60 px-4 py-3 sm:px-5">
-      <div className="flex min-w-0 items-start gap-2.5">
-        <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              När?
-            </span>
-            {canInteract ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-6 shrink-0 px-2 text-xs text-primary"
-                onClick={onEdit}
-              >
-                {plannedDate ? "Ändra dag" : "Lägg till dag"}
-              </Button>
-            ) : null}
-          </div>
-          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0 text-sm font-medium">
-            {plannedDate ? (
-              <>
-                <span className="whitespace-nowrap">{formatNextStopDate(plannedDate, null)}</span>
-                {plannedTime ? (
-                  <span className="whitespace-nowrap text-muted-foreground">· {plannedTime}</span>
-                ) : null}
-              </>
-            ) : (
-              <span className="text-muted-foreground">Ingen dag bestämd ännu</span>
-            )}
-          </div>
-
-          {plannedDate ? (
-            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              {canInteract ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-1.5 text-xs font-normal text-muted-foreground"
-                  aria-pressed={currentUserUnavailable}
-                  onClick={onToggleUnavailable}
-                  disabled={busy !== null}
-                >
-                  {busy === "day-unavailable" ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <CalendarX2 className="h-3.5 w-3.5" />
-                  )}
-                  Kan inte den dagen
-                </Button>
-              ) : null}
-              {canInteract && canManageTime ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-1.5 text-xs font-normal text-muted-foreground"
-                  onClick={onEditTime}
-                  disabled={busy !== null}
-                >
-                  <Clock3 className="h-3.5 w-3.5" />
-                  {plannedTime ? "Ändra tid" : "Lägg till tid"}
-                </Button>
-              ) : null}
-              {unavailableLabel ? (
-                <span className="whitespace-nowrap text-xs text-muted-foreground">
-                  {unavailableLabel}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+    <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+        <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="min-w-0 truncate">
+          {formatNextStopDate(plannedDate, null)}
+          {plannedTime ? ` · ${plannedTime}` : ""}
+        </span>
       </div>
+      {canInteract ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 text-muted-foreground"
+              aria-label="Ändra dag eller tid"
+              disabled={busy !== null}
+            >
+              {busy === "schedule" || busy === "time" || busy === "remove-time" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MoreHorizontal className="h-4 w-4" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onEditDate}>
+              <CalendarDays className="h-4 w-4" /> Ändra dag
+            </DropdownMenuItem>
+            {canManageTime ? (
+              <DropdownMenuItem onSelect={onEditTime}>
+                <Clock3 className="h-4 w-4" /> {plannedTime ? "Ändra tid" : "Lägg till tid"}
+              </DropdownMenuItem>
+            ) : null}
+            {canManageTime && plannedTime ? (
+              <DropdownMenuItem onSelect={onRemoveTime}>Ta bort tid</DropdownMenuItem>
+            ) : null}
+            <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
     </div>
   );
 }
@@ -858,7 +785,7 @@ function PlaceIdentity({
           params={{ placeId: place.id }}
           className={[
             "block font-display font-semibold leading-tight hover:underline",
-            prominent ? "text-2xl" : "text-lg",
+            prominent ? "text-2xl" : "text-base sm:text-lg",
           ].join(" ")}
         >
           {place.name}
@@ -878,65 +805,59 @@ function SingleProposal({
   item,
   state,
   canInteract,
-  canWrite,
   busy,
   onSupport,
   onSelect,
   onWithdraw,
-  onRegister,
 }: {
   item: ProposalItem;
   state: ReturnType<typeof useStore>["state"];
   canInteract: boolean;
-  canWrite: boolean;
   busy: string | null;
   onSupport: () => void;
   onSelect: () => void;
   onWithdraw: () => void;
-  onRegister: () => void;
 }) {
   const supported = item.proposal.supports.some(
     (support) => support.memberId === state.currentUserId,
   );
   const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
+  const supportLabel = proposalSupportLabel(item.proposal.supports.length);
 
   return (
     <div data-next-stop-proposal="open">
-      <div className="flex items-start justify-between gap-2">
-        <h2 className="font-display text-xl font-semibold">{item.place.name} är på förslag</h2>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+        <PlaceIdentity place={item.place} prominent />
         {canRemove ? (
-          <RemoveProposalButton
+          <ProposalMenu
             placeName={item.place.name}
             busy={busy === `withdraw:${item.proposal.id}`}
-            onClick={onWithdraw}
+            onWithdraw={onWithdraw}
           />
         ) : null}
       </div>
-      <PlaceIdentity place={item.place} className="mt-3" />
-      <p className="mt-2 text-sm text-muted-foreground">{proposalMeta(item.proposal, state)}</p>
+
+      {supportLabel ? (
+        <p className="mt-2 pl-[4.75rem] text-xs text-muted-foreground">{supportLabel}</p>
+      ) : null}
 
       {canInteract ? (
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <SupportButton
             supported={supported}
             busy={busy === `support:${item.proposal.id}`}
             onClick={onSupport}
           />
-          <Button type="button" className="min-h-11" onClick={onSelect} disabled={busy !== null}>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 border-primary/40 text-primary"
+            onClick={onSelect}
+            disabled={busy !== null}
+          >
             <Flag className="h-4 w-4" /> Välj som nästa stopp
           </Button>
         </div>
-      ) : null}
-
-      {canWrite ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className="mt-2 min-h-11 w-full text-muted-foreground"
-          onClick={onRegister}
-        >
-          Registrera ett spontant besök
-        </Button>
       ) : null}
     </div>
   );
@@ -965,29 +886,27 @@ function ProposalRow({
     (support) => support.memberId === state.currentUserId,
   );
   const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
+  const supportLabel = proposalSupportLabel(item.proposal.supports.length);
 
   return (
-    <div
-      data-next-stop-proposal="open"
-      className="rounded-2xl border border-border/70 bg-background/45 p-3"
-    >
-      <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1">
+    <div data-next-stop-proposal="open" className="py-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+        <div className="min-w-0">
           <PlaceIdentity place={item.place} />
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            {proposalMeta(item.proposal, state)}
-          </p>
+          {supportLabel ? (
+            <p className="mt-1.5 pl-[3.75rem] text-xs text-muted-foreground">{supportLabel}</p>
+          ) : null}
         </div>
         {canRemove ? (
-          <RemoveProposalButton
+          <ProposalMenu
             placeName={item.place.name}
             busy={busy === `withdraw:${item.proposal.id}`}
-            onClick={onWithdraw}
+            onWithdraw={onWithdraw}
           />
         ) : null}
       </div>
       {canInteract ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           <SupportButton
             supported={supported}
             busy={busy === `support:${item.proposal.id}`}
@@ -996,11 +915,12 @@ function ProposalRow({
           <Button
             type="button"
             size="sm"
-            className="min-h-10"
+            variant="outline"
+            className="min-h-10 border-primary/40 text-primary"
             onClick={onSelect}
             disabled={busy !== null}
           >
-            <Flag className="h-4 w-4" /> {selectLabel}
+            {selectLabel}
           </Button>
         </div>
       ) : null}
@@ -1036,27 +956,36 @@ function SupportButton({
   );
 }
 
-function RemoveProposalButton({
+function ProposalMenu({
   placeName,
   busy,
-  onClick,
+  onWithdraw,
 }: {
   placeName: string;
   busy: boolean;
-  onClick: () => void;
+  onWithdraw: () => void;
 }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      className="h-8 shrink-0 px-2 text-xs font-normal text-muted-foreground hover:text-foreground"
-      aria-label={`Ta bort ${placeName} från förslagen`}
-      onClick={onClick}
-    >
-      {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-      Ta bort
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0 text-muted-foreground"
+          aria-label={`Fler val för ${placeName}`}
+        >
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <MoreHorizontal className="h-4 w-4" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onWithdraw}>Ta bort</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -1064,7 +993,6 @@ function ScheduleDialog({
   open,
   onOpenChange,
   plannedDate,
-  unavailableCount,
   date,
   onDateChange,
   busy,
@@ -1074,7 +1002,6 @@ function ScheduleDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   plannedDate: string | null;
-  unavailableCount: number;
   date: string;
   onDateChange: (date: string) => void;
   busy: string | null;
@@ -1088,9 +1015,6 @@ function ScheduleDialog({
           <DialogTitle>{plannedDate ? "Ändra dag" : "Lägg till dag"}</DialogTitle>
           <DialogDescription>
             Dagen är kärnan i nästa stopp. Klockslag lägger ni till när stället är bestämt.
-            {plannedDate && unavailableCount > 0
-              ? " Om ni byter dag nollställs gruppens Kan inte den dagen-markeringar."
-              : ""}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
