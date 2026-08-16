@@ -12,7 +12,7 @@ const USER_ID = "user-1";
 const OTHER_ID = "user-2";
 const NOW = new Date("2026-08-16T12:00:00.000Z");
 
-function ownReview(): VisibleReview {
+function ownReview(ratingVisible = true): VisibleReview {
   return {
     id: "review-own",
     userId: USER_ID,
@@ -21,8 +21,8 @@ function ownReview(): VisibleReview {
     value: 4,
     service: 4,
     comment: null,
-    ratingVisible: true,
-    commentVisible: true,
+    ratingVisible,
+    commentVisible: ratingVisible,
   };
 }
 
@@ -42,7 +42,7 @@ function visit(overrides: Partial<Visit> = {}): Visit {
 }
 
 describe("pending omdöme", () => {
-  test("kräver faktisk aktiv deltagare utan eget aktivt omdöme", () => {
+  test("kräver faktisk aktiv deltagare utan eget kanoniskt omdöme", () => {
     expect(isVisitReviewPending(visit(), USER_ID)).toBe(true);
     expect(
       isVisitReviewPending(
@@ -57,6 +57,12 @@ describe("pending omdöme", () => {
       ),
     ).toBe(false);
     expect(isVisitReviewPending(visit({ visibleReviews: [ownReview()] }), USER_ID)).toBe(false);
+  });
+
+  test("eget kanoniskt omdöme räknas även om ett äldre gruppval döljer betyget", () => {
+    expect(
+      isVisitReviewPending(visit({ visibleReviews: [ownReview(false)] }), USER_ID),
+    ).toBe(false);
   });
 
   test("behåller kompatibilitetsfallbacken till participantIds", () => {

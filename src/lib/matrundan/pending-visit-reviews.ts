@@ -1,5 +1,4 @@
 import type { Visit } from "./types";
-import { getVisitReviewSummary } from "./visit-reviews";
 
 export const PENDING_REVIEW_ATTENTION_DAYS = 45;
 
@@ -11,6 +10,14 @@ function ownParticipationStatus(visit: Visit, currentUserId: string) {
     visit.currentUserParticipationStatus ??
     (visit.participantIds.includes(currentUserId) ? "participant" : "none")
   );
+}
+
+function hasOwnCanonicalReview(visit: Visit, currentUserId: string): boolean {
+  // Read-modellen exponerar alltid den inloggades egen reviewrad när den finns,
+  // även om ett äldre gruppspecifikt val har satt ratingVisible=false. Pending
+  // ska därför följa existensen av den kanoniska (visit,user)-reviewn, inte
+  // gruppens presentationsval för betyget.
+  return (visit.visibleReviews ?? []).some((review) => review.userId === currentUserId);
 }
 
 function localCalendarDayNumber(value: string): number | null {
@@ -32,9 +39,7 @@ function localCalendarDayNumber(value: string): number | null {
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
-  return Math.floor(
-    Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()) / DAY_MS,
-  );
+  return Math.floor(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()) / DAY_MS);
 }
 
 function nowCalendarDayNumber(now: Date): number | null {
@@ -50,7 +55,7 @@ function nowCalendarDayNumber(now: Date): number | null {
  */
 export function isVisitReviewPending(visit: Visit, currentUserId: string): boolean {
   if (ownParticipationStatus(visit, currentUserId) !== "participant") return false;
-  return !getVisitReviewSummary(visit, currentUserId).ownReview;
+  return !hasOwnCanonicalReview(visit, currentUserId);
 }
 
 /**
