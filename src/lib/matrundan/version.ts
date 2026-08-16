@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_35_1_CHANGELOG: ChangelogEntry = {
+  version: "1.35.1",
+  date: "2026-08-16",
+  summary: "Versionshistoriken beskriver registrerardeltagandet konsekvent.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Versionshistoriken beskriver nu korrekt att den som registrerar ett nytt besök alltid räknas som faktisk deltagare och lämnar sitt eget omdöme.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_35_0_CHANGELOG: ChangelogEntry = {
   version: "1.35.0",
   date: "2026-08-15",
@@ -34,7 +48,7 @@ const VERSION_1_34_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Förbättrat",
       items: [
-        "Den som registrerar ett besök åt gruppen behöver inte lämna ett eget omdöme eller få progression om hen själv inte deltog.",
+        "Den som registrerar ett nytt besök räknas alltid som faktisk deltagare och lämnar sitt eget omdöme i samma flöde. Andra deltagare kan fortfarande korrigera sin närvaro.",
       ],
     },
   ],
@@ -77,6 +91,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_35_1_CHANGELOG,
   VERSION_1_35_0_CHANGELOG,
   VERSION_1_34_0_CHANGELOG,
   VERSION_1_33_0_CHANGELOG,
