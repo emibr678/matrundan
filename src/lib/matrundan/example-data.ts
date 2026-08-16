@@ -44,8 +44,99 @@ function withBoundarySearchScenario(state: AppState): AppState {
   };
 }
 
+function withVisitParticipationScenarios(state: AppState): AppState {
+  const { members, visits } = EXAMPLE_IDS;
+  return {
+    ...state,
+    visits: state.visits.map((visit) => {
+      if (visit.id === visits.guestReviews) {
+        const existing = (visit.visibleReviews ?? []).filter(
+          (review) => review.userId !== members.alex,
+        );
+        return {
+          ...visit,
+          currentUserParticipationStatus: "participant",
+          // Alex deltog men har ännu inte lämnat ett eget omdöme. Sam och Kim
+          // håller kvar scenariot med flera synliga omdömen utan att Alex får en review.
+          visibleReviews: [
+            ...existing,
+            {
+              id: "review-v2-kim",
+              userId: members.kim,
+              overall: 4,
+              taste: 4,
+              value: 4,
+              service: 4,
+              comment: "Bra kväll för ett gemensamt stopp och lätt att dela maten.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+          ],
+        };
+      }
+
+      if (visit.id === visits.archivedHistory) {
+        return {
+          ...visit,
+          participantIds: [
+            ...new Set([
+              ...visit.participantIds.filter((id) => id !== members.alex),
+              visit.createdBy,
+            ]),
+          ],
+          participants: visit.participants
+            ? [
+                ...visit.participants.filter((participant) => participant.id !== members.alex),
+                ...(visit.participants.some((participant) => participant.id === visit.createdBy)
+                  ? []
+                  : [
+                      {
+                        id: visit.createdBy,
+                        name: "Sam",
+                        avatar: "🐻",
+                        avatarImage: null,
+                        status: "active" as const,
+                      },
+                    ]),
+              ]
+            : undefined,
+          currentUserParticipationStatus: "declined",
+          // Sam registrerade och deltog. Alex är den separata deltagare som senare
+          // självkorrigerat sin närvaro; registreraren ligger kvar som deltagare.
+          visibleReviews: [
+            {
+              id: "review-v5-sam",
+              userId: visit.createdBy,
+              overall: 5,
+              taste: 5,
+              value: 4,
+              service: 4,
+              comment: "Tidigt, varmt bröd och nästan ingen kö.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+            {
+              id: "review-v5-kim",
+              userId: members.kim,
+              overall: 5,
+              taste: 5,
+              value: 4,
+              service: 4,
+              comment: "Bra frukoststopp för gänget.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+          ],
+        };
+      }
+
+      return visit;
+    }),
+  };
+}
+
 export function buildExampleState(now = new Date()) {
-  return withBoundarySearchScenario(buildBaseExampleState(now));
+  return withVisitParticipationScenarios(withBoundarySearchScenario(buildBaseExampleState(now)));
 }
 
 export const EXAMPLE_STATE = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));

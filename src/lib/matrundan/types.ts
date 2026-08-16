@@ -11,6 +11,7 @@ export type PlaceSourceStatus = "active" | "superseded";
 export type SearchRadiusKm = 1 | 2 | 3 | 5 | 10 | 25 | 50;
 export type SearchAreaMode = "point" | "boundary";
 export type SearchAreaBoundaryGeometry = Polygon | MultiPolygon;
+export type OwnVisitParticipationStatus = "participant" | "declined" | "none";
 
 export interface Member {
   id: string;
@@ -122,6 +123,8 @@ export interface Visit {
   meal: "frukost" | "lunch" | "fika" | "middag" | "kväll";
   /** Endast faktiska gruppmedlemmar. Gäster ligger i participants med status guest. */
   participantIds: string[];
+  /** Den inloggade användarens kanoniska deltagarstatus på just detta besök. */
+  currentUserParticipationStatus?: OwnVisitParticipationStatus;
   overall: number;
   taste?: number;
   value?: number;

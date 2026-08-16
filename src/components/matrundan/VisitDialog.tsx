@@ -75,7 +75,6 @@ export function VisitDialog({
   );
   const showShareSection =
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
-  const canShare = showShareSection && shareableGroups.length > 0;
   const [busy, setBusy] = React.useState(false);
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
@@ -99,7 +98,9 @@ export function VisitDialog({
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
-  const hasComment = comment.trim().length > 0;
+  const currentUserParticipates = participants.includes(state.currentUserId);
+  const canShare = showShareSection && currentUserParticipates && shareableGroups.length > 0;
+  const hasComment = currentUserParticipates && comment.trim().length > 0;
   const allShareGroupsSelected =
     shareableGroups.length > 0 &&
     shareableGroups.every((group) => shareGroupIds.includes(group.groupId));
@@ -123,6 +124,14 @@ export function VisitDialog({
       setShareTargets([]);
       setShareTargetsError(null);
       setShareGroupIds([]);
+    }
+  }, [open, state.currentUserId]);
+
+  React.useEffect(() => {
+    if (open) {
+      setParticipants((current) =>
+        current.includes(state.currentUserId) ? current : [state.currentUserId, ...current],
+      );
     }
   }, [open, state.currentUserId]);
 
@@ -153,8 +162,10 @@ export function VisitDialog({
 
   if (!place) return null;
 
-  const toggleParticipant = (id: string) =>
+  const toggleParticipant = (id: string) => {
+    if (id === state.currentUserId) return;
     setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  };
 
   const toggleShareGroup = (id: string) =>
     setShareGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
@@ -179,8 +190,8 @@ export function VisitDialog({
 
   const submit = async () => {
     if (isBusy) return;
-    if (participants.length === 0) {
-      toast.error("Välj minst en gruppmedlem som faktiskt deltog.");
+    if (!currentUserParticipates) {
+      toast.error("Den som registrerar besöket måste vara deltagare.");
       return;
     }
     if (overall < 1) {
@@ -215,6 +226,7 @@ export function VisitDialog({
         meal,
         participantIds: participants,
         participants: participantSnapshots,
+        currentUserParticipationStatus: "participant",
         overall,
         taste: taste || undefined,
         value: value || undefined,
@@ -320,19 +332,25 @@ export function VisitDialog({
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium">Deltagare</legend>
             <p className="text-xs text-muted-foreground">
-              Välj vilka som faktiskt deltog. Du är förvald.
+              Du registrerar besöket och räknas därför som deltagare. Välj vilka andra som var med.
             </p>
             <div className="flex flex-wrap gap-2">
               {state.members.map((member) => {
                 const active = participants.includes(member.id);
+                const isRegistrar = member.id === state.currentUserId;
                 return (
                   <button
                     key={member.id}
                     type="button"
                     onClick={() => toggleParticipant(member.id)}
                     aria-pressed={active}
-                    aria-label={`${active ? "Ta bort" : "Lägg till"} ${member.name} som deltagare`}
-                    className="min-h-11 rounded-full"
+                    aria-label={
+                      isRegistrar
+                        ? `${member.name} är deltagare eftersom du registrerar besöket`
+                        : `${active ? "Ta bort" : "Lägg till"} ${member.name} som deltagare`
+                    }
+                    disabled={isRegistrar}
+                    className="min-h-11 rounded-full disabled:cursor-default disabled:opacity-100"
                   >
                     <Badge
                       variant={active ? "default" : "outline"}
@@ -352,13 +370,13 @@ export function VisitDialog({
                   <Badge
                     key={guest.id}
                     variant="secondary"
-                    className="min-h-9 max-w-full gap-1 rounded-full pl-3 pr-1"
+                    className="min-h-9 max-w-full gap-1 rounded-full pr-1 pl-3"
                   >
                     <span aria-hidden>👤</span>
                     <span className="truncate">{guest.name}</span>
                     <button
                       type="button"
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                       onClick={() =>
                         setGuests((current) => current.filter((item) => item.id !== guest.id))
                       }
@@ -444,8 +462,6 @@ export function VisitDialog({
             </CollapsibleContent>
           </Collapsible>
 
-          <VisitPhotoField file={photoFile} onFileChange={setPhotoFile} disabled={isBusy} />
-
           <div className="space-y-1.5">
             <Label htmlFor="comment">Kommentar (frivilligt)</Label>
             <Textarea
@@ -456,6 +472,8 @@ export function VisitDialog({
               placeholder="En liten minnesnotering…"
             />
           </div>
+
+          <VisitPhotoField file={photoFile} onFileChange={setPhotoFile} disabled={isBusy} />
 
           {showShareSection && shareTargetsLoading ? (
             <div

@@ -70,12 +70,17 @@ function avg(values: number[]): number | undefined {
 }
 
 function aggregateVisit(visit: Visit): Visit {
-  const reviews = visit.visibleReviews ?? [];
+  const reviews = (visit.visibleReviews ?? []).filter((review) =>
+    visit.participantIds.includes(review.userId),
+  );
   const rated = reviews.filter((review) => review.ratingVisible);
-  if (!rated.length) return { ...visit, overall: 0, comment: undefined };
+  if (!rated.length) {
+    return { ...visit, visibleReviews: reviews, overall: 0, comment: undefined };
+  }
   const comments = rated.find((review) => review.commentVisible && review.comment?.trim());
   return {
     ...visit,
+    visibleReviews: reviews,
     overall: avg(rated.map((review) => review.overall)) ?? 0,
     taste: avg(
       rated.map((review) => review.taste).filter((value): value is number => value != null),

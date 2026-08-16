@@ -152,6 +152,7 @@ test("matställets webbplats visas under adressen i en fullbred mobilsektion", a
   };
 
   for (const rpc of [
+    "get_group_app_state_v5j",
     "get_group_app_state_v5i",
     "get_group_app_state_v5h",
     "get_group_app_state_v5g",

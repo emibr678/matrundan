@@ -122,10 +122,18 @@ function VisitHistory() {
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <RatingStars value={visit.overall} size={12} />
-                          <span className="text-[11px] font-medium">
-                            {formatRating(visit.overall)} av 5
-                          </span>
+                          {visit.overall > 0 ? (
+                            <>
+                              <RatingStars value={visit.overall} size={12} />
+                              <span className="text-[11px] font-medium">
+                                {formatRating(visit.overall)} av 5
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">
+                              Inget omdöme ännu
+                            </span>
+                          )}
                         </div>
                       </div>
 

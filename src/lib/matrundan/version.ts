@@ -3,6 +3,27 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_34_0_CHANGELOG: ChangelogEntry = {
+  version: "1.34.0",
+  date: "2026-08-14",
+  summary: "Faktiska deltagare kan komplettera och korrigera samma gemensamma besök.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "En deltagare som saknar eget omdöme kan lägga till helhet, smak, service, prisvärdhet och valfri kommentar på samma kanoniska besök utan att registrera ett nytt besök.",
+        "Den som felaktigt lagts till på ett besök kan välja Jag var inte med och senare återställa Jag var med; progression och synliga deltagaromdömen följer den korrigerade deltagarsanningen.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Den som registrerar ett besök åt gruppen behöver inte lämna ett eget omdöme eller få progression om hen själv inte deltog.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_33_0_CHANGELOG: ChangelogEntry = {
   version: "1.33.0",
   date: "2026-08-13",
@@ -40,6 +61,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_34_0_CHANGELOG,
   VERSION_1_33_0_CHANGELOG,
   VERSION_1_32_0_CHANGELOG,
   ...CHANGELOG_THROUGH_1_31,
