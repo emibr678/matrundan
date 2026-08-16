@@ -711,8 +711,10 @@ function ScheduleRow({
   unavailableCount,
   currentUserUnavailable,
   canInteract,
+  canManageTime,
   busy,
   onEdit,
+  onEditTime,
   onToggleUnavailable,
 }: {
   plannedDate: string | null;
@@ -720,14 +722,23 @@ function ScheduleRow({
   unavailableCount: number;
   currentUserUnavailable: boolean;
   canInteract: boolean;
+  canManageTime: boolean;
   busy: string | null;
   onEdit: () => void;
+  onEditTime: () => void;
   onToggleUnavailable: () => void;
 }) {
+  const unavailableLabel =
+    unavailableCount > 0
+      ? unavailableCount === 1
+        ? "1 kan inte den dagen"
+        : `${unavailableCount} kan inte den dagen`
+      : null;
+
   return (
     <div className="border-b border-border/60 px-4 py-3 sm:px-5">
       <div className="flex min-w-0 items-start gap-2.5">
-        <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+        <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -745,7 +756,7 @@ function ScheduleRow({
               </Button>
             ) : null}
           </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0 text-sm font-medium">
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0 text-sm font-medium">
             {plannedDate ? (
               <>
                 <span className="whitespace-nowrap">{formatNextStopDate(plannedDate, null)}</span>
@@ -757,41 +768,53 @@ function ScheduleRow({
               <span className="text-muted-foreground">Ingen dag bestämd ännu</span>
             )}
           </div>
-        </div>
-      </div>
 
-      {plannedDate ? (
-        <div className="mt-1.5 flex items-center justify-between gap-2 pl-7">
-          <span className="text-xs text-muted-foreground">
-            {unavailableCount > 0
-              ? unavailableCount === 1
-                ? "1 kan inte då"
-                : `${unavailableCount} kan inte då`
-              : "\u00A0"}
-          </span>
-          {canInteract ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground"
-              aria-pressed={currentUserUnavailable}
-              onClick={onToggleUnavailable}
-              disabled={busy !== null}
-            >
-              {busy === "day-unavailable" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CalendarX2 className="h-3.5 w-3.5" />
-              )}
-              Kan inte då
-            </Button>
+          {plannedDate ? (
+            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              {canInteract ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-1.5 text-xs font-normal text-muted-foreground"
+                  aria-pressed={currentUserUnavailable}
+                  onClick={onToggleUnavailable}
+                  disabled={busy !== null}
+                >
+                  {busy === "day-unavailable" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <CalendarX2 className="h-3.5 w-3.5" />
+                  )}
+                  Kan inte den dagen
+                </Button>
+              ) : null}
+              {canInteract && canManageTime ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-1.5 text-xs font-normal text-muted-foreground"
+                  onClick={onEditTime}
+                  disabled={busy !== null}
+                >
+                  <Clock3 className="h-3.5 w-3.5" />
+                  {plannedTime ? "Ändra tid" : "Lägg till tid"}
+                </Button>
+              ) : null}
+              {unavailableLabel ? (
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  {unavailableLabel}
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
+
 
 function PlaceIdentity({
   place,
