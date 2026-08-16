@@ -22,9 +22,7 @@ export function PendingVisitReviewCard({
   return (
     <Card className="rounded-2xl border-primary/20 bg-primary/[0.04] p-4 shadow-sm">
       <div className="flex min-w-0 items-start gap-3">
-        <div
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
-        >
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
           <MessageCircle className="h-4 w-4" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">

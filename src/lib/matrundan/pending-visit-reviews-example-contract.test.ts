@@ -33,9 +33,7 @@ describe("exempelgruppens pending-omdömen", () => {
 
   test("håller Tacoateljéns aggregat begripligt när Alex review saknas", () => {
     const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
-    const pendingVisit = state.visits.find(
-      (visit) => visit.id === EXAMPLE_IDS.visits.guestReviews,
-    );
+    const pendingVisit = state.visits.find((visit) => visit.id === EXAMPLE_IDS.visits.guestReviews);
 
     expect(pendingVisit?.visibleReviews?.map((review) => review.overall)).toEqual([4, 4, 5]);
     expect(pendingVisit?.overall).toBeCloseTo(13 / 3);
@@ -57,9 +55,7 @@ describe("exempelgruppens pending-omdömen", () => {
   test("självkorrigerat deltagande är inte pending", () => {
     const now = new Date(EXAMPLE_FIXTURE_REFERENCE_TIME);
     const state = buildExampleState(now);
-    const corrected = state.visits.find(
-      (visit) => visit.id === EXAMPLE_IDS.visits.archivedHistory,
-    );
+    const corrected = state.visits.find((visit) => visit.id === EXAMPLE_IDS.visits.archivedHistory);
 
     expect(corrected?.currentUserParticipationStatus).toBe("declined");
     expect(isVisitReviewPending(corrected!, state.currentUserId)).toBe(false);

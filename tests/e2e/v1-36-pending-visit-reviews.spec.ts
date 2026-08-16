@@ -44,9 +44,7 @@ test("Hem sammanfattar pending omdömen och öppnar rätt kanoniska besök", asy
   await expectNoLocatorOverflow(visitDialog, "pending-besökets detalj");
 });
 
-test("Besök markerar bara aktuella pending-besök inom uppmärksamhetsfönstret", async ({
-  page,
-}) => {
+test("Besök markerar bara aktuella pending-besök inom uppmärksamhetsfönstret", async ({ page }) => {
   await page.goto("/exempel");
   await page
     .getByLabel("Omdömen att komplettera")

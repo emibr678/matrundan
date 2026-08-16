@@ -60,9 +60,9 @@ describe("pending omdöme", () => {
   });
 
   test("eget kanoniskt omdöme räknas även om ett äldre gruppval döljer betyget", () => {
-    expect(
-      isVisitReviewPending(visit({ visibleReviews: [ownReview(false)] }), USER_ID),
-    ).toBe(false);
+    expect(isVisitReviewPending(visit({ visibleReviews: [ownReview(false)] }), USER_ID)).toBe(
+      false,
+    );
   });
 
   test("behåller kompatibilitetsfallbacken till participantIds", () => {
@@ -103,11 +103,9 @@ describe("pending omdöme", () => {
     const tooOld = visit({ id: "visit-too-old", date: "2026-06-01" });
 
     expect(
-      getAttentionPendingVisitReviews(
-        [older, newest, duplicateNewest, tooOld],
-        USER_ID,
-        NOW,
-      ).map((item) => item.id),
+      getAttentionPendingVisitReviews([older, newest, duplicateNewest, tooOld], USER_ID, NOW).map(
+        (item) => item.id,
+      ),
     ).toEqual(["visit-new", "visit-old"]);
   });
 });
