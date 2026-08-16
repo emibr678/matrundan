@@ -838,7 +838,7 @@ function SingleProposal({
       </div>
 
       {supportLabel ? (
-        <p className="mt-2 pl-19 text-xs text-muted-foreground">{supportLabel}</p>
+        <p className="mt-2 pl-[4.75rem] text-xs text-muted-foreground">{supportLabel}</p>
       ) : null}
 
       {canInteract ? (
@@ -894,7 +894,7 @@ function ProposalRow({
         <div className="min-w-0">
           <PlaceIdentity place={item.place} />
           {supportLabel ? (
-            <p className="mt-1.5 pl-15 text-xs text-muted-foreground">{supportLabel}</p>
+            <p className="mt-1.5 pl-[3.75rem] text-xs text-muted-foreground">{supportLabel}</p>
           ) : null}
         </div>
         {canRemove ? (
