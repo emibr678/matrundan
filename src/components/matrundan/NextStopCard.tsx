@@ -892,8 +892,9 @@ function ProposalRow({
         <div className="min-w-0">
           <PlaceIdentity place={item.place} />
           {supportLabel ? (
-            <p className="mt-1.5 text-xs text-muted-foreground">{supportLabel}</p>
+            <p className="mt-1.5 pl-15 text-xs text-muted-foreground">{supportLabel}</p>
           ) : null}
+
         </div>
         {canRemove ? (
           <ProposalMenu
