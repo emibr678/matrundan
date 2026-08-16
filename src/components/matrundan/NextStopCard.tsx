@@ -210,7 +210,6 @@ export function NextStopCard({
     );
   }
 
-
   async function randomProposal() {
     if (proposals.length >= 5) {
       toast.info("Fem ställen är redan på förslag.");
@@ -243,7 +242,7 @@ export function NextStopCard({
     await run(
       "day-unavailable",
       () => setDayUnavailable(!currentUserUnavailable),
-      currentUserUnavailable ? "Din markering är borttagen." : "Markerat: Kan inte då.",
+      currentUserUnavailable ? "Din markering är borttagen." : "Markerat: Kan inte den dagen.",
     );
   }
 
@@ -388,7 +387,6 @@ export function NextStopCard({
           unavailableCount={dayUnavailableMemberIds.length}
           date={date}
           onDateChange={setDate}
-
           busy={busy}
           onSave={() => void saveSchedule()}
           onRemove={() => undefined}
@@ -478,7 +476,6 @@ export function NextStopCard({
                     <ProposalRow
                       key={item.proposal.id}
                       selectLabel="Byt till"
-
                       item={item}
                       state={state}
                       canInteract={canInteract}
@@ -541,7 +538,6 @@ export function NextStopCard({
           onClose={() => setSelecting(null)}
           onConfirm={() => void confirmSelection()}
         />
-
       </section>
     );
   }
@@ -606,7 +602,6 @@ export function NextStopCard({
                   <ProposalRow
                     key={item.proposal.id}
                     selectLabel="Bestäm"
-
                     item={item}
                     state={state}
                     canInteract={canInteract}
@@ -835,7 +830,6 @@ function ScheduleRow({
   );
 }
 
-
 function PlaceIdentity({
   place,
   prominent = false,
@@ -967,7 +961,6 @@ function ProposalRow({
   onSelect: () => void;
   onWithdraw: () => void;
 }) {
-
   const supported = item.proposal.supports.some(
     (support) => support.memberId === state.currentUserId,
   );
@@ -1008,7 +1001,6 @@ function ProposalRow({
             disabled={busy !== null}
           >
             <Flag className="h-4 w-4" /> {selectLabel}
-
           </Button>
         </div>
       ) : null}
@@ -1208,7 +1200,6 @@ function TimeDialog({
   );
 }
 
-
 function SelectionDialog({
   selecting,
   getPlace,
@@ -1257,7 +1248,6 @@ function SelectionDialog({
     </Dialog>
   );
 }
-
 
 function VisitChooserDialog({
   open,

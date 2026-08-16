@@ -47,7 +47,6 @@ function readDemoState(groupId: string, fallback: NextStopState | null): NextSto
   }
 }
 
-
 function readDemoUnavailable(groupId: string): string[] {
   try {
     const raw = demoStorage(groupId)?.getItem(unavailableStorageKey(groupId));
@@ -204,7 +203,6 @@ export function useNextStopV2() {
         plannedTime: selectedPlaceId ? current.plannedTime : null,
         proposals,
       };
-
     });
   }, [mode, state.group.lifecycleStatus, state.places]);
 
@@ -381,7 +379,6 @@ export function useNextStopV2() {
     });
     if (dateChanged) setDayUnavailableMemberIds([]);
   }
-
 
   async function setDayUnavailable(unavailable: boolean): Promise<void> {
     const plannedDate = nextStop?.plannedDate ?? null;
