@@ -19,6 +19,31 @@ WITH function_defs AS (
       ''
     ) AS upsert_def
 ),
+upsert_fragments AS (
+  SELECT
+    function_defs.*,
+    lower(upsert_def) AS upsert_def_lower,
+    position('do update set' IN lower(upsert_def)) AS update_start,
+    position(
+      'where public.visit_media.uploaded_by = excluded.uploaded_by'
+      IN lower(upsert_def)
+    ) AS ownership_where_start
+  FROM function_defs
+),
+upsert_clauses AS (
+  SELECT
+    upsert_fragments.*,
+    CASE
+      WHEN update_start > 0 AND ownership_where_start > update_start THEN
+        substring(
+          upsert_def_lower
+          FROM update_start + length('do update set')
+          FOR ownership_where_start - (update_start + length('do update set'))
+        )
+      ELSE ''
+    END AS update_assignments
+  FROM upsert_fragments
+),
 checks(name, ok) AS (
   VALUES
     (
@@ -149,9 +174,10 @@ checks(name, ok) AS (
       COALESCE(
         (
           SELECT position('_previous_uploader' IN upsert_def) > 0
-            AND position('uploaded_by = EXCLUDED.uploaded_by' IN upsert_def) = 0
-            AND position('visit_media.uploaded_by = excluded.uploaded_by' IN lower(upsert_def)) > 0
-          FROM function_defs
+            AND update_start > 0
+            AND ownership_where_start > update_start
+            AND position('uploaded_by' IN update_assignments) = 0
+          FROM upsert_clauses
         ),
         false
       )
