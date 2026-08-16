@@ -14,6 +14,23 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.37.0] – 2026-08-16
+
+### Nytt
+
+- Gruppen kan ha flera enkla matställesförslag samtidigt och markera **Gärna!**
+  på flera alternativ utan automatisk vinnare eller formell röstning.
+- **Nästa stopp** kan bära en gemensam dag oberoende av ställe, med valfri
+  klocktid först när gruppen faktiskt har bestämt den.
+- En passerad planerad dag följs upp med **Blev det av?** så ett verkligt besök
+  registreras uttryckligen i stället för att historik gissas fram.
+
+### Förbättrat
+
+- Ett nytt ställesförslag skriver inte längre över gruppens redan valda eller
+  diskuterade nästa stopp. Ett verkligt originalbesök avslutar bara relevant
+  nästa-stopp-flöde.
+
 ## [1.36.0] – 2026-08-16
 
 ### Nytt
