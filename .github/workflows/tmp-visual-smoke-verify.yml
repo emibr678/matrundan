@@ -1,0 +1,47 @@
+name: Temporary visual smoke verification
+
+on:
+  push:
+    branches:
+      - agent/issue-215-proportionerlig-ux-review
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  visual-smoke:
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Normalize Windows checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config core.autocrlf false
+          while IFS= read -r -d '' file; do
+            sed -i 's/\r$//' "$file"
+          done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium on GitHub-hosted runner
+        if: runner.environment != 'self-hosted'
+        run: bunx playwright install --with-deps chromium
+
+      - name: Install Chromium on self-hosted runner
+        if: runner.environment == 'self-hosted'
+        run: bunx playwright install chromium
+
+      - name: Run targeted visual smoke command
+        run: bun run test:visual-smoke -- "/?demo=1"
