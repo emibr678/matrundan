@@ -202,7 +202,9 @@ test("direkt byte av bestämt stopp behåller dag och tid", async ({ page }) => 
   await expectNoOverflow(page);
 });
 
-test("passerad dag frågar vad som hände och Det blev inte av behåller stället", async ({ page }) => {
+test("passerad dag frågar vad som hände och Det blev inte av behåller stället", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
 
