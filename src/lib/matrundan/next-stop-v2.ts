@@ -34,13 +34,13 @@ function exampleNextStopState(state: AppState): NextStopState | null {
   )?.id;
   if (!primaryPlaceId && !alternativePlaceId) return null;
 
-  const createdAt = new Date().toISOString();
+  const createdAt = state.nextStopDateProposal?.createdAt ?? state.group.createdAt;
   const primarySupports = ["m1", "m2", "m3", "m5"]
     .filter((memberId) => state.members.some((member) => member.id === memberId))
-    .map((memberId, index) => ({ memberId, updatedAt: new Date(Date.now() + index).toISOString() }));
+    .map((memberId) => ({ memberId, updatedAt: createdAt }));
   const alternativeSupports = ["m2", "m4"]
     .filter((memberId) => state.members.some((member) => member.id === memberId))
-    .map((memberId, index) => ({ memberId, updatedAt: new Date(Date.now() + index).toISOString() }));
+    .map((memberId) => ({ memberId, updatedAt: createdAt }));
   const proposals: NextStopPlaceProposal[] = [];
 
   if (primaryPlaceId) {
@@ -57,7 +57,7 @@ function exampleNextStopState(state: AppState): NextStopState | null {
       id: "example-next-stop-alternative",
       placeId: alternativePlaceId,
       proposedBy: "m2",
-      createdAt: new Date(Date.now() + 1).toISOString(),
+      createdAt,
       supports: alternativeSupports,
     });
   }
@@ -99,9 +99,7 @@ export function canWithdrawNextStopProposal(
   proposal: NextStopPlaceProposal,
 ): boolean {
   const role = currentMemberRole(state);
-  return (
-    proposal.proposedBy === state.currentUserId || role === "ägare" || role === "admin"
-  );
+  return proposal.proposedBy === state.currentUserId || role === "ägare" || role === "admin";
 }
 
 export async function liveProposeNextStopPlaceV2(
