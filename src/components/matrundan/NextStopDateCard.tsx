@@ -1,8 +1,21 @@
 import * as React from "react";
-import { CalendarDays, Check, ChevronRight, CircleHelp, Loader2, Pencil, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  CalendarDays,
+  Check,
+  ChevronRight,
+  Clock3,
+  Flag,
+  Loader2,
+  MapPin,
+  Shuffle,
+  ThumbsUp,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -14,564 +27,493 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  canManageNextStopDateProposal,
-  countNextStopDateResponses,
   defaultNextStopDateValue,
   formatNextStopDate,
   isPastDateValue,
-  NEXT_STOP_DATE_RESPONSE_LABEL,
   normalizeNextStopTime,
 } from "@/lib/matrundan/next-stop-date";
-import {
-  liveProposeNextStopDate,
-  liveRespondNextStopDate,
-  liveSetNextStopDateStatus,
-  liveUpdateNextStopDateProposal,
-} from "@/lib/matrundan/live-mutations";
+import { canWithdrawNextStopProposal } from "@/lib/matrundan/next-stop-v2";
+import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
 import { useStore } from "@/lib/matrundan/store";
-import type { NextStopDateProposal, NextStopDateResponseValue, Role } from "@/lib/matrundan/types";
+import type { NextStopPlaceProposal, Place } from "@/lib/matrundan/types";
+import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
-const RESPONSE_OPTIONS: {
-  value: NextStopDateResponseValue;
-  icon: typeof Check;
-  className: string;
-}[] = [
-  {
-    value: "fits",
-    icon: Check,
-    className: "data-[active=true]:border-primary data-[active=true]:bg-primary/10",
-  },
-  {
-    value: "not_fits",
-    icon: X,
-    className: "data-[active=true]:border-destructive/60 data-[active=true]:bg-destructive/10",
-  },
-  {
-    value: "unsure",
-    icon: CircleHelp,
-    className: "data-[active=true]:border-mustard data-[active=true]:bg-mustard/20",
-  },
-];
-
-function demoStorageFor(groupId: string): Storage | null {
-  if (typeof window === "undefined") return null;
-  return groupId === "example-stockholm" ? window.sessionStorage : window.localStorage;
+function proposalSupportLabel(count: number): string {
+  if (count === 0) return "Ingen har markerat Gärna än";
+  if (count === 1) return "1 vill gärna hit";
+  return `${count} vill gärna hit`;
 }
 
-function storageKey(groupId: string) {
-  return `matrundan.nextStopDate.v1.${groupId}`;
+function proposalByLabel(
+  proposal: NextStopPlaceProposal,
+  state: ReturnType<typeof useStore>["state"],
+): string {
+  if (!proposal.proposedBy) return "På förslag";
+  const member = state.members.find((item) => item.id === proposal.proposedBy);
+  return member ? `Föreslaget av ${member.name}` : "Föreslaget tidigare";
 }
 
-function readDemoProposal(groupId: string, fallback: NextStopDateProposal | null) {
-  try {
-    const raw = demoStorageFor(groupId)?.getItem(storageKey(groupId));
-    return raw ? (JSON.parse(raw) as NextStopDateProposal) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function memberRole(state: ReturnType<typeof useStore>["state"]): Role | undefined {
-  return state.members.find((member) => member.id === state.currentUserId)?.role;
-}
-
-function responseSummary(counts: Record<NextStopDateResponseValue, number>) {
-  const total = counts.fits + counts.not_fits + counts.unsure;
-  if (total === 0) return "Ingen har svarat än";
-
-  return [
-    counts.fits > 0 ? `${counts.fits} passar` : null,
-    counts.not_fits > 0 ? `${counts.not_fits} passar inte` : null,
-    counts.unsure > 0 ? `${counts.unsure} osäkra` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-}
-
-function ownResponseSummary(response: NextStopDateResponseValue | undefined) {
-  return response
-    ? `Du har svarat: ${NEXT_STOP_DATE_RESPONSE_LABEL[response]}`
-    : "Du har inte svarat än";
-}
-
-export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWrite: boolean }) {
-  const { state, mode } = useStore();
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
-  const [planningOpen, setPlanningOpen] = React.useState(false);
+export function NextStopCard({
+  activePlaces,
+  canWrite,
+  onRegisterVisit,
+}: {
+  activePlaces: Place[];
+  canWrite: boolean;
+  onRegisterVisit: (placeId: string) => void;
+}) {
+  const { state, getPlace } = useStore();
+  const {
+    nextStop,
+    backendReady,
+    propose,
+    setSupport,
+    select,
+    clearSelection,
+    withdraw,
+    setSchedule,
+  } = useNextStopV2();
+  const [scheduleOpen, setScheduleOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [time, setTime] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
-  const [demoProposal, setDemoProposal] = React.useState<NextStopDateProposal | null>(() =>
-    mode === "demo" ? readDemoProposal(state.group.id, state.nextStopDateProposal ?? null) : null,
+  const [selecting, setSelecting] = React.useState<NextStopPlaceProposal | null>(null);
+  const [visitChooserOpen, setVisitChooserOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  const proposals = React.useMemo(
+    () =>
+      (nextStop?.proposals ?? [])
+        .map((proposal) => ({ proposal, place: getPlace(proposal.placeId) }))
+        .filter((item): item is { proposal: NextStopPlaceProposal; place: Place } => Boolean(item.place)),
+    [getPlace, nextStop?.proposals],
+  );
+  const selectedPlace = nextStop?.selectedPlaceId ? getPlace(nextStop.selectedPlaceId) : undefined;
+  const plannedDate = nextStop?.plannedDate ?? null;
+  const plannedTime = nextStop?.plannedTime ?? null;
+  const passed = plannedDate ? isPastDateValue(plannedDate) : false;
+  const canInteract = canWrite && backendReady;
+
+  const untried = React.useMemo(
+    () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
+    [activePlaces, state.visits],
   );
 
-  const proposal = mode === "live" ? (state.nextStopDateProposal ?? null) : demoProposal;
-  const role = memberRole(state);
-  const canManage = proposal
-    ? canManageNextStopDateProposal(proposal, state.currentUserId, role)
-    : false;
-
-  React.useEffect(() => {
-    if (mode !== "demo") return;
-    try {
-      const storage = demoStorageFor(state.group.id);
-      if (demoProposal) {
-        storage?.setItem(storageKey(state.group.id), JSON.stringify(demoProposal));
-      } else {
-        storage?.removeItem(storageKey(state.group.id));
-      }
-    } catch {
-      /* Lagringen är ett tillfälligt stöd och får aldrig blockera flödet. */
-    }
-  }, [demoProposal, mode, state.group.id]);
-
-  React.useEffect(() => {
-    if (mode !== "demo") return;
-    if (
-      state.group.lifecycleStatus === "archived" ||
-      !state.nextPlaceId ||
-      demoProposal?.placeId !== state.nextPlaceId
-    ) {
-      if (demoProposal) setDemoProposal(null);
-    }
-  }, [demoProposal, mode, state.group.lifecycleStatus, state.nextPlaceId]);
-
-  React.useEffect(() => {
-    if (mode !== "demo" || typeof window === "undefined") return;
-    const reset = () => {
-      try {
-        demoStorageFor(state.group.id)?.removeItem(storageKey(state.group.id));
-      } catch {
-        /* ignore */
-      }
-      setDemoProposal(state.nextStopDateProposal ?? null);
-    };
-    window.addEventListener("matrundan:demo-reset", reset);
-    return () => window.removeEventListener("matrundan:demo-reset", reset);
-  }, [mode, state.group.id, state.nextStopDateProposal]);
-
-  async function runLive(operation: () => Promise<void>) {
-    setBusy(true);
+  async function run(key: string, operation: () => Promise<void>, success?: string) {
+    if (busy) return;
+    setBusy(key);
     try {
       await operation();
-      window.dispatchEvent(new Event("matrundan:reload"));
+      if (success) toast.success(success);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera nästa stopp.");
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
-  async function propose() {
-    if (busy) return;
+  function openSchedule() {
+    setDate(plannedDate ?? defaultNextStopDateValue());
+    setTime(plannedTime ?? "");
+    setScheduleOpen(true);
+  }
+
+  async function saveSchedule() {
     if (!date) {
-      toast.error("Välj ett datum.");
+      toast.error("Välj en dag.");
       return;
     }
     if (isPastDateValue(date)) {
-      toast.error("Datumet kan inte ligga i det förflutna.");
+      toast.error("Dagen kan inte ligga i det förflutna.");
       return;
     }
 
+    let normalizedTime: string | null;
     try {
-      const normalizedTime = normalizeNextStopTime(time);
-      if (mode === "live") {
-        await runLive(async () => {
-          await liveProposeNextStopDate(state.group.id, date, normalizedTime);
-        });
-      } else {
-        const now = new Date().toISOString();
-        setDemoProposal({
-          id: `demo-date-${Date.now()}`,
-          placeId,
-          date,
-          time: normalizedTime,
-          createdBy: state.currentUserId,
-          status: "active",
-          createdAt: now,
-          updatedAt: now,
-          confirmedAt: null,
-          confirmedBy: null,
-          cancelledAt: null,
-          cancelledBy: null,
-          responses: [],
-        });
-      }
-      setDialogOpen(false);
-      toast.success("Datumet är föreslaget.");
+      normalizedTime = normalizeNextStopTime(time);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte föreslå datumet.");
-    }
-  }
-
-  async function respond(response: NextStopDateResponseValue) {
-    if (!proposal || busy || proposal.status !== "active") return;
-    try {
-      if (mode === "live") {
-        await runLive(() => liveRespondNextStopDate(state.group.id, proposal.id, response));
-      } else {
-        const updatedAt = new Date().toISOString();
-        setDemoProposal((current) =>
-          current
-            ? {
-                ...current,
-                updatedAt,
-                responses: [
-                  ...current.responses.filter((item) => item.memberId !== state.currentUserId),
-                  { memberId: state.currentUserId, response, updatedAt },
-                ],
-              }
-            : null,
-        );
-      }
-      toast.success(`Ditt svar är ${NEXT_STOP_DATE_RESPONSE_LABEL[response].toLowerCase()}.`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte spara svaret.");
-    }
-  }
-
-  async function setStatus(status: "confirmed" | "cancelled") {
-    if (!proposal || busy || !canManage) return;
-    try {
-      if (mode === "live") {
-        await runLive(() => liveSetNextStopDateStatus(state.group.id, proposal.id, status));
-      } else if (status === "confirmed") {
-        const now = new Date().toISOString();
-        setDemoProposal((current) =>
-          current
-            ? {
-                ...current,
-                status: "confirmed",
-                confirmedAt: now,
-                confirmedBy: state.currentUserId,
-                updatedAt: now,
-              }
-            : null,
-        );
-      } else {
-        setDemoProposal(null);
-        setPlanningOpen(false);
-      }
-      toast.success(
-        status === "confirmed"
-          ? "Datumet är bekräftat."
-          : proposal.status === "confirmed"
-            ? "Datumet är borttaget."
-            : "Datumförslaget är borttaget.",
-      );
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte ändra datumförslaget.");
-    }
-  }
-
-  function openEditDialog() {
-    if (!proposal) return;
-    setDate(proposal.date);
-    setTime(proposal.time ?? "");
-    setEditDialogOpen(true);
-  }
-
-  async function updateProposal() {
-    if (!proposal || busy || !canManage) return;
-    if (!date) {
-      toast.error("Välj ett datum.");
-      return;
-    }
-    if (isPastDateValue(date)) {
-      toast.error("Datumet kan inte ligga i det förflutna.");
+      toast.error(error instanceof Error ? error.message : "Kontrollera tiden.");
       return;
     }
 
-    try {
-      const normalizedTime = normalizeNextStopTime(time);
-      if (proposal.date === date && (proposal.time ?? null) === normalizedTime) {
-        setEditDialogOpen(false);
-        toast.info("Datumet är redan sparat.");
-        return;
-      }
-
-      if (mode === "live") {
-        await runLive(() =>
-          liveUpdateNextStopDateProposal(state.group.id, proposal.id, date, normalizedTime),
-        );
-      } else {
-        const updatedAt = new Date().toISOString();
-        setDemoProposal((current) =>
-          current
-            ? {
-                ...current,
-                date,
-                time: normalizedTime,
-                status: "active",
-                confirmedAt: null,
-                confirmedBy: null,
-                cancelledAt: null,
-                cancelledBy: null,
-                updatedAt,
-                responses: [],
-              }
-            : null,
-        );
-      }
-      setEditDialogOpen(false);
-      toast.success("Datumet är ändrat. Gruppen kan svara på nytt.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte ändra datumet.");
-    }
+    await run(
+      "schedule",
+      async () => {
+        await setSchedule(date, normalizedTime);
+        setScheduleOpen(false);
+      },
+      normalizedTime ? "Dag och tid är sparade." : "Dagen är sparad.",
+    );
   }
 
-  if (!proposal || proposal.placeId !== placeId) {
-    return canWrite ? (
-      <div className="flex min-h-14 items-center justify-between gap-3 border-t border-border/60 px-4 py-2">
-        <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-          <CalendarDays className="h-4 w-4 shrink-0" />
-          <span>Ingen dag planerad</span>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="min-h-11 shrink-0 rounded-full px-3 text-primary"
-          onClick={() => setDialogOpen(true)}
-        >
-          Föreslå datum
-        </Button>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>Föreslå datum</DialogTitle>
-              <DialogDescription>
-                Välj en dag och, om ni vill, en tid för gruppens nästa stopp.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-2">
-              <div className="grid gap-2">
-                <Label htmlFor="next-stop-date">Datum</Label>
-                <Input
-                  id="next-stop-date"
-                  type="date"
-                  min={new Date().toISOString().slice(0, 10)}
-                  value={date}
-                  onChange={(event) => setDate(event.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="next-stop-time">Tid (valfritt)</Label>
-                <Input
-                  id="next-stop-time"
-                  type="time"
-                  value={time}
-                  onChange={(event) => setTime(event.target.value)}
-                />
-              </div>
+  async function randomProposal() {
+    const alreadyProposed = new Set(proposals.map((item) => item.place.id));
+    const preferredPool = untried.filter((place) => !alreadyProposed.has(place.id));
+    const fallbackPool = activePlaces.filter((place) => !alreadyProposed.has(place.id));
+    const pool = preferredPool.length > 0 ? preferredPool : fallbackPool;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (!pick) {
+      toast.info("Alla aktiva ställen är redan på förslag.");
+      return;
+    }
+    await run("shuffle", () => propose(pick.id), `${pick.name} är på förslag.`);
+  }
+
+  async function toggleSupport(proposal: NextStopPlaceProposal) {
+    const supported = proposal.supports.some((item) => item.memberId === state.currentUserId);
+    await run(
+      `support:${proposal.id}`,
+      () => setSupport(proposal.id, !supported),
+      supported ? "Din Gärna-markering är borttagen." : "Markerat: Gärna!",
+    );
+  }
+
+  async function confirmSelection() {
+    if (!selecting) return;
+    const place = getPlace(selecting.placeId);
+    await run(
+      `select:${selecting.id}`,
+      async () => {
+        await select(selecting.id);
+        setSelecting(null);
+      },
+      place ? `${place.name} är gruppens nästa stopp.` : "Nästa stopp är bestämt.",
+    );
+  }
+
+  async function clearPassedDate() {
+    await run(
+      "passed",
+      () => setSchedule(null, null),
+      selectedPlace
+        ? `Dagen är borttagen. ${selectedPlace.name} ligger kvar som nästa stopp.`
+        : "Dagen är borttagen. Förslagen ligger kvar.",
+    );
+  }
+
+  const registerCandidates = selectedPlace
+    ? [selectedPlace]
+    : proposals.map((item) => item.place);
+
+  if (passed && plannedDate) {
+    const dateLabel = formatNextStopDate(plannedDate, plannedTime);
+    return (
+      <section>
+        <NextStopHeading canInteract={canInteract} onShuffle={() => void randomProposal()} busy={busy} />
+        <Card className="rounded-3xl border-mustard/60 bg-mustard/10 p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-mustard/30">
+              <CalendarDays className="h-5 w-5" aria-hidden="true" />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>
-                Avbryt
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-xl font-semibold">Blev det av?</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {selectedPlace
+                  ? `${selectedPlace.name} var ert nästa stopp ${dateLabel.toLocaleLowerCase("sv-SE")}.`
+                  : proposals.length === 1
+                    ? `${proposals[0].place.name} var på förslag ${dateLabel.toLocaleLowerCase("sv-SE")}.`
+                    : proposals.length > 1
+                      ? `Ni hade nästa stopp på gång ${dateLabel.toLocaleLowerCase("sv-SE")}.`
+                      : `Ni hade tänkt gå ut ${dateLabel.toLocaleLowerCase("sv-SE")}.`}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {registerCandidates.length === 1 ? (
+              <Button
+                type="button"
+                className="min-h-11"
+                onClick={() => onRegisterVisit(registerCandidates[0].id)}
+                disabled={!canWrite}
+              >
+                <Check className="h-4 w-4" /> Registrera besöket
               </Button>
-              <Button type="button" disabled={busy} onClick={() => void propose()}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Föreslå
+            ) : registerCandidates.length > 1 ? (
+              <Button
+                type="button"
+                className="min-h-11"
+                onClick={() => setVisitChooserOpen(true)}
+                disabled={!canWrite}
+              >
+                <Check className="h-4 w-4" /> Registrera besöket
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    ) : null;
+            ) : (
+              <Button asChild className="min-h-11">
+                <Link to="/matstallen">Välj ställe</Link>
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => void clearPassedDate()}
+              disabled={!canInteract || busy !== null}
+            >
+              {busy === "passed" ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+              Nej, det blev inte av
+            </Button>
+          </div>
+        </Card>
+        <VisitChooserDialog
+          open={visitChooserOpen}
+          onOpenChange={setVisitChooserOpen}
+          places={registerCandidates}
+          onChoose={(placeId) => {
+            setVisitChooserOpen(false);
+            onRegisterVisit(placeId);
+          }}
+        />
+      </section>
+    );
   }
 
-  const counts = countNextStopDateResponses(proposal);
-  const currentResponse = proposal.responses.find(
-    (response) => response.memberId === state.currentUserId,
-  )?.response;
-  const proposer = state.members.find((member) => member.id === proposal.createdBy);
-  const summary = responseSummary(counts);
-  const ownSummary = ownResponseSummary(currentResponse);
+  const hasState = Boolean(selectedPlace || proposals.length > 0 || plannedDate || plannedTime);
 
   return (
-    <>
-      <button
-        type="button"
-        className="flex min-h-20 w-full items-center gap-3 border-t border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/30"
-        onClick={() => setPlanningOpen(true)}
-        aria-label={`Öppna datumplaneringen för ${formatNextStopDate(proposal.date, proposal.time)}. ${ownSummary}`}
-      >
-        <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-medium">
-              {formatNextStopDate(proposal.date, proposal.time)}
-            </span>
-            {proposal.status === "confirmed" ? (
-              <Badge className="rounded-full bg-sage text-foreground hover:bg-sage">
-                Bekräftat
-              </Badge>
+    <section>
+      <NextStopHeading canInteract={canInteract} onShuffle={() => void randomProposal()} busy={busy} />
+
+      {!hasState ? (
+        <Card className="rounded-3xl border-dashed border-border bg-card p-6 text-center shadow-sm">
+          <div className="text-5xl">🎯</div>
+          <h2 className="mt-3 font-display text-xl">Vart ska rundan gå härnäst?</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Börja med ett ställe eller en dag. Resten kan ni fylla i när det passar.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button asChild>
+              <Link to="/matstallen">Föreslå ett ställe</Link>
+            </Button>
+            {canInteract ? (
+              <Button type="button" variant="outline" onClick={openSchedule}>
+                <CalendarDays className="h-4 w-4" /> Lägg till dag
+              </Button>
             ) : null}
-          </span>
-          <span
-            className={`mt-0.5 block text-xs ${
-              currentResponse ? "text-muted-foreground" : "font-medium text-primary"
-            }`}
-          >
-            {ownSummary}
-          </span>
-          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{summary}</span>
-        </span>
-        {busy ? (
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-        )}
-      </button>
-
-      <Sheet open={planningOpen} onOpenChange={setPlanningOpen}>
-        <SheetContent
-          side="bottom"
-          className="max-h-[85dvh] overflow-y-auto rounded-t-3xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:px-6"
-        >
-          <SheetHeader className="pr-8 text-left">
-            <SheetTitle className="font-display text-2xl">Planera nästa stopp</SheetTitle>
-            <SheetDescription>
-              {proposal.status === "confirmed"
-                ? "Se det bekräftade datumet och gruppens svar."
-                : "Svara på datumet och se hur det passar resten av gruppen."}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-5 rounded-2xl border border-border/70 bg-card p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              <span className="font-display text-lg font-semibold">
-                {formatNextStopDate(proposal.date, proposal.time)}
-              </span>
-              {proposal.status === "confirmed" ? (
-                <Badge className="rounded-full bg-sage text-foreground hover:bg-sage">
-                  Bekräftat
-                </Badge>
-              ) : null}
+          </div>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden rounded-3xl border-border/70 bg-card shadow-sm">
+          <div className="flex min-h-16 items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5 sm:px-5">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  När?
+                </div>
+                <div className="truncate text-sm font-medium">
+                  {plannedDate ? formatNextStopDate(plannedDate, plannedTime) : "Ingen dag bestämd ännu"}
+                </div>
+              </div>
             </div>
-            {proposer ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Föreslaget av {proposer.avatar} {proposer.name}
-              </p>
+            {canInteract ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-11 shrink-0 rounded-full px-3 text-primary"
+                onClick={openSchedule}
+              >
+                {plannedDate ? "Ändra dag" : "Lägg till dag"}
+              </Button>
             ) : null}
-            <p
-              className={`mt-2 text-sm ${
-                currentResponse ? "text-muted-foreground" : "font-medium text-primary"
-              }`}
-              role="status"
-            >
-              {ownSummary}
-            </p>
           </div>
 
-          {proposal.status === "active" && canWrite ? (
-            <section className="mt-5">
-              <h3 className="mb-2 text-sm font-medium">
-                {currentResponse ? "Ändra ditt svar" : "Passar datumet dig?"}
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                {RESPONSE_OPTIONS.map(({ value, icon: Icon, className }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    data-active={currentResponse === value}
-                    aria-pressed={currentResponse === value}
-                    disabled={busy}
-                    onClick={() => void respond(value)}
-                    className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-border/70 px-1.5 py-2 text-center text-[11px] font-medium transition-colors disabled:opacity-60 ${className}`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{NEXT_STOP_DATE_RESPONSE_LABEL[value]}</span>
-                    <span className="text-[10px] text-muted-foreground">{counts[value]}</span>
-                  </button>
-                ))}
+          <div className="p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Vart?
+                </div>
+                <h2 className="font-display text-lg font-semibold">
+                  {selectedPlace
+                    ? "Nästa stopp är bestämt"
+                    : proposals.length > 1
+                      ? "Vart ska rundan gå?"
+                      : proposals.length === 1
+                        ? `${proposals[0].place.name} är på förslag`
+                        : "Vart ska rundan gå?"}
+                </h2>
               </div>
-            </section>
-          ) : null}
+              {proposals.length > 0 ? (
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {proposals.length} förslag
+                </span>
+              ) : null}
+            </div>
 
-          <section className="mt-5">
-            <h3 className="text-sm font-medium">Gruppens svar</h3>
-            {proposal.responses.length > 0 ? (
-              <div className="mt-2 space-y-2 rounded-2xl bg-muted/35 p-3">
-                {RESPONSE_OPTIONS.map(({ value }) => {
-                  const names = proposal.responses
-                    .filter((response) => response.response === value)
-                    .map((response) =>
-                      state.members.find((member) => member.id === response.memberId),
-                    )
-                    .filter((member): member is NonNullable<typeof member> => !!member)
-                    .map((member) => `${member.avatar ?? ""} ${member.name}`.trim());
-                  if (!names.length) return null;
+            {proposals.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/80 p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {plannedDate ? "Dagen är satt. Nu återstår bara vart ni ska gå." : "Inget ställe är på förslag ännu."}
+                </p>
+                <Button asChild variant="outline" className="mt-3 min-h-11">
+                  <Link to="/matstallen">Föreslå ett ställe</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {proposals.map(({ proposal, place }, index) => {
+                  const selected = nextStop?.selectedPlaceId === place.id;
+                  const supported = proposal.supports.some(
+                    (item) => item.memberId === state.currentUserId,
+                  );
+                  const canRemove = canInteract && canWithdrawNextStopProposal(state, proposal);
                   return (
-                    <div key={value} className="text-sm leading-relaxed">
-                      <span className="font-medium">{NEXT_STOP_DATE_RESPONSE_LABEL[value]}:</span>{" "}
-                      <span className="text-muted-foreground">{names.join(", ")}</span>
+                    <div
+                      key={proposal.id}
+                      data-next-stop-proposal={selected ? "selected" : "open"}
+                      className={[
+                        "rounded-2xl border p-3",
+                        selected ? "border-primary/35 bg-primary/[0.05]" : "border-border/70 bg-background/50",
+                      ].join(" ")}
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        <Link
+                          to="/matstallen/$placeId"
+                          params={{ placeId: place.id }}
+                          className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-secondary text-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          aria-label={`Öppna ${place.name}`}
+                        >
+                          {place.photo ?? "🍽️"}
+                        </Link>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {selected ? <Badge className="rounded-full">Nästa stopp</Badge> : null}
+                            {!selected && index === 0 && proposals.length > 1 ? (
+                              <Badge variant="outline" className="rounded-full">Första förslaget</Badge>
+                            ) : null}
+                          </div>
+                          <Link
+                            to="/matstallen/$placeId"
+                            params={{ placeId: place.id }}
+                            className="mt-1 block font-display text-lg font-semibold leading-tight hover:underline"
+                          >
+                            {place.name}
+                          </Link>
+                          <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{place.address}, {place.city}</span>
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {proposalByLabel(proposal, state)} · {proposalSupportLabel(proposal.supports.length)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {!selected && canInteract ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={supported ? "secondary" : "outline"}
+                            className="min-h-11"
+                            aria-pressed={supported}
+                            onClick={() => void toggleSupport(proposal)}
+                            disabled={busy !== null}
+                          >
+                            {busy === `support:${proposal.id}` ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ThumbsUp className={supported ? "h-4 w-4 fill-current" : "h-4 w-4"} />
+                            )}
+                            {supported ? "Gärna!" : "Gärna"}
+                          </Button>
+                        ) : null}
+                        {!selected && canInteract ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="min-h-11"
+                            onClick={() => setSelecting(proposal)}
+                            disabled={busy !== null}
+                          >
+                            <Flag className="h-4 w-4" /> Välj som nästa stopp
+                          </Button>
+                        ) : null}
+                        {selected && canInteract ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="min-h-11"
+                            onClick={() =>
+                              void run(
+                                "clear-selection",
+                                clearSelection,
+                                "Valet är öppet igen. Förslagen ligger kvar.",
+                              )
+                            }
+                            disabled={busy !== null}
+                          >
+                            {busy === "clear-selection" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                            Öppna valet igen
+                          </Button>
+                        ) : null}
+                        {canRemove && !selected ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="min-h-11 text-muted-foreground"
+                            onClick={() =>
+                              void run(
+                                `withdraw:${proposal.id}`,
+                                () => withdraw(proposal.id),
+                                "Förslaget är borttaget.",
+                              )
+                            }
+                            disabled={busy !== null}
+                          >
+                            <X className="h-4 w-4" /> Ta bort
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            ) : (
-              <p className="mt-1 text-sm text-muted-foreground">Ingen har svarat än.</p>
             )}
-          </section>
 
-          {canManage && canWrite ? (
-            <div className="mt-6 flex flex-col-reverse gap-2 border-t border-border/60 pt-4 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                disabled={busy}
-                onClick={() => void setStatus("cancelled")}
-              >
-                {proposal.status === "confirmed" ? "Ta bort datumet" : "Ta bort förslaget"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11"
-                disabled={busy}
-                onClick={openEditDialog}
-              >
-                <Pencil className="h-4 w-4" />
-                Ändra datum
-              </Button>
-              {proposal.status === "active" ? (
-                <Button
-                  type="button"
-                  className="min-h-11"
-                  disabled={busy}
-                  onClick={() => void setStatus("confirmed")}
-                >
-                  Bekräfta datum
+            <div className="mt-3 flex flex-wrap gap-2">
+              {proposals.length < 5 ? (
+                <Button asChild variant="ghost" size="sm" className="min-h-11 px-2 text-primary">
+                  <Link to="/matstallen">Föreslå ett annat ställe</Link>
                 </Button>
-              ) : null}
+              ) : (
+                <span className="px-2 py-2 text-xs text-muted-foreground">
+                  Fem ställen är på förslag – ta bort ett innan ni lägger till fler.
+                </span>
+              )}
+            </div>
+          </div>
+
+          {selectedPlace && canWrite ? (
+            <div className="border-t border-border/60 p-4">
+              <Button
+                type="button"
+                onClick={() => onRegisterVisit(selectedPlace.id)}
+                className="h-12 w-full text-base"
+                size="lg"
+              >
+                Registrera besök
+              </Button>
             </div>
           ) : null}
-        </SheetContent>
-      </Sheet>
+        </Card>
+      )}
 
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Ändra datum</DialogTitle>
+            <DialogTitle>{plannedDate ? "Ändra dag" : "Lägg till dag"}</DialogTitle>
             <DialogDescription>
-              När datumet ändras nollställs gruppens svar. Ett bekräftat datum öppnas igen så att
-              alla kan svara på nytt.
+              Dagen är en del av nästa stopp. Lägg bara till klockslag om ni redan har bestämt det.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label htmlFor="edit-next-stop-date">Datum</Label>
+              <Label htmlFor="next-stop-v2-date">Dag</Label>
               <Input
-                id="edit-next-stop-date"
+                id="next-stop-v2-date"
                 type="date"
                 min={new Date().toISOString().slice(0, 10)}
                 value={date}
@@ -579,26 +521,147 @@ export function NextStopDateCard({ placeId, canWrite }: { placeId: string; canWr
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-next-stop-time">Tid (valfritt)</Label>
-              <Input
-                id="edit-next-stop-time"
-                type="time"
-                value={time}
-                onChange={(event) => setTime(event.target.value)}
-              />
+              <Label htmlFor="next-stop-v2-time">Tid (valfritt)</Label>
+              <div className="relative">
+                <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="next-stop-v2-time"
+                  type="time"
+                  className="pl-9"
+                  value={time}
+                  onChange={(event) => setTime(event.target.value)}
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            {plannedDate ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="sm:mr-auto"
+                disabled={busy !== null}
+                onClick={() =>
+                  void run(
+                    "remove-date",
+                    async () => {
+                      await setSchedule(null, null);
+                      setScheduleOpen(false);
+                    },
+                    "Dagen är borttagen.",
+                  )
+                }
+              >
+                Ta bort dag
+              </Button>
+            ) : null}
+            <Button type="button" variant="outline" onClick={() => setScheduleOpen(false)}>
               Avbryt
             </Button>
-            <Button type="button" disabled={busy} onClick={() => void updateProposal()}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Spara nytt datum
+            <Button type="button" disabled={busy !== null} onClick={() => void saveSchedule()}>
+              {busy === "schedule" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Spara
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+
+      <Dialog open={Boolean(selecting)} onOpenChange={(open) => !open && setSelecting(null)}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Bestäm nästa stopp</DialogTitle>
+            <DialogDescription>
+              {selecting
+                ? `Ska ${getPlace(selecting.placeId)?.name ?? "det här stället"} bli gruppens nästa stopp?`
+                : "Välj ett ställe."}
+              {plannedDate ? ` ${formatNextStopDate(plannedDate, plannedTime)} ligger kvar som dag.` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setSelecting(null)}>
+              Inte än
+            </Button>
+            <Button type="button" disabled={busy !== null} onClick={() => void confirmSelection()}>
+              {selecting && busy === `select:${selecting.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Ja, bestäm nästa stopp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
+}
+
+function NextStopHeading({
+  canInteract,
+  onShuffle,
+  busy,
+}: {
+  canInteract: boolean;
+  onShuffle: () => void;
+  busy: string | null;
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
+        <Flag className="h-3.5 w-3.5" /> Nästa stopp
+      </div>
+      {canInteract ? (
+        <button
+          type="button"
+          onClick={onShuffle}
+          disabled={busy !== null}
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-mustard/50 px-3 py-1.5 text-xs font-medium text-mustard-foreground disabled:opacity-50"
+        >
+          {busy === "shuffle" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shuffle className="h-3.5 w-3.5" />}
+          Slumpa förslag
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function VisitChooserDialog({
+  open,
+  onOpenChange,
+  places,
+  onChoose,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  places: Place[];
+  onChoose: (placeId: string) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Vilket ställe blev det?</DialogTitle>
+          <DialogDescription>Välj det ställe ni faktiskt besökte.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2">
+          {places.map((place) => (
+            <Button
+              key={place.id}
+              type="button"
+              variant="outline"
+              className="min-h-12 justify-between gap-3 whitespace-normal text-left"
+              onClick={() => onChoose(place.id)}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="text-xl">{place.photo ?? "🍽️"}</span>
+                <span className="min-w-0">
+                  <span className="block font-medium">{place.name}</span>
+                  <span className="block truncate text-xs font-normal text-muted-foreground">
+                    {CATEGORY_LABEL[place.category]}
+                  </span>
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            </Button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
