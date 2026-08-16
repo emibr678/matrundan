@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/matrundan/store";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
-import { NextStopCard } from "@/components/matrundan/NextStopDateCard";
+import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
