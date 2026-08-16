@@ -104,9 +104,62 @@ describe("releasekontrollens versionsskydd", () => {
     const pushResult = runReleaseCheck(root, base, "push");
 
     expect(pushResult.status).toBe(1);
-    expect(pushResult.stderr).toContain(
+    expect(pushResult.stderr).toContain("utan versionshöjning i version.ts");
+    expect(pushResult.stderr).not.toContain(
       "Version: inte relevant får endast användas för ändringar utan användarsynlig kod",
     );
+  }, 15_000);
+
+  test("godkänner korrekt versionerad UI-ändring efter merge till main", () => {
+    const { root, base } = createReleaseFixture();
+    writeFixtureFile(
+      root,
+      "src/components/matrundan/TestView.tsx",
+      "export function TestView() { return <div>Versionerad vy</div>; }\n",
+    );
+    writeFixtureFile(
+      root,
+      "src/lib/matrundan/version.ts",
+      `export const APP_VERSION = "1.0.1";
+export const APP_VERSION_DATE = "2026-08-01";
+export const CHANGELOG = [
+  {
+    version: APP_VERSION,
+    date: APP_VERSION_DATE,
+    summary: "Versionerad ändring",
+    sections: [],
+  },
+  {
+    version: "1.0.0",
+    date: "2026-07-31",
+    summary: "Testrelease",
+    sections: [],
+  },
+];
+`,
+    );
+    writeFixtureFile(
+      root,
+      "CHANGELOG.md",
+      `# Changelog
+
+## [Unreleased]
+
+Inga ändringar ännu.
+
+## [1.0.1] – 2026-08-01
+
+## [1.0.0] – 2026-07-31
+`,
+    );
+    expect(run(root, "git", ["add", "."]).status).toBe(0);
+    expect(run(root, "git", ["commit", "-m", "versioned ui change"]).status).toBe(0);
+
+    const pullRequestResult = runReleaseCheck(root, base, "pull_request");
+    expect(pullRequestResult.status).toBe(0);
+
+    const pushResult = runReleaseCheck(root, base, "push");
+    expect(pushResult.status).toBe(0);
   }, 15_000);
 
   test("godkänner verktygsändring efter merge till main", () => {
