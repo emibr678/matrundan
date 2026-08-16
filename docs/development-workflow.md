@@ -109,7 +109,7 @@ motiverar dem.
 
 När användaren uttryckligen ber att bolla UX med Lovable används Plan mode före
 låst lösning när verktyget är tillgängligt. Om konsultationen inte kan
-så genomföras ska begränsningen redovisas; den ersätts inte tyst av ett annat
+genomföras ska begränsningen redovisas; den ersätts inte tyst av ett annat
 arbetsflöde.
 
 ### Lovable-implementation

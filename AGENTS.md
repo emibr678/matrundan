@@ -1,8 +1,12 @@
 <!-- LOVABLE:BEGIN -->
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> pushed history with force-push, rebase or amend after it may have synced to
-> Lovable. Verify the selected Lovable branch before Lovable writes code.
+> published git history — force pushing, or rebasing/amending/squashing commits
+> that are already pushed — as it rewrites history on Lovable's side and the
+> user will likely lose their project history.
+>
+> Commits pushed to the branch currently selected in Lovable sync back to the
+> editor. Keep that branch buildable and verify the selected branch before edits.
 <!-- LOVABLE:END -->
 
 # Matrundan agent instructions
