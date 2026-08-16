@@ -4,6 +4,9 @@ const migration = await Bun.file("supabase/migrations/20260816183000_next_stop_v
 const legacyBridge = await Bun.file(
   "supabase/migrations/20260816183100_next_stop_v2_legacy_selection_bridge.sql",
 ).text();
+const archiveBridge = await Bun.file(
+  "supabase/migrations/20260816183200_next_stop_v2_place_archive_bridge.sql",
+).text();
 
 describe("databaskontrakt för Nästa stopp v2", () => {
   test("privat gruppstate exponeras bara via validerade RPC:er", () => {
@@ -45,6 +48,19 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(migration).toContain("IF NEW.link_type <> 'original' THEN RETURN NEW; END IF;");
     expect(migration).toContain("DELETE FROM public.next_stop_place_proposals WHERE group_id = NEW.group_id");
     expect(migration).toContain("DELETE FROM public.next_stop_plans WHERE group_id = NEW.group_id");
+  });
+
+  test("arkivering av valt ställe får lämna kvar gruppens gemensamma dag", () => {
+    expect(archiveBridge).toContain(
+      "CREATE OR REPLACE FUNCTION public.archive_group_place(_group_id uuid, _place_id uuid)",
+    );
+    expect(archiveBridge).toContain(
+      "set_config('matrundan.next_stop_v2_sync', '1', true)",
+    );
+    expect(archiveBridge).toContain("DELETE FROM public.group_next_place");
+    expect(archiveBridge).toContain(
+      "set_config('matrundan.next_stop_v2_sync', '', true)",
+    );
   });
 
   test("v5k är additiv ovanpå v5j och legacy-val tappar inte diskussion tyst", () => {
