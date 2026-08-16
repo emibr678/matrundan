@@ -936,6 +936,7 @@ function ProposalRow({
   state,
   canInteract,
   busy,
+  selectLabel,
   onSupport,
   onSelect,
   onWithdraw,
@@ -944,10 +945,12 @@ function ProposalRow({
   state: ReturnType<typeof useStore>["state"];
   canInteract: boolean;
   busy: string | null;
+  selectLabel: string;
   onSupport: () => void;
   onSelect: () => void;
   onWithdraw: () => void;
 }) {
+
   const supported = item.proposal.supports.some(
     (support) => support.memberId === state.currentUserId,
   );
