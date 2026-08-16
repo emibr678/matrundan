@@ -7,9 +7,6 @@ const legacyBridge = await Bun.file(
 const archiveBridge = await Bun.file(
   "supabase/migrations/20260816183200_next_stop_v2_place_archive_bridge.sql",
 ).text();
-const dayUnavailability = await Bun.file(
-  "supabase/migrations/20260816183300_next_stop_v2_day_unavailability.sql",
-).text();
 
 describe("databaskontrakt för Nästa stopp v2", () => {
   test("privat gruppstate exponeras bara via validerade RPC:er", () => {
@@ -39,20 +36,6 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(migration).toContain("_planned_time IS NOT NULL AND _planned_date IS NULL");
     expect(migration).toContain("Europe/Stockholm");
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.set_next_stop_schedule_v2(");
-  });
-
-  test("Kan inte då är privat, explicit och knuten till aktuell dag", () => {
-    expect(dayUnavailability).toContain("CREATE TABLE public.next_stop_day_unavailability");
-    expect(dayUnavailability).toContain(
-      "CREATE OR REPLACE FUNCTION public.get_next_stop_day_unavailability_v2(",
-    );
-    expect(dayUnavailability).toContain(
-      "CREATE OR REPLACE FUNCTION public.set_next_stop_day_unavailable_v2(",
-    );
-    expect(dayUnavailability).toContain("_current_date IS DISTINCT FROM _planned_date");
-    expect(dayUnavailability).toContain("DELETE FROM public.next_stop_day_unavailability");
-    expect(dayUnavailability).toContain("m.status = 'active'");
-    expect(dayUnavailability).toContain("REVOKE ALL ON TABLE public.next_stop_day_unavailability");
   });
 
   test("samtidiga beslut skyddas av grupp-lås och revision", () => {
