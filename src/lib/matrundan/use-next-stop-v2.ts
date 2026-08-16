@@ -46,7 +46,9 @@ function readDemoUnavailable(groupId: string): string[] {
     const raw = demoStorage(groupId)?.getItem(unavailableStorageKey(groupId));
     if (!raw) return [];
     const value = JSON.parse(raw) as unknown;
-    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : [];
   } catch {
     return [];
   }
@@ -162,8 +164,8 @@ export function useNextStopV2() {
   React.useEffect(() => {
     if (mode !== "demo") return;
     if (state.group.lifecycleStatus === "archived") {
-      if (demoState) setDemoState(null);
-      if (dayUnavailableMemberIds.length > 0) setDayUnavailableMemberIds([]);
+      setDemoState(null);
+      setDayUnavailableMemberIds([]);
       return;
     }
 
@@ -174,7 +176,9 @@ export function useNextStopV2() {
     );
     setDemoState((current) => {
       if (!current) return current;
-      const proposals = current.proposals.filter((proposal) => activePlaceIds.has(proposal.placeId));
+      const proposals = current.proposals.filter((proposal) =>
+        activePlaceIds.has(proposal.placeId),
+      );
       const selectedPlaceId =
         current.selectedPlaceId && activePlaceIds.has(current.selectedPlaceId)
           ? current.selectedPlaceId
@@ -192,7 +196,7 @@ export function useNextStopV2() {
         proposals,
       };
     });
-  }, [dayUnavailableMemberIds.length, demoState, mode, state.group.lifecycleStatus, state.places]);
+  }, [mode, state.group.lifecycleStatus, state.places]);
 
   React.useEffect(() => {
     if (mode !== "demo") return;
@@ -206,21 +210,20 @@ export function useNextStopV2() {
     const known = initialVisitIds.current;
     const addedVisits = state.visits.filter((visit) => !known.has(visit.id));
     initialVisitIds.current = new Set(state.visits.map((visit) => visit.id));
-    if (addedVisits.length === 0) return;
+    if (addedVisits.length === 0 || !demoState) return;
 
-    setDemoState((current) => {
-      if (!current) return current;
-      const plannedPlaceIds = new Set([
-        ...current.proposals.map((proposal) => proposal.placeId),
-        ...(current.selectedPlaceId ? [current.selectedPlaceId] : []),
-      ]);
-      const relevantVisit = addedVisits.some(
-        (visit) => visit.linkType !== "shared" && plannedPlaceIds.has(visit.placeId),
-      );
-      if (relevantVisit) setDayUnavailableMemberIds([]);
-      return relevantVisit ? null : current;
-    });
-  }, [mode, state.visits]);
+    const plannedPlaceIds = new Set([
+      ...demoState.proposals.map((proposal) => proposal.placeId),
+      ...(demoState.selectedPlaceId ? [demoState.selectedPlaceId] : []),
+    ]);
+    const relevantVisit = addedVisits.some(
+      (visit) => visit.linkType !== "shared" && plannedPlaceIds.has(visit.placeId),
+    );
+    if (!relevantVisit) return;
+
+    setDemoState(null);
+    setDayUnavailableMemberIds([]);
+  }, [demoState, mode, state.visits]);
 
   async function propose(placeId: string): Promise<void> {
     if (mode === "live") {
@@ -232,7 +235,9 @@ export function useNextStopV2() {
     const base = demoState ?? freshState();
     if (base.proposals.some((proposal) => proposal.placeId === placeId)) return;
     if (base.proposals.length >= 5) {
-      throw new Error("Ni har redan fem ställen på förslag. Ta bort ett innan ni lägger till ett nytt.");
+      throw new Error(
+        "Ni har redan fem ställen på förslag. Ta bort ett innan ni lägger till ett nytt.",
+      );
     }
 
     setDemoState({
