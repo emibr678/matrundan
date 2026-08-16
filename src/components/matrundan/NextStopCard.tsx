@@ -475,6 +475,8 @@ export function NextStopCard({
                   {otherProposals.map((item) => (
                     <ProposalRow
                       key={item.proposal.id}
+                      selectLabel="Byt till"
+
                       item={item}
                       state={state}
                       canInteract={canInteract}
