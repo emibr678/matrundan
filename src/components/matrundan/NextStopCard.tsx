@@ -387,9 +387,8 @@ export function NextStopCard({
           plannedDate={plannedDate}
           unavailableCount={dayUnavailableMemberIds.length}
           date={date}
-          time={time}
           onDateChange={setDate}
-          onTimeChange={setTime}
+
           busy={busy}
           onSave={() => void saveSchedule()}
           onRemove={() => undefined}
