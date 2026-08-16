@@ -709,13 +709,9 @@ function ScheduleRow({
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0 text-sm font-medium">
             {plannedDate ? (
               <>
-                <span className="whitespace-nowrap">
-                  {formatNextStopDate(plannedDate, null)}
-                </span>
+                <span className="whitespace-nowrap">{formatNextStopDate(plannedDate, null)}</span>
                 {plannedTime ? (
-                  <span className="whitespace-nowrap text-muted-foreground">
-                    · {plannedTime}
-                  </span>
+                  <span className="whitespace-nowrap text-muted-foreground">· {plannedTime}</span>
                 ) : null}
               </>
             ) : (
