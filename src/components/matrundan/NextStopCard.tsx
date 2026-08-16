@@ -120,10 +120,7 @@ export function NextStopCard({
   const currentUserUnavailable = dayUnavailableMemberIds.includes(state.currentUserId);
 
   const untried = React.useMemo(
-    () =>
-      activePlaces.filter(
-        (place) => !state.visits.some((visit) => visit.placeId === place.id),
-      ),
+    () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
     [activePlaces, state.visits],
   );
 
@@ -237,9 +234,7 @@ export function NextStopCard({
     );
   }
 
-  const registerCandidates = selectedPlace
-    ? [selectedPlace]
-    : proposals.map((item) => item.place);
+  const registerCandidates = selectedPlace ? [selectedPlace] : proposals.map((item) => item.place);
 
   function openRegisterVisit() {
     if (registerCandidates.length === 1) {
@@ -586,12 +581,7 @@ export function NextStopCard({
           )}
 
           {proposals.length > 0 && proposals.length < 5 ? (
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="mt-3 min-h-11 px-2 text-primary"
-            >
+            <Button asChild variant="ghost" size="sm" className="mt-3 min-h-11 px-2 text-primary">
               <Link to="/matstallen">Föreslå ett annat ställe</Link>
             </Button>
           ) : proposals.length >= 5 ? (
@@ -833,9 +823,7 @@ function SingleProposal({
   return (
     <div data-next-stop-proposal="open">
       <div className="flex items-start justify-between gap-2">
-        <h2 className="font-display text-xl font-semibold">
-          {item.place.name} är på förslag
-        </h2>
+        <h2 className="font-display text-xl font-semibold">{item.place.name} är på förslag</h2>
         {canRemove ? (
           <RemoveProposalButton
             placeName={item.place.name}
@@ -984,9 +972,7 @@ function RemoveProposalButton({
       aria-label={`Ta bort ${placeName} från förslagen`}
       onClick={onClick}
     >
-      {busy ? (
-        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-      ) : null}
+      {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
       Ta bort
     </Button>
   );
@@ -1023,8 +1009,7 @@ function ScheduleDialog({
         <DialogHeader>
           <DialogTitle>{plannedDate ? "Ändra dag" : "Lägg till dag"}</DialogTitle>
           <DialogDescription>
-            Dagen är en del av nästa stopp. Lägg bara till klockslag om ni redan har bestämt
-            det.
+            Dagen är en del av nästa stopp. Lägg bara till klockslag om ni redan har bestämt det.
             {plannedDate && unavailableCount > 0
               ? " Om ni byter dag nollställs gruppens Kan inte då-markeringar."
               : ""}
