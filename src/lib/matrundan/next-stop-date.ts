@@ -1,11 +1,5 @@
 import type { NextStopDateProposal, NextStopDateResponseValue, Role } from "./types";
 
-export const NEXT_STOP_DATE_RESPONSE_LABEL: Record<NextStopDateResponseValue, string> = {
-  fits: "Passar",
-  not_fits: "Passar inte",
-  unsure: "Osäker",
-};
-
 const STOCKHOLM_CALENDAR_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Europe/Stockholm",
   year: "numeric",
