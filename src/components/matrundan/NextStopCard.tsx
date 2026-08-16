@@ -1113,6 +1113,7 @@ function SelectionDialog({
   getPlace,
   plannedDate,
   plannedTime,
+  isSwitch,
   busy,
   onClose,
   onConfirm,
@@ -1121,6 +1122,7 @@ function SelectionDialog({
   getPlace: (placeId: string) => Place | undefined;
   plannedDate: string | null;
   plannedTime: string | null;
+  isSwitch: boolean;
   busy: string | null;
   onClose: () => void;
   onConfirm: () => void;
@@ -1129,10 +1131,12 @@ function SelectionDialog({
     <Dialog open={Boolean(selecting)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Välj nästa stopp</DialogTitle>
+          <DialogTitle>{isSwitch ? "Byt nästa stopp" : "Välj nästa stopp"}</DialogTitle>
           <DialogDescription>
             {selecting
-              ? `Ska ${getPlace(selecting.placeId)?.name ?? "det här stället"} bli gruppens nästa stopp?`
+              ? isSwitch
+                ? `Ska ${getPlace(selecting.placeId)?.name ?? "det här stället"} bli gruppens nästa stopp i stället?`
+                : `Ska ${getPlace(selecting.placeId)?.name ?? "det här stället"} bli gruppens nästa stopp?`
               : "Välj ett ställe."}
             {plannedDate ? ` ${formatNextStopDate(plannedDate, plannedTime)} ligger kvar.` : ""}
           </DialogDescription>
@@ -1145,13 +1149,14 @@ function SelectionDialog({
             {selecting && busy === `select:${selecting.id}` ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : null}
-            Ja, välj nästa stopp
+            {isSwitch ? "Ja, byt nästa stopp" : "Ja, välj nästa stopp"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function VisitChooserDialog({
   open,
