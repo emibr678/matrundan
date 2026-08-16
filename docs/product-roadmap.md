@@ -29,8 +29,13 @@ restaurangkatalog, individuell matdagbok, social feed eller global ranking.
 
 - **Det här dokumentet** beskriver paket, prioritering och varaktiga
   produktbeslut.
-- **GitHub Issues** beskriver användarbehov, överenskommet scope, icke-mål,
-  öppna beslut, integritet, exempeldata och verifiering för en konkret funktion.
+- **GitHub Issues och deras labels** är den operativa backloggen: de beskriver
+  användarbehov, överenskommet scope, status, prioritet och beslutad relativ
+  arbetsordning för en konkret funktion.
+- **GitHub Project** är den människovänliga översikten över samma issues och
+  labels. Projektet får även innehålla buggar, maintenance och andra issues som
+  inte hör hemma i produktroadmapen, men ska inte skapa en parallell
+  prioriteringssanning.
 - **`docs/architecture.md`** beskriver varaktiga arkitektur- och
   säkerhetsbeslut.
 - **`docs/development-workflow.md`** beskriver planering, godkännande,
@@ -62,6 +67,26 @@ separat `status:done`-etikett behövs därför inte.
 - `priority:next` – nästa större produktsteg när pågående paket är klart.
 - `priority:later` – överenskommen riktning som väntar på tidigare beroenden.
 
+Prioritet beskriver **horisont**, inte en fullständig sortering. När en exakt
+relativ arbetsordning är beslutad används `order:*`.
+
+### Ordningsetiketter
+
+- `order:010`, `order:020`, `order:030` och så vidare anger den beslutade
+  relativa ordningen i den operativa arbetskön.
+- Ett öppet issue får ha högst en `order:*`-label.
+- Endast arbete som faktiskt har en beslutad plats i kön ska få `order:*`.
+  Avsaknad av `order:*` betyder **inte exakt sekvenserad**, inte bortglömd.
+- Inbox och större delen av `priority:later` ska normalt lämnas oordnade tills
+  deras inbördes plats faktiskt spelar roll. Undvik falsk precision.
+- Tiosteg används för att göra det möjligt att infoga ett nytt arbete mellan två
+  befintliga utan att rutinmässigt numrera om hela kön.
+- Ett parent-/epic-issue som spänner över flera leveranser ska normalt inte ha en
+  egen `order:*`; de konkreta levererbara delarna rangordnas i stället.
+- För issues som ingår i roadmapen får `order:*` och roadmapens relativa ordning
+  inte motsäga varandra. När den ena ändras ska agenten kontrollera och vid behov
+  synka den andra i samma arbete.
+
 ### Typetiketter
 
 - `type:feature`
@@ -74,17 +99,19 @@ separat `status:done`-etikett behövs därför inte.
 2. Produktbedöm idén mot den gemensamma matresan.
 3. Dokumentera överenskommet scope och icke-mål i issuen och sätt
    `status:agreed`.
-4. Inspektera aktuell kod, databas och dokumentation när funktionen närmar sig
+4. Ge issuen `order:*` först när dess relativa plats i den aktiva arbetskön är
+   avsiktligt beslutad.
+5. Inspektera aktuell kod, databas och dokumentation när funktionen närmar sig
    implementation.
-5. Lägg en konkret implementationsplan i issuen.
-6. Invänta uttryckligt implementationsgodkännande och sätt därefter
+6. Lägg en konkret implementationsplan i issuen.
+7. Invänta uttryckligt implementationsgodkännande och sätt därefter
    `status:ready`.
-7. Implementera i en avgränsad branch och PR som refererar eller stänger
+8. Implementera i en avgränsad branch och PR som refererar eller stänger
    issuen.
-8. Verifiera och merge enligt utvecklingsflödet.
-9. Bekräfta efter merge att rätt issue stängdes och ta bort `status:ready` om
-   etiketten ligger kvar.
-10. Driftsätt databas och publicera endast efter separat uttryckligt
+9. Verifiera och merge enligt utvecklingsflödet.
+10. Bekräfta efter merge att rätt issue stängdes och ta bort `status:ready` och
+    eventuell `order:*` om de ligger kvar på det stängda issuen.
+11. Driftsätt databas och publicera endast efter separat uttryckligt
     godkännande.
 
 Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
@@ -111,18 +138,32 @@ kärnproduktproblem ska prioriteras före återstående symbolpolish i #105 och
 #135.
 
 **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** är genomfört.
-Pågående kärnleverans är den första avgränsade delen av **#169 Bekräfta
-deltagande och komplettera gemensamma besök**. Direkt därefter följer **#203
-Samla deltagaromdömen i en tydlig besöksvy** och **#204 Synliggör besök som
-väntar på ditt omdöme**. Först när den efterbesöksloopen är begriplig går
-roadmapen vidare till **#106 Nästa stopp v2: alternativ för plats och tid utan
-överskrivning**, därefter **#101 Privata kommentarer och reaktioner på besök**.
-De känsligare cross-group-delarna av #169 och **#179 Dela besöksfoto uttryckligen
-tillsammans med delat besök** kommer därefter. **#197 Renodla besökskontext med
-Något att dricka och valfri Hämtmat-markering** är nästa överenskomna
-besökskontextsteg efter dessa kärnleveranser. Det nya **Paket G – Gruppens
-platskunskap och historikbaserad vägledning** ligger senare och bygger vidare på
-stabil besöks- och reviewsemantik.
+Första leveransen av **#169 Bekräfta deltagande och komplettera gemensamma
+besök** genomfördes via PR #201 och **#203 Samla deltagaromdömen i en tydlig
+besöksvy** via PR #206.
+
+Den närmaste beslutade produktkön är nu:
+
+1. `order:010` – **#204 Synliggör besök som väntar på ditt omdöme**.
+2. `order:020` – **#106 Nästa stopp v2: alternativ för plats och tid utan
+   överskrivning**.
+3. `order:030` – **#101 Privata kommentarer och reaktioner på besök**.
+4. `order:040` – **#213 Förebygg dubbla kanoniska besök vid registrering och
+   delning**.
+5. `order:050` – **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**.
+6. `order:060` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
+   besök**.
+7. `order:070` – **#197 Renodla besökskontext med Något att dricka och valfri
+   Hämtmat-markering**.
+
+**#169 Bekräfta deltagande och komplettera gemensamma besök** ligger kvar som
+parent och varaktig produkt-/integritetsram för redan levererad deltagarsemantik
+samt de utbrutna senare delarna #213 och #214. Parent-issuen ska inte ha en egen
+plats i den sekventiella kön.
+
+**#207 Frikoppla drift från Lovable Cloud och etablera portabel plattform** är ett
+separat aktivt plattformsspår. Det har avsiktligt ingen `order:*` i förhållande
+till produktkön förrän en explicit cross-track-ordning beslutas.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -161,7 +202,7 @@ Intern ordning när Paket A återupptas:
 
 ## Paket C – Nästa stopp v2
 
-**Prioritet:** `priority:next`, efter #203 och #204
+**Prioritet:** `priority:next`, efter #204
 
 - **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
 
@@ -197,61 +238,68 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
-**Prioritet:** `priority:now` för första delen av #169, därefter `priority:next`
-för #203 och #204
+**Prioritet:** första leveransen av #169 och #203 är genomförda; #204 är nästa
+produktsteg i paketet.
 
-Rekommenderad ordning:
+Rekommenderad paketordning, med #106 från Paket C inskjutet mellan #204 och #101
+i den globala arbetskön:
 
-1. **#169 Bekräfta deltagande och komplettera gemensamma besök – första
+1. ✅ **#169 Bekräfta deltagande och komplettera gemensamma besök – första
    leveransen**  
-   Den som registrerar ett nytt besök är själv faktisk deltagare och lämnar sitt
-   eget omdöme i registreringsflödet; registreringen ger ingen extra progression
-   utöver vanlig deltagarprogression. Andra identifierade deltagare kan
-   komplettera samma kanoniska besök med egna omdömen och självkorrigera **Jag
-   var inte med** / **Jag var med**. Progression, statistik och aktivt
-   deltagaromdöme följer den kanoniska deltagarsanningen, och samma identifierade
-   deltagande återanvänds över gruppkontexter där användaren legitimt kan se
-   samma besök. Befintlig historik skrivs inte om destruktivt när den nya
-   registrerarinvarianten införs.
-2. **#203 Samla deltagaromdömen i en tydlig besöksvy**  
-   Gör besöksdetaljen begriplig när flera faktiska deltagare lämnar egna
-   omdömen. Samla gruppens sammanfattning och individuella deltagaromdömen i en
-   gemensam hierarki, håll redigering och synlighet nära det egna omdömet och gör
-   deltagarkorrigeringen mer kompakt i normalfallet. Exempelgruppen ska visa ett
-   realistiskt besök med minst tre deltagaromdömen.
-3. **#204 Synliggör besök som väntar på ditt omdöme**  
+   Genomförd via PR #201. Den som registrerar ett nytt besök är själv faktisk
+   deltagare och lämnar sitt eget omdöme i registreringsflödet; registreringen
+   ger ingen extra progression utöver vanlig deltagarprogression. Andra
+   identifierade deltagare kan komplettera samma kanoniska besök med egna
+   omdömen och självkorrigera **Jag var inte med** / **Jag var med**.
+2. ✅ **#203 Samla deltagaromdömen i en tydlig besöksvy**  
+   Genomförd via PR #206. Besöksdetaljen samlar gruppens sammanfattning och
+   individuella deltagaromdömen i en gemensam hierarki och gör
+   deltagarkorrigeringen mer kompakt i normalfallet.
+3. **#204 Synliggör besök som väntar på ditt omdöme** (`order:010`)  
    Ge identifierade faktiska deltagare en diskret pending-signal på hemvyn och i
    besökshistoriken när deras eget omdöme saknas. Signalen leder tillbaka till
    samma kanoniska besök, försvinner efter eget omdöme eller **Jag var inte med**
    och får inte bli en blockerande appstartmodal, pushkampanj eller cross-group
    informationskanal.
-4. **#101 Privata kommentarer och reaktioner på besök**  
+4. **#101 Privata kommentarer och reaktioner på besök** (`order:030`)  
    Efter mellansteget #106: lägg privat gruppdiskussion och enkla reaktioner på
    gruppens besökslänk. Funktionen är `priority:next` och får inte ge progression
    eller exponera en annan grupps diskussion när besöket delas.
-5. **#169 – fortsatta cross-group-identitetsfall**  
-   Gäst→medlem-koppling kräver uttryckligt val och den utpekade personens
+5. **#213 Förebygg dubbla kanoniska besök vid registrering och delning**
+   (`order:040`)  
+   Lägg ett konservativt dubblettskydd före nyregistrering eller delning när
+   användaren redan legitimt kan nå ett starkt kandidatbesök. Återanvänd samma
+   kanoniska visit när användaren väljer det; ingen automatisk efterhandsmerge
+   eller cross-group-historikkatalog får uppstå.
+6. **#214 Bekräfta gäst→medlem-deltagande över gruppgränser** (`order:050`)  
+   Gäst→medlem-koppling kräver uttryckligt val och den utpekade personens egen
    bekräftelse. Namn är presentation, aldrig identitet; ingen fuzzy
    personmatchning eller cross-group-personkatalog får uppstå.
-6. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**  
+7. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**
+   (`order:060`)  
    Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
    en viss målgrupp. Fotoåtkomsten ska vara serverstyrd per målgrupp och får inte
    exponera ursprungsgrupp eller ge mottagargruppen rätt att ändra originalfotot.
-7. **#197 Renodla besökskontext med Något att dricka och valfri
-   Hämtmat-markering**  
+8. **#197 Renodla besökskontext med Något att dricka och valfri
+   Hämtmat-markering** (`order:070`)  
    Gör besökstillfället semantiskt konsekvent genom att ersätta `Kväll` med
    `Något att dricka` och låt Hämtmat vara en separat, valfri besöksegenskap där
    På plats är implicit normalfall. Progression och betydelsen av `besökt` får
    inte ändras tyst och ska verifieras i implementationsplanen.
 
+#169 ligger kvar som parent och bär de varaktiga invariants för faktisk
+närvaro, ett kanoniskt deltagande per `(visit, user)`, ett aktivt eget omdöme per
+`(visit, user)` och cross-group-minimering. De konkreta senare leveranserna
+rangordnas genom #213 och #214 i stället för genom parent-issuen.
+
 Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
-gruppens gemensamma minne. #169 gäller sann deltagaridentitet och strukturerade
-personliga omdömen på samma besök, #203 gör flerpersons-omdömena begripliga i
-besöksvyn, #204 gör saknade egna omdömen upptäckbara utan nagging, #179 gäller
-uttrycklig och behörighetsstyrd fotodelning, #101 gäller privat gruppdiskussion
-kring besöket och #197 renodlar själva besökskontexten. Ingen av funktionerna får
-skapa global feed, offentlig social graf, offentliga likes eller progression för
-social aktivitet.
+gruppens gemensamma minne. #203 gör flerpersons-omdömena begripliga i besöksvyn,
+#204 gör saknade egna omdömen upptäckbara utan nagging, #213 förebygger nya
+kanoniska besöksdubletter, #214 hanterar känslig cross-group-identitet, #179
+gäller uttrycklig och behörighetsstyrd fotodelning, #101 gäller privat
+gruppdiskussion kring besöket och #197 renodlar själva besökskontexten. Ingen av
+funktionerna får skapa global feed, offentlig social graf, offentliga likes eller
+progression för social aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
@@ -315,6 +363,9 @@ eller tillitskritiska korrigeringar får göras mellan produktsteg; större DX- 
 refaktoriseringsarbete prioriteras först när det ger konkret utvecklingsnytta.
 
 - ✅ **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** är genomfört.
+- **#207 Frikoppla drift från Lovable Cloud och etablera portabel plattform** är
+  ett aktivt, parallellt plattformsspår med egen migrationsplan. Det får ingen
+  `order:*` mot produktkön förrän en explicit relativ ordning beslutas.
 - **#127 DX2B: Konsolidera Playwright-fixtures och minska sköra layouttester**,
   **#128 DX2C: Inför ändringsfragment och separat release-PR**, **#129 DX2D1:
   Automatisera branchstädning och förbättra repohygien** och **#130 DX2D2:
@@ -368,15 +419,19 @@ När ett paket avslutas ska nästa paket inte automatiskt flyttas till
 roadmapen och berörda öppna issues uppdateras i samma PR eller i en omedelbart
 följande docs-only PR.
 
-GitHub Projects införs först om issues, labels och roadmapen inte längre ger en
-tydlig överblick, exempelvis vid många parallella utvecklare eller ett betydligt
-större antal aktiva backlogposter.
+GitHub Project används som den operativa, människovänliga översikten över öppna
+issues. Vyer och sortering ska i första hand bygga på issue-state och labels
+(`status:*`, `priority:*`, `type:*`, `order:*`) som även agenter kan läsa.
+Project-only metadata får inte vara den enda källan till status, prioritet eller
+ordning. Issues som inte hör hemma i produktroadmapen får ändå finnas i
+projektet, och avsaknad av `order:*` är ett giltigt tillstånd.
 
 ## När roadmapen uppdateras
 
 Uppdatera dokumentet när:
 
 - ett paket eller en prioritering ändras;
+- den relativa `order:*`-ordningen mellan roadmap-issues ändras;
 - ett varaktigt produktbeslut tillkommer eller tas bort;
 - ett övergripande feature-issue delas upp eller ersätts;
 - en funktion är genomförd och ska markeras som klar inom ett pågående paket;
