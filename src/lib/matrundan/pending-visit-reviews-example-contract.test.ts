@@ -57,7 +57,9 @@ describe("exempelgruppens pending-omdömen", () => {
   test("självkorrigerat deltagande är inte pending", () => {
     const now = new Date(EXAMPLE_FIXTURE_REFERENCE_TIME);
     const state = buildExampleState(now);
-    const corrected = state.visits.find((visit) => visit.id === EXAMPLE_IDS.visits.archivedHistory);
+    const corrected = state.visits.find(
+      (visit) => visit.id === EXAMPLE_IDS.visits.archivedHistory,
+    );
 
     expect(corrected?.currentUserParticipationStatus).toBe("declined");
     expect(isVisitReviewPending(corrected!, state.currentUserId)).toBe(false);
