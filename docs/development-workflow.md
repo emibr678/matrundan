@@ -41,16 +41,41 @@ Innan en icke-trivial implementation:
 6. invänta implementationsgodkännande när det krävs.
 
 `docs/product-roadmap.md` är översikten över beslutade paket, prioriteringar och
-varaktiga produktavgränsningar. GitHub Issues är den konkreta backloggen.
+varaktiga produktavgränsningar. GitHub Issues och deras labels är den operativa
+backloggen. GitHub Project är en människovänlig vy över samma issues och får
+även innehålla arbete som inte hör hemma i produktroadmapen.
 
 - Nya idéer börjar normalt som `status:inbox`.
 - Överenskommet användarbehov, scope och icke-mål dokumenteras i issuen och får
   `status:agreed`.
+- `priority:now`, `priority:next` och `priority:later` beskriver ungefärlig
+  horisont, inte en exakt kö.
+- `order:010`, `order:020` och så vidare används endast när en exakt relativ
+  arbetsordning är avsiktligt beslutad. Ett öppet issue får ha högst en
+  `order:*`-label.
+- Avsaknad av `order:*` betyder att issuen ännu inte är exakt sekvenserad. Det är
+  normalt för inbox, större delen av `priority:later` och parallella spår.
+- Parent-/epic-issues som spänner över flera självständiga leveranser ska normalt
+  inte rangordnas själva. Bryt ut konkreta levererbara delissues och rangordna
+  dem när de får en beslutad plats i kön.
+- För roadmap-issues får `order:*` och roadmapens relativa ordning inte
+  motsäga varandra. En agent som ändrar den ena ska kontrollera och vid behov
+  synka den andra i samma arbete.
+- Project-only metadata får inte vara den enda källan till status, prioritet eller
+  ordning när motsvarande uppgift behöver vara läsbar för agenter.
 - En aktuell teknisk plan tas fram när arbetet närmar sig implementation.
 - Efter uttryckligt implementationsgodkännande används `status:ready`.
 - En implementerande PR ska referera eller stänga sitt issue.
-- Uppdatera roadmapen när paket, prioritet eller varaktigt produktbeslut ändras,
-  inte för varje implementation eller commit.
+- Uppdatera roadmapen när paket, prioritet, relativ ordning mellan roadmap-issues
+  eller varaktigt produktbeslut ändras, inte för varje implementation eller
+  commit.
+
+När ett issue eller en PR nämns i statusrapportering, planering eller
+leveranskvitto ska typen och titeln följa med när det finns risk för
+sammanblandning: **Issue #204 — Synliggör besök som väntar på ditt omdöme**
+respektive **PR #206 — Samla deltagaromdömen i besöksvyn**. Använd inte nakna
+`#NNN` som primär mänsklig identifierare. Maskinreferenser som `Closes #204` i en
+PR-beskrivning används fortsatt när GitHub ska länka eller stänga ett issue.
 
 Chatten får inte vara enda källan till ett varaktigt produktbeslut. Redan
 dokumenterade beslut ska inte diskuteras om från början utan nya fakta eller ett
@@ -311,17 +336,22 @@ synkat i Lovable eller att den publika appen är publicerad.
 Efter merge av en implementerande PR:
 
 1. bekräfta att `Closes #...` stängde rätt issue;
-2. ta bort `status:ready` om etiketten ligger kvar på ett stängt issue;
+2. ta bort `status:ready` och eventuell `order:*` om etiketterna ligger kvar på
+   ett stängt issue;
 3. kontrollera att roadmapen beskriver aktivt och kommande arbete;
-4. markera en färdig issue kort med `✅` om paketet fortfarande pågår;
-5. flytta paketet till **Genomförda paket** när dess sista issue är klart;
-6. bedöm nästa `priority:now` innan prioritet ändras;
-7. redovisa changelog/version, arkitektur, databas, Lovable-synk, preview och
+4. kontrollera att återstående `order:*` fortfarande speglar beslutad ordning;
+   numrera inte om kön bara för att första posten försvann;
+5. markera en färdig issue kort med `✅` om paketet fortfarande pågår;
+6. flytta paketet till **Genomförda paket** när dess sista issue är klart;
+7. bedöm nästa `priority:now` innan prioritet ändras;
+8. redovisa changelog/version, arkitektur, databas, Lovable-synk, preview och
    publicering separat.
 
 Roadmap- och labeländringar görs helst i den avslutande PR:n. Annars skapas en
-omedelbart följande docs-only PR. GitHub Actions får inte välja prioritet eller
-skriva om roadmapen automatiskt.
+omedelbart följande docs-only PR. Om ett roadmap-issue flyttas i den operativa
+kön ska roadmapens relativa ordning kontrolleras samtidigt, och om roadmapen
+ändrar ordning ska berörda `order:*`-labels synkas. GitHub Actions får inte välja
+prioritet eller skriva om roadmapen automatiskt.
 
 ## 10. Lovable-synk, databas och publicering
 
@@ -382,12 +412,18 @@ Publicering:
 Nästa rekommenderade issue:
 ```
 
+I mänsklig statusrapportering ska `Issue:` och `PR:` normalt skrivas med både
+nummer och full titel, inte som nakna nummer.
+
 ## 12. Dokumentationsansvar
 
 - `README.md` – kort, aktuell projektöversikt;
 - `CHANGELOG.md` – släppta och ännu inte publicerade användarförändringar;
-- `docs/product-roadmap.md` – paket, prioritering och backlogprocess;
-- GitHub Issues – detaljerat scope och status;
+- `docs/product-roadmap.md` – paket, strategisk prioritering och backlogprocess;
+- GitHub Issues + labels – detaljerat scope, status, prioritet och beslutad
+  operativ `order:*`;
+- GitHub Project – människovänlig projektion av issues och labels, inklusive
+  arbete som inte behöver finnas i produktroadmapen;
 - `docs/architecture.md` – varaktiga arkitektur- och säkerhetsbeslut;
 - `DEVELOPMENT.md` – miljösetup och kanoniska kommandon;
 - detta dokument – arbets- och leveransprocess;
@@ -395,9 +431,10 @@ Nästa rekommenderade issue:
 - `AGENTS.md` – bindande instruktioner för kodande agenter;
 - `docs/archive/` – historiska dokument.
 
-README ska inte fungera som parallell backlog eller lång releasehistorik.
-Avslutade planer ska tas bort eller arkiveras när varaktiga beslut har flyttats
-till roadmap, arkitektur och changelog.
+README och GitHub Project ska inte fungera som parallella källor till
+produktbeslut eller agentoläsbar prioritet. Avslutade planer ska tas bort eller
+arkiveras när varaktiga beslut har flyttats till roadmap, arkitektur och
+changelog.
 
 ## 13. Antimönster
 
@@ -424,7 +461,12 @@ Undvik:
 - parallella verktyg för samma kontroll;
 - att blanda produktfunktion, CI-ombyggnad och publicering i samma PR;
 - att använda en gammal chatt som enda källa till ett produktbeslut;
-- att använda README, `.lovable/plan.md` eller lösa TODO-listor som parallell
-  backlog;
-- att lämna ett stängt issue med `status:ready`;
+- att använda README, `.lovable/plan.md`, GitHub Project-only metadata eller lösa
+  TODO-listor som parallell agentkälla till backlogordning;
+- att ge flera `order:*`-labels till samma öppna issue eller rangordna hela
+  `priority:later` utan ett verkligt beslut;
+- att låta roadmapens relativa ordning och issue-labels motsäga varandra;
+- att använda nakna `#NNN` som primär mänsklig identifierare när Issue och PR kan
+  blandas ihop;
+- att lämna ett stängt issue med `status:ready` eller `order:*`;
 - flera dokument som gör anspråk på att vara kanoniska för samma sak.
