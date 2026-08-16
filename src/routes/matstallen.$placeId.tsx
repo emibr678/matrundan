@@ -142,7 +142,8 @@ function PlaceDetail() {
   const occasions = normalizeOccasionClassification(place.occasions);
   const fav = isFavorite(place.id);
   const isNext = nextStop?.selectedPlaceId === place.id;
-  const isProposed = nextStop?.proposals.some((proposal) => proposal.placeId === place.id) ?? false;
+  const isProposed =
+    nextStop?.proposals.some((proposal) => proposal.placeId === place.id) ?? false;
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
@@ -329,27 +330,22 @@ function PlaceDetail() {
                   <Button
                     variant="secondary"
                     aria-pressed="true"
-                    aria-label={`Öppna valet igen för ${place.name}`}
+                    aria-label={`Ändra nästa stopp från ${place.name}`}
                     onClick={() =>
                       void runNextStop(
                         clearSelection,
-                        "Valet är öppet igen. Förslagen ligger kvar.",
+                        "Nästa stopp är öppet för förslag igen.",
                       )
                     }
                     disabled={!nextStopWritable || nextBusy}
-                    className="min-h-11 w-full justify-between gap-3 whitespace-normal px-4"
+                    className="min-h-11 w-full whitespace-normal"
                   >
-                    <span className="flex min-w-0 items-center gap-2 font-medium">
-                      {nextBusy ? (
-                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-                      ) : (
-                        <Flag className="h-4 w-4 shrink-0" />
-                      )}
-                      <span>Nästa stopp</span>
-                    </span>
-                    <span className="shrink-0 text-xs font-normal text-muted-foreground">
-                      Öppna valet
-                    </span>
+                    {nextBusy ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    ) : (
+                      <Flag className="h-4 w-4 shrink-0" />
+                    )}
+                    Ändra nästa stopp
                   </Button>
                 ) : isProposed ? (
                   <Button
