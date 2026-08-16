@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 function futureDate(days: number) {
   const date = new Date();
@@ -12,7 +12,7 @@ function pastDate(days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-async function resetDemo(page: Parameters<typeof test>[0]["page"]) {
+async function resetDemo(page: Page) {
   await page.goto("/?demo=1");
   await page.evaluate(() => {
     window.localStorage.removeItem("matrundan.state.v1");
