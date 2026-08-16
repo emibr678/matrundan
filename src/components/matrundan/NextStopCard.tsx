@@ -385,11 +385,6 @@ export function NextStopCard({
           <div className="p-4 sm:p-5">
             <div data-next-stop-proposal="selected">
               <PlaceIdentity place={selectedPlace} prominent />
-              {selectedProposal ? (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {proposalMeta(selectedProposal, state)}
-                </p>
-              ) : null}
             </div>
 
             {canWrite ? (
@@ -724,7 +719,7 @@ function ScheduleRow({
             type="button"
             variant="ghost"
             size="sm"
-            className="min-h-11 shrink-0 rounded-full px-2.5 text-primary"
+            className="h-8 shrink-0 rounded-full px-2.5 text-xs text-primary"
             onClick={onEdit}
           >
             {plannedDate ? "Ändra dag" : "Lägg till dag"}
@@ -733,18 +728,20 @@ function ScheduleRow({
       </div>
 
       {plannedDate ? (
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 pl-7">
-          {unavailableCount > 0 ? (
-            <span className="mr-auto text-xs text-muted-foreground">
-              {unavailableCount === 1 ? "1 kan inte då" : `${unavailableCount} kan inte då`}
-            </span>
-          ) : null}
+        <div className="mt-1.5 flex items-center justify-between gap-2 pl-7">
+          <span className="text-xs text-muted-foreground">
+            {unavailableCount > 0
+              ? unavailableCount === 1
+                ? "1 kan inte då"
+                : `${unavailableCount} kan inte då`
+              : "\u00A0"}
+          </span>
           {canInteract ? (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="min-h-9 px-2 text-xs text-muted-foreground"
+              className="h-8 px-2 text-xs text-muted-foreground"
               aria-pressed={currentUserUnavailable}
               onClick={onToggleUnavailable}
               disabled={busy !== null}
@@ -982,12 +979,15 @@ function RemoveProposalButton({
     <Button
       type="button"
       variant="ghost"
-      size="icon"
-      className="h-10 w-10 shrink-0 text-muted-foreground"
+      size="sm"
+      className="h-8 shrink-0 px-2 text-xs font-normal text-muted-foreground hover:text-foreground"
       aria-label={`Ta bort ${placeName} från förslagen`}
       onClick={onClick}
     >
-      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+      {busy ? (
+        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+      ) : null}
+      Ta bort
     </Button>
   );
 }
