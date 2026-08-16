@@ -136,6 +136,7 @@ jobs:
         run: |
           bun run format:changed
           git diff --binary > formatting.patch
+          cat formatting.patch
 
       - name: Upload formatting patch
         if: failure() && steps.changes.outputs.has_format == 'true'
