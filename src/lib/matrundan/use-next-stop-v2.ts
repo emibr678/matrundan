@@ -136,7 +136,7 @@ export function useNextStopV2() {
         if (!cancelled) setDayUnavailableMemberIds(memberIds);
       } catch (error) {
         if (!cancelled) {
-          console.warn("[Matrundan] Kunde inte läsa Kan inte då-markeringar:", error);
+          console.warn("[Matrundan] Kunde inte läsa Kan inte den dagen-markeringar:", error);
           setDayUnavailableMemberIds([]);
         }
       }
