@@ -179,10 +179,7 @@ test("passerad dag frågar vad som hände och Det blev inte av behåller ställe
         ],
       }),
     );
-    window.localStorage.setItem(
-      "matrundan.nextStop.v2.unavailable.g1",
-      JSON.stringify(["m1"]),
-    );
+    window.localStorage.setItem("matrundan.nextStop.v2.unavailable.g1", JSON.stringify(["m1"]));
   }, pastDate(1));
   await page.reload();
 
