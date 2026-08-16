@@ -19,7 +19,14 @@ Fyll bara i det som faktiskt är relevant.
 - Exempelgrupp/demo: uppdaterad / befintligt scenario räcker / inte relevant
 - Arkitektur/integritet: uppdaterad / inte relevant
 - Databas/migration: nej / ja, beskriv nedan
-- Version/changelog: uppdaterad / **Version: inte relevant**
+- Version/changelog: uppdaterad / se beslut nedan
+
+Versionsbeslut:
+
+- [ ] Version: inte relevant
+
+Markera endast rutan för dokumentations-, test- eller verktygsändringar utan
+användarsynlig kod eller migration. CI läser denna exakta markering.
 
 Motivering eller särskild risk:
 
