@@ -59,6 +59,30 @@ test("alternativ läggs till utan att skriva över nästa stopp och kan väljas 
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
 });
 
+test("matställedetaljen skapar ett förslag även i demo utan att ersätta valt stopp", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemo(page);
+
+  await page.goto("/matstallen/p1?demo=1");
+  await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
+  await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
+
+  await page.goto("/?demo=1");
+  const selectedCard = page.locator('[data-next-stop-proposal="selected"]');
+  const openCard = page.locator('[data-next-stop-proposal="open"]');
+  await expect(selectedCard.getByText("Glöd & Grönska", { exact: true })).toBeVisible();
+  await expect(openCard).toHaveCount(1);
+  await expect(openCard.getByText("Lilla Napoli", { exact: true })).toBeVisible();
+
+  const widths = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+});
+
 test("gruppen kan sätta gemensam dag med valfri tid och ändra den utan Doodle-flöde", async ({
   page,
 }) => {
@@ -126,6 +150,7 @@ test("passerad dag frågar vad som faktiskt hände utan att skapa historik autom
   await page.getByRole("button", { name: "Nej, det blev inte av" }).click();
 
   await expect(page.getByRole("heading", { name: "Blev det av?" })).toHaveCount(0);
-  await expect(page.getByText("Glöd & Grönska", { exact: true })).toBeVisible();
-  await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
+  const selectedCard = page.locator('[data-next-stop-proposal="selected"]');
+  await expect(selectedCard.getByText("Glöd & Grönska", { exact: true })).toBeVisible();
+  await expect(selectedCard.getByText("Nästa stopp", { exact: true })).toBeVisible();
 });
