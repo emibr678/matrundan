@@ -212,6 +212,7 @@ export interface NextStopDateResponse {
   updatedAt: string;
 }
 
+/** Legacy singeldatum-modell för äldre klienter under v2-övergången. */
 export interface NextStopDateProposal {
   id: string;
   placeId: string;
@@ -228,6 +229,33 @@ export interface NextStopDateProposal {
   cancelledAt?: string | null;
   cancelledBy?: string | null;
   responses: NextStopDateResponse[];
+}
+
+export interface NextStopPlaceSupport {
+  memberId: string;
+  updatedAt: string;
+}
+
+export interface NextStopPlaceProposal {
+  id: string;
+  placeId: string;
+  /** Null när kontot har raderats; förslaget kan ändå ligga kvar som gruppens idé. */
+  proposedBy?: string | null;
+  createdAt: string;
+  supports: NextStopPlaceSupport[];
+}
+
+/**
+ * Nästa stopp v2: öppna ställesförslag + en gemensam dag och valfri tid.
+ * selectedPlaceId är gruppens uttryckligen bestämda stopp och speglar
+ * group_next_place för bakåtkompatibilitet.
+ */
+export interface NextStopState {
+  revision: number;
+  plannedDate?: string | null;
+  plannedTime?: string | null;
+  selectedPlaceId?: string | null;
+  proposals: NextStopPlaceProposal[];
 }
 
 export type ActivityKind = "added" | "visited" | "favorited" | "next-picked" | "member-joined";
@@ -257,9 +285,12 @@ export interface AppState {
   visits: Visit[];
   favorites: Favorite[];
   activity: Activity[];
+  /** Legacy/bakåtkompatibel projektion av ett uttryckligen bestämt nästa stopp. */
   nextPlaceId: string | null;
-  /** Ett öppet eller bekräftat datumförslag för gruppens aktuella nästa stopp. */
+  /** Ett öppet eller bekräftat legacy-datumförslag för äldre klienter. */
   nextStopDateProposal?: NextStopDateProposal | null;
+  /** Ny gruppscopad nästa-stopp-modell. Undefined betyder att v5k ännu saknas. */
+  nextStop?: NextStopState | null;
 }
 
 export const CATEGORY_LABEL: Record<PlaceCategory, string> = {
