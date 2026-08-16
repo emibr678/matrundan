@@ -364,8 +364,7 @@ function PlaceDetail() {
           <div className="space-y-2">
             {visits.map((visit) => {
               const author = memberById(visit.createdBy);
-              const pendingReview =
-                canCompleteReview && pendingReviewVisitIds.has(visit.id);
+              const pendingReview = canCompleteReview && pendingReviewVisitIds.has(visit.id);
               const visibleParticipants =
                 visit.participants && visit.participants.length > 0
                   ? visit.participants
