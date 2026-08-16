@@ -200,8 +200,11 @@ export function useNextStopV2() {
         ...current,
         revision: nextRevision(current),
         selectedPlaceId,
+        // Dagen bevaras, men tiden hör till det bestämda stället.
+        plannedTime: selectedPlaceId ? current.plannedTime : null,
         proposals,
       };
+
     });
   }, [mode, state.group.lifecycleStatus, state.places]);
 
