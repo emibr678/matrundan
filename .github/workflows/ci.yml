@@ -136,6 +136,7 @@ jobs:
         run: |
           bun run format:changed
           git diff --binary > formatting.patch
+          git diff --no-ext-diff --text -- src/components/matrundan/NextStopCard.tsx src/lib/matrundan/next-stop-v2-db-contract.test.ts src/lib/matrundan/use-next-stop-v2.ts 'src/routes/matstallen.$placeId.tsx' tests/e2e/package-5d-next-stop-date.spec.ts
 
       - name: Upload formatting patch
         if: failure() && steps.changes.outputs.has_format == 'true'
