@@ -545,10 +545,13 @@ export function NextStopCard({
           unavailableCount={dayUnavailableMemberIds.length}
           currentUserUnavailable={currentUserUnavailable}
           canInteract={canInteract}
+          canManageTime={false}
           busy={busy}
           onEdit={openSchedule}
+          onEditTime={openTime}
           onToggleUnavailable={() => void toggleDayUnavailable()}
         />
+
         <div className="p-4 sm:p-5">
           {proposals.length === 0 ? (
             <div className="py-2 text-center">
