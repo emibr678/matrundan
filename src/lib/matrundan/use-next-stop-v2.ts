@@ -30,12 +30,18 @@ function unavailableStorageKey(groupId: string): string {
   return `${DEMO_UNAVAILABLE_STORAGE_PREFIX}.${groupId}`;
 }
 
+function sanitizeState(value: NextStopState): NextStopState {
+  // Klockslag är praktisk information om ett bestämt stopp och får aldrig ligga kvar utan det.
+  if (!value.selectedPlaceId && value.plannedTime) return { ...value, plannedTime: null };
+  return value;
+}
+
 function readDemoState(groupId: string, fallback: NextStopState | null): NextStopState | null {
   try {
     const raw = demoStorage(groupId)?.getItem(storageKey(groupId));
     if (!raw) return fallback;
     const value = JSON.parse(raw) as NextStopState;
-    return value && Array.isArray(value.proposals) ? value : fallback;
+    return value && Array.isArray(value.proposals) ? sanitizeState(value) : fallback;
   } catch {
     return fallback;
   }
@@ -129,7 +135,7 @@ export function useNextStopV2() {
         if (!cancelled) setDayUnavailableMemberIds(memberIds);
       } catch (error) {
         if (!cancelled) {
-          console.warn("[Matrundan] Kunde inte läsa Kan inte då-markeringar:", error);
+          console.warn("[Matrundan] Kunde inte läsa Kan inte den dagen-markeringar:", error);
           setDayUnavailableMemberIds([]);
         }
       }
@@ -193,6 +199,8 @@ export function useNextStopV2() {
         ...current,
         revision: nextRevision(current),
         selectedPlaceId,
+        // Dagen bevaras, men tiden hör till det bestämda stället.
+        plannedTime: selectedPlaceId ? current.plannedTime : null,
         proposals,
       };
     });
@@ -317,6 +325,8 @@ export function useNextStopV2() {
       ...demoState,
       revision: nextRevision(demoState),
       selectedPlaceId: null,
+      // Dagen behålls, men klockslaget hörde till det bestämda stället.
+      plannedTime: null,
     });
   }
 
@@ -332,34 +342,40 @@ export function useNextStopV2() {
     if (!canWithdrawNextStopProposal(state, proposal)) {
       throw new Error("Du kan bara ta bort egna förslag.");
     }
+    const clearedSelection = demoState.selectedPlaceId === proposal.placeId;
     setDemoState({
       ...demoState,
       revision: nextRevision(demoState),
-      selectedPlaceId:
-        demoState.selectedPlaceId === proposal.placeId ? null : demoState.selectedPlaceId,
+      selectedPlaceId: clearedSelection ? null : demoState.selectedPlaceId,
+      plannedTime: clearedSelection ? null : demoState.plannedTime,
       proposals: demoState.proposals.filter((item) => item.id !== proposalId),
     });
   }
 
   async function setSchedule(date: string | null, time: string | null): Promise<void> {
     if (time && !date) throw new Error("Välj en dag innan du lägger till en tid.");
+    if (time && !nextStop?.selectedPlaceId) {
+      throw new Error("Bestäm nästa stopp innan ni lägger till ett klockslag.");
+    }
     const revision = nextStop?.revision ?? 1;
     const dateChanged = (nextStop?.plannedDate ?? null) !== date;
+    // Byter ni dag försvinner klockslaget, oavsett vad anroparen skickar.
+    const effectiveTime = !date || dateChanged ? null : time;
 
     if (mode === "live") {
-      await liveSetNextStopScheduleV2(state.group.id, date, time, revision);
+      await liveSetNextStopScheduleV2(state.group.id, date, effectiveTime, revision);
       if (dateChanged) setDayUnavailableMemberIds([]);
       dispatchReload();
       return;
     }
 
     const base = demoState ?? freshState();
-    if (base.plannedDate === date && (base.plannedTime ?? null) === time) return;
+    if (base.plannedDate === date && (base.plannedTime ?? null) === effectiveTime) return;
     setDemoState({
       ...base,
       revision: nextRevision(base),
       plannedDate: date,
-      plannedTime: date ? time : null,
+      plannedTime: effectiveTime,
     });
     if (dateChanged) setDayUnavailableMemberIds([]);
   }

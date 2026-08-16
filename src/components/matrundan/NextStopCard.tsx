@@ -92,8 +92,10 @@ export function NextStopCard({
     setDayUnavailable,
   } = useNextStopV2();
   const [scheduleOpen, setScheduleOpen] = React.useState(false);
+  const [timeOpen, setTimeOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [time, setTime] = React.useState("");
+
   const [selecting, setSelecting] = React.useState<NextStopPlaceProposal | null>(null);
   const [visitChooserOpen, setVisitChooserOpen] = React.useState(false);
   const [otherOpen, setOtherOpen] = React.useState(false);
@@ -140,8 +142,12 @@ export function NextStopCard({
 
   function openSchedule() {
     setDate(plannedDate ?? defaultNextStopDateValue());
-    setTime(plannedTime ?? "");
     setScheduleOpen(true);
+  }
+
+  function openTime() {
+    setTime(plannedTime ?? "");
+    setTimeOpen(true);
   }
 
   async function saveSchedule() {
@@ -154,6 +160,22 @@ export function NextStopCard({
       return;
     }
 
+    await run(
+      "schedule",
+      async () => {
+        await setSchedule(date, plannedTime);
+        setScheduleOpen(false);
+      },
+      "Dagen är sparad.",
+    );
+  }
+
+  async function saveTime() {
+    if (!plannedDate) {
+      toast.error("Lägg till en dag först.");
+      return;
+    }
+
     let normalizedTime: string | null;
     try {
       normalizedTime = normalizeNextStopTime(time);
@@ -161,14 +183,30 @@ export function NextStopCard({
       toast.error(error instanceof Error ? error.message : "Kontrollera tiden.");
       return;
     }
+    if (!normalizedTime) {
+      toast.error("Ange ett klockslag.");
+      return;
+    }
 
     await run(
-      "schedule",
+      "time",
       async () => {
-        await setSchedule(date, normalizedTime);
-        setScheduleOpen(false);
+        await setSchedule(plannedDate, normalizedTime);
+        setTimeOpen(false);
       },
-      normalizedTime ? "Dag och tid är sparade." : "Dagen är sparad.",
+      "Tiden är sparad.",
+    );
+  }
+
+  async function removeTime() {
+    if (!plannedDate) return;
+    await run(
+      "remove-time",
+      async () => {
+        await setSchedule(plannedDate, null);
+        setTimeOpen(false);
+      },
+      "Tiden är borttagen.",
     );
   }
 
@@ -204,7 +242,7 @@ export function NextStopCard({
     await run(
       "day-unavailable",
       () => setDayUnavailable(!currentUserUnavailable),
-      currentUserUnavailable ? "Din markering är borttagen." : "Markerat: Kan inte då.",
+      currentUserUnavailable ? "Din markering är borttagen." : "Markerat: Kan inte den dagen.",
     );
   }
 
@@ -348,9 +386,7 @@ export function NextStopCard({
           plannedDate={plannedDate}
           unavailableCount={dayUnavailableMemberIds.length}
           date={date}
-          time={time}
           onDateChange={setDate}
-          onTimeChange={setTime}
           busy={busy}
           onSave={() => void saveSchedule()}
           onRemove={() => undefined}
@@ -370,10 +406,13 @@ export function NextStopCard({
             unavailableCount={dayUnavailableMemberIds.length}
             currentUserUnavailable={currentUserUnavailable}
             canInteract={canInteract}
+            canManageTime
             busy={busy}
             onEdit={openSchedule}
+            onEditTime={openTime}
             onToggleUnavailable={() => void toggleDayUnavailable()}
           />
+
           <div className="p-4 sm:p-5">
             <div data-next-stop-proposal="selected">
               <PlaceIdentity place={selectedPlace} prominent />
@@ -436,6 +475,7 @@ export function NextStopCard({
                   {otherProposals.map((item) => (
                     <ProposalRow
                       key={item.proposal.id}
+                      selectLabel="Byt till"
                       item={item}
                       state={state}
                       canInteract={canInteract}
@@ -463,9 +503,7 @@ export function NextStopCard({
           plannedDate={plannedDate}
           unavailableCount={dayUnavailableMemberIds.length}
           date={date}
-          time={time}
           onDateChange={setDate}
-          onTimeChange={setTime}
           busy={busy}
           onSave={() => void saveSchedule()}
           onRemove={() =>
@@ -479,11 +517,23 @@ export function NextStopCard({
             )
           }
         />
+        <TimeDialog
+          open={timeOpen}
+          onOpenChange={setTimeOpen}
+          plannedDate={plannedDate}
+          plannedTime={plannedTime}
+          time={time}
+          onTimeChange={setTime}
+          busy={busy}
+          onSave={() => void saveTime()}
+          onRemove={() => void removeTime()}
+        />
         <SelectionDialog
           selecting={selecting}
           getPlace={getPlace}
           plannedDate={plannedDate}
           plannedTime={plannedTime}
+          isSwitch
           busy={busy}
           onClose={() => setSelecting(null)}
           onConfirm={() => void confirmSelection()}
@@ -506,10 +556,13 @@ export function NextStopCard({
           unavailableCount={dayUnavailableMemberIds.length}
           currentUserUnavailable={currentUserUnavailable}
           canInteract={canInteract}
+          canManageTime={false}
           busy={busy}
           onEdit={openSchedule}
+          onEditTime={openTime}
           onToggleUnavailable={() => void toggleDayUnavailable()}
         />
+
         <div className="p-4 sm:p-5">
           {proposals.length === 0 ? (
             <div className="py-2 text-center">
@@ -548,6 +601,7 @@ export function NextStopCard({
                 {proposals.map((item) => (
                   <ProposalRow
                     key={item.proposal.id}
+                    selectLabel="Bestäm"
                     item={item}
                     state={state}
                     canInteract={canInteract}
@@ -595,9 +649,7 @@ export function NextStopCard({
         plannedDate={plannedDate}
         unavailableCount={dayUnavailableMemberIds.length}
         date={date}
-        time={time}
         onDateChange={setDate}
-        onTimeChange={setTime}
         busy={busy}
         onSave={() => void saveSchedule()}
         onRemove={() =>
@@ -616,10 +668,12 @@ export function NextStopCard({
         getPlace={getPlace}
         plannedDate={plannedDate}
         plannedTime={plannedTime}
+        isSwitch={false}
         busy={busy}
         onClose={() => setSelecting(null)}
         onConfirm={() => void confirmSelection()}
       />
+
       <VisitChooserDialog
         open={visitChooserOpen}
         onOpenChange={setVisitChooserOpen}
@@ -672,8 +726,10 @@ function ScheduleRow({
   unavailableCount,
   currentUserUnavailable,
   canInteract,
+  canManageTime,
   busy,
   onEdit,
+  onEditTime,
   onToggleUnavailable,
 }: {
   plannedDate: string | null;
@@ -681,14 +737,23 @@ function ScheduleRow({
   unavailableCount: number;
   currentUserUnavailable: boolean;
   canInteract: boolean;
+  canManageTime: boolean;
   busy: string | null;
   onEdit: () => void;
+  onEditTime: () => void;
   onToggleUnavailable: () => void;
 }) {
+  const unavailableLabel =
+    unavailableCount > 0
+      ? unavailableCount === 1
+        ? "1 kan inte den dagen"
+        : `${unavailableCount} kan inte den dagen`
+      : null;
+
   return (
     <div className="border-b border-border/60 px-4 py-3 sm:px-5">
       <div className="flex min-w-0 items-start gap-2.5">
-        <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+        <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -706,7 +771,7 @@ function ScheduleRow({
               </Button>
             ) : null}
           </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0 text-sm font-medium">
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0 text-sm font-medium">
             {plannedDate ? (
               <>
                 <span className="whitespace-nowrap">{formatNextStopDate(plannedDate, null)}</span>
@@ -718,38 +783,49 @@ function ScheduleRow({
               <span className="text-muted-foreground">Ingen dag bestämd ännu</span>
             )}
           </div>
-        </div>
-      </div>
 
-      {plannedDate ? (
-        <div className="mt-1.5 flex items-center justify-between gap-2 pl-7">
-          <span className="text-xs text-muted-foreground">
-            {unavailableCount > 0
-              ? unavailableCount === 1
-                ? "1 kan inte då"
-                : `${unavailableCount} kan inte då`
-              : "\u00A0"}
-          </span>
-          {canInteract ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground"
-              aria-pressed={currentUserUnavailable}
-              onClick={onToggleUnavailable}
-              disabled={busy !== null}
-            >
-              {busy === "day-unavailable" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CalendarX2 className="h-3.5 w-3.5" />
-              )}
-              Kan inte då
-            </Button>
+          {plannedDate ? (
+            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              {canInteract ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-1.5 text-xs font-normal text-muted-foreground"
+                  aria-pressed={currentUserUnavailable}
+                  onClick={onToggleUnavailable}
+                  disabled={busy !== null}
+                >
+                  {busy === "day-unavailable" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <CalendarX2 className="h-3.5 w-3.5" />
+                  )}
+                  Kan inte den dagen
+                </Button>
+              ) : null}
+              {canInteract && canManageTime ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-1.5 text-xs font-normal text-muted-foreground"
+                  onClick={onEditTime}
+                  disabled={busy !== null}
+                >
+                  <Clock3 className="h-3.5 w-3.5" />
+                  {plannedTime ? "Ändra tid" : "Lägg till tid"}
+                </Button>
+              ) : null}
+              {unavailableLabel ? (
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  {unavailableLabel}
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
@@ -871,6 +947,7 @@ function ProposalRow({
   state,
   canInteract,
   busy,
+  selectLabel,
   onSupport,
   onSelect,
   onWithdraw,
@@ -879,6 +956,7 @@ function ProposalRow({
   state: ReturnType<typeof useStore>["state"];
   canInteract: boolean;
   busy: string | null;
+  selectLabel: string;
   onSupport: () => void;
   onSelect: () => void;
   onWithdraw: () => void;
@@ -922,7 +1000,7 @@ function ProposalRow({
             onClick={onSelect}
             disabled={busy !== null}
           >
-            <Flag className="h-4 w-4" /> Välj
+            <Flag className="h-4 w-4" /> {selectLabel}
           </Button>
         </div>
       ) : null}
@@ -988,9 +1066,7 @@ function ScheduleDialog({
   plannedDate,
   unavailableCount,
   date,
-  time,
   onDateChange,
-  onTimeChange,
   busy,
   onSave,
   onRemove,
@@ -1000,9 +1076,7 @@ function ScheduleDialog({
   plannedDate: string | null;
   unavailableCount: number;
   date: string;
-  time: string;
   onDateChange: (date: string) => void;
-  onTimeChange: (time: string) => void;
   busy: string | null;
   onSave: () => void;
   onRemove: () => void;
@@ -1013,9 +1087,9 @@ function ScheduleDialog({
         <DialogHeader>
           <DialogTitle>{plannedDate ? "Ändra dag" : "Lägg till dag"}</DialogTitle>
           <DialogDescription>
-            Dagen är en del av nästa stopp. Lägg bara till klockslag om ni redan har bestämt det.
+            Dagen är kärnan i nästa stopp. Klockslag lägger ni till när stället är bestämt.
             {plannedDate && unavailableCount > 0
-              ? " Om ni byter dag nollställs gruppens Kan inte då-markeringar."
+              ? " Om ni byter dag nollställs gruppens Kan inte den dagen-markeringar."
               : ""}
           </DialogDescription>
         </DialogHeader>
@@ -1029,19 +1103,6 @@ function ScheduleDialog({
               value={date}
               onChange={(event) => onDateChange(event.target.value)}
             />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="next-stop-v2-time">Tid (valfritt)</Label>
-            <div className="relative">
-              <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="next-stop-v2-time"
-                type="time"
-                className="pl-9"
-                value={time}
-                onChange={(event) => onTimeChange(event.target.value)}
-              />
-            </div>
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
@@ -1069,11 +1130,82 @@ function ScheduleDialog({
   );
 }
 
+function TimeDialog({
+  open,
+  onOpenChange,
+  plannedDate,
+  plannedTime,
+  time,
+  onTimeChange,
+  busy,
+  onSave,
+  onRemove,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  plannedDate: string | null;
+  plannedTime: string | null;
+  time: string;
+  onTimeChange: (time: string) => void;
+  busy: string | null;
+  onSave: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{plannedTime ? "Ändra tid" : "Lägg till tid"}</DialogTitle>
+          <DialogDescription>
+            {plannedDate
+              ? `Klockslaget är praktisk information för ${formatNextStopDate(plannedDate, null)}.`
+              : "Klockslaget är praktisk information."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2 py-2">
+          <Label htmlFor="next-stop-v2-time">Tid</Label>
+          <div className="relative">
+            <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="next-stop-v2-time"
+              type="time"
+              className="pl-9"
+              value={time}
+              onChange={(event) => onTimeChange(event.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          {plannedTime ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="sm:mr-auto"
+              disabled={busy !== null}
+              onClick={onRemove}
+            >
+              Ta bort tid
+            </Button>
+          ) : null}
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Avbryt
+          </Button>
+          <Button type="button" disabled={busy !== null} onClick={onSave}>
+            {busy === "time" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Spara
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function SelectionDialog({
   selecting,
   getPlace,
   plannedDate,
   plannedTime,
+  isSwitch,
   busy,
   onClose,
   onConfirm,
@@ -1082,6 +1214,7 @@ function SelectionDialog({
   getPlace: (placeId: string) => Place | undefined;
   plannedDate: string | null;
   plannedTime: string | null;
+  isSwitch: boolean;
   busy: string | null;
   onClose: () => void;
   onConfirm: () => void;
@@ -1090,10 +1223,12 @@ function SelectionDialog({
     <Dialog open={Boolean(selecting)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Välj nästa stopp</DialogTitle>
+          <DialogTitle>{isSwitch ? "Byt nästa stopp" : "Välj nästa stopp"}</DialogTitle>
           <DialogDescription>
             {selecting
-              ? `Ska ${getPlace(selecting.placeId)?.name ?? "det här stället"} bli gruppens nästa stopp?`
+              ? isSwitch
+                ? `Ska ${getPlace(selecting.placeId)?.name ?? "det här stället"} bli gruppens nästa stopp i stället?`
+                : `Ska ${getPlace(selecting.placeId)?.name ?? "det här stället"} bli gruppens nästa stopp?`
               : "Välj ett ställe."}
             {plannedDate ? ` ${formatNextStopDate(plannedDate, plannedTime)} ligger kvar.` : ""}
           </DialogDescription>
@@ -1106,7 +1241,7 @@ function SelectionDialog({
             {selecting && busy === `select:${selecting.id}` ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : null}
-            Ja, välj nästa stopp
+            {isSwitch ? "Ja, byt nästa stopp" : "Ja, välj nästa stopp"}
           </Button>
         </DialogFooter>
       </DialogContent>
