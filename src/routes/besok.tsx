@@ -8,6 +8,7 @@ import { RatingStars } from "@/components/matrundan/Rating";
 import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { formatRating } from "@/lib/matrundan/version";
@@ -45,9 +46,20 @@ function VisitHistory() {
   const { exampleMode } = useSession();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/besok" });
+  const groupArchived = state.group.lifecycleStatus === "archived";
   const visits = React.useMemo(
     () => [...state.visits].sort((left, right) => right.date.localeCompare(left.date)),
     [state.visits],
+  );
+  const pendingVisitIds = React.useMemo(
+    () =>
+      new Set(
+        (groupArchived
+          ? []
+          : getAttentionPendingVisitReviews(state.visits, state.currentUserId, new Date())
+        ).map((visit) => visit.id),
+      ),
+    [groupArchived, state.currentUserId, state.visits],
   );
 
   return (
@@ -76,6 +88,7 @@ function VisitHistory() {
           {visits.map((visit) => {
             const place = getPlace(visit.placeId);
             if (!place) return null;
+            const ownReviewPending = pendingVisitIds.has(visit.id);
             const participants =
               visit.participants && visit.participants.length > 0
                 ? visit.participants
@@ -120,6 +133,11 @@ function VisitHistory() {
                           <p className="text-xs text-muted-foreground">
                             {formatDate(visit.date)} · {MEAL_LABEL[visit.meal] ?? visit.meal}
                           </p>
+                          {ownReviewPending ? (
+                            <span className="mt-1 inline-flex max-w-full rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                              Ditt omdöme saknas
+                            </span>
+                          ) : null}
                         </div>
                         <div className="shrink-0 text-right">
                           {visit.overall > 0 ? (

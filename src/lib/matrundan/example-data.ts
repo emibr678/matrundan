@@ -52,6 +52,22 @@ function withVisitParticipationScenarios(state: AppState): AppState {
       if (visit.id === visits.repeatCafeLatest && visit.photo) {
         return {
           ...visit,
+          currentUserParticipationStatus: "participant",
+          // Nya besök följer #169-invarianten: registreraren är faktisk deltagare
+          // och har redan lämnat sitt eget omdöme i registreringsflödet.
+          visibleReviews: [
+            {
+              id: "review-v1-alex",
+              userId: members.alex,
+              overall: 5,
+              taste: 5,
+              value: 4,
+              service: 5,
+              comment: "En lugn fredagsfika och en riktigt bra kardemummabulle.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+          ],
           // Robin har lagt upp bilden. Alex är inloggad owner och ska därför
           // kunna se och moderera den, men inte ersätta den som sin egen.
           photo: { ...visit.photo, uploadedBy: members.robin },
@@ -78,6 +94,13 @@ function withVisitParticipationScenarios(state: AppState): AppState {
           participantIds: [...new Set([...visit.participantIds, members.noor])],
           participants,
           currentUserParticipationStatus: "participant",
+          // Sam, Kim och Noor ger 4, 4 respektive 5. Aggregatet hålls i synk
+          // med de tre synliga omdömena så exempelgruppen aldrig visar ett
+          // betyg som inte går att förstå från underlaget.
+          overall: 13 / 3,
+          taste: 13 / 3,
+          value: 4,
+          service: 4,
           // Alex deltog men har ännu inte lämnat eget omdöme. Sam, Kim och Noor
           // gör 3-av-4-läget explicit så den kompakta flerpersons-UX:en kan granskas.
           visibleReviews: [
@@ -105,6 +128,28 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               comment: "Den här dolda kommentaren får inte visas i exempelgruppen.",
               ratingVisible: true,
               commentVisible: false,
+            },
+          ],
+        };
+      }
+
+      if (visit.id === visits.providerBistroReturn) {
+        return {
+          ...visit,
+          currentUserParticipationStatus: "participant",
+          // Även återbesöket registrerades av Alex och bär därför Alex eget
+          // omdöme från samma registrering i stället för att bli falskt pending.
+          visibleReviews: [
+            {
+              id: "review-v8-alex",
+              userId: members.alex,
+              overall: 4,
+              taste: 5,
+              value: 3,
+              service: 4,
+              comment: "Återbesöket bekräftade att bistron fungerar för en större middag.",
+              ratingVisible: true,
+              commentVisible: true,
             },
           ],
         };

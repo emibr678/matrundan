@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
+import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
@@ -96,6 +97,15 @@ function PlaceDetail() {
   const closeVisitSheet = () => navigate({ params: { placeId }, search: { visit: "" } });
 
   const visits = React.useMemo(() => (place ? visitsFor(place.id) : []), [place, visitsFor]);
+  const pendingReviewVisits = React.useMemo(
+    () => getAttentionPendingVisitReviews(visits, state.currentUserId),
+    [state.currentUserId, visits],
+  );
+  const pendingReviewVisitIds = React.useMemo(
+    () => new Set(pendingReviewVisits.map((visit) => visit.id)),
+    [pendingReviewVisits],
+  );
+  const nextPendingReviewVisit = pendingReviewVisits[0] ?? null;
   const detail = React.useMemo(() => {
     const taste: number[] = [];
     const value: number[] = [];
@@ -123,6 +133,7 @@ function PlaceDetail() {
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
+  const canCompleteReview = !groupArchived && !demoReadOnly;
   const latestVisit = visits[0] ?? null;
   const latestParticipantNames = latestVisit
     ? Array.from(
@@ -237,6 +248,46 @@ function PlaceDetail() {
           <div
             className={latestVisit ? "space-y-2 p-4" : "space-y-2 border-t border-border/60 p-4"}
           >
+            {canCompleteReview && nextPendingReviewVisit ? (
+              <div
+                aria-label="Omdöme att komplettera på matstället"
+                className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-3"
+              >
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">
+                      {pendingReviewVisits.length === 1
+                        ? "Ditt omdöme saknas"
+                        : `${pendingReviewVisits.length} besök här väntar på ditt omdöme`}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      {pendingReviewVisits.length === 1
+                        ? `Från besöket ${formatDate(nextPendingReviewVisit.date)}.`
+                        : `Öppna det senaste, från ${formatDate(nextPendingReviewVisit.date)}.`}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 min-h-11"
+                  onClick={() =>
+                    navigate({
+                      params: { placeId },
+                      search: { visit: nextPendingReviewVisit.id },
+                    })
+                  }
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Lämna omdöme
+                </Button>
+              </div>
+            ) : null}
+
             {writable ? (
               <>
                 <Button
@@ -313,6 +364,7 @@ function PlaceDetail() {
           <div className="space-y-2">
             {visits.map((visit) => {
               const author = memberById(visit.createdBy);
+              const pendingReview = canCompleteReview && pendingReviewVisitIds.has(visit.id);
               const visibleParticipants =
                 visit.participants && visit.participants.length > 0
                   ? visit.participants
@@ -364,6 +416,12 @@ function PlaceDetail() {
                         </div>
                         <RatingStars value={visit.overall} size={12} />
                       </div>
+                      {pendingReview ? (
+                        <div className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
+                          <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span>Ditt omdöme saknas</span>
+                        </div>
+                      ) : null}
                       <div className="mt-1 flex flex-wrap gap-1">
                         {visibleParticipants.map((participant) => (
                           <span

@@ -9,6 +9,8 @@ import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { NextStopDateCard } from "@/components/matrundan/NextStopDateCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
+import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
+import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
 
 export const Route = createFileRoute("/")({
@@ -39,6 +41,15 @@ export function Home() {
     () => state.places.filter((place) => place.collectionStatus !== "archived"),
     [state.places],
   );
+  const pendingReviewVisits = React.useMemo(
+    () =>
+      groupArchived
+        ? []
+        : getAttentionPendingVisitReviews(state.visits, state.currentUserId, new Date()),
+    [groupArchived, state.currentUserId, state.visits],
+  );
+  const pendingReviewVisit = pendingReviewVisits[0];
+  const pendingReviewPlace = pendingReviewVisit ? getPlace(pendingReviewVisit.placeId) : undefined;
 
   const next = state.nextPlaceId ? getPlace(state.nextPlaceId) : undefined;
   const proposerId = proposerOfNext();
@@ -178,6 +189,17 @@ export function Home() {
           </Card>
         )}
       </section>
+
+      {pendingReviewVisit && pendingReviewPlace ? (
+        <section aria-label="Omdömen att komplettera">
+          <PendingVisitReviewCard
+            visitId={pendingReviewVisit.id}
+            placeName={pendingReviewPlace.name}
+            visitDate={pendingReviewVisit.date}
+            pendingCount={pendingReviewVisits.length}
+          />
+        </section>
+      ) : null}
 
       <section>
         <Card className="rounded-2xl border-border/70 p-4">

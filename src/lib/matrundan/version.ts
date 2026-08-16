@@ -3,6 +3,27 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_36_0_CHANGELOG: ChangelogEntry = {
+  version: "1.36.0",
+  date: "2026-08-16",
+  summary: "Aktuella besök som väntar på ditt omdöme blir synliga utan att ta över flödet.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Hem visar en diskret signal för aktuella deltagarbesök där ditt eget omdöme saknas och länkar direkt till samma gemensamma besök.",
+        "Besök markerar samma aktuella besök med Ditt omdöme saknas, medan äldre obesvarade besök ligger kvar i historiken utan framträdande påminnelse.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Påminnelsen följer faktisk deltagarstatus och existensen av ditt kanoniska omdöme, så den försvinner när du lämnar omdöme eller korrigerar att du inte var med.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_35_1_CHANGELOG: ChangelogEntry = {
   version: "1.35.1",
   date: "2026-08-16",
@@ -91,6 +112,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_36_0_CHANGELOG,
   VERSION_1_35_1_CHANGELOG,
   VERSION_1_35_0_CHANGELOG,
   VERSION_1_34_0_CHANGELOG,
