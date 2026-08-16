@@ -106,11 +106,31 @@ publication. These are separate phases and approvals.
 Corrective documentation and small maintenance may be performed within an
 explicit review request, but must not introduce new product behaviour.
 
-GitHub Issues are the concrete backlog. Preserve documented product choices
-instead of reopening them from chat history alone. New ideas begin in
-`status:inbox`; implementation begins after a current plan is approved and the
-issue is `status:ready`. Update `docs/product-roadmap.md` when package, priority
-or a durable product decision changes, not for every commit.
+GitHub Issues and their labels are the operational backlog. Preserve documented
+product choices instead of reopening them from chat history alone. New ideas
+begin in `status:inbox`; implementation begins after a current plan is approved
+and the issue is `status:ready`.
+
+Preserve the backlog-ordering contract:
+
+- `priority:now`, `priority:next` and `priority:later` describe horizon;
+  `order:010`, `order:020`, ... describe an explicitly decided relative queue.
+- Give an open issue at most one `order:*` label and do not rank inbox or the
+  whole later backlog just to make the list look complete. No `order:*` means
+  not exactly sequenced.
+- Parent/epic issues spanning multiple deliveries should normally remain
+  unranked; split and rank the concrete deliverable child issues instead.
+- GitHub Project is a human-facing projection of issues and labels, not a
+  separate source of truth. Do not rely on Project-only fields for status,
+  priority or order that agents need to read.
+- When the order of roadmap issues changes, keep issue `order:*` labels and
+  `docs/product-roadmap.md` consistent in the same work.
+- Update `docs/product-roadmap.md` when package, priority, relative order between
+  roadmap issues or a durable product decision changes, not for every commit.
+- In human-facing reports and planning, identify work as **Issue #NNN — full
+  title** or **PR #NNN — full title** rather than using a bare `#NNN` when the
+  two namespaces could be confused. GitHub machine references such as
+  `Closes #NNN` remain valid inside PR metadata.
 
 ## Implementation and diagnostics
 
