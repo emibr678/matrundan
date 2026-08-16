@@ -6,9 +6,7 @@ const includeDesktop = args.includes("--desktop");
 const routes = args.filter((argument) => argument !== "--desktop");
 
 if (routes.length === 0) {
-  console.error(
-    "Ange minst en route, exempelvis: bun run test:visual-smoke -- /matstallen?demo=1",
-  );
+  console.error("Ange minst en route, exempelvis: bun run test:visual-smoke -- /matstallen?demo=1");
   process.exit(2);
 }
 
@@ -22,15 +20,10 @@ for (const route of routes) {
 const projects = ["mobile-360", ...(includeDesktop ? ["desktop-1280"] : [])];
 
 for (const project of projects) {
-  await rm(path.join("visual-review", project), {
-    recursive: true,
-    force: true,
-  });
+  await rm(path.join("visual-review", project), { recursive: true, force: true });
 }
 
-console.log(
-  `Visuell smoke check: ${routes.join(", ")} · ${projects.join(", ")}`,
-);
+console.log(`Visuell smoke check: ${routes.join(", ")} · ${projects.join(", ")}`);
 
 const command = [
   "bunx",
