@@ -26,7 +26,9 @@ describe("databaskontrakt för Nästa stopp v2", () => {
 
   test("förslag och positiv ställessignal är separata från det bestämda stoppet", () => {
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.propose_next_stop_place_v2(");
-    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.set_next_stop_place_support_v2(");
+    expect(migration).toContain(
+      "CREATE OR REPLACE FUNCTION public.set_next_stop_place_support_v2(",
+    );
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.select_next_stop_place_v2(");
     expect(migration).toContain("IF _proposal_count >= 5 THEN");
     expect(migration).toContain("INSERT INTO public.group_next_place");
@@ -50,9 +52,7 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(dayUnavailability).toContain("_current_date IS DISTINCT FROM _planned_date");
     expect(dayUnavailability).toContain("DELETE FROM public.next_stop_day_unavailability");
     expect(dayUnavailability).toContain("m.status = 'active'");
-    expect(dayUnavailability).toContain(
-      "REVOKE ALL ON TABLE public.next_stop_day_unavailability",
-    );
+    expect(dayUnavailability).toContain("REVOKE ALL ON TABLE public.next_stop_day_unavailability");
   });
 
   test("samtidiga beslut skyddas av grupp-lås och revision", () => {
@@ -63,9 +63,13 @@ describe("databaskontrakt för Nästa stopp v2", () => {
   });
 
   test("verkligt originalbesök avslutar relevant plan men delat besök gör det inte", () => {
-    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.close_next_stop_v2_on_original_visit()");
+    expect(migration).toContain(
+      "CREATE OR REPLACE FUNCTION public.close_next_stop_v2_on_original_visit()",
+    );
     expect(migration).toContain("IF NEW.link_type <> 'original' THEN RETURN NEW; END IF;");
-    expect(migration).toContain("DELETE FROM public.next_stop_place_proposals WHERE group_id = NEW.group_id");
+    expect(migration).toContain(
+      "DELETE FROM public.next_stop_place_proposals WHERE group_id = NEW.group_id",
+    );
     expect(migration).toContain("DELETE FROM public.next_stop_plans WHERE group_id = NEW.group_id");
   });
 
@@ -73,13 +77,9 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(archiveBridge).toContain(
       "CREATE OR REPLACE FUNCTION public.archive_group_place(_group_id uuid, _place_id uuid)",
     );
-    expect(archiveBridge).toContain(
-      "set_config('matrundan.next_stop_v2_sync', '1', true)",
-    );
+    expect(archiveBridge).toContain("set_config('matrundan.next_stop_v2_sync', '1', true)");
     expect(archiveBridge).toContain("DELETE FROM public.group_next_place");
-    expect(archiveBridge).toContain(
-      "set_config('matrundan.next_stop_v2_sync', '', true)",
-    );
+    expect(archiveBridge).toContain("set_config('matrundan.next_stop_v2_sync', '', true)");
   });
 
   test("v5k är additiv ovanpå v5j och legacy-val tappar inte diskussion tyst", () => {
