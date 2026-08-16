@@ -44,7 +44,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Print exact Prettier diff
+      - name: Print exact Prettier output
         run: |
           bunx prettier --write 'src/routes/matstallen.$placeId.tsx' 'tests/e2e/v1-36-pending-visit-reviews.spec.ts'
           git diff -- 'src/routes/matstallen.$placeId.tsx' 'tests/e2e/v1-36-pending-visit-reviews.spec.ts'
+          node <<'NODE'
+          const fs = require("fs");
+          const path = "src/routes/matstallen.$placeId.tsx";
+          console.log("FORMATTED_ROUTE_BASE64=" + fs.readFileSync(path).toString("base64"));
+          NODE
