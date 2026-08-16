@@ -167,11 +167,10 @@ if (base) {
   const versionChanged = files.includes("src/lib/matrundan/version.ts");
   const userFacingChanged = files.some(isUserFacing);
   const eventName = process.env.MATRUNDAN_CI_EVENT_NAME ?? "";
-  const exempt =
-    process.env.MATRUNDAN_VERSION_EXEMPT === "1" ||
-    (eventName.length > 0 && eventName !== "pull_request");
+  const versionExempt = process.env.MATRUNDAN_VERSION_EXEMPT === "1";
+  const isPostMergeEvent = eventName.length > 0 && eventName !== "pull_request";
 
-  if (userFacingChanged && exempt) {
+  if (userFacingChanged && versionExempt) {
     errors.push(
       "Version: inte relevant får endast användas för ändringar utan användarsynlig kod eller migration.",
     );
@@ -184,7 +183,7 @@ if (base) {
   }
   if (userFacingChanged && !changelogChanged) {
     errors.push(
-      "Användarsynlig kod eller migration har ôndrats utan en daterad uppdatering av CHANGELOG.md.",
+      "Användarsynlig kod eller migration har ändrats utan en daterad uppdatering av CHANGELOG.md.",
     );
   }
 
@@ -209,7 +208,13 @@ if (base) {
         ".github/pull_request_template.md",
       ].includes(file),
   );
-  if (decisionFiles.length > 0 && !userFacingChanged && !versionChanged && !exempt) {
+  if (
+    decisionFiles.length > 0 &&
+    !userFacingChanged &&
+    !versionChanged &&
+    !versionExempt &&
+    !isPostMergeEvent
+  ) {
     errors.push(
       "Markera Version: inte relevant i PR:n för dokumentations-, test- eller verktygsändringar utan versionshöjning.",
     );
