@@ -634,9 +634,7 @@ export function NextStopCard({
         plannedDate={plannedDate}
         unavailableCount={dayUnavailableMemberIds.length}
         date={date}
-        time={time}
         onDateChange={setDate}
-        onTimeChange={setTime}
         busy={busy}
         onSave={() => void saveSchedule()}
         onRemove={() =>
@@ -655,10 +653,12 @@ export function NextStopCard({
         getPlace={getPlace}
         plannedDate={plannedDate}
         plannedTime={plannedTime}
+        isSwitch={false}
         busy={busy}
         onClose={() => setSelecting(null)}
         onConfirm={() => void confirmSelection()}
       />
+
       <VisitChooserDialog
         open={visitChooserOpen}
         onOpenChange={setVisitChooserOpen}
