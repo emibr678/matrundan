@@ -1027,9 +1027,7 @@ function ScheduleDialog({
   plannedDate,
   unavailableCount,
   date,
-  time,
   onDateChange,
-  onTimeChange,
   busy,
   onSave,
   onRemove,
@@ -1039,9 +1037,7 @@ function ScheduleDialog({
   plannedDate: string | null;
   unavailableCount: number;
   date: string;
-  time: string;
   onDateChange: (date: string) => void;
-  onTimeChange: (time: string) => void;
   busy: string | null;
   onSave: () => void;
   onRemove: () => void;
@@ -1052,9 +1048,9 @@ function ScheduleDialog({
         <DialogHeader>
           <DialogTitle>{plannedDate ? "Ändra dag" : "Lägg till dag"}</DialogTitle>
           <DialogDescription>
-            Dagen är en del av nästa stopp. Lägg bara till klockslag om ni redan har bestämt det.
+            Dagen är kärnan i nästa stopp. Klockslag lägger ni till när stället är bestämt.
             {plannedDate && unavailableCount > 0
-              ? " Om ni byter dag nollställs gruppens Kan inte då-markeringar."
+              ? " Om ni byter dag nollställs gruppens Kan inte den dagen-markeringar."
               : ""}
           </DialogDescription>
         </DialogHeader>
@@ -1068,19 +1064,6 @@ function ScheduleDialog({
               value={date}
               onChange={(event) => onDateChange(event.target.value)}
             />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="next-stop-v2-time">Tid (valfritt)</Label>
-            <div className="relative">
-              <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="next-stop-v2-time"
-                type="time"
-                className="pl-9"
-                value={time}
-                onChange={(event) => onTimeChange(event.target.value)}
-              />
-            </div>
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
@@ -1107,6 +1090,77 @@ function ScheduleDialog({
     </Dialog>
   );
 }
+
+function TimeDialog({
+  open,
+  onOpenChange,
+  plannedDate,
+  plannedTime,
+  time,
+  onTimeChange,
+  busy,
+  onSave,
+  onRemove,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  plannedDate: string | null;
+  plannedTime: string | null;
+  time: string;
+  onTimeChange: (time: string) => void;
+  busy: string | null;
+  onSave: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{plannedTime ? "Ändra tid" : "Lägg till tid"}</DialogTitle>
+          <DialogDescription>
+            {plannedDate
+              ? `Klockslaget är praktisk information för ${formatNextStopDate(plannedDate, null)}.`
+              : "Klockslaget är praktisk information."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2 py-2">
+          <Label htmlFor="next-stop-v2-time">Tid</Label>
+          <div className="relative">
+            <Clock3 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="next-stop-v2-time"
+              type="time"
+              className="pl-9"
+              value={time}
+              onChange={(event) => onTimeChange(event.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          {plannedTime ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="sm:mr-auto"
+              disabled={busy !== null}
+              onClick={onRemove}
+            >
+              Ta bort tid
+            </Button>
+          ) : null}
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Avbryt
+          </Button>
+          <Button type="button" disabled={busy !== null} onClick={onSave}>
+            {busy === "time" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Spara
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function SelectionDialog({
   selecting,
