@@ -139,8 +139,7 @@ export function useNextStopV2() {
         ...(current.selectedPlaceId ? [current.selectedPlaceId] : []),
       ]);
       const relevantVisit = addedVisits.some(
-        (visit) =>
-          visit.linkType !== "shared" && plannedPlaceIds.has(visit.placeId),
+        (visit) => visit.linkType !== "shared" && plannedPlaceIds.has(visit.placeId),
       );
       return relevantVisit ? null : current;
     });
@@ -153,26 +152,25 @@ export function useNextStopV2() {
       return;
     }
 
-    setDemoState((current) => {
-      const base = current ?? freshState();
-      if (base.proposals.some((proposal) => proposal.placeId === placeId)) return base;
-      if (base.proposals.length >= 5) {
-        throw new Error("Ni har redan fem ställen på förslag. Ta bort ett innan ni lägger till ett nytt.");
-      }
-      return {
-        ...base,
-        revision: nextRevision(base),
-        proposals: [
-          ...base.proposals,
-          {
-            id: `demo-next-stop-${Date.now()}`,
-            placeId,
-            proposedBy: state.currentUserId,
-            createdAt: new Date().toISOString(),
-            supports: [],
-          },
-        ],
-      };
+    const base = demoState ?? freshState();
+    if (base.proposals.some((proposal) => proposal.placeId === placeId)) return;
+    if (base.proposals.length >= 5) {
+      throw new Error("Ni har redan fem ställen på förslag. Ta bort ett innan ni lägger till ett nytt.");
+    }
+
+    setDemoState({
+      ...base,
+      revision: nextRevision(base),
+      proposals: [
+        ...base.proposals,
+        {
+          id: `demo-next-stop-${Date.now()}`,
+          placeId,
+          proposedBy: state.currentUserId,
+          createdAt: new Date().toISOString(),
+          supports: [],
+        },
+      ],
     });
   }
 
@@ -217,16 +215,13 @@ export function useNextStopV2() {
       return;
     }
 
-    setDemoState((current) => {
-      if (!current) throw new Error("Förslaget finns inte längre.");
-      const proposal = current.proposals.find((item) => item.id === proposalId);
-      if (!proposal) throw new Error("Förslaget finns inte längre.");
-      if (current.selectedPlaceId === proposal.placeId) return current;
-      return {
-        ...current,
-        revision: nextRevision(current),
-        selectedPlaceId: proposal.placeId,
-      };
+    const proposal = demoState?.proposals.find((item) => item.id === proposalId);
+    if (!demoState || !proposal) throw new Error("Förslaget finns inte längre.");
+    if (demoState.selectedPlaceId === proposal.placeId) return;
+    setDemoState({
+      ...demoState,
+      revision: nextRevision(demoState),
+      selectedPlaceId: proposal.placeId,
     });
   }
 
@@ -237,15 +232,12 @@ export function useNextStopV2() {
       dispatchReload();
       return;
     }
-    setDemoState((current) =>
-      current
-        ? {
-            ...current,
-            revision: nextRevision(current),
-            selectedPlaceId: null,
-          }
-        : current,
-    );
+    if (!demoState?.selectedPlaceId) return;
+    setDemoState({
+      ...demoState,
+      revision: nextRevision(demoState),
+      selectedPlaceId: null,
+    });
   }
 
   async function withdraw(proposalId: string): Promise<void> {
@@ -255,20 +247,17 @@ export function useNextStopV2() {
       return;
     }
 
-    setDemoState((current) => {
-      if (!current) return current;
-      const proposal = current.proposals.find((item) => item.id === proposalId);
-      if (!proposal) return current;
-      if (!canWithdrawNextStopProposal(state, proposal)) {
-        throw new Error("Du kan bara ta bort egna förslag.");
-      }
-      return {
-        ...current,
-        revision: nextRevision(current),
-        selectedPlaceId:
-          current.selectedPlaceId === proposal.placeId ? null : current.selectedPlaceId,
-        proposals: current.proposals.filter((item) => item.id !== proposalId),
-      };
+    const proposal = demoState?.proposals.find((item) => item.id === proposalId);
+    if (!demoState || !proposal) return;
+    if (!canWithdrawNextStopProposal(state, proposal)) {
+      throw new Error("Du kan bara ta bort egna förslag.");
+    }
+    setDemoState({
+      ...demoState,
+      revision: nextRevision(demoState),
+      selectedPlaceId:
+        demoState.selectedPlaceId === proposal.placeId ? null : demoState.selectedPlaceId,
+      proposals: demoState.proposals.filter((item) => item.id !== proposalId),
     });
   }
 
@@ -281,15 +270,13 @@ export function useNextStopV2() {
       return;
     }
 
-    setDemoState((current) => {
-      const base = current ?? freshState();
-      if (base.plannedDate === date && (base.plannedTime ?? null) === time) return base;
-      return {
-        ...base,
-        revision: nextRevision(base),
-        plannedDate: date,
-        plannedTime: date ? time : null,
-      };
+    const base = demoState ?? freshState();
+    if (base.plannedDate === date && (base.plannedTime ?? null) === time) return;
+    setDemoState({
+      ...base,
+      revision: nextRevision(base),
+      plannedDate: date,
+      plannedTime: date ? time : null,
     });
   }
 
