@@ -14,6 +14,21 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.36.0] – 2026-08-16
+
+### Nytt
+
+- Hem visar en diskret signal för aktuella deltagarbesök där ditt eget omdöme
+  saknas och länkar direkt till samma gemensamma besök.
+- Besök markerar samma aktuella besök med **Ditt omdöme saknas**, medan äldre
+  obesvarade besök ligger kvar i historiken utan framträdande påminnelse.
+
+### Förbättrat
+
+- Påminnelsen följer faktisk deltagarstatus och existensen av ditt kanoniska
+  omdöme, så den försvinner när du lämnar omdöme eller korrigerar att du inte
+  var med.
+
 ## [1.35.1] – 2026-08-16
 
 ### Rättat
