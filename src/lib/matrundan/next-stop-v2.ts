@@ -5,7 +5,6 @@ import { rpcClient } from "./rpc-client";
 import type { AppState, NextStopPlaceProposal, NextStopState, Role } from "./types";
 
 const ID_SCHEMA = z.string().min(1);
-const ID_LIST_SCHEMA = z.array(z.string().min(1));
 const EXAMPLE_GROUP_ID = "example-stockholm";
 
 function scheduleNotificationFlush(): void {
@@ -171,26 +170,5 @@ export async function liveSetNextStopScheduleV2(
     _planned_date: date,
     _planned_time: time,
     _expected_revision: expectedRevision,
-  });
-}
-
-export async function liveGetNextStopDayUnavailabilityV2(groupId: string): Promise<string[]> {
-  return rpcClient.call(
-    "get_next_stop_day_unavailability_v2",
-    { _group_id: groupId },
-    ID_LIST_SCHEMA,
-    "Kunde inte läsa vilka som inte kan dagen.",
-  );
-}
-
-export async function liveSetNextStopDayUnavailableV2(
-  groupId: string,
-  date: string,
-  unavailable: boolean,
-): Promise<void> {
-  await rpcClient.callVoid("set_next_stop_day_unavailable_v2", {
-    _group_id: groupId,
-    _planned_date: date,
-    _unavailable: unavailable,
   });
 }
