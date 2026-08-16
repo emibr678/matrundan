@@ -31,8 +31,6 @@ WITH checks(name, ok) AS (
       to_regclass('public.next_stop_place_proposals') IS NOT NULL),
     ('next_stop_v2:support-table',
       to_regclass('public.next_stop_place_supports') IS NOT NULL),
-    ('next_stop_v2:day-unavailability-table',
-      to_regclass('public.next_stop_day_unavailability') IS NOT NULL),
     ('next_stop_v2:proposal-rpc',
       to_regprocedure('public.propose_next_stop_place_v2(uuid,uuid)') IS NOT NULL),
     ('next_stop_v2:support-rpc',
@@ -41,10 +39,6 @@ WITH checks(name, ok) AS (
       to_regprocedure('public.select_next_stop_place_v2(uuid,uuid,bigint)') IS NOT NULL),
     ('next_stop_v2:schedule-rpc',
       to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)') IS NOT NULL),
-    ('next_stop_v2:day-unavailability-read-rpc',
-      to_regprocedure('public.get_next_stop_day_unavailability_v2(uuid)') IS NOT NULL),
-    ('next_stop_v2:day-unavailability-write-rpc',
-      to_regprocedure('public.set_next_stop_day_unavailable_v2(uuid,date,boolean)') IS NOT NULL),
     ('next_stop_v2:concurrency-guard',
       COALESCE(
         position('next_stop_v2_assert_revision' IN pg_get_functiondef(to_regprocedure('public.select_next_stop_place_v2(uuid,uuid,bigint)'))) > 0
@@ -56,10 +50,9 @@ WITH checks(name, ok) AS (
         position('Europe/Stockholm' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0,
         false
       )),
-    ('next_stop_v2:day-change-clears-unavailability',
+    ('next_stop_v2:time-requires-selected-place',
       COALESCE(
-        position('next_stop_day_unavailability' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0
-        AND position('_current_date IS DISTINCT FROM _planned_date' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0,
+        position('Bestäm ett nästa stopp innan du lägger till en tid' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0,
         false
       )),
     ('visit_rpc:create_visit_with_review_v3',
@@ -105,8 +98,7 @@ WITH checks(name, ok) AS (
     ('rls:next-stop-v2',
       COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_plans')), false)
       AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_place_proposals')), false)
-      AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_place_supports')), false)
-      AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_day_unavailability')), false)),
+      AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_place_supports')), false)),
     ('grant:authenticated-v5k',
       has_function_privilege('authenticated', 'public.get_group_app_state_v5k(uuid)', 'EXECUTE')),
     ('grant:authenticated-v5j',
@@ -115,9 +107,7 @@ WITH checks(name, ok) AS (
       has_function_privilege('authenticated', 'public.propose_next_stop_place_v2(uuid,uuid)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.set_next_stop_place_support_v2(uuid,uuid,boolean)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.select_next_stop_place_v2(uuid,uuid,bigint)', 'EXECUTE')
-      AND has_function_privilege('authenticated', 'public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)', 'EXECUTE')
-      AND has_function_privilege('authenticated', 'public.get_next_stop_day_unavailability_v2(uuid)', 'EXECUTE')
-      AND has_function_privilege('authenticated', 'public.set_next_stop_day_unavailable_v2(uuid,date,boolean)', 'EXECUTE')),
+      AND has_function_privilege('authenticated', 'public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)', 'EXECUTE')),
     ('grant:authenticated-create-visit-v3',
       has_function_privilege('authenticated', 'public.create_visit_with_review_v3(uuid,uuid,date,text,uuid[],smallint,smallint,smallint,smallint,text,text[])', 'EXECUTE')),
     ('grant:authenticated-save-review',
@@ -140,13 +130,11 @@ WITH checks(name, ok) AS (
     ('isolation:no-authenticated-next-stop-tables',
       NOT has_table_privilege('authenticated', 'public.next_stop_plans', 'SELECT')
       AND NOT has_table_privilege('authenticated', 'public.next_stop_place_proposals', 'SELECT')
-      AND NOT has_table_privilege('authenticated', 'public.next_stop_place_supports', 'SELECT')
-      AND NOT has_table_privilege('authenticated', 'public.next_stop_day_unavailability', 'SELECT')),
+      AND NOT has_table_privilege('authenticated', 'public.next_stop_place_supports', 'SELECT')),
     ('isolation:no-anon-next-stop-tables',
       NOT has_table_privilege('anon', 'public.next_stop_plans', 'SELECT')
       AND NOT has_table_privilege('anon', 'public.next_stop_place_proposals', 'SELECT')
-      AND NOT has_table_privilege('anon', 'public.next_stop_place_supports', 'SELECT')
-      AND NOT has_table_privilege('anon', 'public.next_stop_day_unavailability', 'SELECT')),
+      AND NOT has_table_privilege('anon', 'public.next_stop_place_supports', 'SELECT')),
     ('isolation:no-authenticated-correction-table-read',
       NOT has_table_privilege('authenticated', 'public.visit_participation_self_corrections', 'SELECT')),
     ('isolation:no-authenticated-correction-table-write',
