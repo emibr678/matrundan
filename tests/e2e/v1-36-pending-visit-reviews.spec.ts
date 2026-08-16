@@ -31,9 +31,9 @@ test("Hem sammanfattar pending omdömen och öppnar rätt kanoniska besök", asy
   await expect(pending.getByText("Tacoateljén", { exact: true })).toBeVisible();
   await expect(pending.getByRole("link", { name: "Öppna besöket" })).toBeVisible();
   await expect(pending.getByRole("link", { name: "Se alla besök" })).toHaveCount(0);
-  await expect(
-    pending.getByText("Du var med men har inte lämnat ditt omdöme ännu."),
-  ).toHaveCount(0);
+  await expect(pending.getByText("Du var med men har inte lämnat ditt omdöme ännu.")).toHaveCount(
+    0,
+  );
   await expectNoLocatorOverflow(pending, "pending-kortet på Hem");
   await expectNoHorizontalOverflow(page, "Hem med flera pending-besök på 360 px");
 
