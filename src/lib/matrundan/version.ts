@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_37_0_CHANGELOG: ChangelogEntry = {
+  version: "1.37.0",
+  date: "2026-08-16",
+  summary: "Nästa stopp låter gruppen föreslå alternativ utan att skriva över varandra.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Gruppen kan ha flera enkla matställesförslag samtidigt och markera Gärna! på flera alternativ utan automatisk vinnare eller röstning.",
+        "Nästa stopp kan bära en gemensam dag oberoende av ställe, med valfri klocktid först när gruppen faktiskt har bestämt den.",
+        "En passerad planerad dag följs upp med Blev det av? så ett verkligt besök registreras uttryckligen i stället för att historik gissas fram.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Ett nytt ställesförslag skriver inte längre över gruppens redan valda eller diskuterade nästa stopp, och ett verkligt originalbesök avslutar bara relevant nästa-stopp-flöde.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_36_0_CHANGELOG: ChangelogEntry = {
   version: "1.36.0",
   date: "2026-08-16",
@@ -112,6 +134,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_37_0_CHANGELOG,
   VERSION_1_36_0_CHANGELOG,
   VERSION_1_35_1_CHANGELOG,
   VERSION_1_35_0_CHANGELOG,
