@@ -1,6 +1,6 @@
 ## Relaterat arbete
 
-- Issue: #
+- Issue: `Closes #...` / `Refs #...`
 - Godkänt scope/status:
 
 ## Scope och motivering
