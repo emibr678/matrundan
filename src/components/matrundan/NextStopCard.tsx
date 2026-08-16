@@ -92,8 +92,10 @@ export function NextStopCard({
     setDayUnavailable,
   } = useNextStopV2();
   const [scheduleOpen, setScheduleOpen] = React.useState(false);
+  const [timeOpen, setTimeOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [time, setTime] = React.useState("");
+
   const [selecting, setSelecting] = React.useState<NextStopPlaceProposal | null>(null);
   const [visitChooserOpen, setVisitChooserOpen] = React.useState(false);
   const [otherOpen, setOtherOpen] = React.useState(false);
