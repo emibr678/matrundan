@@ -57,6 +57,10 @@ function nn<T>(value: T | null | undefined): T | undefined {
   return value === null ? undefined : value;
 }
 
+function isMissingNextStopV2(error: unknown): boolean {
+  return error instanceof Error && /could not find the function|schema cache/i.test(error.message);
+}
+
 export async function liveCreatePlace(
   groupId: string,
   input: Omit<Place, "id" | "addedAt"> & ManualPlaceMutationHints,
@@ -170,11 +174,35 @@ export async function liveToggleFavorite(groupId: string, placeId: string): Prom
   );
 }
 
+/**
+ * Kompatibilitetsadapter för äldre vyer som fortfarande använder setNext.
+ * I den nya klienten betyder ett placeId "lägg på förslag" och får inte
+ * skriva över gruppens val. Null öppnar ett redan bestämt val igen. Om v2-
+ * RPC:erna ännu inte är driftsatta faller klienten tillfälligt tillbaka till
+ * legacy-semantiken så att en branch-preview inte blir obrukbar.
+ */
 export async function liveSetNextPlace(groupId: string, placeId: string | null): Promise<void> {
-  await rpcClient.callVoid("set_next_place", {
-    _group_id: groupId,
-    _place_id: placeId,
-  });
+  try {
+    if (placeId) {
+      await rpcClient.call(
+        "propose_next_stop_place_v2",
+        { _group_id: groupId, _place_id: placeId },
+        ID_SCHEMA,
+        "Kunde inte lägga till förslaget.",
+      );
+    } else {
+      await rpcClient.callVoid("clear_next_stop_selection_v2", {
+        _group_id: groupId,
+        _expected_revision: null,
+      });
+    }
+  } catch (error) {
+    if (!isMissingNextStopV2(error)) throw error;
+    await rpcClient.callVoid("set_next_place", {
+      _group_id: groupId,
+      _place_id: placeId,
+    });
+  }
   scheduleNotificationFlush();
 }
 
