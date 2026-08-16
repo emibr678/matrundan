@@ -55,7 +55,9 @@ test("Besök markerar bara aktuella pending-besök inom uppmärksamhetsfönstret
   await expect(page).toHaveURL(/\/besok$/);
 
   const tacoVisit = page.getByRole("button", { name: /Öppna besöket på Tacoateljén/ });
-  const formerMemberVisit = page.getByRole("button", { name: /Öppna besöket på Köttbulleklubben/ });
+  const formerMemberVisit = page.getByRole("button", {
+    name: /Öppna besöket på Köttbulleklubben/,
+  });
   const repeatCafeVisits = page.getByRole("button", { name: /Öppna besöket på Kardemummaköket/ });
 
   await expect(tacoVisit.getByText("Ditt omdöme saknas", { exact: true })).toBeVisible();
