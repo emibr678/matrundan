@@ -687,31 +687,42 @@ function ScheduleRow({
 }) {
   return (
     <div className="border-b border-border/60 px-4 py-3 sm:px-5">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="flex min-w-0 items-start gap-2.5">
+        <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               När?
-            </div>
-            <div className="truncate text-sm font-medium">
-              {plannedDate
-                ? formatNextStopDate(plannedDate, plannedTime)
-                : "Ingen dag bestämd ännu"}
-            </div>
+            </span>
+            {canInteract ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 shrink-0 px-2 text-xs text-primary"
+                onClick={onEdit}
+              >
+                {plannedDate ? "Ändra dag" : "Lägg till dag"}
+              </Button>
+            ) : null}
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0 text-sm font-medium">
+            {plannedDate ? (
+              <>
+                <span className="whitespace-nowrap">
+                  {formatNextStopDate(plannedDate, null)}
+                </span>
+                {plannedTime ? (
+                  <span className="whitespace-nowrap text-muted-foreground">
+                    · {plannedTime}
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <span className="text-muted-foreground">Ingen dag bestämd ännu</span>
+            )}
           </div>
         </div>
-        {canInteract ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 shrink-0 rounded-full px-2.5 text-xs text-primary"
-            onClick={onEdit}
-          >
-            {plannedDate ? "Ändra dag" : "Lägg till dag"}
-          </Button>
-        ) : null}
       </div>
 
       {plannedDate ? (
