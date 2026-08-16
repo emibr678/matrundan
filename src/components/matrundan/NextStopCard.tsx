@@ -841,7 +841,6 @@ function SingleProposal({
         <p className="mt-2 pl-19 text-xs text-muted-foreground">{supportLabel}</p>
       ) : null}
 
-
       {canInteract ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <SupportButton
@@ -897,7 +896,6 @@ function ProposalRow({
           {supportLabel ? (
             <p className="mt-1.5 pl-15 text-xs text-muted-foreground">{supportLabel}</p>
           ) : null}
-
         </div>
         {canRemove ? (
           <ProposalMenu
