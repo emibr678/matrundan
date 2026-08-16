@@ -785,7 +785,7 @@ function PlaceIdentity({
           params={{ placeId: place.id }}
           className={[
             "block font-display font-semibold leading-tight hover:underline",
-            prominent ? "text-2xl" : "text-lg",
+            prominent ? "text-2xl" : "text-base sm:text-lg",
           ].join(" ")}
         >
           {place.name}
