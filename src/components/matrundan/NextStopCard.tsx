@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ChevronUp,
   Flag,
+  Heart,
   Loader2,
   MapPin,
   MoreHorizontal,
@@ -74,8 +75,17 @@ export function NextStopCard({
   onRegisterVisit: (placeId: string) => void;
 }) {
   const { state, getPlace } = useStore();
-  const { nextStop, dayResponses, backendReady, propose, select, withdraw, setSchedule, setDayResponse } =
-    useNextStopV2();
+  const {
+    nextStop,
+    dayResponses,
+    backendReady,
+    propose,
+    setSupport,
+    select,
+    withdraw,
+    setSchedule,
+    setDayResponse,
+  } = useNextStopV2();
   const [scheduleOpen, setScheduleOpen] = React.useState(false);
   const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
@@ -99,6 +109,17 @@ export function NextStopCard({
   const plannedDate = focusedItem ? (nextStop?.plannedDate ?? null) : null;
   const passed = plannedDate ? isPastDateValue(plannedDate) : false;
   const canInteract = canWrite && backendReady;
+  const maxSupportCount = Math.max(0, ...proposals.map((item) => item.proposal.supports.length));
+  const maxSupportItems =
+    maxSupportCount > 0
+      ? proposals.filter((item) => item.proposal.supports.length === maxSupportCount)
+      : [];
+  const leadingAlternativeId =
+    maxSupportItems.length === 1 &&
+    focusedItem &&
+    maxSupportItems[0]?.proposal.id !== focusedItem.proposal.id
+      ? maxSupportItems[0]?.proposal.id
+      : null;
 
   const untried = React.useMemo(
     () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
@@ -148,7 +169,7 @@ export function NextStopCard({
         await setSchedule(date);
         setScheduleOpen(false);
       },
-      "Dagen är sparad.",
+      plannedDate ? "Den nya dagen är föreslagen." : "Dagen är föreslagen.",
     );
   }
 
@@ -169,8 +190,19 @@ export function NextStopCard({
     await run(
       `day-response:${response}`,
       () => setDayResponse(own === response ? null : response),
-      own === response ? "Ditt svar är borttaget." : response === "can" ? "Du kan den dagen." : "Du kan inte den dagen.",
+      own === response
+        ? "Ditt svar är borttaget."
+        : response === "can"
+          ? "Du kan den dagen."
+          : "Du kan inte den dagen.",
     );
+  }
+
+  async function togglePlaceSupport(item: ProposalItem) {
+    const supported = item.proposal.supports.some(
+      (support) => support.memberId === state.currentUserId,
+    );
+    await run(`support:${item.proposal.id}`, () => setSupport(item.proposal.id, !supported));
   }
 
   async function randomProposal() {
@@ -234,7 +266,13 @@ export function NextStopCard({
       <section>
         <NextStopHeading showShuffle={false} />
         <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
-          <FocusedPlaceHero item={focusedItem} />
+          <FocusedPlaceHero
+            item={focusedItem}
+            currentUserId={state.currentUserId}
+            canInteract={canInteract}
+            busy={busy}
+            onSupport={() => void togglePlaceSupport(focusedItem)}
+          />
           <div className="border-t border-border/60 p-4">
             <h2 className="font-display text-xl font-semibold">Blev det av?</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -305,7 +343,13 @@ export function NextStopCard({
 
       <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
         <div className="relative">
-          <FocusedPlaceHero item={focusedItem} />
+          <FocusedPlaceHero
+            item={focusedItem}
+            currentUserId={state.currentUserId}
+            canInteract={canInteract}
+            busy={busy}
+            onSupport={() => void togglePlaceSupport(focusedItem)}
+          />
           {showFocusedActions ? (
             <div className="absolute right-3 top-3">
               <FocusedActionsMenu
@@ -351,7 +395,12 @@ export function NextStopCard({
             aria-expanded={otherOpen}
             onClick={() => setOtherOpen((current) => !current)}
           >
-            <span>Andra förslag ({otherProposals.length})</span>
+            <span className="flex min-w-0 items-center gap-2">
+              <span>Andra förslag ({otherProposals.length})</span>
+              {leadingAlternativeId ? (
+                <span className="truncate text-[11px] font-medium text-primary">Flest vill hit</span>
+              ) : null}
+            </span>
             {otherOpen ? (
               <ChevronUp className="h-4 w-4 shrink-0" />
             ) : (
@@ -364,8 +413,11 @@ export function NextStopCard({
                 <ProposalRow
                   key={item.proposal.id}
                   item={item}
+                  currentUserId={state.currentUserId}
                   canInteract={canInteract}
                   busy={busy}
+                  isMostSupported={item.proposal.id === leadingAlternativeId}
+                  onSupport={() => void togglePlaceSupport(item)}
                   onSwitch={() => setSwitching(item.proposal)}
                   onWithdraw={() => withdrawProposal(item)}
                 />
@@ -467,33 +519,104 @@ function proposerLabel(
     : "Föreslaget tidigare";
 }
 
-function FocusedPlaceHero({ item }: { item: ProposalItem }) {
+function FocusedPlaceHero({
+  item,
+  currentUserId,
+  canInteract,
+  busy,
+  onSupport,
+}: {
+  item: ProposalItem;
+  currentUserId: string;
+  canInteract: boolean;
+  busy: string | null;
+  onSupport: () => void;
+}) {
   const { state } = useStore();
   return (
-    <Link
-      to="/matstallen/$placeId"
-      params={{ placeId: item.place.id }}
+    <div
       data-next-stop-proposal="selected"
-      className="block bg-gradient-to-br from-primary/85 to-primary p-6 pr-14 text-primary-foreground transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-      aria-label={`Öppna ${item.place.name}`}
+      className="bg-gradient-to-br from-primary/85 to-primary p-6 pr-14 text-primary-foreground"
     >
-      <div className="text-6xl" aria-hidden="true">
-        {item.place.photo ?? "🍽️"}
-      </div>
-      <div className="mt-3 min-w-0">
-        <div className="text-xs tracking-wide opacity-80">{CATEGORY_LABEL[item.place.category]}</div>
-        <h2 className="font-display text-3xl font-semibold leading-tight [overflow-wrap:anywhere]">
-          {item.place.name}
-        </h2>
-        <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
-          <MapPin className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">
-            {item.place.address}, {item.place.city}
-          </span>
+      <Link
+        to="/matstallen/$placeId"
+        params={{ placeId: item.place.id }}
+        className="block transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40"
+        aria-label={`Öppna ${item.place.name}`}
+      >
+        <div className="text-6xl" aria-hidden="true">
+          {item.place.photo ?? "🍽️"}
         </div>
-        <div className="mt-2 text-xs opacity-85">{proposerLabel(item.proposal, state)}</div>
+        <div className="mt-3 min-w-0">
+          <div className="text-xs tracking-wide opacity-80">{CATEGORY_LABEL[item.place.category]}</div>
+          <h2 className="font-display text-3xl font-semibold leading-tight [overflow-wrap:anywhere]">
+            {item.place.name}
+          </h2>
+          <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">
+              {item.place.address}, {item.place.city}
+            </span>
+          </div>
+          <div className="mt-2 text-xs opacity-85">{proposerLabel(item.proposal, state)}</div>
+        </div>
+      </Link>
+      <div className="mt-4">
+        <PlacePreferenceButton
+          proposal={item.proposal}
+          currentUserId={currentUserId}
+          canInteract={canInteract}
+          busy={busy}
+          inverse
+          onClick={onSupport}
+        />
       </div>
-    </Link>
+    </div>
+  );
+}
+
+function PlacePreferenceButton({
+  proposal,
+  currentUserId,
+  canInteract,
+  busy,
+  inverse = false,
+  onClick,
+}: {
+  proposal: NextStopPlaceProposal;
+  currentUserId: string;
+  canInteract: boolean;
+  busy: string | null;
+  inverse?: boolean;
+  onClick: () => void;
+}) {
+  const supported = proposal.supports.some((support) => support.memberId === currentUserId);
+  const isBusy = busy === `support:${proposal.id}`;
+  return (
+    <button
+      type="button"
+      aria-pressed={supported}
+      disabled={!canInteract || busy !== null}
+      onClick={onClick}
+      className={[
+        "inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors disabled:cursor-default",
+        inverse
+          ? supported
+            ? "border-primary-foreground/55 bg-primary-foreground/20 text-primary-foreground"
+            : "border-primary-foreground/35 bg-black/5 text-primary-foreground hover:bg-primary-foreground/10"
+          : supported
+            ? "border-primary/35 bg-primary/10 text-primary"
+            : "border-border/80 bg-card text-foreground hover:bg-muted/50",
+        !canInteract ? "opacity-90" : "",
+      ].join(" ")}
+    >
+      {isBusy ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Heart className={supported ? "h-4 w-4 fill-current" : "h-4 w-4"} />
+      )}
+      <span>Jag vill hit · {proposal.supports.length}</span>
+    </button>
   );
 }
 
@@ -549,8 +672,8 @@ function DayRow({
         onClick={onAddDate}
       >
         <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
-        <span className="min-w-0 flex-1 text-sm text-muted-foreground">Ingen dag planerad</span>
-        <span className="text-sm font-medium text-primary">Lägg till dag</span>
+        <span className="min-w-0 flex-1 text-sm text-muted-foreground">Ingen dag föreslagen</span>
+        <span className="text-sm font-medium text-primary">Föreslå dag</span>
       </button>
     );
   }
@@ -582,14 +705,20 @@ function DayRow({
 
 function ProposalRow({
   item,
+  currentUserId,
   canInteract,
   busy,
+  isMostSupported,
+  onSupport,
   onSwitch,
   onWithdraw,
 }: {
   item: ProposalItem;
+  currentUserId: string;
   canInteract: boolean;
   busy: string | null;
+  isMostSupported: boolean;
+  onSupport: () => void;
   onSwitch: () => void;
   onWithdraw: () => void;
 }) {
@@ -608,22 +737,32 @@ function ProposalRow({
           />
         ) : null}
       </div>
-      <div className="mt-1.5 flex min-h-9 items-center justify-between gap-2 pl-[3.75rem]">
-        <span className="min-w-0 truncate text-xs text-muted-foreground">
-          {proposerLabel(item.proposal, state)}
-        </span>
-        {canInteract ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-9 min-h-9 shrink-0 rounded-full border-primary/40 px-3 text-xs text-primary"
-            onClick={onSwitch}
-            disabled={busy !== null}
-          >
-            Välj ställe
-          </Button>
-        ) : null}
+      <div className="mt-1.5 pl-[3.75rem]">
+        <div className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span>{proposerLabel(item.proposal, state)}</span>
+          {isMostSupported ? <span className="font-medium text-primary">Flest vill hit</span> : null}
+        </div>
+        <div className="mt-2 flex flex-nowrap items-center gap-2">
+          <PlacePreferenceButton
+            proposal={item.proposal}
+            currentUserId={currentUserId}
+            canInteract={canInteract}
+            busy={busy}
+            onClick={onSupport}
+          />
+          {canInteract ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-10 min-h-10 shrink-0 rounded-full border-primary/40 px-3 text-xs text-primary"
+              onClick={onSwitch}
+              disabled={busy !== null}
+            >
+              Välj ställe
+            </Button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -786,8 +925,14 @@ function DayPlanningSheet({
             >
               Ta bort dag
             </Button>
-            <Button type="button" variant="outline" className="min-h-11" disabled={busy !== null} onClick={onEditDate}>
-              <CalendarDays className="h-4 w-4" /> Ändra dag
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              disabled={busy !== null}
+              onClick={onEditDate}
+            >
+              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
             </Button>
           </div>
         ) : null}
@@ -836,7 +981,7 @@ function FocusedActionsMenu({
         {plannedDate ? (
           <>
             <DropdownMenuItem onSelect={onEditDate}>
-              <CalendarDays className="h-4 w-4" /> Ändra dag
+              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
           </>
@@ -903,8 +1048,12 @@ function ScheduleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>{plannedDate ? "Ändra dag" : "Lägg till dag"}</DialogTitle>
-          <DialogDescription>Välj den dag gruppen tänker göra nästa stopp.</DialogDescription>
+          <DialogTitle>{plannedDate ? "Föreslå annan dag" : "Föreslå dag"}</DialogTitle>
+          <DialogDescription>
+            {plannedDate
+              ? "Välj en annan dag för gruppens nästa stopp. Gruppens dagsvar börjar då om."
+              : "Välj den dag gruppen tänker göra nästa stopp."}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
@@ -966,7 +1115,7 @@ function SwitchDialog({
           <DialogTitle>Välj det här stället?</DialogTitle>
           <DialogDescription>
             {target
-              ? `${target.name} blir gruppens nästa stopp i stället för ${currentPlace.name}. Dagen och gruppens dagsvar ligger kvar.`
+              ? `${target.name} blir gruppens nästa stopp i stället för ${currentPlace.name}. Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar.`
               : "Det här förslaget blir gruppens nästa stopp."}
           </DialogDescription>
         </DialogHeader>
