@@ -39,6 +39,14 @@ WITH checks(name, ok) AS (
       to_regprocedure('public.select_next_stop_place_v2(uuid,uuid,bigint)') IS NOT NULL),
     ('next_stop_v2:schedule-rpc',
       to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)') IS NOT NULL),
+    ('next_stop_v2:first-proposal-gets-focus',
+      COALESCE(
+        position('IF _current_place_id IS NULL THEN' IN pg_get_functiondef(to_regprocedure('public.propose_next_stop_place_v2(uuid,uuid)'))) > 0
+        AND position('set_next_place' IN pg_get_functiondef(to_regprocedure('public.propose_next_stop_place_v2(uuid,uuid)'))) > 0,
+        false
+      )),
+    ('next_stop_v2:no-open-selection-rpc',
+      to_regprocedure('public.clear_next_stop_selection_v2(uuid,bigint)') IS NULL),
     ('next_stop_v2:concurrency-guard',
       COALESCE(
         position('next_stop_v2_assert_revision' IN pg_get_functiondef(to_regprocedure('public.select_next_stop_place_v2(uuid,uuid,bigint)'))) > 0
@@ -50,9 +58,9 @@ WITH checks(name, ok) AS (
         position('Europe/Stockholm' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0,
         false
       )),
-    ('next_stop_v2:time-requires-selected-place',
+    ('next_stop_v2:day-only',
       COALESCE(
-        position('Bestäm ett nästa stopp innan du lägger till en tid' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0,
+        position('Nästa stopp använder bara dag, inte klockslag' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0,
         false
       )),
     ('visit_rpc:create_visit_with_review_v3',
