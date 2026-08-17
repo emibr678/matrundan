@@ -18,7 +18,8 @@ Skilj alltid mellan:
 3. **Godkänd implementation** — ändringar inom uttryckligen godkänt scope.
 4. **Verifiering** — tester, CI och manuell/renderad kontroll.
 5. **Merge** — verifierad PR förs in i `main` efter separat godkännande.
-6. **Lovable-synk och preview** — vald branch/head synkas och granskas när relevant.
+6. **Lovable-synk och preview** — endast när användaren uttryckligen har begärt
+   Lovable; vald branch/head synkas och granskas då separat.
 7. **Databasdriftsättning** — godkända migrationer eller produktionsskrivningar
    genomförs separat.
 8. **Publicering** — verifierad version görs publik separat.
@@ -105,12 +106,18 @@ Temporära screenshots och riktade states är standard under iteration. Breda
 browsermatriser och GitHub-artifacts används först när risk eller färdig kandidat
 motiverar dem.
 
+**Lovable är opt-in.** Konsultera inte Lovable, låt inte Lovable skriva kod,
+synka inte en branch till Lovable och skapa inte Lovable-preview om användaren
+inte uttryckligen har bett om Lovable i den aktuella uppgiften. Nivå 3 i sig är
+inte ett skäl att använda Lovable; normal renderad verifiering görs med repots
+browser-/screenshotverktyg.
+
 ### Lovable-konsultation
 
 När användaren uttryckligen ber att bolla UX med Lovable används Plan mode före
 låst lösning när verktyget är tillgängligt. Om konsultationen inte kan
 genomföras ska begränsningen redovisas; den ersätts inte tyst av ett annat
-arbetsflöde.
+Lovable-flöde.
 
 ### Lovable-implementation
 
@@ -126,23 +133,27 @@ När användaren uttryckligen ber Lovable implementera UX:
 Om rätt branch/head inte kan verifieras ska Lovable inte skriva kod. En branch
 innebär inte en isolerad databas.
 
-### Previewgrind
+### Nivå 3-grind
 
 För nivå 3/större visuella ändringar krävs före merge:
 
 - exakt PR-branch och aktuell head-SHA;
-- samma branch vald i Lovable och verifierad synk;
-- aktuell previewlänk i chatten;
 - 360 px och desktop granskade;
-- demo/exempel och live jämförda när relevant;
-- användarens uttryckliga mergegodkännande efter preview.
+- relevanta states samt demo/exempel och live jämförda när relevant och möjligt;
+- persona-/UX-fynd och konkreta korrigeringar redovisade;
+- ett tydligt granskningsunderlag och manuella teststeg lämnade i chatten;
+- användarens uttryckliga mergegodkännande efter granskningen.
 
-Om branch, synk eller preview inte kan verifieras är kandidaten inte redo för
-merge. Preview är granskning, inte publicering, och ersätter inte diff, tester,
+När användaren uttryckligen har begärt Lovable tillkommer verifierad
+Lovable-branch/synk och aktuell previewlänk. Om Lovable inte har begärts ska
+kandidaten inte blockeras av Lovable; använd repots browserkontroller,
+temporära screenshots och vid behov GitHub-artifact som granskningsunderlag.
+
+Preview är granskning, inte publicering, och ersätter inte diff, tester,
 browserkontroller eller CI.
 
 Backend-, dokumentations- och andra osynliga ändringar kräver normalt inte
-preview; motivera kort varför.
+renderad granskning; motivera kort varför.
 
 ## 6. Verifiering och CI
 
@@ -176,7 +187,8 @@ Merge får ske först när:
 - godkänt scope är uppfyllt och slutdiffen är granskad;
 - aktuell `main` och öppna PR:er har kontrollerats igen för konflikt/mergeordning;
 - relevant verifiering och CI är grön;
-- renderad UX/previewgrind är uppfylld där den krävs;
+- renderad UX-/nivå-3-grind är uppfylld där den krävs;
+- eventuell uttryckligen begärd Lovable-granskning är uppfylld;
 - dokumentation, roadmap och releasehistorik är konsekventa där ändringen kräver
   det;
 - inga kända blockerare återstår;
@@ -202,23 +214,51 @@ Publicering kräver konsekvent version, in-app-historik och `CHANGELOG.md` när
 ändringen är releasepliktig. En dokumentations- eller maintenance-PR behöver
 inte publiceras bara för att den mergas.
 
-## 9. Leveranskvitto
+## 9. Leveranskvitto i chatten
 
-Efter en kandidat eller merge redovisas endast relevanta fält, men håll följande
-statusar separata:
+Efter en kandidat/push som är avsedd att granskas och efter merge ska agenten
+använda ett stabilt, skannbart chattkvitto. Rubrikerna ska normalt behållas så att
+status kan jämföras mellan leveranser; irrelevanta fält skrivs kort som
+`Inte relevant` i stället för att utelämnas eller utvecklas till långa stycken.
 
-- branch och commit/head;
-- **Issue #NNN — titel** och **PR #NNN — titel**;
-- CI och faktisk verifiering;
-- renderad reviewnivå, states, viewportar och konkreta UX-fynd;
-- Lovable-konsultation, vald branch, synk och preview;
-- exempelgrupp och roadmap påverkan;
-- databas/migration;
-- sådant som inte verifierats;
-- publicering.
+```text
+Fas:
+Issue:
+PR:
+Branch/head:
+CI:
+Merge:
 
-En kompakt korrekt leveransrapport är bättre än en lång checklista som fyllts i
-mekaniskt.
+UX:
+- Reviewnivå:
+- Granskade states/viewports:
+- Granskningsunderlag/preview:
+- Testa:
+
+Lovable:
+- Begärt: ja / nej
+- Konsultation/implementation:
+- Branch/synk/preview:
+
+Databas:
+Exempelgrupp:
+Roadmap/version:
+Ej verifierat:
+Publicering:
+Nästa steg:
+```
+
+`Issue:` och `PR:` skrivs normalt med nummer och full titel. `CI:` anger faktisk
+status och relevanta kontroller, inte bara att en workflow finns. `Testa:` ska ge
+korta konkreta manuella steg när användargranskning är relevant. `Databas:` ska
+skilja exempelvis "migration finns i PR" från "driftsatt". `Merge:`, `Databas:`
+och `Publicering:` hålls alltid isär.
+
+För Lovable ska `Begärt: nej` vara normalläget. Då räcker resten av Lovable-raden
+med `Inte relevant`; agenten ska inte använda Lovable bara för att fylla kvittot.
+
+PR-mallen är fortsatt GitHubs evidenskvitto. Chattkvittot är den kompakta
+operativa status som användaren ska kunna skanna inför granskning och beslut.
 
 ## 10. Dokumentägarskap
 
@@ -230,7 +270,7 @@ mekaniskt.
   och säkerhet.
 - `DEVELOPMENT.md` — miljösetup, tooling och exakta kommandon.
 - detta dokument — arbets- och leveransprocess.
-- `docs/visual-review.md` — renderad UX, Lovable och preview.
+- `docs/visual-review.md` — renderad UX och villkorad Lovable-granskning.
 - `CHANGELOG.md` + in-app-version — användarsynlig releasehistorik.
 - `docs/archive/` — historik som fortfarande har ett faktiskt referensvärde.
 
