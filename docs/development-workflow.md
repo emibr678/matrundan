@@ -216,49 +216,35 @@ inte publiceras bara för att den mergas.
 
 ## 9. Leveranskvitto i chatten
 
-Efter en kandidat/push som är avsedd att granskas och efter merge ska agenten
-använda ett stabilt, skannbart chattkvitto. Rubrikerna ska normalt behållas så att
-status kan jämföras mellan leveranser; irrelevanta fält skrivs kort som
-`Inte relevant` i stället för att utelämnas eller utvecklas till långa stycken.
+Efter en kandidat/push som är avsedd att granskas och efter merge ska agenten ge
+ett kort, skannbart beslutsunderlag. Kärnfälten hålls stabila; villkorade fält
+visas bara när de faktiskt är relevanta.
 
 ```text
-Fas:
-Issue:
-PR:
+Status:
+Issue / PR:
 Branch/head:
 CI:
-Merge:
-
-UX:
-- Reviewnivå:
-- Granskade states/viewports:
-- Granskningsunderlag/preview:
-- Testa:
-
-Lovable:
-- Begärt: ja / nej
-- Konsultation/implementation:
-- Branch/synk/preview:
-
+UX/preview:
 Databas:
-Exempelgrupp:
-Roadmap/version:
 Ej verifierat:
-Publicering:
 Nästa steg:
 ```
 
-`Issue:` och `PR:` skrivs normalt med nummer och full titel. `CI:` anger faktisk
-status och relevanta kontroller, inte bara att en workflow finns. `Testa:` ska ge
-korta konkreta manuella steg när användargranskning är relevant. `Databas:` ska
-skilja exempelvis "migration finns i PR" från "driftsatt". `Merge:`, `Databas:`
-och `Publicering:` hålls alltid isär.
+`Issue / PR:` skrivs normalt med nummer och full titel. `CI:` anger faktisk
+status och relevanta kontroller. `UX/preview:` anger reviewnivå och relevant
+granskningsunderlag när GUI påverkas, annars kort `Inte relevant`. `Databas:` ska
+alltid skilja mellan ingen påverkan, migration i PR men inte driftsatt och faktiskt
+driftssatt databas. `Status:` ska tydligt skilja kandidat, mergegodkännande och
+utförd merge.
 
-För Lovable ska `Begärt: nej` vara normalläget. Då räcker resten av Lovable-raden
-med `Inte relevant`; agenten ska inte använda Lovable bara för att fylla kvittot.
+Lägg endast till korta rader för `Testa:`, `Lovable:`, `Exempelgrupp:`,
+`Roadmap/version:` eller `Publicering:` när de behövs för användarens nästa beslut.
+Lovable-raden visas alltså normalt inte alls när Lovable inte har begärts.
 
-PR-mallen är fortsatt GitHubs evidenskvitto. Chattkvittot är den kompakta
-operativa status som användaren ska kunna skanna inför granskning och beslut.
+PR-mallen är fortsatt GitHubs fullständigare evidenskvitto. Chattkvittot ska vara
+den minsta status användaren behöver för att tryggt granska och fatta nästa
+beslut, inte en kopia av PR-mallen.
 
 ## 10. Dokumentägarskap
 
