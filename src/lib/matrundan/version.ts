@@ -6,22 +6,22 @@ export type { ChangelogEntry };
 const VERSION_1_37_0_CHANGELOG: ChangelogEntry = {
   version: "1.37.0",
   date: "2026-08-16",
-  summary: "Nästa stopp låter gruppen föreslå alternativ utan att skriva över varandra.",
+  summary: "Nästa stopp bevarar gruppens alternativ utan att göra valet till en omröstning.",
   sections: [
     {
       kind: "Nytt",
       items: [
-        "Gruppen kan ha flera enkla matställesförslag samtidigt och markera Går gärna dit på flera alternativ utan automatisk vinnare eller röstning.",
-        "Nästa stopp kan bära en gemensam dag oberoende av ställe, med valfri klocktid först när gruppen faktiskt har bestämt den.",
-        "En medlem kan markera Kan inte då på den gemensamma dagen utan att uteblivet svar tolkas som ett nej eller ett RSVP-svar.",
+        "Det första ställesförslaget blir gruppens nästa stopp direkt, medan senare idéer sparas under Andra förslag utan att skriva över det aktuella stoppet.",
+        "Medlemmar kan markera Går gärna hit på både nästa stopp och andra förslag, samtidigt som det framgår vem som föreslog varje ställe.",
+        "Nästa stopp kan bära en enkel gemensam dag utan klockslag, RSVP eller annan eventplanering.",
         "En passerad planerad dag följs upp med Blev det av? så ett verkligt besök registreras uttryckligen i stället för att historik gissas fram.",
       ],
     },
     {
       kind: "Förbättrat",
       items: [
-        "Ett nytt ställesförslag skriver inte längre över gruppens redan valda eller diskuterade nästa stopp, och ett verkligt originalbesök avslutar bara relevant nästa-stopp-flöde.",
-        "När nästa stopp är valt fokuserar Hem på stället och nästa handling medan övriga förslag ligger kollapsade tills gruppen vill ändra valet.",
+        "Ett nytt ställesförslag skriver inte längre över gruppens nästa stopp. Gruppen kan byta till ett bevarat alternativ med en tydlig bekräftelse.",
+        "Hem fokuserar på ett enda nästa stopp och håller övriga förslag i en lågmäld accordion tills gruppen vill titta på dem.",
       ],
     },
   ],
