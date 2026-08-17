@@ -29,12 +29,16 @@ WITH checks(name, ok) AS (
       to_regclass('public.next_stop_plans') IS NOT NULL),
     ('next_stop_v2:proposal-table',
       to_regclass('public.next_stop_place_proposals') IS NOT NULL),
-    ('next_stop_v2:support-table',
-      to_regclass('public.next_stop_place_supports') IS NOT NULL),
+    ('next_stop_v2:no-support-table',
+      to_regclass('public.next_stop_place_supports') IS NULL),
+    ('next_stop_v2:legacy-day-response-table',
+      to_regclass('public.next_stop_date_responses') IS NOT NULL),
     ('next_stop_v2:proposal-rpc',
       to_regprocedure('public.propose_next_stop_place_v2(uuid,uuid)') IS NOT NULL),
-    ('next_stop_v2:support-rpc',
-      to_regprocedure('public.set_next_stop_place_support_v2(uuid,uuid,boolean)') IS NOT NULL),
+    ('next_stop_v2:no-support-rpc',
+      to_regprocedure('public.set_next_stop_place_support_v2(uuid,uuid,boolean)') IS NULL),
+    ('next_stop_v2:day-response-rpc',
+      to_regprocedure('public.set_next_stop_day_response_v2(uuid,text)') IS NOT NULL),
     ('next_stop_v2:select-rpc',
       to_regprocedure('public.select_next_stop_place_v2(uuid,uuid,bigint)') IS NOT NULL),
     ('next_stop_v2:schedule-rpc',
@@ -61,6 +65,18 @@ WITH checks(name, ok) AS (
     ('next_stop_v2:day-only',
       COALESCE(
         position('Nästa stopp använder bara dag, inte klockslag' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0,
+        false
+      )),
+    ('next_stop_v2:day-requires-focus',
+      COALESCE(
+        position('Välj nästa stopp innan ni lägger till en dag' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)'))) > 0,
+        false
+      )),
+    ('next_stop_v2:binary-day-response',
+      COALESCE(
+        position('can' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_day_response_v2(uuid,text)'))) > 0
+        AND position('cannot' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_day_response_v2(uuid,text)'))) > 0
+        AND position('next_stop_date_responses' IN pg_get_functiondef(to_regprocedure('public.set_next_stop_day_response_v2(uuid,text)'))) > 0,
         false
       )),
     ('visit_rpc:create_visit_with_review_v3',
@@ -106,14 +122,14 @@ WITH checks(name, ok) AS (
     ('rls:next-stop-v2',
       COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_plans')), false)
       AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_place_proposals')), false)
-      AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_place_supports')), false)),
+      AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_date_responses')), false)),
     ('grant:authenticated-v5k',
       has_function_privilege('authenticated', 'public.get_group_app_state_v5k(uuid)', 'EXECUTE')),
     ('grant:authenticated-v5j',
       has_function_privilege('authenticated', 'public.get_group_app_state_v5j(uuid)', 'EXECUTE')),
     ('grant:authenticated-next-stop-v2',
       has_function_privilege('authenticated', 'public.propose_next_stop_place_v2(uuid,uuid)', 'EXECUTE')
-      AND has_function_privilege('authenticated', 'public.set_next_stop_place_support_v2(uuid,uuid,boolean)', 'EXECUTE')
+      AND has_function_privilege('authenticated', 'public.set_next_stop_day_response_v2(uuid,text)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.select_next_stop_place_v2(uuid,uuid,bigint)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.set_next_stop_schedule_v2(uuid,date,time without time zone,bigint)', 'EXECUTE')),
     ('grant:authenticated-create-visit-v3',
@@ -138,11 +154,11 @@ WITH checks(name, ok) AS (
     ('isolation:no-authenticated-next-stop-tables',
       NOT has_table_privilege('authenticated', 'public.next_stop_plans', 'SELECT')
       AND NOT has_table_privilege('authenticated', 'public.next_stop_place_proposals', 'SELECT')
-      AND NOT has_table_privilege('authenticated', 'public.next_stop_place_supports', 'SELECT')),
+      AND NOT has_table_privilege('authenticated', 'public.next_stop_date_responses', 'SELECT')),
     ('isolation:no-anon-next-stop-tables',
       NOT has_table_privilege('anon', 'public.next_stop_plans', 'SELECT')
       AND NOT has_table_privilege('anon', 'public.next_stop_place_proposals', 'SELECT')
-      AND NOT has_table_privilege('anon', 'public.next_stop_place_supports', 'SELECT')),
+      AND NOT has_table_privilege('anon', 'public.next_stop_date_responses', 'SELECT')),
     ('isolation:no-authenticated-correction-table-read',
       NOT has_table_privilege('authenticated', 'public.visit_participation_self_corrections', 'SELECT')),
     ('isolation:no-authenticated-correction-table-write',
