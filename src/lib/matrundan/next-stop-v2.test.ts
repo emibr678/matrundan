@@ -17,7 +17,7 @@ const proposal: NextStopPlaceProposal = {
 };
 
 describe("Nästa stopp v2", () => {
-  test("legacy-val normaliseras utan att uppfinna Går gärna hit-signaler", () => {
+  test("legacy-val normaliseras till ett fokuserat stopp utan platsröstning", () => {
     const nextStop = deriveNextStopState({ ...DEMO_STATE, nextStop: undefined });
     expect(nextStop?.selectedPlaceId).toBe("p5");
     expect(nextStop?.proposals).toHaveLength(1);
@@ -38,6 +38,15 @@ describe("Nästa stopp v2", () => {
       },
     };
     expect(deriveNextStopState(state)?.plannedTime).toBeNull();
+  });
+
+  test("utan fokuserat stopp härleds inte en fristående legacy-dag", () => {
+    const state: AppState = {
+      ...DEMO_STATE,
+      nextPlaceId: null,
+      nextStop: undefined,
+    };
+    expect(deriveNextStopState(state)).toBeNull();
   });
 
   test("arkiverad grupp exponerar ingen aktiv planering", () => {
