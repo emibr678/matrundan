@@ -6,6 +6,7 @@ import {
   liveSelectNextStopPlaceV2,
   liveSetNextStopDayResponseV2,
   liveSetNextStopDayV2,
+  liveSetNextStopPlaceSupportV2,
   liveWithdrawNextStopPlaceV2,
   type NextStopDayResponseValue,
 } from "./next-stop-v2";
@@ -35,7 +36,12 @@ function responseStorageKey(groupId: string): string {
 }
 
 function normalizeState(value: NextStopState): NextStopState {
-  const proposals = Array.isArray(value.proposals) ? value.proposals : [];
+  const proposals = Array.isArray(value.proposals)
+    ? value.proposals.map((proposal) => ({
+        ...proposal,
+        supports: Array.isArray(proposal.supports) ? proposal.supports : [],
+      }))
+    : [];
   const selectedExists = proposals.some((proposal) => proposal.placeId === value.selectedPlaceId);
   const selectedPlaceId = selectedExists ? value.selectedPlaceId : (proposals[0]?.placeId ?? null);
   return {
@@ -264,6 +270,37 @@ export function useNextStopV2() {
     });
   }
 
+  async function setSupport(proposalId: string, supported: boolean): Promise<void> {
+    if (mode === "live") {
+      await liveSetNextStopPlaceSupportV2(state.group.id, proposalId, supported);
+      dispatchReload();
+      return;
+    }
+
+    setDemoState((current) => {
+      if (!current) return current;
+      const updatedAt = new Date().toISOString();
+      return {
+        ...current,
+        proposals: current.proposals.map((proposal) =>
+          proposal.id !== proposalId
+            ? proposal
+            : {
+                ...proposal,
+                supports: supported
+                  ? [
+                      ...proposal.supports.filter(
+                        (support) => support.memberId !== state.currentUserId,
+                      ),
+                      { memberId: state.currentUserId, updatedAt },
+                    ]
+                  : proposal.supports.filter((support) => support.memberId !== state.currentUserId),
+              },
+        ),
+      };
+    });
+  }
+
   async function select(proposalId: string): Promise<void> {
     const revision = nextStop?.revision ?? 1;
     if (mode === "live") {
@@ -360,6 +397,7 @@ export function useNextStopV2() {
     dayResponses,
     backendReady,
     propose,
+    setSupport,
     select,
     withdraw,
     setSchedule,
