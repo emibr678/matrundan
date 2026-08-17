@@ -101,7 +101,7 @@ function PlaceDetail() {
     demoReadOnly,
     memberById,
   } = useStore();
-  const { nextStop, backendReady, propose, clearSelection } = useNextStopV2();
+  const { nextStop, backendReady, propose } = useNextStopV2();
   const place = getPlace(placeId);
   const [visitOpen, setVisitOpen] = React.useState(false);
   const [nextBusy, setNextBusy] = React.useState(false);
@@ -144,6 +144,7 @@ function PlaceDetail() {
   const isNext = nextStop?.selectedPlaceId === place.id;
   const isProposed =
     nextStop?.proposals.some((proposal) => proposal.placeId === place.id) ?? false;
+  const hasNextStop = Boolean(nextStop?.selectedPlaceId || nextStop?.proposals.length);
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
@@ -330,22 +331,11 @@ function PlaceDetail() {
                   <Button
                     variant="secondary"
                     aria-pressed="true"
-                    aria-label={`Ändra nästa stopp från ${place.name}`}
-                    onClick={() =>
-                      void runNextStop(
-                        clearSelection,
-                        "Nästa stopp är öppet för förslag igen.",
-                      )
-                    }
-                    disabled={!nextStopWritable || nextBusy}
+                    disabled
                     className="min-h-11 w-full whitespace-normal"
                   >
-                    {nextBusy ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-                    ) : (
-                      <Flag className="h-4 w-4 shrink-0" />
-                    )}
-                    Ändra nästa stopp
+                    <Flag className="h-4 w-4 shrink-0" />
+                    Nästa stopp
                   </Button>
                 ) : isProposed ? (
                   <Button
@@ -365,7 +355,9 @@ function PlaceDetail() {
                     onClick={() =>
                       void runNextStop(
                         () => propose(place.id),
-                        `${place.name} är på förslag.`,
+                        hasNextStop
+                          ? `${place.name} lades till under Andra förslag.`
+                          : `${place.name} är gruppens nästa stopp.`,
                       )
                     }
                     className="min-h-11 w-full whitespace-normal"
