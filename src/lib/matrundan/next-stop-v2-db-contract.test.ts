@@ -7,6 +7,9 @@ const focusModel = await Bun.file(
 const hybrid = await Bun.file(
   "supabase/migrations/20260817131000_next_stop_v2_hybrid_day_responses.sql",
 ).text();
+const preferences = await Bun.file(
+  "supabase/migrations/20260817132000_next_stop_v2_place_preferences.sql",
+).text();
 const legacyBridge = await Bun.file(
   "supabase/migrations/20260816183100_next_stop_v2_legacy_selection_bridge.sql",
 ).text();
@@ -21,19 +24,28 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(migration).toContain(
       "REVOKE ALL ON TABLE public.next_stop_place_proposals FROM PUBLIC, anon, authenticated",
     );
+    expect(preferences).toContain(
+      "REVOKE ALL ON TABLE public.next_stop_place_supports FROM PUBLIC, anon, authenticated",
+    );
     expect(migration).toContain("SECURITY DEFINER");
     expect(migration).toContain("SET search_path TO 'public'");
-    expect(migration).toContain("public.has_membership(_group_id, _uid)");
+    expect(preferences).toContain("public.has_membership(_group_id, _uid)");
   });
 
-  test("första förslaget får fokus och senare förslag bevaras utan platsröstning", () => {
+  test("första förslaget får fokus och senare förslag bevaras", () => {
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.propose_next_stop_place_v2(");
     expect(focusModel).toContain("IF _proposal_count >= 5 THEN");
     expect(focusModel).toContain("IF _current_place_id IS NULL THEN");
-    expect(hybrid).toContain(
-      "DROP FUNCTION IF EXISTS public.set_next_stop_place_support_v2(uuid, uuid, boolean)",
+  });
+
+  test("Jag vill hit är separat från fokus och kan sättas på flera förslag", () => {
+    expect(preferences).toContain("CREATE TABLE public.next_stop_place_supports");
+    expect(preferences).toContain(
+      "CREATE OR REPLACE FUNCTION public.set_next_stop_place_support_v2(",
     );
-    expect(hybrid).toContain("DROP TABLE IF EXISTS public.next_stop_place_supports CASCADE");
+    expect(preferences).toContain("_supported boolean");
+    expect(preferences).toContain("ON CONFLICT (proposal_id, member_id) DO UPDATE");
+    expect(preferences).not.toContain("set_next_place(_group_id");
   });
 
   test("slutmodellen är dag-only och dagen kräver ett faktiskt nästa stopp", () => {
@@ -53,11 +65,12 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     );
   });
 
-  test("fokusbyte bevarar dagsvar men dagbyte rensar dem", () => {
+  test("fokusbyte bevarar dagsvar och platsintresse men dagbyte rensar bara dagsvaren", () => {
     expect(hybrid).toContain("SET place_id = _place_id");
     expect(hybrid).toContain("IF _current_date IS DISTINCT FROM _planned_date THEN");
     expect(hybrid).toContain("DELETE FROM public.next_stop_date_responses");
     expect(hybrid).toContain("proposed_date = _planned_date");
+    expect(preferences).toContain("REFERENCES public.next_stop_place_proposals(id) ON DELETE CASCADE");
   });
 
   test("samtidiga byten skyddas av grupp-lås och revision", () => {
@@ -78,7 +91,7 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(migration).toContain("DELETE FROM public.next_stop_plans WHERE group_id = NEW.group_id");
   });
 
-  test("arkivering kan flytta fokus och behålla samma dagsvar", () => {
+  test("arkivering kan flytta fokus och behålla samma dagssvar på ersättaren", () => {
     expect(archiveBridge).toContain(
       "CREATE OR REPLACE FUNCTION public.archive_group_place(_group_id uuid, _place_id uuid)",
     );
@@ -90,10 +103,11 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(hybrid).toContain("PERFORM public.next_stop_v2_sync_legacy_date(");
   });
 
-  test("v5k är additiv ovanpå v5j och legacy-val tappar inte alternativ tyst", () => {
-    expect(hybrid).toContain("CREATE OR REPLACE FUNCTION public.get_group_app_state_v5k(");
-    expect(hybrid).toContain("_result := public.get_group_app_state_v5j(_group_id)");
-    expect(hybrid).toContain("'supports', '[]'::jsonb");
+  test("v5k är additiv ovanpå v5j och exponerar bara aktiva medlemmars platsintresse", () => {
+    expect(preferences).toContain("CREATE OR REPLACE FUNCTION public.get_group_app_state_v5k(");
+    expect(preferences).toContain("_result := public.get_group_app_state_v5j(_group_id)");
+    expect(preferences).toContain("FROM public.next_stop_place_supports s");
+    expect(preferences).toContain("AND m.status = 'active'");
     expect(legacyBridge).toContain("bridge_group_next_place_to_v2_proposal");
     expect(legacyBridge).toContain("IF _proposal_count >= 5 THEN");
     expect(legacyBridge).toContain("ON CONFLICT (group_id, place_id) DO NOTHING");
