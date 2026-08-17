@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 defaults:
   run:
@@ -129,20 +129,22 @@ jobs:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
         run: bun run format:check:changed
 
-      - name: Apply exact Prettier output to PR 223 branch
-        if: failure() && github.event_name == 'pull_request' && github.event.pull_request.number == 223 && steps.changes.outputs.has_format == 'true'
+      - name: Create formatting patch on failure
+        if: failure() && steps.changes.outputs.has_format == 'true'
         env:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          git checkout -B "$HEAD_REF" "origin/$HEAD_REF"
           bun run format:changed
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- src/components/matrundan/NextStopCard.tsx src/lib/matrundan/next-stop-v2-db-contract.test.ts src/lib/matrundan/next-stop-v2-focus-policy-db-contract.test.ts src/lib/matrundan/use-next-stop-v2.ts 'src/routes/matstallen.$placeId.tsx' tests/e2e/package-5d-next-stop-date.spec.ts
-          git diff --cached --check
-          git commit -m "Formatera #106-kandidaten"
-          git push origin "HEAD:$HEAD_REF"
+          git diff --binary > formatting.patch
+
+      - name: Upload formatting patch
+        if: failure() && steps.changes.outputs.has_format == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatting-patch
+          path: formatting.patch
+          if-no-files-found: error
+          retention-days: 5
 
       - name: ESLint changed code
         if: steps.changes.outputs.has_code == 'true'
