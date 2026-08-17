@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
 const migration = await Bun.file("supabase/migrations/20260816183000_next_stop_v2.sql").text();
+const focusModel = await Bun.file(
+  "supabase/migrations/20260817071000_next_stop_v2_focus_model.sql",
+).text();
 const legacyBridge = await Bun.file(
   "supabase/migrations/20260816183100_next_stop_v2_legacy_selection_bridge.sql",
 ).text();
@@ -21,28 +24,28 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(migration).toContain("public.has_membership(_group_id, _uid)");
   });
 
-  test("förslag och positiv ställessignal är separata från det bestämda stoppet", () => {
+  test("förslag och positiv ställessignal bevaras separat från fokus", () => {
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.propose_next_stop_place_v2(");
     expect(migration).toContain(
       "CREATE OR REPLACE FUNCTION public.set_next_stop_place_support_v2(",
     );
-    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.select_next_stop_place_v2(");
-    expect(migration).toContain("IF _proposal_count >= 5 THEN");
-    expect(migration).toContain("INSERT INTO public.group_next_place");
+    expect(focusModel).toContain("CREATE OR REPLACE FUNCTION public.select_next_stop_place_v2(");
+    expect(focusModel).toContain("IF _proposal_count >= 5 THEN");
+    expect(focusModel).toContain("IF _current_place_id IS NULL THEN");
   });
 
-  test("dag kan finnas utan ställe men tid kräver dag", () => {
-    expect(migration).toContain("next_stop_plans_time_requires_date");
-    expect(migration).toContain("_planned_time IS NOT NULL AND _planned_date IS NULL");
-    expect(migration).toContain("Europe/Stockholm");
+  test("slutmodellen är dag-only", () => {
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.set_next_stop_schedule_v2(");
+    expect(focusModel).toContain("next_stop_plans_no_time CHECK (planned_time IS NULL)");
+    expect(focusModel).toContain("Nästa stopp använder bara dag, inte klockslag");
+    expect(focusModel).toContain("Europe/Stockholm");
   });
 
-  test("samtidiga beslut skyddas av grupp-lås och revision", () => {
+  test("samtidiga byten skyddas av grupp-lås och revision", () => {
     expect(migration).toContain("pg_advisory_xact_lock");
     expect(migration).toContain("next_stop_v2_assert_revision");
     expect(migration).toContain("Planeringen ändrades nyss av någon annan");
-    expect(migration).toContain("_expected_revision bigint DEFAULT NULL");
+    expect(focusModel).toContain("_expected_revision bigint DEFAULT NULL");
   });
 
   test("verkligt originalbesök avslutar relevant plan men delat besök gör det inte", () => {
@@ -56,16 +59,18 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(migration).toContain("DELETE FROM public.next_stop_plans WHERE group_id = NEW.group_id");
   });
 
-  test("arkivering av valt ställe får lämna kvar gruppens gemensamma dag", () => {
+  test("arkivering kan flytta fokus utan att skapa ett öppet val-läge", () => {
     expect(archiveBridge).toContain(
       "CREATE OR REPLACE FUNCTION public.archive_group_place(_group_id uuid, _place_id uuid)",
     );
-    expect(archiveBridge).toContain("set_config('matrundan.next_stop_v2_sync', '1', true)");
-    expect(archiveBridge).toContain("DELETE FROM public.group_next_place");
-    expect(archiveBridge).toContain("set_config('matrundan.next_stop_v2_sync', '', true)");
+    expect(focusModel).toContain(
+      "CREATE OR REPLACE FUNCTION public.cleanup_next_stop_proposal_on_place_archive_v2()",
+    );
+    expect(focusModel).toContain("_replacement_place_id uuid");
+    expect(focusModel).toContain("ORDER BY p.created_at, p.id");
   });
 
-  test("v5k är additiv ovanpå v5j och legacy-val tappar inte diskussion tyst", () => {
+  test("v5k är additiv ovanpå v5j och legacy-val tappar inte alternativ tyst", () => {
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_group_app_state_v5k(");
     expect(migration).toContain("_result := public.get_group_app_state_v5j(_group_id)");
     expect(legacyBridge).toContain("bridge_group_next_place_to_v2_proposal");
