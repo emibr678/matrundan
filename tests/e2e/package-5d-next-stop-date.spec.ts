@@ -51,19 +51,46 @@ test("hybridkortet behåller v1-hierarkin men flera ställesförslag", async ({ 
   const focused = page.locator('[data-next-stop-proposal="selected"]');
   await expect(focused).toBeVisible();
   await expect(focused.getByText(/föreslog/i)).toBeVisible();
+  await expect(focused.getByRole("button", { name: /Jag vill hit/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Slumpa förslag" })).toBeVisible();
   await expect(page.getByText(/Går gärna hit/i)).toHaveCount(0);
   await expect(page.getByText(/18:30|19:15/)).toHaveCount(0);
 
   await proposeAlternativeFromDetail(page);
-  const accordion = page.getByRole("button", { name: "Andra förslag (1)" });
+  const accordion = page.getByRole("button", { name: /Andra förslag \(1\)/ });
   await expect(accordion).toHaveAttribute("aria-expanded", "false");
   await accordion.click();
 
   const alternative = page.locator('[data-next-stop-proposal="alternative"]');
   await expect(alternative.getByText(/föreslog/i)).toBeVisible();
+  await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toBeVisible();
   await expect(alternative.getByRole("button", { name: "Välj ställe" })).toBeVisible();
-  await expect(alternative.getByText(/Går gärna hit/i)).toHaveCount(0);
+  await expectNoOverflow(page);
+});
+
+test("Jag vill hit kan markeras på både fokus och alternativ utan att byta stopp", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemo(page);
+  await proposeAlternativeFromDetail(page);
+
+  const focused = page.locator('[data-next-stop-proposal="selected"]');
+  const beforeName = await focused.getByRole("heading").textContent();
+  const focusedSupport = focused.getByRole("button", { name: /Jag vill hit/ });
+  if ((await focusedSupport.getAttribute("aria-pressed")) !== "true") await focusedSupport.click();
+  await expect(focusedSupport).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", { name: /Andra förslag \(1\)/ }).click();
+  const alternativeSupport = page
+    .locator('[data-next-stop-proposal="alternative"]')
+    .getByRole("button", { name: /Jag vill hit/ });
+  if ((await alternativeSupport.getAttribute("aria-pressed")) !== "true") await alternativeSupport.click();
+  await expect(alternativeSupport).toHaveAttribute("aria-pressed", "true");
+
+  const afterName = await page
+    .locator('[data-next-stop-proposal="selected"]')
+    .getByRole("heading")
+    .textContent();
+  expect(afterName).toBe(beforeName);
   await expectNoOverflow(page);
 });
 
@@ -86,7 +113,7 @@ test("dagen använder bara Jag kan och Jag kan inte i en bottom sheet", async ({
   await expectNoOverflow(page);
 });
 
-test("dagbyte nollställer gruppens dagsvar", async ({ page }) => {
+test("föreslå annan dag nollställer gruppens dagsvar", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
 
@@ -96,8 +123,8 @@ test("dagbyte nollställer gruppens dagsvar", async ({ page }) => {
   if ((await canButton.getAttribute("aria-pressed")) !== "true") await canButton.click();
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
 
-  await sheet.getByRole("button", { name: "Ändra dag" }).click();
-  const dateDialog = page.getByRole("dialog", { name: "Ändra dag" });
+  await sheet.getByRole("button", { name: "Föreslå annan dag" }).click();
+  const dateDialog = page.getByRole("dialog", { name: "Föreslå annan dag" });
   await dateDialog.getByLabel("Dag").fill(futureDate(14));
   await dateDialog.getByRole("button", { name: "Spara" }).click();
 
@@ -111,7 +138,7 @@ test("dagbyte nollställer gruppens dagsvar", async ({ page }) => {
   await expectNoOverflow(page);
 });
 
-test("Välj ställe bevarar dag och dagsvar men flyttar fokus", async ({ page }) => {
+test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
   await proposeAlternativeFromDetail(page);
@@ -129,13 +156,15 @@ test("Välj ställe bevarar dag och dagsvar men flyttar fokus", async ({ page })
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "Andra förslag (1)" }).click();
-  await page
-    .locator('[data-next-stop-proposal="alternative"]')
-    .getByRole("button", { name: "Välj ställe" })
-    .click();
+  await page.getByRole("button", { name: /Andra förslag \(1\)/ }).click();
+  const alternative = page.locator('[data-next-stop-proposal="alternative"]');
+  const support = alternative.getByRole("button", { name: /Jag vill hit/ });
+  if ((await support.getAttribute("aria-pressed")) !== "true") await support.click();
+  await expect(support).toHaveAttribute("aria-pressed", "true");
+
+  await alternative.getByRole("button", { name: "Välj ställe" }).click();
   const switchDialog = page.getByRole("dialog", { name: "Välj det här stället?" });
-  await expect(switchDialog).toContainText("Dagen och gruppens dagsvar ligger kvar");
+  await expect(switchDialog).toContainText("Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar");
   await switchDialog.getByRole("button", { name: "Välj ställe" }).click();
 
   const afterName = await page
@@ -144,6 +173,9 @@ test("Välj ställe bevarar dag och dagsvar men flyttar fokus", async ({ page })
     .textContent();
   expect(afterName).not.toBe(beforeName);
   await expect(dayRow(page)).toHaveAttribute("aria-label", beforeDay ?? "");
+  await expect(
+    page.locator('[data-next-stop-proposal="selected"]').getByRole("button", { name: /Jag vill hit/ }),
+  ).toHaveAttribute("aria-pressed", "true");
 
   await dayRow(page).click();
   sheet = page.getByRole("dialog");
@@ -164,7 +196,7 @@ test("Slumpa förslag lägger till alternativ utan att skriva över nästa stopp
     .textContent();
   await page.getByRole("button", { name: "Slumpa förslag" }).click();
 
-  await expect(page.getByRole("button", { name: "Andra förslag (1)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Andra förslag \(1\)/ })).toBeVisible();
   const after = await page
     .locator('[data-next-stop-proposal="selected"]')
     .getByRole("heading")
@@ -188,7 +220,7 @@ test("matställedetaljen skapar ett alternativ utan att ersätta nästa stopp", 
     .getByRole("heading")
     .textContent();
   expect(after).toBe(before);
-  await expect(page.getByRole("button", { name: "Andra förslag (1)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Andra förslag \(1\)/ })).toBeVisible();
 });
 
 test("passerad dag frågar vad som hände utan att återinföra tid", async ({ page }) => {
