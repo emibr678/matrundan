@@ -162,7 +162,6 @@ test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", a
     .locator('[data-next-stop-proposal="selected"]')
     .getByRole("heading")
     .textContent();
-  const beforeDay = await dayRow(page).getAttribute("aria-label");
 
   await dayRow(page).click();
   let sheet = page.getByRole("dialog");
@@ -170,6 +169,7 @@ test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", a
   if ((await canButton.getAttribute("aria-pressed")) !== "true") await canButton.click();
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape");
+  const beforeDay = await dayRow(page).getAttribute("aria-label");
 
   await page.getByRole("button", { name: /Andra förslag \(1\)/ }).click();
   const alternative = page.locator('[data-next-stop-proposal="alternative"]');
