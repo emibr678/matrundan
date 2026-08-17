@@ -36,6 +36,12 @@ function exampleNextStopState(state: AppState): NextStopState | null {
   if (!primaryPlaceId && !alternativePlaceId) return null;
 
   const createdAt = state.nextStopDateProposal?.createdAt ?? state.group.createdAt;
+  const primarySupports = ["m1", "m2", "m3", "m5"]
+    .filter((memberId) => state.members.some((member) => member.id === memberId))
+    .map((memberId) => ({ memberId, updatedAt: createdAt }));
+  const alternativeSupports = ["m2", "m4"]
+    .filter((memberId) => state.members.some((member) => member.id === memberId))
+    .map((memberId) => ({ memberId, updatedAt: createdAt }));
   const proposals: NextStopPlaceProposal[] = [];
 
   if (primaryPlaceId) {
@@ -44,7 +50,7 @@ function exampleNextStopState(state: AppState): NextStopState | null {
       placeId: primaryPlaceId,
       proposedBy: "m1",
       createdAt,
-      supports: [],
+      supports: primarySupports,
     });
   }
   if (alternativePlaceId && alternativePlaceId !== primaryPlaceId) {
@@ -53,7 +59,7 @@ function exampleNextStopState(state: AppState): NextStopState | null {
       placeId: alternativePlaceId,
       proposedBy: "m2",
       createdAt,
-      supports: [],
+      supports: alternativeSupports,
     });
   }
 
@@ -111,6 +117,18 @@ export async function liveProposeNextStopPlaceV2(
   );
   scheduleNotificationFlush();
   return proposalId;
+}
+
+export async function liveSetNextStopPlaceSupportV2(
+  groupId: string,
+  proposalId: string,
+  supported: boolean,
+): Promise<void> {
+  await rpcClient.callVoid("set_next_stop_place_support_v2", {
+    _group_id: groupId,
+    _proposal_id: proposalId,
+    _supported: supported,
+  });
 }
 
 export async function liveSelectNextStopPlaceV2(
