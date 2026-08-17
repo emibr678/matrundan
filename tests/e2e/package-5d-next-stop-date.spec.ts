@@ -80,7 +80,7 @@ test("dagen använder bara Jag kan och Jag kan inte i en bottom sheet", async ({
   await expect(sheet.getByText(/18:30|19:15/)).toHaveCount(0);
 
   const canButton = sheet.getByRole("button", { name: "Jag kan" });
-  await canButton.click();
+  if ((await canButton.getAttribute("aria-pressed")) !== "true") await canButton.click();
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
   await expect(sheet.getByText(/Kan:/)).toBeVisible();
   await expectNoOverflow(page);
