@@ -23,7 +23,7 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
 
   await page.getByRole("button", { name: /Öppna dagsvaren för/ }).click();
   const planning = page.getByRole("dialog");
-  const canButton = planning.getByRole("button", { name: "Jag kan" });
+  const canButton = planning.getByRole("button", { name: "Jag kan", exact: true });
   await canButton.click();
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
   await expect(planning.getByText(/Kan:/)).toBeVisible();
