@@ -79,7 +79,7 @@ function legacyResponsesForState(
     return [];
   }
 
-  return proposal.responses.flatMap((item) => {
+  return proposal.responses.flatMap<DayResponse>((item) => {
     if (item.response === "fits") {
       return [{ memberId: item.memberId, response: "can" as const, updatedAt: item.updatedAt }];
     }
