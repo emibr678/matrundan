@@ -4,13 +4,14 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Flag,
   Loader2,
   MapPin,
   MoreHorizontal,
   Shuffle,
-  ThumbsUp,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,19 +33,35 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   defaultNextStopDateValue,
   formatNextStopDate,
   isPastDateValue,
   localDateValue,
 } from "@/lib/matrundan/next-stop-date";
-import { canWithdrawNextStopProposal } from "@/lib/matrundan/next-stop-v2";
+import {
+  canWithdrawNextStopProposal,
+  type NextStopDayResponseValue,
+} from "@/lib/matrundan/next-stop-v2";
 import { useStore } from "@/lib/matrundan/store";
-import type { NextStopPlaceProposal, Place } from "@/lib/matrundan/types";
+import { CATEGORY_LABEL, type NextStopPlaceProposal, type Place } from "@/lib/matrundan/types";
 import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
 
 type ProposalItem = {
   proposal: NextStopPlaceProposal;
   place: Place;
+};
+
+type DayResponse = {
+  memberId: string;
+  response: NextStopDayResponseValue;
+  updatedAt: string;
 };
 
 export function NextStopCard({
@@ -57,9 +74,10 @@ export function NextStopCard({
   onRegisterVisit: (placeId: string) => void;
 }) {
   const { state, getPlace } = useStore();
-  const { nextStop, backendReady, propose, setSupport, select, withdraw, setSchedule } =
+  const { nextStop, dayResponses, backendReady, propose, select, withdraw, setSchedule, setDayResponse } =
     useNextStopV2();
   const [scheduleOpen, setScheduleOpen] = React.useState(false);
+  const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [switching, setSwitching] = React.useState<NextStopPlaceProposal | null>(null);
   const [otherOpen, setOtherOpen] = React.useState(false);
@@ -78,7 +96,7 @@ export function NextStopCard({
   const otherProposals = focusedItem
     ? proposals.filter((item) => item.proposal.id !== focusedItem.proposal.id)
     : [];
-  const plannedDate = nextStop?.plannedDate ?? null;
+  const plannedDate = focusedItem ? (nextStop?.plannedDate ?? null) : null;
   const passed = plannedDate ? isPastDateValue(plannedDate) : false;
   const canInteract = canWrite && backendReady;
 
@@ -109,6 +127,11 @@ export function NextStopCard({
     setScheduleOpen(true);
   }
 
+  function editScheduleFromSheet() {
+    setPlanningOpen(false);
+    openSchedule();
+  }
+
   async function saveSchedule() {
     if (!date) {
       toast.error("Välj en dag.");
@@ -135,8 +158,18 @@ export function NextStopCard({
       async () => {
         await setSchedule(null);
         setScheduleOpen(false);
+        setPlanningOpen(false);
       },
       "Dagen är borttagen.",
+    );
+  }
+
+  async function respondToDay(response: NextStopDayResponseValue) {
+    const own = dayResponses.find((item) => item.memberId === state.currentUserId)?.response;
+    await run(
+      `day-response:${response}`,
+      () => setDayResponse(own === response ? null : response),
+      own === response ? "Ditt svar är borttaget." : response === "can" ? "Du kan den dagen." : "Du kan inte den dagen.",
     );
   }
 
@@ -162,15 +195,6 @@ export function NextStopCard({
       focusedPlace
         ? `${pick.name} lades till under Andra förslag.`
         : `${pick.name} är gruppens nästa stopp.`,
-    );
-  }
-
-  async function toggleSupport(proposal: NextStopPlaceProposal) {
-    const supported = proposal.supports.some((item) => item.memberId === state.currentUserId);
-    await run(
-      `support:${proposal.id}`,
-      () => setSupport(proposal.id, !supported),
-      supported ? "Din markering är borttagen." : "Markerat: Går gärna hit.",
     );
   }
 
@@ -205,51 +229,37 @@ export function NextStopCard({
     );
   }
 
-  if (passed && plannedDate) {
+  if (passed && plannedDate && focusedItem) {
     return (
       <section>
         <NextStopHeading showShuffle={false} />
-        <Card className="rounded-3xl border-mustard/60 bg-mustard/10 p-5 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-mustard/30">
-              <CalendarDays className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display text-xl font-semibold">Blev det av?</h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                {focusedPlace ? `${focusedPlace.name} var ert nästa stopp.` : "Ni hade tänkt gå ut."}
-              </p>
-              <p className="mt-2 text-sm font-medium">{formatNextStopDate(plannedDate, null)}</p>
-            </div>
-          </div>
-
-          {focusedPlace ? <PlaceIdentity place={focusedPlace} className="mt-4" /> : null}
-
-          <div className="mt-5 grid gap-2">
-            {focusedPlace ? (
+        <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
+          <FocusedPlaceHero item={focusedItem} />
+          <div className="border-t border-border/60 p-4">
+            <h2 className="font-display text-xl font-semibold">Blev det av?</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatNextStopDate(plannedDate, null)} var dagen ni hade tänkt gå hit.
+            </p>
+            <div className="mt-4 grid gap-2">
               <Button
                 type="button"
                 className="min-h-12"
-                onClick={() => onRegisterVisit(focusedPlace.id)}
+                onClick={() => onRegisterVisit(focusedItem.place.id)}
                 disabled={!canWrite}
               >
                 <Check className="h-4 w-4" /> Registrera besöket
               </Button>
-            ) : (
-              <Button asChild className="min-h-12">
-                <Link to="/matstallen">Välj ställe</Link>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11"
+                onClick={() => void clearPassedDate()}
+                disabled={!canInteract || busy !== null}
+              >
+                {busy === "passed" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Det blev inte av
               </Button>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              onClick={() => void clearPassedDate()}
-              disabled={!canInteract || busy !== null}
-            >
-              {busy === "passed" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Det blev inte av
-            </Button>
+            </div>
           </div>
         </Card>
       </section>
@@ -264,38 +274,20 @@ export function NextStopCard({
           busy={busy}
           onShuffle={() => void randomProposal()}
         />
-        <Card className="rounded-3xl border-dashed border-border bg-card p-5 text-center shadow-sm">
-          <div className="text-4xl" aria-hidden="true">
+        <Card className="rounded-3xl border-dashed border-border bg-card p-6 text-center shadow-sm">
+          <div className="text-5xl" aria-hidden="true">
             🎯
           </div>
-          <h2 className="mt-3 font-display text-xl">Vart ska rundan gå härnäst?</h2>
+          <h2 className="mt-3 font-display text-xl">Vart går rundan härnäst?</h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            {plannedDate
-              ? `${formatNextStopDate(plannedDate, null)} är satt. Välj ett ställe när ni är redo.`
-              : "Föreslå ett ställe. Det första blir nästa stopp och fler idéer sparas som alternativ."}
+            Föreslå ett ställe. Det första blir nästa stopp och fler idéer sparas som alternativ.
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <div className="mt-4 flex justify-center">
             <Button asChild>
               <Link to="/matstallen">Föreslå ett ställe</Link>
             </Button>
-            {canInteract ? (
-              <Button type="button" variant="outline" onClick={openSchedule}>
-                <CalendarDays className="h-4 w-4" />
-                {plannedDate ? "Ändra dag" : "Lägg till dag"}
-              </Button>
-            ) : null}
           </div>
         </Card>
-        <ScheduleDialog
-          open={scheduleOpen}
-          onOpenChange={setScheduleOpen}
-          plannedDate={plannedDate}
-          date={date}
-          onDateChange={setDate}
-          busy={busy}
-          onSave={() => void saveSchedule()}
-          onRemove={() => void removeDate()}
-        />
       </section>
     );
   }
@@ -311,42 +303,43 @@ export function NextStopCard({
         onShuffle={() => void randomProposal()}
       />
 
-      <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-4 shadow-sm sm:p-5">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-          <div data-next-stop-proposal="selected">
-            <PlaceIdentity place={focusedItem.place} prominent>
-              <ProposalContext
-                proposal={focusedItem.proposal}
-                canInteract={canInteract}
-                busy={busy}
-                onSupport={() => void toggleSupport(focusedItem.proposal)}
-                indentClassName=""
-              />
-            </PlaceIdentity>
-          </div>
+      <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
+        <div className="relative">
+          <FocusedPlaceHero item={focusedItem} />
           {showFocusedActions ? (
-            <FocusedActionsMenu
-              plannedDate={plannedDate}
-              canRemove={canRemoveFocused}
-              busy={busy}
-              onEditDate={openSchedule}
-              onRemoveDate={() => void removeDate()}
-              onWithdraw={() => withdrawProposal(focusedItem)}
-            />
+            <div className="absolute right-3 top-3">
+              <FocusedActionsMenu
+                plannedDate={plannedDate}
+                canRemove={canRemoveFocused}
+                busy={busy}
+                onEditDate={openSchedule}
+                onRemoveDate={() => void removeDate()}
+                onWithdraw={() => withdrawProposal(focusedItem)}
+              />
+            </div>
           ) : null}
         </div>
 
-        <DateLine plannedDate={plannedDate} canInteract={canInteract} onEditDate={openSchedule} />
+        <DayRow
+          plannedDate={plannedDate}
+          dayResponses={dayResponses}
+          currentUserId={state.currentUserId}
+          canInteract={canInteract}
+          onOpenPlanning={() => setPlanningOpen(true)}
+          onAddDate={openSchedule}
+        />
 
         {canWrite ? (
-          <Button
-            type="button"
-            onClick={() => onRegisterVisit(focusedItem.place.id)}
-            className="mt-3 h-12 w-full text-base"
-            size="lg"
-          >
-            <Check className="h-4 w-4" /> Registrera besök
-          </Button>
+          <div className="border-t border-border/60 p-4">
+            <Button
+              type="button"
+              onClick={() => onRegisterVisit(focusedItem.place.id)}
+              className="h-12 w-full text-base"
+              size="lg"
+            >
+              <Check className="h-4 w-4" /> Registrera besök
+            </Button>
+          </div>
         ) : null}
       </Card>
 
@@ -373,7 +366,6 @@ export function NextStopCard({
                   item={item}
                   canInteract={canInteract}
                   busy={busy}
-                  onSupport={() => void toggleSupport(item.proposal)}
                   onSwitch={() => setSwitching(item.proposal)}
                   onWithdraw={() => withdrawProposal(item)}
                 />
@@ -396,6 +388,19 @@ export function NextStopCard({
         </div>
       ) : null}
 
+      <DayPlanningSheet
+        open={planningOpen && Boolean(plannedDate)}
+        onOpenChange={setPlanningOpen}
+        plannedDate={plannedDate}
+        responses={dayResponses}
+        currentUserId={state.currentUserId}
+        members={state.members}
+        canInteract={canInteract}
+        busy={busy}
+        onRespond={(response) => void respondToDay(response)}
+        onEditDate={editScheduleFromSheet}
+        onRemoveDate={() => void removeDate()}
+      />
       <ScheduleDialog
         open={scheduleOpen}
         onOpenChange={setScheduleOpen}
@@ -457,127 +462,180 @@ function proposerLabel(
 ): string {
   if (!proposal.proposedBy) return "Föreslaget tidigare";
   const member = state.members.find((item) => item.id === proposal.proposedBy);
-  return member ? `${member.name} föreslog` : "Föreslaget tidigare";
+  return member
+    ? `${member.avatar ? `${member.avatar} ` : ""}${member.name} föreslog`
+    : "Föreslaget tidigare";
 }
 
-function SupportButton({
-  proposal,
-  canInteract,
-  busy,
-  onSupport,
-}: {
-  proposal: NextStopPlaceProposal;
-  canInteract: boolean;
-  busy: string | null;
-  onSupport: () => void;
-}) {
+function FocusedPlaceHero({ item }: { item: ProposalItem }) {
   const { state } = useStore();
-  const supported = proposal.supports.some((support) => support.memberId === state.currentUserId);
-  const count = proposal.supports.length;
-
-  if (!canInteract) {
-    return count > 0 ? <span>· {count} går gärna hit</span> : null;
-  }
-
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant={supported ? "secondary" : "outline"}
-      className="h-9 min-h-9 rounded-full px-3 text-xs"
-      aria-pressed={supported}
-      disabled={busy !== null}
-      onClick={onSupport}
+    <Link
+      to="/matstallen/$placeId"
+      params={{ placeId: item.place.id }}
+      data-next-stop-proposal="selected"
+      className="block bg-gradient-to-br from-primary/85 to-primary p-6 pr-14 text-primary-foreground transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      aria-label={`Öppna ${item.place.name}`}
     >
-      {busy === `support:${proposal.id}` ? (
-        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-      ) : (
-        <ThumbsUp className={supported ? "h-3.5 w-3.5 shrink-0 fill-current" : "h-3.5 w-3.5 shrink-0"} />
-      )}
-      Går gärna hit{count > 0 ? ` · ${count}` : ""}
-    </Button>
+      <div className="text-6xl" aria-hidden="true">
+        {item.place.photo ?? "🍽️"}
+      </div>
+      <div className="mt-3 min-w-0">
+        <div className="text-xs tracking-wide opacity-80">{CATEGORY_LABEL[item.place.category]}</div>
+        <h2 className="font-display text-3xl font-semibold leading-tight [overflow-wrap:anywhere]">
+          {item.place.name}
+        </h2>
+        <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
+          <MapPin className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">
+            {item.place.address}, {item.place.city}
+          </span>
+        </div>
+        <div className="mt-2 text-xs opacity-85">{proposerLabel(item.proposal, state)}</div>
+      </div>
+    </Link>
   );
 }
 
-function ProposalContext({
-  proposal,
-  canInteract,
-  busy,
-  onSupport,
-  indentClassName = "pl-[4.75rem]",
-}: {
-  proposal: NextStopPlaceProposal;
-  canInteract: boolean;
-  busy: string | null;
-  onSupport: () => void;
-  indentClassName?: string;
-}) {
-  const { state } = useStore();
-
-  return (
-    <div
-      className={`mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 ${indentClassName} text-xs text-muted-foreground`}
-    >
-      <span>{proposerLabel(proposal, state)}</span>
-      <SupportButton proposal={proposal} canInteract={canInteract} busy={busy} onSupport={onSupport} />
-    </div>
+function responseCounts(responses: DayResponse[]) {
+  return responses.reduce(
+    (counts, response) => {
+      counts[response.response] += 1;
+      return counts;
+    },
+    { can: 0, cannot: 0 },
   );
 }
 
-function DateLine({
+function dayResponseSummary(responses: DayResponse[]): string {
+  const counts = responseCounts(responses);
+  if (counts.can === 0 && counts.cannot === 0) return "Ingen har svarat än";
+  return [counts.can > 0 ? `${counts.can} kan` : null, counts.cannot > 0 ? `${counts.cannot} kan inte` : null]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function ownDayResponseSummary(
+  responses: DayResponse[],
+  currentUserId: string,
+): { text: string; answered: boolean } {
+  const response = responses.find((item) => item.memberId === currentUserId)?.response;
+  if (response === "can") return { text: "Du kan", answered: true };
+  if (response === "cannot") return { text: "Du kan inte", answered: true };
+  return { text: "Du har inte svarat än", answered: false };
+}
+
+function DayRow({
   plannedDate,
+  dayResponses,
+  currentUserId,
   canInteract,
-  onEditDate,
+  onOpenPlanning,
+  onAddDate,
 }: {
   plannedDate: string | null;
+  dayResponses: DayResponse[];
+  currentUserId: string;
   canInteract: boolean;
-  onEditDate: () => void;
+  onOpenPlanning: () => void;
+  onAddDate: () => void;
 }) {
   if (!plannedDate) {
     if (!canInteract) return null;
     return (
-      <div className="mt-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="min-h-10 px-2 text-xs font-normal text-muted-foreground"
-          onClick={onEditDate}
-        >
-          <CalendarDays className="h-4 w-4" /> Lägg till dag
-        </Button>
-      </div>
+      <button
+        type="button"
+        className="flex min-h-14 w-full items-center gap-3 border-t border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/30"
+        onClick={onAddDate}
+      >
+        <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+        <span className="min-w-0 flex-1 text-sm text-muted-foreground">Ingen dag planerad</span>
+        <span className="text-sm font-medium text-primary">Lägg till dag</span>
+      </button>
     );
   }
 
+  const own = ownDayResponseSummary(dayResponses, currentUserId);
   return (
-    <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-      <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span className="min-w-0 truncate">{formatNextStopDate(plannedDate, null)}</span>
+    <button
+      type="button"
+      className="flex min-h-20 w-full items-center gap-3 border-t border-border/60 px-4 py-2.5 text-left transition-colors hover:bg-muted/30"
+      onClick={onOpenPlanning}
+      aria-label={`Öppna dagsvaren för ${formatNextStopDate(plannedDate, null)}. ${own.text}`}
+    >
+      <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium">{formatNextStopDate(plannedDate, null)}</span>
+        <span
+          className={`mt-0.5 block text-xs ${own.answered ? "text-muted-foreground" : "font-medium text-primary"}`}
+        >
+          {own.text}
+        </span>
+        <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+          {dayResponseSummary(dayResponses)}
+        </span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
+  );
+}
+
+function ProposalRow({
+  item,
+  canInteract,
+  busy,
+  onSwitch,
+  onWithdraw,
+}: {
+  item: ProposalItem;
+  canInteract: boolean;
+  busy: string | null;
+  onSwitch: () => void;
+  onWithdraw: () => void;
+}) {
+  const { state } = useStore();
+  const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
+
+  return (
+    <div data-next-stop-proposal="alternative" className="py-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+        <PlaceIdentity place={item.place} />
+        {canRemove ? (
+          <ProposalMenu
+            placeName={item.place.name}
+            busy={busy === `withdraw:${item.proposal.id}`}
+            onWithdraw={onWithdraw}
+          />
+        ) : null}
+      </div>
+      <div className="mt-1.5 flex min-h-9 items-center justify-between gap-2 pl-[3.75rem]">
+        <span className="min-w-0 truncate text-xs text-muted-foreground">
+          {proposerLabel(item.proposal, state)}
+        </span>
+        {canInteract ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-9 min-h-9 shrink-0 rounded-full border-primary/40 px-3 text-xs text-primary"
+            onClick={onSwitch}
+            disabled={busy !== null}
+          >
+            Välj ställe
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function PlaceIdentity({
-  place,
-  prominent = false,
-  className = "",
-  children,
-}: {
-  place: Place;
-  prominent?: boolean;
-  className?: string;
-  children?: React.ReactNode;
-}) {
+function PlaceIdentity({ place }: { place: Place }) {
   return (
-    <div className={`flex min-w-0 items-start gap-3 ${className}`}>
+    <div className="flex min-w-0 items-start gap-3">
       <Link
         to="/matstallen/$placeId"
         params={{ placeId: place.id }}
-        className={[
-          "grid shrink-0 place-items-center rounded-2xl bg-secondary outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          prominent ? "h-16 w-16 text-3xl" : "h-12 w-12 text-2xl",
-        ].join(" ")}
+        className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-secondary text-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`Öppna ${place.name}`}
       >
         {place.photo ?? "🍽️"}
@@ -586,10 +644,7 @@ function PlaceIdentity({
         <Link
           to="/matstallen/$placeId"
           params={{ placeId: place.id }}
-          className={[
-            "block font-display font-semibold leading-tight hover:underline",
-            prominent ? "text-2xl" : "text-base sm:text-lg",
-          ].join(" ")}
+          className="block font-display text-base font-semibold leading-tight hover:underline sm:text-lg"
         >
           {place.name}
         </Link>
@@ -599,71 +654,145 @@ function PlaceIdentity({
             {place.address}, {place.city}
           </span>
         </div>
-        {children}
       </div>
     </div>
   );
 }
 
-function ProposalRow({
-  item,
+function DayPlanningSheet({
+  open,
+  onOpenChange,
+  plannedDate,
+  responses,
+  currentUserId,
+  members,
   canInteract,
   busy,
-  onSupport,
-  onSwitch,
-  onWithdraw,
+  onRespond,
+  onEditDate,
+  onRemoveDate,
 }: {
-  item: ProposalItem;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  plannedDate: string | null;
+  responses: DayResponse[];
+  currentUserId: string;
+  members: ReturnType<typeof useStore>["state"]["members"];
   canInteract: boolean;
   busy: string | null;
-  onSupport: () => void;
-  onSwitch: () => void;
-  onWithdraw: () => void;
+  onRespond: (response: NextStopDayResponseValue) => void;
+  onEditDate: () => void;
+  onRemoveDate: () => void;
 }) {
-  const { state } = useStore();
-  const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
-  const count = item.proposal.supports.length;
+  if (!plannedDate) return null;
+  const ownResponse = responses.find((item) => item.memberId === currentUserId)?.response;
+  const canMembers = responses
+    .filter((item) => item.response === "can")
+    .map((item) => members.find((member) => member.id === item.memberId))
+    .filter((member): member is NonNullable<typeof member> => Boolean(member));
+  const cannotMembers = responses
+    .filter((item) => item.response === "cannot")
+    .map((item) => members.find((member) => member.id === item.memberId))
+    .filter((member): member is NonNullable<typeof member> => Boolean(member));
 
   return (
-    <div data-next-stop-proposal="alternative" className="py-2.5">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-        <div className="min-w-0">
-          <PlaceIdentity place={item.place}>
-            <div className="mt-1.5 text-xs text-muted-foreground">
-              {proposerLabel(item.proposal, state)}
-              {!canInteract && count > 0 ? ` · ${count} går gärna hit` : ""}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[85dvh] overflow-y-auto rounded-t-3xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:px-6"
+      >
+        <SheetHeader className="pr-8 text-left">
+          <SheetTitle className="font-display text-2xl">{formatNextStopDate(plannedDate, null)}</SheetTitle>
+          <SheetDescription>Svara om dagen fungerar för dig och se gruppens svar.</SheetDescription>
+        </SheetHeader>
+
+        {canInteract ? (
+          <section className="mt-5">
+            <h3 className="mb-2 text-sm font-medium">Kan du den dagen?</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={ownResponse === "can" ? "secondary" : "outline"}
+                className="min-h-16 flex-col gap-1"
+                aria-pressed={ownResponse === "can"}
+                disabled={busy !== null}
+                onClick={() => onRespond("can")}
+              >
+                {busy === "day-response:can" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                Jag kan
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className={[
+                  "min-h-16 flex-col gap-1",
+                  ownResponse === "cannot" ? "border-destructive/60 bg-destructive/10" : "",
+                ].join(" ")}
+                aria-pressed={ownResponse === "cannot"}
+                disabled={busy !== null}
+                onClick={() => onRespond("cannot")}
+              >
+                {busy === "day-response:cannot" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
+                Jag kan inte
+              </Button>
             </div>
-          </PlaceIdentity>
-        </div>
-        {canRemove ? (
-          <ProposalMenu
-            placeName={item.place.name}
-            busy={busy === `withdraw:${item.proposal.id}`}
-            onWithdraw={onWithdraw}
-          />
+          </section>
         ) : null}
-      </div>
-      {canInteract ? (
-        <div className="mt-1.5 flex flex-wrap gap-2 pl-[3.75rem]">
-          <SupportButton
-            proposal={item.proposal}
-            canInteract={canInteract}
-            busy={busy}
-            onSupport={onSupport}
-          />
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-9 min-h-9 rounded-full border-primary/40 px-3 text-xs text-primary"
-            onClick={onSwitch}
-            disabled={busy !== null}
-          >
-            Välj ställe
-          </Button>
-        </div>
-      ) : null}
-    </div>
+
+        <section className="mt-5">
+          <h3 className="text-sm font-medium">Gruppens svar</h3>
+          {canMembers.length > 0 || cannotMembers.length > 0 ? (
+            <div className="mt-2 space-y-2 rounded-2xl bg-muted/35 p-3">
+              {canMembers.length > 0 ? (
+                <div className="text-sm leading-relaxed">
+                  <span className="font-medium">Kan:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {canMembers.map((member) => `${member.avatar ?? ""} ${member.name}`.trim()).join(", ")}
+                  </span>
+                </div>
+              ) : null}
+              {cannotMembers.length > 0 ? (
+                <div className="text-sm leading-relaxed">
+                  <span className="font-medium">Kan inte:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {cannotMembers
+                      .map((member) => `${member.avatar ?? ""} ${member.name}`.trim())
+                      .join(", ")}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-muted-foreground">Ingen har svarat än.</p>
+          )}
+        </section>
+
+        {canInteract ? (
+          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-border/60 pt-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={busy !== null}
+              onClick={onRemoveDate}
+            >
+              Ta bort dag
+            </Button>
+            <Button type="button" variant="outline" className="min-h-11" disabled={busy !== null} onClick={onEditDate}>
+              <CalendarDays className="h-4 w-4" /> Ändra dag
+            </Button>
+          </div>
+        ) : null}
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -692,7 +821,7 @@ function FocusedActionsMenu({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-9 w-9 shrink-0 text-muted-foreground"
+          className="h-9 w-9 shrink-0 rounded-full bg-black/10 text-primary-foreground hover:bg-black/20 hover:text-primary-foreground"
           aria-label="Fler val för nästa stopp"
           disabled={busy !== null}
         >
@@ -775,9 +904,7 @@ function ScheduleDialog({
       <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle>{plannedDate ? "Ändra dag" : "Lägg till dag"}</DialogTitle>
-          <DialogDescription>
-            Lägg till dagen om ni redan vet när nästa stopp blir. Exakt tid och övrig logistik kan ni ta som vanligt i gruppen.
-          </DialogDescription>
+          <DialogDescription>Välj den dag gruppen tänker göra nästa stopp.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
@@ -836,11 +963,11 @@ function SwitchDialog({
     <Dialog open={Boolean(proposal)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Byt nästa stopp?</DialogTitle>
+          <DialogTitle>Välj det här stället?</DialogTitle>
           <DialogDescription>
             {target
-              ? `Ska ${target.name} bli gruppens nästa stopp i stället för ${currentPlace.name}?`
-              : "Byt gruppens nästa stopp till det här förslaget?"}
+              ? `${target.name} blir gruppens nästa stopp i stället för ${currentPlace.name}. Dagen och gruppens dagsvar ligger kvar.`
+              : "Det här förslaget blir gruppens nästa stopp."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -851,7 +978,7 @@ function SwitchDialog({
             {proposal && busy === `select:${proposal.id}` ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : null}
-            Ja, byt nästa stopp
+            Välj ställe
           </Button>
         </DialogFooter>
       </DialogContent>
