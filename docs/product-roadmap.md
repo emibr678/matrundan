@@ -209,19 +209,23 @@ Intern ordning när Paket A återupptas:
 
 - **#106 Nästa stopp v2: enkla förslag utan överskrivning**
 
-Det här är nästa större planeringssteg efter att gruppens genomförda besök både
-kan kompletteras korrekt av faktiska deltagare och presenteras med en tydlig
-omdömes- och pendingloop. Gruppen ska kunna ha flera enkla matställesförslag
-utan att ett nytt förslag skriver över det som redan diskuteras. Medlemmar kan
-markera **Gärna!** på flera alternativ som en social signal; systemet utser
-ingen automatisk vinnare eller ranking.
+Det här är nästa större steg för att göra gruppens val av nästa gemensamma
+matupplevelse lättare utan att Matrundan blir en omröstnings- eller eventapp.
+Det första ställesförslaget blir gruppens **Nästa stopp** direkt. Senare idéer
+bevaras under **Andra förslag** och skriver aldrig över det aktuella stoppet.
+Medlemmar kan markera **Jag vill hit** på ett eller flera ställen och se vem som
+föreslog varje alternativ. Om ett alternativ ensamt har flest markeringar får
+det en diskret **Flest vill hit**-signal, men appen utser aldrig automatiskt en
+vinnare eller byter stopp utan ett uttryckligt **Välj ställe**.
 
-Frågorna **vart** och **när** är båda kärndelar av Nästa stopp och får fyllas i i
-valfri ordning. **När** består i första versionen av en gemensam dag för gruppen,
-med valfri klocktid som detalj till dagen. Flera konkurrerande dagar/tider och en
-Doodle-liknande svarsmatris är uttryckliga icke-mål. Ett verkligt besök förblir
-den kanoniska sanningen och ett passerat datum får aldrig automatiskt skapa
-historik.
+Frågorna **vart** och **vilken dag** får fyllas i i den ordning som passar
+gruppen. Nästa stopp kan ha en gemensam dag utan klockslag. På den dagen kan
+medlemmar svara **Jag kan** eller **Jag kan inte**; uteblivet svar betyder bara
+att personen inte har svarat. Byte av ställe behåller dag och dagsvar medan
+**Föreslå annan dag** börjar om dagsvaren. Flera konkurrerande dagar, klocktid,
+`Osäker` och en Doodle-liknande svarsmatris är uttryckliga icke-mål. Ett verkligt
+besök förblir den kanoniska sanningen och en passerad dag får aldrig automatiskt
+skapa historik.
 
 ## Paket D – Personlig inspiration
 
