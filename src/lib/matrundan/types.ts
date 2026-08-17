@@ -246,9 +246,10 @@ export interface NextStopPlaceProposal {
 }
 
 /**
- * Nästa stopp v2: öppna ställesförslag + en gemensam dag och valfri tid.
- * selectedPlaceId är gruppens uttryckligen bestämda stopp och speglar
- * group_next_place för bakåtkompatibilitet.
+ * Nästa stopp v2: flera bevarade ställesförslag + en gemensam dag utan klockslag.
+ * selectedPlaceId är gruppens aktuella fokuserade nästa stopp och speglar
+ * group_next_place för bakåtkompatibilitet. plannedTime finns endast som
+ * övergångsfält och ska vara null i v2.
  */
 export interface NextStopState {
   revision: number;
@@ -285,7 +286,7 @@ export interface AppState {
   visits: Visit[];
   favorites: Favorite[];
   activity: Activity[];
-  /** Legacy/bakåtkompatibel projektion av ett uttryckligen bestämt nästa stopp. */
+  /** Legacy/bakåtkompatibel projektion av gruppens aktuella fokuserade nästa stopp. */
   nextPlaceId: string | null;
   /** Ett öppet eller bekräftat legacy-datumförslag för äldre klienter. */
   nextStopDateProposal?: NextStopDateProposal | null;
