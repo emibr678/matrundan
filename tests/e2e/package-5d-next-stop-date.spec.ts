@@ -114,12 +114,12 @@ test("dagen använder bara Jag kan och Jag kan inte i en bottom sheet", async ({
   await dayRow(page).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet.getByText("Kan du den dagen?", { exact: true })).toBeVisible();
-  await expect(sheet.getByRole("button", { name: "Jag kan" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Jag kan", exact: true })).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Jag kan inte" })).toBeVisible();
   await expect(sheet.getByText(/Osäker/i)).toHaveCount(0);
   await expect(sheet.getByText(/18:30|19:15/)).toHaveCount(0);
 
-  const canButton = sheet.getByRole("button", { name: "Jag kan" });
+  const canButton = sheet.getByRole("button", { name: "Jag kan", exact: true });
   if ((await canButton.getAttribute("aria-pressed")) !== "true") await canButton.click();
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
   await expect(sheet.getByText(/Kan:/)).toBeVisible();
@@ -133,7 +133,7 @@ test("föreslå annan dag nollställer gruppens dagsvar", async ({ page }) => {
 
   await dayRow(page).click();
   let sheet = page.getByRole("dialog");
-  const canButton = sheet.getByRole("button", { name: "Jag kan" });
+  const canButton = sheet.getByRole("button", { name: "Jag kan", exact: true });
   if ((await canButton.getAttribute("aria-pressed")) !== "true") await canButton.click();
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
 
@@ -144,7 +144,7 @@ test("föreslå annan dag nollställer gruppens dagsvar", async ({ page }) => {
 
   await dayRow(page).click();
   sheet = page.getByRole("dialog");
-  await expect(sheet.getByRole("button", { name: "Jag kan" })).toHaveAttribute(
+  await expect(sheet.getByRole("button", { name: "Jag kan", exact: true })).toHaveAttribute(
     "aria-pressed",
     "false",
   );
@@ -166,7 +166,7 @@ test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", a
 
   await dayRow(page).click();
   let sheet = page.getByRole("dialog");
-  const canButton = sheet.getByRole("button", { name: "Jag kan" });
+  const canButton = sheet.getByRole("button", { name: "Jag kan", exact: true });
   if ((await canButton.getAttribute("aria-pressed")) !== "true") await canButton.click();
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape");
@@ -198,7 +198,7 @@ test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", a
 
   await dayRow(page).click();
   sheet = page.getByRole("dialog");
-  await expect(sheet.getByRole("button", { name: "Jag kan" })).toHaveAttribute(
+  await expect(sheet.getByRole("button", { name: "Jag kan", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
