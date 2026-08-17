@@ -313,7 +313,15 @@ export function NextStopCard({
       <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-4 shadow-sm sm:p-5">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
           <div data-next-stop-proposal="selected">
-            <PlaceIdentity place={focusedItem.place} prominent />
+            <PlaceIdentity place={focusedItem.place} prominent>
+              <ProposalContext
+                proposal={focusedItem.proposal}
+                canInteract={canInteract}
+                busy={busy}
+                onSupport={() => void toggleSupport(focusedItem.proposal)}
+                indentClassName=""
+              />
+            </PlaceIdentity>
           </div>
           {canRemoveFocused ? (
             <ProposalMenu
@@ -323,13 +331,6 @@ export function NextStopCard({
             />
           ) : null}
         </div>
-
-        <ProposalContext
-          proposal={focusedItem.proposal}
-          canInteract={canInteract}
-          busy={busy}
-          onSupport={() => void toggleSupport(focusedItem.proposal)}
-        />
 
         <DateLine
           plannedDate={plannedDate}
@@ -343,7 +344,7 @@ export function NextStopCard({
           <Button
             type="button"
             onClick={() => onRegisterVisit(focusedItem.place.id)}
-            className="mt-4 h-12 w-full text-base"
+            className="mt-3 h-12 w-full text-base"
             size="lg"
           >
             <Check className="h-4 w-4" /> Registrera besök
@@ -480,7 +481,7 @@ function ProposalContext({
 
   return (
     <div
-      className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 ${indentClassName} text-xs text-muted-foreground`}
+      className={`mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 ${indentClassName} text-xs text-muted-foreground`}
     >
       <span>{proposerLabel(proposal, state)}</span>
       {canInteract ? (
@@ -521,7 +522,7 @@ function DateLine({
   if (!plannedDate) {
     if (!canInteract) return null;
     return (
-      <div className="mt-3">
+      <div className="mt-2">
         <Button
           type="button"
           variant="ghost"
@@ -536,7 +537,7 @@ function DateLine({
   }
 
   return (
-    <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+    <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
       <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
         <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span className="min-w-0 truncate">{formatNextStopDate(plannedDate, null)}</span>
@@ -575,10 +576,12 @@ function PlaceIdentity({
   place,
   prominent = false,
   className = "",
+  children,
 }: {
   place: Place;
   prominent?: boolean;
   className?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <div className={`flex min-w-0 items-start gap-3 ${className}`}>
@@ -610,6 +613,7 @@ function PlaceIdentity({
             {place.address}, {place.city}
           </span>
         </div>
+        {children}
       </div>
     </div>
   );
@@ -632,19 +636,21 @@ function ProposalRow({
 }) {
   const { state } = useStore();
   const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
+  const supported = item.proposal.supports.some(
+    (support) => support.memberId === state.currentUserId,
+  );
+  const count = item.proposal.supports.length;
 
   return (
-    <div data-next-stop-proposal="alternative" className="py-3">
+    <div data-next-stop-proposal="alternative" className="py-2.5">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
-          <PlaceIdentity place={item.place} />
-          <ProposalContext
-            proposal={item.proposal}
-            canInteract={canInteract}
-            busy={busy}
-            onSupport={onSupport}
-            indentClassName="pl-[3.75rem]"
-          />
+          <PlaceIdentity place={item.place}>
+            <div className="mt-1.5 text-xs text-muted-foreground">
+              {proposerLabel(item.proposal, state)}
+              {!canInteract && count > 0 ? ` · ${count} går gärna hit` : ""}
+            </div>
+          </PlaceIdentity>
         </div>
         {canRemove ? (
           <ProposalMenu
@@ -655,16 +661,32 @@ function ProposalRow({
         ) : null}
       </div>
       {canInteract ? (
-        <div className="mt-2 pl-[3.75rem]">
+        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2 pl-[3.75rem]">
+          <Button
+            type="button"
+            size="sm"
+            variant={supported ? "secondary" : "outline"}
+            className="min-h-10 min-w-0 justify-center px-3"
+            aria-pressed={supported}
+            disabled={busy !== null}
+            onClick={onSupport}
+          >
+            {busy === `support:${item.proposal.id}` ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <ThumbsUp className={supported ? "h-4 w-4 shrink-0 fill-current" : "h-4 w-4 shrink-0"} />
+            )}
+            <span className="truncate">Går gärna hit{count > 0 ? ` · ${count}` : ""}</span>
+          </Button>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="min-h-10 border-primary/40 text-primary"
+            className="min-h-10 border-primary/40 px-3 text-primary"
             onClick={onSwitch}
             disabled={busy !== null}
           >
-            Byt nästa stopp
+            Välj ställe
           </Button>
         </div>
       ) : null}
