@@ -7,6 +7,8 @@ import type { AppState, NextStopPlaceProposal, NextStopState, Role } from "./typ
 const ID_SCHEMA = z.string().min(1);
 const EXAMPLE_GROUP_ID = "example-stockholm";
 
+export type NextStopDayResponseValue = "can" | "cannot";
+
 function scheduleNotificationFlush(): void {
   void flushNotificationOutbox().catch(() => {
     /* Notiser får aldrig blockera själva skrivningen. */
@@ -27,20 +29,13 @@ function legacyProposal(state: AppState, placeId: string): NextStopPlaceProposal
 }
 
 function exampleNextStopState(state: AppState): NextStopState | null {
-  const primaryPlaceId =
-    state.nextPlaceId ?? state.places.find((place) => place.id === "p5")?.id;
+  const primaryPlaceId = state.nextPlaceId ?? state.places.find((place) => place.id === "p5")?.id;
   const alternativePlaceId = state.places.find(
     (place) => place.id === "p1" && place.collectionStatus !== "archived",
   )?.id;
   if (!primaryPlaceId && !alternativePlaceId) return null;
 
   const createdAt = state.nextStopDateProposal?.createdAt ?? state.group.createdAt;
-  const primarySupports = ["m1", "m2", "m3", "m5"]
-    .filter((memberId) => state.members.some((member) => member.id === memberId))
-    .map((memberId) => ({ memberId, updatedAt: createdAt }));
-  const alternativeSupports = ["m2", "m4"]
-    .filter((memberId) => state.members.some((member) => member.id === memberId))
-    .map((memberId) => ({ memberId, updatedAt: createdAt }));
   const proposals: NextStopPlaceProposal[] = [];
 
   if (primaryPlaceId) {
@@ -49,7 +44,7 @@ function exampleNextStopState(state: AppState): NextStopState | null {
       placeId: primaryPlaceId,
       proposedBy: "m1",
       createdAt,
-      supports: primarySupports,
+      supports: [],
     });
   }
   if (alternativePlaceId && alternativePlaceId !== primaryPlaceId) {
@@ -58,7 +53,7 @@ function exampleNextStopState(state: AppState): NextStopState | null {
       placeId: alternativePlaceId,
       proposedBy: "m2",
       createdAt,
-      supports: alternativeSupports,
+      supports: [],
     });
   }
 
@@ -82,13 +77,13 @@ export function deriveNextStopState(state: AppState): NextStopState | null {
   }
   if (state.group.id === EXAMPLE_GROUP_ID) return exampleNextStopState(state);
 
-  if (!state.nextPlaceId && !state.nextStopDateProposal) return null;
+  if (!state.nextPlaceId) return null;
   return {
     revision: 0,
     plannedDate: state.nextStopDateProposal?.date ?? null,
     plannedTime: null,
     selectedPlaceId: state.nextPlaceId,
-    proposals: state.nextPlaceId ? [legacyProposal(state, state.nextPlaceId)] : [],
+    proposals: [legacyProposal(state, state.nextPlaceId)],
   };
 }
 
@@ -116,18 +111,6 @@ export async function liveProposeNextStopPlaceV2(
   );
   scheduleNotificationFlush();
   return proposalId;
-}
-
-export async function liveSetNextStopPlaceSupportV2(
-  groupId: string,
-  proposalId: string,
-  supported: boolean,
-): Promise<void> {
-  await rpcClient.callVoid("set_next_stop_place_support_v2", {
-    _group_id: groupId,
-    _proposal_id: proposalId,
-    _supported: supported,
-  });
 }
 
 export async function liveSelectNextStopPlaceV2(
@@ -163,5 +146,15 @@ export async function liveSetNextStopDayV2(
     _planned_date: date,
     _planned_time: null,
     _expected_revision: expectedRevision,
+  });
+}
+
+export async function liveSetNextStopDayResponseV2(
+  groupId: string,
+  response: NextStopDayResponseValue | null,
+): Promise<void> {
+  await rpcClient.callVoid("set_next_stop_day_response_v2", {
+    _group_id: groupId,
+    _response: response,
   });
 }
