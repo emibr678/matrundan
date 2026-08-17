@@ -9,6 +9,9 @@ const archiveSync = await Bun.file(
 const hybrid = await Bun.file(
   "supabase/migrations/20260817131000_next_stop_v2_hybrid_day_responses.sql",
 ).text();
+const preferences = await Bun.file(
+  "supabase/migrations/20260817132000_next_stop_v2_place_preferences.sql",
+).text();
 
 describe("fokusmodell för Nästa stopp v2", () => {
   test("första förslaget får momentum utan att senare förslag skriver över", () => {
@@ -31,10 +34,14 @@ describe("fokusmodell för Nästa stopp v2", () => {
     expect(hybrid).toContain("_planned_date := NULL");
   });
 
-  test("platsstöd ersätts av binärt dagsvar", () => {
+  test("dagsvar och platsintresse har separata slutkontrakt", () => {
     expect(hybrid).toContain("DROP TABLE IF EXISTS public.next_stop_place_supports CASCADE");
     expect(hybrid).toContain("CREATE OR REPLACE FUNCTION public.set_next_stop_day_response_v2(");
     expect(hybrid).toContain("_response NOT IN ('can', 'cannot')");
+    expect(preferences).toContain("CREATE TABLE public.next_stop_place_supports");
+    expect(preferences).toContain("CREATE OR REPLACE FUNCTION public.set_next_stop_place_support_v2(");
+    expect(preferences).toContain("Flera ställen får stödjas samtidigt");
+    expect(preferences).toContain("Inga signaler påverkar selectedPlaceId");
   });
 
   test("det separata öppna val-läget är fortsatt borttaget", () => {
