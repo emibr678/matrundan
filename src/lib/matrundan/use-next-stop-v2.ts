@@ -2,11 +2,10 @@ import * as React from "react";
 import {
   canWithdrawNextStopProposal,
   deriveNextStopState,
-  liveClearNextStopSelectionV2,
   liveProposeNextStopPlaceV2,
   liveSelectNextStopPlaceV2,
+  liveSetNextStopDayV2,
   liveSetNextStopPlaceSupportV2,
-  liveSetNextStopScheduleV2,
   liveWithdrawNextStopPlaceV2,
 } from "./next-stop-v2";
 import { useStore } from "./store";
@@ -23,10 +22,15 @@ function storageKey(groupId: string): string {
   return `${DEMO_STORAGE_PREFIX}.${groupId}`;
 }
 
-function sanitizeState(value: NextStopState): NextStopState {
-  // Klockslag är praktisk information om ett bestämt stopp och får aldrig ligga kvar utan det.
-  if (!value.selectedPlaceId && value.plannedTime) return { ...value, plannedTime: null };
-  return value;
+function normalizeState(value: NextStopState): NextStopState {
+  const proposals = Array.isArray(value.proposals) ? value.proposals : [];
+  const selectedExists = proposals.some((proposal) => proposal.placeId === value.selectedPlaceId);
+  return {
+    ...value,
+    plannedTime: null,
+    selectedPlaceId: selectedExists ? value.selectedPlaceId : (proposals[0]?.placeId ?? null),
+    proposals,
+  };
 }
 
 function readDemoState(groupId: string, fallback: NextStopState | null): NextStopState | null {
@@ -34,7 +38,7 @@ function readDemoState(groupId: string, fallback: NextStopState | null): NextSto
     const raw = demoStorage(groupId)?.getItem(storageKey(groupId));
     if (!raw) return fallback;
     const value = JSON.parse(raw) as NextStopState;
-    return value && Array.isArray(value.proposals) ? sanitizeState(value) : fallback;
+    return value && Array.isArray(value.proposals) ? normalizeState(value) : fallback;
   } catch {
     return fallback;
   }
@@ -62,7 +66,10 @@ function dispatchReload(): void {
 
 export function useNextStopV2() {
   const { state, mode } = useStore();
-  const fallback = React.useMemo(() => deriveNextStopState(state), [state]);
+  const fallback = React.useMemo(() => {
+    const derived = deriveNextStopState(state);
+    return derived ? normalizeState(derived) : null;
+  }, [state]);
   const [demoState, setDemoState] = React.useState<NextStopState | null>(() =>
     mode === "demo" ? readDemoState(state.group.id, fallback) : null,
   );
@@ -90,7 +97,8 @@ export function useNextStopV2() {
       } catch {
         /* ignore */
       }
-      setDemoState(deriveNextStopState(state));
+      const derived = deriveNextStopState(state);
+      setDemoState(derived ? normalizeState(derived) : null);
       initialVisitIds.current = new Set(state.visits.map((visit) => visit.id));
     };
     window.addEventListener("matrundan:demo-reset", reset);
@@ -117,10 +125,11 @@ export function useNextStopV2() {
       const selectedPlaceId =
         current.selectedPlaceId && activePlaceIds.has(current.selectedPlaceId)
           ? current.selectedPlaceId
-          : null;
+          : (proposals[0]?.placeId ?? null);
       if (
         proposals.length === current.proposals.length &&
-        selectedPlaceId === current.selectedPlaceId
+        selectedPlaceId === current.selectedPlaceId &&
+        current.plannedTime == null
       ) {
         return current;
       }
@@ -128,8 +137,7 @@ export function useNextStopV2() {
         ...current,
         revision: nextRevision(current),
         selectedPlaceId,
-        // Dagen bevaras, men tiden hör till det bestämda stället.
-        plannedTime: selectedPlaceId ? current.plannedTime : null,
+        plannedTime: null,
         proposals,
       };
     });
@@ -142,10 +150,7 @@ export function useNextStopV2() {
     initialVisitIds.current = new Set(state.visits.map((visit) => visit.id));
     if (addedVisits.length === 0 || !demoState) return;
 
-    const plannedPlaceIds = new Set([
-      ...demoState.proposals.map((proposal) => proposal.placeId),
-      ...(demoState.selectedPlaceId ? [demoState.selectedPlaceId] : []),
-    ]);
+    const plannedPlaceIds = new Set(demoState.proposals.map((proposal) => proposal.placeId));
     const relevantVisit = addedVisits.some(
       (visit) => visit.linkType !== "shared" && plannedPlaceIds.has(visit.placeId),
     );
@@ -169,19 +174,19 @@ export function useNextStopV2() {
       );
     }
 
+    const proposal = {
+      id: `demo-next-stop-${Date.now()}`,
+      placeId,
+      proposedBy: state.currentUserId,
+      createdAt: new Date().toISOString(),
+      supports: [],
+    };
     setDemoState({
       ...base,
       revision: nextRevision(base),
-      proposals: [
-        ...base.proposals,
-        {
-          id: `demo-next-stop-${Date.now()}`,
-          placeId,
-          proposedBy: state.currentUserId,
-          createdAt: new Date().toISOString(),
-          supports: [],
-        },
-      ],
+      plannedTime: null,
+      selectedPlaceId: base.selectedPlaceId ?? placeId,
+      proposals: [...base.proposals, proposal],
     });
   }
 
@@ -231,22 +236,6 @@ export function useNextStopV2() {
       ...demoState,
       revision: nextRevision(demoState),
       selectedPlaceId: proposal.placeId,
-    });
-  }
-
-  async function clearSelection(): Promise<void> {
-    const revision = nextStop?.revision ?? 1;
-    if (mode === "live") {
-      await liveClearNextStopSelectionV2(state.group.id, revision);
-      dispatchReload();
-      return;
-    }
-    if (!demoState?.selectedPlaceId) return;
-    setDemoState({
-      ...demoState,
-      revision: nextRevision(demoState),
-      selectedPlaceId: null,
-      // Dagen behålls, men klockslaget hörde till det bestämda stället.
       plannedTime: null,
     });
   }
@@ -263,39 +252,37 @@ export function useNextStopV2() {
     if (!canWithdrawNextStopProposal(state, proposal)) {
       throw new Error("Du kan bara ta bort egna förslag.");
     }
-    const clearedSelection = demoState.selectedPlaceId === proposal.placeId;
+
+    const proposals = demoState.proposals.filter((item) => item.id !== proposalId);
+    const selectedPlaceId =
+      demoState.selectedPlaceId === proposal.placeId
+        ? (proposals[0]?.placeId ?? null)
+        : demoState.selectedPlaceId;
     setDemoState({
       ...demoState,
       revision: nextRevision(demoState),
-      selectedPlaceId: clearedSelection ? null : demoState.selectedPlaceId,
-      plannedTime: clearedSelection ? null : demoState.plannedTime,
-      proposals: demoState.proposals.filter((item) => item.id !== proposalId),
+      selectedPlaceId,
+      plannedTime: null,
+      proposals,
     });
   }
 
-  async function setSchedule(date: string | null, time: string | null): Promise<void> {
-    if (time && !date) throw new Error("Välj en dag innan du lägger till en tid.");
-    if (time && !nextStop?.selectedPlaceId) {
-      throw new Error("Bestäm nästa stopp innan ni lägger till ett klockslag.");
-    }
+  async function setSchedule(date: string | null): Promise<void> {
     const revision = nextStop?.revision ?? 1;
-    const dateChanged = (nextStop?.plannedDate ?? null) !== date;
-    // Byter ni dag försvinner klockslaget, oavsett vad anroparen skickar.
-    const effectiveTime = !date || dateChanged ? null : time;
 
     if (mode === "live") {
-      await liveSetNextStopScheduleV2(state.group.id, date, effectiveTime, revision);
+      await liveSetNextStopDayV2(state.group.id, date, revision);
       dispatchReload();
       return;
     }
 
     const base = demoState ?? freshState();
-    if (base.plannedDate === date && (base.plannedTime ?? null) === effectiveTime) return;
+    if (base.plannedDate === date && base.plannedTime == null) return;
     setDemoState({
       ...base,
       revision: nextRevision(base),
       plannedDate: date,
-      plannedTime: effectiveTime,
+      plannedTime: null,
     });
   }
 
@@ -305,7 +292,6 @@ export function useNextStopV2() {
     propose,
     setSupport,
     select,
-    clearSelection,
     withdraw,
     setSchedule,
   };
