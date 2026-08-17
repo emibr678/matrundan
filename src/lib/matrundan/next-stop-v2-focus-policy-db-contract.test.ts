@@ -3,6 +3,9 @@ import { describe, expect, test } from "bun:test";
 const migration = await Bun.file(
   "supabase/migrations/20260817071000_next_stop_v2_focus_model.sql",
 ).text();
+const archiveSync = await Bun.file(
+  "supabase/migrations/20260817071500_next_stop_v2_archive_focus_sync.sql",
+).text();
 
 describe("fokusmodell för Nästa stopp v2", () => {
   test("första förslaget får momentum utan att senare förslag skriver över", () => {
@@ -32,12 +35,13 @@ describe("fokusmodell för Nästa stopp v2", () => {
     expect(migration).toContain("PERFORM public.set_next_place(_group_id, _replacement_place_id)");
   });
 
-  test("arkivering av fokuserat ställe kan flytta fokus till ett kvarvarande alternativ", () => {
-    expect(migration).toContain(
+  test("arkivering flyttar fokus och synkar samma dag till legacy-klienter", () => {
+    expect(archiveSync).toContain(
       "CREATE OR REPLACE FUNCTION public.cleanup_next_stop_proposal_on_place_archive_v2()",
     );
-    expect(migration).toContain("_was_selected boolean := false");
-    expect(migration).toContain("_replacement_place_id uuid");
-    expect(migration).toContain("ORDER BY p.created_at, p.id");
+    expect(archiveSync).toContain("_was_selected boolean := false");
+    expect(archiveSync).toContain("_replacement_place_id uuid");
+    expect(archiveSync).toContain("ORDER BY p.created_at, p.id");
+    expect(archiveSync).toContain("PERFORM public.next_stop_v2_sync_legacy_date(");
   });
 });
