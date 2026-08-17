@@ -80,7 +80,7 @@ test("första förslaget är nästa stopp och ett nytt förslag bevaras som alte
   await expect(alternative.getByText("Lilla Myntans Matrum", { exact: true })).toBeVisible();
   await expect(alternative.getByText(/föreslog/i)).toBeVisible();
   await expect(alternative.getByRole("button", { name: /Går gärna hit/ })).toBeVisible();
-  await expect(alternative.getByRole("button", { name: "Byt nästa stopp" })).toBeVisible();
+  await expect(alternative.getByRole("button", { name: "Välj ställe" })).toBeVisible();
 
   await expectNoOverflow(page);
 });
@@ -103,14 +103,14 @@ test("Går gärna hit är samma lätta signal på fokus och alternativ", async (
   await expectNoOverflow(page);
 });
 
-test("Byt nästa stopp flyttar fokus utan att skapa ett separat öppet val", async ({ page }) => {
+test("Välj ställe byter nästa stopp utan att skapa ett separat öppet val", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
   await proposeAlternativeFromDetail(page);
 
   await page.getByRole("button", { name: "Andra förslag (1)" }).click();
   const alternative = page.locator('[data-next-stop-proposal="alternative"]');
-  await alternative.getByRole("button", { name: "Byt nästa stopp" }).click();
+  await alternative.getByRole("button", { name: "Välj ställe" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Byt nästa stopp?" });
   await expect(dialog).toContainText("Lilla Myntans Matrum");
