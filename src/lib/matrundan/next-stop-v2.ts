@@ -27,8 +27,8 @@ function legacyProposal(state: AppState, placeId: string): NextStopPlaceProposal
 }
 
 function exampleNextStopState(state: AppState): NextStopState | null {
-  const selectedPlaceId = state.nextPlaceId;
-  const primaryPlaceId = selectedPlaceId ?? state.places.find((place) => place.id === "p5")?.id;
+  const primaryPlaceId =
+    state.nextPlaceId ?? state.places.find((place) => place.id === "p5")?.id;
   const alternativePlaceId = state.places.find(
     (place) => place.id === "p1" && place.collectionStatus !== "archived",
   )?.id;
@@ -65,26 +65,28 @@ function exampleNextStopState(state: AppState): NextStopState | null {
   return {
     revision: 1,
     plannedDate: state.nextStopDateProposal?.date ?? defaultNextStopDateValue(),
-    plannedTime: state.nextStopDateProposal?.time ?? null,
-    selectedPlaceId: selectedPlaceId ?? null,
+    plannedTime: null,
+    selectedPlaceId: primaryPlaceId ?? null,
     proposals,
   };
 }
 
 /**
- * Normaliserar v5j/demo till den nya modellen. Live-v5k lämnas alltid orörd.
- * Undefined på state.nextStop betyder att databasen ännu inte har v5k.
+ * Normaliserar v5j/demo till v2. Live-v5k lämnas orörd. Undefined på
+ * state.nextStop betyder att databasen ännu inte har v5k.
  */
 export function deriveNextStopState(state: AppState): NextStopState | null {
   if (state.group.lifecycleStatus === "archived") return null;
-  if (state.nextStop !== undefined) return state.nextStop;
+  if (state.nextStop !== undefined) {
+    return state.nextStop ? { ...state.nextStop, plannedTime: null } : null;
+  }
   if (state.group.id === EXAMPLE_GROUP_ID) return exampleNextStopState(state);
 
   if (!state.nextPlaceId && !state.nextStopDateProposal) return null;
   return {
     revision: 0,
     plannedDate: state.nextStopDateProposal?.date ?? null,
-    plannedTime: state.nextStopDateProposal?.time ?? null,
+    plannedTime: null,
     selectedPlaceId: state.nextPlaceId,
     proposals: state.nextPlaceId ? [legacyProposal(state, state.nextPlaceId)] : [],
   };
@@ -106,12 +108,14 @@ export async function liveProposeNextStopPlaceV2(
   groupId: string,
   placeId: string,
 ): Promise<string> {
-  return rpcClient.call(
+  const proposalId = await rpcClient.call(
     "propose_next_stop_place_v2",
     { _group_id: groupId, _place_id: placeId },
     ID_SCHEMA,
     "Kunde inte lägga till förslaget.",
   );
+  scheduleNotificationFlush();
+  return proposalId;
 }
 
 export async function liveSetNextStopPlaceSupportV2(
@@ -139,16 +143,6 @@ export async function liveSelectNextStopPlaceV2(
   scheduleNotificationFlush();
 }
 
-export async function liveClearNextStopSelectionV2(
-  groupId: string,
-  expectedRevision: number,
-): Promise<void> {
-  await rpcClient.callVoid("clear_next_stop_selection_v2", {
-    _group_id: groupId,
-    _expected_revision: expectedRevision,
-  });
-}
-
 export async function liveWithdrawNextStopPlaceV2(
   groupId: string,
   proposalId: string,
@@ -159,16 +153,15 @@ export async function liveWithdrawNextStopPlaceV2(
   });
 }
 
-export async function liveSetNextStopScheduleV2(
+export async function liveSetNextStopDayV2(
   groupId: string,
   date: string | null,
-  time: string | null,
   expectedRevision: number,
 ): Promise<void> {
   await rpcClient.callVoid("set_next_stop_schedule_v2", {
     _group_id: groupId,
     _planned_date: date,
-    _planned_time: time,
+    _planned_time: null,
     _expected_revision: expectedRevision,
   });
 }
