@@ -113,7 +113,7 @@ Postgres/Supabase är den auktoritativa gränsen för:
 - gruppisolering;
 - kanoniska `places`;
 - grupprelationer i `group_places`;
-- gruppens privata nästa-stopp-förslag, stödmarkeringar och planerade dag/tid;
+- gruppens privata nästa-stopp-förslag, platsintresse, gemensamma dag och dagsvar;
 - besök, deltagare, reviews och progression;
 - externa källidentiteter;
 - känsliga cross-group-förslag;
@@ -162,8 +162,9 @@ färdiga. `visit_participation_self_corrections.user_id` refererar profilen med
 `ON DELETE CASCADE`, så det privata korrigeringsspåret försvinner automatiskt
 när profilen raderas och kräver ingen separat scrubbrad. Nästa-stopp-v2 använder
 `ON DELETE SET NULL` för `proposed_by`/`updated_by` och `ON DELETE CASCADE` för
-en medlems egen `Gärna!`-markering, så kontoradering blockerar inte gruppens
-kvarvarande idé eller lämnar en stödmarkering kopplad till det raderade kontot.
+en medlems egen **Jag vill hit**-markering, så kontoradering blockerar inte
+gruppens kvarvarande idé eller lämnar en stödmarkering kopplad till det raderade
+kontot.
 
 ## Kanonisk datamodell
 
@@ -283,20 +284,30 @@ eller annan grupps planering.
 
 `next_stop_place_proposals` lagrar gruppens aktiva ställesförslag och refererar
 samma kanoniska `place_id` som gruppens `group_places`. `next_stop_place_supports`
-lagrar högst en frivillig `Gärna!`-markering per medlem och förslag. Markeringen
-är en social signal, inte en exklusiv röst eller serverrankning.
+lagrar högst en frivillig **Jag vill hit**-markering per medlem och förslag.
+Markeringen är en positiv platspräferens som får finnas på flera ställen
+samtidigt; den är inte närvaro, en exklusiv röst eller en serverrankning och får
+aldrig automatiskt ändra gruppens nästa stopp.
 
-`next_stop_plans` lagrar gruppens gemensamma planeringsdag och valfri klocktid.
-Dagen kan finnas utan valt ställe; klocktid får aldrig finnas utan dag. De tre
-tabellerna är server-only för klientroller och läses genom den minimerade
-`nextStop`-projektionen i v5k.
+`next_stop_plans` lagrar gruppens enda gemensamma planeringsdag. V2 använder
+inte klockslag, och en dag får bara finnas när gruppen har ett faktiskt nästa
+stopp. Binära dagsvar **Jag kan** / **Jag kan inte** återanvänder under
+övergången den privata `next_stop_date_responses`-lagringen; uteblivet svar är
+ingen signal och `Osäker` ingår inte i v2. Byte av ställe bevarar samma dag och
+dagsvar, medan byte av dag nollställer svaren på den tidigare dagen.
 
-`group_next_place` behålls som bakåtkompatibel och auktoritativ projektion av ett
-**uttryckligen bestämt** nästa stopp. Öppna förslag får därför aldrig använda
-`group_next_place` på ett sätt som skriver över ett tidigare val. Äldre
-`set_next_place`- och datumklienter får samexistera under övergången genom
-additiva bridge-/speglingsregler; de får inte skapa två konkurrerande sanningar
-eller tyst radera den nya klientens förslag.
+`next_stop_plans`, `next_stop_place_proposals` och `next_stop_place_supports` är
+server-only för klientroller. De läses genom den minimerade `nextStop`-
+projektionen i v5k; dagsvaren läses genom samma gruppscopade kompatibilitetsdata
+som den befintliga datumresponsen.
+
+`group_next_place` behålls som bakåtkompatibel och auktoritativ projektion av
+gruppens aktuella fokuserade **Nästa stopp**. Det första aktiva förslaget får
+fokus automatiskt. Senare förslag bevaras utan overwrite och gruppen byter
+uttryckligen via **Välj ställe**. Stödsiffror får aldrig flytta fokus
+server-side. Äldre `set_next_place`- och datumklienter får samexistera under
+övergången genom additiva bridge-/speglingsregler; de får inte skapa två
+konkurrerande sanningar eller tyst radera den nya klientens förslag.
 
 V2-mutationerna ska minst säkerställa:
 
@@ -304,17 +315,18 @@ V2-mutationerna ska minst säkerställa:
 - att föreslagna ställen fortfarande är aktiva i gruppens lista;
 - högst fem aktiva ställesförslag;
 - proposer eller owner/admin för destruktiv borttagning av ett förslag;
-- gruppnivålås och revision vid handlingar som kan skriva över gemensamt val
-  eller dag/tid, så stale klientstate ger ett begripligt konfliktfel i stället
-  för last-write-wins;
+- att platsintresse bara ändrar den inloggade medlemmens egen markering;
+- gruppnivålås och revision vid handlingar som kan skriva över gemensamt fokus
+  eller dag, så stale klientstate ger ett begripligt konfliktfel i stället för
+  last-write-wins;
 - Europe/Stockholm-semantik för passerad planeringsdag.
 
 Ett verkligt **originalbesök** på ett valt eller aktivt föreslaget ställe är den
-kanoniska händelsen och får avsluta det relevanta nästa-stopp-flödet. Ett delat
-besök eller ett originalbesök på ett helt annat ställe får inte tyst rensa
-planeringen. Ett passerat planeringsdatum skapar aldrig ett besök automatiskt;
-klienten ska fråga efter verkligheten och låta användaren registrera det besök
-som faktiskt skedde.
+kanoniska händelsen och får avsluta det relevanta nästa-stopp-flödet samt dess
+dagsvar. Ett delat besök eller ett originalbesök på ett helt annat ställe får
+inte tyst rensa planeringen. En passerad planeringsdag skapar aldrig ett besök
+automatiskt; klienten ska fråga efter verkligheten och låta användaren registrera
+det besök som faktiskt skedde.
 
 ## Besök och deltagare
 
