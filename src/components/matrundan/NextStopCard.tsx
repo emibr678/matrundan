@@ -388,7 +388,7 @@ export function NextStopCard({
       </Card>
 
       {otherProposals.length > 0 ? (
-        <div className="mt-2">
+        <div className="mt-0">
           <button
             type="button"
             className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -536,7 +536,7 @@ function FocusedPlaceHero({
   return (
     <div
       data-next-stop-proposal="selected"
-      className="bg-gradient-to-br from-primary/85 to-primary p-6 pr-14 text-primary-foreground"
+      className="bg-gradient-to-br from-primary/85 to-primary p-5 pr-14 text-primary-foreground"
     >
       <Link
         to="/matstallen/$placeId"
@@ -544,10 +544,10 @@ function FocusedPlaceHero({
         className="block transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40"
         aria-label={`Öppna ${item.place.name}`}
       >
-        <div className="text-6xl" aria-hidden="true">
+        <div className="text-5xl" aria-hidden="true">
           {item.place.photo ?? "🍽️"}
         </div>
-        <div className="mt-3 min-w-0">
+        <div className="mt-2 min-w-0">
           <div className="text-xs tracking-wide opacity-80">{CATEGORY_LABEL[item.place.category]}</div>
           <h2 className="font-display text-3xl font-semibold leading-tight [overflow-wrap:anywhere]">
             {item.place.name}
@@ -561,7 +561,7 @@ function FocusedPlaceHero({
           <div className="mt-2 text-xs opacity-85">{proposerLabel(item.proposal, state)}</div>
         </div>
       </Link>
-      <div className="mt-4">
+      <div className="mt-3">
         <PlacePreferenceButton
           proposal={item.proposal}
           currentUserId={currentUserId}
