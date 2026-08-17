@@ -301,6 +301,7 @@ export function NextStopCard({
   }
 
   const canRemoveFocused = canInteract && canWithdrawNextStopProposal(state, focusedItem.proposal);
+  const showFocusedActions = canInteract && (Boolean(plannedDate) || canRemoveFocused);
 
   return (
     <section>
@@ -323,22 +324,19 @@ export function NextStopCard({
               />
             </PlaceIdentity>
           </div>
-          {canRemoveFocused ? (
-            <ProposalMenu
-              placeName={focusedItem.place.name}
-              busy={busy === `withdraw:${focusedItem.proposal.id}`}
+          {showFocusedActions ? (
+            <FocusedActionsMenu
+              plannedDate={plannedDate}
+              canRemove={canRemoveFocused}
+              busy={busy}
+              onEditDate={openSchedule}
+              onRemoveDate={() => void removeDate()}
               onWithdraw={() => withdrawProposal(focusedItem)}
             />
           ) : null}
         </div>
 
-        <DateLine
-          plannedDate={plannedDate}
-          canInteract={canInteract}
-          busy={busy}
-          onEditDate={openSchedule}
-          onRemoveDate={() => void removeDate()}
-        />
+        <DateLine plannedDate={plannedDate} canInteract={canInteract} onEditDate={openSchedule} />
 
         {canWrite ? (
           <Button
@@ -462,6 +460,45 @@ function proposerLabel(
   return member ? `${member.name} föreslog` : "Föreslaget tidigare";
 }
 
+function SupportButton({
+  proposal,
+  canInteract,
+  busy,
+  onSupport,
+}: {
+  proposal: NextStopPlaceProposal;
+  canInteract: boolean;
+  busy: string | null;
+  onSupport: () => void;
+}) {
+  const { state } = useStore();
+  const supported = proposal.supports.some((support) => support.memberId === state.currentUserId);
+  const count = proposal.supports.length;
+
+  if (!canInteract) {
+    return count > 0 ? <span>· {count} går gärna hit</span> : null;
+  }
+
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant={supported ? "secondary" : "outline"}
+      className="h-9 min-h-9 rounded-full px-3 text-xs"
+      aria-pressed={supported}
+      disabled={busy !== null}
+      onClick={onSupport}
+    >
+      {busy === `support:${proposal.id}` ? (
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+      ) : (
+        <ThumbsUp className={supported ? "h-3.5 w-3.5 shrink-0 fill-current" : "h-3.5 w-3.5 shrink-0"} />
+      )}
+      Går gärna hit{count > 0 ? ` · ${count}` : ""}
+    </Button>
+  );
+}
+
 function ProposalContext({
   proposal,
   canInteract,
@@ -476,32 +513,13 @@ function ProposalContext({
   indentClassName?: string;
 }) {
   const { state } = useStore();
-  const supported = proposal.supports.some((support) => support.memberId === state.currentUserId);
-  const count = proposal.supports.length;
 
   return (
     <div
       className={`mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 ${indentClassName} text-xs text-muted-foreground`}
     >
       <span>{proposerLabel(proposal, state)}</span>
-      {canInteract ? (
-        <button
-          type="button"
-          className="inline-flex min-h-8 items-center gap-1 rounded-full px-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
-          aria-pressed={supported}
-          disabled={busy !== null}
-          onClick={onSupport}
-        >
-          {busy === `support:${proposal.id}` ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <ThumbsUp className={supported ? "h-3.5 w-3.5 fill-current" : "h-3.5 w-3.5"} />
-          )}
-          Går gärna hit{count > 0 ? ` · ${count}` : ""}
-        </button>
-      ) : count > 0 ? (
-        <span>· {count} går gärna hit</span>
-      ) : null}
+      <SupportButton proposal={proposal} canInteract={canInteract} busy={busy} onSupport={onSupport} />
     </div>
   );
 }
@@ -509,15 +527,11 @@ function ProposalContext({
 function DateLine({
   plannedDate,
   canInteract,
-  busy,
   onEditDate,
-  onRemoveDate,
 }: {
   plannedDate: string | null;
   canInteract: boolean;
-  busy: string | null;
   onEditDate: () => void;
-  onRemoveDate: () => void;
 }) {
   if (!plannedDate) {
     if (!canInteract) return null;
@@ -537,37 +551,9 @@ function DateLine({
   }
 
   return (
-    <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-      <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-        <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span className="min-w-0 truncate">{formatNextStopDate(plannedDate, null)}</span>
-      </div>
-      {canInteract ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 text-muted-foreground"
-              aria-label="Ändra dag"
-              disabled={busy !== null}
-            >
-              {busy === "schedule" || busy === "remove-date" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <MoreHorizontal className="h-4 w-4" />
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onEditDate}>
-              <CalendarDays className="h-4 w-4" /> Ändra dag
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : null}
+    <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+      <CalendarDays className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <span className="min-w-0 truncate">{formatNextStopDate(plannedDate, null)}</span>
     </div>
   );
 }
@@ -636,9 +622,6 @@ function ProposalRow({
 }) {
   const { state } = useStore();
   const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
-  const supported = item.proposal.supports.some(
-    (support) => support.memberId === state.currentUserId,
-  );
   const count = item.proposal.supports.length;
 
   return (
@@ -661,28 +644,18 @@ function ProposalRow({
         ) : null}
       </div>
       {canInteract ? (
-        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2 pl-[3.75rem]">
-          <Button
-            type="button"
-            size="sm"
-            variant={supported ? "secondary" : "outline"}
-            className="min-h-10 min-w-0 justify-center px-3"
-            aria-pressed={supported}
-            disabled={busy !== null}
-            onClick={onSupport}
-          >
-            {busy === `support:${item.proposal.id}` ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-            ) : (
-              <ThumbsUp className={supported ? "h-4 w-4 shrink-0 fill-current" : "h-4 w-4 shrink-0"} />
-            )}
-            <span className="truncate">Går gärna hit{count > 0 ? ` · ${count}` : ""}</span>
-          </Button>
+        <div className="mt-1.5 flex flex-wrap gap-2 pl-[3.75rem]">
+          <SupportButton
+            proposal={item.proposal}
+            canInteract={canInteract}
+            busy={busy}
+            onSupport={onSupport}
+          />
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="min-h-10 border-primary/40 px-3 text-primary"
+            className="h-9 min-h-9 rounded-full border-primary/40 px-3 text-xs text-primary"
             onClick={onSwitch}
             disabled={busy !== null}
           >
@@ -691,6 +664,57 @@ function ProposalRow({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function FocusedActionsMenu({
+  plannedDate,
+  canRemove,
+  busy,
+  onEditDate,
+  onRemoveDate,
+  onWithdraw,
+}: {
+  plannedDate: string | null;
+  canRemove: boolean;
+  busy: string | null;
+  onEditDate: () => void;
+  onRemoveDate: () => void;
+  onWithdraw: () => void;
+}) {
+  const isBusy =
+    busy === "schedule" || busy === "remove-date" || Boolean(busy?.startsWith("withdraw:"));
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0 text-muted-foreground"
+          aria-label="Fler val för nästa stopp"
+          disabled={busy !== null}
+        >
+          {isBusy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <MoreHorizontal className="h-4 w-4" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {plannedDate ? (
+          <>
+            <DropdownMenuItem onSelect={onEditDate}>
+              <CalendarDays className="h-4 w-4" /> Ändra dag
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
+          </>
+        ) : null}
+        {canRemove ? <DropdownMenuItem onSelect={onWithdraw}>Ta bort förslag</DropdownMenuItem> : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
