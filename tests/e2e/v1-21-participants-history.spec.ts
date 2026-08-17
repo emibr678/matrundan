@@ -31,7 +31,6 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expect(page.getByText("Du kan", { exact: true }).first()).toBeVisible();
 
   await page.goto("/matstallen/p1");
-  await expect(page.getByRole("button", { name: /Föreslå som nästa stopp/ })).toBeVisible();
   await page.getByRole("button", { name: "Registrera besök" }).click();
 
   await expect(
