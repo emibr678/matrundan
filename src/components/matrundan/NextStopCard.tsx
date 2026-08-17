@@ -397,7 +397,7 @@ export function NextStopCard({
           >
             <span className="flex min-w-0 items-center gap-2">
               <span>Andra förslag ({otherProposals.length})</span>
-              {leadingAlternativeId ? (
+              {leadingAlternativeId && !otherOpen ? (
                 <span className="truncate text-[11px] font-medium text-primary">Flest vill hit</span>
               ) : null}
             </span>
