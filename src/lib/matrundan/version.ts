@@ -12,15 +12,15 @@ const VERSION_1_37_0_CHANGELOG: ChangelogEntry = {
       kind: "Nytt",
       items: [
         "Det första ställesförslaget blir gruppens nästa stopp direkt, medan senare idéer sparas under Andra förslag utan att skriva över det aktuella stoppet.",
-        "Medlemmar kan markera Går gärna hit på både nästa stopp och andra förslag, samtidigt som det framgår vem som föreslog varje ställe.",
-        "Nästa stopp kan bära en enkel gemensam dag utan klockslag, RSVP eller annan eventplanering.",
+        "Medlemmar kan markera Jag vill hit på både nästa stopp och andra förslag, samtidigt som det framgår vem som föreslog varje ställe.",
+        "Nästa stopp kan bära en enkel gemensam dag utan klockslag. På dagen kan medlemmarna svara Jag kan eller Jag kan inte utan att Matrundan blir en full eventplanerare.",
         "En passerad planerad dag följs upp med Blev det av? så ett verkligt besök registreras uttryckligen i stället för att historik gissas fram.",
       ],
     },
     {
       kind: "Förbättrat",
       items: [
-        "Ett nytt ställesförslag skriver inte längre över gruppens nästa stopp. Gruppen kan byta till ett bevarat alternativ med en tydlig bekräftelse.",
+        "Ett nytt ställesförslag skriver inte längre över gruppens nästa stopp. Gruppen kan välja ett bevarat alternativ uttryckligen medan platsintresse och dagsvar hålls separata.",
         "Hem fokuserar på ett enda nästa stopp och håller övriga förslag i en lågmäld accordion tills gruppen vill titta på dem.",
       ],
     },
