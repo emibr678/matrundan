@@ -182,9 +182,10 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   const registerVisitTopBefore = registerBoxBefore!.y;
   const practicalInfoTopBefore = practicalInfo.boundingBox().then((box) => box?.y ?? 0);
   await proposeNextStop.click();
-  const selectedNextStop = page.getByRole("button", { name: /Ta bort .* som nästa stopp/ });
-  await expect(selectedNextStop).toBeVisible();
-  await expect(selectedNextStop).toHaveAttribute("aria-pressed", "true");
+  const proposalStatus = page.getByRole("button", { name: "På förslag" });
+  await expect(proposalStatus).toBeVisible();
+  await expect(proposalStatus).toBeDisabled();
+  await expect(proposalStatus).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByTestId("next-stop-accent")).toHaveCount(0);
 
   const [practicalInfoBoxWithNextStop, registerVisitBoxWithNextStop] = await Promise.all([

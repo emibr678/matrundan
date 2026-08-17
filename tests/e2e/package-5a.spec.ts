@@ -55,7 +55,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(page.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Slumpa" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Slumpa förslag" })).toBeVisible();
   await expect(page.getByText("Gammal lokal demo")).toHaveCount(0);
   await expect(page.getByText("Gammal exempelgrupp")).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Exempelgruppen på 360 px");

@@ -8,7 +8,17 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import { ArrowLeft, Flag, Heart, ListX, MessageCircle, Plus, UsersRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Flag,
+  Heart,
+  ListX,
+  Loader2,
+  MessageCircle,
+  Plus,
+  UsersRound,
+} from "lucide-react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { PlaceAdminDialog } from "@/components/matrundan/PlaceAdminDialog";
 import { PlaceDataReportDialog } from "@/components/matrundan/PlaceDataReportDialog";
@@ -27,6 +37,7 @@ import { Card } from "@/components/ui/card";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { formatDate, useStore } from "@/lib/matrundan/store";
+import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -86,13 +97,14 @@ function PlaceDetail() {
     avgRating,
     isFavorite,
     toggleFavorite,
-    setNext,
     state,
     demoReadOnly,
     memberById,
   } = useStore();
+  const { nextStop, backendReady, propose } = useNextStopV2();
   const place = getPlace(placeId);
   const [visitOpen, setVisitOpen] = React.useState(false);
+  const [nextBusy, setNextBusy] = React.useState(false);
   const openVisitId = search.visit || null;
   const closeVisitSheet = () => navigate({ params: { placeId }, search: { visit: "" } });
 
@@ -129,10 +141,13 @@ function PlaceDetail() {
   const rating = avgRating(place.id);
   const occasions = normalizeOccasionClassification(place.occasions);
   const fav = isFavorite(place.id);
-  const isNext = state.nextPlaceId === place.id;
+  const isNext = nextStop?.selectedPlaceId === place.id;
+  const isProposed = nextStop?.proposals.some((proposal) => proposal.placeId === place.id) ?? false;
+  const hasNextStop = Boolean(nextStop?.selectedPlaceId || nextStop?.proposals.length);
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";
   const writable = !groupArchived && !placeRemoved && !demoReadOnly;
+  const nextStopWritable = writable && backendReady;
   const canCompleteReview = !groupArchived && !demoReadOnly;
   const latestVisit = visits[0] ?? null;
   const latestParticipantNames = latestVisit
@@ -158,6 +173,19 @@ function PlaceDetail() {
     if (window.history.length > 1) router.history.back();
     else router.navigate({ to: "/matstallen" });
   };
+
+  async function runNextStop(operation: () => Promise<void>, success: string) {
+    if (nextBusy) return;
+    setNextBusy(true);
+    try {
+      await operation();
+      toast.success(success);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera nästa stopp.");
+    } finally {
+      setNextBusy(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 pt-2 md:max-w-3xl">
@@ -302,26 +330,42 @@ function PlaceDetail() {
                   <Button
                     variant="secondary"
                     aria-pressed="true"
-                    aria-label={`Ta bort ${place.name} som nästa stopp`}
-                    onClick={() => void setNext(null)}
-                    className="min-h-11 w-full justify-between gap-3 whitespace-normal px-4"
+                    disabled
+                    className="min-h-11 w-full whitespace-normal"
                   >
-                    <span className="flex min-w-0 items-center gap-2 font-medium">
-                      <Flag className="h-4 w-4 shrink-0" />
-                      <span>Nästa stopp</span>
-                    </span>
-                    <span className="shrink-0 text-xs font-normal text-muted-foreground">
-                      Ta bort
-                    </span>
+                    <Flag className="h-4 w-4 shrink-0" />
+                    Nästa stopp
+                  </Button>
+                ) : isProposed ? (
+                  <Button
+                    variant="secondary"
+                    aria-pressed="false"
+                    disabled
+                    className="min-h-11 w-full whitespace-normal"
+                  >
+                    <Flag className="h-4 w-4 shrink-0" />
+                    På förslag
                   </Button>
                 ) : (
                   <Button
                     variant="outline"
                     aria-pressed="false"
-                    onClick={() => void setNext(place.id)}
+                    disabled={!nextStopWritable || nextBusy}
+                    onClick={() =>
+                      void runNextStop(
+                        () => propose(place.id),
+                        hasNextStop
+                          ? `${place.name} lades till under Andra förslag.`
+                          : `${place.name} är gruppens nästa stopp.`,
+                      )
+                    }
                     className="min-h-11 w-full whitespace-normal"
                   >
-                    <Flag className="h-4 w-4 shrink-0" />
+                    {nextBusy ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    ) : (
+                      <Flag className="h-4 w-4 shrink-0" />
+                    )}
                     Föreslå som nästa stopp
                   </Button>
                 )}

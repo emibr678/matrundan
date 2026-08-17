@@ -3,6 +3,30 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_37_0_CHANGELOG: ChangelogEntry = {
+  version: "1.37.0",
+  date: "2026-08-16",
+  summary: "Nästa stopp bevarar gruppens alternativ utan att göra valet till en omröstning.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Det första ställesförslaget blir gruppens nästa stopp direkt, medan senare idéer sparas under Andra förslag utan att skriva över det aktuella stoppet.",
+        "Medlemmar kan markera Jag vill hit på både nästa stopp och andra förslag, samtidigt som det framgår vem som föreslog varje ställe.",
+        "Nästa stopp kan bära en enkel gemensam dag utan klockslag. På dagen kan medlemmarna svara Jag kan eller Jag kan inte utan att Matrundan blir en full eventplanerare.",
+        "En passerad planerad dag följs upp med Blev det av? så ett verkligt besök registreras uttryckligen i stället för att historik gissas fram.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Ett nytt ställesförslag skriver inte längre över gruppens nästa stopp. Gruppen kan välja ett bevarat alternativ uttryckligen medan platsintresse och dagsvar hålls separata.",
+        "Hem fokuserar på ett enda nästa stopp och håller övriga förslag i en lågmäld accordion tills gruppen vill titta på dem.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_36_0_CHANGELOG: ChangelogEntry = {
   version: "1.36.0",
   date: "2026-08-16",
@@ -112,6 +136,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_37_0_CHANGELOG,
   VERSION_1_36_0_CHANGELOG,
   VERSION_1_35_1_CHANGELOG,
   VERSION_1_35_0_CHANGELOG,

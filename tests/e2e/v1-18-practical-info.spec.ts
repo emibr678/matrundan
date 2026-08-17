@@ -109,7 +109,7 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
     });
   });
 
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5j", async (route) => {
+  await page.route("**/rest/v1/rpc/get_group_app_state_v5k", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",

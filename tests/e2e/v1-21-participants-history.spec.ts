@@ -21,16 +21,16 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expect(page.getByText("Du har inte svarat än").first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Hem i exempelgruppen");
 
-  await page.getByRole("button", { name: /Öppna datumplaneringen/ }).click();
-  await page.getByRole("button", { name: /^Passar(?: \d+)?$/ }).click();
-  await expect(
-    page.getByRole("dialog", { name: "Planera nästa stopp" }).getByRole("status"),
-  ).toHaveText("Du har svarat: Passar");
-  await page.getByRole("button", { name: "Stäng", exact: true }).first().click();
-  await expect(page.getByText("Du har svarat: Passar").first()).toBeVisible();
+  await page.getByRole("button", { name: /Öppna dagsvaren för/ }).click();
+  const planning = page.getByRole("dialog");
+  const canButton = planning.getByRole("button", { name: "Jag kan", exact: true });
+  await canButton.click();
+  await expect(canButton).toHaveAttribute("aria-pressed", "true");
+  await expect(planning.getByText(/Kan:/)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Du kan", { exact: true }).first()).toBeVisible();
 
   await page.goto("/matstallen/p1");
-  await expect(page.getByRole("button", { name: /Föreslå som nästa stopp/ })).toBeVisible();
   await page.getByRole("button", { name: "Registrera besök" }).click();
 
   await expect(

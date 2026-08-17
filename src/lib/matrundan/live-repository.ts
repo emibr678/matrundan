@@ -15,6 +15,7 @@ import type {
   NextStopDateProposal,
   NextStopDateProposalStatus,
   NextStopDateResponseValue,
+  NextStopState,
   Place,
   PlaceCategory,
   PlaceCollectionStatus,
@@ -101,6 +102,23 @@ type NextStopDateProposalRow = {
     memberId: string;
     response: string;
     updatedAt: string;
+  }[];
+};
+
+type NextStopStateRow = {
+  revision: number;
+  plannedDate: string | null;
+  plannedTime: string | null;
+  selectedPlaceId: string | null;
+  proposals: {
+    id: string;
+    placeId: string;
+    proposedBy: string | null;
+    createdAt: string;
+    supports: {
+      memberId: string;
+      updatedAt: string;
+    }[];
   }[];
 };
 
@@ -193,6 +211,7 @@ type Payload = {
   }[];
   nextPlaceId: string | null;
   nextStopDateProposal: NextStopDateProposalRow | null;
+  nextStop?: NextStopStateRow | null;
 };
 
 function avg(xs: number[]): number | undefined {
@@ -219,6 +238,27 @@ function mapNextStopDateProposal(row: NextStopDateProposalRow | null): NextStopD
       memberId: response.memberId,
       response: response.response as NextStopDateResponseValue,
       updatedAt: response.updatedAt,
+    })),
+  };
+}
+
+function mapNextStop(row: NextStopStateRow | null | undefined): NextStopState | null | undefined {
+  if (row === undefined) return undefined;
+  if (!row) return null;
+  return {
+    revision: Number.isFinite(row.revision) ? row.revision : 0,
+    plannedDate: row.plannedDate ?? null,
+    plannedTime: row.plannedTime ? row.plannedTime.slice(0, 5) : null,
+    selectedPlaceId: row.selectedPlaceId ?? null,
+    proposals: (row.proposals ?? []).map((proposal) => ({
+      id: proposal.id,
+      placeId: proposal.placeId,
+      proposedBy: proposal.proposedBy ?? null,
+      createdAt: proposal.createdAt,
+      supports: (proposal.supports ?? []).map((support) => ({
+        memberId: support.memberId,
+        updatedAt: support.updatedAt,
+      })),
     })),
   };
 }
@@ -445,5 +485,6 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     activity,
     nextPlaceId: p.nextPlaceId,
     nextStopDateProposal: mapNextStopDateProposal(p.nextStopDateProposal),
+    nextStop: mapNextStop(p.nextStop),
   };
 }

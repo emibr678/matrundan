@@ -1,22 +1,26 @@
 import type { NextStopDateProposal, NextStopDateResponseValue, Role } from "./types";
 
-export const NEXT_STOP_DATE_RESPONSE_LABEL: Record<NextStopDateResponseValue, string> = {
-  fits: "Passar",
-  not_fits: "Passar inte",
-  unsure: "Osäker",
-};
+const STOCKHOLM_CALENDAR_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Europe/Stockholm",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
+/** Kalenderdag i Matrundans planeringstidzon, YYYY-MM-DD. */
 export function localDateValue(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const parts = STOCKHOLM_CALENDAR_FORMATTER.formatToParts(date);
+  const byType = new Map(parts.map((part) => [part.type, part.value]));
+  return `${byType.get("year")}-${byType.get("month")}-${byType.get("day")}`;
 }
 
 export function defaultNextStopDateValue(): string {
-  const date = new Date();
-  date.setDate(date.getDate() + 7);
-  return localDateValue(date);
+  const today = localDateValue(new Date());
+  const date = new Date(`${today}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 7);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(
+    date.getUTCDate(),
+  ).padStart(2, "0")}`;
 }
 
 export function normalizeNextStopTime(value: string | null | undefined): string | null {

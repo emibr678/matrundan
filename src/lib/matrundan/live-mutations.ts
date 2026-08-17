@@ -1,6 +1,6 @@
 /**
  * Live-mutationer: tunna wrappers över Supabase RPC:er som utför alla
- * skrivningar atomärt (matställe, besök+review, favorit, nästa stopp och datumförslag).
+ * skrivningar atomärt (matställe, besök+review, favorit och nästa stopp).
  *
  * Klienten skickar aldrig aktivitetsposter direkt – databasfunktionerna
  * ansvarar för att skapa dem tillsammans med den egentliga skrivningen,
@@ -10,7 +10,7 @@ import { z } from "zod";
 import type { BulkPlaceAddResult, ProviderPlaceBatchInput } from "./bulk-place-add";
 import { MAX_BULK_PLACE_COUNT } from "./bulk-place-add";
 import { createManualPlaceFromFallback, reuseManualPlaceInGroup } from "./reusable-manual-places";
-import type { NextStopDateResponseValue, Place, Visit } from "./types";
+import type { Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 import { flushNotificationOutbox } from "./notifications.functions";
 
@@ -55,6 +55,10 @@ const BULK_PLACE_ADD_RESULT_SCHEMA = z.object({
 /** Utelämna null-fält så RPC-argumenten blir konsekventa. */
 function nn<T>(value: T | null | undefined): T | undefined {
   return value === null ? undefined : value;
+}
+
+function isMissingNextStopV2(error: unknown): boolean {
+  return error instanceof Error && /could not find the function|schema cache/i.test(error.message);
 }
 
 export async function liveCreatePlace(
@@ -170,69 +174,38 @@ export async function liveToggleFavorite(groupId: string, placeId: string): Prom
   );
 }
 
+/**
+ * Kompatibilitetsadapter för äldre vyer som fortfarande använder setNext.
+ * Ett placeId blir ett v2-förslag: det första får automatiskt fokus och senare
+ * förslag skrivs inte över. Null behåller den gamla betydelsen "rensa nästa
+ * stopp" och går därför direkt via set_next_place. Om v2-RPC:n ännu inte är
+ * driftsatt faller ett placeId tillfälligt tillbaka till legacy-semantiken.
+ */
 export async function liveSetNextPlace(groupId: string, placeId: string | null): Promise<void> {
-  await rpcClient.callVoid("set_next_place", {
-    _group_id: groupId,
-    _place_id: placeId,
-  });
-  scheduleNotificationFlush();
-}
-
-export async function liveProposeNextStopDate(
-  groupId: string,
-  date: string,
-  time: string | null,
-): Promise<string> {
-  const proposalId = await rpcClient.call(
-    "propose_next_stop_date",
-    {
+  if (!placeId) {
+    await rpcClient.callVoid("set_next_place", {
       _group_id: groupId,
-      _proposed_date: date,
-      _proposed_time: nn(time),
-    },
-    ID_SCHEMA,
-    "Kunde inte föreslå datumet.",
-  );
+      _place_id: null,
+    });
+    scheduleNotificationFlush();
+    return;
+  }
+
+  try {
+    await rpcClient.call(
+      "propose_next_stop_place_v2",
+      { _group_id: groupId, _place_id: placeId },
+      ID_SCHEMA,
+      "Kunde inte lägga till förslaget.",
+    );
+  } catch (error) {
+    if (!isMissingNextStopV2(error)) throw error;
+    await rpcClient.callVoid("set_next_place", {
+      _group_id: groupId,
+      _place_id: placeId,
+    });
+  }
   scheduleNotificationFlush();
-  return proposalId;
-}
-
-export async function liveRespondNextStopDate(
-  groupId: string,
-  proposalId: string,
-  response: NextStopDateResponseValue,
-): Promise<void> {
-  await rpcClient.callVoid("respond_next_stop_date", {
-    _group_id: groupId,
-    _proposal_id: proposalId,
-    _response: response,
-  });
-}
-
-export async function liveSetNextStopDateStatus(
-  groupId: string,
-  proposalId: string,
-  status: "confirmed" | "cancelled",
-): Promise<void> {
-  await rpcClient.callVoid("set_next_stop_date_status", {
-    _group_id: groupId,
-    _proposal_id: proposalId,
-    _status: status,
-  });
-}
-
-export async function liveUpdateNextStopDateProposal(
-  groupId: string,
-  proposalId: string,
-  date: string,
-  time: string | null,
-): Promise<void> {
-  await rpcClient.callVoid("update_next_stop_date_proposal", {
-    _group_id: groupId,
-    _proposal_id: proposalId,
-    _proposed_date: date,
-    _proposed_time: nn(time),
-  });
 }
 
 /**

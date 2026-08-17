@@ -139,22 +139,25 @@ kärnproduktproblem ska prioriteras före återstående symbolpolish i #105 och
 
 **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** är genomfört.
 Första leveransen av **#169 Bekräfta deltagande och komplettera gemensamma
-besök** genomfördes via PR #201 och **#203 Samla deltagaromdömen i en tydlig
-besöksvy** via PR #206.
+besök** genomfördes via PR #201, **#203 Samla deltagaromdömen i en tydlig
+besöksvy** via PR #206 och **#204 Synliggör besök som väntar på ditt omdöme** i
+v1.36.0 via PR #218.
 
 Den närmaste beslutade produktkön är nu:
 
-1. `order:010` – **#204 Synliggör besök som väntar på ditt omdöme**.
-2. `order:020` – **#106 Nästa stopp v2: alternativ för plats och tid utan
-   överskrivning**.
-3. `order:030` – **#101 Privata kommentarer och reaktioner på besök**.
-4. `order:040` – **#213 Förebygg dubbla kanoniska besök vid registrering och
+1. `order:020` – **#106 Nästa stopp v2: enkla förslag utan överskrivning**.
+2. `order:030` – **#101 Privata kommentarer och reaktioner på besök**.
+3. `order:040` – **#213 Förebygg dubbla kanoniska besök vid registrering och
    delning**.
-5. `order:050` – **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**.
-6. `order:060` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
+4. `order:050` – **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**.
+5. `order:060` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
    besök**.
-7. `order:070` – **#197 Renodla besökskontext med Något att dricka och valfri
+6. `order:070` – **#197 Renodla besökskontext med Något att dricka och valfri
    Hämtmat-markering**.
+
+**#106 Nästa stopp v2: enkla förslag utan överskrivning** är det aktiva
+kärnproduktsteget. `order:010` lämnas medvetet som ett historiskt gap efter att
+#204 stängdes; operativ ordning kräver inte omnumrering.
 
 **#169 Bekräfta deltagande och komplettera gemensamma besök** ligger kvar som
 parent och varaktig produkt-/integritetsram för redan levererad deltagarsemantik
@@ -202,20 +205,27 @@ Intern ordning när Paket A återupptas:
 
 ## Paket C – Nästa stopp v2
 
-**Prioritet:** `priority:next`, efter #204
+**Prioritet:** `priority:next`, aktivt efter genomfört #204
 
-- **#106 Nästa stopp v2: alternativ för plats och tid utan överskrivning**
+- **#106 Nästa stopp v2: enkla förslag utan överskrivning**
 
-Det här är nästa större planeringssteg efter att gruppens genomförda besök både
-kan kompletteras korrekt av faktiska deltagare och presenteras med en tydlig
-omdömes- och pendingloop. Gruppen ska kunna föreslå alternativa matställen och
-flera tider utan att ett nytt förslag skriver över det som redan diskuteras.
-Frågorna **vart** och **när** hålls separata, medan ett aktuellt nästa stopp
-förblir tydligt.
+Det här är nästa större steg för att göra gruppens val av nästa gemensamma
+matupplevelse lättare utan att Matrundan blir en omröstnings- eller eventapp.
+Det första ställesförslaget blir gruppens **Nästa stopp** direkt. Senare idéer
+bevaras under **Andra förslag** och skriver aldrig över det aktuella stoppet.
+Medlemmar kan markera **Jag vill hit** på ett eller flera ställen och se vem som
+föreslog varje alternativ. Om ett alternativ ensamt har flest markeringar får
+det en diskret **Flest vill hit**-signal, men appen utser aldrig automatiskt en
+vinnare eller byter stopp utan ett uttryckligt **Välj ställe**.
 
-Det övergripande issuen får delas i mindre underissues efter en aktuell
-arkitektur- och implementationsplan. En stor plats × datum-matris och automatisk
-majoritetsvinnare är uttryckliga icke-mål.
+Frågorna **vart** och **vilken dag** får fyllas i i den ordning som passar
+gruppen. Nästa stopp kan ha en gemensam dag utan klockslag. På den dagen kan
+medlemmar svara **Jag kan** eller **Jag kan inte**; uteblivet svar betyder bara
+att personen inte har svarat. Byte av ställe behåller dag och dagsvar medan
+**Föreslå annan dag** börjar om dagsvaren. Flera konkurrerande dagar, klocktid,
+`Osäker` och en Doodle-liknande svarsmatris är uttryckliga icke-mål. Ett verkligt
+besök förblir den kanoniska sanningen och en passerad dag får aldrig automatiskt
+skapa historik.
 
 ## Paket D – Personlig inspiration
 
@@ -238,11 +248,11 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
-**Prioritet:** första leveransen av #169 och #203 är genomförda; #204 är nästa
-produktsteg i paketet.
+**Prioritet:** #169, #203 och #204 är genomförda; återstående delar följer efter
+Paket C enligt den globala arbetskön.
 
-Rekommenderad paketordning, med #106 från Paket C inskjutet mellan #204 och #101
-i den globala arbetskön:
+Rekommenderad paketordning, med #106 från Paket C inskjutet mellan genomfört #204
+och #101 i den globala arbetskön:
 
 1. ✅ **#169 Bekräfta deltagande och komplettera gemensamma besök – första
    leveransen**  
@@ -255,12 +265,11 @@ i den globala arbetskön:
    Genomförd via PR #206. Besöksdetaljen samlar gruppens sammanfattning och
    individuella deltagaromdömen i en gemensam hierarki och gör
    deltagarkorrigeringen mer kompakt i normalfallet.
-3. **#204 Synliggör besök som väntar på ditt omdöme** (`order:010`)  
-   Ge identifierade faktiska deltagare en diskret pending-signal på hemvyn och i
-   besökshistoriken när deras eget omdöme saknas. Signalen leder tillbaka till
-   samma kanoniska besök, försvinner efter eget omdöme eller **Jag var inte med**
-   och får inte bli en blockerande appstartmodal, pushkampanj eller cross-group
-   informationskanal.
+3. ✅ **#204 Synliggör besök som väntar på ditt omdöme**  
+   Genomförd i v1.36.0 via PR #218. Identifierade faktiska deltagare får en
+   diskret pending-signal på hemvyn och i besökshistoriken när deras eget
+   omdöme saknas; signalen leder tillbaka till samma kanoniska besök och
+   försvinner efter eget omdöme eller korrigerad deltagarstatus.
 4. **#101 Privata kommentarer och reaktioner på besök** (`order:030`)  
    Efter mellansteget #106: lägg privat gruppdiskussion och enkla reaktioner på
    gruppens besökslänk. Funktionen är `priority:next` och får inte ge progression
