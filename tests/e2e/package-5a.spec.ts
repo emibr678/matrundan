@@ -69,7 +69,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
     legacy: window.sessionStorage.getItem("matrundan.exampleState.v1"),
     sandbox: window.localStorage.getItem("matrundan.state.v1"),
   }));
-  expect(storage.current).toContain('\"placeId\":\"p8\"');
+  expect(storage.current).toContain('"placeId":"p8"');
   expect(storage.legacy).toContain("Gammal exempelgrupp");
   expect(storage.sandbox).toContain("Gammal lokal demo");
 
