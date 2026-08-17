@@ -17,12 +17,27 @@ const proposal: NextStopPlaceProposal = {
 };
 
 describe("Nästa stopp v2", () => {
-  test("legacy-val normaliseras utan att uppfinna Gärna-signaler", () => {
+  test("legacy-val normaliseras utan att uppfinna Går gärna hit-signaler", () => {
     const nextStop = deriveNextStopState({ ...DEMO_STATE, nextStop: undefined });
     expect(nextStop?.selectedPlaceId).toBe("p5");
     expect(nextStop?.proposals).toHaveLength(1);
     expect(nextStop?.proposals[0]?.placeId).toBe("p5");
     expect(nextStop?.proposals[0]?.supports).toEqual([]);
+    expect(nextStop?.plannedTime).toBeNull();
+  });
+
+  test("v5k-state ignorerar klockslag i den slutliga dag-only-modellen", () => {
+    const state: AppState = {
+      ...DEMO_STATE,
+      nextStop: {
+        revision: 4,
+        plannedDate: "2026-08-20",
+        plannedTime: "18:30",
+        selectedPlaceId: "p1",
+        proposals: [proposal],
+      },
+    };
+    expect(deriveNextStopState(state)?.plannedTime).toBeNull();
   });
 
   test("arkiverad grupp exponerar ingen aktiv planering", () => {
@@ -47,11 +62,13 @@ describe("Nästa stopp v2", () => {
     expect(canWithdrawNextStopProposal(stateAsMember("m4"), proposal)).toBe(false);
   });
 
-  test("exempelgruppens scenario är deterministiskt för samma referenstid", () => {
+  test("exempelgruppen har ett fokuserat nästa stopp och bevarade alternativ", () => {
     const now = new Date("2026-08-16T12:00:00.000Z");
     const first = deriveNextStopState(buildExampleState(now));
     const second = deriveNextStopState(buildExampleState(now));
     expect(first).toEqual(second);
     expect(first?.proposals.length).toBeGreaterThanOrEqual(2);
+    expect(first?.selectedPlaceId).toBe(first?.proposals[0]?.placeId);
+    expect(first?.plannedTime).toBeNull();
   });
 });
