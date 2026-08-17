@@ -29,8 +29,8 @@ async function proposeAlternativeFromDetail(page: Page) {
   await page.goto("/?demo=1");
 }
 
-function scheduleMenuTrigger(page: Page) {
-  return page.getByRole("button", { name: "Ändra dag" });
+function focusedActionsTrigger(page: Page) {
+  return page.getByRole("button", { name: "Fler val för nästa stopp" });
 }
 
 async function addDay(page: Page, date: string) {
@@ -39,7 +39,7 @@ async function addDay(page: Page, date: string) {
   await expect(addDialog.getByLabel("Tid")).toHaveCount(0);
   await addDialog.getByLabel("Dag").fill(date);
   await addDialog.getByRole("button", { name: "Spara" }).click();
-  await expect(scheduleMenuTrigger(page)).toBeVisible();
+  await expect(focusedActionsTrigger(page)).toBeVisible();
 }
 
 async function expectNoOverflow(page: Page) {
@@ -173,8 +173,9 @@ test("nästa stopp använder bara dag och aldrig klockslag", async ({ page }) =>
   await addDay(page, firstDate);
   await expect(page.getByText(/18:30|19:15/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Lägg till tid|Ändra tid/ })).toHaveCount(0);
+  await expect(focusedActionsTrigger(page)).toHaveCount(1);
 
-  const trigger = scheduleMenuTrigger(page);
+  const trigger = focusedActionsTrigger(page);
   await trigger.click();
   const menu = page.getByRole("menu");
   await expect(menu.getByRole("menuitem", { name: "Ändra dag" })).toBeVisible();
@@ -186,7 +187,7 @@ test("nästa stopp använder bara dag och aldrig klockslag", async ({ page }) =>
   await dateDialog.getByRole("button", { name: "Spara" }).click();
 
   await page.reload();
-  await expect(scheduleMenuTrigger(page)).toBeVisible();
+  await expect(focusedActionsTrigger(page)).toBeVisible();
   await expect(page.getByRole("button", { name: /tid/i })).toHaveCount(0);
   await expectNoOverflow(page);
 });
