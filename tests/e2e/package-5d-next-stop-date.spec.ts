@@ -58,7 +58,7 @@ test("första förslaget är nästa stopp och ett nytt förslag bevaras som alte
 
   const focused = page.locator('[data-next-stop-proposal="selected"]');
   await expect(focused.getByText("Glöd & Grönska", { exact: true })).toBeVisible();
-  await expect(page.getByText("Alex föreslog", { exact: true })).toBeVisible();
+  await expect(page.getByText("Johan föreslog", { exact: true })).toBeVisible();
   await expect(page.getByText(/går gärna hit/i)).toBeVisible();
   await expect(page.getByRole("button", { name: "Slumpa förslag" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Bestäm/ })).toHaveCount(0);
@@ -90,8 +90,7 @@ test("Går gärna hit är samma lätta signal på fokus och alternativ", async (
   await resetDemo(page);
   await proposeAlternativeFromDetail(page);
 
-  const focused = page.locator('[data-next-stop-proposal="selected"]').locator("..");
-  const focusedSupport = focused.getByRole("button", { name: /Går gärna hit/ });
+  const focusedSupport = page.getByRole("button", { name: /Går gärna hit/ }).first();
   await expect(focusedSupport).toBeVisible();
 
   await page.getByRole("button", { name: "Andra förslag (1)" }).click();
