@@ -1,8 +1,8 @@
 # Visuell och UX-granskning
 
-Det här dokumentet beskriver hur renderade GUI-ändringar granskas innan de rapporteras som färdiga eller mergas. Det kompletterar `docs/development-workflow.md` och ersätter inte kodgranskning, tester, CI eller användarens previewgrind.
+Det här dokumentet beskriver hur renderade GUI-ändringar granskas innan de rapporteras som färdiga eller mergas. Det kompletterar `docs/development-workflow.md` och ersätter inte kodgranskning, tester, CI eller användarens granskningsbeslut.
 
-Målet är att uppenbara problem som dubletter, rörig hierarki, spacing, felplacerade knappar, trunkering och overflow ska upptäckas av agenten **före** användarens manuella previewgranskning, utan att varje liten ändring blir en tung eller dyr testkörning.
+Målet är att uppenbara problem som dubletter, rörig hierarki, spacing, felplacerade knappar, trunkering och overflow ska upptäckas av agenten **före** användarens manuella granskning, utan att varje liten ändring blir en tung eller dyr testkörning.
 
 ## Grundprincip: proportionerlig granskning
 
@@ -57,9 +57,11 @@ Nivå 3 innehåller nivå 1–2 och dessutom:
 - 360 px och desktop;
 - kort och långt innehåll samt relevanta tom-/fulla states;
 - demo/exempelgrupp och autentiserat live-läge när det är tillgängligt och relevant;
-- Lovable-konsultation i Plan mode när användaren uttryckligen har bett om UX-konsultation;
 - strukturerad persona-/perspektivgranskning;
-- aktuell Lovable-preview och användarens uttryckliga mergegodkännande enligt previewgrinden nedan.
+- tydligt granskningsunderlag i chatten och användarens uttryckliga mergegodkännande;
+- Lovable-konsultation, Lovable-synk eller Lovable-preview **endast** när användaren uttryckligen har begärt Lovable.
+
+Nivå 3 är alltså inte ett skäl att använda Lovable. Repots browserkontroller, temporära screenshots och vid behov GitHub-artifacts är standardvägen.
 
 ## Persona-/perspektivgranskning
 
@@ -77,11 +79,11 @@ Persona-review ska avslutas med konkreta fynd, till exempel:
 - var information eller handlingar dubblerades;
 - om någon CTA konkurrerade med huvuduppgiften;
 - om mer data gjorde vyn rörig;
-- vilken korrigering som rekommenderas före previewgrinden.
+- vilken korrigering som rekommenderas före användargranskning.
 
 ## Kostnad, lagring och körtid
 
-GitHub Free-kvoter och runnerkapacitet är en faktisk projektbegränsning. Visuell kvalitet ska därför inte lösas genom att lagra varje iterations screenshots eller köra hela browsermatrisen efter varje liten ändring.
+GitHub Free-kvoter, runnerkapacitet och externa verktygskrediter är faktiska projektbegränsningar. Visuell kvalitet ska därför inte lösas genom att lagra varje iterations screenshots, köra hela browsermatrisen efter varje liten ändring eller använda Lovable utan uttrycklig begäran.
 
 Följ dessa principer:
 
@@ -92,13 +94,14 @@ Följ dessa principer:
 - spara inte traces eller videos som standard;
 - börja med en eller ett fåtal berörda routes/states;
 - kör bredare verifiering först när kandidaten stabiliserats;
-- använd inte en full cross-browser-matris för en lokal visuell korrigering utan konkret risk.
+- använd inte en full cross-browser-matris för en lokal visuell korrigering utan konkret risk;
+- använd inte Lovable för konsultation, implementation, synk eller preview om användaren inte uttryckligen har bett om det.
 
 Det snabbaste testet som kan falsifiera den aktuella visuella hypotesen ska köras först. En screenshot som visar att en knapp fortfarande ligger fel är mer värdefull i den iterationen än att först vänta på hela verifieringspaketet.
 
-## När krävs full previewgrind?
+## När krävs full nivå 3-grind?
 
-Full nivå 3 och previewgrind krävs normalt när en ändring påverkar:
+Full nivå 3-grind krävs normalt när en ändring påverkar:
 
 - layout, informationshierarki eller responsivitet på en större yta;
 - placering eller storlek på återkommande komponenter;
@@ -108,50 +111,58 @@ Full nivå 3 och previewgrind krävs normalt när en ändring påverkar:
 
 Den krävs normalt inte för ren intern logik, dokumentation, copy utan layoutpåverkan eller osynliga tekniska ändringar. Små GUI-ändringar undantas däremot **inte** från nivå 1.
 
-## Lovable: konsultation och implementation
+Nivå 3-grinden är oberoende av Lovable. Om Lovable inte uttryckligen har begärts ska ingen Lovable-kredit förbrukas och ingen Lovable-preview krävas.
 
-Skilj mellan att konsultera Lovable och att låta Lovable skriva kod.
+## Lovable är opt-in
+
+Lovable får endast användas när användaren uttryckligen ber om Lovable i den aktuella uppgiften. Det gäller samtliga användningssätt: konsultation, Agent mode/implementation, branch-synk och preview.
+
+En formulering som "gör UX-review", "visa mig kandidaten" eller att en ändring råkar vara nivå 3 är inte i sig ett Lovable-godkännande. Använd då repots ordinarie browser-/screenshotflöde.
 
 ### Konsultation
 
-När användaren uttryckligen ber att bolla UX med Lovable ska Lovable konsulteras i Plan mode innan den visuella lösningen låses, om verktyget är tillgängligt. Konsultationen får inte hoppas över tyst bara för att branch switching inte kan styras automatiskt. Redovisa tydligt om konsultationen inte kunde genomföras.
+När användaren uttryckligen ber att bolla UX med Lovable ska Lovable konsulteras i Plan mode innan den visuella lösningen låses, om verktyget är tillgängligt. Redovisa tydligt om konsultationen inte kunde genomföras.
 
 ### Implementation på PR-branchen
 
-Lovables normala isolerade arbetsflöde är GitHub-featurebranch tillsammans med GitHub branch switching i Lovable:
+När användaren uttryckligen ber Lovable implementera visuell UX:
 
 1. utgå från verifierad aktuell `main` och skapa en dedikerad featurebranch;
 2. öppna eller förbered en draft-PR från samma branch;
 3. välj exakt PR-branchen i Lovable;
 4. verifiera branchens namn och aktuella head-SHA innan Lovable får skriva kod;
-5. låt Lovable använda Agent mode när användaren uttryckligen har bett om Lovable-implementation och krediter finns;
+5. låt Lovable använda Agent mode endast inom det godkända visuella scopet;
 6. granska Lovables diff och för därefter kandidaten genom normal PR- och verifieringsprocess.
 
-Använd inte interna eller odokumenterade variantbegrepp som huvudflöde. Om rätt branch inte kan väljas eller verifieras ska Lovable inte skriva kod. Pausa och be användaren välja branchen i Lovable-editorn. Gå inte tyst över till egen full UX-implementation när användaren uttryckligen bett Lovable implementera.
+Använd inte interna eller odokumenterade variantbegrepp som huvudflöde. Om rätt branch inte kan väljas eller verifieras ska Lovable inte skriva kod. Gå inte tyst över till egen full UX-implementation när användaren uttryckligen bett Lovable implementera.
 
 Samla iterationer till en sammanhållen kandidat och experimentera inte direkt på `main`. En branch innebär inte automatiskt en isolerad databas.
 
-## Previewgrind före merge
+## Nivå 3-grind före merge
 
-För nivå 3/större visuella ändringar är följande ett mergekrav:
+För nivå 3/större visuella ändringar är följande mergekrav:
 
 - exakt PR-branch och aktuell head-SHA är dokumenterade;
-- samma PR-branch är vald i Lovable;
-- Lovable-synken motsvarar PR-head eller en dokumenterad senare commit på samma PR-branch;
-- en aktuell Lovable-previewlänk har lämnats till användaren i chatten;
-- användaren har fått möjlighet att granska previewn före merge;
 - 360 px mobil och desktop är granskade;
-- demo/exempelgrupp och live är jämförda när relevant;
-- persona-/UX-fynd är redovisade för det större huvudflödet;
-- användaren har uttryckligen godkänt merge efter previewgranskningen.
+- relevanta states samt demo/exempelgrupp och live är jämförda när relevant och möjligt;
+- persona-/UX-fynd är redovisade;
+- användaren har fått ett tydligt granskningsunderlag och konkreta manuella teststeg i chatten;
+- användaren har uttryckligen godkänt merge efter granskningen.
 
-Om branch, synk eller preview inte kan verifieras ska PR:n förbli draft eller inte markeras redo för merge. En previewlänk som har löpt ut ska förnyas före granskningsbesked.
+När användaren uttryckligen har begärt Lovable tillkommer:
 
-Preview är granskning, inte publicering. Den publika appen får inte användas som ersättning för en branchspecifik preview.
+- samma PR-branch vald i Lovable;
+- Lovable-synken verifierad mot aktuell PR-head;
+- aktuell Lovable-previewlänk lämnad i chatten;
+- användaren har fått möjlighet att granska just den previewn före merge.
 
-## Preview och GitHub-artifacts
+Om Lovable har begärts men branch, synk eller preview inte kan verifieras ska kandidaten inte markeras redo för merge på basis av Lovable-granskningen. Om Lovable inte har begärts används repots browserkontroller och screenshots/artifacts i stället och Lovable är inte en blockerare.
 
-Lovable-preview används för manuell produkt- och UX-granskning. GitHub-workflowen **Visual review artifacts** verifierar först att produktionsbygget lyckas och skapar därefter kompletterande fullsidesskärmbilder från samma commit i Chromium. Själva bilderna fångas via repots verifierade lokala Vite-server, eftersom Lovables Cloudflare-anpassade produktionsbundle inte är en fristående lokal Node-preview.
+Preview och screenshots är granskningsunderlag, inte publicering. De ersätter inte diff, tester, browserkontroller eller CI.
+
+## Browsergranskning och GitHub-artifacts
+
+Repots browserkontroller är standardvägen för renderad granskning. GitHub-workflowen **Visual review artifacts** verifierar först att produktionsbygget lyckas och skapar därefter kompletterande fullsidesskärmbilder från samma commit i Chromium. Själva bilderna fångas via repots verifierade lokala Vite-server, eftersom Lovables Cloudflare-anpassade produktionsbundle inte är en fristående lokal Node-preview.
 
 Workflowen kan startas på två sätt:
 
@@ -179,6 +190,8 @@ Vid manuell körning kan andra komma- eller radseparerade sökvägar anges. Bild
 
 Skärmbilderna är granskningsunderlag, inte golden snapshots. Workflowen gör ingen pixeljämförelse och ska inte användas för att låsa normal responsiv layout.
 
+Om användaren uttryckligen begär Lovable-preview kan den användas som ytterligare manuellt produkt-/UX-underlag enligt opt-in-reglerna ovan. Den ersätter inte browsergranskningen eller CI.
+
 ## Manuell och agentbaserad kontroll
 
 För varje GUI-ändring ska reviewkvittot minst ange:
@@ -190,9 +203,9 @@ För varje GUI-ändring ska reviewkvittot minst ange:
 - konkreta visuella/UX-fynd och eventuella korrigeringar;
 - vad som inte kunde verifieras.
 
-För nivå 3 läggs även persona-resultat, Lovable-status, previewlänk och användarens granskningsbesked till.
+För nivå 3 läggs även persona-resultat och användarens gransknings-/mergebesked till. Lovable-status, branch/synk och previewlänk läggs endast till när Lovable uttryckligen har begärts; annars anges kort `Lovable: inte begärt`.
 
-Kontrollera att previewn och eventuella artifacts verkligen motsvarar avsedd branch eller commit. Grön CI bekräftar inte visuell kvalitet och en granskad preview bekräftar inte att diffen eller CI är godkänd.
+Kontrollera att screenshots, artifacts och eventuell Lovable-preview verkligen motsvarar avsedd branch eller commit. Grön CI bekräftar inte visuell kvalitet och ett granskat visuellt underlag bekräftar inte att diffen eller CI är godkänd.
 
 ## Leveransgränser
 
@@ -203,9 +216,9 @@ Redovisa separat:
 - reviewnivå och granskade routes/states/viewportar;
 - temporära screenshots respektive GitHub-artifact;
 - konkreta UX-fynd och persona-resultat när nivå 3 används;
-- vald Lovable-branch och verifierad synk;
-- previewlänk och datum när den lämnades i chatten;
-- användarens preview- och mergegodkännande;
+- Lovable begärt eller inte begärt;
+- vald Lovable-branch, verifierad synk och previewlänk endast när Lovable begärts;
+- användarens gransknings- och mergegodkännande;
 - ej verifierade lägen;
 - databas och migration;
 - publicering.
