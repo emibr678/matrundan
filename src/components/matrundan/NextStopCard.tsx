@@ -5,6 +5,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Flag,
   Loader2,
   MapPin,
   MoreHorizontal,
@@ -430,7 +431,7 @@ function NextStopHeading({
   return (
     <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
       <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
-        <span aria-hidden="true">⚑</span> Nästa stopp
+        <Flag className="h-3.5 w-3.5" aria-hidden="true" /> Nästa stopp
       </div>
       {showShuffle && onShuffle ? (
         <button
@@ -465,18 +466,22 @@ function ProposalContext({
   canInteract,
   busy,
   onSupport,
+  indentClassName = "pl-[4.75rem]",
 }: {
   proposal: NextStopPlaceProposal;
   canInteract: boolean;
   busy: string | null;
   onSupport: () => void;
+  indentClassName?: string;
 }) {
   const { state } = useStore();
   const supported = proposal.supports.some((support) => support.memberId === state.currentUserId);
   const count = proposal.supports.length;
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 pl-[4.75rem] text-xs text-muted-foreground">
+    <div
+      className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 ${indentClassName} text-xs text-muted-foreground`}
+    >
       <span>{proposerLabel(proposal, state)}</span>
       {canInteract ? (
         <button
@@ -638,6 +643,7 @@ function ProposalRow({
             canInteract={canInteract}
             busy={busy}
             onSupport={onSupport}
+            indentClassName="pl-[3.75rem]"
           />
         </div>
         {canRemove ? (
