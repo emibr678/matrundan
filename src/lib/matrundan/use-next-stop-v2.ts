@@ -196,7 +196,9 @@ export function useNextStopV2() {
     );
     setDemoState((current) => {
       if (!current) return current;
-      const proposals = current.proposals.filter((proposal) => activePlaceIds.has(proposal.placeId));
+      const proposals = current.proposals.filter((proposal) =>
+        activePlaceIds.has(proposal.placeId),
+      );
       const selectedPlaceId =
         current.selectedPlaceId && activePlaceIds.has(current.selectedPlaceId)
           ? current.selectedPlaceId

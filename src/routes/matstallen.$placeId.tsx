@@ -142,8 +142,7 @@ function PlaceDetail() {
   const occasions = normalizeOccasionClassification(place.occasions);
   const fav = isFavorite(place.id);
   const isNext = nextStop?.selectedPlaceId === place.id;
-  const isProposed =
-    nextStop?.proposals.some((proposal) => proposal.placeId === place.id) ?? false;
+  const isProposed = nextStop?.proposals.some((proposal) => proposal.placeId === place.id) ?? false;
   const hasNextStop = Boolean(nextStop?.selectedPlaceId || nextStop?.proposals.length);
   const groupArchived = state.group.lifecycleStatus === "archived";
   const placeRemoved = place.collectionStatus === "archived";

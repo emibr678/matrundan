@@ -70,7 +70,9 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(hybrid).toContain("IF _current_date IS DISTINCT FROM _planned_date THEN");
     expect(hybrid).toContain("DELETE FROM public.next_stop_date_responses");
     expect(hybrid).toContain("proposed_date = _planned_date");
-    expect(preferences).toContain("REFERENCES public.next_stop_place_proposals(id) ON DELETE CASCADE");
+    expect(preferences).toContain(
+      "REFERENCES public.next_stop_place_proposals(id) ON DELETE CASCADE",
+    );
   });
 
   test("samtidiga byten skyddas av grupp-lås och revision", () => {

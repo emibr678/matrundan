@@ -68,7 +68,9 @@ test("hybridkortet behåller v1-hierarkin men flera ställesförslag", async ({ 
   await expectNoOverflow(page);
 });
 
-test("Jag vill hit kan markeras på både fokus och alternativ utan att byta stopp", async ({ page }) => {
+test("Jag vill hit kan markeras på både fokus och alternativ utan att byta stopp", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
   await proposeAlternativeFromDetail(page);
@@ -83,7 +85,8 @@ test("Jag vill hit kan markeras på både fokus och alternativ utan att byta sto
   const alternativeSupport = page
     .locator('[data-next-stop-proposal="alternative"]')
     .getByRole("button", { name: /Jag vill hit/ });
-  if ((await alternativeSupport.getAttribute("aria-pressed")) !== "true") await alternativeSupport.click();
+  if ((await alternativeSupport.getAttribute("aria-pressed")) !== "true")
+    await alternativeSupport.click();
   await expect(alternativeSupport).toHaveAttribute("aria-pressed", "true");
 
   const afterName = await page
@@ -164,7 +167,9 @@ test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", a
 
   await alternative.getByRole("button", { name: "Välj ställe" }).click();
   const switchDialog = page.getByRole("dialog", { name: "Välj det här stället?" });
-  await expect(switchDialog).toContainText("Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar");
+  await expect(switchDialog).toContainText(
+    "Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar",
+  );
   await switchDialog.getByRole("button", { name: "Välj ställe" }).click();
 
   const afterName = await page
@@ -174,7 +179,9 @@ test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", a
   expect(afterName).not.toBe(beforeName);
   await expect(dayRow(page)).toHaveAttribute("aria-label", beforeDay ?? "");
   await expect(
-    page.locator('[data-next-stop-proposal="selected"]').getByRole("button", { name: /Jag vill hit/ }),
+    page
+      .locator('[data-next-stop-proposal="selected"]')
+      .getByRole("button", { name: /Jag vill hit/ }),
   ).toHaveAttribute("aria-pressed", "true");
 
   await dayRow(page).click();

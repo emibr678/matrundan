@@ -39,7 +39,9 @@ describe("fokusmodell för Nästa stopp v2", () => {
     expect(hybrid).toContain("CREATE OR REPLACE FUNCTION public.set_next_stop_day_response_v2(");
     expect(hybrid).toContain("_response NOT IN ('can', 'cannot')");
     expect(preferences).toContain("CREATE TABLE public.next_stop_place_supports");
-    expect(preferences).toContain("CREATE OR REPLACE FUNCTION public.set_next_stop_place_support_v2(");
+    expect(preferences).toContain(
+      "CREATE OR REPLACE FUNCTION public.set_next_stop_place_support_v2(",
+    );
     expect(preferences).toContain("Flera ställen får stödjas samtidigt");
     expect(preferences).toContain("Inga signaler påverkar selectedPlaceId");
   });

@@ -398,7 +398,9 @@ export function NextStopCard({
             <span className="flex min-w-0 items-center gap-2">
               <span>Andra förslag ({otherProposals.length})</span>
               {leadingAlternativeId && !otherOpen ? (
-                <span className="truncate text-[11px] font-medium text-primary">Flest vill hit</span>
+                <span className="truncate text-[11px] font-medium text-primary">
+                  Flest vill hit
+                </span>
               ) : null}
             </span>
             {otherOpen ? (
@@ -548,7 +550,9 @@ function FocusedPlaceHero({
           {item.place.photo ?? "🍽️"}
         </div>
         <div className="min-w-0 pr-8">
-          <div className="text-[11px] tracking-wide opacity-80">{CATEGORY_LABEL[item.place.category]}</div>
+          <div className="text-[11px] tracking-wide opacity-80">
+            {CATEGORY_LABEL[item.place.category]}
+          </div>
           <h2 className="mt-0.5 font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
             {item.place.name}
           </h2>
@@ -633,7 +637,10 @@ function responseCounts(responses: DayResponse[]) {
 function dayResponseSummary(responses: DayResponse[]): string {
   const counts = responseCounts(responses);
   if (counts.can === 0 && counts.cannot === 0) return "Ingen har svarat än";
-  return [counts.can > 0 ? `${counts.can} kan` : null, counts.cannot > 0 ? `${counts.cannot} kan inte` : null]
+  return [
+    counts.can > 0 ? `${counts.can} kan` : null,
+    counts.cannot > 0 ? `${counts.cannot} kan inte` : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 }
@@ -688,7 +695,9 @@ function DayRow({
     >
       <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{formatNextStopDate(plannedDate, null)}</span>
+        <span className="block truncate text-sm font-medium">
+          {formatNextStopDate(plannedDate, null)}
+        </span>
         <span
           className={`mt-0.5 block text-xs ${own.answered ? "text-muted-foreground" : "font-medium text-primary"}`}
         >
@@ -740,7 +749,9 @@ function ProposalRow({
       <div className="mt-1.5 pl-[3.75rem]">
         <div className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span>{proposerLabel(item.proposal, state)}</span>
-          {isMostSupported ? <span className="font-medium text-primary">Flest vill hit</span> : null}
+          {isMostSupported ? (
+            <span className="font-medium text-primary">Flest vill hit</span>
+          ) : null}
         </div>
         <div className="mt-2 flex flex-nowrap items-center gap-2">
           <PlacePreferenceButton
@@ -841,7 +852,9 @@ function DayPlanningSheet({
         className="max-h-[85dvh] overflow-y-auto rounded-t-3xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:px-6"
       >
         <SheetHeader className="pr-8 text-left">
-          <SheetTitle className="font-display text-2xl">{formatNextStopDate(plannedDate, null)}</SheetTitle>
+          <SheetTitle className="font-display text-2xl">
+            {formatNextStopDate(plannedDate, null)}
+          </SheetTitle>
           <SheetDescription>Svara om dagen fungerar för dig och se gruppens svar.</SheetDescription>
         </SheetHeader>
 
@@ -894,7 +907,9 @@ function DayPlanningSheet({
                 <div className="text-sm leading-relaxed">
                   <span className="font-medium">Kan:</span>{" "}
                   <span className="text-muted-foreground">
-                    {canMembers.map((member) => `${member.avatar ?? ""} ${member.name}`.trim()).join(", ")}
+                    {canMembers
+                      .map((member) => `${member.avatar ?? ""} ${member.name}`.trim())
+                      .join(", ")}
                   </span>
                 </div>
               ) : null}
@@ -986,7 +1001,9 @@ function FocusedActionsMenu({
             <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
           </>
         ) : null}
-        {canRemove ? <DropdownMenuItem onSelect={onWithdraw}>Ta bort förslag</DropdownMenuItem> : null}
+        {canRemove ? (
+          <DropdownMenuItem onSelect={onWithdraw}>Ta bort förslag</DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
