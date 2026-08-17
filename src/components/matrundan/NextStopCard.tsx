@@ -536,20 +536,20 @@ function FocusedPlaceHero({
   return (
     <div
       data-next-stop-proposal="selected"
-      className="bg-gradient-to-br from-primary/85 to-primary p-5 pr-14 text-primary-foreground"
+      className="bg-gradient-to-br from-primary/85 to-primary px-5 py-4 text-primary-foreground"
     >
       <Link
         to="/matstallen/$placeId"
         params={{ placeId: item.place.id }}
-        className="block transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40"
+        className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40"
         aria-label={`Öppna ${item.place.name}`}
       >
-        <div className="text-5xl" aria-hidden="true">
+        <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
           {item.place.photo ?? "🍽️"}
         </div>
-        <div className="mt-2 min-w-0">
-          <div className="text-xs tracking-wide opacity-80">{CATEGORY_LABEL[item.place.category]}</div>
-          <h2 className="font-display text-3xl font-semibold leading-tight [overflow-wrap:anywhere]">
+        <div className="min-w-0 pr-8">
+          <div className="text-[11px] tracking-wide opacity-80">{CATEGORY_LABEL[item.place.category]}</div>
+          <h2 className="mt-0.5 font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
             {item.place.name}
           </h2>
           <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
@@ -558,10 +558,10 @@ function FocusedPlaceHero({
               {item.place.address}, {item.place.city}
             </span>
           </div>
-          <div className="mt-2 text-xs opacity-85">{proposerLabel(item.proposal, state)}</div>
+          <div className="mt-1.5 text-xs opacity-85">{proposerLabel(item.proposal, state)}</div>
         </div>
       </Link>
-      <div className="mt-3">
+      <div className="mt-2.5 pl-[3.5rem]">
         <PlacePreferenceButton
           proposal={item.proposal}
           currentUserId={currentUserId}
