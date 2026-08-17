@@ -44,6 +44,15 @@ function dayRow(page: Page) {
   return page.getByRole("button", { name: /Öppna dagsvaren för/ });
 }
 
+async function ensureDay(page: Page, days = 7) {
+  if ((await dayRow(page).count()) > 0) return;
+  await page.getByRole("button", { name: "Föreslå dag" }).click();
+  const dialog = page.getByRole("dialog", { name: "Föreslå dag" });
+  await dialog.getByLabel("Dag").fill(futureDate(days));
+  await dialog.getByRole("button", { name: "Spara" }).click();
+  await expect(dayRow(page)).toBeVisible();
+}
+
 test("hybridkortet behåller v1-hierarkin men flera ställesförslag", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
@@ -100,6 +109,7 @@ test("Jag vill hit kan markeras på både fokus och alternativ utan att byta sto
 test("dagen använder bara Jag kan och Jag kan inte i en bottom sheet", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
+  await ensureDay(page);
 
   await dayRow(page).click();
   const sheet = page.getByRole("dialog");
@@ -119,6 +129,7 @@ test("dagen använder bara Jag kan och Jag kan inte i en bottom sheet", async ({
 test("föreslå annan dag nollställer gruppens dagsvar", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
+  await ensureDay(page);
 
   await dayRow(page).click();
   let sheet = page.getByRole("dialog");
@@ -144,6 +155,7 @@ test("föreslå annan dag nollställer gruppens dagsvar", async ({ page }) => {
 test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
+  await ensureDay(page);
   await proposeAlternativeFromDetail(page);
 
   const beforeName = await page
@@ -235,8 +247,8 @@ test("passerad dag frågar vad som hände utan att återinföra tid", async ({ p
   await resetDemo(page);
 
   await page.evaluate((date) => {
-    window.sessionStorage.setItem(
-      "matrundan.nextStop.v2.example-stockholm",
+    window.localStorage.setItem(
+      "matrundan.nextStop.v2.g1",
       JSON.stringify({
         revision: 3,
         plannedDate: date,
