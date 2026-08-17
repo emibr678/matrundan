@@ -17,7 +17,7 @@ const proposal: NextStopPlaceProposal = {
 };
 
 describe("Nästa stopp v2", () => {
-  test("legacy-val normaliseras till ett fokuserat stopp utan platsröstning", () => {
+  test("legacy-val normaliseras till ett fokuserat stopp utan uppfunnet platsintresse", () => {
     const nextStop = deriveNextStopState({ ...DEMO_STATE, nextStop: undefined });
     expect(nextStop?.selectedPlaceId).toBe("p5");
     expect(nextStop?.proposals).toHaveLength(1);
@@ -71,13 +71,15 @@ describe("Nästa stopp v2", () => {
     expect(canWithdrawNextStopProposal(stateAsMember("m4"), proposal)).toBe(false);
   });
 
-  test("exempelgruppen har ett fokuserat nästa stopp och bevarade alternativ", () => {
+  test("exempelgruppen har fokus, alternativ och oberoende Jag vill hit-signaler", () => {
     const now = new Date("2026-08-16T12:00:00.000Z");
     const first = deriveNextStopState(buildExampleState(now));
     const second = deriveNextStopState(buildExampleState(now));
     expect(first).toEqual(second);
     expect(first?.proposals.length).toBeGreaterThanOrEqual(2);
     expect(first?.selectedPlaceId).toBe(first?.proposals[0]?.placeId);
+    expect(first?.proposals[0]?.supports.length).toBeGreaterThan(0);
+    expect(first?.proposals[1]?.supports.length).toBeGreaterThan(0);
     expect(first?.plannedTime).toBeNull();
   });
 });
