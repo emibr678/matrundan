@@ -6,6 +6,9 @@ const migration = await Bun.file(
 const archiveSync = await Bun.file(
   "supabase/migrations/20260817071500_next_stop_v2_archive_focus_sync.sql",
 ).text();
+const hybrid = await Bun.file(
+  "supabase/migrations/20260817131000_next_stop_v2_hybrid_day_responses.sql",
+).text();
 
 describe("fokusmodell för Nästa stopp v2", () => {
   test("första förslaget får momentum utan att senare förslag skriver över", () => {
@@ -17,12 +20,24 @@ describe("fokusmodell för Nästa stopp v2", () => {
 
   test("v2 är dag-only och avvisar klockslag server-side", () => {
     expect(migration).toContain("next_stop_plans_no_time CHECK (planned_time IS NULL)");
-    expect(migration).toContain("IF _planned_time IS NOT NULL THEN");
-    expect(migration).toContain("Nästa stopp använder bara dag, inte klockslag");
-    expect(migration).toContain("planned_time = NULL");
+    expect(hybrid).toContain("IF _planned_time IS NOT NULL THEN");
+    expect(hybrid).toContain("Nästa stopp använder bara dag, inte klockslag");
+    expect(hybrid).toContain("planned_time = NULL");
   });
 
-  test("det separata öppna val-läget tas bort", () => {
+  test("dagen finns bara när gruppen har ett nästa stopp", () => {
+    expect(hybrid).toContain("Välj nästa stopp innan ni lägger till en dag");
+    expect(hybrid).toContain("IF _place_id IS NULL THEN");
+    expect(hybrid).toContain("_planned_date := NULL");
+  });
+
+  test("platsstöd ersätts av binärt dagsvar", () => {
+    expect(hybrid).toContain("DROP TABLE IF EXISTS public.next_stop_place_supports CASCADE");
+    expect(hybrid).toContain("CREATE OR REPLACE FUNCTION public.set_next_stop_day_response_v2(");
+    expect(hybrid).toContain("_response NOT IN ('can', 'cannot')");
+  });
+
+  test("det separata öppna val-läget är fortsatt borttaget", () => {
     expect(migration).toContain(
       "DROP FUNCTION IF EXISTS public.clear_next_stop_selection_v2(uuid, bigint)",
     );
@@ -35,13 +50,14 @@ describe("fokusmodell för Nästa stopp v2", () => {
     expect(migration).toContain("PERFORM public.set_next_place(_group_id, _replacement_place_id)");
   });
 
-  test("arkivering flyttar fokus och synkar samma dag till legacy-klienter", () => {
+  test("arkivering flyttar fokus och behåller samma dag/svar när alternativ finns", () => {
     expect(archiveSync).toContain(
       "CREATE OR REPLACE FUNCTION public.cleanup_next_stop_proposal_on_place_archive_v2()",
     );
-    expect(archiveSync).toContain("_was_selected boolean := false");
-    expect(archiveSync).toContain("_replacement_place_id uuid");
-    expect(archiveSync).toContain("ORDER BY p.created_at, p.id");
-    expect(archiveSync).toContain("PERFORM public.next_stop_v2_sync_legacy_date(");
+    expect(hybrid).toContain("_was_selected boolean := false");
+    expect(hybrid).toContain("_replacement_place_id uuid");
+    expect(hybrid).toContain("ORDER BY p.created_at, p.id");
+    expect(hybrid).toContain("PERFORM public.next_stop_v2_sync_legacy_date(");
+    expect(hybrid).toContain("IF _replacement_place_id IS NULL THEN");
   });
 });
