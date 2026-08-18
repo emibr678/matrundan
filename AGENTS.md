@@ -25,7 +25,7 @@ not every document by default.
   Issue #207.
 - `docs/development-workflow.md` — planning, implementation, verification,
   Lovable, merge, database deployment and publication.
-- `docs/visual-review.md` — rendered GUI/UX review and preview requirements.
+- `docs/visual-review.md` — rendered GUI/UX review and opt-in Lovable rules.
 - `DEVELOPMENT.md` — environment setup and canonical commands.
 - `CHANGELOG.md` and `src/lib/matrundan/version.ts` — releases.
 
@@ -126,22 +126,24 @@ verification as it stabilises. Canonical commands live in `DEVELOPMENT.md` and
 deployment or publication happened without evidence.
 
 All rendered GUI changes must also follow the local `src/AGENTS.md` and
-`docs/visual-review.md`. Lovable consultation or implementation is used when the
-user explicitly asks for it; branch selection/sync must be verified before
-Lovable writes code. Preview is review, not publication.
+`docs/visual-review.md`. Lovable is strictly opt-in: do not consult Lovable,
+invoke Lovable implementation, sync a branch to Lovable or create a Lovable
+preview unless the user explicitly asks for Lovable in the current task. Normal
+rendered review uses repository/browser tooling. When Lovable is requested,
+branch selection and head sync must be verified before it writes code. Preview
+is review, not publication.
 
 GitHub Actions verify code; they must not patch or push product code back to a
 branch. Do not create commits solely to trigger CI and do not rewrite pushed
 history that may have synced to Lovable.
 
 Before merge, require the agreed scope, reviewed diff, relevant green checks,
-required visual/preview evidence and no known blocker. Database deployment and
-publication remain separate approvals.
+required rendered UX evidence, any explicitly requested Lovable evidence and no
+known blocker. Database deployment and publication remain separate approvals.
 
-After a candidate or merge, report the relevant evidence separately: branch and
-commit; Issue and PR with titles; CI; rendered review level/states/viewports;
-Lovable consultation/branch/sync/preview; example-group/roadmap impact; database
-and migration status; anything unverified; and publication status.
+After a candidate or merge, use the structured chat receipt in
+`docs/development-workflow.md` and report the relevant evidence without blending
+merge, Lovable, database or publication status.
 
 ## Documentation lifecycle
 
@@ -153,8 +155,8 @@ Each durable fact should have one natural owner:
 - architecture + specialist architecture docs — durable design/privacy/security
   decisions.
 - DEVELOPMENT — environment and commands.
-- development-workflow — delivery process.
-- visual-review — rendered UX and preview process.
+- development-workflow — delivery process and chat receipt.
+- visual-review — rendered UX and opt-in Lovable rules.
 - CHANGELOG + in-app version history — released user-facing history.
 
 A new document or agent rule should remove uncertainty or contain unique durable

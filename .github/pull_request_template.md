@@ -37,16 +37,20 @@ Motivering eller särskild risk:
 - Viewportar:
 - Konkreta UX-/persona-fynd och korrigeringar:
 - Screenshots/artifact: temporära / GitHub-artifact / inga
+- Full nivå 3-grind: krävs / inte relevant
+- Lovable uttryckligen begärt: ja / nej
 - Lovable-konsultation/implementation: genomförd / inte begärd / blockerad
-- Full previewgrind: krävs / inte relevant
 
-Om full previewgrind krävs:
+Om nivå 3-grind krävs:
 
 - PR-branch + head-SHA:
+- Demo/exempel/live jämförda:
+- Användarens gransknings-/mergebesked:
+
+Om Lovable uttryckligen har begärts:
+
 - Verifierad Lovable-branch/synk:
 - Previewlänk:
-- Demo/exempel/live jämförda:
-- Användarens preview-/mergebesked:
 
 Se `docs/visual-review.md` för nivåer och exakta krav. Beskriv inte hela processen
 på nytt här.
@@ -82,7 +86,7 @@ Lista endast kontroller som faktiskt har körts och deras resultat.
 - PR:
 - Issue:
 - Mergegodkännande: ja / nej
-- Lovable-synk/preview: klart / inte relevant / återstår
+- Lovable-synk/preview: klart / inte begärt / återstår
 - Databasdriftsättning: klart / inte relevant / återstår
 - Publicering: klart / inte relevant / återstår
 
