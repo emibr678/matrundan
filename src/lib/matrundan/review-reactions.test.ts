@@ -30,13 +30,18 @@ describe("privata omdömesreaktioner", () => {
       "review-v2-sam",
       "heart",
     );
-    const heart = getDemoReviewReactionStates(heartState, EXAMPLE_IDS.visits.guestReviews).find(
-      (item) => item.reviewId === "review-v2-sam",
-    );
+    const heart = getDemoReviewReactionStates(
+      heartState,
+      EXAMPLE_IDS.visits.guestReviews,
+    ).find((item) => item.reviewId === "review-v2-sam");
 
     expect(heart?.myReaction).toBe("heart");
-    expect(heart?.reactions.find((bucket) => bucket.reaction === "heart")?.count).toBe(2);
-    expect(heart?.reactions.find((bucket) => bucket.reaction === "drool")).toBeUndefined();
+    expect(
+      heart?.reactions.find((bucket) => bucket.reaction === "heart")?.count,
+    ).toBe(2);
+    expect(
+      heart?.reactions.find((bucket) => bucket.reaction === "drool"),
+    ).toBeUndefined();
 
     const clearedState = setOwnDemoReviewReaction(
       heartState,
@@ -44,9 +49,10 @@ describe("privata omdömesreaktioner", () => {
       "review-v2-sam",
       null,
     );
-    const cleared = getDemoReviewReactionStates(clearedState, EXAMPLE_IDS.visits.guestReviews).find(
-      (item) => item.reviewId === "review-v2-sam",
-    );
+    const cleared = getDemoReviewReactionStates(
+      clearedState,
+      EXAMPLE_IDS.visits.guestReviews,
+    ).find((item) => item.reviewId === "review-v2-sam");
     expect(cleared?.myReaction).toBeNull();
     expect(
       cleared?.reactions.some((bucket) =>
@@ -73,9 +79,10 @@ describe("privata omdömesreaktioner", () => {
       "review-v2-sam",
       "laugh",
     );
-    const reaction = getDemoReviewReactionStates(next, EXAMPLE_IDS.visits.guestReviews).find(
-      (item) => item.reviewId === "review-v2-sam",
-    );
+    const reaction = getDemoReviewReactionStates(
+      next,
+      EXAMPLE_IDS.visits.guestReviews,
+    ).find((item) => item.reviewId === "review-v2-sam");
     expect(reaction?.myReaction).toBe("laugh");
   });
 
