@@ -262,9 +262,6 @@ function formatChanged(checkOnly, explicitBase) {
     files,
     "Inga ändrade filer stöds av Prettier.",
   );
-  if (!checkOnly) {
-    run("git", ["diff", "--no-ext-diff", "--", ...files]);
-  }
 }
 
 function lintChanged(explicitBase) {
