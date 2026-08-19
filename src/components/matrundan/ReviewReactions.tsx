@@ -146,61 +146,67 @@ export function ReviewReactionBar({
   if (buckets.length === 0 && !context.writable) return null;
 
   return (
-    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 border-t border-border/40 pt-1.5">
-      {buckets.map((bucket) => (
-        <ReactionCountChip
-          key={bucket.reaction}
-          bucket={bucket}
-          selected={reactionState?.myReaction === bucket.reaction}
-        />
-      ))}
+    <div className="mt-1.5 min-w-0" data-review-reactions={reviewId}>
+      <div className="flex min-w-0 flex-wrap items-center gap-1">
+        {buckets.map((bucket) => (
+          <ReactionCountChip
+            key={bucket.reaction}
+            bucket={bucket}
+            selected={reactionState?.myReaction === bucket.reaction}
+          />
+        ))}
 
-      {context.writable ? (
-        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="min-h-11 rounded-full px-2.5 text-xs text-muted-foreground"
-              disabled={saving}
-              aria-label={`Reagera på ${authorName}s omdöme`}
-            >
-              Reagera
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="start"
-            className="w-auto max-w-[calc(100vw-2rem)] rounded-2xl p-2"
-            aria-label={`Välj reaktion på ${authorName}s omdöme`}
+        {context.writable ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={`min-h-10 rounded-full px-2.5 text-xs ${
+              pickerOpen
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            disabled={saving}
+            aria-label={`Reagera på ${authorName}s omdöme`}
+            aria-expanded={pickerOpen}
+            onClick={() => setPickerOpen((open) => !open)}
           >
-            <div className="flex items-center gap-1" role="group" aria-label="Välj reaktion">
-              {REVIEW_REACTION_OPTIONS.map((option) => {
-                const selected = reactionState?.myReaction === option.key;
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    className={`grid min-h-11 min-w-11 place-items-center rounded-full text-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
-                      selected ? "bg-primary/15 ring-1 ring-primary/30" : "hover:bg-secondary"
-                    }`}
-                    aria-label={`${option.label}${
-                      selected ? ", vald – tryck igen för att ta bort" : ""
-                    }`}
-                    aria-pressed={selected}
-                    disabled={saving}
-                    onClick={() => {
-                      setPickerOpen(false);
-                      void context.saveReaction(reviewId, selected ? null : option.key);
-                    }}
-                  >
-                    <span aria-hidden="true">{option.emoji}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
+            Reagera
+          </Button>
+        ) : null}
+      </div>
+
+      {context.writable && pickerOpen ? (
+        <div
+          className="mt-1 inline-flex max-w-full items-center gap-0.5 rounded-xl bg-secondary/45 p-1"
+          role="group"
+          aria-label="Välj reaktion"
+          data-reaction-picker="inline"
+        >
+          {REVIEW_REACTION_OPTIONS.map((option) => {
+            const selected = reactionState?.myReaction === option.key;
+            return (
+              <button
+                key={option.key}
+                type="button"
+                className={`grid min-h-10 min-w-10 place-items-center rounded-lg text-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+                  selected ? "bg-primary/15 ring-1 ring-primary/30" : "hover:bg-background/70"
+                }`}
+                aria-label={`${option.label}${
+                  selected ? ", vald – tryck igen för att ta bort" : ""
+                }`}
+                aria-pressed={selected}
+                disabled={saving}
+                onClick={() => {
+                  setPickerOpen(false);
+                  void context.saveReaction(reviewId, selected ? null : option.key);
+                }}
+              >
+                <span aria-hidden="true">{option.emoji}</span>
+              </button>
+            );
+          })}
+        </div>
       ) : null}
     </div>
   );
@@ -221,16 +227,16 @@ function ReactionCountChip({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`inline-flex min-h-11 items-center gap-1 rounded-full border px-2.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+          className={`inline-flex min-h-10 items-center gap-1 rounded-full border px-2.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
             selected
               ? "border-primary/30 bg-primary/10 text-primary"
-              : "border-border/70 bg-secondary/50 text-foreground hover:bg-secondary"
+              : "border-border/70 bg-secondary/40 text-foreground hover:bg-secondary"
           }`}
           aria-label={`${option.label}: ${bucket.count} ${
             bucket.count === 1 ? "reaktion" : "reaktioner"
           }. Visa vilka som reagerat.`}
         >
-          <span className="text-base" aria-hidden="true">
+          <span className="text-sm" aria-hidden="true">
             {option.emoji}
           </span>
           <span>{bucket.count}</span>
