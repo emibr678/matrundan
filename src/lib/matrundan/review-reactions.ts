@@ -41,10 +41,7 @@ type AppStateWithReviewReactions = AppState & {
   reviewReactions?: ReviewReactionState[];
 };
 
-function memberReactionPerson(
-  state: AppState,
-  userId: string,
-): ReviewReactionPerson {
+function memberReactionPerson(state: AppState, userId: string): ReviewReactionPerson {
   const member = state.members.find((item) => item.id === userId);
   return {
     userId,
@@ -58,14 +55,10 @@ function memberReactionPerson(
 function exampleDefaults(state: AppState): ReviewReactionState[] {
   if (state.group.id !== "example-stockholm") return [];
   const visit = state.visits.find((item) => item.id === "v2");
-  const review = visit?.visibleReviews?.find(
-    (item) => item.id === "review-v2-sam",
-  );
+  const review = visit?.visibleReviews?.find((item) => item.id === "review-v2-sam");
   if (!review?.commentVisible || !review.comment?.trim()) return [];
 
-  const alex = state.members.find(
-    (item) => item.id === state.currentUserId,
-  )?.id;
+  const alex = state.members.find((item) => item.id === state.currentUserId)?.id;
   const robin = state.members.find((item) => item.id === "m3")?.id;
   const noor = state.members.find((item) => item.id === "m5")?.id;
 
@@ -115,9 +108,7 @@ export function getDemoReviewReactionStates(
       .find((visit) => visit.id === visitId)
       ?.visibleReviews?.map((review) => review.id) ?? [],
   );
-  return allDemoReactionStates(state).filter((reaction) =>
-    reviewIds.has(reaction.reviewId),
-  );
+  return allDemoReactionStates(state).filter((reaction) => reviewIds.has(reaction.reviewId));
 }
 
 export function setOwnDemoReviewReaction(
@@ -135,11 +126,7 @@ export function setOwnDemoReviewReaction(
   if (!visit || !review) {
     throw new Error("Omdömet finns inte i besöket.");
   }
-  if (
-    !review.ratingVisible ||
-    !review.commentVisible ||
-    !review.comment?.trim()
-  ) {
+  if (!review.ratingVisible || !review.commentVisible || !review.comment?.trim()) {
     throw new Error("Omdömet kan inte reageras på i den här gruppen.");
   }
 
@@ -152,9 +139,7 @@ export function setOwnDemoReviewReaction(
   const previous = allStates.find((item) => item.reviewId === reviewId);
   const buckets = (previous?.reactions ?? [])
     .map((bucket) => {
-      const reactors = bucket.reactors.filter(
-        (person) => person.userId !== currentUserId,
-      );
+      const reactors = bucket.reactors.filter((person) => person.userId !== currentUserId);
       return { ...bucket, count: reactors.length, reactors };
     })
     .filter((bucket) => bucket.count > 0);
@@ -172,8 +157,7 @@ export function setOwnDemoReviewReaction(
 
   buckets.sort(
     (left, right) =>
-      (reactionOrder.get(left.reaction) ?? 99) -
-      (reactionOrder.get(right.reaction) ?? 99),
+      (reactionOrder.get(left.reaction) ?? 99) - (reactionOrder.get(right.reaction) ?? 99),
   );
 
   const nextState: ReviewReactionState = {
@@ -181,10 +165,7 @@ export function setOwnDemoReviewReaction(
     myReaction: reaction,
     reactions: buckets,
   };
-  const nextAll = [
-    ...allStates.filter((item) => item.reviewId !== reviewId),
-    nextState,
-  ];
+  const nextAll = [...allStates.filter((item) => item.reviewId !== reviewId), nextState];
 
   return {
     ...state,
