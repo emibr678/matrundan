@@ -51,8 +51,7 @@ function VisitHistory() {
   const groupArchived = state.group.lifecycleStatus === "archived";
   const requestedGroupAllowed =
     !search.group || userGroups.some((group) => group.id === search.group);
-  const requestedGroupReady =
-    mode !== "live" || !search.group || search.group === activeGroupId;
+  const requestedGroupReady = mode !== "live" || !search.group || search.group === activeGroupId;
   const visits = React.useMemo(
     () => [...state.visits].sort((left, right) => right.date.localeCompare(left.date)),
     [state.visits],
