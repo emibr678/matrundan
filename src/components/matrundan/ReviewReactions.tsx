@@ -47,8 +47,11 @@ export function VisitReviewReactionsProvider({
 }) {
   const { state } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [byReview, setByReview] = React.useState<Map<string, ReviewReactionState>>(() =>
-    mode === "demo" ? toReactionMap(getDemoReviewReactionStates(state, visit.id)) : new Map(),
+  const [byReview, setByReview] = React.useState<Map<string, ReviewReactionState>>(
+    () =>
+      mode === "demo"
+        ? toReactionMap(getDemoReviewReactionStates(state, visit.id))
+        : new Map(),
   );
   const [loading, setLoading] = React.useState(mode === "live");
   const [error, setError] = React.useState<string | null>(null);
@@ -64,7 +67,9 @@ export function VisitReviewReactionsProvider({
       const reactions = await loadVisitReviewReactions(activeGroupId, visit.id);
       setByReview(toReactionMap(reactions));
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Kunde inte läsa reaktionerna.");
+      setError(
+        loadError instanceof Error ? loadError.message : "Kunde inte läsa reaktionerna.",
+      );
     } finally {
       setLoading(false);
     }
@@ -96,11 +101,14 @@ export function VisitReviewReactionsProvider({
           persistDemoState(nextState, exampleMode);
         }
       } catch (saveError) {
-        toast.error(saveError instanceof Error ? saveError.message : "Kunde inte spara reaktionen.");
+        toast.error(
+          saveError instanceof Error ? saveError.message : "Kunde inte spara reaktionen.",
+        );
       } finally {
         setSavingReviewId(null);
       }
-    }, [activeGroupId, exampleMode, mode, state, visit.id, writable],
+    },
+    [activeGroupId, exampleMode, mode, state, visit.id, writable],
   );
 
   const contextValue = React.useMemo<ReactionContextValue>(
@@ -114,7 +122,13 @@ export function VisitReviewReactionsProvider({
       {error ? (
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="min-w-0 [overflow-wrap:anywhere]">{error}</span>
-          <Button type="button" variant="ghost" size="sm" className="min-h-11" onClick={loadLive}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            onClick={loadLive}
+          >
             Försök igen
           </Button>
         </div>
@@ -172,7 +186,11 @@ export function ReviewReactionBar({
             className="w-auto max-w-[calc(100vw-2rem)] rounded-2xl p-2"
             aria-label={`Välj reaktion på ${authorName}s omdöme`}
           >
-            <div className="flex items-center gap-1" role="group" aria-label="Välj reaktion">
+            <div
+              className="flex items-center gap-1"
+              role="group"
+              aria-label="Välj reaktion"
+            >
               {REVIEW_REACTION_OPTIONS.map((option) => {
                 const selected = reactionState?.myReaction === option.key;
                 return (
@@ -230,7 +248,10 @@ function ReactionCountChip({
           <span>{bucket.count}</span>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 max-w-[calc(100vw-2rem)] rounded-2xl p-3">
+      <PopoverContent
+        align="start"
+        className="w-64 max-w-[calc(100vw-2rem)] rounded-2xl p-3"
+      >
         <div className="text-sm font-medium">
           {option.emoji} {option.label}
         </div>
@@ -238,7 +259,11 @@ function ReactionCountChip({
           {bucket.reactors.map((person) => (
             <div key={person.userId} className="flex min-w-0 items-center gap-2">
               {person.avatarImage ? (
-                <img src={person.avatarImage} alt="" className="h-7 w-7 rounded-full object-cover" />
+                <img
+                  src={person.avatarImage}
+                  alt=""
+                  className="h-7 w-7 rounded-full object-cover"
+                />
               ) : (
                 <span
                   className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-sm"
