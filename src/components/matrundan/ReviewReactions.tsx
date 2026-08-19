@@ -2,7 +2,11 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { persistDemoState } from "@/lib/matrundan/demo-state";
 import {
   loadVisitReviewReactions,
@@ -25,12 +29,17 @@ interface ReactionContextValue {
   writable: boolean;
   loading: boolean;
   savingReviewId: string | null;
-  saveReaction: (reviewId: string, reaction: ReviewReactionKey | null) => Promise<void>;
+  saveReaction: (
+    reviewId: string,
+    reaction: ReviewReactionKey | null,
+  ) => Promise<void>;
 }
 
 const ReactionContext = React.createContext<ReactionContextValue | null>(null);
 
-function toReactionMap(states: ReviewReactionState[]): Map<string, ReviewReactionState> {
+function toReactionMap(
+  states: ReviewReactionState[],
+): Map<string, ReviewReactionState> {
   return new Map(states.map((state) => [state.reviewId, state]));
 }
 
@@ -47,17 +56,20 @@ export function VisitReviewReactionsProvider({
 }) {
   const { state } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [byReview, setByReview] = React.useState<Map<string, ReviewReactionState>>(
-    () =>
-      mode === "demo"
-        ? toReactionMap(getDemoReviewReactionStates(state, visit.id))
-        : new Map(),
+  const [byReview, setByReview] = React.useState<
+    Map<string, ReviewReactionState>
+  >(() =>
+    mode === "demo"
+      ? toReactionMap(getDemoReviewReactionStates(state, visit.id))
+      : new Map(),
   );
   const [loading, setLoading] = React.useState(mode === "live");
   const [error, setError] = React.useState<string | null>(null);
   const [savingReviewId, setSavingReviewId] = React.useState<string | null>(null);
   const writable =
-    !groupArchived && !demoReadOnly && (mode === "demo" || Boolean(activeGroupId));
+    !groupArchived &&
+    !demoReadOnly &&
+    (mode === "demo" || Boolean(activeGroupId));
 
   const loadLive = React.useCallback(async () => {
     if (mode !== "live" || !activeGroupId) return;
@@ -68,7 +80,9 @@ export function VisitReviewReactionsProvider({
       setByReview(toReactionMap(reactions));
     } catch (loadError) {
       setError(
-        loadError instanceof Error ? loadError.message : "Kunde inte läsa reaktionerna.",
+        loadError instanceof Error
+          ? loadError.message
+          : "Kunde inte läsa reaktionerna.",
       );
     } finally {
       setLoading(false);
@@ -92,17 +106,34 @@ export function VisitReviewReactionsProvider({
       try {
         if (mode === "live") {
           if (!activeGroupId) throw new Error("Ingen aktiv grupp.");
-          await setOwnReviewReaction(activeGroupId, visit.id, reviewId, reaction);
-          const reactions = await loadVisitReviewReactions(activeGroupId, visit.id);
+          await setOwnReviewReaction(
+            activeGroupId,
+            visit.id,
+            reviewId,
+            reaction,
+          );
+          const reactions = await loadVisitReviewReactions(
+            activeGroupId,
+            visit.id,
+          );
           setByReview(toReactionMap(reactions));
         } else {
-          const nextState = setOwnDemoReviewReaction(state, visit.id, reviewId, reaction);
-          setByReview(toReactionMap(getDemoReviewReactionStates(nextState, visit.id)));
+          const nextState = setOwnDemoReviewReaction(
+            state,
+            visit.id,
+            reviewId,
+            reaction,
+          );
+          setByReview(
+            toReactionMap(getDemoReviewReactionStates(nextState, visit.id)),
+          );
           persistDemoState(nextState, exampleMode);
         }
       } catch (saveError) {
         toast.error(
-          saveError instanceof Error ? saveError.message : "Kunde inte spara reaktionen.",
+          saveError instanceof Error
+            ? saveError.message
+            : "Kunde inte spara reaktionen.",
         );
       } finally {
         setSavingReviewId(null);
@@ -146,11 +177,15 @@ export function ReviewReactionBar({
 }) {
   const context = React.useContext(ReactionContext);
   if (!context) {
-    throw new Error("ReviewReactionBar måste användas inuti VisitReviewReactionsProvider.");
+    throw new Error(
+      "ReviewReactionBar måste användas inuti VisitReviewReactionsProvider.",
+    );
   }
 
   const reactionState = context.byReview.get(reviewId);
-  const buckets = (reactionState?.reactions ?? []).filter((bucket) => bucket.count > 0);
+  const buckets = (reactionState?.reactions ?? []).filter(
+    (bucket) => bucket.count > 0,
+  );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const saving = context.savingReviewId === reviewId;
 
@@ -198,14 +233,21 @@ export function ReviewReactionBar({
                     key={option.key}
                     type="button"
                     className={`grid min-h-11 min-w-11 place-items-center rounded-full text-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
-                      selected ? "bg-primary/15 ring-1 ring-primary/30" : "hover:bg-secondary"
+                      selected
+                        ? "bg-primary/15 ring-1 ring-primary/30"
+                        : "hover:bg-secondary"
                     }`}
-                    aria-label={`${option.label}${selected ? ", vald – tryck igen för att ta bort" : ""}`}
+                    aria-label={`${option.label}${
+                      selected ? ", vald – tryck igen för att ta bort" : ""
+                    }`}
                     aria-pressed={selected}
                     disabled={saving}
                     onClick={() => {
                       setPickerOpen(false);
-                      void context.saveReaction(reviewId, selected ? null : option.key);
+                      void context.saveReaction(
+                        reviewId,
+                        selected ? null : option.key,
+                      );
                     }}
                   >
                     <span aria-hidden="true">{option.emoji}</span>
@@ -227,7 +269,9 @@ function ReactionCountChip({
   bucket: ReviewReactionBucket;
   selected: boolean;
 }) {
-  const option = REVIEW_REACTION_OPTIONS.find((item) => item.key === bucket.reaction);
+  const option = REVIEW_REACTION_OPTIONS.find(
+    (item) => item.key === bucket.reaction,
+  );
   if (!option || bucket.count <= 0) return null;
 
   return (
@@ -240,7 +284,9 @@ function ReactionCountChip({
               ? "border-primary/30 bg-primary/10 text-primary"
               : "border-border/70 bg-secondary/50 text-foreground hover:bg-secondary"
           }`}
-          aria-label={`${option.label}: ${bucket.count} ${bucket.count === 1 ? "reaktion" : "reaktioner"}. Visa vilka som reagerat.`}
+          aria-label={`${option.label}: ${bucket.count} ${
+            bucket.count === 1 ? "reaktion" : "reaktioner"
+          }. Visa vilka som reagerat.`}
         >
           <span className="text-base" aria-hidden="true">
             {option.emoji}
@@ -257,7 +303,10 @@ function ReactionCountChip({
         </div>
         <div className="mt-2 space-y-2">
           {bucket.reactors.map((person) => (
-            <div key={person.userId} className="flex min-w-0 items-center gap-2">
+            <div
+              key={person.userId}
+              className="flex min-w-0 items-center gap-2"
+            >
               {person.avatarImage ? (
                 <img
                   src={person.avatarImage}
@@ -275,7 +324,9 @@ function ReactionCountChip({
               <div className="min-w-0 text-xs">
                 <div className="truncate font-medium">{person.name}</div>
                 {person.status === "left" ? (
-                  <div className="text-[11px] text-muted-foreground">Tidigare medlem</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Tidigare medlem
+                  </div>
                 ) : null}
               </div>
             </div>
