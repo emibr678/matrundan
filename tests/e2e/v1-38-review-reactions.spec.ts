@@ -80,6 +80,7 @@ test("reaktioner ligger diskret på en synlig deltagarkommentar och kan bytas el
 
 test("deep-linkat omdöme öppnas synligt i samma besöksdetalj", async ({ page }) => {
   await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await page.goto("/besok?visit=v2&review=review-v2-sam");
 
   const dialog = page.getByRole("dialog").first();
@@ -97,6 +98,7 @@ test("deep-linkat omdöme öppnas synligt i samma besöksdetalj", async ({ page 
 test("reaktionsraden behåller samma kompakta hierarki på desktop", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await page.goto("/matstallen/p3?visit=v2");
 
   const dialog = page.getByRole("dialog").first();
