@@ -55,6 +55,8 @@ function withVisitParticipationScenarios(state: AppState): AppState {
           currentUserParticipationStatus: "participant",
           // Nya besök följer #169-invarianten: registreraren är faktisk deltagare
           // och har redan lämnat sitt eget omdöme i registreringsflödet.
+          // Robin har också fyllt på samma besök så Hem kan visa vägen från ett
+          // nytt deltagaromdöme till exakt rätt bidrag i besöksdetaljen.
           visibleReviews: [
             {
               id: "review-v1-alex",
@@ -64,6 +66,17 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               value: 4,
               service: 5,
               comment: "En lugn fredagsfika och en riktigt bra kardemummabulle.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+            {
+              id: "review-v1-robin",
+              userId: members.robin,
+              overall: 5,
+              taste: 5,
+              value: 4,
+              service: 5,
+              comment: "Kardemummabullen var värd omvägen – fortfarande varm när vi fick den.",
               ratingVisible: true,
               commentVisible: true,
             },
