@@ -91,11 +91,12 @@ export function Home() {
     : "";
   const lastVisitReview = React.useMemo(() => {
     if (!lastVisit) return undefined;
-    const reactableReviews = (lastVisit.visibleReviews ?? []).filter(
-      (review) => review.ratingVisible && review.commentVisible && Boolean(review.comment?.trim()),
-    );
-    return (
-      reactableReviews.find((review) => review.userId !== state.currentUserId) ?? reactableReviews[0]
+    return (lastVisit.visibleReviews ?? []).find(
+      (review) =>
+        review.userId !== state.currentUserId &&
+        review.ratingVisible &&
+        review.commentVisible &&
+        Boolean(review.comment?.trim()),
     );
   }, [lastVisit, state.currentUserId]);
   const lastVisitReviewAuthor = lastVisitReview
@@ -161,7 +162,7 @@ export function Home() {
             className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={
               lastVisitReview && lastVisitReviewAuthor
-                ? `Öppna ${lastVisitReviewAuthor}s omdöme om ${lastVisitPlace.name}`
+                ? `Öppna omdömet från ${lastVisitReviewAuthor} om ${lastVisitPlace.name}`
                 : `Öppna besöket på ${lastVisitPlace.name}`
             }
           >
