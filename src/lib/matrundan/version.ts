@@ -92,7 +92,7 @@ const VERSION_1_35_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Förbättrat",
       items: [
-        "Besöksdetaljen samlar gruppens betygssammanfattning och deltagarnas egna omdömen i samma yta i stället för flera konkurrerande sektioner.",
+        "Besöksdetaljen samlar gruppens sammanfattning och individuella deltagaromdömen i en gemensam hierarki och gör deltagarkorrigeringen mer kompakt i normalfallet.",
         "Ditt omdöme ligger tillsammans med övriga deltagares omdömen, med en enda tydlig kompletteringsknapp när du ännu inte har svarat och kompakt redigering när omdömet finns.",
         "Flera omdömen visas kompakt med valfria detaljer, medan deltagarkorrigering är sekundär i normalfallet och tydligare när du markerat att du inte var med.",
       ],
