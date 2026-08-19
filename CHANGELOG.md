@@ -14,6 +14,23 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.0] – 2026-08-19
+
+### Nytt
+
+- Gruppmedlemmar kan reagera med **❤️, 🤤, 🙌 eller 😂** på en deltagares
+  synliga omdömeskommentar utan separat kommentarstråd eller social feed.
+- När en annan deltagare senare lämnar sitt första omdöme på ett befintligt
+  besök kan gruppen få en pushnotis som öppnar rätt grupp, besök och omdöme.
+
+### Förbättrat
+
+- Reaktioner är privata per grupp även när samma kanoniska besök och omdöme
+  visas i flera grupper, och påverkar aldrig betyg, progression eller ranking.
+- Besöksdetaljen visar bara befintliga reaktioner med positiva antal och en
+  kompakt **Reagera**-kontroll. Vilka som reagerat visas först när ett
+  reaktionschip öppnas.
+
 ## [1.37.0] – 2026-08-16
 
 ### Nytt
