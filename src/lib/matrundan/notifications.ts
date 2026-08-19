@@ -17,7 +17,10 @@ export const NOTIFICATION_TYPES = [
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
-export const NOTIFICATION_LABELS: Record<NotificationType, { title: string; hint: string }> = {
+export const NOTIFICATION_LABELS: Record<
+  NotificationType,
+  { title: string; hint: string }
+> = {
   visit_registered: {
     title: "Nytt besök registrerat",
     hint: "När någon i gruppen registrerar ett besök.",
@@ -71,7 +74,8 @@ export function isIosLike(): boolean {
 
 export function isInstalledApp(): boolean {
   if (typeof window === "undefined") return false;
-  const standalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  const standalone =
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true;
   return standalone || window.matchMedia("(display-mode: standalone)").matches;
 }
 
@@ -119,7 +123,8 @@ function deviceLabel(): string {
 
 async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
   const existing = await navigator.serviceWorker.getRegistration(SW_PATH);
-  const registration = existing ?? (await navigator.serviceWorker.register(SW_PATH, { scope: "/" }));
+  const registration =
+    existing ?? (await navigator.serviceWorker.register(SW_PATH, { scope: "/" }));
   await navigator.serviceWorker.ready;
   return registration;
 }
@@ -171,7 +176,10 @@ export async function enablePushOnThisDevice(): Promise<EnableResult> {
 
   const { publicKey } = await getPushPublicKey();
   if (!publicKey) {
-    return { status: "unavailable", message: "Notiser är inte konfigurerade i den här miljön." };
+    return {
+      status: "unavailable",
+      message: "Notiser är inte konfigurerade i den här miljön.",
+    };
   }
 
   const permission = await Notification.requestPermission();
