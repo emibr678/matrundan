@@ -34,14 +34,19 @@ export const REVIEW_REACTION_OPTIONS: ReadonlyArray<{
 ];
 
 const reactionOrder = new Map(
-  REVIEW_REACTION_OPTIONS.map((option, index) => [option.key, index] as const),
+  REVIEW_REACTION_OPTIONS.map(
+    (option, index) => [option.key, index] as const,
+  ),
 );
 
 type AppStateWithReviewReactions = AppState & {
   reviewReactions?: ReviewReactionState[];
 };
 
-function memberReactionPerson(state: AppState, userId: string): ReviewReactionPerson {
+function memberReactionPerson(
+  state: AppState,
+  userId: string,
+): ReviewReactionPerson {
   const member = state.members.find((item) => item.id === userId);
   return {
     userId,
@@ -60,7 +65,9 @@ function exampleDefaults(state: AppState): ReviewReactionState[] {
   );
   if (!review?.commentVisible || !review.comment?.trim()) return [];
 
-  const alex = state.members.find((item) => item.id === state.currentUserId)?.id;
+  const alex = state.members.find(
+    (item) => item.id === state.currentUserId,
+  )?.id;
   const robin = state.members.find((item) => item.id === "m3")?.id;
   const noor = state.members.find((item) => item.id === "m5")?.id;
 
@@ -126,9 +133,17 @@ export function setOwnDemoReviewReaction(
   }
 
   const visit = state.visits.find((item) => item.id === visitId);
-  const review = visit?.visibleReviews?.find((item) => item.id === reviewId);
-  if (!visit || !review) throw new Error("Omdömet finns inte i besöket.");
-  if (!review.ratingVisible || !review.commentVisible || !review.comment?.trim()) {
+  const review = visit?.visibleReviews?.find(
+    (item) => item.id === reviewId,
+  );
+  if (!visit || !review) {
+    throw new Error("Omdömet finns inte i besöket.");
+  }
+  if (
+    !review.ratingVisible ||
+    !review.commentVisible ||
+    !review.comment?.trim()
+  ) {
     throw new Error("Omdömet kan inte reageras på i den här gruppen.");
   }
 
@@ -150,7 +165,9 @@ export function setOwnDemoReviewReaction(
 
   if (reaction) {
     const person = memberReactionPerson(state, currentUserId);
-    const existing = buckets.find((bucket) => bucket.reaction === reaction);
+    const existing = buckets.find(
+      (bucket) => bucket.reaction === reaction,
+    );
     if (existing) {
       existing.reactors = [...existing.reactors, person];
       existing.count = existing.reactors.length;
