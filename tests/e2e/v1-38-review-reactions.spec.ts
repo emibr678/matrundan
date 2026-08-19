@@ -56,7 +56,9 @@ test("reaktioner ligger direkt under kommentaren och väljs inline", async ({ pa
   const reviewBox = await samReview.boundingBox();
   expect(pickerBox).not.toBeNull();
   expect(reviewBox).not.toBeNull();
-  expect(pickerBox!.y + pickerBox!.height).toBeLessThanOrEqual(reviewBox!.y + reviewBox!.height + 1);
+  expect(pickerBox!.y + pickerBox!.height).toBeLessThanOrEqual(
+    reviewBox!.y + reviewBox!.height + 1,
+  );
 
   await picker.getByRole("button", { name: "Roligt" }).click();
 
