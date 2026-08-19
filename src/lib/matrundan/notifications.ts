@@ -119,7 +119,8 @@ function deviceLabel(): string {
 
 async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
   const existing = await navigator.serviceWorker.getRegistration(SW_PATH);
-  const registration = existing ?? (await navigator.serviceWorker.register(SW_PATH, { scope: "/" }));
+  const registration =
+    existing ?? (await navigator.serviceWorker.register(SW_PATH, { scope: "/" }));
   await navigator.serviceWorker.ready;
   return registration;
 }
