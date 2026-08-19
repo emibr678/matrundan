@@ -55,7 +55,9 @@ function memberReactionPerson(state: AppState, userId: string): ReviewReactionPe
 function exampleDefaults(state: AppState): ReviewReactionState[] {
   if (state.group.id !== "example-stockholm") return [];
   const visit = state.visits.find((item) => item.id === "v2");
-  const review = visit?.visibleReviews?.find((item) => item.id === "review-v2-sam");
+  const review = visit?.visibleReviews?.find(
+    (item) => item.id === "review-v2-sam",
+  );
   if (!review?.commentVisible || !review.comment?.trim()) return [];
 
   const alex = state.members.find((item) => item.id === state.currentUserId)?.id;
@@ -104,9 +106,13 @@ export function getDemoReviewReactionStates(
   visitId: string,
 ): ReviewReactionState[] {
   const reviewIds = new Set(
-    state.visits.find((visit) => visit.id === visitId)?.visibleReviews?.map((review) => review.id) ?? [],
+    state.visits
+      .find((visit) => visit.id === visitId)
+      ?.visibleReviews?.map((review) => review.id) ?? [],
   );
-  return allDemoReactionStates(state).filter((reaction) => reviewIds.has(reaction.reviewId));
+  return allDemoReactionStates(state).filter((reaction) =>
+    reviewIds.has(reaction.reviewId),
+  );
 }
 
 export function setOwnDemoReviewReaction(
@@ -135,7 +141,9 @@ export function setOwnDemoReviewReaction(
   const previous = allStates.find((item) => item.reviewId === reviewId);
   const buckets = (previous?.reactions ?? [])
     .map((bucket) => {
-      const reactors = bucket.reactors.filter((person) => person.userId !== currentUserId);
+      const reactors = bucket.reactors.filter(
+        (person) => person.userId !== currentUserId,
+      );
       return { ...bucket, count: reactors.length, reactors };
     })
     .filter((bucket) => bucket.count > 0);
@@ -153,7 +161,8 @@ export function setOwnDemoReviewReaction(
 
   buckets.sort(
     (left, right) =>
-      (reactionOrder.get(left.reaction) ?? 99) - (reactionOrder.get(right.reaction) ?? 99),
+      (reactionOrder.get(left.reaction) ?? 99) -
+      (reactionOrder.get(right.reaction) ?? 99),
   );
 
   const nextState: ReviewReactionState = {
