@@ -136,6 +136,9 @@ jobs:
         run: |
           bun run format:changed
           git diff --binary > formatting.patch
+          echo "::group::Formatted review reaction E2E"
+          cat tests/e2e/v1-38-review-reactions.spec.ts
+          echo "::endgroup::"
 
       - name: Upload formatting patch
         if: failure() && steps.changes.outputs.has_format == 'true'
