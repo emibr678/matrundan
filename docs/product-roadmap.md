@@ -141,23 +141,23 @@ kärnproduktproblem ska prioriteras före återstående symbolpolish i #105 och
 Första leveransen av **#169 Bekräfta deltagande och komplettera gemensamma
 besök** genomfördes via PR #201, **#203 Samla deltagaromdömen i en tydlig
 besöksvy** via PR #206 och **#204 Synliggör besök som väntar på ditt omdöme** i
-v1.36.0 via PR #218.
+v1.36.0 via PR #218. **#106 Nästa stopp v2: enkla förslag utan överskrivning**
+genomfördes i v1.37.0 via PR #223.
 
 Den närmaste beslutade produktkön är nu:
 
-1. `order:020` – **#106 Nästa stopp v2: enkla förslag utan överskrivning**.
-2. `order:030` – **#101 Privata kommentarer och reaktioner på besök**.
-3. `order:040` – **#213 Förebygg dubbla kanoniska besök vid registrering och
+1. `order:030` – **#101 Privata reaktioner på deltagarnas omdömen**.
+2. `order:040` – **#213 Förebygg dubbla kanoniska besök vid registrering och
    delning**.
-4. `order:050` – **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**.
-5. `order:060` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
+3. `order:050` – **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**.
+4. `order:060` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
    besök**.
-6. `order:070` – **#197 Renodla besökskontext med Något att dricka och valfri
+5. `order:070` – **#197 Renodla besökskontext med Något att dricka och valfri
    Hämtmat-markering**.
 
-**#106 Nästa stopp v2: enkla förslag utan överskrivning** är det aktiva
-kärnproduktsteget. `order:010` lämnas medvetet som ett historiskt gap efter att
-#204 stängdes; operativ ordning kräver inte omnumrering.
+**#101 Privata reaktioner på deltagarnas omdömen** är det aktiva
+kärnproduktsteget. Historiska luckor i `order:*` lämnas medvetet kvar; operativ
+ordning kräver inte omnumrering.
 
 **#169 Bekräfta deltagande och komplettera gemensamma besök** ligger kvar som
 parent och varaktig produkt-/integritetsram för redan levererad deltagarsemantik
@@ -203,33 +203,9 @@ Intern ordning när Paket A återupptas:
    kategori när ingen uttrycklig symbol finns. Manuellt gruppval ska ha
    företräde och breda eller motstridiga utbud ska få en neutral fallback.
 
-## Paket C – Nästa stopp v2
-
-**Prioritet:** `priority:next`, aktivt efter genomfört #204
-
-- **#106 Nästa stopp v2: enkla förslag utan överskrivning**
-
-Det här är nästa större steg för att göra gruppens val av nästa gemensamma
-matupplevelse lättare utan att Matrundan blir en omröstnings- eller eventapp.
-Det första ställesförslaget blir gruppens **Nästa stopp** direkt. Senare idéer
-bevaras under **Andra förslag** och skriver aldrig över det aktuella stoppet.
-Medlemmar kan markera **Jag vill hit** på ett eller flera ställen och se vem som
-föreslog varje alternativ. Om ett alternativ ensamt har flest markeringar får
-det en diskret **Flest vill hit**-signal, men appen utser aldrig automatiskt en
-vinnare eller byter stopp utan ett uttryckligt **Välj ställe**.
-
-Frågorna **vart** och **vilken dag** får fyllas i i den ordning som passar
-gruppen. Nästa stopp kan ha en gemensam dag utan klockslag. På den dagen kan
-medlemmar svara **Jag kan** eller **Jag kan inte**; uteblivet svar betyder bara
-att personen inte har svarat. Byte av ställe behåller dag och dagsvar medan
-**Föreslå annan dag** börjar om dagsvaren. Flera konkurrerande dagar, klocktid,
-`Osäker` och en Doodle-liknande svarsmatris är uttryckliga icke-mål. Ett verkligt
-besök förblir den kanoniska sanningen och en passerad dag får aldrig automatiskt
-skapa historik.
-
 ## Paket D – Personlig inspiration
 
-**Prioritet:** `priority:later`, efter Paket C
+**Prioritet:** `priority:later`, efter de närmaste kärnleveranserna
 
 Rekommenderad ordning:
 
@@ -248,11 +224,9 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
-**Prioritet:** #169, #203 och #204 är genomförda; återstående delar följer efter
-Paket C enligt den globala arbetskön.
+**Prioritet:** aktivt genom #101; #169, #203 och #204 är redan genomförda
 
-Rekommenderad paketordning, med #106 från Paket C inskjutet mellan genomfört #204
-och #101 i den globala arbetskön:
+Rekommenderad paketordning:
 
 1. ✅ **#169 Bekräfta deltagande och komplettera gemensamma besök – första
    leveransen**  
@@ -270,10 +244,11 @@ och #101 i den globala arbetskön:
    diskret pending-signal på hemvyn och i besökshistoriken när deras eget
    omdöme saknas; signalen leder tillbaka till samma kanoniska besök och
    försvinner efter eget omdöme eller korrigerad deltagarstatus.
-4. **#101 Privata kommentarer och reaktioner på besök** (`order:030`)  
-   Efter mellansteget #106: lägg privat gruppdiskussion och enkla reaktioner på
-   gruppens besökslänk. Funktionen är `priority:next` och får inte ge progression
-   eller exponera en annan grupps diskussion när besöket delas.
+4. **#101 Privata reaktioner på deltagarnas omdömen** (`order:030`)  
+   Låt gruppen svara lågmält med ❤️, 🤤, 🙌 eller 😂 på en deltagares synliga
+   omdömeskommentar. Reaktionen hör till omdömesbidraget men isoleras per grupp;
+   ett nytt senare deltagaromdöme får vara upptäckbart via push och deep-link
+   utan separat diskussion, reaktionsfeed, Hem-unread eller social progression.
 5. **#213 Förebygg dubbla kanoniska besök vid registrering och delning**
    (`order:040`)  
    Lägg ett konservativt dubblettskydd före nyregistrering eller delning när
@@ -303,12 +278,12 @@ rangordnas genom #213 och #214 i stället för genom parent-issuen.
 
 Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
 gruppens gemensamma minne. #203 gör flerpersons-omdömena begripliga i besöksvyn,
-#204 gör saknade egna omdömen upptäckbara utan nagging, #213 förebygger nya
-kanoniska besöksdubletter, #214 hanterar känslig cross-group-identitet, #179
-gäller uttrycklig och behörighetsstyrd fotodelning, #101 gäller privat
-gruppdiskussion kring besöket och #197 renodlar själva besökskontexten. Ingen av
-funktionerna får skapa global feed, offentlig social graf, offentliga likes eller
-progression för social aktivitet.
+#204 gör saknade egna omdömen upptäckbara utan nagging, #101 lägger lågmälda
+privata reaktioner på deltagarnas omdömesbidrag, #213 förebygger nya kanoniska
+besöksdubletter, #214 hanterar känslig cross-group-identitet, #179 gäller
+uttrycklig och behörighetsstyrd fotodelning och #197 renodlar själva
+besökskontexten. Ingen av funktionerna får skapa global feed, offentlig social
+graf, offentliga likes eller progression för social aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
@@ -400,6 +375,11 @@ stängda issues, mergade PR:er, `CHANGELOG.md` och vid behov
 - ✅ **Paket B – Sök och geografi**  
   Genomfört genom #147, #148, #156, #155, #163 och #149. Paketet löpte från
   v1.27.1 till v1.31.0; sista steget #149 mergades via PR #180.
+- ✅ **Paket C – Nästa stopp v2**  
+  Genomfört i v1.37.0 genom #106 via PR #223. Det första ställesförslaget blir
+  nästa stopp, senare förslag bevaras utan overwrite och gruppen kan uttrycka
+  `Jag vill hit` samt en enkel gemensam dag utan att appen blir en omröstnings-
+  eller eventplanerare.
 
 ## Exempelgruppen som permanent kontrakt
 
