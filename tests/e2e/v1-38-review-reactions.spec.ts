@@ -87,7 +87,7 @@ test("Hem visar senaste deltagaromdömet och öppnar exakt det bidraget", async 
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 
   const latestReviewLink = page.getByRole("link", {
-    name: "Öppna Robins omdöme om Kardemummaköket",
+    name: "Öppna omdömet från Robin om Kardemummaköket",
   });
   await expect(latestReviewLink).toBeVisible();
   await expect(latestReviewLink.getByText("Robin", { exact: true })).toBeVisible();
