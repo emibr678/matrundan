@@ -80,11 +80,18 @@ export function isInstalledApp(): boolean {
 }
 
 export function checkPushSupport(): PushSupport {
-  if (typeof window === "undefined") return { supported: false, reason: "unsupported" };
+  if (typeof window === "undefined") {
+    return { supported: false, reason: "unsupported" };
+  }
   const hasApi =
-    "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window;
   if (!hasApi) {
-    return { supported: false, reason: isIosLike() ? "ios-needs-install" : "unsupported" };
+    return {
+      supported: false,
+      reason: isIosLike() ? "ios-needs-install" : "unsupported",
+    };
   }
   if (isIosLike() && !isInstalledApp()) {
     return { supported: false, reason: "ios-needs-install" };
@@ -94,11 +101,15 @@ export function checkPushSupport(): PushSupport {
 
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
   const raw = window.atob(base64);
   const buffer = new ArrayBuffer(raw.length);
   const output = new Uint8Array(buffer);
-  for (let i = 0; i < raw.length; i += 1) output[i] = raw.charCodeAt(i);
+  for (let i = 0; i < raw.length; i += 1) {
+    output[i] = raw.charCodeAt(i);
+  }
   return buffer;
 }
 
@@ -106,8 +117,14 @@ function bufferToBase64Url(buffer: ArrayBuffer | null): string {
   if (!buffer) return "";
   const bytes = new Uint8Array(buffer);
   let binary = "";
-  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window
+    .btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 function deviceLabel(): string {
@@ -124,7 +141,8 @@ function deviceLabel(): string {
 async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
   const existing = await navigator.serviceWorker.getRegistration(SW_PATH);
   const registration =
-    existing ?? (await navigator.serviceWorker.register(SW_PATH, { scope: "/" }));
+    existing ??
+    (await navigator.serviceWorker.register(SW_PATH, { scope: "/" }));
   await navigator.serviceWorker.ready;
   return registration;
 }
@@ -195,8 +213,11 @@ export async function enablePushOnThisDevice(): Promise<EnableResult> {
     }));
 
   const json = subscription.toJSON();
-  const p256dh = json.keys?.p256dh ?? bufferToBase64Url(subscription.getKey("p256dh"));
-  const auth = json.keys?.auth ?? bufferToBase64Url(subscription.getKey("auth"));
+  const p256dh =
+    json.keys?.p256dh ??
+    bufferToBase64Url(subscription.getKey("p256dh"));
+  const auth =
+    json.keys?.auth ?? bufferToBase64Url(subscription.getKey("auth"));
 
   await rpcClient.callVoid("register_push_subscription", {
     _endpoint: subscription.endpoint,
@@ -214,8 +235,12 @@ export async function disablePushOnThisDevice(): Promise<void> {
   if (!subscription) return;
 
   const settings = await loadNotificationSettings();
-  const device = settings.devices.find((item) => item.endpoint === subscription.endpoint);
-  if (device) await rpcClient.callVoid("remove_push_subscription", { _id: device.id });
+  const device = settings.devices.find(
+    (item) => item.endpoint === subscription.endpoint,
+  );
+  if (device) {
+    await rpcClient.callVoid("remove_push_subscription", { _id: device.id });
+  }
   await subscription.unsubscribe();
 }
 
