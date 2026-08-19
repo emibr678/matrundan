@@ -177,14 +177,13 @@ export async function enablePushOnThisDevice(): Promise<EnableResult> {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return { status: "denied" };
 
-  const { publicKey: vapidPublicKey } = { publicKey };
   const registration = await ensureServiceWorker();
   const existing = await registration.pushManager.getSubscription();
   const subscription =
     existing ??
     (await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToArrayBuffer(vapidPublicKey),
+      applicationServerKey: urlBase64ToArrayBuffer(publicKey),
     }));
 
   const json = subscription.toJSON();
