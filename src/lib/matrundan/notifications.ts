@@ -12,6 +12,7 @@ export const NOTIFICATION_TYPES = [
   "next_stop_changed",
   "added_as_participant",
   "member_joined",
+  "review_added",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -32,6 +33,10 @@ export const NOTIFICATION_LABELS: Record<NotificationType, { title: string; hint
   member_joined: {
     title: "Ny medlem i gruppen",
     hint: "När någon tackar ja till en inbjudan.",
+  },
+  review_added: {
+    title: "Nytt omdöme",
+    hint: "När en deltagare lämnar sitt omdöme efter ett gemensamt besök.",
   },
 };
 
@@ -172,13 +177,14 @@ export async function enablePushOnThisDevice(): Promise<EnableResult> {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return { status: "denied" };
 
+  const { publicKey: vapidPublicKey } = { publicKey };
   const registration = await ensureServiceWorker();
   const existing = await registration.pushManager.getSubscription();
   const subscription =
     existing ??
     (await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToArrayBuffer(publicKey),
+      applicationServerKey: urlBase64ToArrayBuffer(vapidPublicKey),
     }));
 
   const json = subscription.toJSON();
