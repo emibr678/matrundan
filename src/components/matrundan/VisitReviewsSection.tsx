@@ -73,7 +73,7 @@ export function VisitReviewsSection({
     const frame = window.requestAnimationFrame(() => {
       document
         .getElementById(`visit-review-${focusReviewId}`)
-        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+        ?.scrollIntoView({ block: "start", behavior: "smooth" });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [focusReviewId, showAll, summary.reviews]);
@@ -309,7 +309,9 @@ function ReviewRow({
     <div
       id={`visit-review-${review.id}`}
       data-review-id={review.id}
-      className={`p-3 transition-colors ${focused ? "bg-primary/[0.06] ring-1 ring-inset ring-primary/20" : ""}`}
+      className={`scroll-mt-4 p-3 transition-colors ${
+        focused ? "bg-primary/[0.06] ring-1 ring-inset ring-primary/20" : ""
+      }`}
     >
       <Collapsible open={expanded} onOpenChange={setExpanded}>
         <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
@@ -332,7 +334,7 @@ function ReviewRow({
             {showComment ? (
               <p
                 className={`mt-1 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] ${
-                  expanded ? "" : "line-clamp-2"
+                  expanded || focused ? "" : "line-clamp-2"
                 }`}
               >
                 {comment}
@@ -352,6 +354,8 @@ function ReviewRow({
             </span>
           </div>
         </div>
+
+        {reactableComment ? <ReviewReactionBar reviewId={review.id} authorName={name} /> : null}
 
         {expandable ? (
           <>
@@ -380,8 +384,6 @@ function ReviewRow({
           </>
         ) : null}
       </Collapsible>
-
-      {reactableComment ? <ReviewReactionBar reviewId={review.id} authorName={name} /> : null}
 
       {canToggleComment ? (
         <div className="mt-1 border-t border-border/50 pt-2">
