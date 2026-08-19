@@ -9,57 +9,72 @@ import {
 describe("privata omdömesreaktioner", () => {
   const now = new Date("2026-08-19T08:00:00+02:00");
 
-  test("exempelgruppen visar varm men diskret reaktionsdata på en synlig kommentar", () => {
-    const state = buildExampleState(now);
-    const reactions = getDemoReviewReactionStates(state, EXAMPLE_IDS.visits.guestReviews);
-    const sam = reactions.find((item) => item.reviewId === "review-v2-sam");
+  test(
+    "exempelgruppen visar varm men diskret reaktionsdata på en synlig kommentar",
+    () => {
+      const state = buildExampleState(now);
+      const reactions = getDemoReviewReactionStates(
+        state,
+        EXAMPLE_IDS.visits.guestReviews,
+      );
+      const sam = reactions.find(
+        (item) => item.reviewId === "review-v2-sam",
+      );
 
-    expect(sam?.myReaction).toBe("drool");
-    expect(sam?.reactions.map((bucket) => [bucket.reaction, bucket.count])).toEqual([
-      ["heart", 1],
-      ["drool", 1],
-      ["celebrate", 1],
-    ]);
-  });
+      expect(sam?.myReaction).toBe("drool");
+      expect(
+        sam?.reactions.map((bucket) => [bucket.reaction, bucket.count]),
+      ).toEqual([
+        ["heart", 1],
+        ["drool", 1],
+        ["celebrate", 1],
+      ]);
+    },
+  );
 
-  test("egen reaktion kan bytas och tas bort utan att flera egna reaktioner blir kvar", () => {
-    const state = buildExampleState(now);
-    const heartState = setOwnDemoReviewReaction(
-      state,
-      EXAMPLE_IDS.visits.guestReviews,
-      "review-v2-sam",
-      "heart",
-    );
-    const heart = getDemoReviewReactionStates(
-      heartState,
-      EXAMPLE_IDS.visits.guestReviews,
-    ).find((item) => item.reviewId === "review-v2-sam");
+  test(
+    "egen reaktion kan bytas och tas bort utan att flera egna reaktioner blir kvar",
+    () => {
+      const state = buildExampleState(now);
+      const heartState = setOwnDemoReviewReaction(
+        state,
+        EXAMPLE_IDS.visits.guestReviews,
+        "review-v2-sam",
+        "heart",
+      );
+      const heart = getDemoReviewReactionStates(
+        heartState,
+        EXAMPLE_IDS.visits.guestReviews,
+      ).find((item) => item.reviewId === "review-v2-sam");
 
-    expect(heart?.myReaction).toBe("heart");
-    expect(
-      heart?.reactions.find((bucket) => bucket.reaction === "heart")?.count,
-    ).toBe(2);
-    expect(
-      heart?.reactions.find((bucket) => bucket.reaction === "drool"),
-    ).toBeUndefined();
+      expect(heart?.myReaction).toBe("heart");
+      expect(
+        heart?.reactions.find((bucket) => bucket.reaction === "heart")?.count,
+      ).toBe(2);
+      expect(
+        heart?.reactions.find((bucket) => bucket.reaction === "drool"),
+      ).toBeUndefined();
 
-    const clearedState = setOwnDemoReviewReaction(
-      heartState,
-      EXAMPLE_IDS.visits.guestReviews,
-      "review-v2-sam",
-      null,
-    );
-    const cleared = getDemoReviewReactionStates(
-      clearedState,
-      EXAMPLE_IDS.visits.guestReviews,
-    ).find((item) => item.reviewId === "review-v2-sam");
-    expect(cleared?.myReaction).toBeNull();
-    expect(
-      cleared?.reactions.some((bucket) =>
-        bucket.reactors.some((person) => person.userId === state.currentUserId),
-      ),
-    ).toBe(false);
-  });
+      const clearedState = setOwnDemoReviewReaction(
+        heartState,
+        EXAMPLE_IDS.visits.guestReviews,
+        "review-v2-sam",
+        null,
+      );
+      const cleared = getDemoReviewReactionStates(
+        clearedState,
+        EXAMPLE_IDS.visits.guestReviews,
+      ).find((item) => item.reviewId === "review-v2-sam");
+      expect(cleared?.myReaction).toBeNull();
+      expect(
+        cleared?.reactions.some((bucket) =>
+          bucket.reactors.some(
+            (person) => person.userId === state.currentUserId,
+          ),
+        ),
+      ).toBe(false);
+    },
+  );
 
   test("aktiv gruppmedlem får reagera även utan att vara deltagare", () => {
     const state = buildExampleState(now);
@@ -94,7 +109,9 @@ describe("privata omdömesreaktioner", () => {
         : {
             ...visit,
             visibleReviews: visit.visibleReviews?.map((review) =>
-              review.id === "review-v2-sam" ? { ...review, commentVisible: false } : review,
+              review.id === "review-v2-sam"
+                ? { ...review, commentVisible: false }
+                : review,
             ),
           },
     );
