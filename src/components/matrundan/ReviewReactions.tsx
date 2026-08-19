@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ChevronDown, Heart } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,7 @@ export function ReviewReactionBar({
   const buckets = (reactionState?.reactions ?? []).filter((bucket) => bucket.count > 0);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const saving = context.savingReviewId === reviewId;
+  const heartSelected = reactionState?.myReaction === "heart";
 
   if (context.loading && !reactionState) return null;
   if (buckets.length === 0 && !context.writable) return null;
@@ -157,28 +159,51 @@ export function ReviewReactionBar({
         ))}
 
         {context.writable ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={`min-h-10 rounded-full px-2.5 text-xs ${
-              pickerOpen
-                ? "bg-secondary text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            disabled={saving}
-            aria-label={`Reagera på ${authorName}s omdöme`}
-            aria-expanded={pickerOpen}
-            onClick={() => setPickerOpen((open) => !open)}
-          >
-            Reagera
-          </Button>
+          <div className="ml-0.5 inline-flex items-center" data-like-action>
+            <button
+              type="button"
+              className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+                heartSelected
+                  ? "text-primary hover:bg-primary/10"
+                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+              }`}
+              disabled={saving}
+              aria-label={`${heartSelected ? "Ta bort gilla-markering från" : "Gilla"} ${authorName}s omdöme`}
+              aria-pressed={heartSelected}
+              onClick={() => {
+                setPickerOpen(false);
+                void context.saveReaction(reviewId, heartSelected ? null : "heart");
+              }}
+            >
+              <Heart
+                className="h-4 w-4"
+                fill={heartSelected ? "currentColor" : "none"}
+                aria-hidden="true"
+              />
+              <span>Gilla</span>
+            </button>
+            <button
+              type="button"
+              className={`grid min-h-10 min-w-8 place-items-center rounded-lg px-1 text-muted-foreground outline-none transition-colors hover:bg-secondary/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${
+                pickerOpen ? "bg-secondary/60 text-foreground" : ""
+              }`}
+              disabled={saving}
+              aria-label={`Fler reaktioner på ${authorName}s omdöme`}
+              aria-expanded={pickerOpen}
+              onClick={() => setPickerOpen((open) => !open)}
+            >
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform ${pickerOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
         ) : null}
       </div>
 
       {context.writable && pickerOpen ? (
         <div
-          className="mt-1 inline-flex max-w-full items-center gap-0.5 rounded-xl bg-secondary/45 p-1"
+          className="mt-1 inline-flex max-w-full items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-0.5 shadow-sm"
           role="group"
           aria-label="Välj reaktion"
           data-reaction-picker="inline"
@@ -189,8 +214,8 @@ export function ReviewReactionBar({
               <button
                 key={option.key}
                 type="button"
-                className={`grid min-h-10 min-w-10 place-items-center rounded-lg text-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
-                  selected ? "bg-primary/15 ring-1 ring-primary/30" : "hover:bg-background/70"
+                className={`grid min-h-9 min-w-9 place-items-center rounded-full text-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+                  selected ? "bg-primary/12 ring-1 ring-primary/25" : "hover:bg-secondary/60"
                 }`}
                 aria-label={`${option.label}${
                   selected ? ", vald – tryck igen för att ta bort" : ""
