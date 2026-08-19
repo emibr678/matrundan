@@ -18,6 +18,7 @@ import { AddVisitReviewDialog } from "./AddVisitReviewDialog";
 import { DemoAddVisitReviewDialog } from "./DemoAddVisitReviewDialog";
 import { EditReviewDialog } from "./EditReviewDialog";
 import { RatingStars } from "./Rating";
+import { ReviewReactionBar, VisitReviewReactionsProvider } from "./ReviewReactions";
 
 const INITIAL_VISIBLE_REVIEWS = 4;
 
@@ -26,12 +27,14 @@ export function VisitReviewsSection({
   placeName,
   groupArchived,
   demoReadOnly,
+  focusReviewId = null,
   onChanged,
 }: {
   visit: Visit;
   placeName: string;
   groupArchived: boolean;
   demoReadOnly: boolean;
+  focusReviewId?: string | null;
   onChanged: () => void | Promise<void>;
 }) {
   const { state, memberById } = useStore();
@@ -58,6 +61,23 @@ export function VisitReviewsSection({
     setShowAll(false);
   }, [visit.id]);
 
+  React.useEffect(() => {
+    if (!focusReviewId) return;
+    const reviewIndex = summary.reviews.findIndex((review) => review.id === focusReviewId);
+    if (reviewIndex >= INITIAL_VISIBLE_REVIEWS && !showAll) {
+      setShowAll(true);
+      return;
+    }
+    if (reviewIndex < 0) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`visit-review-${focusReviewId}`)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusReviewId, showAll, summary.reviews]);
+
   async function toggleOwnCommentVisibility(review: VisibleReview, next: boolean) {
     if (!activeGroupId || groupArchived) return;
     setSavingVisibility(true);
@@ -75,116 +95,123 @@ export function VisitReviewsSection({
   }
 
   return (
-    <section aria-labelledby={`visit-reviews-${visit.id}`} className="space-y-2">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h3 id={`visit-reviews-${visit.id}`} className="text-sm font-medium">
-            Gängets omdömen
-          </h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {visitReviewProgressLabel(summary.reviewCount, summary.participantCount)}
-          </p>
+    <VisitReviewReactionsProvider
+      visit={visit}
+      groupArchived={groupArchived}
+      demoReadOnly={demoReadOnly}
+    >
+      <section aria-labelledby={`visit-reviews-${visit.id}`} className="space-y-2">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h3 id={`visit-reviews-${visit.id}`} className="text-sm font-medium">
+              Gängets omdömen
+            </h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {visitReviewProgressLabel(summary.reviewCount, summary.participantCount)}
+            </p>
+          </div>
         </div>
-      </div>
 
-      <Card className="overflow-hidden rounded-2xl border-border/70">
-        <div className="space-y-3 p-3">
-          {visit.overall > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <RatingStars value={visit.overall} size={18} />
-                <span className="font-display text-xl font-semibold">
-                  {formatRating(visit.overall)} / 5
+        <Card className="overflow-hidden rounded-2xl border-border/70">
+          <div className="space-y-3 p-3">
+            {visit.overall > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <RatingStars value={visit.overall} size={18} />
+                  <span className="font-display text-xl font-semibold">
+                    {formatRating(visit.overall)} / 5
+                  </span>
+                </div>
+                <span className="sr-only">
+                  Gruppens helhetsbetyg {formatRating(visit.overall)} av 5
                 </span>
               </div>
-              <span className="sr-only">
-                Gruppens helhetsbetyg {formatRating(visit.overall)} av 5
-              </span>
-            </div>
-          ) : (
-            <p className="text-sm font-medium">Inget omdöme ännu</p>
-          )}
+            ) : (
+              <p className="text-sm font-medium">Inget omdöme ännu</p>
+            )}
 
-          {visit.taste != null || visit.value != null || visit.service != null ? (
-            <div className="grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center">
-              <SummaryDetail label="Smak" value={visit.taste} />
-              <SummaryDetail label="Prisvärt" value={visit.value} />
-              <SummaryDetail label="Service" value={visit.service} />
-            </div>
-          ) : null}
-
-          {summary.legacyComment ? (
-            <div className="flex items-start gap-2 border-t border-border/60 pt-3 text-xs leading-relaxed text-muted-foreground">
-              <MessageCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <div className="min-w-0">
-                <span className="font-medium text-foreground">Minnesnotering från besöket: </span>
-                <span>{summary.legacyComment}</span>
+            {visit.taste != null || visit.value != null || visit.service != null ? (
+              <div className="grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center">
+                <SummaryDetail label="Smak" value={visit.taste} />
+                <SummaryDetail label="Prisvärt" value={visit.value} />
+                <SummaryDetail label="Service" value={visit.service} />
               </div>
-            </div>
-          ) : null}
-        </div>
-
-        {canAddOwnReview || visibleReviews.length > 0 ? (
-          <div className="divide-y divide-border/60 border-t border-border/60">
-            {canAddOwnReview ? (
-              <OwnReviewPrompt
-                visit={visit}
-                placeName={placeName}
-                currentUserId={currentUserId}
-                writable={writable}
-                mode={mode === "live" ? "live" : "demo"}
-                onChanged={onChanged}
-              />
             ) : null}
 
-            {visibleReviews.map((review) => {
-              const participant = visit.participants?.find((item) => item.id === review.userId);
-              const member = memberById(review.userId);
-              return (
-                <ReviewRow
-                  key={review.id}
-                  review={review}
-                  name={participant?.name ?? member?.name ?? "Deltagare"}
-                  avatar={participant?.avatar ?? member?.avatar ?? "🙂"}
-                  avatarImage={participant?.avatarImage ?? member?.avatarImage ?? null}
-                  own={review.userId === currentUserId}
-                  placeName={placeName}
-                  live={mode === "live"}
-                  groupArchived={groupArchived}
-                  demoReadOnly={demoReadOnly}
-                  savingVisibility={savingVisibility}
-                  onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
-                />
-              );
-            })}
+            {summary.legacyComment ? (
+              <div className="flex items-start gap-2 border-t border-border/60 pt-3 text-xs leading-relaxed text-muted-foreground">
+                <MessageCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <div className="min-w-0">
+                  <span className="font-medium text-foreground">Minnesnotering från besöket: </span>
+                  <span>{summary.legacyComment}</span>
+                </div>
+              </div>
+            ) : null}
           </div>
-        ) : null}
 
-        {hiddenReviewCount > 0 ? (
-          <div className="border-t border-border/60 p-2 text-center">
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 text-sm text-primary"
-              onClick={() => setShowAll(true)}
-            >
-              Visa alla {summary.reviewCount} omdömen
-            </Button>
-          </div>
-        ) : showAll && summary.reviews.length > INITIAL_VISIBLE_REVIEWS ? (
-          <div className="border-t border-border/60 p-2 text-center">
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 text-sm text-muted-foreground"
-              onClick={() => setShowAll(false)}
-            >
-              Visa färre
-            </Button>
-          </div>
-        ) : null}
-      </Card>
-    </section>
+          {canAddOwnReview || visibleReviews.length > 0 ? (
+            <div className="divide-y divide-border/60 border-t border-border/60">
+              {canAddOwnReview ? (
+                <OwnReviewPrompt
+                  visit={visit}
+                  placeName={placeName}
+                  currentUserId={currentUserId}
+                  writable={writable}
+                  mode={mode === "live" ? "live" : "demo"}
+                  onChanged={onChanged}
+                />
+              ) : null}
+
+              {visibleReviews.map((review) => {
+                const participant = visit.participants?.find((item) => item.id === review.userId);
+                const member = memberById(review.userId);
+                return (
+                  <ReviewRow
+                    key={review.id}
+                    review={review}
+                    name={participant?.name ?? member?.name ?? "Deltagare"}
+                    avatar={participant?.avatar ?? member?.avatar ?? "🙂"}
+                    avatarImage={participant?.avatarImage ?? member?.avatarImage ?? null}
+                    own={review.userId === currentUserId}
+                    focused={review.id === focusReviewId}
+                    placeName={placeName}
+                    live={mode === "live"}
+                    groupArchived={groupArchived}
+                    demoReadOnly={demoReadOnly}
+                    savingVisibility={savingVisibility}
+                    onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
+
+          {hiddenReviewCount > 0 ? (
+            <div className="border-t border-border/60 p-2 text-center">
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 text-sm text-primary"
+                onClick={() => setShowAll(true)}
+              >
+                Visa alla {summary.reviewCount} omdömen
+              </Button>
+            </div>
+          ) : showAll && summary.reviews.length > INITIAL_VISIBLE_REVIEWS ? (
+            <div className="border-t border-border/60 p-2 text-center">
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 text-sm text-muted-foreground"
+                onClick={() => setShowAll(false)}
+              >
+                Visa färre
+              </Button>
+            </div>
+          ) : null}
+        </Card>
+      </section>
+    </VisitReviewReactionsProvider>
   );
 }
 
@@ -247,6 +274,7 @@ function ReviewRow({
   avatar,
   avatarImage,
   own,
+  focused,
   placeName,
   live,
   groupArchived,
@@ -259,6 +287,7 @@ function ReviewRow({
   avatar: string;
   avatarImage?: string | null;
   own: boolean;
+  focused: boolean;
   placeName: string;
   live: boolean;
   groupArchived: boolean;
@@ -269,6 +298,7 @@ function ReviewRow({
   const [expanded, setExpanded] = React.useState(false);
   const comment = review.comment?.trim();
   const showComment = Boolean(comment && (own || review.commentVisible));
+  const reactableComment = Boolean(comment && review.commentVisible);
   const hasDetails = review.taste != null || review.value != null || review.service != null;
   const longComment = Boolean(showComment && (comment?.length ?? 0) > 110);
   const expandable = hasDetails || longComment;
@@ -276,7 +306,11 @@ function ReviewRow({
   const canToggleComment = canEditOwn && live && Boolean(comment);
 
   return (
-    <div className="p-3">
+    <div
+      id={`visit-review-${review.id}`}
+      data-review-id={review.id}
+      className={`p-3 transition-colors ${focused ? "bg-primary/[0.06] ring-1 ring-inset ring-primary/20" : ""}`}
+    >
       <Collapsible open={expanded} onOpenChange={setExpanded}>
         <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
           <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
@@ -297,7 +331,7 @@ function ReviewRow({
             </div>
             {showComment ? (
               <p
-                className={`mt-1 text-sm leading-relaxed text-muted-foreground ${
+                className={`mt-1 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] ${
                   expanded ? "" : "line-clamp-2"
                 }`}
               >
@@ -346,6 +380,8 @@ function ReviewRow({
           </>
         ) : null}
       </Collapsible>
+
+      {reactableComment ? <ReviewReactionBar reviewId={review.id} authorName={name} /> : null}
 
       {canToggleComment ? (
         <div className="mt-1 border-t border-border/50 pt-2">
