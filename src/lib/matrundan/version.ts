@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_0_CHANGELOG: ChangelogEntry = {
+  version: "1.38.0",
+  date: "2026-08-19",
+  summary: "Deltagarnas omdömen får privata, lågmälda reaktioner i gruppen.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Gruppmedlemmar kan reagera med ❤️, 🤤, 🙌 eller 😂 på en deltagares synliga omdömeskommentar utan att skapa en separat diskussion eller social feed.",
+        "När en annan deltagare senare lämnar sitt första omdöme på ett befintligt besök kan gruppen få en pushnotis som öppnar rätt grupp, besök och omdöme direkt.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Reaktionerna är privata per grupp även när samma kanoniska besök och omdöme visas i flera grupper, och påverkar aldrig betyg, progression eller ranking.",
+        "Besöksdetaljen visar bara befintliga reaktioner med positiva antal och en kompakt Reagera-kontroll; vilka som reagerat visas först när ett reaktionschip öppnas.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_37_0_CHANGELOG: ChangelogEntry = {
   version: "1.37.0",
   date: "2026-08-16",
@@ -136,6 +158,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_0_CHANGELOG,
   VERSION_1_37_0_CHANGELOG,
   VERSION_1_36_0_CHANGELOG,
   VERSION_1_35_1_CHANGELOG,
