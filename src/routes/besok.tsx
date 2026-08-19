@@ -60,7 +60,10 @@ function VisitHistory() {
   const requestedGroupReady =
     mode !== "live" || !search.group || search.group === activeGroupId;
   const visits = React.useMemo(
-    () => [...state.visits].sort((left, right) => right.date.localeCompare(left.date)),
+    () =>
+      [...state.visits].sort((left, right) =>
+        right.date.localeCompare(left.date),
+      ),
     [state.visits],
   );
   const pendingVisitIds = React.useMemo(
@@ -123,6 +126,9 @@ function VisitHistory() {
             const place = getPlace(visit.placeId);
             if (!place) return null;
             const ownReviewPending = pendingVisitIds.has(visit.id);
+            const visitDate = formatDate(visit.date);
+            const mealLabel = MEAL_LABEL[visit.meal] ?? visit.meal;
+            const visitLabel = `Öppna besöket på ${place.name} ${visitDate}`;
             const participants =
               visit.participants && visit.participants.length > 0
                 ? visit.participants
@@ -143,7 +149,7 @@ function VisitHistory() {
                 type="button"
                 onClick={() => navigate({ search: { visit: visit.id } })}
                 className="block w-full rounded-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={`Öppna besöket på ${place.name} ${formatDate(visit.date)}`}
+                aria-label={visitLabel}
               >
                 <Card className="overflow-hidden rounded-2xl border-border/70 p-0 transition-colors hover:bg-accent/35">
                   <div className="flex min-w-0 gap-3 p-3 sm:p-4">
@@ -165,7 +171,7 @@ function VisitHistory() {
                             {place.name}
                           </h2>
                           <p className="text-xs text-muted-foreground">
-                            {formatDate(visit.date)} · {MEAL_LABEL[visit.meal] ?? visit.meal}
+                            {visitDate} · {mealLabel}
                           </p>
                           {ownReviewPending ? (
                             <span className="mt-1 inline-flex max-w-full rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
@@ -232,7 +238,9 @@ function VisitHistory() {
         }
         onOpenChange={(open) =>
           !open &&
-          navigate({ search: { visit: "", group: undefined, review: undefined } })
+          navigate({
+            search: { visit: "", group: undefined, review: undefined },
+          })
         }
       />
     </div>
