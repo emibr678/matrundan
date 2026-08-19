@@ -52,7 +52,9 @@ test("Gilla ger hjärta direkt och fler reaktioner väljs inline", async ({ page
     .getByRole("dialog")
     .first()
     .locator('[data-review-id="review-v2-sam"]');
-  await expect(updatedSamReview.getByRole("button", { name: /Hjärta: 2 reaktioner/ })).toBeVisible();
+  await expect(
+    updatedSamReview.getByRole("button", { name: /Hjärta: 2 reaktioner/ }),
+  ).toBeVisible();
   await expect(updatedSamReview.getByRole("button", { name: /Ser gott ut:/ })).toHaveCount(0);
 
   const removeLike = updatedSamReview.getByRole("button", {
@@ -64,7 +66,9 @@ test("Gilla ger hjärta direkt och fler reaktioner väljs inline", async ({ page
     .getByRole("dialog")
     .first()
     .locator('[data-review-id="review-v2-sam"]');
-  await expect(updatedSamReview.getByRole("button", { name: /Hjärta: 1 reaktion/ })).toBeVisible();
+  await expect(
+    updatedSamReview.getByRole("button", { name: /Hjärta: 1 reaktion/ }),
+  ).toBeVisible();
 
   await updatedSamReview
     .getByRole("button", { name: "Fler reaktioner på Sams omdöme" })
@@ -86,7 +90,9 @@ test("Gilla ger hjärta direkt och fler reaktioner väljs inline", async ({ page
     .getByRole("dialog")
     .first()
     .locator('[data-review-id="review-v2-sam"]');
-  await expect(updatedSamReview.getByRole("button", { name: /Roligt: 1 reaktion/ })).toBeVisible();
+  await expect(
+    updatedSamReview.getByRole("button", { name: /Roligt: 1 reaktion/ }),
+  ).toBeVisible();
 
   await updatedSamReview
     .getByRole("button", { name: "Fler reaktioner på Sams omdöme" })
