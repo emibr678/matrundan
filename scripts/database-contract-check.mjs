@@ -18,6 +18,10 @@ const preflightVisitParticipationPath = resolve(
   root,
   "supabase/production-preflight-visit-participation.sql",
 );
+const preflightReviewReactionsPath = resolve(
+  root,
+  "supabase/production-preflight-review-reactions.sql",
+);
 const errors = [];
 
 function git(args, allowFailure = false) {
@@ -54,6 +58,8 @@ const requiredFunctions = [
   "create_visit_with_review_v3",
   "save_own_review_for_visit_v1",
   "set_own_visit_participation_v1",
+  "get_visit_review_reactions_v1",
+  "set_own_review_reaction_v1",
   "replace_group_search_settings",
   "search_area_label_is_broad",
   "create_group_with_owner_v2",
@@ -192,11 +198,15 @@ if (!existsSync(preflightBoundaryPath)) {
 if (!existsSync(preflightVisitParticipationPath)) {
   errors.push("supabase/production-preflight-visit-participation.sql saknas.");
 }
+if (!existsSync(preflightReviewReactionsPath)) {
+  errors.push("supabase/production-preflight-review-reactions.sql saknas.");
+}
 if (
   existsSync(preflightPath) &&
   existsSync(preflightLocationPath) &&
   existsSync(preflightBoundaryPath) &&
-  existsSync(preflightVisitParticipationPath)
+  existsSync(preflightVisitParticipationPath) &&
+  existsSync(preflightReviewReactionsPath)
 ) {
   const preflight = `${readFileSync(preflightPath, "utf8")}\n${readFileSync(
     preflightLocationPath,
@@ -204,7 +214,7 @@ if (
   )}\n${readFileSync(preflightBoundaryPath, "utf8")}\n${readFileSync(
     preflightVisitParticipationPath,
     "utf8",
-  )}`;
+  )}\n${readFileSync(preflightReviewReactionsPath, "utf8")}`;
   for (const name of requiredFunctions) {
     if (!preflight.includes(name)) {
       errors.push(`Produktions-preflight saknar ${name}.`);
@@ -227,9 +237,14 @@ if (
     "group_place_practical_info_history",
     "place_external_info_snapshots",
     "visit_participation_self_corrections",
+    "review_group_reactions",
     "read_rpc:participant-review-filter",
     "participation_rpc:restore-needs-own-decline",
     "isolation:no-authenticated-correction-table-read",
+    "review_reactions:group-and-comment-guard",
+    "review_reactions:no-client-table-read",
+    "review_reactions:account-delete-cleanup",
+    "review_notifications:first-later-review-only",
     "place_external_info_snapshots.address",
     "place_external_info_snapshots.area",
     "place_external_info_snapshots.city",
