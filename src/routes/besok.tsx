@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  createFileRoute,
-  Link,
-  stripSearchParams,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { ArrowLeft, CalendarDays, MessageCircle, Users2 } from "lucide-react";
 import { z } from "zod";
@@ -50,8 +45,7 @@ export const Route = createFileRoute("/besok")({
 
 function VisitHistory() {
   const { state, getPlace, memberById } = useStore();
-  const { exampleMode, mode, activeGroupId, userGroups, selectGroup } =
-    useSession();
+  const { exampleMode, mode, activeGroupId, userGroups, selectGroup } = useSession();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/besok" });
   const groupArchived = state.group.lifecycleStatus === "archived";
@@ -60,10 +54,7 @@ function VisitHistory() {
   const requestedGroupReady =
     mode !== "live" || !search.group || search.group === activeGroupId;
   const visits = React.useMemo(
-    () =>
-      [...state.visits].sort((left, right) =>
-        right.date.localeCompare(left.date),
-      ),
+    () => [...state.visits].sort((left, right) => right.date.localeCompare(left.date)),
     [state.visits],
   );
   const pendingVisitIds = React.useMemo(
@@ -71,11 +62,7 @@ function VisitHistory() {
       new Set(
         (groupArchived
           ? []
-          : getAttentionPendingVisitReviews(
-              state.visits,
-              state.currentUserId,
-              new Date(),
-            )
+          : getAttentionPendingVisitReviews(state.visits, state.currentUserId, new Date())
         ).map((visit) => visit.id),
       ),
     [groupArchived, state.currentUserId, state.visits],
@@ -96,18 +83,12 @@ function VisitHistory() {
   return (
     <div className="mx-auto max-w-2xl space-y-5 pb-4 pt-2 md:max-w-3xl">
       <header>
-        <Button
-          asChild
-          variant="ghost"
-          className="-ml-2 min-h-11 rounded-full px-3"
-        >
+        <Button asChild variant="ghost" className="-ml-2 min-h-11 rounded-full px-3">
           <Link to={exampleMode ? "/exempel" : "/"}>
             <ArrowLeft className="h-4 w-4" /> Hem
           </Link>
         </Button>
-        <h1 className="mt-2 font-display text-2xl font-semibold md:text-3xl">
-          Alla besök
-        </h1>
+        <h1 className="mt-2 font-display text-2xl font-semibold md:text-3xl">Alla besök</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Gruppens gemensamma måltider och minnen, med det senaste först.
         </p>
@@ -126,9 +107,6 @@ function VisitHistory() {
             const place = getPlace(visit.placeId);
             if (!place) return null;
             const ownReviewPending = pendingVisitIds.has(visit.id);
-            const visitDate = formatDate(visit.date);
-            const mealLabel = MEAL_LABEL[visit.meal] ?? visit.meal;
-            const visitLabel = `Öppna besöket på ${place.name} ${visitDate}`;
             const participants =
               visit.participants && visit.participants.length > 0
                 ? visit.participants
@@ -149,7 +127,7 @@ function VisitHistory() {
                 type="button"
                 onClick={() => navigate({ search: { visit: visit.id } })}
                 className="block w-full rounded-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={visitLabel}
+                aria-label={`Öppna besöket på ${place.name} ${formatDate(visit.date)}`}
               >
                 <Card className="overflow-hidden rounded-2xl border-border/70 p-0 transition-colors hover:bg-accent/35">
                   <div className="flex min-w-0 gap-3 p-3 sm:p-4">
@@ -171,7 +149,7 @@ function VisitHistory() {
                             {place.name}
                           </h2>
                           <p className="text-xs text-muted-foreground">
-                            {visitDate} · {mealLabel}
+                            {formatDate(visit.date)} · {MEAL_LABEL[visit.meal] ?? visit.meal}
                           </p>
                           {ownReviewPending ? (
                             <span className="mt-1 inline-flex max-w-full rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
@@ -207,8 +185,8 @@ function VisitHistory() {
                         ))}
                         {(visit.externalParticipantCount ?? 0) > 0 ? (
                           <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                            <Users2 className="mr-1 h-3 w-3" />+
-                            {visit.externalParticipantCount} utanför gruppen
+                            <Users2 className="mr-1 h-3 w-3" />+{visit.externalParticipantCount}{" "}
+                            utanför gruppen
                           </span>
                         ) : null}
                       </div>
@@ -233,14 +211,9 @@ function VisitHistory() {
       <VisitDetailSheet
         visitId={search.visit || null}
         focusReviewId={search.review ?? null}
-        open={
-          Boolean(search.visit) && requestedGroupAllowed && requestedGroupReady
-        }
+        open={Boolean(search.visit) && requestedGroupAllowed && requestedGroupReady}
         onOpenChange={(open) =>
-          !open &&
-          navigate({
-            search: { visit: "", group: undefined, review: undefined },
-          })
+          !open && navigate({ search: { visit: "", group: undefined, review: undefined } })
         }
       />
     </div>
