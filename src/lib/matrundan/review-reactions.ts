@@ -34,9 +34,7 @@ export const REVIEW_REACTION_OPTIONS: ReadonlyArray<{
 ];
 
 const reactionOrder = new Map(
-  REVIEW_REACTION_OPTIONS.map(
-    (option, index) => [option.key, index] as const,
-  ),
+  REVIEW_REACTION_OPTIONS.map((option, index) => [option.key, index] as const),
 );
 
 type AppStateWithReviewReactions = AppState & {
@@ -133,9 +131,7 @@ export function setOwnDemoReviewReaction(
   }
 
   const visit = state.visits.find((item) => item.id === visitId);
-  const review = visit?.visibleReviews?.find(
-    (item) => item.id === reviewId,
-  );
+  const review = visit?.visibleReviews?.find((item) => item.id === reviewId);
   if (!visit || !review) {
     throw new Error("Omdömet finns inte i besöket.");
   }
@@ -165,9 +161,7 @@ export function setOwnDemoReviewReaction(
 
   if (reaction) {
     const person = memberReactionPerson(state, currentUserId);
-    const existing = buckets.find(
-      (bucket) => bucket.reaction === reaction,
-    );
+    const existing = buckets.find((bucket) => bucket.reaction === reaction);
     if (existing) {
       existing.reactors = [...existing.reactors, person];
       existing.count = existing.reactors.length;
