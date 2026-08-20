@@ -93,7 +93,7 @@ export function VisitReviewReactionsProvider({
         } else {
           const nextState = setOwnDemoReviewReaction(state, visit.id, reviewId, reaction);
           setByReview(toReactionMap(getDemoReviewReactionStates(nextState, visit.id)));
-          persistDemoState(nextState, exampleMode);
+          persistDemoState(nextState, exampleMode, { preserveView: true });
         }
       } catch (saveError) {
         toast.error(
