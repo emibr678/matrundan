@@ -153,8 +153,16 @@ export function ReviewReactionBar({
   const buckets = (reactionState?.reactions ?? []).filter((bucket) => bucket.count > 0);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const saving = context.savingReviewId === reviewId;
+  const reactionReady = !context.loading || Boolean(reactionState);
 
-  if (context.loading && !reactionState) return null;
+  if (!reactionReady) {
+    if (!trailingAction) return null;
+    return (
+      <div className="mt-2 flex justify-end" data-review-reactions={reviewId}>
+        {trailingAction}
+      </div>
+    );
+  }
   if (buckets.length === 0 && !context.writable && !trailingAction) return null;
 
   return (
@@ -281,10 +289,7 @@ function ReactionCountChip({
           {bucket.reactors.map((person) => {
             const ownReaction = selected && person.userId === currentUserId;
             return (
-              <div
-                key={person.userId}
-                className="flex min-w-0 items-center justify-between gap-2"
-              >
+              <div key={person.userId} className="flex min-w-0 items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
                   {person.avatarImage ? (
                     <img
