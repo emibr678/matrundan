@@ -406,7 +406,9 @@ function ReviewRow({
 
       {canEditOwn || canToggleComment ? (
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1 border-t border-border/50 pt-1.5">
-          {canEditOwn ? <EditReviewDialog review={review} placeName={placeName} compact /> : null}
+          {canEditOwn ? (
+            <EditReviewDialog review={review} placeName={placeName} compact />
+          ) : null}
           {canToggleComment ? (
             <Button
               type="button"
