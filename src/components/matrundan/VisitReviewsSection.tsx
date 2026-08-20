@@ -334,6 +334,9 @@ function ReviewRow({
   const canEditOwn = own && !groupArchived && !demoReadOnly;
   const canToggleComment = canEditOwn && live && Boolean(comment);
   const showFullComment = commentExpanded || focused;
+  const editAction = canEditOwn ? (
+    <EditReviewDialog review={review} placeName={placeName} compact />
+  ) : null;
 
   return (
     <div
@@ -402,27 +405,33 @@ function ReviewRow({
         </div>
       ) : null}
 
-      {reactableComment ? <ReviewReactionBar reviewId={review.id} authorName={name} /> : null}
+      {reactableComment ? (
+        <ReviewReactionBar
+          reviewId={review.id}
+          authorName={name}
+          emphasized={highlighted}
+          trailingAction={editAction}
+        />
+      ) : editAction ? (
+        <div className="mt-2 flex justify-end">{editAction}</div>
+      ) : null}
 
-      {canEditOwn || canToggleComment ? (
-        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1 border-t border-border/50 pt-1.5">
-          {canEditOwn ? <EditReviewDialog review={review} placeName={placeName} compact /> : null}
-          {canToggleComment ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-10 w-auto px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-              disabled={savingVisibility}
-              aria-label={`${review.commentVisible ? "Dölj" : "Visa"} din kommentar i gruppen`}
-              onClick={() => onToggleVisibility(!review.commentVisible)}
-            >
-              {savingVisibility
-                ? "Sparar…"
-                : review.commentVisible
-                  ? "Dölj kommentar"
-                  : "Visa kommentar"}
-            </Button>
-          ) : null}
+      {canToggleComment ? (
+        <div className="mt-1 flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-10 w-auto px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+            disabled={savingVisibility}
+            aria-label={`${review.commentVisible ? "Dölj" : "Visa"} din kommentar i gruppen`}
+            onClick={() => onToggleVisibility(!review.commentVisible)}
+          >
+            {savingVisibility
+              ? "Sparar…"
+              : review.commentVisible
+                ? "Dölj kommentar"
+                : "Visa kommentar"}
+          </Button>
         </div>
       ) : null}
     </div>
