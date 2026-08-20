@@ -90,9 +90,7 @@ test("Reagera samlar valet och visar vem som reagerat direkt", async ({ page }) 
     .click();
   await expect(updatedSamReview.getByRole("button", { name: /Roligt:/ })).toHaveCount(0);
 
-  const remainingHeartChip = updatedSamReview.getByRole("button", {
-    name: /Hjärta: 1 reaktion/,
-  });
+  const remainingHeartChip = updatedSamReview.getByRole("button", { name: /Hjärta: 1 reaktion/ });
   await expect(remainingHeartChip).toContainText("Robin");
   await remainingHeartChip.click();
   await expect(page.getByText("Robin", { exact: true })).toBeVisible();
@@ -174,9 +172,7 @@ test("deep-linkat omdöme öppnas synligt i samma besöksdetalj", async ({ page 
   const focusedReview = dialog.locator('[data-review-id="review-v2-sam"]');
   await expect(focusedReview).toBeVisible();
   await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");
-  await expect(
-    focusedReview.getByRole("button", { name: "Reagera på Sams omdöme" }),
-  ).toBeVisible();
+  await expect(focusedReview.getByRole("button", { name: "Reagera på Sams omdöme" })).toBeVisible();
   await expect(focusedReview.getByText("Smak", { exact: true })).toBeVisible();
   await expect(focusedReview.getByRole("button", { name: /Visa detaljer/ })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, dialog, "deep-linkat omdöme på 360 px");
@@ -193,9 +189,7 @@ test("reaktionsraden behåller samma kompakta hierarki på desktop", async ({ pa
   const heartChip = samReview.getByRole("button", { name: /Hjärta: 1 reaktion/ });
   await expect(heartChip).toBeVisible();
   await expect(heartChip).toContainText("Robin");
-  await expect(
-    samReview.getByRole("button", { name: "Reagera på Sams omdöme" }),
-  ).toBeVisible();
+  await expect(samReview.getByRole("button", { name: "Reagera på Sams omdöme" })).toBeVisible();
   await expect(samReview.getByRole("button", { name: /Fler reaktioner/ })).toHaveCount(0);
   await expect(samReview.getByRole("button", { name: /Visa detaljer/ })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, dialog, "reaktionsflöde på desktop");
