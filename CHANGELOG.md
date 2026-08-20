@@ -14,6 +14,20 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.1] – 2026-08-20
+
+### Förbättrat
+
+- Smak, prisvärdhet och service visas direkt i deltagarens omdöme i stället för
+  bakom en generell **Detaljer**-kontroll; bara längre kommentarer behöver
+  expanderas.
+- Reaktionsvalet samlas under en enda **Reagera**-handling och befintliga
+  reaktioner visar första reagerande personens namn direkt, med hela listan kvar
+  på tryck.
+- Det egna omdömet har tydliga, lågmälda handlingar för **Redigera** och
+  kommentarens synlighet i stället för en ensam pennikon och en stor
+  inställningsrad.
+
 ## [1.38.0] – 2026-08-19
 
 ### Nytt
