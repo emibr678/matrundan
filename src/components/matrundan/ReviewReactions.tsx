@@ -1,5 +1,4 @@
 import * as React from "react";
-import { ChevronDown, Heart } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -142,14 +141,13 @@ export function ReviewReactionBar({
   const buckets = (reactionState?.reactions ?? []).filter((bucket) => bucket.count > 0);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const saving = context.savingReviewId === reviewId;
-  const heartSelected = reactionState?.myReaction === "heart";
 
   if (context.loading && !reactionState) return null;
   if (buckets.length === 0 && !context.writable) return null;
 
   return (
-    <div className="mt-1.5 min-w-0" data-review-reactions={reviewId}>
-      <div className="flex min-w-0 flex-wrap items-center gap-1">
+    <div className="mt-2 min-w-0" data-review-reactions={reviewId}>
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {buckets.map((bucket) => (
           <ReactionCountChip
             key={bucket.reaction}
@@ -159,45 +157,20 @@ export function ReviewReactionBar({
         ))}
 
         {context.writable ? (
-          <div className="ml-0.5 inline-flex items-center" data-like-action>
-            <button
-              type="button"
-              className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
-                heartSelected
-                  ? "text-primary hover:bg-primary/10"
-                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-              }`}
-              disabled={saving}
-              aria-label={`${heartSelected ? "Ta bort gilla-markering från" : "Gilla"} ${authorName}s omdöme`}
-              aria-pressed={heartSelected}
-              onClick={() => {
-                setPickerOpen(false);
-                void context.saveReaction(reviewId, heartSelected ? null : "heart");
-              }}
-            >
-              <Heart
-                className="h-4 w-4"
-                fill={heartSelected ? "currentColor" : "none"}
-                aria-hidden="true"
-              />
-              <span>Gilla</span>
-            </button>
-            <button
-              type="button"
-              className={`grid min-h-10 min-w-8 place-items-center rounded-lg px-1 text-muted-foreground outline-none transition-colors hover:bg-secondary/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${
-                pickerOpen ? "bg-secondary/60 text-foreground" : ""
-              }`}
-              disabled={saving}
-              aria-label={`Fler reaktioner på ${authorName}s omdöme`}
-              aria-expanded={pickerOpen}
-              onClick={() => setPickerOpen((open) => !open)}
-            >
-              <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform ${pickerOpen ? "rotate-180" : ""}`}
-                aria-hidden="true"
-              />
-            </button>
-          </div>
+          <button
+            type="button"
+            className={`inline-flex min-h-10 items-center rounded-lg px-2 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+              pickerOpen
+                ? "bg-secondary/60 text-foreground"
+                : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+            }`}
+            disabled={saving}
+            aria-label={`Reagera på ${authorName}s omdöme`}
+            aria-expanded={pickerOpen}
+            onClick={() => setPickerOpen((open) => !open)}
+          >
+            Reagera
+          </button>
         ) : null}
       </div>
 
@@ -245,14 +218,17 @@ function ReactionCountChip({
   selected: boolean;
 }) {
   const option = REVIEW_REACTION_OPTIONS.find((item) => item.key === bucket.reaction);
-  if (!option || bucket.count <= 0) return null;
+  const firstReactor = bucket.reactors[0];
+  if (!option || bucket.count <= 0 || !firstReactor) return null;
+
+  const additionalCount = Math.max(0, bucket.count - 1);
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`inline-flex min-h-10 items-center gap-1 rounded-full border px-2.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+          className={`inline-flex min-h-10 min-w-0 max-w-full items-center gap-1 rounded-full border px-2.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
             selected
               ? "border-primary/30 bg-primary/10 text-primary"
               : "border-border/70 bg-secondary/40 text-foreground hover:bg-secondary"
@@ -261,10 +237,11 @@ function ReactionCountChip({
             bucket.count === 1 ? "reaktion" : "reaktioner"
           }. Visa vilka som reagerat.`}
         >
-          <span className="text-sm" aria-hidden="true">
+          <span className="shrink-0 text-sm" aria-hidden="true">
             {option.emoji}
           </span>
-          <span>{bucket.count}</span>
+          <span className="min-w-0 truncate">{firstReactor.name}</span>
+          {additionalCount > 0 ? <span className="shrink-0">+{additionalCount}</span> : null}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 max-w-[calc(100vw-2rem)] rounded-2xl p-3">
