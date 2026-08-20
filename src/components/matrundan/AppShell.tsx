@@ -7,8 +7,9 @@ import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { ShellChrome } from "@/components/matrundan/ShellChrome";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { DEMO_STATE } from "@/lib/matrundan/demo-data";
 import { DEMO_STATE_CHANGED_EVENT, EXAMPLE_STATE_STORAGE_KEY } from "@/lib/matrundan/demo-state";
-import { createExampleState, DEMO_STATE } from "@/lib/matrundan/example-data";
+import { createExampleState } from "@/lib/matrundan/example-data";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
 import { StoreProvider } from "@/lib/matrundan/store";
@@ -39,10 +40,10 @@ function ShellBody() {
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
   const [demoRevision, setDemoRevision] = React.useState(0);
-  const demoInitialState = React.useMemo(
-    () => (exampleMode ? createExampleState() : { ...DEMO_STATE }),
-    [demoRevision, exampleMode],
-  );
+  const demoInitialState = React.useMemo(() => {
+    void demoRevision;
+    return exampleMode ? createExampleState() : { ...DEMO_STATE };
+  }, [demoRevision, exampleMode]);
 
   React.useEffect(() => {
     if (!user) return;
