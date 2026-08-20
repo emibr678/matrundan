@@ -96,7 +96,7 @@ test("Gilla ger hjärta direkt och fler reaktioner väljs inline", async ({ page
   await expectNoHorizontalOverflow(page, dialog, "reaktionsflöde på 360 px");
 });
 
-test("Hem visar senaste deltagaromdömet och öppnar exakt det bidraget", async ({ page }) => {
+test("Hem fokuserar senaste omdömet utan scrollhopp vid Gilla", async ({ page }) => {
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 
@@ -118,7 +118,7 @@ test("Hem visar senaste deltagaromdömet och öppnar exakt det bidraget", async 
   const dialog = page.getByRole("dialog").first();
   const focusedReview = dialog.locator('[data-review-id="review-v1-robin"]');
   await expect(focusedReview).toBeVisible();
-  await expect(focusedReview).toHaveClass(/bg-primary/);
+  await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");
   await expect(focusedReview.getByRole("button", { name: "Gilla Robins omdöme" })).toBeVisible();
   await expect(
     focusedReview.getByRole("button", { name: "Fler reaktioner på Robins omdöme" }),
@@ -128,10 +128,33 @@ test("Hem visar senaste deltagaromdömet och öppnar exakt det bidraget", async 
     .poll(async () => {
       const dialogBox = await dialog.boundingBox();
       const focusedBox = await focusedReview.boundingBox();
+      if (!dialogBox || !focusedBox) return -1;
+      return focusedBox.y - dialogBox.y;
+    })
+    .toBeGreaterThanOrEqual(40);
+  await expect
+    .poll(async () => {
+      const dialogBox = await dialog.boundingBox();
+      const focusedBox = await focusedReview.boundingBox();
       if (!dialogBox || !focusedBox) return 999;
       return focusedBox.y - dialogBox.y;
     })
     .toBeLessThan(220);
+
+  await expect(focusedReview).not.toHaveAttribute("data-review-highlighted", "true", {
+    timeout: 4_000,
+  });
+
+  const scrollTopBeforeLike = await dialog.evaluate((element) => element.scrollTop);
+  await focusedReview.getByRole("button", { name: "Gilla Robins omdöme" }).click();
+  await expect(focusedReview.getByRole("button", { name: /Hjärta: 1 reaktion/ })).toBeVisible();
+  await expect(focusedReview).not.toHaveAttribute("data-review-highlighted", "true");
+  await expect
+    .poll(async () => {
+      const scrollTopAfterLike = await dialog.evaluate((element) => element.scrollTop);
+      return Math.abs(scrollTopAfterLike - scrollTopBeforeLike);
+    })
+    .toBeLessThanOrEqual(2);
 });
 
 test("deep-linkat omdöme öppnas synligt i samma besöksdetalj", async ({ page }) => {
@@ -142,7 +165,7 @@ test("deep-linkat omdöme öppnas synligt i samma besöksdetalj", async ({ page 
   const dialog = page.getByRole("dialog").first();
   const focusedReview = dialog.locator('[data-review-id="review-v2-sam"]');
   await expect(focusedReview).toBeVisible();
-  await expect(focusedReview).toHaveClass(/bg-primary/);
+  await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");
   await expect(focusedReview.getByRole("button", { name: "Gilla Sams omdöme" })).toBeVisible();
   await expect(
     focusedReview.getByRole("button", { name: "Fler reaktioner på Sams omdöme" }),
