@@ -22,6 +22,7 @@ import type { Visit } from "@/lib/matrundan/types";
 
 interface ReactionContextValue {
   byReview: ReadonlyMap<string, ReviewReactionState>;
+  currentUserId: string;
   writable: boolean;
   loading: boolean;
   savingReviewId: string | null;
@@ -106,8 +107,15 @@ export function VisitReviewReactionsProvider({
   );
 
   const contextValue = React.useMemo<ReactionContextValue>(
-    () => ({ byReview, writable, loading, savingReviewId, saveReaction }),
-    [byReview, loading, saveReaction, savingReviewId, writable],
+    () => ({
+      byReview,
+      currentUserId: state.currentUserId,
+      writable,
+      loading,
+      savingReviewId,
+      saveReaction,
+    }),
+    [byReview, loading, saveReaction, savingReviewId, state.currentUserId, writable],
   );
 
   return (
@@ -128,9 +136,13 @@ export function VisitReviewReactionsProvider({
 export function ReviewReactionBar({
   reviewId,
   authorName,
+  emphasized = false,
+  trailingAction,
 }: {
   reviewId: string;
   authorName: string;
+  emphasized?: boolean;
+  trailingAction?: React.ReactNode;
 }) {
   const context = React.useContext(ReactionContext);
   if (!context) {
@@ -143,35 +155,46 @@ export function ReviewReactionBar({
   const saving = context.savingReviewId === reviewId;
 
   if (context.loading && !reactionState) return null;
-  if (buckets.length === 0 && !context.writable) return null;
+  if (buckets.length === 0 && !context.writable && !trailingAction) return null;
 
   return (
     <div className="mt-2 min-w-0" data-review-reactions={reviewId}>
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-        {buckets.map((bucket) => (
-          <ReactionCountChip
-            key={bucket.reaction}
-            bucket={bucket}
-            selected={reactionState?.myReaction === bucket.reaction}
-          />
-        ))}
+      <div
+        className="flex min-w-0 items-start justify-between gap-2"
+        data-review-action-row={reviewId}
+      >
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          {buckets.map((bucket) => (
+            <ReactionCountChip
+              key={bucket.reaction}
+              bucket={bucket}
+              currentUserId={context.currentUserId}
+              selected={reactionState?.myReaction === bucket.reaction}
+              saving={saving}
+              onRemove={() => void context.saveReaction(reviewId, null)}
+            />
+          ))}
 
-        {context.writable ? (
-          <button
-            type="button"
-            className={`inline-flex min-h-10 items-center rounded-lg px-2 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
-              pickerOpen
-                ? "bg-secondary/60 text-foreground"
-                : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-            }`}
-            disabled={saving}
-            aria-label={`Reagera på ${authorName}s omdöme`}
-            aria-expanded={pickerOpen}
-            onClick={() => setPickerOpen((open) => !open)}
-          >
-            Reagera
-          </button>
-        ) : null}
+          {context.writable ? (
+            <button
+              type="button"
+              className={`inline-flex min-h-10 items-center rounded-full border px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+                pickerOpen || emphasized
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border/70 bg-secondary/35 text-foreground hover:bg-secondary/60"
+              }`}
+              disabled={saving}
+              aria-label={`Reagera på ${authorName}s omdöme`}
+              aria-expanded={pickerOpen}
+              data-emphasized={emphasized ? "true" : undefined}
+              onClick={() => setPickerOpen((open) => !open)}
+            >
+              Reagera
+            </button>
+          ) : null}
+        </div>
+
+        {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
       </div>
 
       {context.writable && pickerOpen ? (
@@ -212,10 +235,16 @@ export function ReviewReactionBar({
 
 function ReactionCountChip({
   bucket,
+  currentUserId,
   selected,
+  saving,
+  onRemove,
 }: {
   bucket: ReviewReactionBucket;
+  currentUserId: string;
   selected: boolean;
+  saving: boolean;
+  onRemove: () => void;
 }) {
   const option = REVIEW_REACTION_OPTIONS.find((item) => item.key === bucket.reaction);
   const firstReactor = bucket.reactors[0];
@@ -249,30 +278,56 @@ function ReactionCountChip({
           {option.emoji} {option.label}
         </div>
         <div className="mt-2 space-y-2">
-          {bucket.reactors.map((person) => (
-            <div key={person.userId} className="flex min-w-0 items-center gap-2">
-              {person.avatarImage ? (
-                <img
-                  src={person.avatarImage}
-                  alt=""
-                  className="h-7 w-7 rounded-full object-cover"
-                />
-              ) : (
-                <span
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-sm"
-                  aria-hidden="true"
-                >
-                  {person.avatar ?? "🙂"}
-                </span>
-              )}
-              <div className="min-w-0 text-xs">
-                <div className="truncate font-medium">{person.name}</div>
-                {person.status === "left" ? (
-                  <div className="text-[11px] text-muted-foreground">Tidigare medlem</div>
+          {bucket.reactors.map((person) => {
+            const ownReaction = selected && person.userId === currentUserId;
+            return (
+              <div
+                key={person.userId}
+                className="flex min-w-0 items-center justify-between gap-2"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  {person.avatarImage ? (
+                    <img
+                      src={person.avatarImage}
+                      alt=""
+                      className="h-7 w-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-sm"
+                      aria-hidden="true"
+                    >
+                      {person.avatar ?? "🙂"}
+                    </span>
+                  )}
+                  <div className="min-w-0 text-xs">
+                    <div className="truncate font-medium">
+                      {person.name}
+                      {ownReaction ? (
+                        <span className="font-normal text-muted-foreground"> (Du)</span>
+                      ) : null}
+                    </div>
+                    {person.status === "left" ? (
+                      <div className="text-[11px] text-muted-foreground">Tidigare medlem</div>
+                    ) : null}
+                  </div>
+                </div>
+                {ownReaction ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-9 shrink-0 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    disabled={saving}
+                    aria-label={`Ta bort din ${option.label.toLowerCase()}-reaktion`}
+                    onClick={onRemove}
+                  >
+                    Ta bort
+                  </Button>
                 ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>
