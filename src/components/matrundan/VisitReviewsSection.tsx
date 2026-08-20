@@ -21,6 +21,7 @@ import { RatingStars } from "./Rating";
 import { ReviewReactionBar, VisitReviewReactionsProvider } from "./ReviewReactions";
 
 const INITIAL_VISIBLE_REVIEWS = 4;
+const FOCUS_HIGHLIGHT_MS = 1800;
 
 export function VisitReviewsSection({
   visit,
@@ -41,6 +42,9 @@ export function VisitReviewsSection({
   const { mode, activeGroupId } = useSession();
   const [showAll, setShowAll] = React.useState(false);
   const [savingVisibility, setSavingVisibility] = React.useState(false);
+  const [highlightedReviewId, setHighlightedReviewId] = React.useState<string | null>(null);
+  const handledFocusKeyRef = React.useRef<string | null>(null);
+  const focusHighlightTimeoutRef = React.useRef<number | null>(null);
   const currentUserId = state.currentUserId;
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const participationStatus =
@@ -56,27 +60,53 @@ export function VisitReviewsSection({
     ? summary.reviews
     : summary.reviews.slice(0, INITIAL_VISIBLE_REVIEWS);
   const hiddenReviewCount = Math.max(0, summary.reviews.length - visibleReviews.length);
+  const focusedReviewIndex = focusReviewId
+    ? summary.reviews.findIndex((review) => review.id === focusReviewId)
+    : -1;
 
   React.useEffect(() => {
     setShowAll(false);
+    setHighlightedReviewId(null);
+    handledFocusKeyRef.current = null;
   }, [visit.id]);
 
+  React.useEffect(
+    () => () => {
+      if (focusHighlightTimeoutRef.current != null) {
+        window.clearTimeout(focusHighlightTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
   React.useEffect(() => {
-    if (!focusReviewId) return;
-    const reviewIndex = summary.reviews.findIndex((review) => review.id === focusReviewId);
-    if (reviewIndex >= INITIAL_VISIBLE_REVIEWS && !showAll) {
+    if (!focusReviewId || focusedReviewIndex < 0) return;
+    const focusKey = `${visit.id}:${focusReviewId}`;
+    if (handledFocusKeyRef.current === focusKey) return;
+
+    if (focusedReviewIndex >= INITIAL_VISIBLE_REVIEWS && !showAll) {
       setShowAll(true);
       return;
     }
-    if (reviewIndex < 0) return;
 
     const frame = window.requestAnimationFrame(() => {
-      document
-        .getElementById(`visit-review-${focusReviewId}`)
-        ?.scrollIntoView({ block: "start", behavior: "smooth" });
+      const element = document.getElementById(`visit-review-${focusReviewId}`);
+      if (!element) return;
+
+      handledFocusKeyRef.current = focusKey;
+      setHighlightedReviewId(focusReviewId);
+      element.scrollIntoView({ block: "start", behavior: "smooth" });
+
+      if (focusHighlightTimeoutRef.current != null) {
+        window.clearTimeout(focusHighlightTimeoutRef.current);
+      }
+      focusHighlightTimeoutRef.current = window.setTimeout(() => {
+        setHighlightedReviewId((current) => (current === focusReviewId ? null : current));
+        focusHighlightTimeoutRef.current = null;
+      }, FOCUS_HIGHLIGHT_MS);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [focusReviewId, showAll, summary.reviews]);
+  }, [focusReviewId, focusedReviewIndex, showAll, visit.id]);
 
   async function toggleOwnCommentVisibility(review: VisibleReview, next: boolean) {
     if (!activeGroupId || groupArchived) return;
@@ -174,6 +204,7 @@ export function VisitReviewsSection({
                     avatarImage={participant?.avatarImage ?? member?.avatarImage ?? null}
                     own={review.userId === currentUserId}
                     focused={review.id === focusReviewId}
+                    highlighted={review.id === highlightedReviewId}
                     placeName={placeName}
                     live={mode === "live"}
                     groupArchived={groupArchived}
@@ -275,6 +306,7 @@ function ReviewRow({
   avatarImage,
   own,
   focused,
+  highlighted,
   placeName,
   live,
   groupArchived,
@@ -288,6 +320,7 @@ function ReviewRow({
   avatarImage?: string | null;
   own: boolean;
   focused: boolean;
+  highlighted: boolean;
   placeName: string;
   live: boolean;
   groupArchived: boolean;
@@ -309,8 +342,9 @@ function ReviewRow({
     <div
       id={`visit-review-${review.id}`}
       data-review-id={review.id}
-      className={`scroll-mt-4 p-3 transition-colors ${
-        focused ? "bg-primary/[0.06] ring-1 ring-inset ring-primary/20" : ""
+      data-review-highlighted={highlighted ? "true" : undefined}
+      className={`scroll-mt-16 p-3 transition-[background-color,box-shadow] duration-700 ${
+        highlighted ? "bg-primary/[0.08] ring-1 ring-inset ring-primary/20" : ""
       }`}
     >
       <Collapsible open={expanded} onOpenChange={setExpanded}>
