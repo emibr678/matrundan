@@ -162,7 +162,11 @@ function ShellBody() {
 
   return (
     <StoreProvider
-      key={mode === "live" ? `live:${activeGroupId ?? ""}` : `demo:${exampleMode ? "example" : "sandbox"}`}
+      key={
+        mode === "live"
+          ? `live:${activeGroupId ?? ""}`
+          : `demo:${exampleMode ? "example" : "sandbox"}`
+      }
       mode={storeMode}
       demoPersistence={exampleMode ? "session" : "local"}
       demoStorageKey={exampleMode ? EXAMPLE_STATE_STORAGE_KEY : undefined}
