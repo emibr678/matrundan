@@ -8,7 +8,11 @@ import { ShellChrome } from "@/components/matrundan/ShellChrome";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { DEMO_STATE } from "@/lib/matrundan/demo-data";
-import { DEMO_STATE_CHANGED_EVENT, EXAMPLE_STATE_STORAGE_KEY } from "@/lib/matrundan/demo-state";
+import {
+  DEMO_STATE_CHANGED_EVENT,
+  EXAMPLE_STATE_STORAGE_KEY,
+  type DemoStateChangedDetail,
+} from "@/lib/matrundan/demo-state";
 import { createExampleState } from "@/lib/matrundan/example-data";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
@@ -40,10 +44,11 @@ function ShellBody() {
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
   const [demoRevision, setDemoRevision] = React.useState(0);
+  const [demoHydrationRevision, setDemoHydrationRevision] = React.useState(0);
   const demoInitialState = React.useMemo(() => {
-    void demoRevision;
+    void demoHydrationRevision;
     return exampleMode ? createExampleState() : { ...DEMO_STATE };
-  }, [demoRevision, exampleMode]);
+  }, [demoHydrationRevision, exampleMode]);
 
   React.useEffect(() => {
     if (!user) return;
@@ -97,7 +102,14 @@ function ShellBody() {
 
   React.useEffect(() => {
     if (typeof window === "undefined" || mode === "live") return;
-    const handler = () => setDemoRevision((current) => current + 1);
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<DemoStateChangedDetail>).detail;
+      if (detail?.preserveView) {
+        setDemoHydrationRevision((current) => current + 1);
+        return;
+      }
+      setDemoRevision((current) => current + 1);
+    };
     window.addEventListener(DEMO_STATE_CHANGED_EVENT, handler);
     return () => window.removeEventListener(DEMO_STATE_CHANGED_EVENT, handler);
   }, [mode]);
@@ -166,7 +178,7 @@ function ShellBody() {
       key={
         mode === "live"
           ? `live:${activeGroupId ?? ""}`
-          : `demo:${exampleMode ? "example" : "sandbox"}`
+          : `demo:${exampleMode ? "example" : "sandbox"}:${demoRevision}`
       }
       mode={storeMode}
       demoPersistence={exampleMode ? "session" : "local"}
