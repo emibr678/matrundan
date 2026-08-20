@@ -8,7 +8,7 @@ import { ShellChrome } from "@/components/matrundan/ShellChrome";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { DEMO_STATE_CHANGED_EVENT, EXAMPLE_STATE_STORAGE_KEY } from "@/lib/matrundan/demo-state";
-import { createExampleState } from "@/lib/matrundan/example-data";
+import { createExampleState, DEMO_STATE } from "@/lib/matrundan/example-data";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
 import { StoreProvider } from "@/lib/matrundan/store";
@@ -39,9 +39,9 @@ function ShellBody() {
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
   const [demoRevision, setDemoRevision] = React.useState(0);
-  const exampleInitialState = React.useMemo(
-    () => (exampleMode ? createExampleState() : undefined),
-    [exampleMode],
+  const demoInitialState = React.useMemo(
+    () => (exampleMode ? createExampleState() : { ...DEMO_STATE }),
+    [demoRevision, exampleMode],
   );
 
   React.useEffect(() => {
@@ -162,17 +162,11 @@ function ShellBody() {
 
   return (
     <StoreProvider
-      key={
-        mode === "live"
-          ? `live:${activeGroupId ?? ""}`
-          : `demo:${exampleMode ? "example" : "sandbox"}:${demoRevision}`
-      }
+      key={mode === "live" ? `live:${activeGroupId ?? ""}` : `demo:${exampleMode ? "example" : "sandbox"}`}
       mode={storeMode}
       demoPersistence={exampleMode ? "session" : "local"}
       demoStorageKey={exampleMode ? EXAMPLE_STATE_STORAGE_KEY : undefined}
-      initialState={
-        mode === "live" ? (liveState ?? undefined) : exampleMode ? exampleInitialState : undefined
-      }
+      initialState={mode === "live" ? (liveState ?? undefined) : demoInitialState}
       onLiveMutation={mode === "live" ? reloadLive : undefined}
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
