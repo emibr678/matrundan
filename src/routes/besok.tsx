@@ -24,6 +24,8 @@ const MEAL_LABEL: Record<string, string> = {
 const VISIT_SEARCH_DEFAULTS = { visit: "" };
 const visitSearchSchema = z.object({
   visit: fallback(z.string(), "").default(""),
+  group: z.string().optional(),
+  review: z.string().optional(),
 });
 
 export const Route = createFileRoute("/besok")({
@@ -43,10 +45,13 @@ export const Route = createFileRoute("/besok")({
 
 function VisitHistory() {
   const { state, getPlace, memberById } = useStore();
-  const { exampleMode } = useSession();
+  const { exampleMode, mode, activeGroupId, userGroups, selectGroup } = useSession();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/besok" });
   const groupArchived = state.group.lifecycleStatus === "archived";
+  const requestedGroupAllowed =
+    !search.group || userGroups.some((group) => group.id === search.group);
+  const requestedGroupReady = mode !== "live" || !search.group || search.group === activeGroupId;
   const visits = React.useMemo(
     () => [...state.visits].sort((left, right) => right.date.localeCompare(left.date)),
     [state.visits],
@@ -61,6 +66,18 @@ function VisitHistory() {
       ),
     [groupArchived, state.currentUserId, state.visits],
   );
+
+  React.useEffect(() => {
+    if (
+      mode !== "live" ||
+      !search.group ||
+      search.group === activeGroupId ||
+      !requestedGroupAllowed
+    ) {
+      return;
+    }
+    selectGroup(search.group);
+  }, [activeGroupId, mode, requestedGroupAllowed, search.group, selectGroup]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 pb-4 pt-2 md:max-w-3xl">
@@ -192,8 +209,11 @@ function VisitHistory() {
 
       <VisitDetailSheet
         visitId={search.visit || null}
-        open={Boolean(search.visit)}
-        onOpenChange={(open) => !open && navigate({ search: { visit: "" } })}
+        focusReviewId={search.review ?? null}
+        open={Boolean(search.visit) && requestedGroupAllowed && requestedGroupReady}
+        onOpenChange={(open) =>
+          !open && navigate({ search: { visit: "", group: undefined, review: undefined } })
+        }
       />
     </div>
   );

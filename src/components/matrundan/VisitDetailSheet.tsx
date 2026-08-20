@@ -50,10 +50,12 @@ function formatVisitDate(iso: string) {
 
 export function VisitDetailSheet({
   visitId,
+  focusReviewId = null,
   open,
   onOpenChange,
 }: {
   visitId: string | null;
+  focusReviewId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -268,6 +270,7 @@ export function VisitDetailSheet({
                   placeName={place.name}
                   groupArchived={groupArchived}
                   demoReadOnly={demoReadOnly}
+                  focusReviewId={focusReviewId}
                   onChanged={reload}
                 />
 

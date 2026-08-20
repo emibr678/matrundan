@@ -11,6 +11,7 @@ import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
+import { formatRating } from "@/lib/matrundan/version";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -88,6 +89,20 @@ export function Home() {
         .filter((value): value is string => Boolean(value))
         .join(", ")
     : "";
+  const lastVisitReview = React.useMemo(() => {
+    if (!lastVisit) return undefined;
+    return (lastVisit.visibleReviews ?? []).find(
+      (review) =>
+        review.userId !== state.currentUserId &&
+        review.ratingVisible &&
+        review.commentVisible &&
+        Boolean(review.comment?.trim()),
+    );
+  }, [lastVisit, state.currentUserId]);
+  const lastVisitReviewAuthor = lastVisitReview
+    ? (lastVisit?.participants?.find((participant) => participant.id === lastVisitReview.userId)
+        ?.name ?? memberById(lastVisitReview.userId)?.name)
+    : undefined;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
@@ -143,9 +158,13 @@ export function Home() {
           </div>
           <Link
             to="/besok"
-            search={{ visit: lastVisit.id }}
+            search={{ visit: lastVisit.id, review: lastVisitReview?.id }}
             className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={`Öppna besöket på ${lastVisitPlace.name}`}
+            aria-label={
+              lastVisitReview && lastVisitReviewAuthor
+                ? `Öppna omdömet från ${lastVisitReviewAuthor} om ${lastVisitPlace.name}`
+                : `Öppna besöket på ${lastVisitPlace.name}`
+            }
           >
             <Card className="rounded-2xl border-border/70 p-4 transition-colors hover:bg-accent/35">
               <div className="font-display text-lg [overflow-wrap:anywhere]">
@@ -158,7 +177,24 @@ export function Home() {
                 })}
                 {lastVisitParticipantSummary ? ` · ${lastVisitParticipantSummary}` : ""}
               </p>
-              {lastVisit.comment ? (
+              {lastVisitReview ? (
+                <div className="mt-3 border-t border-border/60 pt-3">
+                  <div className="flex min-w-0 items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 truncate font-medium text-foreground">
+                      {lastVisitReviewAuthor ?? "Deltagare"}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {formatRating(lastVisitReview.overall)} / 5
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm [overflow-wrap:anywhere]">
+                    ”{lastVisitReview.comment?.trim()}”
+                  </p>
+                  <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary">
+                    Öppna omdömet <ChevronRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+              ) : lastVisit.comment ? (
                 <p className="mt-2 text-sm [overflow-wrap:anywhere]">”{lastVisit.comment}”</p>
               ) : null}
             </Card>

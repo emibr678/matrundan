@@ -160,11 +160,13 @@ Nya tabeller som innehåller `created_by`, `updated_by`, submitter-ID eller anna
 användarreferens ska därför granskas mot kontoraderingsflödet innan de räknas som
 färdiga. `visit_participation_self_corrections.user_id` refererar profilen med
 `ON DELETE CASCADE`, så det privata korrigeringsspåret försvinner automatiskt
-när profilen raderas och kräver ingen separat scrubbrad. Nästa-stopp-v2 använder
-`ON DELETE SET NULL` för `proposed_by`/`updated_by` och `ON DELETE CASCADE` för
-en medlems egen **Jag vill hit**-markering, så kontoradering blockerar inte
-gruppens kvarvarande idé eller lämnar en stödmarkering kopplad till det raderade
-kontot.
+när profilen raderas och kräver ingen separat scrubbrad. `review_group_reactions`
+är en medlems privata sociala markering, inte historisk betygsdata; den ska rensas
+redan när profilen mjukraderas och har dessutom fysisk `ON DELETE CASCADE` som
+säkerhetsnät. Nästa-stopp-v2 använder `ON DELETE SET NULL` för
+`proposed_by`/`updated_by` och `ON DELETE CASCADE` för en medlems egen **Jag vill
+hit**-markering, så kontoradering blockerar inte gruppens kvarvarande idé eller
+lämnar en stödmarkering kopplad till det raderade kontot.
 
 ## Kanonisk datamodell
 
@@ -277,6 +279,10 @@ Read-RPC:n ska:
 - bara visa deltagaromdömen från personer som fortfarande är faktiska deltagare;
 - undvika att exponera interna tabellfält som klienten inte behöver.
 
+Sekundär, potentiellt växande besöksdata som omdömesreaktioner ska inte läggas in
+i hela gruppens v5k-payload bara för att den visas i besöksdetaljen. Den läses i
+stället lazy genom en grupp- och medlemsvaliderad, minifierad per-besök-RPC.
+
 ## Nästa stopp
 
 Nästa stopp är privat gruppstate och ska inte härledas från en offentlig katalog
@@ -358,6 +364,27 @@ besök. Servern kräver att användaren är faktisk deltagare och att besöket �
 legitimt synligt i den aktuella gruppen. `reviews` behåller invarianten högst en
 kanonisk review per `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt
 i `review_group_visibility` och löses inte genom reviewkopior.
+
+### Privata omdömesreaktioner
+
+En reaktion hör till det kanoniska individuella omdömet men är privat för den
+grupp där omdömet presenteras. `review_group_reactions` använder därför
+`(review_id, group_id, user_id)` som unik identitet och refererar samma
+`review_group_visibility(review_id, group_id)` som avgör att omdömet alls får
+visas i gruppen. En delning skapar aldrig en global reaktion och kopierar inte en
+annan grupps reaktioner.
+
+I v1 är ett omdöme reagerbart endast när dess fritextkommentar är synlig och
+icke-tom i den aktuella gruppen. Alla aktiva gruppmedlemmar som legitimt kan se
+omdömet får reagera, även om de inte själva deltog i besöket. En medlem har högst
+en reaktion per omdöme och grupp och får byta eller ta bort den. Reaktioner
+påverkar aldrig betyg, progression, ranking eller gamification.
+
+Råtabellen är server-only för klientroller. Läsning sker lazy per besök genom en
+minifierad RPC som validerar medlemskap och gruppens besökslänk; skrivning
+revaliderar dessutom aktiv grupp, synlighet och reagerbar kommentar. Om en
+gruppkoppling eller `review_group_visibility` tas bort ska gruppens reaktioner
+försvinna genom FK-cascade utan att påverka samma omdöme i andra grupper.
 
 Andra deltagare får självkorrigera sin egen närvaro med
 `set_own_visit_participation_v1`. **Jag var inte med** tar bort den egna aktiva
@@ -698,6 +725,11 @@ självkorrigerar sin faktiska närvaro ska samma sanningsändring därför gäll
 alla gruppvyer av samma besök utan att avslöja vilka andra grupper som länkar
 dit.
 
+Reaktioner är uttryckligen gruppspecifika trots att reviewn är kanonisk. Samma
+review får därför ha olika `review_group_reactions` i två grupper. Delning får
+aldrig kopiera eller projicera källgruppens reaktörer, reaktionsantal eller annan
+gruppintern social aktivitet; målgruppen börjar med sin egen reaktionskontext.
+
 Ursprungsgrupp, privata kommentarer, medlemskap och interna ID:n får aldrig
 exponeras i delningspayloaden.
 
@@ -733,6 +765,13 @@ Ett schemalagt jobb är säkerhetsnät för kvarvarande outbox-rader.
 
 Notiser får bara innehålla minsta nödvändiga gruppkontext och ska inte bli en
 ny delningskanal för privat data.
+
+När en senare faktisk deltagare lämnar sitt första omdöme på ett befintligt
+besök använder `review_added` samma outbox och gruppspecifika synlighetsmodell.
+Författaren notifieras inte om sitt eget omdöme och senare redigeringar eller
+reaktioner skapar ingen ny push. Registrerarens initiala omdöme skapas tillsammans
+med själva besöket och ska inte ge en dubblerad omdömesnotis. Deep-linken får
+bära målgrupp, besök och review men ingen privat source-group-identitet.
 
 ## Release och databasdrift
 

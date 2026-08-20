@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { flushNotificationOutbox } from "./notifications.functions";
 import { rpcClient } from "./rpc-client";
 
 export interface OwnVisitReviewInput {
@@ -9,12 +10,18 @@ export interface OwnVisitReviewInput {
   comment: string | null;
 }
 
+function scheduleNotificationFlush(): void {
+  void flushNotificationOutbox().catch(() => {
+    /* notiser får aldrig blockera eller fela själva omdömessparningen */
+  });
+}
+
 export async function saveOwnReviewForVisit(
   groupId: string,
   visitId: string,
   input: OwnVisitReviewInput,
 ): Promise<string> {
-  return rpcClient.call(
+  const reviewId = await rpcClient.call(
     "save_own_review_for_visit_v1",
     {
       _group_id: groupId,
@@ -28,6 +35,8 @@ export async function saveOwnReviewForVisit(
     z.string().min(1),
     "Kunde inte spara ditt omdöme.",
   );
+  scheduleNotificationFlush();
+  return reviewId;
 }
 
 export async function setOwnVisitParticipation(

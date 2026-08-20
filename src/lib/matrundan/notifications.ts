@@ -12,6 +12,7 @@ export const NOTIFICATION_TYPES = [
   "next_stop_changed",
   "added_as_participant",
   "member_joined",
+  "review_added",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -32,6 +33,10 @@ export const NOTIFICATION_LABELS: Record<NotificationType, { title: string; hint
   member_joined: {
     title: "Ny medlem i gruppen",
     hint: "När någon tackar ja till en inbjudan.",
+  },
+  review_added: {
+    title: "Nytt omdöme",
+    hint: "När en deltagare lämnar sitt omdöme efter ett gemensamt besök.",
   },
 };
 
@@ -114,7 +119,8 @@ function deviceLabel(): string {
 
 async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
   const existing = await navigator.serviceWorker.getRegistration(SW_PATH);
-  const registration = existing ?? (await navigator.serviceWorker.register(SW_PATH, { scope: "/" }));
+  const registration =
+    existing ?? (await navigator.serviceWorker.register(SW_PATH, { scope: "/" }));
   await navigator.serviceWorker.ready;
   return registration;
 }
