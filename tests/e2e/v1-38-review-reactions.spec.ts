@@ -21,7 +21,7 @@ async function expectNoHorizontalOverflow(page: Page, locator: Locator, context:
 
 test.use({ viewport: { width: 360, height: 800 } });
 
-test("Gilla ger hjärta direkt och fler reaktioner väljs inline", async ({ page }) => {
+test("Reagera samlar valet och visar vem som reagerat direkt", async ({ page }) => {
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await page.goto("/matstallen/p3?visit=v2");
@@ -29,24 +29,34 @@ test("Gilla ger hjärta direkt och fler reaktioner väljs inline", async ({ page
   const dialog = page.getByRole("dialog").first();
   const samReview = dialog.locator('[data-review-id="review-v2-sam"]');
   const reactionBar = samReview.locator('[data-review-reactions="review-v2-sam"]');
-  const detailsButton = samReview.getByRole("button", { name: "Visa detaljer för Sam" });
   await expect(samReview).toBeVisible();
   await expect(samReview.getByText("Bra tempo och generösa portioner.")).toBeVisible();
-  await expect(samReview.getByRole("button", { name: /Hjärta: 1 reaktion/ })).toBeVisible();
+
+  const heartChip = samReview.getByRole("button", { name: /Hjärta: 1 reaktion/ });
+  await expect(heartChip).toBeVisible();
+  await expect(heartChip).toContainText("Robin");
   await expect(samReview.getByRole("button", { name: /Ser gott ut: 1 reaktion/ })).toBeVisible();
   await expect(samReview.getByRole("button", { name: /Roligt:/ })).toHaveCount(0);
-  await expect(samReview.getByText("Robin", { exact: true })).toHaveCount(0);
+  await expect(samReview.getByRole("button", { name: /Visa detaljer/ })).toHaveCount(0);
+  await expect(samReview.getByText("Smak", { exact: true })).toBeVisible();
+  await expect(samReview.getByText("Prisvärt", { exact: true })).toBeVisible();
+  await expect(samReview.getByText("Service", { exact: true })).toBeVisible();
 
-  const reactionBox = await reactionBar.boundingBox();
-  const detailsBox = await detailsButton.boundingBox();
-  expect(reactionBox).not.toBeNull();
-  expect(detailsBox).not.toBeNull();
-  expect(reactionBox!.y, "reaktionerna ska ligga före Detaljer").toBeLessThan(detailsBox!.y);
+  const reactButton = samReview.getByRole("button", { name: "Reagera på Sams omdöme" });
+  await expect(reactButton).toHaveText("Reagera");
+  await reactButton.click();
 
-  const likeButton = samReview.getByRole("button", { name: "Gilla Sams omdöme" });
-  await expect(likeButton).toHaveText("Gilla");
-  await expect(likeButton).toHaveAttribute("aria-pressed", "false");
-  await likeButton.click();
+  let picker = samReview.getByRole("group", { name: "Välj reaktion" });
+  await expect(picker).toBeVisible();
+  await expect(picker).toHaveAttribute("data-reaction-picker", "inline");
+
+  const pickerBox = await picker.boundingBox();
+  const reviewBox = await samReview.boundingBox();
+  expect(pickerBox).not.toBeNull();
+  expect(reviewBox).not.toBeNull();
+  expect(pickerBox!.y + pickerBox!.height).toBeLessThanOrEqual(reviewBox!.y + reviewBox!.height + 1);
+
+  await picker.getByRole("button", { name: "Hjärta" }).click();
 
   let updatedSamReview = page
     .getByRole("dialog")
@@ -57,46 +67,37 @@ test("Gilla ger hjärta direkt och fler reaktioner väljs inline", async ({ page
   ).toBeVisible();
   await expect(updatedSamReview.getByRole("button", { name: /Ser gott ut:/ })).toHaveCount(0);
 
-  const removeLike = updatedSamReview.getByRole("button", {
-    name: "Ta bort gilla-markering från Sams omdöme",
-  });
-  await expect(removeLike).toHaveAttribute("aria-pressed", "true");
-  await removeLike.click();
+  await updatedSamReview.getByRole("button", { name: "Reagera på Sams omdöme" }).click();
+  picker = updatedSamReview.getByRole("group", { name: "Välj reaktion" });
+  await picker.getByRole("button", { name: /^Hjärta, vald/ }).click();
   updatedSamReview = page.getByRole("dialog").first().locator('[data-review-id="review-v2-sam"]');
   await expect(updatedSamReview.getByRole("button", { name: /Hjärta: 1 reaktion/ })).toBeVisible();
 
-  await updatedSamReview.getByRole("button", { name: "Fler reaktioner på Sams omdöme" }).click();
-  const picker = updatedSamReview.getByRole("group", { name: "Välj reaktion" });
-  await expect(picker).toBeVisible();
-  await expect(picker).toHaveAttribute("data-reaction-picker", "inline");
-
-  const pickerBox = await picker.boundingBox();
-  const reviewBox = await updatedSamReview.boundingBox();
-  expect(pickerBox).not.toBeNull();
-  expect(reviewBox).not.toBeNull();
-  expect(pickerBox!.y + pickerBox!.height).toBeLessThanOrEqual(
-    reviewBox!.y + reviewBox!.height + 1,
-  );
-
-  await picker.getByRole("button", { name: "Roligt" }).click();
+  await updatedSamReview.getByRole("button", { name: "Reagera på Sams omdöme" }).click();
+  await updatedSamReview
+    .getByRole("group", { name: "Välj reaktion" })
+    .getByRole("button", { name: "Roligt" })
+    .click();
   updatedSamReview = page.getByRole("dialog").first().locator('[data-review-id="review-v2-sam"]');
   await expect(updatedSamReview.getByRole("button", { name: /Roligt: 1 reaktion/ })).toBeVisible();
 
-  await updatedSamReview.getByRole("button", { name: "Fler reaktioner på Sams omdöme" }).click();
+  await updatedSamReview.getByRole("button", { name: "Reagera på Sams omdöme" }).click();
   await updatedSamReview
     .getByRole("group", { name: "Välj reaktion" })
     .getByRole("button", { name: /^Roligt, vald/ })
     .click();
   await expect(updatedSamReview.getByRole("button", { name: /Roligt:/ })).toHaveCount(0);
 
-  const heartChip = updatedSamReview.getByRole("button", { name: /Hjärta: 1 reaktion/ });
-  await heartChip.click();
+  const remainingHeartChip = updatedSamReview.getByRole("button", { name: /Hjärta: 1 reaktion/ });
+  await expect(remainingHeartChip).toContainText("Robin");
+  await remainingHeartChip.click();
   await expect(page.getByText("Robin", { exact: true })).toBeVisible();
 
-  await expectNoHorizontalOverflow(page, dialog, "reaktionsflöde på 360 px");
+  await expectNoHorizontalOverflow(page, reactionBar, "reaktionsflöde på 360 px");
+  await expectNoHorizontalOverflow(page, dialog, "omdömeskort på 360 px");
 });
 
-test("Hem fokuserar senaste omdömet utan scrollhopp vid Gilla", async ({ page }) => {
+test("Hem fokuserar senaste omdömet utan scrollhopp när en reaktion väljs", async ({ page }) => {
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 
@@ -119,9 +120,8 @@ test("Hem fokuserar senaste omdömet utan scrollhopp vid Gilla", async ({ page }
   const focusedReview = dialog.locator('[data-review-id="review-v1-robin"]');
   await expect(focusedReview).toBeVisible();
   await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");
-  await expect(focusedReview.getByRole("button", { name: "Gilla Robins omdöme" })).toBeVisible();
   await expect(
-    focusedReview.getByRole("button", { name: "Fler reaktioner på Robins omdöme" }),
+    focusedReview.getByRole("button", { name: "Reagera på Robins omdöme" }),
   ).toBeVisible();
 
   await expect
@@ -145,14 +145,15 @@ test("Hem fokuserar senaste omdömet utan scrollhopp vid Gilla", async ({ page }
     timeout: 4_000,
   });
 
-  const scrollTopBeforeLike = await dialog.evaluate((element) => element.scrollTop);
-  await focusedReview.getByRole("button", { name: "Gilla Robins omdöme" }).click();
+  const scrollTopBeforeReaction = await dialog.evaluate((element) => element.scrollTop);
+  await focusedReview.getByRole("button", { name: "Reagera på Robins omdöme" }).click();
+  await focusedReview.getByRole("group", { name: "Välj reaktion" }).getByRole("button", { name: "Hjärta" }).click();
   await expect(focusedReview.getByRole("button", { name: /Hjärta: 1 reaktion/ })).toBeVisible();
   await expect(focusedReview).not.toHaveAttribute("data-review-highlighted", "true");
   await expect
     .poll(async () => {
-      const scrollTopAfterLike = await dialog.evaluate((element) => element.scrollTop);
-      return Math.abs(scrollTopAfterLike - scrollTopBeforeLike);
+      const scrollTopAfterReaction = await dialog.evaluate((element) => element.scrollTop);
+      return Math.abs(scrollTopAfterReaction - scrollTopBeforeReaction);
     })
     .toBeLessThanOrEqual(2);
 });
@@ -166,14 +167,13 @@ test("deep-linkat omdöme öppnas synligt i samma besöksdetalj", async ({ page 
   const focusedReview = dialog.locator('[data-review-id="review-v2-sam"]');
   await expect(focusedReview).toBeVisible();
   await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");
-  await expect(focusedReview.getByRole("button", { name: "Gilla Sams omdöme" })).toBeVisible();
-  await expect(
-    focusedReview.getByRole("button", { name: "Fler reaktioner på Sams omdöme" }),
-  ).toBeVisible();
+  await expect(focusedReview.getByRole("button", { name: "Reagera på Sams omdöme" })).toBeVisible();
+  await expect(focusedReview.getByText("Smak", { exact: true })).toBeVisible();
+  await expect(focusedReview.getByRole("button", { name: /Visa detaljer/ })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, dialog, "deep-linkat omdöme på 360 px");
 });
 
-test("Gilla-raden behåller samma kompakta hierarki på desktop", async ({ page }) => {
+test("reaktionsraden behåller samma kompakta hierarki på desktop", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
@@ -181,11 +181,11 @@ test("Gilla-raden behåller samma kompakta hierarki på desktop", async ({ page 
 
   const dialog = page.getByRole("dialog").first();
   const samReview = dialog.locator('[data-review-id="review-v2-sam"]');
-  await expect(samReview.getByRole("button", { name: /Hjärta: 1 reaktion/ })).toBeVisible();
-  await expect(samReview.getByRole("button", { name: "Gilla Sams omdöme" })).toBeVisible();
-  await expect(
-    samReview.getByRole("button", { name: "Fler reaktioner på Sams omdöme" }),
-  ).toBeVisible();
-  await expect(samReview.getByText("Robin", { exact: true })).toHaveCount(0);
+  const heartChip = samReview.getByRole("button", { name: /Hjärta: 1 reaktion/ });
+  await expect(heartChip).toBeVisible();
+  await expect(heartChip).toContainText("Robin");
+  await expect(samReview.getByRole("button", { name: "Reagera på Sams omdöme" })).toBeVisible();
+  await expect(samReview.getByRole("button", { name: /Fler reaktioner/ })).toHaveCount(0);
+  await expect(samReview.getByRole("button", { name: /Visa detaljer/ })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, dialog, "reaktionsflöde på desktop");
 });
