@@ -106,7 +106,7 @@ test("Reagera samlar valet och gör den egna reaktionen enkel att ta bort", asyn
   await expectNoHorizontalOverflow(page, dialog, "omdömeskort på 360 px");
 });
 
-test("Hem fokuserar senaste omdömet och håller redigering i handlingsraden", async ({ page }) => {
+test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ page }) => {
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 
@@ -133,7 +133,7 @@ test("Hem fokuserar senaste omdömet och håller redigering i handlingsraden", a
     name: "Reagera på Robins omdöme",
   });
   await expect(focusedReactButton).toBeVisible();
-  await expect(focusedReactButton).toHaveAttribute("data-emphasized", "true");
+  await expect(focusedReactButton).not.toHaveAttribute("data-emphasized", "true");
 
   const ownReview = dialog.locator("[data-review-id]").filter({ hasText: "Alex" }).first();
   const ownActionRow = ownReview.locator("[data-review-action-row]");
@@ -160,19 +160,17 @@ test("Hem fokuserar senaste omdömet och håller redigering i handlingsraden", a
     })
     .toBeLessThan(220);
 
-  await expect(focusedReview).not.toHaveAttribute("data-review-highlighted", "true", {
-    timeout: 4_000,
-  });
-  await expect(focusedReactButton).not.toHaveAttribute("data-emphasized", "true");
+  await page.waitForTimeout(2_500);
+  await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");
 
   const scrollTopBeforeReaction = await dialog.evaluate((element) => element.scrollTop);
   await focusedReactButton.click();
+  await expect(focusedReview).not.toHaveAttribute("data-review-highlighted", "true");
   await focusedReview
     .getByRole("group", { name: "Välj reaktion" })
     .getByRole("button", { name: "Hjärta" })
     .click();
   await expect(focusedReview.getByRole("button", { name: /Hjärta: 1 reaktion/ })).toBeVisible();
-  await expect(focusedReview).not.toHaveAttribute("data-review-highlighted", "true");
   await expect
     .poll(async () => {
       const scrollTopAfterReaction = await dialog.evaluate((element) => element.scrollTop);
@@ -190,12 +188,16 @@ test("deep-linkat omdöme öppnas synligt i samma besöksdetalj", async ({ page 
   const focusedReview = dialog.locator('[data-review-id="review-v2-sam"]');
   await expect(focusedReview).toBeVisible();
   await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");
-  await expect(
-    focusedReview.getByRole("button", { name: "Reagera på Sams omdöme" }),
-  ).toHaveAttribute("data-emphasized", "true");
+  const reactButton = focusedReview.getByRole("button", { name: "Reagera på Sams omdöme" });
+  await expect(reactButton).toBeVisible();
+  await expect(reactButton).not.toHaveAttribute("data-emphasized", "true");
   await expect(focusedReview.getByText("Smak", { exact: true })).toBeVisible();
   await expect(focusedReview.getByRole("button", { name: /Visa detaljer/ })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, dialog, "deep-linkat omdöme på 360 px");
+
+  await expect(focusedReview).not.toHaveAttribute("data-review-highlighted", "true", {
+    timeout: 8_500,
+  });
 });
 
 test("reaktionsraden behåller samma kompakta hierarki på desktop", async ({ page }) => {
