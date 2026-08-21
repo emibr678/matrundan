@@ -100,7 +100,9 @@ test("Reagera samlar valet och gör den egna reaktionen enkel att ta bort", asyn
   await expect(updatedSamReview.getByRole("button", { name: /Roligt:/ })).toHaveCount(0);
 
   await remainingHeartChip.click();
-  await expect(page.getByText("Robin", { exact: true })).toBeVisible();
+  await expect(
+    page.locator("[data-radix-popper-content-wrapper]").getByText("Robin", { exact: true }),
+  ).toBeVisible();
 
   await expectNoHorizontalOverflow(page, reactionBar, "reaktionsflöde på 360 px");
   await expectNoHorizontalOverflow(page, dialog, "omdömeskort på 360 px");
