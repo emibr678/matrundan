@@ -135,6 +135,7 @@ jobs:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
         run: |
           bun run format:changed
+          git diff -- src/components/matrundan/VisitReviewsSection.tsx tests/e2e/v1-38-review-reactions.spec.ts
           git diff --binary > formatting.patch
 
       - name: Upload formatting patch
