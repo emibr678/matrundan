@@ -391,9 +391,7 @@ function ReviewRow({
             </p>
           ) : null}
           {own && comment && !review.commentVisible ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Kommentaren är dold i gruppen.
-            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
