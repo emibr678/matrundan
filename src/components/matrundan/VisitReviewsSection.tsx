@@ -18,7 +18,7 @@ import { RatingStars } from "./Rating";
 import { ReviewReactionBar, VisitReviewReactionsProvider } from "./ReviewReactions";
 
 const INITIAL_VISIBLE_REVIEWS = 4;
-const FOCUS_HIGHLIGHT_MS = 1800;
+const FOCUS_HIGHLIGHT_MS = 7000;
 
 export function VisitReviewsSection({
   visit,
@@ -104,6 +104,15 @@ export function VisitReviewsSection({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [focusReviewId, focusedReviewIndex, showAll, visit.id]);
+
+  function clearReviewHighlight(reviewId: string) {
+    if (highlightedReviewId !== reviewId) return;
+    if (focusHighlightTimeoutRef.current != null) {
+      window.clearTimeout(focusHighlightTimeoutRef.current);
+      focusHighlightTimeoutRef.current = null;
+    }
+    setHighlightedReviewId(null);
+  }
 
   async function toggleOwnCommentVisibility(review: VisibleReview, next: boolean) {
     if (!activeGroupId || groupArchived) return;
@@ -207,6 +216,7 @@ export function VisitReviewsSection({
                     groupArchived={groupArchived}
                     demoReadOnly={demoReadOnly}
                     savingVisibility={savingVisibility}
+                    onInteract={() => clearReviewHighlight(review.id)}
                     onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
                   />
                 );
@@ -309,6 +319,7 @@ function ReviewRow({
   groupArchived,
   demoReadOnly,
   savingVisibility,
+  onInteract,
   onToggleVisibility,
 }: {
   review: VisibleReview;
@@ -323,6 +334,7 @@ function ReviewRow({
   groupArchived: boolean;
   demoReadOnly: boolean;
   savingVisibility: boolean;
+  onInteract: () => void;
   onToggleVisibility: (next: boolean) => void;
 }) {
   const [commentExpanded, setCommentExpanded] = React.useState(false);
@@ -346,6 +358,14 @@ function ReviewRow({
       className={`scroll-mt-16 p-3 transition-[background-color,box-shadow] duration-700 ${
         highlighted ? "bg-primary/[0.08] ring-1 ring-inset ring-primary/20" : ""
       }`}
+      onClickCapture={highlighted ? onInteract : undefined}
+      onKeyDownCapture={
+        highlighted
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") onInteract();
+            }
+          : undefined
+      }
     >
       <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
         <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
@@ -406,12 +426,7 @@ function ReviewRow({
       ) : null}
 
       {reactableComment ? (
-        <ReviewReactionBar
-          reviewId={review.id}
-          authorName={name}
-          emphasized={highlighted}
-          trailingAction={editAction}
-        />
+        <ReviewReactionBar reviewId={review.id} authorName={name} trailingAction={editAction} />
       ) : editAction ? (
         <div className="mt-2 flex justify-end">{editAction}</div>
       ) : null}
