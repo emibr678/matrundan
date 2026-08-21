@@ -137,9 +137,7 @@ test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ pa
 
   const ownReview = dialog.locator("[data-review-id]").filter({ hasText: "Alex" }).first();
   const ownActionRow = ownReview.locator("[data-review-action-row]");
-  await expect(
-    ownActionRow.getByRole("button", { name: "Reagera på Alexs omdöme" }),
-  ).toBeVisible();
+  await expect(ownActionRow.getByRole("button", { name: "Reagera på Alexs omdöme" })).toBeVisible();
   await expect(ownActionRow.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
   await expectNoHorizontalOverflow(page, ownActionRow, "egen handlingsrad på 360 px");
 
