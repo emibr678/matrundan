@@ -3,6 +3,22 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_1_CHANGELOG: ChangelogEntry = {
+  version: "1.38.1",
+  date: "2026-08-20",
+  summary: "Omdömeskorten är lugnare och reaktionerna mer mänskliga.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Smak, prisvärdhet och service visas direkt i deltagarens omdöme i stället för bakom en generell Detaljer-kontroll; bara längre kommentarer behöver expanderas.",
+        "Reaktionsvalet samlas under en enda Reagera-handling och befintliga reaktioner visar första reagerande personens namn direkt, med hela listan kvar på tryck.",
+        "Det egna omdömet har tydliga, lågmälda handlingar för Redigera och kommentarens synlighet i stället för en ensam pennikon och en stor inställningsrad.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_0_CHANGELOG: ChangelogEntry = {
   version: "1.38.0",
   date: "2026-08-19",
@@ -158,6 +174,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_1_CHANGELOG,
   VERSION_1_38_0_CHANGELOG,
   VERSION_1_37_0_CHANGELOG,
   VERSION_1_36_0_CHANGELOG,
