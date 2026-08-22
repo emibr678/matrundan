@@ -43,9 +43,10 @@ jobs:
       - name: Verify regenerated lockfile is frozen-installable
         run: bun install --frozen-lockfile
 
-      - name: Print regenerated lockfile as base64
+      - name: Print regenerated lockfile safely
         run: |
+          echo LOCKFILE_GIT_BLOB_SHA
+          git hash-object bun.lock
           echo LOCKFILE_BASE64_BEGIN
-          base64 -w0 bun.lock
-          echo
+          base64 -w0 bun.lock | fold -w 30000
           echo LOCKFILE_BASE64_END
