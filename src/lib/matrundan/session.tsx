@@ -142,15 +142,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
 
     const groups: UserGroupSummary[] = ((data ?? []) as UserGroupSummary[])
-      .map(
-        (group): UserGroupSummary => ({
-          id: group.id,
-          name: group.name,
-          emoji: group.emoji,
-          role: group.role,
-          lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
-        }),
-      )
+      .map((group): UserGroupSummary => ({
+        id: group.id,
+        name: group.name,
+        emoji: group.emoji,
+        role: group.role,
+        lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
+      }))
       .sort((a, b) => {
         if (a.lifecycleStatus !== b.lifecycleStatus) {
           return a.lifecycleStatus === "active" ? -1 : 1;
@@ -204,24 +202,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const signInWithGoogle = React.useCallback(
-    async (opts?: { redirectPath?: string }) => {
-      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-      clearExampleSession();
-      if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: origin,
-        },
-      });
-      if (error) {
-        console.error("[Matrundan] Google-inloggning misslyckades:", error);
-        throw error;
-      }
-    },
-    [],
-  );
+  const signInWithGoogle = React.useCallback(async (opts?: { redirectPath?: string }) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+    clearExampleSession();
+    if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: origin,
+      },
+    });
+    if (error) {
+      console.error("[Matrundan] Google-inloggning misslyckades:", error);
+      throw error;
+    }
+  }, []);
 
   /** Rensar en eventuell tidigare session så att inloggning alltid byter konto. */
   const resetBeforeAuth = React.useCallback(async () => {
