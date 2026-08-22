@@ -12,8 +12,10 @@ on:
       - package.json
       - .github/workflows/lockfile-refresh.yml
 
+# Temporary diagnostic only. The workflow may create one unattached Git blob so
+# the connector can retrieve Bun's exact bytes; it never updates a tree or ref.
 permissions:
-  contents: read
+  contents: write
 
 defaults:
   run:
@@ -50,10 +52,36 @@ jobs:
           test "$(git hash-object bun.lock.canonical)" = "$(git rev-parse :bun.lock)"
           echo "LOCKFILE_BLOB_SHA=$(git rev-parse :bun.lock)"
 
-      - name: Upload canonical lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: canonical-bun-lock
-          path: bun.lock.canonical
-          if-no-files-found: error
-          retention-days: 1
+      - name: Store canonical lockfile as unattached Git blob
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'JS'
+          const fs = require('fs');
+          const cp = require('child_process');
+
+          (async () => {
+            const data = fs.readFileSync('bun.lock.canonical');
+            const expectedSha = cp.execSync('git hash-object bun.lock.canonical', { encoding: 'utf8' }).trim();
+            const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/git/blobs`, {
+              method: 'POST',
+              headers: {
+                Accept: 'application/vnd.github+json',
+                Authorization: `Bearer ${process.env.GH_TOKEN}`,
+                'X-GitHub-Api-Version': '2022-11-28',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ content: data.toString('base64'), encoding: 'base64' }),
+            });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`GitHub blob upload failed: ${response.status} ${body}`);
+            const result = JSON.parse(body);
+            if (result.sha !== expectedSha) {
+              throw new Error(`Git blob mismatch: ${result.sha} != ${expectedSha}`);
+            }
+            console.log(`REMOTE_LOCKFILE_BLOB_SHA=${result.sha}`);
+          })().catch((error) => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          JS
