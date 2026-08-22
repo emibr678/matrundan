@@ -9,20 +9,48 @@ const expectedWorkerEntryPath = resolve(root, ".output/server/index.mjs");
 const expectedPublicDir = resolve(root, ".output/public");
 
 function fail(message) {
-  throw new Error(`Cloudflare staging-artifact ogiltigt: ${message}`);
+  throw new Error(`Cloudflare-artifact ogiltigt: ${message}`);
 }
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
 }
 
-function assertStagingOnlyConfig(config, label) {
-  if (config.name !== "matrundan-staging") {
-    fail(`${label} måste använda Worker-namnet matrundan-staging.`);
+function assertNoInlineRuntimeConfig(config, label) {
+  for (const forbiddenKey of ["route", "routes", "triggers", "vars"]) {
+    if (forbiddenKey in config) {
+      fail(`${label} får inte innehålla ${forbiddenKey} i den isolerade migrationsfasen.`);
+    }
+  }
+}
+
+function assertEnvironment(config, environmentName, expectedWorkerName, expectedPreviewUrls, label) {
+  const environment = config.env?.[environmentName];
+  if (!environment || typeof environment !== "object") {
+    fail(`${label} saknar Wrangler-miljön ${environmentName}.`);
+  }
+  if (environment.name !== expectedWorkerName) {
+    fail(`${label} måste låta ${environmentName} använda Worker-namnet ${expectedWorkerName}.`);
+  }
+  if (environment.workers_dev !== true) {
+    fail(`${label} måste låta ${environmentName} använda workers.dev.`);
+  }
+  if (environment.preview_urls !== expectedPreviewUrls) {
+    fail(
+      `${label} måste ha preview_urls=${String(expectedPreviewUrls)} för ${environmentName}.`,
+    );
+  }
+  assertNoInlineRuntimeConfig(environment, `${label} (${environmentName})`);
+}
+
+function assertMatrundanCloudflareConfig(config, label) {
+  // Defaulten är medvetet staging så ett glömt --env aldrig kan publicera prod.
+  if (config.name !== "staging") {
+    fail(`${label} måste använda staging som säker default-Worker.`);
   }
 
   if (config.workers_dev !== true || config.preview_urls !== true) {
-    fail(`${label} måste vara begränsad till workers.dev med preview-URL:er aktiverade.`);
+    fail(`${label} måste ha workers.dev och preview-URL:er aktiverade för staging-defaulten.`);
   }
 
   if (config.keep_vars !== true) {
@@ -36,15 +64,13 @@ function assertStagingOnlyConfig(config, label) {
     fail(`${label} måste behålla nodejs_compat för nuvarande runtime.`);
   }
 
-  for (const forbiddenKey of ["route", "routes", "triggers", "vars"]) {
-    if (forbiddenKey in config) {
-      fail(`${label} får inte innehålla ${forbiddenKey} i den isolerade stagingfasen.`);
-    }
-  }
+  assertNoInlineRuntimeConfig(config, label);
+  assertEnvironment(config, "staging", "staging", true, label);
+  assertEnvironment(config, "prod", "app", false, label);
 }
 
 const sourceConfig = await readJson(sourceConfigPath);
-assertStagingOnlyConfig(sourceConfig, "wrangler.json");
+assertMatrundanCloudflareConfig(sourceConfig, "wrangler.json");
 
 const redirect = await readJson(redirectPath);
 if (typeof redirect.configPath !== "string" || !redirect.configPath.trim()) {
@@ -59,7 +85,7 @@ if (generatedConfigPath !== expectedGeneratedConfigPath) {
 }
 
 const generatedConfig = await readJson(generatedConfigPath);
-assertStagingOnlyConfig(generatedConfig, "genererad Wrangler-konfiguration");
+assertMatrundanCloudflareConfig(generatedConfig, "genererad Wrangler-konfiguration");
 
 if (typeof generatedConfig.main !== "string") {
   fail("den genererade konfigurationen saknar Worker-entrypoint.");
@@ -81,5 +107,5 @@ await access(resolve(publicDir, "manifest.webmanifest"));
 await access(resolve(publicDir, "push-sw.js"));
 
 console.log(
-  "Cloudflare staging-artifact godkänt: matrundan-staging, Worker-entrypoint, statiska assets och deploy-redirect är isolerade och reproducerbara.",
+  "Cloudflare-artifact godkänt: staging/prod-kontrakt, Worker-entrypoint, statiska assets och deploy-redirect är isolerade och reproducerbara.",
 );

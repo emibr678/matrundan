@@ -146,6 +146,12 @@ Global skrivande formattering är avsiktligt explicit:
 bun run format:all
 ```
 
+Cloudflare-artefakten byggs och valideras med:
+
+```bash
+bun run cloudflare:build
+```
+
 ## Serverfunktioner och CSRF
 
 Projektets egen `src/start.ts` ska behålla TanStack Starts CSRF-middleware för alla serverfunktioner. Bearer-token, medlemskap och rollkontroller är separata behörighetsskydd och ersätter inte origin-skyddet.
@@ -181,6 +187,51 @@ bun run verify:agent
 Det gör att en serie draft-pushar inte förbrukar GitHub-hostade minuter. När PR:n markeras redo, när en redan redo PR uppdateras, när `main` uppdateras eller vid manuell workflow-körning körs full CI. För UI ingår hela mobil Chromium-sviten; kartrelaterade ändringar kör även WebKit/iPhone och desktop Chromium.
 
 På GitHub-hostade Linux-runners installerar Playwright både browser och systemberoenden i jobbet. På en self-hosted Windows-runner behövs inga separata Playwright-systempaket; workflowen installerar de browserbinärer som matchar den låsta Playwright-versionen. Workflowens `run`-steg använder Bash på båda plattformarna, så Git for Windows Bash måste finnas i PATH för runnerprocessen.
+
+## Cloudflare Workers-miljöer
+
+Den låsta miljömodellen är:
+
+- Wrangler-miljö `staging` → Worker `staging` → `staging.matrundan.workers.dev`;
+- Wrangler-miljö `prod` → Worker `app` → `app.matrundan.workers.dev`;
+- Supabase **Matrundan Staging** används av staging och PR-previews;
+- production-Supabase kopplas endast till `prod` när det separata produktionsmålet
+  etableras.
+
+Repoets `wrangler.json` har medvetet Worker `staging` som säker top-level-default.
+Det gör att ett oavsiktligt `wrangler deploy` utan `--env` inte kan rikta sig mot
+Worker `app`. Normala Cloudflare Builds-kommandon ska ändå vara explicita:
+
+```bash
+npx wrangler deploy --env staging
+npx wrangler versions upload --env staging
+```
+
+För `prod` används motsvarande kommando endast efter separat
+publiceringsgodkännande:
+
+```bash
+npx wrangler deploy --env prod
+```
+
+Cloudflare Worker `staging` ska ha GitHub-repot anslutet med:
+
+- production branch: `main` när bootstrap-PR:n har mergats;
+- builds for non-production branches: på;
+- build command: `bun run cloudflare:build`;
+- deploy command: `npx wrangler deploy --env staging`;
+- non-production branch deploy command: `npx wrangler versions upload --env staging`.
+
+En feature-/PR-branch laddas då upp som en preview-version av staging-Workern utan
+att ersätta dess aktiva deployment. En push till `main` uppdaterar den aktiva
+stagingdeploymenten. Worker `app` får inte konfigureras så att merge till `main`
+automatiskt promoverar produktion; exakt prod-promotion bestäms och verifieras
+innan cutover.
+
+Build-time `VITE_*`-värden för staging hör till Cloudflare Builds. Server-only
+värden som `GEOAPIFY_API_KEY`, Supabase secret/service-role och VAPID private key
+hör till Worker-runtime secrets och får aldrig checkas in eller göras till
+`VITE_*`.
 
 ### Runner-val och fallback när hosted-minuter saknas
 

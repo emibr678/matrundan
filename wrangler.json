@@ -1,8 +1,20 @@
 {
-  "name": "matrundan-staging",
+  "name": "staging",
   "compatibility_date": "2026-08-16",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": true,
-  "keep_vars": true
+  "keep_vars": true,
+  "env": {
+    "staging": {
+      "name": "staging",
+      "workers_dev": true,
+      "preview_urls": true
+    },
+    "prod": {
+      "name": "app",
+      "workers_dev": true,
+      "preview_urls": false
+    }
+  }
 }
