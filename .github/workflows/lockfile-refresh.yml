@@ -1,0 +1,51 @@
+name: Temporary lockfile refresh
+
+on:
+  push:
+    branches:
+      - agent/issue-207-cloudflare-staging-bootstrap
+    paths:
+      - package.json
+      - .github/workflows/lockfile-refresh.yml
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  refresh:
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Refresh Bun lockfile only
+        run: bun install --lockfile-only
+
+      - name: Verify manifest unchanged
+        run: git diff --exit-code -- package.json
+
+      - name: Verify regenerated lockfile is frozen-installable
+        run: bun install --frozen-lockfile
+
+      - name: Show lockfile diff summary
+        run: git diff --stat -- bun.lock
+
+      - name: Upload regenerated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-bun-lock
+          path: bun.lock
+          if-no-files-found: error
+          retention-days: 1
