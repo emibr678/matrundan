@@ -27,8 +27,6 @@ type RpcResponse = {
 
 type RpcCall = (fn: string, args?: Record<string, unknown>) => Promise<RpcResponse>;
 
-const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
-
 interface SessionState {
   loading: boolean;
   user: User | null;
@@ -134,6 +132,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
     const { data, error } = await rpc("list_user_groups_v4b");
     if (error) {
       console.error("[Matrundan] kunde inte läsa medlemskap:", error);
