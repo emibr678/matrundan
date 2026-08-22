@@ -17,8 +17,9 @@ dist-ssr
 *.local
 
 # Local environment and secrets
-# `.env` is intentionally tracked because Lovable Cloud uses it for public-safe
-# browser/runtime configuration. Keep real secrets out of it.
+# Deployment/browser configuration is supplied per environment. Keep only the
+# documented template in Git; local values belong in ignored env files.
+.env
 .env.*
 !.env.example
 .dev.vars
