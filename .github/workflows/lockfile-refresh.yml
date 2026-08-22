@@ -43,5 +43,9 @@ jobs:
       - name: Verify regenerated lockfile is frozen-installable
         run: bun install --frozen-lockfile
 
-      - name: Print exact lockfile diff
-        run: git --no-pager diff --no-color -- bun.lock
+      - name: Print regenerated lockfile as base64
+        run: |
+          echo LOCKFILE_BASE64_BEGIN
+          base64 -w0 bun.lock
+          echo
+          echo LOCKFILE_BASE64_END
