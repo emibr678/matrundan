@@ -21,7 +21,9 @@ describe("portabel Google-auth", () => {
   });
 
   test("bevarar aktuell origin och pending invite genom OAuth-redirecten", () => {
-    expect(sessionSource).toContain("if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath)");
+    expect(sessionSource).toContain(
+      "if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath)",
+    );
     expect(sessionSource).toContain("redirect_uri: origin");
   });
 });
