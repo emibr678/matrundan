@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/issue-207-cloudflare-staging-bootstrap
+  pull_request:
+    branches:
+      - main
 
 jobs:
   prettier:
