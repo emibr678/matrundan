@@ -36,11 +36,18 @@ jobs:
       - name: Set up pinned Bun
         uses: ./.github/actions/setup-bun
 
-      - name: Refresh Bun lockfile only
-        run: bun install --lockfile-only >/dev/null
+      - name: Regenerate Bun lockfile from a clean state
+        run: |
+          rm -f bun.lock
+          bun install --lockfile-only >/dev/null
 
-      - name: Verify manifest unchanged
-        run: git diff --exit-code -- package.json
+      - name: Verify manifest and portability
+        run: |
+          git diff --exit-code -- package.json
+          if grep -E -q '@lovable\.dev|lovable-core-prod|sandbox-npm-cache' bun.lock; then
+            echo 'Lockfile still contains Lovable-specific package references.' >&2
+            exit 1
+          fi
 
       - name: Verify regenerated lockfile is frozen-installable
         run: bun install --frozen-lockfile >/dev/null
