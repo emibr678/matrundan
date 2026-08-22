@@ -24,29 +24,21 @@ function assertNoInlineRuntimeConfig(config, label) {
   }
 }
 
-function assertEnvironment(
-  config,
-  environmentName,
-  expectedWorkerName,
-  expectedPreviewUrls,
-  label,
-) {
-  const environment = config.env?.[environmentName];
+function assertEnvironment(config, envName, workerName, previewUrls, label) {
+  const environment = config.env?.[envName];
   if (!environment || typeof environment !== "object") {
-    fail(`${label} saknar Wrangler-miljön ${environmentName}.`);
+    fail(`${label} saknar Wrangler-miljön ${envName}.`);
   }
-  if (environment.name !== expectedWorkerName) {
-    fail(`${label} måste låta ${environmentName} använda Worker-namnet ${expectedWorkerName}.`);
+  if (environment.name !== workerName) {
+    fail(`${label} måste låta ${envName} använda Worker-namnet ${workerName}.`);
   }
   if (environment.workers_dev !== true) {
-    fail(`${label} måste låta ${environmentName} använda workers.dev.`);
+    fail(`${label} måste låta ${envName} använda workers.dev.`);
   }
-  if (environment.preview_urls !== expectedPreviewUrls) {
-    fail(
-      `${label} måste ha preview_urls=${String(expectedPreviewUrls)} för ${environmentName}.`,
-    );
+  if (environment.preview_urls !== previewUrls) {
+    fail(`${label} måste ha preview_urls=${String(previewUrls)} för ${envName}.`);
   }
-  assertNoInlineRuntimeConfig(environment, `${label} (${environmentName})`);
+  assertNoInlineRuntimeConfig(environment, `${label} (${envName})`);
 }
 
 function assertMatrundanCloudflareConfig(config, label) {
