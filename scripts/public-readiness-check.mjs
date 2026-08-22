@@ -32,7 +32,9 @@ const secretFilePatterns = [
 
 const currentTracked = trackedFiles();
 if (currentTracked.includes(".env")) {
-  fail(".env ska inte vara versionshanterad; använd .env.local eller deploymentens miljökonfiguration");
+  fail(
+    ".env ska inte vara versionshanterad; använd .env.local eller deploymentens miljökonfiguration",
+  );
 }
 
 const unsafeTrackedPaths = currentTracked.filter((path) => {
