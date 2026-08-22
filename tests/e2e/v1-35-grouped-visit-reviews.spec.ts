@@ -36,9 +36,15 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await expect(
     reviewSection.getByText("3 av 4 deltagare i gruppen har lämnat omdöme"),
   ).toBeVisible();
-  await expect(reviewSection.getByText("Sam", { exact: true })).toBeVisible();
-  await expect(reviewSection.getByText("Kim", { exact: true })).toBeVisible();
-  await expect(reviewSection.getByText("Noor", { exact: true })).toBeVisible();
+  await expect(
+    reviewSection.locator('[data-review-id="review-v2-sam"]').getByText("Sam", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    reviewSection.locator('[data-review-id="review-v2-kim"]').getByText("Kim", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    reviewSection.locator('[data-review-id="review-v2-noor"]').getByText("Noor", { exact: true }),
+  ).toBeVisible();
   await expect(
     reviewSection.getByText("Den här dolda kommentaren får inte visas i exempelgruppen."),
   ).toHaveCount(0);

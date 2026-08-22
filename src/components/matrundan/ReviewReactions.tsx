@@ -1,5 +1,4 @@
 import * as React from "react";
-import { ChevronDown, Heart } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import type { Visit } from "@/lib/matrundan/types";
 
 interface ReactionContextValue {
   byReview: ReadonlyMap<string, ReviewReactionState>;
+  currentUserId: string;
   writable: boolean;
   loading: boolean;
   savingReviewId: string | null;
@@ -107,8 +107,15 @@ export function VisitReviewReactionsProvider({
   );
 
   const contextValue = React.useMemo<ReactionContextValue>(
-    () => ({ byReview, writable, loading, savingReviewId, saveReaction }),
-    [byReview, loading, saveReaction, savingReviewId, writable],
+    () => ({
+      byReview,
+      currentUserId: state.currentUserId,
+      writable,
+      loading,
+      savingReviewId,
+      saveReaction,
+    }),
+    [byReview, loading, saveReaction, savingReviewId, state.currentUserId, writable],
   );
 
   return (
@@ -129,9 +136,13 @@ export function VisitReviewReactionsProvider({
 export function ReviewReactionBar({
   reviewId,
   authorName,
+  emphasized = false,
+  trailingAction,
 }: {
   reviewId: string;
   authorName: string;
+  emphasized?: boolean;
+  trailingAction?: React.ReactNode;
 }) {
   const context = React.useContext(ReactionContext);
   if (!context) {
@@ -142,63 +153,56 @@ export function ReviewReactionBar({
   const buckets = (reactionState?.reactions ?? []).filter((bucket) => bucket.count > 0);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const saving = context.savingReviewId === reviewId;
-  const heartSelected = reactionState?.myReaction === "heart";
+  const reactionReady = !context.loading || Boolean(reactionState);
 
-  if (context.loading && !reactionState) return null;
-  if (buckets.length === 0 && !context.writable) return null;
+  if (!reactionReady) {
+    if (!trailingAction) return null;
+    return (
+      <div className="mt-2 flex justify-end" data-review-reactions={reviewId}>
+        {trailingAction}
+      </div>
+    );
+  }
+  if (buckets.length === 0 && !context.writable && !trailingAction) return null;
 
   return (
-    <div className="mt-1.5 min-w-0" data-review-reactions={reviewId}>
-      <div className="flex min-w-0 flex-wrap items-center gap-1">
-        {buckets.map((bucket) => (
-          <ReactionCountChip
-            key={bucket.reaction}
-            bucket={bucket}
-            selected={reactionState?.myReaction === bucket.reaction}
-          />
-        ))}
+    <div className="mt-2 min-w-0" data-review-reactions={reviewId}>
+      <div
+        className="flex min-w-0 items-start justify-between gap-2"
+        data-review-action-row={reviewId}
+      >
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          {buckets.map((bucket) => (
+            <ReactionCountChip
+              key={bucket.reaction}
+              bucket={bucket}
+              currentUserId={context.currentUserId}
+              selected={reactionState?.myReaction === bucket.reaction}
+              saving={saving}
+              onRemove={() => void context.saveReaction(reviewId, null)}
+            />
+          ))}
 
-        {context.writable ? (
-          <div className="ml-0.5 inline-flex items-center" data-like-action>
+          {context.writable ? (
             <button
               type="button"
-              className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
-                heartSelected
-                  ? "text-primary hover:bg-primary/10"
-                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+              className={`inline-flex min-h-10 items-center rounded-full border px-3 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+                pickerOpen || emphasized
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border/70 bg-secondary/35 text-foreground hover:bg-secondary/60"
               }`}
               disabled={saving}
-              aria-label={`${heartSelected ? "Ta bort gilla-markering från" : "Gilla"} ${authorName}s omdöme`}
-              aria-pressed={heartSelected}
-              onClick={() => {
-                setPickerOpen(false);
-                void context.saveReaction(reviewId, heartSelected ? null : "heart");
-              }}
-            >
-              <Heart
-                className="h-4 w-4"
-                fill={heartSelected ? "currentColor" : "none"}
-                aria-hidden="true"
-              />
-              <span>Gilla</span>
-            </button>
-            <button
-              type="button"
-              className={`grid min-h-10 min-w-8 place-items-center rounded-lg px-1 text-muted-foreground outline-none transition-colors hover:bg-secondary/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring ${
-                pickerOpen ? "bg-secondary/60 text-foreground" : ""
-              }`}
-              disabled={saving}
-              aria-label={`Fler reaktioner på ${authorName}s omdöme`}
+              aria-label={`Reagera på ${authorName}s omdöme`}
               aria-expanded={pickerOpen}
+              data-emphasized={emphasized ? "true" : undefined}
               onClick={() => setPickerOpen((open) => !open)}
             >
-              <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform ${pickerOpen ? "rotate-180" : ""}`}
-                aria-hidden="true"
-              />
+              Reagera
             </button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
+
+        {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
       </div>
 
       {context.writable && pickerOpen ? (
@@ -239,20 +243,29 @@ export function ReviewReactionBar({
 
 function ReactionCountChip({
   bucket,
+  currentUserId,
   selected,
+  saving,
+  onRemove,
 }: {
   bucket: ReviewReactionBucket;
+  currentUserId: string;
   selected: boolean;
+  saving: boolean;
+  onRemove: () => void;
 }) {
   const option = REVIEW_REACTION_OPTIONS.find((item) => item.key === bucket.reaction);
-  if (!option || bucket.count <= 0) return null;
+  const firstReactor = bucket.reactors[0];
+  if (!option || bucket.count <= 0 || !firstReactor) return null;
+
+  const additionalCount = Math.max(0, bucket.count - 1);
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`inline-flex min-h-10 items-center gap-1 rounded-full border px-2.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+          className={`inline-flex min-h-10 min-w-0 max-w-full items-center gap-1 rounded-full border px-2.5 text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
             selected
               ? "border-primary/30 bg-primary/10 text-primary"
               : "border-border/70 bg-secondary/40 text-foreground hover:bg-secondary"
@@ -261,10 +274,11 @@ function ReactionCountChip({
             bucket.count === 1 ? "reaktion" : "reaktioner"
           }. Visa vilka som reagerat.`}
         >
-          <span className="text-sm" aria-hidden="true">
+          <span className="shrink-0 text-sm" aria-hidden="true">
             {option.emoji}
           </span>
-          <span>{bucket.count}</span>
+          <span className="min-w-0 truncate">{firstReactor.name}</span>
+          {additionalCount > 0 ? <span className="shrink-0">+{additionalCount}</span> : null}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 max-w-[calc(100vw-2rem)] rounded-2xl p-3">
@@ -272,30 +286,53 @@ function ReactionCountChip({
           {option.emoji} {option.label}
         </div>
         <div className="mt-2 space-y-2">
-          {bucket.reactors.map((person) => (
-            <div key={person.userId} className="flex min-w-0 items-center gap-2">
-              {person.avatarImage ? (
-                <img
-                  src={person.avatarImage}
-                  alt=""
-                  className="h-7 w-7 rounded-full object-cover"
-                />
-              ) : (
-                <span
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-sm"
-                  aria-hidden="true"
-                >
-                  {person.avatar ?? "🙂"}
-                </span>
-              )}
-              <div className="min-w-0 text-xs">
-                <div className="truncate font-medium">{person.name}</div>
-                {person.status === "left" ? (
-                  <div className="text-[11px] text-muted-foreground">Tidigare medlem</div>
+          {bucket.reactors.map((person) => {
+            const ownReaction = selected && person.userId === currentUserId;
+            return (
+              <div key={person.userId} className="flex min-w-0 items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  {person.avatarImage ? (
+                    <img
+                      src={person.avatarImage}
+                      alt=""
+                      className="h-7 w-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-sm"
+                      aria-hidden="true"
+                    >
+                      {person.avatar ?? "🙂"}
+                    </span>
+                  )}
+                  <div className="min-w-0 text-xs">
+                    <div className="truncate font-medium">
+                      {person.name}
+                      {ownReaction ? (
+                        <span className="font-normal text-muted-foreground"> (Du)</span>
+                      ) : null}
+                    </div>
+                    {person.status === "left" ? (
+                      <div className="text-[11px] text-muted-foreground">Tidigare medlem</div>
+                    ) : null}
+                  </div>
+                </div>
+                {ownReaction ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-9 shrink-0 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    disabled={saving}
+                    aria-label={`Ta bort din ${option.label.toLowerCase()}-reaktion`}
+                    onClick={onRemove}
+                  >
+                    Ta bort
+                  </Button>
                 ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>

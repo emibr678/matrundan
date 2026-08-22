@@ -1,13 +1,10 @@
 import * as React from "react";
-import { ChevronDown, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -21,7 +18,7 @@ import { RatingStars } from "./Rating";
 import { ReviewReactionBar, VisitReviewReactionsProvider } from "./ReviewReactions";
 
 const INITIAL_VISIBLE_REVIEWS = 4;
-const FOCUS_HIGHLIGHT_MS = 1800;
+const FOCUS_HIGHLIGHT_MS = 7000;
 
 export function VisitReviewsSection({
   visit,
@@ -107,6 +104,15 @@ export function VisitReviewsSection({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [focusReviewId, focusedReviewIndex, showAll, visit.id]);
+
+  function clearReviewHighlight(reviewId: string) {
+    if (highlightedReviewId !== reviewId) return;
+    if (focusHighlightTimeoutRef.current != null) {
+      window.clearTimeout(focusHighlightTimeoutRef.current);
+      focusHighlightTimeoutRef.current = null;
+    }
+    setHighlightedReviewId(null);
+  }
 
   async function toggleOwnCommentVisibility(review: VisibleReview, next: boolean) {
     if (!activeGroupId || groupArchived) return;
@@ -210,6 +216,7 @@ export function VisitReviewsSection({
                     groupArchived={groupArchived}
                     demoReadOnly={demoReadOnly}
                     savingVisibility={savingVisibility}
+                    onInteract={() => clearReviewHighlight(review.id)}
                     onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
                   />
                 );
@@ -312,6 +319,7 @@ function ReviewRow({
   groupArchived,
   demoReadOnly,
   savingVisibility,
+  onInteract,
   onToggleVisibility,
 }: {
   review: VisibleReview;
@@ -326,17 +334,21 @@ function ReviewRow({
   groupArchived: boolean;
   demoReadOnly: boolean;
   savingVisibility: boolean;
+  onInteract: () => void;
   onToggleVisibility: (next: boolean) => void;
 }) {
-  const [expanded, setExpanded] = React.useState(false);
+  const [commentExpanded, setCommentExpanded] = React.useState(false);
   const comment = review.comment?.trim();
   const showComment = Boolean(comment && (own || review.commentVisible));
   const reactableComment = Boolean(comment && review.commentVisible);
   const hasDetails = review.taste != null || review.value != null || review.service != null;
   const longComment = Boolean(showComment && (comment?.length ?? 0) > 110);
-  const expandable = hasDetails || longComment;
   const canEditOwn = own && !groupArchived && !demoReadOnly;
   const canToggleComment = canEditOwn && live && Boolean(comment);
+  const showFullComment = commentExpanded || focused;
+  const editAction = canEditOwn ? (
+    <EditReviewDialog review={review} placeName={placeName} compact />
+  ) : null;
 
   return (
     <div
@@ -346,98 +358,93 @@ function ReviewRow({
       className={`scroll-mt-16 p-3 transition-[background-color,box-shadow] duration-700 ${
         highlighted ? "bg-primary/[0.08] ring-1 ring-inset ring-primary/20" : ""
       }`}
+      onClickCapture={highlighted ? onInteract : undefined}
+      onKeyDownCapture={
+        highlighted
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") onInteract();
+            }
+          : undefined
+      }
     >
-      <Collapsible open={expanded} onOpenChange={setExpanded}>
-        <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
-          <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
-          <div className="min-w-0">
-            <div className="flex min-w-0 flex-wrap items-center gap-1">
-              <p className="max-w-full truncate text-sm font-medium">{name}</p>
-              {own ? (
-                <Badge
-                  variant="outline"
-                  className="shrink-0 rounded-full px-1.5 py-0 text-[10px] text-primary"
-                >
-                  Du
-                </Badge>
-              ) : null}
-              {canEditOwn ? (
-                <EditReviewDialog review={review} placeName={placeName} compact />
-              ) : null}
-            </div>
-            {showComment ? (
-              <p
-                className={`mt-1 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] ${
-                  expanded || focused ? "" : "line-clamp-2"
-                }`}
+      <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
+        <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            <p className="max-w-full truncate text-sm font-medium">{name}</p>
+            {own ? (
+              <Badge
+                variant="outline"
+                className="shrink-0 rounded-full px-1.5 py-0 text-[10px] text-primary"
               >
-                {comment}
-              </p>
-            ) : null}
-            {own && comment && !review.commentVisible ? (
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Kommentaren är dold i gruppen.
-              </p>
+                Du
+              </Badge>
             ) : null}
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <RatingStars value={review.overall} size={13} />
-            <span className="text-xs font-medium">{formatRating(review.overall)} / 5</span>
-            <span className="sr-only">
-              {name} gav {formatRating(review.overall)} av 5
-            </span>
-          </div>
+          {showComment ? (
+            <p
+              className={`mt-1 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] ${
+                showFullComment ? "" : "line-clamp-3"
+              }`}
+            >
+              {comment}
+            </p>
+          ) : null}
+          {own && comment && !review.commentVisible ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
+          ) : null}
         </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <RatingStars value={review.overall} size={13} />
+          <span className="text-xs font-medium">{formatRating(review.overall)} / 5</span>
+          <span className="sr-only">
+            {name} gav {formatRating(review.overall)} av 5
+          </span>
+        </div>
+      </div>
 
-        {reactableComment ? <ReviewReactionBar reviewId={review.id} authorName={name} /> : null}
+      {longComment && !focused ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className="mt-0.5 min-h-10 w-auto px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+          aria-expanded={commentExpanded}
+          onClick={() => setCommentExpanded((expanded) => !expanded)}
+        >
+          {commentExpanded ? "Visa mindre" : "Visa mer"}
+        </Button>
+      ) : null}
 
-        {expandable ? (
-          <>
-            <CollapsibleTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                className="mt-0.5 min-h-11 w-auto gap-1 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-                aria-label={`${expanded ? "Dölj" : "Visa"} detaljer för ${name}`}
-              >
-                <span>{expanded ? "Dölj" : "Detaljer"}</span>
-                <ChevronDown
-                  className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
-                />
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              {hasDetails ? (
-                <div className="mt-1 grid grid-cols-3 gap-2 rounded-xl bg-secondary/40 p-2 text-center">
-                  <ReviewDetail label="Smak" value={review.taste} />
-                  <ReviewDetail label="Prisvärt" value={review.value} />
-                  <ReviewDetail label="Service" value={review.service} />
-                </div>
-              ) : null}
-            </CollapsibleContent>
-          </>
-        ) : null}
-      </Collapsible>
+      {hasDetails ? (
+        <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl bg-secondary/35 p-2 text-center">
+          <ReviewDetail label="Smak" value={review.taste} />
+          <ReviewDetail label="Prisvärt" value={review.value} />
+          <ReviewDetail label="Service" value={review.service} />
+        </div>
+      ) : null}
+
+      {reactableComment ? (
+        <ReviewReactionBar reviewId={review.id} authorName={name} trailingAction={editAction} />
+      ) : editAction ? (
+        <div className="mt-2 flex justify-end">{editAction}</div>
+      ) : null}
 
       {canToggleComment ? (
-        <div className="mt-1 border-t border-border/50 pt-2">
-          <div className="flex min-h-11 flex-wrap items-center justify-between gap-2">
-            <Label
-              htmlFor={`review-comment-visible-${review.id}`}
-              className="text-xs text-muted-foreground"
-            >
-              Visa kommentar
-            </Label>
-            <Switch
-              id={`review-comment-visible-${review.id}`}
-              checked={review.commentVisible}
-              disabled={savingVisibility}
-              onCheckedChange={onToggleVisibility}
-            />
-          </div>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
-            Betyget visas alltid i gruppen. Du kan dölja kommentaren utan att ta bort omdömet.
-          </p>
+        <div className="mt-1 flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-10 w-auto px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+            disabled={savingVisibility}
+            aria-label={`${review.commentVisible ? "Dölj" : "Visa"} din kommentar i gruppen`}
+            onClick={() => onToggleVisibility(!review.commentVisible)}
+          >
+            {savingVisibility
+              ? "Sparar…"
+              : review.commentVisible
+                ? "Dölj kommentar"
+                : "Visa kommentar"}
+          </Button>
         </div>
       ) : null}
     </div>

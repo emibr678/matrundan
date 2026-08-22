@@ -77,15 +77,14 @@ export function EditReviewDialog({
         <Button
           variant={compact ? "ghost" : "secondary"}
           aria-label={compact ? "Redigera omdöme" : undefined}
-          title={compact ? "Redigera omdöme" : undefined}
           className={
             compact
-              ? "-my-2 h-11 w-11 shrink-0 rounded-full p-0 text-muted-foreground hover:bg-secondary/60 hover:text-primary"
+              ? "min-h-10 w-auto gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
               : "w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
           }
         >
-          <Pencil className="h-4 w-4" />
-          {compact ? <span className="sr-only">Redigera omdöme</span> : "Redigera omdöme"}
+          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+          {compact ? "Redigera" : "Redigera omdöme"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
