@@ -7,6 +7,15 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  nitro: {
+    preset: "cloudflare-module",
+    cloudflare: {
+      // Wrangler environments live in the checked-in source config. Nitro's generated
+      // redirected deploy config cannot legally contain environments.
+      deployConfig: false,
+      nodeCompat: true,
+    },
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

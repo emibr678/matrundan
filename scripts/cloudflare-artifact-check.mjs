@@ -1,10 +1,10 @@
 import { access, readFile } from "node:fs/promises";
-import { dirname, relative, resolve } from "node:path";
+import { relative, resolve } from "node:path";
 
 const root = process.cwd();
 const sourceConfigPath = resolve(root, "wrangler.json");
 const redirectPath = resolve(root, ".wrangler/deploy/config.json");
-const expectedGeneratedConfigPath = resolve(root, ".output/server/wrangler.json");
+const generatedConfigPath = resolve(root, ".output/server/wrangler.json");
 const expectedWorkerEntryPath = resolve(root, ".output/server/index.mjs");
 const expectedPublicDir = resolve(root, ".output/public");
 
@@ -14,6 +14,18 @@ function fail(message) {
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
+}
+
+async function assertMissing(path, label) {
+  try {
+    await access(path);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+  fail(`${label} får inte finnas när wrangler.json är deploy-source of truth.`);
 }
 
 function assertNoInlineRuntimeConfig(config, label) {
@@ -55,11 +67,43 @@ function assertMatrundanCloudflareConfig(config, label) {
     fail(`${label} måste behålla runtime-variabler som hanteras utanför repot.`);
   }
 
+  if (config.no_bundle !== true) {
+    fail(`${label} måste deploya den redan byggda Nitro-artefakten med no_bundle=true.`);
+  }
+
+  if (typeof config.main !== "string") {
+    fail(`${label} saknar Worker-entrypoint.`);
+  }
+  const workerEntryPath = resolve(root, config.main);
+  if (workerEntryPath !== expectedWorkerEntryPath) {
+    fail(`Worker-entrypoint är oväntad: ${relative(root, workerEntryPath)}.`);
+  }
+
+  if (!config.assets || typeof config.assets.directory !== "string") {
+    fail(`${label} saknar katalog för statiska assets.`);
+  }
+  const publicDir = resolve(root, config.assets.directory);
+  if (publicDir !== expectedPublicDir) {
+    fail(`asset-katalogen är oväntad: ${relative(root, publicDir)}.`);
+  }
+
+  const esModuleRule = Array.isArray(config.rules)
+    ? config.rules.find((rule) => rule?.type === "ESModule")
+    : undefined;
+  const globs = Array.isArray(esModuleRule?.globs) ? esModuleRule.globs : [];
+  if (!globs.includes("**/*.mjs") || !globs.includes("**/*.js")) {
+    fail(`${label} måste inkludera Nitros JS/MJS-moduler i no_bundle-deploymenten.`);
+  }
+
   const compatibilityFlags = Array.isArray(config.compatibility_flags)
     ? config.compatibility_flags
     : [];
-  if (!compatibilityFlags.includes("nodejs_compat")) {
-    fail(`${label} måste behålla nodejs_compat för nuvarande runtime.`);
+  if (
+    typeof config.compatibility_date === "string" &&
+    config.compatibility_date >= "2026-08-04" &&
+    compatibilityFlags.includes("nodejs_compat")
+  ) {
+    fail(`${label} får inte ange nodejs_compat explicit från compatibility date 2026-08-04.`);
   }
 
   assertNoInlineRuntimeConfig(config, label);
@@ -70,40 +114,15 @@ function assertMatrundanCloudflareConfig(config, label) {
 const sourceConfig = await readJson(sourceConfigPath);
 assertMatrundanCloudflareConfig(sourceConfig, "wrangler.json");
 
-const redirect = await readJson(redirectPath);
-if (typeof redirect.configPath !== "string" || !redirect.configPath.trim()) {
-  fail("Nitro skapade ingen giltig Wrangler-redirect.");
-}
+// Nitro får bygga Worker-koden men inte skriva en redirected deploy-konfiguration;
+// Wrangler environments ska lösas från repoets egna wrangler.json vid deploy.
+await assertMissing(redirectPath, ".wrangler/deploy/config.json");
+await assertMissing(generatedConfigPath, ".output/server/wrangler.json");
 
-const generatedConfigPath = resolve(dirname(redirectPath), redirect.configPath);
-if (generatedConfigPath !== expectedGeneratedConfigPath) {
-  fail(
-    `Wrangler-redirecten pekar på ${relative(root, generatedConfigPath)} i stället för .output/server/wrangler.json.`,
-  );
-}
-
-const generatedConfig = await readJson(generatedConfigPath);
-assertMatrundanCloudflareConfig(generatedConfig, "genererad Wrangler-konfiguration");
-
-if (typeof generatedConfig.main !== "string") {
-  fail("den genererade konfigurationen saknar Worker-entrypoint.");
-}
-const workerEntryPath = resolve(dirname(generatedConfigPath), generatedConfig.main);
-if (workerEntryPath !== expectedWorkerEntryPath) {
-  fail(`Worker-entrypoint är oväntad: ${relative(root, workerEntryPath)}.`);
-}
-await access(workerEntryPath);
-
-if (!generatedConfig.assets || typeof generatedConfig.assets.directory !== "string") {
-  fail("den genererade konfigurationen saknar katalog för statiska assets.");
-}
-const publicDir = resolve(dirname(generatedConfigPath), generatedConfig.assets.directory);
-if (publicDir !== expectedPublicDir) {
-  fail(`asset-katalogen är oväntad: ${relative(root, publicDir)}.`);
-}
-await access(resolve(publicDir, "manifest.webmanifest"));
-await access(resolve(publicDir, "push-sw.js"));
+await access(expectedWorkerEntryPath);
+await access(resolve(expectedPublicDir, "manifest.webmanifest"));
+await access(resolve(expectedPublicDir, "push-sw.js"));
 
 console.log(
-  "Cloudflare-artifact godkänt: staging/prod-kontrakt, Worker-entrypoint, statiska assets och deploy-redirect är isolerade och reproducerbara.",
+  "Cloudflare-artifact godkänt: wrangler.json äger staging/prod, Nitro-artefakten finns och ingen redirected deploy-config kan kringgå miljökontraktet.",
 );
