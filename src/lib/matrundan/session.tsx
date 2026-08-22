@@ -7,7 +7,6 @@
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 
 export type AppMode = "landing" | "demo" | "live";
 export type GroupRole = "owner" | "admin" | "member";
@@ -209,12 +208,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const origin = typeof window !== "undefined" ? window.location.origin : undefined;
     clearExampleSession();
     if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: origin,
+      },
     });
-    if (result.error) {
-      console.error("[Matrundan] Google-inloggning misslyckades:", result.error);
-      throw result.error;
+    if (error) {
+      console.error("[Matrundan] Google-inloggning misslyckades:", error);
+      throw error;
     }
   }, []);
 

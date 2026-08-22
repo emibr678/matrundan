@@ -14,6 +14,14 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.2] – 2026-08-22
+
+### Förbättrat
+
+- Google-inloggningen går direkt via Supabase Auth och appens byggkedja använder
+  TanStack Start, Vite och Nitro utan Lovable-specifik auth- eller build-wrapper.
+  Det ändrar inte gruppdata eller hur appen används.
+
 ## [1.38.1] – 2026-08-20
 
 ### Förbättrat
