@@ -33,7 +33,18 @@
     "prod": {
       "name": "app",
       "workers_dev": true,
-      "preview_urls": false
+      "preview_urls": false,
+      "secrets": {
+        "required": ["GEOAPIFY_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "VAPID_PRIVATE_KEY"]
+      },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "invocation_logs": true
+        }
+      }
     }
   }
 }
