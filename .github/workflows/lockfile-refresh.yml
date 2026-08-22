@@ -1,9 +1,13 @@
 name: Temporary lockfile refresh
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/issue-207-cloudflare-staging-bootstrap
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
     paths:
       - package.json
       - .github/workflows/lockfile-refresh.yml
