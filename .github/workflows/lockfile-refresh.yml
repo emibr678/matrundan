@@ -50,25 +50,25 @@ jobs:
       - name: Pack exact lockfile for connector retrieval
         id: pack
         run: |
-          python - <<'PY'
-          import base64
-          import gzip
-          import hashlib
-          import os
-          from pathlib import Path
+          node <<'JS'
+          const fs = require('fs');
+          const zlib = require('zlib');
+          const crypto = require('crypto');
 
-          data = Path("bun.lock").read_bytes()
-          blob_sha = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
-          packed = base64.b64encode(gzip.compress(data, compresslevel=9, mtime=0)).decode()
+          const data = fs.readFileSync('bun.lock');
+          const header = Buffer.from(`blob ${data.length}\0`);
+          const blobSha = crypto.createHash('sha1').update(header).update(data).digest('hex');
+          const packed = zlib.gzipSync(data, { level: 9, mtime: 0 }).toString('base64');
 
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"lock_blob_sha={blob_sha}\n")
-              output.write(f"lock_gzip_base64_length={len(packed)}\n")
-              output.write(f"lock_gzip_base64={packed}\n")
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,
+            `lock_blob_sha=${blobSha}\n` +
+            `lock_gzip_base64_length=${packed.length}\n` +
+            `lock_gzip_base64=${packed}\n`
+          );
 
-          print(f"LOCKFILE_BLOB_SHA={blob_sha}")
-          print(f"LOCKFILE_PACKED_LENGTH={len(packed)}")
-          PY
+          console.log(`LOCKFILE_BLOB_SHA=${blobSha}`);
+          console.log(`LOCKFILE_PACKED_LENGTH=${packed.length}`);
+          JS
 
   chunks:
     needs: generate
@@ -85,16 +85,14 @@ jobs:
           LOCK_BLOB_SHA: ${{ needs.generate.outputs.lock_blob_sha }}
           CHUNK_INDEX: ${{ matrix.chunk }}
         run: |
-          python - <<'PY'
-          import os
-
-          chunk_size = 16000
-          index = int(os.environ["CHUNK_INDEX"])
-          packed = os.environ["LOCK_GZIP_BASE64"]
-          start = index * chunk_size
-          end = start + chunk_size
-          print(f"LOCKFILE_BLOB_SHA={os.environ['LOCK_BLOB_SHA']}")
-          print(f"LOCKFILE_PACKED_LENGTH={os.environ['LOCK_GZIP_BASE64_LENGTH']}")
-          print(f"LOCKFILE_CHUNK_INDEX={index}")
-          print(f"LOCKFILE_CHUNK={packed[start:end]}")
-          PY
+          node <<'JS'
+          const chunkSize = 16000;
+          const index = Number(process.env.CHUNK_INDEX);
+          const packed = process.env.LOCK_GZIP_BASE64;
+          const start = index * chunkSize;
+          const end = start + chunkSize;
+          console.log(`LOCKFILE_BLOB_SHA=${process.env.LOCK_BLOB_SHA}`);
+          console.log(`LOCKFILE_PACKED_LENGTH=${process.env.LOCK_GZIP_BASE64_LENGTH}`);
+          console.log(`LOCKFILE_CHUNK_INDEX=${index}`);
+          console.log(`LOCKFILE_CHUNK=${packed.slice(start, end)}`);
+          JS
