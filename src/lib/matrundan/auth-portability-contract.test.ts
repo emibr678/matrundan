@@ -6,7 +6,10 @@ const authAdapterSource = readFileSync(
   resolve(process.cwd(), "src/integrations/lovable/index.ts"),
   "utf8",
 );
-const sessionSource = readFileSync(resolve(process.cwd(), "src/lib/matrundan/session.tsx"), "utf8");
+const sessionSource = readFileSync(
+  resolve(process.cwd(), "src/lib/matrundan/session.tsx"),
+  "utf8",
+);
 
 describe("portabel Google-auth", () => {
   test("använder Supabase OAuth utan Lovable Cloud-authruntime", () => {
