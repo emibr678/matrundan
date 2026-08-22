@@ -23,10 +23,6 @@ jobs:
   generate:
     runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 10
-    outputs:
-      lock_gzip_base64: ${{ steps.pack.outputs.lock_gzip_base64 }}
-      lock_gzip_base64_length: ${{ steps.pack.outputs.lock_gzip_base64_length }}
-      lock_blob_sha: ${{ steps.pack.outputs.lock_blob_sha }}
 
     steps:
       - name: Check out repository
@@ -47,59 +43,17 @@ jobs:
       - name: Verify regenerated lockfile is frozen-installable
         run: bun install --frozen-lockfile >/dev/null
 
-      - name: Pack exact staged lockfile for connector retrieval
-        id: pack
+      - name: Stage and verify exact canonical lockfile
         run: |
           git add -- bun.lock
           git show :bun.lock > bun.lock.canonical
-          node <<'JS'
-          const fs = require('fs');
-          const zlib = require('zlib');
-          const crypto = require('crypto');
-          const cp = require('child_process');
+          test "$(git hash-object bun.lock.canonical)" = "$(git rev-parse :bun.lock)"
+          echo "LOCKFILE_BLOB_SHA=$(git rev-parse :bun.lock)"
 
-          const data = fs.readFileSync('bun.lock.canonical');
-          const stagedSha = cp.execSync('git rev-parse :bun.lock', { encoding: 'utf8' }).trim();
-          const header = Buffer.from(`blob ${data.length}\0`);
-          const computedSha = crypto.createHash('sha1').update(header).update(data).digest('hex');
-          if (computedSha !== stagedSha) {
-            throw new Error(`canonical blob mismatch: ${computedSha} != ${stagedSha}`);
-          }
-          const packed = zlib.gzipSync(data, { level: 9, mtime: 0 }).toString('base64');
-
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,
-            `lock_blob_sha=${stagedSha}\n` +
-            `lock_gzip_base64_length=${packed.length}\n` +
-            `lock_gzip_base64=${packed}\n`
-          );
-
-          console.log(`LOCKFILE_BLOB_SHA=${stagedSha}`);
-          console.log(`LOCKFILE_PACKED_LENGTH=${packed.length}`);
-          JS
-
-  chunks:
-    needs: generate
-    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        chunk: [0, 1, 2, 3, 4]
-    steps:
-      - name: Print packed lockfile chunk
-        env:
-          LOCK_GZIP_BASE64: ${{ needs.generate.outputs.lock_gzip_base64 }}
-          LOCK_GZIP_BASE64_LENGTH: ${{ needs.generate.outputs.lock_gzip_base64_length }}
-          LOCK_BLOB_SHA: ${{ needs.generate.outputs.lock_blob_sha }}
-          CHUNK_INDEX: ${{ matrix.chunk }}
-        run: |
-          node <<'JS'
-          const chunkSize = 16000;
-          const index = Number(process.env.CHUNK_INDEX);
-          const packed = process.env.LOCK_GZIP_BASE64;
-          const start = index * chunkSize;
-          const end = start + chunkSize;
-          console.log(`LOCKFILE_BLOB_SHA=${process.env.LOCK_BLOB_SHA}`);
-          console.log(`LOCKFILE_PACKED_LENGTH=${process.env.LOCK_GZIP_BASE64_LENGTH}`);
-          console.log(`LOCKFILE_CHUNK_INDEX=${index}`);
-          console.log(`LOCKFILE_CHUNK=${packed.slice(start, end)}`);
-          JS
+      - name: Upload canonical lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-bun-lock
+          path: bun.lock.canonical
+          if-no-files-found: error
+          retention-days: 1
