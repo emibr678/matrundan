@@ -24,7 +24,13 @@ function assertNoInlineRuntimeConfig(config, label) {
   }
 }
 
-function assertEnvironment(config, environmentName, expectedWorkerName, expectedPreviewUrls, label) {
+function assertEnvironment(
+  config,
+  environmentName,
+  expectedWorkerName,
+  expectedPreviewUrls,
+  label,
+) {
   const environment = config.env?.[environmentName];
   if (!environment || typeof environment !== "object") {
     fail(`${label} saknar Wrangler-miljön ${environmentName}.`);
