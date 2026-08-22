@@ -20,9 +20,13 @@ defaults:
     shell: bash
 
 jobs:
-  refresh:
+  generate:
     runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 10
+    outputs:
+      lock_gzip_base64: ${{ steps.pack.outputs.lock_gzip_base64 }}
+      lock_gzip_base64_length: ${{ steps.pack.outputs.lock_gzip_base64_length }}
+      lock_blob_sha: ${{ steps.pack.outputs.lock_blob_sha }}
 
     steps:
       - name: Check out repository
@@ -35,18 +39,62 @@ jobs:
         uses: ./.github/actions/setup-bun
 
       - name: Refresh Bun lockfile only
-        run: bun install --lockfile-only
+        run: bun install --lockfile-only >/dev/null
 
       - name: Verify manifest unchanged
         run: git diff --exit-code -- package.json
 
       - name: Verify regenerated lockfile is frozen-installable
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile >/dev/null
 
-      - name: Print regenerated lockfile safely
+      - name: Pack exact lockfile for connector retrieval
+        id: pack
         run: |
-          echo LOCKFILE_GIT_BLOB_SHA
-          git hash-object bun.lock
-          echo LOCKFILE_BASE64_BEGIN
-          base64 -w0 bun.lock | fold -w 30000
-          echo LOCKFILE_BASE64_END
+          python - <<'PY'
+          import base64
+          import gzip
+          import hashlib
+          import os
+          from pathlib import Path
+
+          data = Path("bun.lock").read_bytes()
+          blob_sha = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+          packed = base64.b64encode(gzip.compress(data, compresslevel=9, mtime=0)).decode()
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"lock_blob_sha={blob_sha}\n")
+              output.write(f"lock_gzip_base64_length={len(packed)}\n")
+              output.write(f"lock_gzip_base64={packed}\n")
+
+          print(f"LOCKFILE_BLOB_SHA={blob_sha}")
+          print(f"LOCKFILE_PACKED_LENGTH={len(packed)}")
+          PY
+
+  chunks:
+    needs: generate
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    steps:
+      - name: Print packed lockfile chunk
+        env:
+          LOCK_GZIP_BASE64: ${{ needs.generate.outputs.lock_gzip_base64 }}
+          LOCK_GZIP_BASE64_LENGTH: ${{ needs.generate.outputs.lock_gzip_base64_length }}
+          LOCK_BLOB_SHA: ${{ needs.generate.outputs.lock_blob_sha }}
+          CHUNK_INDEX: ${{ matrix.chunk }}
+        run: |
+          python - <<'PY'
+          import os
+
+          chunk_size = 16000
+          index = int(os.environ["CHUNK_INDEX"])
+          packed = os.environ["LOCK_GZIP_BASE64"]
+          start = index * chunk_size
+          end = start + chunk_size
+          print(f"LOCKFILE_BLOB_SHA={os.environ['LOCK_BLOB_SHA']}")
+          print(f"LOCKFILE_PACKED_LENGTH={os.environ['LOCK_GZIP_BASE64_LENGTH']}")
+          print(f"LOCKFILE_CHUNK_INDEX={index}")
+          print(f"LOCKFILE_CHUNK={packed[start:end]}")
+          PY
