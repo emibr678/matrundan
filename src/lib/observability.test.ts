@@ -29,9 +29,7 @@ describe("observability-kontrakt", () => {
   });
 
   test("härleder endast ofarlig miljöetikett från deployment-host", () => {
-    expect(environmentForRequestUrl("https://staging.matrundan.workers.dev/grupp")).toBe(
-      "staging",
-    );
+    expect(environmentForRequestUrl("https://staging.matrundan.workers.dev/grupp")).toBe("staging");
     expect(
       environmentForRequestUrl("https://preview-123-staging.matrundan.workers.dev/grupp"),
     ).toBe("staging");
