@@ -24,6 +24,9 @@ dist-ssr
 !.env.example
 .dev.vars
 
+# Local backup packages contain private app, Auth and media data.
+backups/
+
 # Test and visual review artifacts
 playwright-report/
 test-results/
