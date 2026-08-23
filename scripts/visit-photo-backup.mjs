@@ -138,7 +138,7 @@ async function restoreMedia(root) {
     .order("id");
   if (targetRowsError) fail("Läsning av målmiljöns visit_media", targetRowsError);
 
-  const expectedRows = entries.map(({ sha256: _sha256, ...row }) => canonicalRow(row));
+  const expectedRows = entries.map(canonicalRow);
   const actualRows = (targetRows ?? []).map(canonicalRow);
   if (JSON.stringify(actualRows) !== JSON.stringify(expectedRows)) {
     throw new Error(
@@ -163,15 +163,13 @@ async function restoreMedia(root) {
       }
     }
 
-    const { error: uploadError } = await target.storage.from(BUCKET).upload(
-      entry.storage_path,
-      localBytes,
-      {
+    const { error: uploadError } = await target.storage
+      .from(BUCKET)
+      .upload(entry.storage_path, localBytes, {
         cacheControl: "3600",
         contentType: entry.mime_type,
         upsert: true,
-      },
-    );
+      });
     if (uploadError) fail(`Återställning av foto ${index + 1}`, uploadError);
 
     const { data: verifiedBlob, error: verifyError } = await target.storage
