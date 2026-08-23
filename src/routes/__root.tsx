@@ -8,10 +8,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import {
-  installBrowserErrorReporting,
-  reportBrowserError,
-} from "../lib/browser-error-reporting";
+import { installBrowserErrorReporting, reportBrowserError } from "../lib/browser-error-reporting";
 import { AppShell } from "@/components/matrundan/AppShell";
 
 function NotFoundComponent() {
