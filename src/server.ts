@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { handleHealthRequest } from "./lib/health.server";
 import {
   logUnexpectedServerError,
   requestIdFor,
@@ -69,6 +70,12 @@ export default {
     const startedAt = performance.now();
 
     try {
+      const url = new URL(observedRequest.url);
+      if (observedRequest.method === "GET" && url.pathname === "/api/health") {
+        const response = await handleHealthRequest(observedRequest);
+        return responseWithRequestId(response, requestId);
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(observedRequest, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(
