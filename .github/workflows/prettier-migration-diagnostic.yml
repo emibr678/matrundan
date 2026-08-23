@@ -16,7 +16,9 @@ jobs:
         with:
           node-version: 22.12.0
       - uses: ./.github/actions/setup-bun
-      - run: bun install --frozen-lockfile
+      - name: Install dependencies
+        shell: bash
+        run: bun install --frozen-lockfile
       - name: Print exact Prettier output
         shell: bash
         run: |
