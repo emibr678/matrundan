@@ -2,6 +2,29 @@ const SAFE_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,63}$/;
 const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const OPAQUE_SEGMENT = /^[A-Za-z0-9_-]{20,}$/;
 
+export type RuntimeEnvironment = "staging" | "prod" | "local" | "unknown";
+
+export function environmentForRequestUrl(value: string): RuntimeEnvironment {
+  let hostname: string;
+  try {
+    hostname = new URL(value, "http://localhost").hostname.toLowerCase();
+  } catch {
+    return "unknown";
+  }
+
+  if (
+    hostname === "staging.matrundan.workers.dev" ||
+    hostname.endsWith("-staging.matrundan.workers.dev")
+  ) {
+    return "staging";
+  }
+  if (hostname === "app.matrundan.workers.dev") return "prod";
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]") {
+    return "local";
+  }
+  return "unknown";
+}
+
 function decodePathSegment(segment: string): string {
   try {
     return decodeURIComponent(segment);
