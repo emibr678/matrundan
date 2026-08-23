@@ -1,58 +1,38 @@
+import { safeErrorCode, sanitizeOperation } from "./observability";
+import { reportBrowserErrorEvent } from "./matrundan/browser-error.functions";
+
 type BrowserErrorOptions = {
   mechanism?: "manual" | "onerror" | "unhandledrejection" | "react_error_boundary";
   handled?: boolean;
-  severity?: "error" | "warning" | "info";
 };
 
-type EditorErrorEvents = {
-  captureException?: (
-    error: unknown,
-    context?: Record<string, unknown>,
-    options?: BrowserErrorOptions,
-  ) => void;
-};
-
-declare global {
-  interface Window {
-    __lovableEvents?: EditorErrorEvents;
-    __lovableReportRuntimeError?: (payload: {
-      message: string;
-      stack?: string;
-      filename?: string;
-    }) => void;
-  }
+function browserErrorOptions(context: Record<string, unknown>): BrowserErrorOptions {
+  const mechanism = context.mechanism;
+  return {
+    mechanism:
+      mechanism === "manual" ||
+      mechanism === "onerror" ||
+      mechanism === "unhandledrejection" ||
+      mechanism === "react_error_boundary"
+        ? mechanism
+        : "react_error_boundary",
+    handled: typeof context.handled === "boolean" ? context.handled : true,
+  };
 }
 
 export function reportBrowserError(error: unknown, context: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
 
-  // Lovable exposes these optional hooks only inside its editor preview. They are
-  // an adapter for local/editor diagnostics, never a production runtime dependency.
-  window.__lovableEvents?.captureException?.(
-    error,
-    {
-      source: "react_error_boundary",
-      route: window.location.pathname,
-      ...context,
+  const options = browserErrorOptions(context);
+  void reportBrowserErrorEvent({
+    data: {
+      operation: sanitizeOperation(window.location.pathname),
+      errorCode: safeErrorCode(error, "BROWSER_UNEXPECTED_ERROR"),
+      mechanism: options.mechanism ?? "react_error_boundary",
+      handled: options.handled ?? true,
     },
-    {
-      mechanism: "react_error_boundary",
-      handled: false,
-      severity: "error",
-    },
-  );
-
-  // Prod React does not rethrow boundary-caught errors to window.onerror. Keep
-  // the optional editor adapter useful without exposing query strings or state.
-  const message =
-    error instanceof Response
-      ? `Response ${error.status}${error.url ? ` at ${new URL(error.url).pathname}` : ""}`
-      : error instanceof Error
-        ? error.message
-        : String(error);
-  window.__lovableReportRuntimeError?.({
-    message,
-    stack: error instanceof Error ? error.stack : undefined,
-    filename: window.location.pathname,
+  }).catch(() => {
+    // Felrapportering får aldrig skapa ett nytt användarsynligt fel eller en
+    // rapporteringsloop. Auth-/nätverksfel fångas i respektive serverlogg.
   });
 }
