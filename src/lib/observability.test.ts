@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { isRequestId, safeErrorCode, sanitizeOperation } from "./observability";
+import {
+  environmentForRequestUrl,
+  isRequestId,
+  safeErrorCode,
+  sanitizeOperation,
+} from "./observability";
 
 describe("observability-kontrakt", () => {
   test("ersätter inbjudningstoken och tar bort query", () => {
@@ -21,6 +26,18 @@ describe("observability-kontrakt", () => {
 
   test("bevarar säkra route-segment utan query eller fragment", () => {
     expect(sanitizeOperation("/matställen/sök?lat=59.1&lng=18.2#karta")).toBe("/matställen/sök");
+  });
+
+  test("härleder endast ofarlig miljöetikett från deployment-host", () => {
+    expect(environmentForRequestUrl("https://staging.matrundan.workers.dev/grupp")).toBe(
+      "staging",
+    );
+    expect(
+      environmentForRequestUrl("https://preview-123-staging.matrundan.workers.dev/grupp"),
+    ).toBe("staging");
+    expect(environmentForRequestUrl("https://app.matrundan.workers.dev/grupp")).toBe("prod");
+    expect(environmentForRequestUrl("http://localhost:3000/grupp")).toBe("local");
+    expect(environmentForRequestUrl("https://example.invalid/grupp")).toBe("unknown");
   });
 
   test("använder stabil felkod utan att logga felmeddelandet", () => {
