@@ -1,8 +1,10 @@
 import { safeErrorCode, sanitizeOperation } from "./observability";
 import { reportBrowserErrorEvent } from "./matrundan/browser-error.functions";
 
+type BrowserErrorMechanism = "manual" | "onerror" | "unhandledrejection" | "react_error_boundary";
+
 type BrowserErrorOptions = {
-  mechanism?: "manual" | "onerror" | "unhandledrejection" | "react_error_boundary";
+  mechanism?: BrowserErrorMechanism;
   handled?: boolean;
 };
 
@@ -35,4 +37,28 @@ export function reportBrowserError(error: unknown, context: Record<string, unkno
     // Felrapportering får aldrig skapa ett nytt användarsynligt fel eller en
     // rapporteringsloop. Auth-/nätverksfel fångas i respektive serverlogg.
   });
+}
+
+export function installBrowserErrorReporting(): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  const onError = (event: ErrorEvent) => {
+    reportBrowserError(event.error ?? new Error("BROWSER_WINDOW_ERROR"), {
+      mechanism: "onerror",
+      handled: false,
+    });
+  };
+  const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+    reportBrowserError(event.reason ?? new Error("BROWSER_UNHANDLED_REJECTION"), {
+      mechanism: "unhandledrejection",
+      handled: false,
+    });
+  };
+
+  window.addEventListener("error", onError);
+  window.addEventListener("unhandledrejection", onUnhandledRejection);
+  return () => {
+    window.removeEventListener("error", onError);
+    window.removeEventListener("unhandledrejection", onUnhandledRejection);
+  };
 }
