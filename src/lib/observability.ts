@@ -42,7 +42,10 @@ export function sanitizeOperation(value: string): string {
 
 function normalizedCode(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const code = value.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+  const code = value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_]/g, "_");
   return SAFE_ERROR_CODE.test(code) ? code : null;
 }
 
@@ -60,7 +63,9 @@ export function safeErrorCode(error: unknown, fallback = "UNEXPECTED_ERROR"): st
   }
 
   if (error && typeof error === "object" && "code" in error) {
-    const providerCode = normalizedCode(`DEPENDENCY_${String((error as { code?: unknown }).code ?? "")}`);
+    const providerCode = normalizedCode(
+      `DEPENDENCY_${String((error as { code?: unknown }).code ?? "")}`,
+    );
     if (providerCode) return providerCode;
   }
 
