@@ -20,15 +20,11 @@ describe("observability-kontrakt", () => {
   });
 
   test("bevarar säkra route-segment utan query eller fragment", () => {
-    expect(sanitizeOperation("/matställen/sök?lat=59.1&lng=18.2#karta")).toBe(
-      "/matställen/sök",
-    );
+    expect(sanitizeOperation("/matställen/sök?lat=59.1&lng=18.2#karta")).toBe("/matställen/sök");
   });
 
   test("använder stabil felkod utan att logga felmeddelandet", () => {
-    expect(safeErrorCode(new Error("GEOAPIFY_TIMEOUT: privat detalj"))).toBe(
-      "GEOAPIFY_TIMEOUT",
-    );
+    expect(safeErrorCode(new Error("GEOAPIFY_TIMEOUT: privat detalj"))).toBe("GEOAPIFY_TIMEOUT");
     expect(safeErrorCode(new TypeError("hemligt värde"))).toBe("JS_TYPEERROR");
   });
 
