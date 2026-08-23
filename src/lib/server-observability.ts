@@ -27,6 +27,26 @@ function runtimeEnvironment(): string {
   return "unknown";
 }
 
+function operationFor(request: Request, explicitOperation?: string): string {
+  if (explicitOperation) return sanitizeOperation(explicitOperation);
+
+  const operation = sanitizeOperation(request.url);
+  if (!operation.startsWith("/_serverFn/")) return operation;
+
+  const referer = request.headers.get("referer");
+  return referer ? `serverFn ${sanitizeOperation(referer)}` : "/_serverFn/:id";
+}
+
+function dependencyForErrorCode(errorCode: string): string | undefined {
+  if (errorCode.startsWith("GEOAPIFY_")) return "geoapify";
+  if (errorCode.startsWith("SUPABASE_") || errorCode.startsWith("DEPENDENCY_23")) {
+    return "supabase";
+  }
+  if (errorCode.startsWith("PUSH_")) return "push";
+  if (errorCode.startsWith("STORAGE_")) return "storage";
+  return undefined;
+}
+
 export function requestIdFor(request: Request): string {
   const existing = request.headers.get(REQUEST_ID_HEADER);
   return isRequestId(existing) ? existing : crypto.randomUUID();
@@ -60,7 +80,7 @@ export function logSafeEvent(
     request_id: requestId,
     release_sha: RELEASE_SHA,
     environment: runtimeEnvironment(),
-    operation: sanitizeOperation(event.operation ?? request.url),
+    operation: operationFor(request, event.operation),
     ...(event.duration_ms == null
       ? {}
       : { duration_ms: Math.max(0, Math.round(event.duration_ms)) }),
@@ -82,13 +102,14 @@ export function logUnexpectedServerError(
     event?: string;
   } = {},
 ): string {
+  const errorCode = safeErrorCode(error);
   return logSafeEvent(request, {
     event: options.event ?? "server_error",
     severity: "error",
     status: options.status ?? 500,
     duration_ms: options.durationMs,
-    dependency: options.dependency,
-    error_code: safeErrorCode(error),
+    dependency: options.dependency ?? dependencyForErrorCode(errorCode),
+    error_code: errorCode,
     operation: options.operation,
   });
 }
