@@ -9,9 +9,7 @@ const MEDIA_FIELDS =
   "id,visit_id,group_id,storage_path,mime_type,byte_size,width,height,uploaded_by,created_at,updated_at";
 
 function usage() {
-  console.error(
-    "Användning: bun scripts/visit-photo-backup.mjs <export|restore> <backup-katalog>",
-  );
+  console.error("Användning: bun scripts/visit-photo-backup.mjs <export|restore> <backup-katalog>");
   process.exit(2);
 }
 
