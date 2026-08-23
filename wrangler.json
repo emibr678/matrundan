@@ -10,6 +10,9 @@
   "preview_urls": true,
   "keep_vars": true,
   "no_bundle": true,
+  "vars": {
+    "MATRUNDAN_ENVIRONMENT": "staging"
+  },
   "rules": [
     {
       "type": "ESModule",
@@ -21,12 +24,15 @@
       "name": "staging",
       "workers_dev": true,
       "preview_urls": true,
+      "vars": {
+        "MATRUNDAN_ENVIRONMENT": "staging"
+      },
       "observability": {
         "enabled": true,
         "head_sampling_rate": 1,
         "logs": {
           "enabled": true,
-          "invocation_logs": true
+          "invocation_logs": false
         }
       }
     },
@@ -34,6 +40,9 @@
       "name": "app",
       "workers_dev": true,
       "preview_urls": false,
+      "vars": {
+        "MATRUNDAN_ENVIRONMENT": "prod"
+      },
       "secrets": {
         "required": ["GEOAPIFY_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "VAPID_PRIVATE_KEY"]
       },
@@ -42,7 +51,7 @@
         "head_sampling_rate": 1,
         "logs": {
           "enabled": true,
-          "invocation_logs": true
+          "invocation_logs": false
         }
       }
     }
