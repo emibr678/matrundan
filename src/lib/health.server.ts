@@ -11,7 +11,7 @@ async function checkSupabaseReachability(): Promise<void> {
     throw new Error("HEALTH_CONFIG_MISSING");
   }
 
-  const response = await fetch(`${supabaseUrl}/rest/v1/groups?select=id&limit=1`, {
+  const response = await fetch(`${supabaseUrl}/auth/v1/health`, {
     headers: {
       accept: "application/json",
       apikey: publishableKey,
