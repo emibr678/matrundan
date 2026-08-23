@@ -40,13 +40,17 @@ async function sha256(blob) {
 
 const { data: sourceRows, error: sourceRowsError } = await source
   .from("visit_media")
-  .select("id,visit_id,group_id,storage_path,mime_type,byte_size,width,height,uploaded_by,created_at,updated_at")
+  .select(
+    "id,visit_id,group_id,storage_path,mime_type,byte_size,width,height,uploaded_by,created_at,updated_at",
+  )
   .order("id");
 if (sourceRowsError) fail("Läsning av källmetadata", sourceRowsError);
 
 const rows = sourceRows ?? [];
 const uniquePaths = new Set(rows.map((row) => row.storage_path));
-if (uniquePaths.size !== rows.length) throw new Error("Källan innehåller duplicerade aktiva storage paths.");
+if (uniquePaths.size !== rows.length) {
+  throw new Error("Källan innehåller duplicerade aktiva storage paths.");
+}
 if (rows.some((row) => row.mime_type !== "image/jpeg" || row.byte_size > 1_500_000)) {
   throw new Error("Källan innehåller media som bryter mot visit-photos-kontraktet.");
 }
@@ -79,11 +83,13 @@ try {
     }
 
     const sourceHash = await sha256(sourceBlob);
-    const { error: uploadError } = await target.storage.from(BUCKET).upload(row.storage_path, sourceBlob, {
-      cacheControl: "3600",
-      contentType: row.mime_type,
-      upsert: false,
-    });
+    const { error: uploadError } = await target.storage
+      .from(BUCKET)
+      .upload(row.storage_path, sourceBlob, {
+        cacheControl: "3600",
+        contentType: row.mime_type,
+        upsert: false,
+      });
     if (uploadError) fail(`Uppladdning av foto ${index + 1}`, uploadError);
     uploadedPaths.push(row.storage_path);
 
@@ -105,7 +111,9 @@ try {
 } catch (error) {
   if (uploadedPaths.length > 0) {
     const { error: cleanupError } = await target.storage.from(BUCKET).remove(uploadedPaths);
-    if (cleanupError) console.error("Automatisk städning av målobjekt misslyckades; kontrollera mål-bucket manuellt.");
+    if (cleanupError) {
+      console.error("Automatisk städning av målobjekt misslyckades; kontrollera mål-bucket manuellt.");
+    }
   }
   throw error;
 }
@@ -115,6 +123,10 @@ const { data: finalRows, error: finalRowsError } = await target
   .select("id,storage_path,byte_size")
   .order("id");
 if (finalRowsError) fail("Slutverifiering av målmetadata", finalRowsError);
-if ((finalRows ?? []).length !== rows.length) throw new Error("Målmetadata har fel radantal efter migrering.");
+if ((finalRows ?? []).length !== rows.length) {
+  throw new Error("Målmetadata har fel radantal efter migrering.");
+}
 
-console.log(`Migrering klar: ${rows.length} privata besöksfoton med verifierade bytes och metadata.`);
+console.log(
+  `Migrering klar: ${rows.length} privata besöksfoton med verifierade bytes och metadata.`,
+);
