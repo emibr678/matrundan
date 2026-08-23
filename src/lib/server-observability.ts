@@ -1,4 +1,9 @@
-import { isRequestId, safeErrorCode, sanitizeOperation } from "./observability";
+import {
+  environmentForRequestUrl,
+  isRequestId,
+  safeErrorCode,
+  sanitizeOperation,
+} from "./observability";
 import { RELEASE_SHA } from "./release-metadata";
 
 export const REQUEST_ID_HEADER = "x-matrundan-request-id";
@@ -18,14 +23,6 @@ type SafeEvent = {
   mechanism?: string;
   handled?: boolean;
 };
-
-function runtimeEnvironment(): string {
-  const value = process.env.MATRUNDAN_ENVIRONMENT?.trim().toLowerCase();
-  if (value === "staging" || value === "prod" || value === "local" || value === "test") {
-    return value;
-  }
-  return "unknown";
-}
 
 function operationFor(request: Request, explicitOperation?: string): string {
   if (explicitOperation) return sanitizeOperation(explicitOperation);
@@ -79,7 +76,7 @@ export function logSafeEvent(
     ...event,
     request_id: requestId,
     release_sha: RELEASE_SHA,
-    environment: runtimeEnvironment(),
+    environment: environmentForRequestUrl(request.url),
     operation: operationFor(request, event.operation),
     ...(event.duration_ms == null
       ? {}
