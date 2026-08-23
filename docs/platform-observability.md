@@ -1,7 +1,7 @@
 # Observability och felsökning
 
-**Status:** arkitekturunderlag för #207 – Frikoppla drift från Lovable Cloud och etablera portabel plattform  
-**Scope:** observability, felsökning och driftlarm; ingen runtimeimplementation genom detta dokument
+**Status:** arkitektur- och driftkontrakt för #207 – Frikoppla drift från Lovable Cloud och etablera portabel plattform  
+**Scope:** observability, felsökning och driftlarm
 
 Matrundan ska gå att felsöka när verkliga användare stöter på problem utan att
 observability blir en parallell lagringsyta för privat gruppdata. Strategin ska
@@ -33,6 +33,42 @@ vid build/deploy så att server- och klientfel kan kopplas till exakt commit uta
 att runtime behöver fråga GitHub. Preview ska även bära environment/branch-kontekst
 utan att den informationen används som behörighetsbeslut.
 
+## Implementerad baslinje i migrationskandidaten
+
+Migrationsbranchen etablerar följande leverantörsneutrala kontrakt. Detta avsnitt
+beskriver kodens avsedda beteende; faktisk staging-/productiondrift räknas inte som
+verifierad förrän motsvarande Worker-kandidat har byggts, driftsatts och smoke-
+testats.
+
+- Varje inkommande serverrequest får ett nytt ofarligt UUIDv4 `request_id`. Det
+  skickas internt i `x-matrundan-request-id` och läggs även på svaret så samma ID
+  kan användas vid felsökning utan att bära användar- eller gruppidentitet.
+- Centrala apphändelser loggas som strukturerad JSON med stabila, minimerade fält.
+  Råa Error-meddelanden, stacks, request bodies och providerpayloads ingår inte i
+  det centrala kontraktet.
+- Route/operation saneras innan loggning. Query och fragment tas bort, kända
+  bearer-token-routes som `/inbjudan/$token` loggas som `/inbjudan/:token`, och
+  UUID:n, numeriska ID:n samt långa opaka pathsegment ersätts med platshållare.
+- `release_sha` byggs in i artefakten. Cloudflare Builds använder
+  `WORKERS_CI_COMMIT_SHA`; GitHub-byggen kan använda `GITHUB_SHA` och explicit
+  manuell byggning kan ange `MATRUNDAN_RELEASE_SHA`. Saknad eller ogiltig SHA
+  blir `unknown` i stället för att gissas.
+- `environment` kommer från den icke-hemliga Wrangler-variabeln
+  `MATRUNDAN_ENVIRONMENT`, med separata värden för staging och prod.
+- Cloudflares automatiska invocation logs är avstängda i repoets staging- och
+  prodkonfiguration. De innehåller hela request-URL:en och är därför olämpliga
+  så länge Matrundan har bearer-token i URL-path. Workers Logs för egna
+  `console`-event förblir aktiverade.
+- Browserfel går genom ett autentiserat, CSRF-skyddat serverfunktionskontrakt och
+  skickar endast sanerad operation, säker felkod, mekanism och handled-status.
+  State, DOM, formulärvärden, URL-query, stack och rått felmeddelande skickas inte.
+- React root error boundary samt `window.error` och `unhandledrejection` använder
+  samma browserkanal. Om felrapporteringen själv misslyckas sväljs det felet för
+  att undvika rapporteringsloopar.
+- Supabase Logs Explorer/Reports behålls som den minsta behöriga ytan när råare
+  Auth/Postgres/API/Storage-detalj faktiskt behövs; den kopieras inte automatiskt
+  till Matrundans centrala apploggar.
+
 ## Lager
 
 ### Server/runtime
@@ -61,8 +97,7 @@ korrelationsnyckel.
 
 Worker-loggar ser inte fel som endast inträffar i användarens browser. Web/PWA
 ska därför kunna rapportera oväntade klientfel genom ett sanerat kontrakt.
-Exakt transport beslutas under implementation; Sentry, Datadog eller annan extern
-APM är inte ett krav.
+Sentry, Datadog eller annan extern APM är inte ett krav.
 
 Klientrapporten ska vara minimerad och får inte automatiskt skicka hela state,
 DOM, formulärvärden, URL-query eller privata payloads.
@@ -128,6 +163,11 @@ fel utan att skicka privat gruppdata eller tekniska loggar.
 
 Fel-ID får inte koda användar-ID, grupp-ID eller annan känslig identitet.
 
+Den första migrationskandidaten exponerar request-ID som response-header och
+browserrapporten får tillbaka samma typ av fel-ID. Att visa ID:t direkt i en
+användarsynlig felvy är inte ett krav för cutover om supportflödet ännu inte
+behöver det; korrelationen ska däremot finnas tekniskt.
+
 ## Larm
 
 Larm ska vara få och handlingsbara. Kandidater är:
@@ -155,6 +195,11 @@ När externa logg-/APM-tjänster övervägs ska beslutet väga:
 - kostnad;
 - datalokalitet/integritet;
 - exportmöjlighet och leverantörsportabilitet.
+
+Cloudflare/Supabase standardretention används som första driftbaseline. Ett
+separat långtidslager införs först om faktisk användning visar att felsökning
+behöver längre historik. Backupretention hanteras separat av recoverykontraktet
+och får inte blandas ihop med loggretention.
 
 ## Exitkriterier för #207
 
