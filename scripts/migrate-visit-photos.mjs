@@ -61,7 +61,9 @@ const { data: targetRows, error: targetRowsError } = await target
   .order("id");
 if (targetRowsError) fail("Läsning av målmetadata", targetRowsError);
 if ((targetRows ?? []).length > 0) {
-  throw new Error("Målet innehåller redan visit_media. Avbryter för att undvika en destruktiv merge.");
+  throw new Error(
+    "Målet innehåller redan visit_media. Avbryter för att undvika en destruktiv merge.",
+  );
 }
 
 console.log(`Aktiva privata besöksfoton att migrera: ${rows.length}.`);
@@ -112,7 +114,9 @@ try {
   if (uploadedPaths.length > 0) {
     const { error: cleanupError } = await target.storage.from(BUCKET).remove(uploadedPaths);
     if (cleanupError) {
-      console.error("Automatisk städning av målobjekt misslyckades; kontrollera mål-bucket manuellt.");
+      console.error(
+        "Automatisk städning av målobjekt misslyckades; kontrollera mål-bucket manuellt.",
+      );
     }
   }
   throw error;
