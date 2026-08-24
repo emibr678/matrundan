@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  REQUEST_ID_HEADER,
-  requestWithObservabilityHeaders,
-} from "./server-observability";
+import { REQUEST_ID_HEADER, requestWithObservabilityHeaders } from "./server-observability";
 
 describe("server-observability request-kontrakt", () => {
   test("lägger korrelationsheader på en ny Request utan att mutera originalet", () => {
@@ -36,8 +33,6 @@ describe("server-observability request-kontrakt", () => {
       "3d594650-3436-4b16-9e56-b3d6413f03d9",
     );
 
-    expect(observed.headers.get(REQUEST_ID_HEADER)).toBe(
-      "3d594650-3436-4b16-9e56-b3d6413f03d9",
-    );
+    expect(observed.headers.get(REQUEST_ID_HEADER)).toBe("3d594650-3436-4b16-9e56-b3d6413f03d9");
   });
 });
