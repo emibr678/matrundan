@@ -1,0 +1,193 @@
+name: Cloudflare prod preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA that should be inspected/uploaded
+        required: true
+        type: string
+      upload_version:
+        description: Upload an inert Worker app version after preflight
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-prod-preflight
+  cancel-in-progress: false
+
+env:
+  WRANGLER_VERSION: 4.125.0
+
+jobs:
+  preflight:
+    name: Cloudflare prod preflight
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    env:
+      CI: 'true'
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PROD_SUPABASE_PROJECT_ID: ${{ vars.PROD_SUPABASE_PROJECT_ID }}
+      PROD_SUPABASE_URL: ${{ vars.PROD_SUPABASE_URL }}
+      PROD_SUPABASE_PUBLISHABLE_KEY: ${{ vars.PROD_SUPABASE_PUBLISHABLE_KEY }}
+      PROD_GEOAPIFY_MAPS_KEY: ${{ vars.PROD_GEOAPIFY_MAPS_KEY }}
+      PROD_VAPID_SUBJECT: ${{ vars.PROD_VAPID_SUBJECT }}
+      PROD_VAPID_PUBLIC_KEY: ${{ vars.PROD_VAPID_PUBLIC_KEY }}
+
+    steps:
+      - name: Check out exact main candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard trusted ref and exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "This workflow may only run from main." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_SHA" != "${{ inputs.expected_sha }}" ]]; then
+            echo "Expected SHA does not match the checked-out main SHA." >&2
+            echo "expected=${{ inputs.expected_sha }}" >&2
+            echo "actual=$GITHUB_SHA" >&2
+            exit 1
+          fi
+
+      - name: Validate configured GitHub production environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            CLOUDFLARE_ACCOUNT_ID
+            CLOUDFLARE_API_TOKEN
+            PROD_SUPABASE_PROJECT_ID
+            PROD_SUPABASE_URL
+            PROD_SUPABASE_PUBLISHABLE_KEY
+            PROD_GEOAPIFY_MAPS_KEY
+            PROD_VAPID_SUBJECT
+            PROD_VAPID_PUBLIC_KEY
+          )
+          missing=()
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing production configuration: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify Cloudflare access and required Worker secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
+          "${WRANGLER[@]}" secret list --env prod --format json > "$RUNNER_TEMP/prod-secrets.json"
+          node - "$RUNNER_TEMP/prod-secrets.json" <<'NODE'
+          const fs = require('node:fs');
+          const path = process.argv[2];
+          const configured = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const names = new Set(configured.map((entry) => entry.name));
+          const required = ['GEOAPIFY_API_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PRIVATE_KEY'];
+          const missing = required.filter((name) => !names.has(name));
+          if (missing.length > 0) {
+            console.error(`Missing Worker app secrets: ${missing.join(', ')}`);
+            process.exit(1);
+          }
+          console.log(`Verified ${required.length} required Worker app secret names.`);
+          NODE
+          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment.json"
+          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions.json"
+
+      - name: Generate ephemeral prod Wrangler config
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const config = JSON.parse(fs.readFileSync('wrangler.json', 'utf8'));
+          config.env.prod.vars = {
+            SUPABASE_PROJECT_ID: process.env.PROD_SUPABASE_PROJECT_ID,
+            SUPABASE_URL: process.env.PROD_SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY: process.env.PROD_SUPABASE_PUBLISHABLE_KEY,
+            VAPID_SUBJECT: process.env.PROD_VAPID_SUBJECT,
+            VAPID_PUBLIC_KEY: process.env.PROD_VAPID_PUBLIC_KEY,
+          };
+          fs.writeFileSync('wrangler.prod.ci.json', `${JSON.stringify(config, null, 2)}\n`);
+          NODE
+
+      - name: Build exact production candidate
+        env:
+          SUPABASE_PROJECT_ID: ${{ vars.PROD_SUPABASE_PROJECT_ID }}
+          SUPABASE_URL: ${{ vars.PROD_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.PROD_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ vars.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_URL: ${{ vars.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.PROD_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_GEOAPIFY_MAPS_KEY: ${{ vars.PROD_GEOAPIFY_MAPS_KEY }}
+          VAPID_SUBJECT: ${{ vars.PROD_VAPID_SUBJECT }}
+          VAPID_PUBLIC_KEY: ${{ vars.PROD_VAPID_PUBLIC_KEY }}
+          MATRUNDAN_RELEASE_SHA: ${{ github.sha }}
+        run: bun run cloudflare:build
+
+      - name: Upload inert Worker app version
+        if: inputs.upload_version == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
+          short_sha="${GITHUB_SHA:0:12}"
+          "${WRANGLER[@]}" versions upload \
+            --config wrangler.prod.ci.json \
+            --env prod \
+            --keep-vars \
+            --strict \
+            --tag "sha-$short_sha" \
+            --message "Matrundan prod preflight $GITHUB_SHA"
+          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions-after.json"
+
+      - name: Summarize preflight
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo '## Cloudflare prod preflight'
+            echo
+            echo "- SHA: \`$GITHUB_SHA\`"
+            echo '- Worker: `app` (`--env prod`)'
+            echo '- Required Worker secret names: verified'
+            echo '- Production build: verified'
+            if [[ "${{ inputs.upload_version }}" == "true" ]]; then
+              echo '- Inert version upload: completed; no traffic promotion was requested'
+            else
+              echo '- Inert version upload: skipped (read-only preflight)'
+            fi
+            echo '- Public production deployment: not performed'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove ephemeral config
+        if: always()
+        shell: bash
+        run: rm -f wrangler.prod.ci.json
