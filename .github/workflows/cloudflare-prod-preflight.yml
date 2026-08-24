@@ -56,6 +56,10 @@ jobs:
             echo "This workflow may only run from main." >&2
             exit 1
           fi
+          if [[ ! "${{ inputs.expected_sha }}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "expected_sha must be a full 40-character Git SHA." >&2
+            exit 1
+          fi
           if [[ "$GITHUB_SHA" != "${{ inputs.expected_sha }}" ]]; then
             echo "Expected SHA does not match the checked-out main SHA." >&2
             echo "expected=${{ inputs.expected_sha }}" >&2
@@ -85,6 +89,16 @@ jobs:
           done
           if (( ${#missing[@]} > 0 )); then
             printf 'Missing production configuration: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+          expected_supabase_url="https://${PROD_SUPABASE_PROJECT_ID}.supabase.co"
+          if [[ "$PROD_SUPABASE_URL" != "$expected_supabase_url" ]]; then
+            echo "PROD_SUPABASE_URL does not match PROD_SUPABASE_PROJECT_ID." >&2
+            exit 1
+          fi
+          if [[ "$PROD_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
+            echo "PROD_SUPABASE_PUBLISHABLE_KEY must use the modern sb_publishable_ format." >&2
             exit 1
           fi
 
