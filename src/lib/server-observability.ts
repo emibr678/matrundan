@@ -50,9 +50,9 @@ export function requestIdFor(request: Request): string {
 }
 
 export function requestWithObservabilityHeaders(request: Request, requestId: string): Request {
-  const observedRequest = request.clone();
-  observedRequest.headers.set(REQUEST_ID_HEADER, requestId);
-  return observedRequest;
+  const headers = new Headers(request.headers);
+  headers.set(REQUEST_ID_HEADER, requestId);
+  return new Request(request, { headers });
 }
 
 export function responseWithRequestId(response: Response, requestId: string): Response {
