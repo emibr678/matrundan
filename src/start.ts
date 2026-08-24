@@ -1,10 +1,7 @@
 import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
-import {
-  logUnexpectedServerError,
-  responseWithRequestId,
-} from "./lib/server-observability";
+import { logUnexpectedServerError, responseWithRequestId } from "./lib/server-observability";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const csrfMiddleware = createCsrfMiddleware({
