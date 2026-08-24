@@ -1,38 +1,37 @@
 import { describe, expect, test } from "bun:test";
 
-import { REQUEST_ID_HEADER, requestWithObservabilityHeaders } from "./server-observability";
+import { REQUEST_ID_HEADER, responseWithRequestId } from "./server-observability";
+
+const OUTER_REQUEST_ID = "3d594650-3436-4b16-9e56-b3d6413f03d9";
+const INNER_ERROR_ID = "8d80bbb6-3b57-4b12-a060-369b275e6640";
 
 describe("server-observability request-kontrakt", () => {
-  test("lägger korrelationsheader på en ny Request utan att mutera originalet", () => {
-    const request = new Request("https://staging.matrundan.workers.dev/grupp", {
-      headers: { "x-existing": "bevaras" },
-    });
-    const requestId = "3d594650-3436-4b16-9e56-b3d6413f03d9";
+  test("lägger korrelations-id på svar utan att modifiera inkommande Request", () => {
+    const request = new Request("https://staging.matrundan.workers.dev/grupp");
+    const response = responseWithRequestId(new Response("ok"), OUTER_REQUEST_ID);
 
-    const observed = requestWithObservabilityHeaders(request, requestId);
-
-    expect(observed).not.toBe(request);
     expect(request.headers.get(REQUEST_ID_HEADER)).toBeNull();
-    expect(observed.headers.get(REQUEST_ID_HEADER)).toBe(requestId);
-    expect(observed.headers.get("x-existing")).toBe("bevaras");
-    expect(observed.url).toBe(request.url);
-    expect(observed.method).toBe(request.method);
+    expect(response.headers.get(REQUEST_ID_HEADER)).toBe(OUTER_REQUEST_ID);
   });
 
-  test("kräver inte Request.clone för att lägga till korrelationsheader", () => {
-    const request = new Request("https://staging.matrundan.workers.dev/");
-    Object.defineProperty(request, "clone", {
-      configurable: true,
-      value: () => {
-        throw new Error("Request.clone ska inte användas när headers behöver ändras");
-      },
+  test("bevarar ett giltigt fel-id från ett inre serverlager", () => {
+    const response = new Response("fel", {
+      status: 500,
+      headers: { [REQUEST_ID_HEADER]: INNER_ERROR_ID },
     });
 
-    const observed = requestWithObservabilityHeaders(
-      request,
-      "3d594650-3436-4b16-9e56-b3d6413f03d9",
-    );
+    const observed = responseWithRequestId(response, OUTER_REQUEST_ID);
 
-    expect(observed.headers.get(REQUEST_ID_HEADER)).toBe("3d594650-3436-4b16-9e56-b3d6413f03d9");
+    expect(observed.headers.get(REQUEST_ID_HEADER)).toBe(INNER_ERROR_ID);
+  });
+
+  test("ersätter ett ogiltigt korrelations-id", () => {
+    const response = new Response("ok", {
+      headers: { [REQUEST_ID_HEADER]: "inte-ett-request-id" },
+    });
+
+    const observed = responseWithRequestId(response, OUTER_REQUEST_ID);
+
+    expect(observed.headers.get(REQUEST_ID_HEADER)).toBe(OUTER_REQUEST_ID);
   });
 });

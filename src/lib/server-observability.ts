@@ -49,15 +49,12 @@ export function requestIdFor(request: Request): string {
   return isRequestId(existing) ? existing : crypto.randomUUID();
 }
 
-export function requestWithObservabilityHeaders(request: Request, requestId: string): Request {
-  const headers = new Headers(request.headers);
-  headers.set(REQUEST_ID_HEADER, requestId);
-  return new Request(request, { headers });
-}
-
 export function responseWithRequestId(response: Response, requestId: string): Response {
   const headers = new Headers(response.headers);
-  headers.set(REQUEST_ID_HEADER, requestId);
+  const existing = headers.get(REQUEST_ID_HEADER);
+  if (!isRequestId(existing)) {
+    headers.set(REQUEST_ID_HEADER, requestId);
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

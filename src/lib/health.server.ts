@@ -1,5 +1,5 @@
 import { RELEASE_SHA } from "./release-metadata";
-import { logUnexpectedServerError } from "./server-observability";
+import { logUnexpectedServerError, responseWithRequestId } from "./server-observability";
 
 const HEALTH_TIMEOUT_MS = 5_000;
 
@@ -34,16 +34,19 @@ export async function handleHealthRequest(request: Request): Promise<Response> {
       { headers: { "cache-control": "no-store" } },
     );
   } catch (error) {
-    logUnexpectedServerError(request, error, {
+    const errorId = logUnexpectedServerError(request, error, {
       operation: "/api/health",
       status: 503,
       durationMs: performance.now() - startedAt,
       dependency: "supabase",
       event: "health_check_failed",
     });
-    return Response.json(
-      { status: "degraded" },
-      { status: 503, headers: { "cache-control": "no-store" } },
+    return responseWithRequestId(
+      Response.json(
+        { status: "degraded" },
+        { status: 503, headers: { "cache-control": "no-store" } },
+      ),
+      errorId,
     );
   }
 }

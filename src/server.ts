@@ -6,7 +6,6 @@ import { handleHealthRequest } from "./lib/health.server";
 import {
   logUnexpectedServerError,
   requestIdFor,
-  requestWithObservabilityHeaders,
   responseWithRequestId,
 } from "./lib/server-observability";
 
@@ -39,7 +38,7 @@ async function normalizeCatastrophicSsrResponse(
   const body = await response.clone().text();
   if (!isH3SwallowedErrorBody(body)) return response;
 
-  logUnexpectedServerError(
+  const errorId = logUnexpectedServerError(
     request,
     consumeLastCapturedError() ?? new Error("SSR_SWALLOWED_ERROR"),
     {
@@ -48,10 +47,13 @@ async function normalizeCatastrophicSsrResponse(
       event: "ssr_error",
     },
   );
-  return new Response(renderErrorPage(), {
-    status: 500,
-    headers: { "content-type": "text/html; charset=utf-8" },
-  });
+  return responseWithRequestId(
+    new Response(renderErrorPage(), {
+      status: 500,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    }),
+    errorId,
+  );
 }
 
 function isH3SwallowedErrorBody(body: string): boolean {
@@ -66,26 +68,21 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     const requestId = requestIdFor(request);
-    const observedRequest = requestWithObservabilityHeaders(request, requestId);
     const startedAt = performance.now();
 
     try {
-      const url = new URL(observedRequest.url);
-      if (observedRequest.method === "GET" && url.pathname === "/api/health") {
-        const response = await handleHealthRequest(observedRequest);
+      const url = new URL(request.url);
+      if (request.method === "GET" && url.pathname === "/api/health") {
+        const response = await handleHealthRequest(request);
         return responseWithRequestId(response, requestId);
       }
 
       const handler = await getServerEntry();
-      const response = await handler.fetch(observedRequest, env, ctx);
-      const normalized = await normalizeCatastrophicSsrResponse(
-        response,
-        observedRequest,
-        startedAt,
-      );
+      const response = await handler.fetch(request, env, ctx);
+      const normalized = await normalizeCatastrophicSsrResponse(response, request, startedAt);
       return responseWithRequestId(normalized, requestId);
     } catch (error) {
-      logUnexpectedServerError(observedRequest, error, {
+      const errorId = logUnexpectedServerError(request, error, {
         status: 500,
         durationMs: performance.now() - startedAt,
       });
@@ -94,7 +91,7 @@ export default {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8" },
         }),
-        requestId,
+        errorId,
       );
     }
   },

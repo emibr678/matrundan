@@ -1,7 +1,10 @@
 import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
-import { logUnexpectedServerError } from "./lib/server-observability";
+import {
+  logUnexpectedServerError,
+  responseWithRequestId,
+} from "./lib/server-observability";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const csrfMiddleware = createCsrfMiddleware({
@@ -16,15 +19,18 @@ const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
-    logUnexpectedServerError(request, error, {
+    const errorId = logUnexpectedServerError(request, error, {
       status: 500,
       durationMs: performance.now() - startedAt,
       event: "request_error",
     });
-    return new Response(renderErrorPage(), {
-      status: 500,
-      headers: { "content-type": "text/html; charset=utf-8" },
-    });
+    return responseWithRequestId(
+      new Response(renderErrorPage(), {
+        status: 500,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      }),
+      errorId,
+    );
   }
 });
 
