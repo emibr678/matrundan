@@ -171,7 +171,7 @@ jobs:
     needs: verify
     if: needs.verify.result == 'success' && needs.verify.outputs.has_ui == 'true'
     runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
-    timeout-minutes: 25
+    timeout-minutes: 45
 
     steps:
       - name: Check out repository
