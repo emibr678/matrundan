@@ -4,30 +4,43 @@ on:
   workflow_dispatch:
     inputs:
       expected_sha:
-        description: Exact main SHA to verify before reading staging backup data
+        description: Exact main SHA to verify before reading backup source data
         required: true
         type: string
+      source:
+        description: Supabase source to back up and restore locally
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      confirm_production_source:
+        description: Confirm read-only backup of Matrundan Prod when source=production
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 concurrency:
-  group: recovery-restore
+  group: recovery-restore-${{ inputs.source }}
   cancel-in-progress: false
 
 jobs:
   restore:
-    name: Backup + local restore
+    name: Backup + local restore (${{ inputs.source }})
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
-    environment: staging
+    environment: ${{ inputs.source }}
     env:
       CI: 'true'
-      STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
-      SOURCE_SUPABASE_URL: https://wpihfmwbubvdiaavtpia.supabase.co
-      SOURCE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-      SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      SOURCE_SUPABASE_PROJECT_ID: ${{ inputs.source == 'production' && 'wsikirbxqejjwtgxcvjl' || 'wpihfmwbubvdiaavtpia' }}
+      SOURCE_SUPABASE_URL: ${{ inputs.source == 'production' && 'https://wsikirbxqejjwtgxcvjl.supabase.co' || 'https://wpihfmwbubvdiaavtpia.supabase.co' }}
+      SOURCE_SUPABASE_SERVICE_ROLE_KEY: ${{ inputs.source == 'production' && secrets.PROD_SUPABASE_SERVICE_ROLE_KEY || secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_DB_URL: ${{ inputs.source == 'production' && secrets.PROD_SUPABASE_DB_URL || secrets.STAGING_SUPABASE_DB_URL }}
       SUPABASE_CLI_VERSION: 2.115.0
 
     steps:
@@ -39,14 +52,39 @@ jobs:
 
       - name: Guard source, trusted ref and exact SHA
         shell: bash
+        env:
+          RECOVERY_SOURCE: ${{ inputs.source }}
+          CONFIRM_PRODUCTION_SOURCE: ${{ inputs.confirm_production_source }}
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
             echo "Recovery restore drill may only run from main." >&2
             exit 1
           fi
-          if [[ "$SOURCE_SUPABASE_URL" != "https://${STAGING_SUPABASE_PROJECT_ID}.supabase.co" ]]; then
-            echo "Recovery source URL does not match the locked staging project." >&2
+
+          case "$RECOVERY_SOURCE" in
+            staging)
+              expected_project_id="wpihfmwbubvdiaavtpia"
+              ;;
+            production)
+              expected_project_id="wsikirbxqejjwtgxcvjl"
+              if [[ "$CONFIRM_PRODUCTION_SOURCE" != "true" ]]; then
+                echo "Production recovery requires explicit confirmation of the read-only Prod backup source." >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Unsupported recovery source." >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ "$SOURCE_SUPABASE_PROJECT_ID" != "$expected_project_id" ]]; then
+            echo "Recovery source project id does not match the selected environment." >&2
+            exit 1
+          fi
+          if [[ "$SOURCE_SUPABASE_URL" != "https://${SOURCE_SUPABASE_PROJECT_ID}.supabase.co" ]]; then
+            echo "Recovery source URL does not match the locked Supabase project." >&2
             exit 1
           fi
 
@@ -63,7 +101,7 @@ jobs:
           fi
 
           if [[ -z "$SUPABASE_DB_URL" || -z "$SOURCE_SUPABASE_SERVICE_ROLE_KEY" ]]; then
-            echo "Staging recovery credentials are not configured in the GitHub staging environment." >&2
+            echo "Recovery credentials are not configured in the selected GitHub environment." >&2
             exit 1
           fi
 
@@ -98,7 +136,7 @@ jobs:
           psql --version
           pg_dump --version
 
-      - name: Create private staging backup generation
+      - name: Create private backup generation
         id: backup
         shell: bash
         run: |
@@ -110,7 +148,7 @@ jobs:
           bun scripts/visit-photo-backup.mjs export "$backup_dir"
 
           app_version="$(bun -e 'import { APP_VERSION } from "./src/lib/matrundan/version.ts"; process.stdout.write(APP_VERSION)')"
-          MATRUNDAN_BACKUP_SOURCE_REF="$STAGING_SUPABASE_PROJECT_ID" \
+          MATRUNDAN_BACKUP_SOURCE_REF="$SOURCE_SUPABASE_PROJECT_ID" \
           MATRUNDAN_BACKUP_APP_VERSION="$app_version" \
           MATRUNDAN_BACKUP_RELEASE_SHA="$GITHUB_SHA" \
             bun scripts/backup-manifest.mjs create "$backup_dir"
@@ -141,18 +179,20 @@ jobs:
       - name: Summarize recovery drill
         if: success()
         shell: bash
+        env:
+          RECOVERY_SOURCE: ${{ inputs.source }}
         run: |
           {
             echo '## Recovery restore drill'
             echo
             echo "- Candidate SHA: \`$GITHUB_SHA\`"
-            echo '- Source: Matrundan Staging (read-only backup/export)'
+            echo "- Source: \`$RECOVERY_SOURCE\` (read-only backup/export)"
             echo '- Restore target: ephemeral local Supabase/Docker stack'
             echo '- Database/Auth restore: verified'
             echo '- Private visit media: byte-verified'
             echo '- Inventory + production preflight: verified'
             echo '- Authenticated group read: verified'
-            echo '- Production Supabase: untouched'
+            echo '- Source Supabase project: not modified'
             echo '- Backup artifacts: not uploaded or retained by this workflow'
           } >> "$GITHUB_STEP_SUMMARY"
 
