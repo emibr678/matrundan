@@ -145,7 +145,7 @@ BEGIN;
 select m.user_id::text as smoke_user_id, m.group_id::text as smoke_group_id
 from public.memberships m
 join auth.users u on u.id = m.user_id
-order by m.created_at nulls last, m.user_id, m.group_id
+order by m.joined_at, m.user_id, m.group_id
 limit 1
 \gset
 
