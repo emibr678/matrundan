@@ -101,7 +101,12 @@ select json_build_object(
     'activity', (select count(*) from public.activity),
     'place_external_info_snapshots', (select count(*) from public.place_external_info_snapshots),
     'visit_media', (select count(*) from public.visit_media),
-    'visit_photo_storage_objects', (select count(*) from storage.objects where bucket_id = 'visit-photos')
+    'visit_photo_storage_objects', (
+      select count(*)
+      from storage.objects o
+      join public.visit_media vm on vm.storage_path = o.name
+      where o.bucket_id = 'visit-photos'
+    )
   )
 )::text;
 SQL
