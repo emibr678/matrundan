@@ -1,0 +1,191 @@
+name: Recovery restore drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact SHA to verify before reading staging backup data
+        required: true
+        type: string
+  pull_request:
+    branches:
+      - main
+    types:
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-restore-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    name: Backup + local restore
+    if: >-
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.number == 222 &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      ) ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        (
+          github.ref == 'refs/heads/main' ||
+          github.ref == 'refs/heads/agent/issue-207-cloudflare-staging-bootstrap'
+        )
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: staging
+    env:
+      CI: 'true'
+      STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
+      SOURCE_SUPABASE_URL: https://wpihfmwbubvdiaavtpia.supabase.co
+      SOURCE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      SUPABASE_CLI_VERSION: 2.115.0
+
+    steps:
+      - name: Check out exact recovery candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard source, target and exact SHA
+        shell: bash
+        env:
+          MANUAL_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          PR_EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$SOURCE_SUPABASE_URL" != "https://${STAGING_SUPABASE_PROJECT_ID}.supabase.co" ]]; then
+            echo "Recovery source URL does not match the locked staging project." >&2
+            exit 1
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            expected_sha="$PR_EXPECTED_SHA"
+          else
+            expected_sha="$MANUAL_EXPECTED_SHA"
+          fi
+          if [[ ! "$expected_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Expected SHA must be a full 40-character Git SHA." >&2
+            exit 1
+          fi
+          actual_sha="$(git rev-parse HEAD)"
+          if [[ "$actual_sha" != "$expected_sha" ]]; then
+            echo "Checked-out recovery SHA does not match the requested candidate." >&2
+            exit 1
+          fi
+
+          if [[ -z "$SUPABASE_DB_URL" || -z "$SOURCE_SUPABASE_SERVICE_ROLE_KEY" ]]; then
+            echo "Staging recovery credentials are not configured in the GitHub staging environment." >&2
+            exit 1
+          fi
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Verify required tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          for command in docker psql pg_dump supabase bun; do
+            command -v "$command" >/dev/null 2>&1 || {
+              echo "Missing recovery command: $command" >&2
+              exit 1
+            }
+          done
+          docker info >/dev/null
+          supabase --version
+          psql --version
+          pg_dump --version
+
+      - name: Create private staging backup generation
+        id: backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_dir="$RUNNER_TEMP/matrundan-recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "backup_dir=$backup_dir" >> "$GITHUB_OUTPUT"
+
+          bash scripts/backup-supabase.sh "$backup_dir"
+          bun scripts/visit-photo-backup.mjs export "$backup_dir"
+
+          app_version="$(bun -e 'import { APP_VERSION } from "./src/lib/matrundan/version.ts"; process.stdout.write(APP_VERSION)')"
+          MATRUNDAN_BACKUP_SOURCE_REF="$STAGING_SUPABASE_PROJECT_ID" \
+          MATRUNDAN_BACKUP_APP_VERSION="$app_version" \
+          MATRUNDAN_BACKUP_RELEASE_SHA="$(git rev-parse HEAD)" \
+            bun scripts/backup-manifest.mjs create "$backup_dir"
+          bun scripts/backup-manifest.mjs verify "$backup_dir"
+
+      - name: Start empty local Supabase stack from repo migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase start
+
+      - name: Restore and verify locally
+        shell: bash
+        env:
+          BACKUP_DIR: ${{ steps.backup.outputs.backup_dir }}
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          : "${DB_URL:?Supabase CLI status did not expose DB_URL}"
+          : "${API_URL:?Supabase CLI status did not expose API_URL}"
+          : "${SERVICE_ROLE_KEY:?Supabase CLI status did not expose SERVICE_ROLE_KEY}"
+
+          export LOCAL_SUPABASE_DB_URL="$DB_URL"
+          export TARGET_SUPABASE_URL="$API_URL"
+          export TARGET_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          bash scripts/restore-supabase-local.sh "$BACKUP_DIR"
+
+      - name: Summarize recovery drill
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo '## Recovery restore drill'
+            echo
+            echo "- Candidate SHA: \`$(git rev-parse HEAD)\`"
+            echo '- Source: Matrundan Staging (read-only backup/export)'
+            echo '- Restore target: ephemeral local Supabase/Docker stack'
+            echo '- Database/Auth restore: verified'
+            echo '- Private visit media: byte-verified'
+            echo '- Inventory + production preflight: verified'
+            echo '- Authenticated group read: verified'
+            echo '- Production Supabase: untouched'
+            echo '- Backup artifacts: not uploaded or retained by this workflow'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Destroy local restore target and private backup files
+        if: always()
+        shell: bash
+        env:
+          BACKUP_DIR: ${{ steps.backup.outputs.backup_dir }}
+        run: |
+          set +e
+          supabase stop --no-backup >/dev/null 2>&1
+          if [[ -n "${BACKUP_DIR:-}" && "$BACKUP_DIR" == "$RUNNER_TEMP"/matrundan-recovery-* ]]; then
+            rm -rf -- "$BACKUP_DIR"
+          fi
