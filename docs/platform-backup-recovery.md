@@ -59,7 +59,7 @@ En generation är **inte off-site-backup** förrän den därefter har lagrats kr
 
 ## Återställningsordning
 
-Restoreövning ska göras mot en separat tom testmiljö, aldrig mot staging eller production. För den kostnadsfria pre-cutoverövningen används en ephemer lokal Supabase-stack i Docker; den förbrukar inget extra Supabase-projekt och förstörs efter körningen. Normal ordning är:
+Restoreövning ska göras mot en separat tom testmiljö, aldrig mot staging eller production. För den kostnadsfria pre-cutoverövningen används en tillfällig lokal Supabase-stack i Docker; den förbrukar inget extra Supabase-projekt och förstörs efter körningen. Normal ordning är:
 
 1. verifiera `backup-manifest.json` innan någon import;
 2. starta en tom lokal Supabase-stack och applicera repoets aktuella migrationer i ordning;
