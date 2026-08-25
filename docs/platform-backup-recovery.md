@@ -69,7 +69,9 @@ Restoreövning ska göras mot en separat tom testmiljö, aldrig mot staging elle
 6. kör `supabase/production-preflight.sql`, radantals-/integritetskontroller och autentiserad smoke mot en verklig återställd testgrupp;
 7. dokumentera faktisk start/sluttid, backupgeneration och resultat så att uppmätt RTO är känd.
 
-`Recovery restore drill` (`.github/workflows/recovery-restore.yml`) är den manuella pre-cutovergrinden för denna övning. Den får endast köras från en uttryckligen angiven exakt `main`-SHA, läser Staging med hemligheter från GitHubs `staging`-environment och återställer bara till runnerns lokala Docker-stack. Backupgenerationen ligger endast på runnerns temporära disk, laddas inte upp som Actions-artifact och tas bort tillsammans med den lokala stacken efter körningen. PR-kod får därmed inte staging-hemligheterna.
+`Recovery restore drill` (`.github/workflows/recovery-restore.yml`) är den manuella pre-cutovergrinden. Den får endast köras från en uttryckligen angiven exakt `main`-SHA och kan använda antingen GitHubs `staging`-environment för repetition eller `production`-environment för den slutliga recoverygrinden efter liveimporten till Matrundan Prod. Productionkälla kräver ett extra uttryckligt workflow-val, läses endast för backup/export och återställs aldrig tillbaka till Prod. Själva restoremålet är alltid runnerns lokala Docker-stack.
+
+Backupgenerationen ligger endast på runnerns temporära disk, laddas inte upp som Actions-artifact och tas bort tillsammans med den lokala stacken efter körningen. PR-kod får inte staging- eller production-hemligheterna eftersom jobbet endast kan köras från `main`.
 
 Mediarestore är idempotent på byte-nivå: ett redan korrekt målobjekt lämnas orört, annars laddas backupens objekt upp och verifieras med SHA-256 efteråt.
 
