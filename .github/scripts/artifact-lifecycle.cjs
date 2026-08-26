@@ -23,9 +23,7 @@ function matchesPrArtifact(name, prNumber, scope) {
 
 function isLegacyArtifact(name) {
   return (
-    name === "formatting-patch" ||
-    name === "playwright-report" ||
-    /^visual-review-\d+$/.test(name)
+    name === "formatting-patch" || name === "playwright-report" || /^visual-review-\d+$/.test(name)
   );
 }
 
@@ -82,8 +80,7 @@ module.exports = async function cleanupArtifacts({
 
   if (requireCurrentArtifact) {
     const hasCurrentArtifact = candidates.some(
-      (artifact) =>
-        !isLegacyArtifact(artifact.name) && artifact.workflow_run?.id === runId,
+      (artifact) => !isLegacyArtifact(artifact.name) && artifact.workflow_run?.id === runId,
     );
 
     if (!hasCurrentArtifact) {
