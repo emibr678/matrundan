@@ -7,6 +7,7 @@ const inheritedEnvironment = Object.fromEntries(
 const e2eSupabaseUrl = process.env.VITE_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const e2eSupabasePublishableKey =
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_matrundan_e2e";
+const e2eGeoapifyMapsKey = process.env.VITE_GEOAPIFY_MAPS_KEY ?? "matrundan-e2e-map-key";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -33,6 +34,9 @@ export default defineConfig({
       // those tests portable after the tracked .env was removed by the platform migration.
       VITE_SUPABASE_URL: e2eSupabaseUrl,
       VITE_SUPABASE_PUBLISHABLE_KEY: e2eSupabasePublishableKey,
+      // Map tests intercept Geoapify's style request. A non-secret dummy key keeps
+      // the production code path active without making an external request.
+      VITE_GEOAPIFY_MAPS_KEY: e2eGeoapifyMapsKey,
     },
   },
   projects: [
