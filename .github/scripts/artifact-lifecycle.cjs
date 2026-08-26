@@ -64,10 +64,7 @@ module.exports = async function cleanupArtifacts({
   const { owner, repo } = context.repo;
   const runId = Number(currentRunId || 0);
   const artifacts = await listArtifacts(github, owner, repo);
-  const totalBytes = artifacts.reduce(
-    (sum, artifact) => sum + (artifact.size_in_bytes || 0),
-    0,
-  );
+  const totalBytes = artifacts.reduce((sum, artifact) => sum + (artifact.size_in_bytes || 0), 0);
   const totalMiB = (totalBytes / 1024 / 1024).toFixed(1);
   core.info(`Artifact inventory: ${artifacts.length} artifact(s), ${totalMiB} MiB.`);
 
