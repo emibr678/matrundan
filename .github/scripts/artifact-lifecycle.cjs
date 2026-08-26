@@ -1,18 +1,18 @@
-'use strict';
+"use strict";
 
-const CI_PREFIXES = ['formatting-patch-pr-', 'playwright-report-pr-'];
-const VISUAL_PREFIX = 'visual-review-pr-';
+const CI_PREFIXES = ["formatting-patch-pr-", "playwright-report-pr-"];
+const VISUAL_PREFIX = "visual-review-pr-";
 
 function matchesPrArtifact(name, prNumber, scope) {
   const pr = String(prNumber);
 
-  if (scope === 'ci' || scope === 'all') {
+  if (scope === "ci" || scope === "all") {
     if (CI_PREFIXES.some((prefix) => name === `${prefix}${pr}`)) {
       return true;
     }
   }
 
-  if (scope === 'visual' || scope === 'all') {
+  if (scope === "visual" || scope === "all") {
     if (name.startsWith(`${VISUAL_PREFIX}${pr}-`)) {
       return true;
     }
@@ -23,8 +23,8 @@ function matchesPrArtifact(name, prNumber, scope) {
 
 function isLegacyArtifact(name) {
   return (
-    name === 'formatting-patch' ||
-    name === 'playwright-report' ||
+    name === "formatting-patch" ||
+    name === "playwright-report" ||
     /^visual-review-\d+$/.test(name)
   );
 }
@@ -56,7 +56,7 @@ module.exports = async function cleanupArtifacts({
   core,
   prNumber,
   currentRunId,
-  scope = 'all',
+  scope = "all",
   keepCurrent = false,
   cleanupLegacy = false,
   requireCurrentArtifact = false,
@@ -64,6 +64,12 @@ module.exports = async function cleanupArtifacts({
   const { owner, repo } = context.repo;
   const runId = Number(currentRunId || 0);
   const artifacts = await listArtifacts(github, owner, repo);
+  const totalBytes = artifacts.reduce(
+    (sum, artifact) => sum + (artifact.size_in_bytes || 0),
+    0,
+  );
+  const totalMiB = (totalBytes / 1024 / 1024).toFixed(1);
+  core.info(`Artifact inventory: ${artifacts.length} artifact(s), ${totalMiB} MiB.`);
 
   const candidates = artifacts.filter((artifact) => {
     if (cleanupLegacy && isLegacyArtifact(artifact.name)) {
@@ -84,9 +90,7 @@ module.exports = async function cleanupArtifacts({
     );
 
     if (!hasCurrentArtifact) {
-      core.info(
-        'No replacement artifact exists for the current run; keeping older artifacts.',
-      );
+      core.info("No replacement artifact exists for the current run; keeping older artifacts.");
       return;
     }
   }
@@ -125,7 +129,8 @@ module.exports = async function cleanupArtifacts({
   );
 
   await core.summary
-    .addHeading('Artifact lifecycle cleanup')
+    .addHeading("Artifact lifecycle cleanup")
+    .addRaw(`Inventory before cleanup: ${artifacts.length} artifact(s), ${totalMiB} MiB\n`)
     .addRaw(`Deleted: ${deletedCount} artifact(s), ${deletedMiB} MiB\n`)
     .addRaw(`Kept from current run: ${kept.length}\n`)
     .write();
