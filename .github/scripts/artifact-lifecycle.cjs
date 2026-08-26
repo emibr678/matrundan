@@ -38,6 +38,7 @@ module.exports = async function cleanupArtifacts({
   scope = 'all',
   keepCurrent = false,
   cleanupLegacy = false,
+  requireCurrentArtifact = false,
 }) {
   const { owner, repo } = context.repo;
   const runId = Number(currentRunId || 0);
@@ -58,6 +59,18 @@ module.exports = async function cleanupArtifacts({
 
     return matchesPrArtifact(artifact.name, prNumber, scope);
   });
+
+  if (requireCurrentArtifact) {
+    const hasCurrentArtifact = candidates.some(
+      (artifact) =>
+        !isLegacyArtifact(artifact.name) && artifact.workflow_run?.id === runId,
+    );
+
+    if (!hasCurrentArtifact) {
+      core.info('No replacement artifact exists for the current run; keeping older artifacts.');
+      return;
+    }
+  }
 
   let deletedCount = 0;
   let deletedBytes = 0;
