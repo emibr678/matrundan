@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const SUPABASE_AUTH_STORAGE_KEY = "sb-bkyzxkfrenbbkgiymofk-auth-token";
+const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
 type RecordedMutation = {
   rpc: string;
