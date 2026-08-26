@@ -30,31 +30,9 @@ async function expectTransparentBrandMark(
   expect(styles.loaded).toBe(true);
 }
 
-function reportLandingDiagnostics(page: import("@playwright/test").Page) {
-  page.on("pageerror", (error) => {
-    console.log(`[brand-diagnostic:pageerror] ${error.name}: ${error.message}`);
-  });
-  page.on("console", (message) => {
-    if (message.type() === "error") {
-      console.log(`[brand-diagnostic:console-error] ${message.text()}`);
-    }
-  });
-}
-
-async function reportLandingState(page: import("@playwright/test").Page) {
-  const headerCount = await page.locator("header").count();
-  const bodyText = (await page.locator("body").innerText())
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 500);
-  console.log(`[brand-diagnostic:state] header=${headerCount} body=${JSON.stringify(bodyText)}`);
-}
-
 test("landningen använder central brand och gemensam Om-dialog", async ({ page }) => {
-  reportLandingDiagnostics(page);
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
-  await reportLandingState(page);
 
   await expectTransparentBrandMark(page.locator("header"), "lockup");
   await expect(page.getByRole("link", { name: "Matrundan" }).first()).toBeVisible();
