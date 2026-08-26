@@ -68,10 +68,10 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   await areaInput.press("Enter");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Södermalm");
   await expect(areaInput).toHaveCount(0);
-  await expect(page.getByRole("status")).toContainText("5 av 5 områden valda.");
-  await expect(page.getByRole("status")).toContainText(
-    "Ta bort ett område för att söka efter ett annat.",
-  );
+  const searchRegion = dialog.getByRole("region", { name: "Sök i" });
+  const searchStatus = searchRegion.getByRole("status");
+  await expect(searchStatus).toContainText("5 av 5 områden valda.");
+  await expect(searchStatus).toContainText("Ta bort ett område för att söka efter ett annat.");
 
   const selectedAreas = page.getByRole("list", { name: "Valda sökområden" });
   const pillHeights = await selectedAreas
@@ -86,7 +86,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
     "krysset ska behålla minst 44 px effektiv tryckyta",
   ).toBeGreaterThanOrEqual(32);
   await removeTarget.click();
-  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(searchStatus).toHaveCount(0);
   await expect(
     dialog.getByRole("combobox", { name: "Lägg till område eller adress", exact: true }),
   ).toHaveAttribute("placeholder", "Sök kommun, ort, stadsdel eller adress");
