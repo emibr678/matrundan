@@ -1,7 +1,16 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const inheritedEnvironment = Object.fromEntries(
+  Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+);
+
+const e2eSupabaseUrl = process.env.VITE_SUPABASE_URL ?? "http://127.0.0.1:54321";
+const e2eSupabasePublishableKey =
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_matrundan_e2e";
+
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: process.env.CI ? "./tests/e2e/global-setup.ts" : undefined,
   timeout: 30_000,
   expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,
@@ -18,6 +27,13 @@ export default defineConfig({
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      ...inheritedEnvironment,
+      // Generic browser tests exercise landing/demo without a live backend. Keep
+      // those tests portable after the tracked .env was removed by the platform migration.
+      VITE_SUPABASE_URL: e2eSupabaseUrl,
+      VITE_SUPABASE_PUBLISHABLE_KEY: e2eSupabasePublishableKey,
+    },
   },
   projects: [
     {

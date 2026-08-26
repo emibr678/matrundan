@@ -77,6 +77,39 @@ checks(name, ok) AS (
       )
     ),
     (
+      'visit-photo:authenticated-can-call-membership-helper',
+      COALESCE(
+        has_function_privilege(
+          'authenticated',
+          to_regprocedure('public.has_membership(uuid,uuid)'),
+          'EXECUTE'
+        ),
+        false
+      )
+    ),
+    (
+      'visit-photo:service-role-can-call-membership-helper',
+      COALESCE(
+        has_function_privilege(
+          'service_role',
+          to_regprocedure('public.has_membership(uuid,uuid)'),
+          'EXECUTE'
+        ),
+        false
+      )
+    ),
+    (
+      'visit-photo:anon-cannot-call-membership-helper',
+      COALESCE(
+        NOT has_function_privilege(
+          'anon',
+          to_regprocedure('public.has_membership(uuid,uuid)'),
+          'EXECUTE'
+        ),
+        false
+      )
+    ),
+    (
       'visit-photo:anon-cannot-call-current-user-guard',
       COALESCE(
         NOT has_function_privilege(

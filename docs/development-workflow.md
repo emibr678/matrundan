@@ -24,6 +24,10 @@ Skilj alltid mellan:
    genomförs separat.
 8. **Publicering** — verifierad version görs publik separat.
 
+Cloudflare branch-/PR-preview är normal verifieringsinfrastruktur och ska inte
+blandas ihop med fas 6 ovan. En Cloudflare-preview är inte Lovable-synk och är
+aldrig i sig en publicering.
+
 En ny funktion eller större förändring får inte implementeras före uttryckligt
 implementationsgodkännande. Implementation innebär inte godkännande för merge,
 databas eller publicering. Bredda inte scope tyst.
@@ -72,6 +76,25 @@ att patcha, committa eller pusha produktkod tillbaka till en branch.
 PR-mallen är ett evidenskvitto. Den ska beskriva vad som faktiskt ändrades,
 vilken riskprofil som gäller, vad som verifierats och vad som återstår; den ska
 inte återberätta hela detta dokument.
+
+### Cloudflare branch-preview och staging
+
+När Cloudflare-runtime är aktiv för utvecklingsflödet gäller den låsta
+miljömodellen i `docs/platform-migration-plan.md`:
+
+- feature-/PR-brancher får automatiska preview-versioner av Worker `staging`;
+- preview använder demo/fixtures eller Supabase **Matrundan Staging** och får
+  aldrig produktions-service-role, produktionsdatabasens skrivprivilegier eller
+  andra produktionshemligheter;
+- `main` är staging-Workerns produktionsbranch i Cloudflare och en merge kan
+  därför uppdatera den stabila `staging.matrundan.workers.dev`;
+- den stagingdeploymenten är verifieringsmiljö, inte Matrundans publicerade
+  produktion;
+- Worker `app` och Wrangler-miljön `prod` får inte auto-promoveras enbart för att
+  `main` ändras. Produktion kräver separat publiceringsgodkännande.
+
+Exakta Wrangler-/Cloudflare-kommandon och dashboardinställningar hör hemma i
+`DEVELOPMENT.md`, inte här.
 
 ## 4. Diagnostik och implementation
 
@@ -195,7 +218,9 @@ Merge får ske först när:
 - användaren har uttryckligen godkänt merge.
 
 Merge betyder inte att databasen är driftsatt, att Lovable visar senaste `main`
-eller att den publika appen är publicerad.
+eller att den publika appen är publicerad. Om Cloudflare staging följer `main`
+kan merge däremot automatiskt uppdatera staging; det räknas fortfarande som
+verifieringsmiljö och inte publicering.
 
 Efter merge, bekräfta att rätt Issue stängdes och att stängda issues inte ligger
 kvar med operativa `status:ready`/`order:*`-etiketter. Kontrollera roadmapen bara
@@ -209,6 +234,10 @@ uttryckliga godkännanden.
 Vid databasarbete ska migrations-/preflightkontraktet i arkitekturen och repots
 SQL-/kontraktskontroller följas. Skriv inte att en migration, schema-cache reload
 eller autentiserad smoke är genomförd utan faktisk bekräftelse.
+
+För Cloudflare betyder publicering att en uttryckligen godkänd kandidat promoveras
+eller deployas till Worker `app` via Wrangler-miljön `prod`. En PR-preview eller
+en automatisk deployment av `main` till Worker `staging` är inte publicering.
 
 Publicering kräver konsekvent version, in-app-historik och `CHANGELOG.md` när
 ändringen är releasepliktig. En dokumentations- eller maintenance-PR behöver

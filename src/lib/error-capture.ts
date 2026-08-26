@@ -1,4 +1,6 @@
-// Captures the original Error out-of-band so server.ts can recover the stack
+import { safeErrorCode } from "./observability";
+
+// Captures the original Error out-of-band so server.ts can recover the failure
 // when h3 has already swallowed the throw into a generic 500 Response.
 
 let lastCapturedError: { error: unknown; at: number } | undefined;
@@ -8,10 +10,6 @@ function record(error: unknown) {
   lastCapturedError = { error, at: Date.now() };
 }
 
-// h3's HTTPError serializes to {"status":500,"unhandled":true,"message":"HTTPError"} —
-// no stack, no cause — so a plain console.error(error) reaches the log pipeline with
-// the failure detail stripped. Expand Error-like args into a string that keeps the
-// message, stack, and the full cause chain.
 const CAUSE_DEPTH_LIMIT = 5;
 const DESCRIPTION_LENGTH_LIMIT = 8_000;
 
@@ -49,15 +47,22 @@ function isErrorLike(value: unknown): value is Error {
   return value instanceof Error;
 }
 
-// Wrap console.error so errors logged by any layer — including h3's internal
-// unhandled-error logging, which this file cannot hook directly — are both
-// recorded for consumeLastCapturedError and expanded before serialization.
+function redactCentralErrorDetails(): boolean {
+  const environment = process.env.MATRUNDAN_ENVIRONMENT?.trim().toLowerCase();
+  return environment === "staging" || environment === "prod";
+}
+
+// h3 can log the original Error before server.ts regains control. Preserve that
+// Error out-of-band for our structured logger, but do not persist its raw message,
+// stack or cause chain in staging/production Workers Logs.
 const originalConsoleError = console.error.bind(console);
 console.error = (...args: unknown[]) => {
   const expanded = args.map((arg) => {
     if (!isErrorLike(arg)) return arg;
     record(arg);
-    return describeError(arg);
+    return redactCentralErrorDetails()
+      ? JSON.stringify({ event: "runtime_error_redacted", error_code: safeErrorCode(arg) })
+      : describeError(arg);
   });
   originalConsoleError(...expanded);
 };

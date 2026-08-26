@@ -1,0 +1,50 @@
+{
+  "name": "staging",
+  "main": ".output/server/index.mjs",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".output/public"
+  },
+  "compatibility_date": "2026-08-16",
+  "workers_dev": true,
+  "preview_urls": true,
+  "keep_vars": true,
+  "no_bundle": true,
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": ["**/*.mjs", "**/*.js"]
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "staging",
+      "workers_dev": true,
+      "preview_urls": true,
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "invocation_logs": false
+        }
+      }
+    },
+    "prod": {
+      "name": "app",
+      "workers_dev": true,
+      "preview_urls": false,
+      "secrets": {
+        "required": ["GEOAPIFY_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "VAPID_PRIVATE_KEY"]
+      },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "invocation_logs": false
+        }
+      }
+    }
+  }
+}

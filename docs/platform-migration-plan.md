@@ -60,7 +60,9 @@ Den primära målbilden är:
 GitHub + Codex
       |
       v
-Leverantörsneutral publik HTTPS-domän
+Stabil HTTPS-bas-URL
+  - staging.matrundan.workers.dev
+  - app.matrundan.workers.dev
       |
       v
 Cloudflare
@@ -86,10 +88,34 @@ Målbilden är inte ett krav att varje ruta måste användas för alltid. Cloudf
 Supabase, R2 och Geoapify ska behandlas som utbytbara infrastrukturtjänster bakom
 tydliga kontrakt.
 
-Den publika identiteten ska på sikt ligga på en domän som Matrundan kontrollerar,
-inte på en hostingleverantörs standarddomän. Exakt domän och tidpunkt är ett
-separat beslut, men stabila användarlänkar, OAuth-callbacks och framtida Universal
-Links/App Links får inte behöva byta identitet bara för att hosting byts.
+Under den kostnadsfria driftfasen används Cloudflares `workers.dev` som stabil
+publik hostingadress. Egen domän är inte ett krav för migrationen eller för
+produktion; den kan läggas till senare endast om produktbehov eller kostnadsbild
+motiverar det. Produktkod och delningskontrakt ska därför läsa publik bas-URL från
+konfiguration i stället för att sprida ett hårdkodat hostingnamn i domänlogik eller
+data.
+
+### Låst miljömodell
+
+Wrangler använder de namngivna miljöerna `staging` och `prod` i en gemensam
+konfiguration för samma applikation:
+
+- `staging` använder Worker `staging`, stabil URL
+  `https://staging.matrundan.workers.dev` och Supabase-projektet **Matrundan
+  Staging**;
+- `prod` använder Worker `app`, stabil URL `https://app.matrundan.workers.dev`
+  och ett separat Supabase-projekt **Matrundan Production** när det skapas;
+- PR-/featurebrancher skapar preview-versioner av staging-Workern och får använda
+  demo/fixtures eller stagingresurser, aldrig produktionshemligheter eller
+  produktionsskrivningar;
+- `main` är staging-Workerns produktionsbranch i Cloudflare och uppdaterar den
+  stabila stagingdeploymenten efter merge;
+- en merge till `main` får inte ensam promovera eller deploya `prod`. Produktion
+  kräver fortsatt ett separat uttryckligt publiceringsgodkännande.
+
+Cloudflares etikett **Production** för en aktiv Worker-deployment ska inte blandas
+ihop med Matrundans produktionsmiljö. För Workern `staging` betyder en aktiv
+Cloudflare Production-deployment fortfarande Matrundans stagingmiljö.
 
 ## Varaktiga portabilitetsprinciper
 
@@ -184,13 +210,15 @@ byte motiverar det.
 
 ### Publik URL-identitet och deep links
 
-Inbjudningar och andra delbara objekt ska ha kanoniska HTTPS-länkar under en
-leverantörsneutral domän som Matrundan kontrollerar. En framtida native-app ska
-kunna registrera samma domän för iOS Universal Links och Android App Links och
-öppna motsvarande interna vy utan att länkkontraktet behöver bytas.
+Inbjudningar och andra delbara objekt ska använda en konfigurerad stabil HTTPS-
+bas-URL. Under den kostnadsfria driftfasen är produktionens avsedda bas-URL
+`https://app.matrundan.workers.dev`; staging- och previewadresser får inte sparas
+som kanoniska produktlänkar.
 
-Hostingleverantörens preview- eller standarddomän är inte en kanonisk
-produktidentitet.
+Hostnamnet är deploymentkonfiguration, inte domändata. Delbara objekt ska därför
+kunna renderas under en framtida annan bas-URL utan att grupp-, besöks- eller
+inbjudningsidentiteter behöver modelleras om. En framtida egen domän eller native
+Universal/App Links är ett separat beslut, inte ett krav för dagens webbdrift.
 
 ### Auth
 
@@ -291,6 +319,8 @@ krav ger ett konkret skäl;
 - håll Cloudflare-bindings i deployment-/servergränsen och inte i domänmoduler;
 - behåll befintliga lokala verifieringskommandon;
 - etablera preview per branch/PR och dokumentera exakt head-SHA;
+- låt staging-Workerns stabila deployment följa `main` efter merge och låt
+  icke-produktionsbrancher använda preview-versioner av samma staging-Worker;
 - ge preview endast miljöspecifika secrets och data; produktions-service-role och
   generella produktionsskrivningar får inte följa med automatiskt;
 - använd demo/fixtures eller separat stagingbackend som normal previewkälla;
@@ -322,8 +352,7 @@ Krav:
 - ny inloggning efter cutover är tillåten om det ger renare nyckelrotation och
   säkrare migration;
 - lösenordsreset/OAuth/inbjudningsflöden testas;
-- stabil leverantörsneutral HTTPS-domän används för produktionscallbacks när den
-  finns;
+- den konfigurerade stabila produktions-URL:en används för produktionscallbacks;
 - framtida native callback kan läggas till utan att webbflödet ersätts;
 - redirectallowlists får inte öppnas bredare än nödvändigt för branch previews.
 
@@ -492,8 +521,7 @@ Före cutover:
 
 - ny Cloudflare production-kandidat pekar på mål-Supabase;
 - exakt release/head-SHA dokumenteras;
-- stabil publik domän, TLS och redirect/callbackkonfiguration är verifierade när
-  domänbytet ingår;
+- stabil production-URL, TLS och redirect/callbackkonfiguration är verifierade;
 - demo/exempel fungerar;
 - autentiserat live-läge fungerar;
 - inloggning/reset testas;
@@ -522,11 +550,11 @@ Rollback ska beskriva:
 - när skrivningar måste stoppas;
 - hur gamla Lovable-produktionen återaktiveras om cutover misslyckas;
 - hur nya skrivningar efter cutover hanteras om rollback ändå krävs;
-- hur DNS/custom-domain pekas tillbaka utan att skapa två samtidiga skrivkällor;
+- hur publik runtime/routing återställs utan att skapa två samtidiga skrivkällor;
 - vilka authsessioner som kan behöva logga in igen efter rollback eller
   nyckelrotation.
 
-Ingen DNS/publiceringsändring görs utan uttryckligt publiceringsgodkännande.
+Ingen publiceringsändring görs utan uttryckligt publiceringsgodkännande.
 
 ### Fas 8 – avveckla Lovable som runtimekrav
 
@@ -574,9 +602,10 @@ Appens domänkod och TanStack-authoringmodell ska inte kräva Cloudflarebindings
 utanför små deployment/runtimeadapters. Ett framtida byte till annan JS-runtime
 får kräva deployarbete men inte omskrivning av grupp- eller datamodellen.
 
-Den kanoniska publika domänen ska kontrolleras av Matrundan så hosting kan bytas
-utan att användarlänkar, OAuth-identitet eller framtida Universal/App Links
-behöver byta domän.
+Den publika bas-URL:en är konfiguration. Under gratisdriften får den vara
+`app.matrundan.workers.dev`; ett framtida hosting- eller domänbyte får kräva en
+kontrollerad länkövergång men ska inte kräva att kanoniska grupp-, plats-, besöks-
+eller inbjudningsidentiteter skrivs om.
 
 ### Supabase
 
@@ -611,8 +640,11 @@ läggas till eller ersätta Geoapify utan att besökshistorik skrivs om.
 
 Följande är öppna tills respektive fas har aktuell teknisk verifiering:
 
-- exakt Cloudflare deploymentkonfiguration för aktuell TanStack Start-version;
-- exakt leverantörsneutral publik domän och när cutover till den sker;
+- exakt Cloudflare runtime-/frameworkintegration efter den nuvarande Nitro-
+  övergångsbryggan; miljönamnen `staging`/`prod` och Worker-namnen `staging`/`app`
+  är däremot låsta;
+- om en egen domän någon gång ger tillräckligt produktvärde för att motivera en
+  extra kostnad; den är inte ett migrationskrav;
 - om media ska ligga i Supabase Storage eller R2 efter cutover;
 - exakt backupmotor, RPO/RTO, frekvens och retention;
 - exakt authmigrationsmetod för identities/lösenord och om befintliga sessioner

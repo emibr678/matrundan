@@ -2,7 +2,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-const SUPABASE_AUTH_STORAGE_KEY = "sb-bkyzxkfrenbbkgiymofk-auth-token";
+const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
 async function installOwnerSession(page: Page) {
   const ownerId = "11111111-1111-4111-8111-111111111111";

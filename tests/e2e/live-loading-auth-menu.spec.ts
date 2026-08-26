@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-const SUPABASE_AUTH_STORAGE_KEY = "sb-bkyzxkfrenbbkgiymofk-auth-token";
+// Playwrights portabla testmiljö använder http://127.0.0.1:54321 som Supabase-URL.
+// Supabase härleder då sin lokala auth-storage key från hostens projektref "127".
+const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
 test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page }) => {
   const userId = "11111111-1111-4111-8111-111111111111";

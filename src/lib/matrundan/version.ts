@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_2_CHANGELOG: ChangelogEntry = {
+  version: "1.38.2",
+  date: "2026-08-22",
+  summary: "Inloggning och drift har flyttats till en portablare teknisk grund.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Google-inloggningen går direkt via Supabase Auth och appens byggkedja använder TanStack Start, Vite och Nitro utan Lovable-specifik auth- eller build-wrapper. Det ändrar inte gruppdata eller hur appen används.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_1_CHANGELOG: ChangelogEntry = {
   version: "1.38.1",
   date: "2026-08-20",
@@ -174,6 +188,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_2_CHANGELOG,
   VERSION_1_38_1_CHANGELOG,
   VERSION_1_38_0_CHANGELOG,
   VERSION_1_37_0_CHANGELOG,

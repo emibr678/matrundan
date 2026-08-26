@@ -7,7 +7,6 @@
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 
 export type AppMode = "landing" | "demo" | "live";
 export type GroupRole = "owner" | "admin" | "member";
@@ -27,8 +26,6 @@ type RpcResponse = {
 };
 
 type RpcCall = (fn: string, args?: Record<string, unknown>) => Promise<RpcResponse>;
-
-const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
 
 interface SessionState {
   loading: boolean;
@@ -135,6 +132,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
     const { data, error } = await rpc("list_user_groups_v4b");
     if (error) {
       console.error("[Matrundan] kunde inte läsa medlemskap:", error);
@@ -143,15 +141,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
 
     const groups: UserGroupSummary[] = ((data ?? []) as UserGroupSummary[])
-      .map(
-        (group): UserGroupSummary => ({
-          id: group.id,
-          name: group.name,
-          emoji: group.emoji,
-          role: group.role,
-          lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
-        }),
-      )
+      .map((group): UserGroupSummary => ({
+        id: group.id,
+        name: group.name,
+        emoji: group.emoji,
+        role: group.role,
+        lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
+      }))
       .sort((a, b) => {
         if (a.lifecycleStatus !== b.lifecycleStatus) {
           return a.lifecycleStatus === "active" ? -1 : 1;
@@ -209,12 +205,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const origin = typeof window !== "undefined" ? window.location.origin : undefined;
     clearExampleSession();
     if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: origin,
+      },
     });
-    if (result.error) {
-      console.error("[Matrundan] Google-inloggning misslyckades:", result.error);
-      throw result.error;
+    if (error) {
+      console.error("[Matrundan] Google-inloggning misslyckades:", error);
+      throw error;
     }
   }, []);
 

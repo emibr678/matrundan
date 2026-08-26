@@ -8,7 +8,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { installBrowserErrorReporting, reportBrowserError } from "../lib/browser-error-reporting";
 import { AppShell } from "@/components/matrundan/AppShell";
 
 function NotFoundComponent() {
@@ -34,7 +34,7 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportBrowserError(error, { mechanism: "react_error_boundary", handled: true });
   }, [error]);
 
   return (
@@ -115,5 +115,6 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootProviders({ children }: { children: ReactNode }) {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => installBrowserErrorReporting(), []);
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

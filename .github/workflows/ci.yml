@@ -164,14 +164,14 @@ jobs:
       - name: Playwright TypeScript
         run: bun run typecheck:e2e
 
-      - name: Production build
-        run: bun run build
+      - name: Production build and Cloudflare staging artifact
+        run: bun run cloudflare:build
 
   browser:
     needs: verify
     if: needs.verify.result == 'success' && needs.verify.outputs.has_ui == 'true'
     runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
-    timeout-minutes: 25
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -231,8 +231,40 @@ jobs:
         if: runner.environment == 'self-hosted' && needs.verify.outputs.has_map == 'true'
         run: bunx playwright install chromium webkit
 
+      - name: Browser diagnostics before smoke
+        run: |
+          echo "Started: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "Runner: ${{ runner.name }} (${{ runner.os }}/${{ runner.arch }}, ${{ runner.environment }})"
+          bunx playwright --version
+          echo "Disk before smoke:"
+          df -h . || true
+          echo "Mobile Chromium tests discovered:"
+          bunx playwright test --project=mobile-chromium --list
+
       - name: Full mobile Chromium smoke test
-        run: bun run test:mobile
+        run: |
+          started="$(date +%s)"
+          echo "Smoke started: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          set +e
+          bun run test:mobile -- --max-failures=1 --retries=0
+          status=$?
+          set -e
+          finished="$(date +%s)"
+          echo "Smoke finished: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "Smoke duration: $((finished - started))s"
+          echo "Smoke exit code: $status"
+          exit "$status"
+
+      - name: Browser diagnostics after smoke
+        if: always()
+        run: |
+          echo "Finished: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "Disk after smoke:"
+          df -h . || true
+          echo "Playwright result files:"
+          find test-results -maxdepth 3 -type f -print 2>/dev/null || true
+          echo "Playwright report files:"
+          find playwright-report -maxdepth 2 -type f -print 2>/dev/null || true
 
       - name: iPhone and desktop map compatibility
         if: needs.verify.outputs.has_map == 'true'
@@ -240,6 +272,7 @@ jobs:
 
       - name: Upload browser report on failure
         if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
