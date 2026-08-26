@@ -7,12 +7,10 @@ const inheritedEnvironment = Object.fromEntries(
 const e2eSupabaseUrl = process.env.VITE_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const e2eSupabasePublishableKey =
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_matrundan_e2e";
-const e2eServerCommand = process.env.CI
-  ? "bun run build && bun run preview -- --host 127.0.0.1 --port 4173"
-  : "bun run dev -- --host 127.0.0.1 --port 4173";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: process.env.CI ? "./tests/e2e/global-setup.ts" : undefined,
   timeout: 30_000,
   expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,
@@ -25,7 +23,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: e2eServerCommand,
+    command: "bun run dev -- --host 127.0.0.1 --port 4173",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
