@@ -104,12 +104,12 @@ async function expectMarkerClustering(mapRegion: ReturnType<Page["getByRole"]>) 
 }
 
 test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ page }) => {
-  let mapStyleRequests = 0;
   const workerUrls: string[] = [];
   page.on("worker", (worker) => workerUrls.push(worker.url()));
 
+  // If a real Geoapify key is present, keep the style request deterministic and offline.
+  // Without a key, PlaceMap intentionally exercises its local fallback style instead.
   await page.route("https://maps.geoapify.com/v1/styles/**", async (route) => {
-    mapStyleRequests += 1;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -159,7 +159,6 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
     name: /Karta med \d+ av \d+ matställen/,
   });
   await expect(placesMap).toBeVisible();
-  await expect.poll(() => mapStyleRequests).toBeGreaterThan(0);
   await expect
     .poll(() =>
       workerUrls.some((url) => {
