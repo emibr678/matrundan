@@ -43,7 +43,10 @@ function reportLandingDiagnostics(page: import("@playwright/test").Page) {
 
 async function reportLandingState(page: import("@playwright/test").Page) {
   const headerCount = await page.locator("header").count();
-  const bodyText = (await page.locator("body").innerText()).replace(/\s+/g, " ").trim().slice(0, 500);
+  const bodyText = (await page.locator("body").innerText())
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
   console.log(`[brand-diagnostic:state] header=${headerCount} body=${JSON.stringify(bodyText)}`);
 }
 
