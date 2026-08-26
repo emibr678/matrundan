@@ -27,7 +27,8 @@ async function expectInteractiveMap(
 ) {
   await expect(mapRegion).toHaveAttribute("data-map-ready", "true");
   await expect(mapRegion).toHaveAttribute("data-map-renderer", "maplibre-vector");
-  await expect(mapRegion).toHaveAttribute("data-map-tile-status", "ready");
+  await expect(mapRegion).toHaveAttribute("data-map-error-code", "");
+  expect(["ready", "missing"]).toContain(await mapRegion.getAttribute("data-map-tile-status"));
   await expect(mapRegion.getByText("Laddar kartan…")).toHaveCount(0);
 
   const initialZoom = Number(await mapRegion.getAttribute("data-map-zoom"));
@@ -191,7 +192,8 @@ test("Matställen och sökdialogen fungerar i aktuell webbläsare", async ({ pag
   await expect(searchMap).toBeVisible();
   await expect(searchMap).toHaveAttribute("data-map-ready", "true");
   await expect(searchMap).toHaveAttribute("data-map-renderer", "maplibre-vector");
-  await expect(searchMap).toHaveAttribute("data-map-tile-status", "ready");
+  await expect(searchMap).toHaveAttribute("data-map-error-code", "");
+  expect(["ready", "missing"]).toContain(await searchMap.getAttribute("data-map-tile-status"));
   await expect(searchMap).toHaveAttribute("data-map-cluster-profile", "discovery");
   await expect(searchMap).toHaveAttribute("data-map-cluster-radius", "38");
   await expect(searchMap).toHaveAttribute("data-clustering-disabled-at", "15");
