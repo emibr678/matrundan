@@ -29,6 +29,27 @@ function isLegacyArtifact(name) {
   );
 }
 
+async function listArtifacts(github, owner, repo) {
+  const artifacts = [];
+
+  for (let page = 1; ; page += 1) {
+    const response = await github.rest.actions.listArtifactsForRepo({
+      owner,
+      repo,
+      per_page: 100,
+      page,
+    });
+    const batch = response.data.artifacts || [];
+    artifacts.push(...batch);
+
+    if (batch.length < 100) {
+      break;
+    }
+  }
+
+  return artifacts;
+}
+
 module.exports = async function cleanupArtifacts({
   github,
   context,
@@ -42,11 +63,7 @@ module.exports = async function cleanupArtifacts({
 }) {
   const { owner, repo } = context.repo;
   const runId = Number(currentRunId || 0);
-  const artifacts = await github.paginate(
-    github.rest.actions.listArtifactsForRepo,
-    { owner, repo, per_page: 100 },
-    (response) => response.data.artifacts,
-  );
+  const artifacts = await listArtifacts(github, owner, repo);
 
   const candidates = artifacts.filter((artifact) => {
     if (cleanupLegacy && isLegacyArtifact(artifact.name)) {
@@ -67,7 +84,9 @@ module.exports = async function cleanupArtifacts({
     );
 
     if (!hasCurrentArtifact) {
-      core.info('No replacement artifact exists for the current run; keeping older artifacts.');
+      core.info(
+        'No replacement artifact exists for the current run; keeping older artifacts.',
+      );
       return;
     }
   }
