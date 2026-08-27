@@ -48,6 +48,26 @@ async function listArtifacts(github, owner, repo) {
   return artifacts;
 }
 
+async function getRunCreatedAt(github, owner, repo, runId, cache) {
+  if (cache.has(runId)) {
+    return cache.get(runId);
+  }
+
+  const response = await github.rest.actions.getWorkflowRun({
+    owner,
+    repo,
+    run_id: runId,
+  });
+  const createdAt = Date.parse(response.data.created_at || "");
+
+  if (!Number.isFinite(createdAt)) {
+    throw new Error(`Workflow run ${runId} has no valid created_at timestamp.`);
+  }
+
+  cache.set(runId, createdAt);
+  return createdAt;
+}
+
 module.exports = async function cleanupArtifacts({
   github,
   context,
@@ -89,17 +109,63 @@ module.exports = async function cleanupArtifacts({
     }
   }
 
+  const runCreatedAtCache = new Map();
+  let currentRunCreatedAt = null;
+
+  if (keepCurrent && candidates.length > 0) {
+    if (!runId) {
+      throw new Error("currentRunId is required when keepCurrent is enabled.");
+    }
+
+    currentRunCreatedAt = await getRunCreatedAt(github, owner, repo, runId, runCreatedAtCache);
+  }
+
   let deletedCount = 0;
   let deletedBytes = 0;
   const kept = [];
+  const protectedNewerOrUnknown = [];
 
   for (const artifact of candidates) {
-    const belongsToCurrentRun = artifact.workflow_run?.id === runId;
+    const artifactRunId = Number(artifact.workflow_run?.id || 0);
+    const belongsToCurrentRun = artifactRunId === runId;
     const legacy = isLegacyArtifact(artifact.name);
 
     if (keepCurrent && belongsToCurrentRun && !legacy) {
       kept.push(artifact.name);
       continue;
+    }
+
+    if (keepCurrent && !belongsToCurrentRun) {
+      if (!artifactRunId) {
+        core.warning(`Keeping ${artifact.name}: its workflow run could not be identified safely.`);
+        protectedNewerOrUnknown.push(artifact.name);
+        continue;
+      }
+
+      try {
+        const artifactRunCreatedAt = await getRunCreatedAt(
+          github,
+          owner,
+          repo,
+          artifactRunId,
+          runCreatedAtCache,
+        );
+
+        if (artifactRunCreatedAt > currentRunCreatedAt) {
+          core.info(`Keeping ${artifact.name}: it belongs to newer workflow run ${artifactRunId}.`);
+          protectedNewerOrUnknown.push(artifact.name);
+          continue;
+        }
+      } catch (error) {
+        if (error.status === 404) {
+          core.warning(
+            `Keeping ${artifact.name}: workflow run ${artifactRunId} could not be age-verified.`,
+          );
+          protectedNewerOrUnknown.push(artifact.name);
+          continue;
+        }
+        throw error;
+      }
     }
 
     try {
@@ -119,7 +185,7 @@ module.exports = async function cleanupArtifacts({
 
   const deletedMiB = (deletedBytes / 1024 / 1024).toFixed(1);
   core.info(
-    `Artifact cleanup deleted ${deletedCount} artifact(s), ${deletedMiB} MiB; kept ${kept.length} from current run.`,
+    `Artifact cleanup deleted ${deletedCount} artifact(s), ${deletedMiB} MiB; kept ${kept.length} from current run; protected ${protectedNewerOrUnknown.length} newer/unknown artifact(s).`,
   );
 
   await core.summary
@@ -127,5 +193,6 @@ module.exports = async function cleanupArtifacts({
     .addRaw(`Inventory before cleanup: ${artifacts.length} artifact(s), ${totalMiB} MiB\n`)
     .addRaw(`Deleted: ${deletedCount} artifact(s), ${deletedMiB} MiB\n`)
     .addRaw(`Kept from current run: ${kept.length}\n`)
+    .addRaw(`Protected newer/unknown: ${protectedNewerOrUnknown.length}\n`)
     .write();
 };
