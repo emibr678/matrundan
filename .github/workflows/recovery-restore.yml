@@ -32,7 +32,7 @@ jobs:
   restore:
     name: Backup + local restore (${{ inputs.source }})
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 40
     environment: ${{ inputs.source }}
     env:
@@ -105,6 +105,21 @@ jobs:
             exit 1
           fi
 
+      - name: Prepare recovery runner paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          recovery_temp="$RUNNER_TEMP"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            command -v cygpath >/dev/null 2>&1 || {
+              echo "Git for Windows cygpath is required on the self-hosted Windows runner." >&2
+              exit 1
+            }
+            recovery_temp="$(cygpath -u "$RUNNER_TEMP")"
+          fi
+          echo "RECOVERY_RUNNER_TEMP=$recovery_temp" >> "$GITHUB_ENV"
+          echo "Recovery runner: $RUNNER_NAME ($RUNNER_OS/$RUNNER_ARCH)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Set up pinned Node
         uses: actions/setup-node@v4
         with:
@@ -141,7 +156,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          backup_dir="$RUNNER_TEMP/matrundan-recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          backup_dir="$RECOVERY_RUNNER_TEMP/matrundan-recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           echo "backup_dir=$backup_dir" >> "$GITHUB_OUTPUT"
 
           bash scripts/backup-supabase.sh "$backup_dir"
@@ -204,6 +219,6 @@ jobs:
         run: |
           set +e
           supabase stop --no-backup >/dev/null 2>&1
-          if [[ -n "${BACKUP_DIR:-}" && "$BACKUP_DIR" == "$RUNNER_TEMP"/matrundan-recovery-* ]]; then
+          if [[ -n "${BACKUP_DIR:-}" && "$BACKUP_DIR" == "$RECOVERY_RUNNER_TEMP"/matrundan-recovery-* ]]; then
             rm -rf -- "$BACKUP_DIR"
           fi
