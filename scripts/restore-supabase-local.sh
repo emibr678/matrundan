@@ -22,12 +22,18 @@ done
 root="$(cd "$1" && pwd)"
 actual_inventory="$(mktemp)"
 preflight_output="$(mktemp)"
+local_auth_schema="$(mktemp)"
 cleanup() {
-  rm -f "$actual_inventory" "$preflight_output"
+  rm -f "$actual_inventory" "$preflight_output" "$local_auth_schema"
 }
 trap cleanup EXIT
 
 bun scripts/backup-manifest.mjs verify "$root"
+
+if [[ ! -f "$root/auth-schema.json" ]]; then
+  echo "Backupen saknar auth-schema.json." >&2
+  exit 1
+fi
 
 # Restoreövningen ska börja från repoets migrationer i en tom lokal Supabase-stack.
 # Avbryt hellre än att råka lägga backupdata ovanpå ett återanvänt lokalt mål.
@@ -50,16 +56,120 @@ if [[ "$initial_counts" != "0|0|0" ]]; then
   exit 1
 fi
 
+psql "$LOCAL_SUPABASE_DB_URL" \
+  -X \
+  --no-psqlrc \
+  --tuples-only \
+  --no-align \
+  --set ON_ERROR_STOP=1 \
+  > "$local_auth_schema" <<'SQL'
+select json_build_object(
+  'format', 'matrundan-auth-schema-v1',
+  'tables', coalesce(
+    json_agg(table_shape order by table_name),
+    '[]'::json
+  )
+)::text
+from (
+  select
+    t.table_name,
+    json_build_object(
+      'name', t.table_name,
+      'columns', (
+        select json_agg(
+          json_build_object(
+            'name', c.column_name,
+            'udt_name', c.udt_name,
+            'nullable', c.is_nullable = 'YES',
+            'default', c.column_default
+          )
+          order by c.ordinal_position
+        )
+        from information_schema.columns c
+        where c.table_schema = 'auth'
+          and c.table_name = t.table_name
+      )
+    ) as table_shape
+  from information_schema.tables t
+  where t.table_schema = 'auth'
+    and t.table_name in ('users', 'identities', 'mfa_factors')
+) snapshot;
+SQL
+
+node - "$root/auth-schema.json" "$local_auth_schema" <<'NODE'
+const fs = require("node:fs");
+
+const expected = JSON.parse(fs.readFileSync(process.argv[2], "utf8").trim());
+const actual = JSON.parse(fs.readFileSync(process.argv[3], "utf8").trim());
+
+if (expected.format !== "matrundan-auth-schema-v1" || actual.format !== expected.format) {
+  console.error("Auth-schemakontrollen fick ett okänt format.");
+  process.exit(1);
+}
+
+const actualTables = new Map(actual.tables.map((table) => [table.name, table]));
+const problems = [];
+
+for (const sourceTable of expected.tables) {
+  const targetTable = actualTables.get(sourceTable.name);
+  if (!targetTable) {
+    problems.push(`auth.${sourceTable.name} saknas lokalt`);
+    continue;
+  }
+
+  const sourceColumns = new Map(sourceTable.columns.map((column) => [column.name, column]));
+  const targetColumns = new Map(targetTable.columns.map((column) => [column.name, column]));
+
+  for (const sourceColumn of sourceTable.columns) {
+    const targetColumn = targetColumns.get(sourceColumn.name);
+    if (!targetColumn) {
+      problems.push(`auth.${sourceTable.name}.${sourceColumn.name} saknas lokalt`);
+      continue;
+    }
+    if (targetColumn.udt_name !== sourceColumn.udt_name) {
+      problems.push(
+        `auth.${sourceTable.name}.${sourceColumn.name} har typen ${targetColumn.udt_name}, förväntat ${sourceColumn.udt_name}`,
+      );
+    }
+  }
+
+  for (const targetColumn of targetTable.columns) {
+    if (
+      !sourceColumns.has(targetColumn.name) &&
+      targetColumn.nullable !== true &&
+      targetColumn.default == null
+    ) {
+      problems.push(
+        `auth.${sourceTable.name}.${targetColumn.name} är ny, obligatorisk och saknar default`,
+      );
+    }
+  }
+}
+
+for (const requiredTable of ["users", "identities"]) {
+  if (!expected.tables.some((table) => table.name === requiredTable)) {
+    problems.push(`backupens auth-schema saknar auth.${requiredTable}`);
+  }
+}
+
+if (problems.length > 0) {
+  console.error(`Auth-schemat är inte restorekompatibelt: ${problems.join("; ")}`);
+  process.exit(1);
+}
+
+console.log("Auth-schemakompatibilitet verifierad före import.");
+NODE
+
 # Auth och applikationsdata återställs efter att migrationerna redan byggt schemat.
 # Triggers stängs av under importen för att undvika dubbla bieffekter.
-psql "$LOCAL_SUPABASE_DB_URL" \
+{
+  printf '%s\n' 'SET session_replication_role = replica;'
+  cat "$root/auth.sql" "$root/data.sql"
+} | psql "$LOCAL_SUPABASE_DB_URL" \
   -X \
   --no-psqlrc \
   --single-transaction \
   --variable ON_ERROR_STOP=1 \
-  --command 'SET session_replication_role = replica' \
-  --file "$root/auth.sql" \
-  --file "$root/data.sql" \
   >/dev/null
 
 bun scripts/visit-photo-backup.mjs restore "$root"
@@ -70,7 +180,7 @@ psql "$LOCAL_SUPABASE_DB_URL" \
   --tuples-only \
   --no-align \
   --set ON_ERROR_STOP=1 \
-  --output "$actual_inventory" <<'SQL'
+  > "$actual_inventory" <<'SQL'
 select json_build_object(
   'public_tables', (select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'),
   'schema_migrations', (select count(*) from supabase_migrations.schema_migrations),
@@ -129,8 +239,8 @@ psql "$LOCAL_SUPABASE_DB_URL" \
   --no-align \
   --field-separator='|' \
   --set ON_ERROR_STOP=1 \
-  --file supabase/production-preflight.sql \
-  --output "$preflight_output"
+  < supabase/production-preflight.sql \
+  > "$preflight_output"
 
 mapfile -t failed_preflight < <(awk -F'|' '$NF == "f" { print $1 }' "$preflight_output")
 if (( ${#failed_preflight[@]} > 0 )); then
@@ -145,7 +255,7 @@ psql "$LOCAL_SUPABASE_DB_URL" \
   --no-psqlrc \
   --quiet \
   --set ON_ERROR_STOP=1 \
-  --output /dev/null <<'SQL'
+  > /dev/null <<'SQL'
 BEGIN;
 select m.user_id::text as smoke_user_id, m.group_id::text as smoke_group_id
 from public.memberships m
