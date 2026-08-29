@@ -46,6 +46,7 @@ jobs:
       SOURCE_SUPABASE_SERVICE_ROLE_KEY: ${{ inputs.source == 'production' && secrets.PROD_SUPABASE_SERVICE_ROLE_KEY || secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_DB_URL: ${{ inputs.source == 'production' && secrets.PROD_SUPABASE_DB_URL || secrets.STAGING_SUPABASE_DB_URL }}
       SUPABASE_CLI_VERSION: 2.115.0
+      SUPABASE_CLI_WINDOWS_AMD64_SHA256: 76782a0316c6f368dd41c94184faec8a0a3f6ca214b76bf16615536e5ed32bfa
 
     steps:
       - name: Check out exact main recovery candidate
@@ -135,10 +136,54 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Set up pinned Supabase CLI
+      - name: Set up pinned Supabase CLI on non-Windows runner
+        if: runner.os != 'Windows'
         uses: supabase/setup-cli@v3
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Set up pinned Supabase CLI on Windows runner
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$RUNNER_ARCH" != "X64" ]]; then
+            echo "Recovery currently supports direct Supabase CLI setup only on Windows X64 runners." >&2
+            exit 1
+          fi
+          command -v cygpath >/dev/null 2>&1 || {
+            echo "Git for Windows cygpath is required to install Supabase CLI." >&2
+            exit 1
+          }
+          command -v sha256sum >/dev/null 2>&1 || {
+            echo "sha256sum is required to verify the Supabase CLI archive." >&2
+            exit 1
+          }
+
+          install_dir="$RECOVERY_RUNNER_TEMP/supabase-cli-${SUPABASE_CLI_VERSION}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          archive="$install_dir/supabase.zip"
+          mkdir -p "$install_dir"
+          archive_windows="$(cygpath -w "$archive")"
+          install_dir_windows="$(cygpath -w "$install_dir")"
+
+          curl.exe --fail --location --retry 3 --silent --show-error \
+            --output "$archive_windows" \
+            "https://github.com/supabase/cli/releases/download/v${SUPABASE_CLI_VERSION}/supabase_${SUPABASE_CLI_VERSION}_windows_amd64.zip"
+
+          actual_sha256="$(sha256sum "$archive" | awk '{print $1}')"
+          if [[ "$actual_sha256" != "$SUPABASE_CLI_WINDOWS_AMD64_SHA256" ]]; then
+            echo "Supabase CLI archive checksum mismatch." >&2
+            exit 1
+          fi
+
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+            "Expand-Archive -LiteralPath '$archive_windows' -DestinationPath '$install_dir_windows' -Force"
+          if [[ ! -f "$install_dir/supabase.exe" ]]; then
+            echo "Supabase CLI executable was not found after archive extraction." >&2
+            exit 1
+          fi
+
+          echo "$install_dir_windows" >> "$GITHUB_PATH"
 
       - name: Verify required tooling
         shell: bash
