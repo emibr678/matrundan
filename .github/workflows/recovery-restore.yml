@@ -36,7 +36,7 @@ jobs:
   restore:
     name: Backup + local restore (${{ inputs.source }})
     if: github.ref == 'refs/heads/main'
-    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.MATRUNDAN_RECOVERY_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 40
     environment: ${{ inputs.source }}
     env:
@@ -47,6 +47,9 @@ jobs:
       SUPABASE_DB_URL: ${{ inputs.source == 'production' && secrets.PROD_SUPABASE_DB_URL || secrets.STAGING_SUPABASE_DB_URL }}
       SUPABASE_CLI_VERSION: 2.115.0
       SUPABASE_CLI_WINDOWS_AMD64_SHA256: 76782a0316c6f368dd41c94184faec8a0a3f6ca214b76bf16615536e5ed32bfa
+      POSTGRES_MAJOR: '17'
+      POSTGRES_CLIENT_IMAGE: postgres:17-bookworm
+      RECOVERY_MIN_FREE_KB: '10485760'
 
     steps:
       - name: Check out exact main recovery candidate
@@ -105,11 +108,6 @@ jobs:
             exit 1
           fi
 
-          if [[ -z "$SUPABASE_DB_URL" || -z "$SOURCE_SUPABASE_SERVICE_ROLE_KEY" ]]; then
-            echo "Recovery credentials are not configured in the selected GitHub environment." >&2
-            exit 1
-          fi
-
       - name: Prepare recovery runner paths
         shell: bash
         run: |
@@ -117,13 +115,14 @@ jobs:
           recovery_temp="$RUNNER_TEMP"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             command -v cygpath >/dev/null 2>&1 || {
-              echo "Git for Windows cygpath is required on the self-hosted Windows runner." >&2
+              echo "Git for Windows cygpath is required on a Windows recovery runner." >&2
               exit 1
             }
             recovery_temp="$(cygpath -u "$RUNNER_TEMP")"
           fi
           echo "RECOVERY_RUNNER_TEMP=$recovery_temp" >> "$GITHUB_ENV"
           echo "Recovery runner: $RUNNER_NAME ($RUNNER_OS/$RUNNER_ARCH)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Configured recovery target: ${{ vars.MATRUNDAN_RECOVERY_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up pinned Node
         uses: actions/setup-node@v4
@@ -148,7 +147,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$RUNNER_ARCH" != "X64" ]]; then
-            echo "Recovery currently supports direct Supabase CLI setup only on Windows X64 runners." >&2
+            echo "Direct Supabase CLI setup currently supports only Windows X64." >&2
             exit 1
           fi
           command -v cygpath >/dev/null 2>&1 || {
@@ -185,20 +184,81 @@ jobs:
 
           echo "$install_dir_windows" >> "$GITHUB_PATH"
 
-      - name: Verify required tooling
+      - name: Set up PostgreSQL 17 client on Linux recovery runner
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
-          for command in docker psql pg_dump supabase bun; do
-            command -v "$command" >/dev/null 2>&1 || {
-              echo "Missing recovery command: $command" >&2
-              exit 1
-            }
-          done
-          docker info >/dev/null
-          supabase --version
-          psql --version
-          pg_dump --version
+          client_bin="$RECOVERY_RUNNER_TEMP/matrundan-postgres-${POSTGRES_MAJOR}-bin"
+          mkdir -p "$client_bin"
+
+          cat > "$client_bin/psql" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker run --rm -i --network host "${POSTGRES_CLIENT_IMAGE:-postgres:17-bookworm}" psql "$@"
+          SCRIPT
+
+          cat > "$client_bin/pg_dump" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker run --rm -i --network host "${POSTGRES_CLIENT_IMAGE:-postgres:17-bookworm}" pg_dump "$@"
+          SCRIPT
+
+          chmod 700 "$client_bin/psql" "$client_bin/pg_dump"
+          echo "$client_bin" >> "$GITHUB_PATH"
+
+      - name: Recovery environment preflight
+        shell: bash
+        run: bash scripts/recovery-preflight.sh
+
+      - name: Start and validate empty local Supabase stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase start
+          eval "$(supabase status -o env)"
+          : "${DB_URL:?Supabase CLI status did not expose DB_URL}"
+
+          local_version_num="$(
+            psql "$DB_URL" \
+              -X \
+              --no-psqlrc \
+              --tuples-only \
+              --no-align \
+              --set ON_ERROR_STOP=1 \
+              --command "show server_version_num" |
+              tr -d '[:space:]'
+          )"
+          if [[ ! "$local_version_num" =~ ^[0-9]+$ ]]; then
+            echo "Could not read the local recovery database version." >&2
+            exit 1
+          fi
+          local_major=$((local_version_num / 10000))
+          if [[ "$local_major" != "$POSTGRES_MAJOR" ]]; then
+            echo "Local recovery database major version is $local_major; expected $POSTGRES_MAJOR." >&2
+            exit 1
+          fi
+
+          initial_counts="$(
+            psql "$DB_URL" \
+              -X \
+              --no-psqlrc \
+              --tuples-only \
+              --no-align \
+              --set ON_ERROR_STOP=1 <<'SQL' |
+          select
+            (select count(*) from auth.users)::text || '|' ||
+            (select count(*) from public.groups)::text || '|' ||
+            (select count(*) from public.visit_media)::text;
+          SQL
+              tr -d '[:space:]'
+          )"
+          if [[ "$initial_counts" != "0|0|0" ]]; then
+            echo "Local recovery target is not empty (auth.users|groups|visit_media=$initial_counts)." >&2
+            exit 1
+          fi
+
+          echo "Local recovery target: PostgreSQL $local_major, empty schema from repo migrations." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create private backup generation
         id: backup
@@ -217,12 +277,6 @@ jobs:
           MATRUNDAN_BACKUP_RELEASE_SHA="$GITHUB_SHA" \
             bun scripts/backup-manifest.mjs create "$backup_dir"
           bun scripts/backup-manifest.mjs verify "$backup_dir"
-
-      - name: Start empty local Supabase stack from repo migrations
-        shell: bash
-        run: |
-          set -euo pipefail
-          supabase start
 
       - name: Restore and verify locally
         shell: bash
@@ -252,7 +306,9 @@ jobs:
             echo "- Candidate SHA: \`$GITHUB_SHA\`"
             echo "- Source: \`$RECOVERY_SOURCE\` (read-only backup/export)"
             echo '- Restore target: ephemeral local Supabase/Docker stack'
+            echo '- Runner preflight: Linux, Docker, PostgreSQL 17, source DB/API and disk verified'
             echo '- Database/Auth restore: verified'
+            echo '- Auth schema compatibility: verified before import'
             echo '- Private visit media: byte-verified'
             echo '- Inventory + production preflight: verified'
             echo '- Authenticated group read: verified'

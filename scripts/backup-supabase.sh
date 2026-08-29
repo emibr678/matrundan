@@ -71,7 +71,7 @@ pg_dump \
   --no-owner \
   --no-privileges \
   "${auth_args[@]}" \
-  --file="$partial/auth.sql"
+  > "$partial/auth.sql"
 
 if ! grep -q "auth.users" "$partial/auth.sql" || ! grep -q "auth.identities" "$partial/auth.sql"; then
   echo "Auth-dumpen saknar förväntade tabeller." >&2
@@ -84,7 +84,47 @@ psql "$SUPABASE_DB_URL" \
   --tuples-only \
   --no-align \
   --set ON_ERROR_STOP=1 \
-  --output "$partial/inventory.json" <<'SQL'
+  > "$partial/auth-schema.json" <<'SQL'
+select json_build_object(
+  'format', 'matrundan-auth-schema-v1',
+  'tables', coalesce(
+    json_agg(table_shape order by table_name),
+    '[]'::json
+  )
+)::text
+from (
+  select
+    t.table_name,
+    json_build_object(
+      'name', t.table_name,
+      'columns', (
+        select json_agg(
+          json_build_object(
+            'name', c.column_name,
+            'udt_name', c.udt_name,
+            'nullable', c.is_nullable = 'YES',
+            'default', c.column_default
+          )
+          order by c.ordinal_position
+        )
+        from information_schema.columns c
+        where c.table_schema = 'auth'
+          and c.table_name = t.table_name
+      )
+    ) as table_shape
+  from information_schema.tables t
+  where t.table_schema = 'auth'
+    and t.table_name in ('users', 'identities', 'mfa_factors')
+) snapshot;
+SQL
+
+psql "$SUPABASE_DB_URL" \
+  -X \
+  --no-psqlrc \
+  --tuples-only \
+  --no-align \
+  --set ON_ERROR_STOP=1 \
+  > "$partial/inventory.json" <<'SQL'
 select json_build_object(
   'captured_at', now(),
   'database_bytes', pg_database_size(current_database()),
@@ -116,10 +156,11 @@ SQL
   printf 'psql=%s\n' "$(psql --version)"
   printf 'pg_dump=%s\n' "$(pg_dump --version)"
   printf 'bun=%s\n' "$(bun --version)"
+  printf 'postgres_client_image=%s\n' "${POSTGRES_CLIENT_IMAGE:-native}"
 } > "$partial/tooling.txt"
 
 chmod 600 "$partial"/*
 mv "$partial" "$target"
 trap - ERR INT TERM
 
-echo "Databas- och Auth-backup skapad. Exportera privata media och skapa sedan backupmanifestet."
+echo "Databas-, Auth- och Auth-schemabackup skapad. Exportera privata media och skapa sedan backupmanifestet."

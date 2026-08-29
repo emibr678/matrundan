@@ -4,7 +4,14 @@ import { lstat, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const MANIFEST_FILE = "backup-manifest.json";
-const REQUIRED_FILES = ["roles.sql", "schema.sql", "data.sql", "auth.sql", "inventory.json"];
+const REQUIRED_FILES = [
+  "roles.sql",
+  "schema.sql",
+  "data.sql",
+  "auth.sql",
+  "auth-schema.json",
+  "inventory.json",
+];
 
 function usage() {
   console.error("Användning: bun scripts/backup-manifest.mjs <create|verify> <backup-katalog>");
