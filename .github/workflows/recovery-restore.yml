@@ -24,6 +24,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: recovery-restore-${{ inputs.source }}
   cancel-in-progress: false
