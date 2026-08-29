@@ -27,7 +27,10 @@ jobs:
   preflight:
     name: Cloudflare prod preflight
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    # This job never restores or exports production data. Prefer a dedicated
+    # trusted preflight runner, then the configured CI runner, when hosted
+    # Actions are unavailable.
+    runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 20
     environment: production
     env:
