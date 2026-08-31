@@ -1,0 +1,203 @@
+name: Cloudflare prod VAPID bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA that should provision the production VAPID keypair
+        required: true
+        type: string
+      confirmation:
+        description: Type PROVISION_VAPID to confirm one-time VAPID provisioning
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-prod-vapid-bootstrap
+  cancel-in-progress: false
+
+env:
+  WRANGLER_VERSION: 4.125.0
+  VAPID_SUBJECT: https://app.matrundan.workers.dev
+
+jobs:
+  provision:
+    name: Provision prod VAPID keypair
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Check out exact main candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard trusted ref and explicit confirmation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "This workflow may only run from main." >&2
+            exit 1
+          fi
+          if [[ ! "${{ inputs.expected_sha }}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "expected_sha must be a full 40-character Git SHA." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_SHA" != "${{ inputs.expected_sha }}" ]]; then
+            echo "Expected SHA does not match the checked-out main SHA." >&2
+            echo "expected=${{ inputs.expected_sha }}" >&2
+            echo "actual=$GITHUB_SHA" >&2
+            exit 1
+          fi
+          if [[ "${{ inputs.confirmation }}" != "PROVISION_VAPID" ]]; then
+            echo "confirmation must be exactly PROVISION_VAPID." >&2
+            exit 1
+          fi
+
+      - name: Validate Cloudflare credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing production configuration: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Verify one-time bootstrap preconditions
+        shell: bash
+        run: |
+          set -euo pipefail
+          WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
+          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-before.json"
+          "${WRANGLER[@]}" secret list --env prod --format json > "$RUNNER_TEMP/prod-secrets-before.json"
+          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions-before.json"
+
+          node - "$RUNNER_TEMP/prod-secrets-before.json" "$RUNNER_TEMP/prod-versions-before.json" <<'NODE'
+          const fs = require('node:fs');
+          const secrets = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const versions = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+          const names = new Set(secrets.map((entry) => entry.name));
+          if (names.has('VAPID_PRIVATE_KEY')) {
+            console.error('VAPID_PRIVATE_KEY is already configured; refusing to rotate it in the bootstrap workflow.');
+            process.exit(1);
+          }
+          if (JSON.stringify(versions).includes('vapid-bootstrap')) {
+            console.error('A VAPID bootstrap version already exists; refusing to generate another keypair.');
+            process.exit(1);
+          }
+          NODE
+
+      - name: Generate keypair and upload private key without deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          private_file="$RUNNER_TEMP/matrundan-vapid-private-key"
+          public_file="$RUNNER_TEMP/matrundan-vapid-public-key"
+          cleanup() {
+            rm -f "$private_file" "$public_file"
+          }
+          trap cleanup EXIT
+          umask 077
+
+          node - "$private_file" "$public_file" <<'NODE'
+          const fs = require('node:fs');
+          const { generateKeyPairSync } = require('node:crypto');
+
+          const { privateKey } = generateKeyPairSync('ec', {
+            namedCurve: 'prime256v1',
+          });
+          const jwk = privateKey.export({ format: 'jwk' });
+          if (!jwk.x || !jwk.y || !jwk.d) {
+            throw new Error('Generated P-256 key did not contain the expected JWK coordinates.');
+          }
+
+          const x = Buffer.from(jwk.x, 'base64url');
+          const y = Buffer.from(jwk.y, 'base64url');
+          const publicKey = Buffer.concat([Buffer.from([0x04]), x, y]).toString('base64url');
+          const privateKeyValue = jwk.d;
+
+          if (Buffer.from(publicKey, 'base64url').length !== 65) {
+            throw new Error('Generated VAPID public key is not a 65-byte uncompressed P-256 point.');
+          }
+          if (Buffer.from(privateKeyValue, 'base64url').length !== 32) {
+            throw new Error('Generated VAPID private key is not a 32-byte P-256 scalar.');
+          }
+
+          fs.writeFileSync(process.argv[2], privateKeyValue, { mode: 0o600 });
+          fs.writeFileSync(process.argv[3], `${publicKey}\n`, { mode: 0o600 });
+          NODE
+
+          WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
+          "${WRANGLER[@]}" versions secret put VAPID_PRIVATE_KEY \
+            --env prod \
+            --tag vapid-bootstrap \
+            --message "Matrundan prod VAPID bootstrap $GITHUB_SHA" \
+            < "$private_file"
+
+          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-after.json"
+          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions-after.json"
+
+          node - \
+            "$RUNNER_TEMP/prod-deployment-before.json" \
+            "$RUNNER_TEMP/prod-deployment-after.json" \
+            "$RUNNER_TEMP/prod-versions-before.json" \
+            "$RUNNER_TEMP/prod-versions-after.json" <<'NODE'
+          const fs = require('node:fs');
+          const read = (path) => JSON.parse(fs.readFileSync(path, 'utf8'));
+          const beforeDeployment = read(process.argv[2]);
+          const afterDeployment = read(process.argv[3]);
+          const beforeVersions = read(process.argv[4]);
+          const afterVersions = read(process.argv[5]);
+
+          if (JSON.stringify(beforeDeployment) !== JSON.stringify(afterDeployment)) {
+            console.error('Active Cloudflare deployment changed during VAPID bootstrap; refusing to report success.');
+            process.exit(1);
+          }
+          if (JSON.stringify(beforeVersions) === JSON.stringify(afterVersions)) {
+            console.error('No new inert Worker version was observed after VAPID secret upload.');
+            process.exit(1);
+          }
+          if (!JSON.stringify(afterVersions).includes('vapid-bootstrap')) {
+            console.error('The expected vapid-bootstrap version tag was not found after upload.');
+            process.exit(1);
+          }
+          NODE
+
+          public_key="$(tr -d '\r\n' < "$public_file")"
+          {
+            echo '## Cloudflare prod VAPID bootstrap'
+            echo
+            echo "- SHA: \`$GITHUB_SHA\`"
+            echo '- Worker: `app` (`--env prod`)'
+            echo '- `VAPID_PRIVATE_KEY`: uploaded only to a new inert Worker version'
+            echo '- Active production deployment: unchanged'
+            echo '- Private key: not written to repository, logs or workflow summary'
+            echo
+            echo 'Add these non-secret values as GitHub `production` environment variables:'
+            echo
+            echo '```text'
+            echo "PROD_VAPID_SUBJECT=$VAPID_SUBJECT"
+            echo "PROD_VAPID_PUBLIC_KEY=$public_key"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
