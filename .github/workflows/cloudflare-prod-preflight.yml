@@ -158,6 +158,80 @@ jobs:
           console.log('Verified PROD_VAPID_PUBLIC_KEY as a valid uncompressed P-256 point.');
           NODE
 
+      - name: Ensure production candidate preview routing without production traffic
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const apiRoot = `https://api.cloudflare.com/client/v4/accounts/${accountId}`;
+
+          async function cloudflare(path, init = {}) {
+            const response = await fetch(`${apiRoot}${path}`, {
+              ...init,
+              headers: {
+                accept: 'application/json',
+                authorization: `Bearer ${token}`,
+                ...(init.body ? { 'content-type': 'application/json' } : {}),
+                ...(init.headers ?? {}),
+              },
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.success !== true) {
+              const codes = Array.isArray(payload?.errors)
+                ? payload.errors.map((error) => error?.code).filter(Boolean).join(',')
+                : '';
+              console.error(
+                `Cloudflare API ${init.method ?? 'GET'} ${path} failed (HTTP ${response.status}${codes ? `, codes=${codes}` : ''}).`,
+              );
+              process.exit(1);
+            }
+            return payload.result;
+          }
+
+          const accountSubdomain = await cloudflare('/workers/subdomain');
+          if (typeof accountSubdomain?.subdomain !== 'string' || !accountSubdomain.subdomain) {
+            console.error('Cloudflare account does not expose a workers.dev subdomain.');
+            process.exit(1);
+          }
+
+          const expectedPreviewUrl = `https://prod-candidate-app.${accountSubdomain.subdomain}.workers.dev`;
+          if (expectedPreviewUrl !== process.env.PROD_CANDIDATE_PREVIEW_URL) {
+            console.error('Configured production candidate preview URL does not match the Cloudflare account subdomain.');
+            process.exit(1);
+          }
+
+          const path = '/workers/scripts/app/subdomain';
+          const before = await cloudflare(path);
+          if (typeof before?.enabled !== 'boolean' || typeof before?.previews_enabled !== 'boolean') {
+            console.error('Cloudflare Worker app subdomain state is incomplete.');
+            process.exit(1);
+          }
+
+          if (!before.previews_enabled) {
+            await cloudflare(path, {
+              method: 'POST',
+              body: JSON.stringify({
+                enabled: before.enabled,
+                previews_enabled: true,
+              }),
+            });
+          }
+
+          const after = await cloudflare(path);
+          if (after?.enabled !== before.enabled) {
+            console.error('Refusing preflight because enabling Preview URLs changed production workers.dev availability.');
+            process.exit(1);
+          }
+          if (after?.previews_enabled !== true) {
+            console.error('Cloudflare Preview URLs are still disabled for Worker app.');
+            process.exit(1);
+          }
+
+          console.log(`Verified Preview URLs at ${expectedPreviewUrl} without changing production workers.dev availability.`);
+          NODE
+
       - name: Validate production provider credentials and browser origins
         run: |
           set -euo pipefail
@@ -514,6 +588,7 @@ jobs:
             echo "- SHA: \`$GITHUB_SHA\`"
             echo '- Worker: `app` (`--env prod`)'
             echo '- GitHub production configuration: complete'
+            echo '- Preview URLs: enabled without changing production workers.dev availability'
             echo '- Supabase privileged credential: verified against production project'
             echo '- Geoapify server key + production/preview browser origins: verified'
             echo '- Existing VAPID private key: verified'
