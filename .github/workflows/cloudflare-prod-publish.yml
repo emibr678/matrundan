@@ -87,13 +87,126 @@ jobs:
         with:
           node-version: 22.12.0
 
+      - name: Verify Cloudflare production and preview routing contract
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const apiRoot = `https://api.cloudflare.com/client/v4/accounts/${accountId}`;
+
+          async function cloudflare(path) {
+            const response = await fetch(`${apiRoot}${path}`, {
+              headers: {
+                accept: 'application/json',
+                authorization: `Bearer ${token}`,
+              },
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.success !== true) {
+              console.error(`Cloudflare API GET ${path} failed (HTTP ${response.status}).`);
+              process.exit(1);
+            }
+            return payload.result;
+          }
+
+          const accountSubdomain = await cloudflare('/workers/subdomain');
+          if (typeof accountSubdomain?.subdomain !== 'string' || !accountSubdomain.subdomain) {
+            console.error('Cloudflare account does not expose a workers.dev subdomain.');
+            process.exit(1);
+          }
+
+          const expectedPublicUrl = `https://app.${accountSubdomain.subdomain}.workers.dev`;
+          const expectedPreviewUrl = `https://prod-candidate-app.${accountSubdomain.subdomain}.workers.dev`;
+          if (expectedPublicUrl !== process.env.PROD_PUBLIC_URL) {
+            console.error('Configured production URL does not match the Cloudflare account subdomain.');
+            process.exit(1);
+          }
+          if (expectedPreviewUrl !== process.env.PROD_CANDIDATE_PREVIEW_URL) {
+            console.error('Configured production candidate preview URL does not match the Cloudflare account subdomain.');
+            process.exit(1);
+          }
+
+          const workerSubdomain = await cloudflare('/workers/scripts/app/subdomain');
+          if (workerSubdomain?.previews_enabled !== true) {
+            console.error('Refusing publication because Worker app Preview URLs are not enabled for the smoke-tested candidate.');
+            process.exit(1);
+          }
+
+          console.log('Verified Cloudflare workers.dev production/preview hostnames and enabled candidate preview routing.');
+          NODE
+
       - name: Verify exact candidate identity and complete bindings
         run: |
           set -euo pipefail
           WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
-          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions.json"
-          "${WRANGLER[@]}" versions view "$CANDIDATE_VERSION_ID" --env prod --json > "$RUNNER_TEMP/prod-version-detail.json"
-          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-before.json"
+          json_extractor="$RUNNER_TEMP/extract-wrangler-json.cjs"
+          cat > "$json_extractor" <<'NODE'
+          const fs = require('node:fs');
+
+          const inputPath = process.argv[2];
+          const outputPath = process.argv[3];
+          const raw = fs.readFileSync(inputPath, 'utf8');
+
+          function extractCandidate(start) {
+            const stack = [];
+            let inString = false;
+            let escaped = false;
+            for (let index = start; index < raw.length; index += 1) {
+              const char = raw[index];
+              if (inString) {
+                if (escaped) escaped = false;
+                else if (char === '\\') escaped = true;
+                else if (char === '"') inString = false;
+                continue;
+              }
+              if (char === '"') {
+                inString = true;
+                continue;
+              }
+              if (char === '{' || char === '[') {
+                stack.push(char);
+                continue;
+              }
+              if (char === '}' || char === ']') {
+                const expectedOpen = char === '}' ? '{' : '[';
+                if (stack.at(-1) !== expectedOpen) return null;
+                stack.pop();
+                if (stack.length === 0) return raw.slice(start, index + 1);
+              }
+            }
+            return null;
+          }
+
+          for (let start = 0; start < raw.length; start += 1) {
+            if (raw[start] !== '{' && raw[start] !== '[') continue;
+            const candidate = extractCandidate(start);
+            if (!candidate) continue;
+            try {
+              const parsed = JSON.parse(candidate);
+              fs.writeFileSync(outputPath, `${JSON.stringify(parsed, null, 2)}\n`);
+              process.exit(0);
+            } catch {
+              // Decorative Wrangler output may itself contain brackets. Keep scanning.
+            }
+          }
+          console.error('Wrangler output did not contain a valid JSON object or array.');
+          process.exit(1);
+          NODE
+
+          run_wrangler_json() {
+            local output="$1"
+            shift
+            local raw="${output}.raw"
+            "${WRANGLER[@]}" "$@" > "$raw"
+            node "$json_extractor" "$raw" "$output"
+            rm -f "$raw"
+          }
+
+          run_wrangler_json "$RUNNER_TEMP/prod-versions.json" versions list --env prod --json
+          run_wrangler_json "$RUNNER_TEMP/prod-version-detail.json" versions view "$CANDIDATE_VERSION_ID" --env prod --json
+          run_wrangler_json "$RUNNER_TEMP/prod-deployment-before.json" deployments status --env prod --json
 
           node - \
             "$RUNNER_TEMP/prod-versions.json" \
@@ -196,7 +309,11 @@ jobs:
             --env prod \
             --yes \
             --message "Matrundan prod publish $GITHUB_SHA"
-          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-after.json"
+
+          raw="$RUNNER_TEMP/prod-deployment-after.json.raw"
+          "${WRANGLER[@]}" deployments status --env prod --json > "$raw"
+          node "$RUNNER_TEMP/extract-wrangler-json.cjs" "$raw" "$RUNNER_TEMP/prod-deployment-after.json"
+          rm -f "$raw"
 
           node - "$RUNNER_TEMP/prod-deployment-after.json" <<'NODE'
           const fs = require('node:fs');
@@ -215,6 +332,51 @@ jobs:
             process.exit(1);
           }
           console.log(`Verified production deployment at 100% candidate ${versionId}.`);
+          NODE
+
+      - name: Enable stable production workers.dev route
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/app/subdomain`;
+
+          async function request(init = {}) {
+            const response = await fetch(url, {
+              ...init,
+              headers: {
+                accept: 'application/json',
+                authorization: `Bearer ${token}`,
+                ...(init.body ? { 'content-type': 'application/json' } : {}),
+              },
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.success !== true) {
+              console.error(`Cloudflare Worker subdomain update failed (HTTP ${response.status}).`);
+              process.exit(1);
+            }
+            return payload.result;
+          }
+
+          const before = await request();
+          if (before?.previews_enabled !== true) {
+            console.error('Candidate preview routing changed before publication; refusing to enable production route.');
+            process.exit(1);
+          }
+          if (before?.enabled !== true) {
+            await request({
+              method: 'POST',
+              body: JSON.stringify({ enabled: true, previews_enabled: true }),
+            });
+          }
+          const after = await request();
+          if (after?.enabled !== true || after?.previews_enabled !== true) {
+            console.error('Cloudflare did not enable the stable production workers.dev route while preserving preview routing.');
+            process.exit(1);
+          }
+          console.log('Enabled stable production workers.dev route; candidate preview remains available until public health passes.');
           NODE
 
       - name: Verify public production health and release SHA
@@ -244,6 +406,44 @@ jobs:
           process.exit(1);
           NODE
 
+      - name: Disable production candidate Preview URLs after successful publication
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/app/subdomain`;
+
+          async function request(init = {}) {
+            const response = await fetch(url, {
+              ...init,
+              headers: {
+                accept: 'application/json',
+                authorization: `Bearer ${token}`,
+                ...(init.body ? { 'content-type': 'application/json' } : {}),
+              },
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.success !== true) {
+              console.error(`Cloudflare Worker subdomain update failed (HTTP ${response.status}).`);
+              process.exit(1);
+            }
+            return payload.result;
+          }
+
+          await request({
+            method: 'POST',
+            body: JSON.stringify({ enabled: true, previews_enabled: false }),
+          });
+          const after = await request();
+          if (after?.enabled !== true || after?.previews_enabled !== false) {
+            console.error('Cloudflare did not preserve production routing while disabling Preview URLs.');
+            process.exit(1);
+          }
+          console.log('Disabled production candidate Preview URLs while preserving stable production routing.');
+          NODE
+
       - name: Summarize publication
         if: success()
         run: |
@@ -255,6 +455,17 @@ jobs:
             echo '- Candidate identity/bindings: re-verified before promotion'
             echo '- Candidate preview health: re-verified before promotion'
             echo '- Production traffic: 100% on the exact approved candidate'
-            echo "- Public health/release SHA: verified at $PROD_PUBLIC_URL/api/health"
+            echo "- Stable workers.dev route + public health/release SHA: verified at $PROD_PUBLIC_URL/api/health"
+            echo '- Production candidate Preview URLs: disabled after successful public health verification'
             echo '- Database deployment: not performed by this workflow'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove ephemeral production files
+        if: always()
+        run: |
+          rm -f \
+            "$RUNNER_TEMP/extract-wrangler-json.cjs" \
+            "$RUNNER_TEMP/prod-versions.json"* \
+            "$RUNNER_TEMP/prod-version-detail.json"* \
+            "$RUNNER_TEMP/prod-deployment-before.json"* \
+            "$RUNNER_TEMP/prod-deployment-after.json"*
