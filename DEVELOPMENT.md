@@ -195,8 +195,7 @@ Den låsta miljömodellen är:
 - Wrangler-miljö `staging` → Worker `staging` → `staging.matrundan.workers.dev`;
 - Wrangler-miljö `prod` → Worker `app` → `app.matrundan.workers.dev`;
 - Supabase **Matrundan Staging** används av staging och PR-previews;
-- production-Supabase kopplas endast till `prod` när det separata produktionsmålet
-  etableras.
+- Supabase **Matrundan Production** används endast av den explicit byggda `prod`-kandidaten och publicerade Worker `app`.
 
 Repoets `wrangler.json` har medvetet Worker `staging` som säker top-level-default.
 Det gör att ett oavsiktligt `wrangler deploy` utan `--env` inte kan rikta sig mot
@@ -207,16 +206,9 @@ npx wrangler deploy --env staging
 npx wrangler versions upload --env staging
 ```
 
-För `prod` används motsvarande kommando endast efter separat
-publiceringsgodkännande:
-
-```bash
-npx wrangler deploy --env prod
-```
-
 Cloudflare Worker `staging` ska ha GitHub-repot anslutet med:
 
-- production branch: `main` när bootstrap-PR:n har mergats;
+- production branch: `main`;
 - builds for non-production branches: på;
 - build command: `bun run cloudflare:build`;
 - deploy command: `npx wrangler deploy --env staging`;
@@ -225,13 +217,46 @@ Cloudflare Worker `staging` ska ha GitHub-repot anslutet med:
 En feature-/PR-branch laddas då upp som en preview-version av staging-Workern utan
 att ersätta dess aktiva deployment. En push till `main` uppdaterar den aktiva
 stagingdeploymenten. Worker `app` får inte konfigureras så att merge till `main`
-automatiskt promoverar produktion; exakt prod-promotion bestäms och verifieras
-innan cutover.
+automatiskt promoverar produktion.
 
-Build-time `VITE_*`-värden för staging hör till Cloudflare Builds. Server-only
-värden som `GEOAPIFY_API_KEY`, Supabase secret/service-role och VAPID private key
-hör till Worker-runtime secrets och får aldrig checkas in eller göras till
-`VITE_*`.
+### Produktionskandidat och publicering
+
+Produktion använder två separata manuella GitHub Actions-grindar:
+
+1. **Cloudflare prod preflight** bygger exakt angiven `main`-SHA, validerar hela
+   GitHub `production`-konfigurationen och leverantörscredentials, laddar upp
+   server-secrets tillsammans med en **inert** Worker-version och exponerar den
+   som den fasta preview-aliasen `https://prod-candidate-app.matrundan.workers.dev`.
+   Workflowet verifierar att aktiv production-deployment är oförändrad och att
+   kandidatens `/api/health` rapporterar exakt release-SHA.
+2. Efter separat autentiserad smoke och separat publiceringsgodkännande får
+   **Cloudflare prod publish** promovera **exakt samma Worker version-ID** till
+   100 % trafik. Publiceringsworkflowet bygger eller laddar inte upp ny kod och
+   vägrar en kandidat som inte kan kopplas till den angivna aktuella `main`-SHA:n.
+
+Använd därför inte ett manuellt `wrangler deploy --env prod` som normal
+publiceringsväg. Det skulle skapa en ny, ej smoke-testad version samtidigt som den
+publiceras och bryta kontraktet att exakt verifierad kandidat ska promoveras.
+
+Preflight och publish använder samma concurrency-grupp så en ny kandidat inte kan
+laddas upp samtidigt som en tidigare kandidat promoveras. Publiceringsworkflowet
+kräver dessutom exakt SHA, exakt Worker version-ID och bekräftelsetexten
+`PUBLISH_PROD`; det är fortfarande inte ett godkännande i sig att workflowet finns
+i repot.
+
+Build-time `VITE_*`-värden hör till respektive byggmiljö. Server-only värden som
+`GEOAPIFY_API_KEY`, Supabase secret/service-role och VAPID private key hör till
+Worker-runtime secrets och får aldrig checkas in eller göras till `VITE_*`.
+Prod-preflight läser produktionshemligheterna från GitHub-environmenten
+`production` och skickar dem endast till den inerta kandidatversionen via
+Wrangler `--secrets-file`; dashboardens Secret-Deploy eller `wrangler secret put`
+ska inte användas som förberedande steg eftersom de kan skapa/aktivera en separat
+version utanför kandidatgrinden.
+
+`MATRUNDAN_ENVIRONMENT` är en icke-hemlig runtimevariabel med värdet `staging`
+respektive `prod`. Den används som defense-in-depth för att redigera råa
+Error-meddelanden/stacks innan de når centrala Workers-loggar. Den får inte
+användas som behörighetsbeslut.
 
 ### Runner-val och fallback när hosted-minuter saknas
 
