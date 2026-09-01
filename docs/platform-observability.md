@@ -53,11 +53,16 @@ testats.
   `WORKERS_CI_COMMIT_SHA`; GitHub-byggen kan använda `GITHUB_SHA` och explicit
   manuell byggning kan ange `MATRUNDAN_RELEASE_SHA`. Saknad eller ogiltig SHA
   blir `unknown` i stället för att gissas.
-- `environment` härleds endast som en ofarlig diagnostiketikett från den kända
-  deployment-hosten: `staging.matrundan.workers.dev` och dess preview-hostar ger
-  `staging`, `app.matrundan.workers.dev` ger `prod`, lokal loopback ger `local`
-  och övriga hostar ger `unknown`. Etiketten är aldrig ett behörighetsbeslut och
-  kräver därför ingen inline Wrangler-variabel.
+- Den strukturerade `environment`-etiketten härleds från känd deployment-host:
+  `staging.matrundan.workers.dev` och dess preview-hostar ger `staging`, medan
+  `app.matrundan.workers.dev` och dess version-/alias-preview-hostar ger `prod`.
+  Lokal loopback ger `local` och övriga hostar `unknown`. Etiketten är aldrig ett
+  behörighetsbeslut.
+- Runtimevariabeln `MATRUNDAN_ENVIRONMENT=staging|prod` kompletterar hostetiketten
+  som defense-in-depth för den mycket tidiga `console.error`-interceptionen, där
+  det ännu inte finns någon Request-URL att klassificera. Den används endast för
+  att redigera råa Error-meddelanden/stacks innan de når centrala Workers-loggar
+  och får inte användas för behörighet.
 - Cloudflares automatiska invocation logs är avstängda i repoets staging- och
   prodkonfiguration. De innehåller hela request-URL:en och är därför olämpliga
   så länge Matrundan har bearer-token i URL-path. Workers Logs för egna
