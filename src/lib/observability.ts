@@ -18,7 +18,12 @@ export function environmentForRequestUrl(value: string): RuntimeEnvironment {
   ) {
     return "staging";
   }
-  if (hostname === "app.matrundan.workers.dev") return "prod";
+  if (
+    hostname === "app.matrundan.workers.dev" ||
+    hostname.endsWith("-app.matrundan.workers.dev")
+  ) {
+    return "prod";
+  }
   if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]") {
     return "local";
   }
