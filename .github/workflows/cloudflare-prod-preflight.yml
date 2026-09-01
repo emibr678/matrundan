@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       expected_sha:
-        description: Exact main SHA that should be inspected/uploaded
+        description: Exact candidate SHA that should be inspected/uploaded
         required: true
         type: string
       upload_version:
@@ -12,6 +12,11 @@ on:
         required: true
         default: false
         type: boolean
+  # Temporary Issue #207 iteration loop. This exact branch may use the production
+  # environment only for inert candidate preflight; remove this trigger before merge.
+  push:
+    branches:
+      - agent/issue-207-prod-preview-routing
 
 permissions:
   contents: read
@@ -33,7 +38,7 @@ env:
 jobs:
   preflight:
     name: Cloudflare prod preflight
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/agent/issue-207-prod-preview-routing'
     # This job may read production credentials and upload an inert Worker version,
     # but it never restores data or promotes production traffic.
     runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
@@ -53,7 +58,7 @@ jobs:
       PROD_VAPID_PUBLIC_KEY: ${{ vars.PROD_VAPID_PUBLIC_KEY }}
 
     steps:
-      - name: Check out exact main candidate
+      - name: Check out exact candidate
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -62,17 +67,29 @@ jobs:
       - name: Guard trusted ref and exact SHA
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "This workflow may only run from main." >&2
-            exit 1
+          iteration_ref="refs/heads/agent/issue-207-prod-preview-routing"
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            if [[ "$GITHUB_REF" != "$iteration_ref" ]]; then
+              echo "Automatic prod preflight may only run from the locked Issue #207 iteration branch." >&2
+              exit 1
+            fi
+            expected_sha="$GITHUB_SHA"
+          else
+            if [[ "$GITHUB_REF" != "refs/heads/main" && "$GITHUB_REF" != "$iteration_ref" ]]; then
+              echo "Manual prod preflight may only run from main or the locked Issue #207 iteration branch." >&2
+              exit 1
+            fi
+            expected_sha="${{ inputs.expected_sha }}"
           fi
-          if [[ ! "${{ inputs.expected_sha }}" =~ ^[0-9a-f]{40}$ ]]; then
+
+          if [[ ! "$expected_sha" =~ ^[0-9a-f]{40}$ ]]; then
             echo "expected_sha must be a full 40-character Git SHA." >&2
             exit 1
           fi
-          if [[ "$GITHUB_SHA" != "${{ inputs.expected_sha }}" ]]; then
-            echo "Expected SHA does not match the checked-out main SHA." >&2
-            echo "expected=${{ inputs.expected_sha }}" >&2
+          if [[ "$GITHUB_SHA" != "$expected_sha" ]]; then
+            echo "Expected SHA does not match the checked-out candidate SHA." >&2
+            echo "expected=$expected_sha" >&2
             echo "actual=$GITHUB_SHA" >&2
             exit 1
           fi
@@ -423,7 +440,7 @@ jobs:
 
       - name: Upload and verify inert Worker app candidate
         id: upload
-        if: inputs.upload_version == true
+        if: github.event_name == 'push' || inputs.upload_version == true
         run: |
           set -euo pipefail
           secrets_file="$RUNNER_TEMP/prod-candidate-secrets.json"
@@ -593,7 +610,7 @@ jobs:
             echo '- Geoapify server key + production/preview browser origins: verified'
             echo '- Existing VAPID private key: verified'
             echo '- Production build: verified'
-            if [[ "${{ inputs.upload_version }}" == "true" ]]; then
+            if [[ "$GITHUB_EVENT_NAME" == "push" || "${{ inputs.upload_version }}" == "true" ]]; then
               echo "- Candidate version: \`${{ steps.upload.outputs.version_id }}\`"
               echo "- Candidate preview: ${{ steps.upload.outputs.preview_url }}"
               echo '- Candidate runtime bindings + health/release SHA: verified'
