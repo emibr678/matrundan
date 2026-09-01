@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: cloudflare-prod-preflight
   cancel-in-progress: false
@@ -109,6 +113,42 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
+
+      - name: Validate VAPID public key format
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { ECDH } = require('node:crypto');
+
+          const key = process.env.PROD_VAPID_PUBLIC_KEY ?? '';
+          const decoded = Buffer.from(key, 'base64url');
+          if (
+            decoded.length !== 65 ||
+            decoded[0] !== 0x04 ||
+            decoded.toString('base64url') !== key
+          ) {
+            console.error('PROD_VAPID_PUBLIC_KEY must be a canonical 65-byte uncompressed P-256 public key in base64url format.');
+            process.exit(1);
+          }
+
+          try {
+            const normalized = ECDH.convertKey(
+              decoded,
+              'prime256v1',
+              undefined,
+              undefined,
+              'uncompressed',
+            );
+            if (!normalized.equals(decoded)) {
+              throw new Error('Unexpected P-256 point normalization.');
+            }
+          } catch {
+            console.error('PROD_VAPID_PUBLIC_KEY is not a valid P-256 public point.');
+            process.exit(1);
+          }
+
+          console.log('Verified PROD_VAPID_PUBLIC_KEY as a valid uncompressed P-256 point.');
+          NODE
 
       - name: Set up pinned Bun
         uses: ./.github/actions/setup-bun
