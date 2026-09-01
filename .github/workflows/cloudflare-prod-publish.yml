@@ -1,0 +1,260 @@
+name: Cloudflare prod publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA that was preflighted and smoke-tested
+        required: true
+        type: string
+      candidate_version_id:
+        description: Exact inert Worker version ID from Cloudflare prod preflight
+        required: true
+        type: string
+      confirmation:
+        description: Type PUBLISH_PROD to promote this exact candidate to 100% traffic
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: cloudflare-prod-release
+  cancel-in-progress: false
+
+env:
+  WRANGLER_VERSION: 4.125.0
+  FORCE_COLOR: '0'
+  PROD_PUBLIC_URL: https://app.matrundan.workers.dev
+  PROD_CANDIDATE_PREVIEW_URL: https://prod-candidate-app.matrundan.workers.dev
+
+jobs:
+  publish:
+    name: Publish verified prod candidate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 15
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CANDIDATE_VERSION_ID: ${{ inputs.candidate_version_id }}
+
+    steps:
+      - name: Check out exact main candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard explicit publication approval inputs
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "This workflow may only run from main." >&2
+            exit 1
+          fi
+          if [[ ! "${{ inputs.expected_sha }}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "expected_sha must be a full 40-character Git SHA." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_SHA" != "${{ inputs.expected_sha }}" ]]; then
+            echo "Expected SHA does not match the checked-out main SHA." >&2
+            echo "expected=${{ inputs.expected_sha }}" >&2
+            echo "actual=$GITHUB_SHA" >&2
+            exit 1
+          fi
+          if [[ ! "$CANDIDATE_VERSION_ID" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "candidate_version_id must be a Worker version UUID." >&2
+            exit 1
+          fi
+          if [[ "${{ inputs.confirmation }}" != "PUBLISH_PROD" ]]; then
+            echo "confirmation must be exactly PUBLISH_PROD." >&2
+            exit 1
+          fi
+          if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" || -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "Cloudflare production credentials are missing." >&2
+            exit 1
+          fi
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Verify exact candidate identity and complete bindings
+        run: |
+          set -euo pipefail
+          WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
+          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions.json"
+          "${WRANGLER[@]}" versions view "$CANDIDATE_VERSION_ID" --env prod --json > "$RUNNER_TEMP/prod-version-detail.json"
+          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-before.json"
+
+          node - \
+            "$RUNNER_TEMP/prod-versions.json" \
+            "$RUNNER_TEMP/prod-version-detail.json" \
+            "$RUNNER_TEMP/prod-deployment-before.json" <<'NODE'
+          const fs = require('node:fs');
+          const read = (path) => JSON.parse(fs.readFileSync(path, 'utf8'));
+          const versions = read(process.argv[2]);
+          const versionDetail = read(process.argv[3]);
+          const deployment = read(process.argv[4]);
+          const versionId = process.env.CANDIDATE_VERSION_ID;
+          const tag = `sha-${process.env.GITHUB_SHA.slice(0, 12)}`;
+          const message = `Matrundan prod candidate ${process.env.GITHUB_SHA}`;
+
+          const versionRows = Array.isArray(versions) ? versions : (versions?.versions ?? []);
+          const matchingRows = versionRows.filter((row) => {
+            const text = JSON.stringify(row);
+            return text.includes(tag) && text.includes(message);
+          });
+          const latestMatch = matchingRows[0];
+          if (!latestMatch || !JSON.stringify(latestMatch).includes(versionId)) {
+            console.error('candidate_version_id is not the latest preflight candidate for this exact main SHA.');
+            process.exit(1);
+          }
+
+          const bindingNames = new Set();
+          let environmentBinding = null;
+          const visit = (value) => {
+            if (!value || typeof value !== 'object') return;
+            if (typeof value.name === 'string') {
+              bindingNames.add(value.name);
+              if (value.name === 'MATRUNDAN_ENVIRONMENT') environmentBinding = value;
+            }
+            if (Array.isArray(value)) value.forEach(visit);
+            else Object.values(value).forEach(visit);
+          };
+          visit(versionDetail);
+          const requiredBindings = [
+            'MATRUNDAN_ENVIRONMENT',
+            'SUPABASE_PROJECT_ID',
+            'SUPABASE_URL',
+            'SUPABASE_PUBLISHABLE_KEY',
+            'GEOAPIFY_API_KEY',
+            'SUPABASE_SERVICE_ROLE_KEY',
+            'VAPID_SUBJECT',
+            'VAPID_PUBLIC_KEY',
+            'VAPID_PRIVATE_KEY',
+          ];
+          const missingBindings = requiredBindings.filter((name) => !bindingNames.has(name));
+          if (missingBindings.length > 0) {
+            console.error(`Refusing publication; candidate is missing runtime binding(s): ${missingBindings.join(', ')}`);
+            process.exit(1);
+          }
+          if (!JSON.stringify(environmentBinding).includes('prod')) {
+            console.error('Refusing publication; candidate does not declare MATRUNDAN_ENVIRONMENT=prod.');
+            process.exit(1);
+          }
+
+          const candidateAlreadyActive = (() => {
+            let found = false;
+            const walk = (value) => {
+              if (!value || typeof value !== 'object') return;
+              if (value.version_id === versionId && Number(value.percentage) === 100) found = true;
+              if (Array.isArray(value)) value.forEach(walk);
+              else Object.values(value).forEach(walk);
+            };
+            walk(deployment);
+            return found;
+          })();
+          if (candidateAlreadyActive) {
+            console.error('Candidate is already serving 100% production traffic; refusing a duplicate publication run.');
+            process.exit(1);
+          }
+
+          console.log(`Verified exact publish candidate ${versionId} for ${process.env.GITHUB_SHA}.`);
+          NODE
+
+      - name: Re-check smoke-tested candidate preview
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const response = await fetch(`${process.env.PROD_CANDIDATE_PREVIEW_URL}/api/health`, {
+            headers: { accept: 'application/json', 'cache-control': 'no-cache' },
+            signal: AbortSignal.timeout(10_000),
+          });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || payload?.status !== 'ok' || payload?.release !== process.env.GITHUB_SHA) {
+            console.error(`Candidate preview is no longer healthy for the approved SHA (HTTP ${response.status}).`);
+            process.exit(1);
+          }
+          console.log('Candidate preview is still healthy for the exact approved release SHA.');
+          NODE
+
+      - name: Promote exact candidate to 100 percent production traffic
+        run: |
+          set -euo pipefail
+          WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
+          "${WRANGLER[@]}" versions deploy \
+            "$CANDIDATE_VERSION_ID@100%" \
+            --env prod \
+            --yes \
+            --message "Matrundan prod publish $GITHUB_SHA"
+          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-after.json"
+
+          node - "$RUNNER_TEMP/prod-deployment-after.json" <<'NODE'
+          const fs = require('node:fs');
+          const deployment = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const versionId = process.env.CANDIDATE_VERSION_ID;
+          let activeAt100 = false;
+          const walk = (value) => {
+            if (!value || typeof value !== 'object') return;
+            if (value.version_id === versionId && Number(value.percentage) === 100) activeAt100 = true;
+            if (Array.isArray(value)) value.forEach(walk);
+            else Object.values(value).forEach(walk);
+          };
+          walk(deployment);
+          if (!activeAt100) {
+            console.error('Cloudflare did not report the approved candidate at 100% production traffic.');
+            process.exit(1);
+          }
+          console.log(`Verified production deployment at 100% candidate ${versionId}.`);
+          NODE
+
+      - name: Verify public production health and release SHA
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const url = `${process.env.PROD_PUBLIC_URL}/api/health`;
+          let lastFailure = 'production did not respond';
+          for (let attempt = 1; attempt <= 12; attempt += 1) {
+            try {
+              const response = await fetch(url, {
+                headers: { accept: 'application/json', 'cache-control': 'no-cache' },
+                signal: AbortSignal.timeout(10_000),
+              });
+              const payload = await response.json().catch(() => null);
+              if (response.ok && payload?.status === 'ok' && payload?.release === process.env.GITHUB_SHA) {
+                console.log(`Verified public production health and release SHA on attempt ${attempt}.`);
+                process.exit(0);
+              }
+              lastFailure = `HTTP ${response.status}, payload=${JSON.stringify(payload)}`;
+            } catch (error) {
+              lastFailure = error instanceof Error ? error.message : String(error);
+            }
+            await new Promise((resolve) => setTimeout(resolve, 5_000));
+          }
+          console.error(`Public production health verification failed after promotion: ${lastFailure}`);
+          process.exit(1);
+          NODE
+
+      - name: Summarize publication
+        if: success()
+        run: |
+          {
+            echo '## Cloudflare prod publication'
+            echo
+            echo "- SHA: \`$GITHUB_SHA\`"
+            echo "- Worker version: \`$CANDIDATE_VERSION_ID\`"
+            echo '- Candidate identity/bindings: re-verified before promotion'
+            echo '- Candidate preview health: re-verified before promotion'
+            echo '- Production traffic: 100% on the exact approved candidate'
+            echo "- Public health/release SHA: verified at $PROD_PUBLIC_URL/api/health"
+            echo '- Database deployment: not performed by this workflow'
+          } >> "$GITHUB_STEP_SUMMARY"

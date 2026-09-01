@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       upload_version:
-        description: Upload an inert Worker app version after preflight
+        description: Upload an inert Worker app candidate after preflight
         required: true
         default: false
         type: boolean
@@ -21,21 +21,23 @@ defaults:
     shell: bash
 
 concurrency:
-  group: cloudflare-prod-preflight
+  group: cloudflare-prod-release
   cancel-in-progress: false
 
 env:
   WRANGLER_VERSION: 4.125.0
+  FORCE_COLOR: '0'
+  PROD_PUBLIC_URL: https://app.matrundan.workers.dev
+  PROD_CANDIDATE_PREVIEW_URL: https://prod-candidate-app.matrundan.workers.dev
 
 jobs:
   preflight:
     name: Cloudflare prod preflight
     if: github.ref == 'refs/heads/main'
-    # This job never restores or exports production data. Prefer a dedicated
-    # trusted preflight runner, then the configured CI runner, when hosted
-    # Actions are unavailable.
+    # This job may read production credentials and upload an inert Worker version,
+    # but it never restores data or promotes production traffic.
     runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     environment: production
     env:
       CI: 'true'
@@ -44,7 +46,9 @@ jobs:
       PROD_SUPABASE_PROJECT_ID: ${{ vars.PROD_SUPABASE_PROJECT_ID }}
       PROD_SUPABASE_URL: ${{ vars.PROD_SUPABASE_URL }}
       PROD_SUPABASE_PUBLISHABLE_KEY: ${{ vars.PROD_SUPABASE_PUBLISHABLE_KEY }}
+      PROD_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PROD_SUPABASE_SERVICE_ROLE_KEY }}
       PROD_GEOAPIFY_MAPS_KEY: ${{ vars.PROD_GEOAPIFY_MAPS_KEY }}
+      PROD_GEOAPIFY_API_KEY: ${{ secrets.PROD_GEOAPIFY_API_KEY }}
       PROD_VAPID_SUBJECT: ${{ vars.PROD_VAPID_SUBJECT }}
       PROD_VAPID_PUBLIC_KEY: ${{ vars.PROD_VAPID_PUBLIC_KEY }}
 
@@ -56,7 +60,6 @@ jobs:
           show-progress: false
 
       - name: Guard trusted ref and exact SHA
-        shell: bash
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
@@ -74,8 +77,7 @@ jobs:
             exit 1
           fi
 
-      - name: Validate configured GitHub production environment
-        shell: bash
+      - name: Validate complete GitHub production environment
         run: |
           set -euo pipefail
           required=(
@@ -84,7 +86,9 @@ jobs:
             PROD_SUPABASE_PROJECT_ID
             PROD_SUPABASE_URL
             PROD_SUPABASE_PUBLISHABLE_KEY
+            PROD_SUPABASE_SERVICE_ROLE_KEY
             PROD_GEOAPIFY_MAPS_KEY
+            PROD_GEOAPIFY_API_KEY
             PROD_VAPID_SUBJECT
             PROD_VAPID_PUBLIC_KEY
           )
@@ -106,6 +110,10 @@ jobs:
           fi
           if [[ "$PROD_SUPABASE_PUBLISHABLE_KEY" != sb_publishable_* ]]; then
             echo "PROD_SUPABASE_PUBLISHABLE_KEY must use the modern sb_publishable_ format." >&2
+            exit 1
+          fi
+          if [[ "$PROD_VAPID_SUBJECT" != "$PROD_PUBLIC_URL" ]]; then
+            echo "PROD_VAPID_SUBJECT must match the locked production URL." >&2
             exit 1
           fi
 
@@ -150,42 +158,104 @@ jobs:
           console.log('Verified PROD_VAPID_PUBLIC_KEY as a valid uncompressed P-256 point.');
           NODE
 
+      - name: Validate production provider credentials and browser origins
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          async function fetchWithTimeout(url, init = {}) {
+            return fetch(url, {
+              ...init,
+              signal: AbortSignal.timeout(10_000),
+            });
+          }
+
+          const supabaseRoot = new URL('/rest/v1/', process.env.PROD_SUPABASE_URL);
+          const supabaseResponse = await fetchWithTimeout(supabaseRoot, {
+            headers: {
+              accept: 'application/json',
+              apikey: process.env.PROD_SUPABASE_SERVICE_ROLE_KEY,
+            },
+          });
+          await supabaseResponse.body?.cancel();
+          if (supabaseResponse.status !== 200) {
+            console.error(`PROD_SUPABASE_SERVICE_ROLE_KEY failed the admin-level PostgREST root probe (${supabaseResponse.status}).`);
+            process.exit(1);
+          }
+
+          const geoapifyServerUrl = new URL('https://api.geoapify.com/v1/geocode/search');
+          geoapifyServerUrl.searchParams.set('text', 'Stockholm');
+          geoapifyServerUrl.searchParams.set('limit', '1');
+          geoapifyServerUrl.searchParams.set('format', 'json');
+          geoapifyServerUrl.searchParams.set('apiKey', process.env.PROD_GEOAPIFY_API_KEY);
+          const geoapifyServerResponse = await fetchWithTimeout(geoapifyServerUrl, {
+            headers: { accept: 'application/json' },
+          });
+          await geoapifyServerResponse.body?.cancel();
+          if (!geoapifyServerResponse.ok) {
+            console.error(`PROD_GEOAPIFY_API_KEY failed the server probe (${geoapifyServerResponse.status}).`);
+            process.exit(1);
+          }
+
+          for (const origin of [process.env.PROD_PUBLIC_URL, process.env.PROD_CANDIDATE_PREVIEW_URL]) {
+            const styleUrl = new URL('https://maps.geoapify.com/v1/styles/osm-bright-grey/style.json');
+            styleUrl.searchParams.set('apiKey', process.env.PROD_GEOAPIFY_MAPS_KEY);
+            const styleResponse = await fetchWithTimeout(styleUrl, {
+              headers: {
+                accept: 'application/json',
+                origin,
+                referer: `${origin}/`,
+              },
+            });
+            await styleResponse.body?.cancel();
+            if (!styleResponse.ok) {
+              console.error(`PROD_GEOAPIFY_MAPS_KEY rejected browser origin ${origin} (${styleResponse.status}).`);
+              process.exit(1);
+            }
+          }
+
+          console.log('Verified production Supabase server credential and Geoapify server/browser credentials.');
+          NODE
+
       - name: Set up pinned Bun
         uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify Cloudflare access and required Worker secrets
-        shell: bash
+      - name: Verify Cloudflare access and existing VAPID private key
         run: |
           set -euo pipefail
           WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
-          "${WRANGLER[@]}" secret list --env prod --format json > "$RUNNER_TEMP/prod-secrets.json"
-          node - "$RUNNER_TEMP/prod-secrets.json" <<'NODE'
+          "${WRANGLER[@]}" secret list --env prod --format json > "$RUNNER_TEMP/prod-secrets-before.json"
+          node - "$RUNNER_TEMP/prod-secrets-before.json" <<'NODE'
           const fs = require('node:fs');
-          const path = process.argv[2];
-          const configured = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const configured = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
           const names = new Set(configured.map((entry) => entry.name));
-          const required = ['GEOAPIFY_API_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'VAPID_PRIVATE_KEY'];
-          const missing = required.filter((name) => !names.has(name));
-          if (missing.length > 0) {
-            console.error(`Missing Worker app secrets: ${missing.join(', ')}`);
+          if (!names.has('VAPID_PRIVATE_KEY')) {
+            console.error('Missing Worker app secret: VAPID_PRIVATE_KEY. Run the one-time VAPID bootstrap first.');
             process.exit(1);
           }
-          console.log(`Verified ${required.length} required Worker app secret names.`);
+          console.log('Verified existing VAPID_PRIVATE_KEY binding on Worker app.');
           NODE
-          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment.json"
-          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions.json"
+          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-before.json"
+          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions-before.json"
 
-      - name: Generate ephemeral prod Wrangler config
-        shell: bash
+      - name: Generate deterministic prod candidate config
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('node:fs');
           const config = JSON.parse(fs.readFileSync('wrangler.json', 'utf8'));
-          config.env.prod.vars = {
+          const prod = config.env?.prod;
+          if (!prod || prod.name !== 'app') {
+            throw new Error('wrangler.json must define env.prod as Worker app.');
+          }
+
+          prod.preview_urls = true;
+          prod.keep_vars = false;
+          prod.vars = {
+            ...(prod.vars ?? {}),
+            MATRUNDAN_ENVIRONMENT: 'prod',
             SUPABASE_PROJECT_ID: process.env.PROD_SUPABASE_PROJECT_ID,
             SUPABASE_URL: process.env.PROD_SUPABASE_URL,
             SUPABASE_PUBLISHABLE_KEY: process.env.PROD_SUPABASE_PUBLISHABLE_KEY,
@@ -206,45 +276,187 @@ jobs:
           VITE_GEOAPIFY_MAPS_KEY: ${{ vars.PROD_GEOAPIFY_MAPS_KEY }}
           VAPID_SUBJECT: ${{ vars.PROD_VAPID_SUBJECT }}
           VAPID_PUBLIC_KEY: ${{ vars.PROD_VAPID_PUBLIC_KEY }}
+          MATRUNDAN_ENVIRONMENT: prod
           MATRUNDAN_RELEASE_SHA: ${{ github.sha }}
         run: bun run cloudflare:build
 
-      - name: Upload inert Worker app version
+      - name: Upload and verify inert Worker app candidate
+        id: upload
         if: inputs.upload_version == true
-        shell: bash
         run: |
           set -euo pipefail
+          secrets_file="$RUNNER_TEMP/prod-candidate-secrets.json"
+          wrangler_output="$RUNNER_TEMP/prod-upload-output.jsonl"
+          upload_log="$RUNNER_TEMP/prod-upload.log"
+          cleanup_secret_file() {
+            rm -f "$secrets_file"
+          }
+          trap cleanup_secret_file EXIT
+          umask 077
+
+          node - "$secrets_file" <<'NODE'
+          const fs = require('node:fs');
+          fs.writeFileSync(
+            process.argv[2],
+            `${JSON.stringify({
+              GEOAPIFY_API_KEY: process.env.PROD_GEOAPIFY_API_KEY,
+              SUPABASE_SERVICE_ROLE_KEY: process.env.PROD_SUPABASE_SERVICE_ROLE_KEY,
+            })}\n`,
+            { mode: 0o600 },
+          );
+          NODE
+
           WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
           short_sha="${GITHUB_SHA:0:12}"
-          "${WRANGLER[@]}" versions upload \
-            --config wrangler.prod.ci.json \
-            --env prod \
-            --keep-vars \
-            --strict \
-            --tag "sha-$short_sha" \
-            --message "Matrundan prod preflight $GITHUB_SHA"
+          rm -f "$wrangler_output" "$upload_log"
+          WRANGLER_OUTPUT_FILE_PATH="$wrangler_output" \
+            "${WRANGLER[@]}" versions upload \
+              --config wrangler.prod.ci.json \
+              --env prod \
+              --secrets-file "$secrets_file" \
+              --strict \
+              --preview-alias prod-candidate \
+              --tag "sha-$short_sha" \
+              --message "Matrundan prod candidate $GITHUB_SHA" \
+              2>&1 | tee "$upload_log"
+
+          version_id="$(node - "$wrangler_output" <<'NODE'
+          const fs = require('node:fs');
+          const lines = fs.readFileSync(process.argv[2], 'utf8').split(/\r?\n/).filter(Boolean);
+          const entries = lines.map((line) => JSON.parse(line));
+          const upload = entries.filter((entry) => entry.type === 'version-upload').at(-1);
+          const id = upload?.version_id ?? upload?.versionId ?? upload?.id;
+          if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) {
+            console.error('Could not determine the uploaded Worker version ID from Wrangler output.');
+            process.exit(1);
+          }
+          process.stdout.write(id);
+          NODE
+          )"
+
+          "${WRANGLER[@]}" versions view "$version_id" --env prod --json > "$RUNNER_TEMP/prod-version-detail.json"
           "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions-after.json"
+          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-after.json"
+
+          node - \
+            "$RUNNER_TEMP/prod-deployment-before.json" \
+            "$RUNNER_TEMP/prod-deployment-after.json" \
+            "$RUNNER_TEMP/prod-versions-before.json" \
+            "$RUNNER_TEMP/prod-versions-after.json" \
+            "$RUNNER_TEMP/prod-version-detail.json" \
+            "$version_id" <<'NODE'
+          const fs = require('node:fs');
+          const read = (path) => JSON.parse(fs.readFileSync(path, 'utf8'));
+          const beforeDeployment = read(process.argv[2]);
+          const afterDeployment = read(process.argv[3]);
+          const beforeVersions = read(process.argv[4]);
+          const afterVersions = read(process.argv[5]);
+          const versionDetail = read(process.argv[6]);
+          const versionId = process.argv[7];
+          const tag = `sha-${process.env.GITHUB_SHA.slice(0, 12)}`;
+          const message = `Matrundan prod candidate ${process.env.GITHUB_SHA}`;
+
+          if (JSON.stringify(beforeDeployment) !== JSON.stringify(afterDeployment)) {
+            console.error('Active Cloudflare deployment changed during prod preflight.');
+            process.exit(1);
+          }
+          if (JSON.stringify(beforeVersions).includes(versionId)) {
+            console.error('Uploaded version ID already existed before the prod preflight.');
+            process.exit(1);
+          }
+          const afterText = JSON.stringify(afterVersions);
+          if (!afterText.includes(versionId) || !afterText.includes(tag) || !afterText.includes(message)) {
+            console.error('Uploaded Worker version could not be matched to the expected SHA/tag/message.');
+            process.exit(1);
+          }
+
+          const bindingNames = new Set();
+          const visit = (value) => {
+            if (!value || typeof value !== 'object') return;
+            if (typeof value.name === 'string') bindingNames.add(value.name);
+            if (Array.isArray(value)) value.forEach(visit);
+            else Object.values(value).forEach(visit);
+          };
+          visit(versionDetail);
+          const requiredBindings = [
+            'MATRUNDAN_ENVIRONMENT',
+            'SUPABASE_PROJECT_ID',
+            'SUPABASE_URL',
+            'SUPABASE_PUBLISHABLE_KEY',
+            'GEOAPIFY_API_KEY',
+            'SUPABASE_SERVICE_ROLE_KEY',
+            'VAPID_SUBJECT',
+            'VAPID_PUBLIC_KEY',
+            'VAPID_PRIVATE_KEY',
+          ];
+          const missingBindings = requiredBindings.filter((name) => !bindingNames.has(name));
+          if (missingBindings.length > 0) {
+            console.error(`Candidate version is missing runtime binding(s): ${missingBindings.join(', ')}`);
+            process.exit(1);
+          }
+          console.log(`Verified exact inert candidate version ${versionId} with complete runtime bindings and unchanged production deployment.`);
+          NODE
+
+          node <<'NODE'
+          const expectedRelease = process.env.GITHUB_SHA;
+          const url = `${process.env.PROD_CANDIDATE_PREVIEW_URL}/api/health`;
+          let lastFailure = 'preview did not respond';
+
+          for (let attempt = 1; attempt <= 12; attempt += 1) {
+            try {
+              const response = await fetch(url, {
+                headers: { accept: 'application/json', 'cache-control': 'no-cache' },
+                signal: AbortSignal.timeout(10_000),
+              });
+              const payload = await response.json().catch(() => null);
+              if (response.ok && payload?.status === 'ok' && payload?.release === expectedRelease) {
+                console.log(`Verified candidate health and release SHA on attempt ${attempt}.`);
+                process.exit(0);
+              }
+              lastFailure = `HTTP ${response.status}, payload=${JSON.stringify(payload)}`;
+            } catch (error) {
+              lastFailure = error instanceof Error ? error.message : String(error);
+            }
+            await new Promise((resolve) => setTimeout(resolve, 5_000));
+          }
+
+          console.error(`Candidate preview health verification failed: ${lastFailure}`);
+          process.exit(1);
+          NODE
+
+          echo "version_id=$version_id" >> "$GITHUB_OUTPUT"
+          echo "preview_url=$PROD_CANDIDATE_PREVIEW_URL" >> "$GITHUB_OUTPUT"
 
       - name: Summarize preflight
         if: success()
-        shell: bash
         run: |
           {
             echo '## Cloudflare prod preflight'
             echo
             echo "- SHA: \`$GITHUB_SHA\`"
             echo '- Worker: `app` (`--env prod`)'
-            echo '- Required Worker secret names: verified'
+            echo '- GitHub production configuration: complete'
+            echo '- Supabase privileged credential: verified against production project'
+            echo '- Geoapify server key + production/preview browser origins: verified'
+            echo '- Existing VAPID private key: verified'
             echo '- Production build: verified'
             if [[ "${{ inputs.upload_version }}" == "true" ]]; then
-              echo '- Inert version upload: completed; no traffic promotion was requested'
+              echo "- Candidate version: \`${{ steps.upload.outputs.version_id }}\`"
+              echo "- Candidate preview: ${{ steps.upload.outputs.preview_url }}"
+              echo '- Candidate runtime bindings + health/release SHA: verified'
+              echo '- Active production deployment: unchanged'
+              echo '- Next manual gate: authenticated smoke on the candidate preview; add this exact preview URL to the Supabase Auth redirect allowlist if needed'
             else
-              echo '- Inert version upload: skipped (read-only preflight)'
+              echo '- Inert candidate upload: skipped (read-only preflight)'
             fi
             echo '- Public production deployment: not performed'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Remove ephemeral config
+      - name: Remove ephemeral production files
         if: always()
-        shell: bash
-        run: rm -f wrangler.prod.ci.json
+        run: |
+          rm -f \
+            wrangler.prod.ci.json \
+            "$RUNNER_TEMP/prod-candidate-secrets.json" \
+            "$RUNNER_TEMP/prod-upload-output.jsonl" \
+            "$RUNNER_TEMP/prod-upload.log"
