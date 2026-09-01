@@ -226,7 +226,73 @@ jobs:
         run: |
           set -euo pipefail
           WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
-          "${WRANGLER[@]}" secret list --env prod --format json > "$RUNNER_TEMP/prod-secrets-before.json"
+          json_extractor="$RUNNER_TEMP/extract-wrangler-json.cjs"
+          cat > "$json_extractor" <<'NODE'
+          const fs = require('node:fs');
+
+          const inputPath = process.argv[2];
+          const outputPath = process.argv[3];
+          const raw = fs.readFileSync(inputPath, 'utf8');
+
+          function extractCandidate(start) {
+            const stack = [];
+            let inString = false;
+            let escaped = false;
+
+            for (let index = start; index < raw.length; index += 1) {
+              const char = raw[index];
+              if (inString) {
+                if (escaped) escaped = false;
+                else if (char === '\\') escaped = true;
+                else if (char === '"') inString = false;
+                continue;
+              }
+
+              if (char === '"') {
+                inString = true;
+                continue;
+              }
+              if (char === '{' || char === '[') {
+                stack.push(char);
+                continue;
+              }
+              if (char === '}' || char === ']') {
+                const expectedOpen = char === '}' ? '{' : '[';
+                if (stack.at(-1) !== expectedOpen) return null;
+                stack.pop();
+                if (stack.length === 0) return raw.slice(start, index + 1);
+              }
+            }
+            return null;
+          }
+
+          for (let start = 0; start < raw.length; start += 1) {
+            if (raw[start] !== '{' && raw[start] !== '[') continue;
+            const candidate = extractCandidate(start);
+            if (!candidate) continue;
+            try {
+              const parsed = JSON.parse(candidate);
+              fs.writeFileSync(outputPath, `${JSON.stringify(parsed, null, 2)}\n`);
+              process.exit(0);
+            } catch {
+              // Decorative Wrangler output may itself contain brackets. Keep scanning.
+            }
+          }
+
+          console.error('Wrangler output did not contain a valid JSON object or array.');
+          process.exit(1);
+          NODE
+
+          run_wrangler_json() {
+            local output="$1"
+            shift
+            local raw="${output}.raw"
+            "${WRANGLER[@]}" "$@" > "$raw"
+            node "$json_extractor" "$raw" "$output"
+            rm -f "$raw"
+          }
+
+          run_wrangler_json "$RUNNER_TEMP/prod-secrets-before.json" secret list --env prod --format json
           node - "$RUNNER_TEMP/prod-secrets-before.json" <<'NODE'
           const fs = require('node:fs');
           const configured = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
@@ -237,8 +303,8 @@ jobs:
           }
           console.log('Verified existing VAPID_PRIVATE_KEY binding on Worker app.');
           NODE
-          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-before.json"
-          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions-before.json"
+          run_wrangler_json "$RUNNER_TEMP/prod-deployment-before.json" deployments status --env prod --json
+          run_wrangler_json "$RUNNER_TEMP/prod-versions-before.json" versions list --env prod --json
 
       - name: Generate deterministic prod candidate config
         run: |
@@ -251,8 +317,9 @@ jobs:
             throw new Error('wrangler.json must define env.prod as Worker app.');
           }
 
+          config.keep_vars = false;
           prod.preview_urls = true;
-          prod.keep_vars = false;
+          delete prod.keep_vars;
           prod.vars = {
             ...(prod.vars ?? {}),
             MATRUNDAN_ENVIRONMENT: 'prod',
@@ -288,6 +355,7 @@ jobs:
           secrets_file="$RUNNER_TEMP/prod-candidate-secrets.json"
           wrangler_output="$RUNNER_TEMP/prod-upload-output.jsonl"
           upload_log="$RUNNER_TEMP/prod-upload.log"
+          json_extractor="$RUNNER_TEMP/extract-wrangler-json.cjs"
           cleanup_secret_file() {
             rm -f "$secrets_file"
           }
@@ -307,6 +375,15 @@ jobs:
           NODE
 
           WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
+          normalize_wrangler_json() {
+            local output="$1"
+            shift
+            local raw="${output}.raw"
+            "${WRANGLER[@]}" "$@" > "$raw"
+            node "$json_extractor" "$raw" "$output"
+            rm -f "$raw"
+          }
+
           short_sha="${GITHUB_SHA:0:12}"
           rm -f "$wrangler_output" "$upload_log"
           WRANGLER_OUTPUT_FILE_PATH="$wrangler_output" \
@@ -314,6 +391,7 @@ jobs:
               --config wrangler.prod.ci.json \
               --env prod \
               --secrets-file "$secrets_file" \
+              --keep-vars=false \
               --strict \
               --preview-alias prod-candidate \
               --tag "sha-$short_sha" \
@@ -334,9 +412,9 @@ jobs:
           NODE
           )"
 
-          "${WRANGLER[@]}" versions view "$version_id" --env prod --json > "$RUNNER_TEMP/prod-version-detail.json"
-          "${WRANGLER[@]}" versions list --env prod --json > "$RUNNER_TEMP/prod-versions-after.json"
-          "${WRANGLER[@]}" deployments status --env prod --json > "$RUNNER_TEMP/prod-deployment-after.json"
+          normalize_wrangler_json "$RUNNER_TEMP/prod-version-detail.json" versions view "$version_id" --env prod --json
+          normalize_wrangler_json "$RUNNER_TEMP/prod-versions-after.json" versions list --env prod --json
+          normalize_wrangler_json "$RUNNER_TEMP/prod-deployment-after.json" deployments status --env prod --json
 
           node - \
             "$RUNNER_TEMP/prod-deployment-before.json" \
@@ -457,6 +535,13 @@ jobs:
         run: |
           rm -f \
             wrangler.prod.ci.json \
+            "$RUNNER_TEMP/extract-wrangler-json.cjs" \
+            "$RUNNER_TEMP/prod-secrets-before.json"* \
+            "$RUNNER_TEMP/prod-deployment-before.json"* \
+            "$RUNNER_TEMP/prod-deployment-after.json"* \
+            "$RUNNER_TEMP/prod-versions-before.json"* \
+            "$RUNNER_TEMP/prod-versions-after.json"* \
+            "$RUNNER_TEMP/prod-version-detail.json"* \
             "$RUNNER_TEMP/prod-candidate-secrets.json" \
             "$RUNNER_TEMP/prod-upload-output.jsonl" \
             "$RUNNER_TEMP/prod-upload.log"
