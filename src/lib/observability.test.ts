@@ -34,9 +34,9 @@ describe("observability-kontrakt", () => {
       environmentForRequestUrl("https://preview-123-staging.matrundan.workers.dev/grupp"),
     ).toBe("staging");
     expect(environmentForRequestUrl("https://app.matrundan.workers.dev/grupp")).toBe("prod");
-    expect(
-      environmentForRequestUrl("https://prod-candidate-app.matrundan.workers.dev/grupp"),
-    ).toBe("prod");
+    expect(environmentForRequestUrl("https://prod-candidate-app.matrundan.workers.dev/grupp")).toBe(
+      "prod",
+    );
     expect(environmentForRequestUrl("http://localhost:3000/grupp")).toBe("local");
     expect(environmentForRequestUrl("https://example.invalid/grupp")).toBe("unknown");
   });
