@@ -184,6 +184,9 @@ jobs:
 
           echo "$install_dir_windows" >> "$GITHUB_PATH"
 
+      - name: Restore repo-pinned Bun after Supabase CLI setup
+        uses: ./.github/actions/setup-bun
+
       - name: Set up PostgreSQL 17 client on Linux recovery runner
         if: runner.os == 'Linux'
         shell: bash
