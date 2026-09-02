@@ -91,7 +91,7 @@ if have_command psql; then
   psql_version=""
   if ! psql_version="$(capture_version psql)"; then
     fail "Could not run psql --version: $psql_version"
-  elif [[ "$psql_version" =~ PostgreSQL[[:space:]]+([0-9]+) ]]; then
+  elif [[ "$psql_version" =~ PostgreSQL\)?[[:space:]]+([0-9]+) ]]; then
     if [[ "${BASH_REMATCH[1]}" != "$expected_postgres_major" ]]; then
       fail "psql major version must be $expected_postgres_major; got ${BASH_REMATCH[1]}."
     else
@@ -106,7 +106,7 @@ if have_command pg_dump; then
   pg_dump_version=""
   if ! pg_dump_version="$(capture_version pg_dump)"; then
     fail "Could not run pg_dump --version: $pg_dump_version"
-  elif [[ "$pg_dump_version" =~ PostgreSQL[[:space:]]+([0-9]+) ]]; then
+  elif [[ "$pg_dump_version" =~ PostgreSQL\)?[[:space:]]+([0-9]+) ]]; then
     if [[ "${BASH_REMATCH[1]}" != "$expected_postgres_major" ]]; then
       fail "pg_dump major version must be $expected_postgres_major; got ${BASH_REMATCH[1]}."
     fi
