@@ -35,6 +35,49 @@ capture_version() {
   return 1
 }
 
+classify_psql_connection_error() {
+  local stderr_file="$1"
+  local detail=""
+
+  if [[ -f "$stderr_file" ]]; then
+    detail="$(<"$stderr_file")"
+  fi
+  detail="${detail,,}"
+
+  case "$detail" in
+    *"password authentication failed"*|*"no password supplied"*|*"sasl authentication failed"*)
+      printf '%s' "PostgreSQL authentication failed; verify the database password in the recovery URL."
+      ;;
+    *"tenant or user not found"*)
+      printf '%s' "Supabase pooler rejected the tenant/user identifier; verify the pooler host and project-scoped database user."
+      ;;
+    *"could not translate host name"*|*"name or service not known"*|*"temporary failure in name resolution"*|*"nodename nor servname"*)
+      printf '%s' "The database host could not be resolved (DNS)."
+      ;;
+    *"connection refused"*)
+      printf '%s' "The database host refused the connection."
+      ;;
+    *"connection timed out"*|*"timeout expired"*)
+      printf '%s' "The database connection timed out."
+      ;;
+    *"network is unreachable"*|*"no route to host"*)
+      printf '%s' "The recovery runner has no network route to the database host."
+      ;;
+    *"invalid uri"*|*"invalid connection option"*|*"invalid percent-encoded"*|*"missing \"=\" after"*)
+      printf '%s' "The recovery database URL is not a valid PostgreSQL connection URI."
+      ;;
+    *"database "*" does not exist"*)
+      printf '%s' "The configured database name does not exist."
+      ;;
+    *"ssl"*|*"certificate"*)
+      printf '%s' "The database TLS/SSL connection failed."
+      ;;
+    *)
+      printf '%s' "PostgreSQL rejected the connection; raw stderr was withheld because it may contain connection metadata."
+      ;;
+  esac
+}
+
 expected_postgres_major="${POSTGRES_MAJOR:-17}"
 min_free_kb="${RECOVERY_MIN_FREE_KB:-10485760}"
 runner_os="${RUNNER_OS:-$(uname -s 2>/dev/null || printf 'unknown')}"
@@ -142,7 +185,10 @@ if have_command df && [[ -n "${RECOVERY_RUNNER_TEMP:-}" ]]; then
 fi
 
 if $psql_ready && [[ -n "${SUPABASE_DB_URL:-}" ]]; then
-  remote_version_num="$(
+  remote_stderr_file="$RECOVERY_RUNNER_TEMP/matrundan-psql-connection.stderr"
+  remote_version_num=""
+
+  if remote_version_num="$(
     psql "$SUPABASE_DB_URL" \
       -X \
       --no-psqlrc \
@@ -150,15 +196,21 @@ if $psql_ready && [[ -n "${SUPABASE_DB_URL:-}" ]]; then
       --no-align \
       --set ON_ERROR_STOP=1 \
       --command "show server_version_num" \
-      2>/dev/null | tr -d '[:space:]' || true
-  )"
-  if [[ ! "$remote_version_num" =~ ^[0-9]+$ ]]; then
-    fail "Could not connect to the source database with the configured recovery DB URL."
-  else
-    remote_major=$((remote_version_num / 10000))
-    if [[ "$remote_major" != "$expected_postgres_major" ]]; then
-      fail "Source database major version must be $expected_postgres_major; got $remote_major."
+      2>"$remote_stderr_file" | tr -d '[:space:]'
+  )"; then
+    rm -f -- "$remote_stderr_file"
+    if [[ ! "$remote_version_num" =~ ^[0-9]+$ ]]; then
+      fail "Source database returned an unexpected server_version_num response."
+    else
+      remote_major=$((remote_version_num / 10000))
+      if [[ "$remote_major" != "$expected_postgres_major" ]]; then
+        fail "Source database major version must be $expected_postgres_major; got $remote_major."
+      fi
     fi
+  else
+    connection_detail="$(classify_psql_connection_error "$remote_stderr_file")"
+    rm -f -- "$remote_stderr_file"
+    fail "Could not connect to the source database. $connection_detail"
   fi
 fi
 
