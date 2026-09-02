@@ -11,6 +11,30 @@ have_command() {
   command -v "$1" >/dev/null 2>&1
 }
 
+capture_version() {
+  local command_name="$1"
+  local temp_root="${RECOVERY_RUNNER_TEMP:-${RUNNER_TEMP:-/tmp}}"
+  local stderr_file="$temp_root/matrundan-${command_name}-version.stderr"
+  local output=""
+
+  if output="$("$command_name" --version 2>"$stderr_file")"; then
+    rm -f -- "$stderr_file"
+    printf '%s' "$output"
+    return 0
+  fi
+
+  local detail=""
+  if [[ -f "$stderr_file" ]]; then
+    detail="$(<"$stderr_file")"
+    rm -f -- "$stderr_file"
+  fi
+  detail="${detail//$'\r'/ }"
+  detail="${detail//$'\n'/ }"
+  detail="${detail:0:300}"
+  printf '%s' "${detail:-command failed without stderr}"
+  return 1
+}
+
 expected_postgres_major="${POSTGRES_MAJOR:-17}"
 min_free_kb="${RECOVERY_MIN_FREE_KB:-10485760}"
 runner_os="${RUNNER_OS:-$(uname -s 2>/dev/null || printf 'unknown')}"
@@ -64,26 +88,30 @@ fi
 
 psql_ready=false
 if have_command psql; then
-  psql_version="$(psql --version 2>/dev/null || true)"
-  if [[ "$psql_version" =~ PostgreSQL[[:space:]]+([0-9]+) ]]; then
+  psql_version=""
+  if ! psql_version="$(capture_version psql)"; then
+    fail "Could not run psql --version: $psql_version"
+  elif [[ "$psql_version" =~ PostgreSQL[[:space:]]+([0-9]+) ]]; then
     if [[ "${BASH_REMATCH[1]}" != "$expected_postgres_major" ]]; then
       fail "psql major version must be $expected_postgres_major; got ${BASH_REMATCH[1]}."
     else
       psql_ready=true
     fi
   else
-    fail "Could not verify psql version."
+    fail "Could not verify psql version from output: ${psql_version:0:120}."
   fi
 fi
 
 if have_command pg_dump; then
-  pg_dump_version="$(pg_dump --version 2>/dev/null || true)"
-  if [[ "$pg_dump_version" =~ PostgreSQL[[:space:]]+([0-9]+) ]]; then
+  pg_dump_version=""
+  if ! pg_dump_version="$(capture_version pg_dump)"; then
+    fail "Could not run pg_dump --version: $pg_dump_version"
+  elif [[ "$pg_dump_version" =~ PostgreSQL[[:space:]]+([0-9]+) ]]; then
     if [[ "${BASH_REMATCH[1]}" != "$expected_postgres_major" ]]; then
       fail "pg_dump major version must be $expected_postgres_major; got ${BASH_REMATCH[1]}."
     fi
   else
-    fail "Could not verify pg_dump version."
+    fail "Could not verify pg_dump version from output: ${pg_dump_version:0:120}."
   fi
 fi
 
