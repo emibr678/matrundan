@@ -1,0 +1,327 @@
+name: Production off-site backup
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+    - cron: '47 5,11,17,23 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Create a backup generation or only verify RPO
+        required: true
+        default: backup
+        type: choice
+        options:
+          - backup
+          - check-rpo
+      expected_sha:
+        description: Exact current main SHA for a manual run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: production-offsite-backup
+  cancel-in-progress: false
+
+env:
+  BACKUP_DAILY_CRON: '17 2 * * *'
+  BACKUP_RPO_HOURS: '24'
+  SOURCE_SUPABASE_PROJECT_ID: wsikirbxqejjwtgxcvjl
+  SOURCE_SUPABASE_URL: https://wsikirbxqejjwtgxcvjl.supabase.co
+  SUPABASE_CLI_VERSION: 2.115.0
+  POSTGRES_MAJOR: '17'
+  POSTGRES_CLIENT_IMAGE: postgres:17-bookworm
+  RECOVERY_MIN_FREE_KB: '10485760'
+
+jobs:
+  backup:
+    name: Daily production backup to R2
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '17 2 * * *') ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'backup')
+    runs-on: ${{ vars.MATRUNDAN_BACKUP_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 35
+    environment: production
+    env:
+      CI: 'true'
+      SOURCE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PROD_SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.PROD_SUPABASE_DB_URL }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      MATRUNDAN_BACKUP_R2_BUCKET: ${{ vars.PROD_BACKUP_R2_BUCKET }}
+      MATRUNDAN_BACKUP_EXPECTED_SOURCE_REF: wsikirbxqejjwtgxcvjl
+      AWS_ACCESS_KEY_ID: ${{ secrets.PROD_BACKUP_R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_BACKUP_R2_SECRET_ACCESS_KEY }}
+
+    steps:
+      - name: Check out trusted main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard trusted ref and manual SHA
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Production backup may only run from main." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            expected_sha="${{ inputs.expected_sha }}"
+            if [[ ! "$expected_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "expected_sha must be a full 40-character Git SHA." >&2
+              exit 1
+            fi
+            if [[ "$GITHUB_SHA" != "$expected_sha" ]]; then
+              echo "Expected SHA does not match current main." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Prepare private runner paths
+        run: |
+          set -euo pipefail
+          if [[ "$RUNNER_OS" != "Linux" ]]; then
+            echo "Production backup requires a Linux runner." >&2
+            exit 1
+          fi
+          echo "RECOVERY_RUNNER_TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+
+      - name: Validate off-site target and AWS CLI v2
+        run: |
+          set -euo pipefail
+          required=(
+            CLOUDFLARE_ACCOUNT_ID
+            MATRUNDAN_BACKUP_R2_BUCKET
+            AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY
+            SOURCE_SUPABASE_SERVICE_ROLE_KEY
+            SUPABASE_DB_URL
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing production backup environment value: $name" >&2
+              exit 1
+            fi
+          done
+          aws_version="$(aws --version 2>&1)"
+          if [[ ! "$aws_version" =~ ^aws-cli/2\. ]]; then
+            echo "Production backup requires AWS CLI v2; got: ${aws_version:0:120}" >&2
+            exit 1
+          fi
+
+      - name: Verify R2 read/write/delete before reading Prod
+        run: |
+          set -euo pipefail
+          endpoint="https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          canary="$RUNNER_TEMP/matrundan-r2-canary-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.txt"
+          downloaded="$canary.downloaded"
+          key="matrundan-backup-v1/preflight/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.txt"
+          cleanup() {
+            aws s3 rm "s3://${MATRUNDAN_BACKUP_R2_BUCKET}/${key}" --endpoint-url "$endpoint" --only-show-errors >/dev/null 2>&1 || true
+            rm -f -- "$canary" "$downloaded"
+          }
+          trap cleanup EXIT
+          printf 'matrundan-offsite-backup-preflight\n' > "$canary"
+          chmod 600 "$canary"
+          aws s3 cp "$canary" "s3://${MATRUNDAN_BACKUP_R2_BUCKET}/${key}" --endpoint-url "$endpoint" --only-show-errors --no-progress
+          aws s3 cp "s3://${MATRUNDAN_BACKUP_R2_BUCKET}/${key}" "$downloaded" --endpoint-url "$endpoint" --only-show-errors --no-progress
+          cmp --silent "$canary" "$downloaded" || {
+            echo "R2 canary download did not match uploaded bytes." >&2
+            exit 1
+          }
+          aws s3 rm "s3://${MATRUNDAN_BACKUP_R2_BUCKET}/${key}" --endpoint-url "$endpoint" --only-show-errors
+          trap - EXIT
+          rm -f -- "$canary" "$downloaded"
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Restore repo-pinned Bun after Supabase CLI setup
+        uses: ./.github/actions/setup-bun
+
+      - name: Set up PostgreSQL 17 client
+        run: |
+          set -euo pipefail
+          client_bin="$RECOVERY_RUNNER_TEMP/matrundan-postgres-${POSTGRES_MAJOR}-bin"
+          mkdir -p "$client_bin"
+          cat > "$client_bin/psql" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker run --rm -i --network host "${POSTGRES_CLIENT_IMAGE:-postgres:17-bookworm}" psql "$@"
+          SCRIPT
+          cat > "$client_bin/pg_dump" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker run --rm -i --network host "${POSTGRES_CLIENT_IMAGE:-postgres:17-bookworm}" pg_dump "$@"
+          SCRIPT
+          chmod 700 "$client_bin/psql" "$client_bin/pg_dump"
+          echo "$client_bin" >> "$GITHUB_PATH"
+
+      - name: Production backup environment preflight
+        run: bash scripts/recovery-preflight.sh
+
+      - name: Create private production backup generation
+        id: local_backup
+        run: |
+          set -euo pipefail
+          backup_dir="$RECOVERY_RUNNER_TEMP/matrundan-offsite-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          verify_dir="$RECOVERY_RUNNER_TEMP/matrundan-offsite-verify-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "backup_dir=$backup_dir" >> "$GITHUB_OUTPUT"
+          echo "verify_dir=$verify_dir" >> "$GITHUB_OUTPUT"
+
+          bash scripts/backup-supabase.sh "$backup_dir"
+          bun scripts/visit-photo-backup.mjs export "$backup_dir"
+          app_version="$(bun -e 'import { APP_VERSION } from "./src/lib/matrundan/version.ts"; process.stdout.write(APP_VERSION)')"
+          MATRUNDAN_BACKUP_SOURCE_REF="$SOURCE_SUPABASE_PROJECT_ID" \
+          MATRUNDAN_BACKUP_APP_VERSION="$app_version" \
+          MATRUNDAN_BACKUP_RELEASE_SHA="$GITHUB_SHA" \
+            bun scripts/backup-manifest.mjs create "$backup_dir"
+          bun scripts/backup-manifest.mjs verify "$backup_dir"
+
+      - name: Upload generation to private R2
+        id: offsite
+        env:
+          BACKUP_DIR: ${{ steps.local_backup.outputs.backup_dir }}
+        run: |
+          set -euo pipefail
+          generation_id="$(bun scripts/offsite-backup-r2.mjs upload "$BACKUP_DIR")"
+          if [[ ! "$generation_id" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*Z$ ]]; then
+            echo "Off-site adapter did not return a valid generation id." >&2
+            exit 1
+          fi
+          echo "generation_id=$generation_id" >> "$GITHUB_OUTPUT"
+
+      - name: Download and checksum-verify off-site generation
+        env:
+          GENERATION_ID: ${{ steps.offsite.outputs.generation_id }}
+          VERIFY_DIR: ${{ steps.local_backup.outputs.verify_dir }}
+        run: |
+          set -euo pipefail
+          bun scripts/offsite-backup-r2.mjs download "$GENERATION_ID" "$VERIFY_DIR"
+
+      - name: Apply 7 daily + 4 weekly retention
+        run: bun scripts/offsite-backup-r2.mjs retention
+
+      - name: Verify 24-hour RPO
+        run: bun scripts/offsite-backup-r2.mjs check-rpo "$BACKUP_RPO_HOURS"
+
+      - name: Summarize off-site backup
+        if: success()
+        env:
+          GENERATION_ID: ${{ steps.offsite.outputs.generation_id }}
+        run: |
+          {
+            echo '## Production off-site backup'
+            echo
+            echo "- Release SHA: \`$GITHUB_SHA\`"
+            echo "- Generation: \`$GENERATION_ID\`"
+            echo '- Source: Matrundan Production (read-only export)'
+            echo '- Destination: private Cloudflare R2 bucket'
+            echo '- Off-site bytes: downloaded again and SHA-256 verified'
+            echo '- Retention: 7 latest daily + 4 older weekly restore points'
+            echo '- RPO: 24 hours verified'
+            echo '- Production database: not modified'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Destroy private runner backup files
+        if: always()
+        env:
+          BACKUP_DIR: ${{ steps.local_backup.outputs.backup_dir }}
+          VERIFY_DIR: ${{ steps.local_backup.outputs.verify_dir }}
+        run: |
+          set +e
+          for candidate in "${BACKUP_DIR:-}" "${VERIFY_DIR:-}"; do
+            if [[ -n "$candidate" && "$candidate" == "$RECOVERY_RUNNER_TEMP"/matrundan-offsite-* ]]; then
+              rm -rf -- "$candidate"
+            fi
+          done
+
+  rpo-watch:
+    name: Off-site backup RPO watch
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule != '17 2 * * *') ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'check-rpo')
+    runs-on: ${{ vars.MATRUNDAN_BACKUP_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      MATRUNDAN_BACKUP_R2_BUCKET: ${{ vars.PROD_BACKUP_R2_BUCKET }}
+      MATRUNDAN_BACKUP_EXPECTED_SOURCE_REF: wsikirbxqejjwtgxcvjl
+      AWS_ACCESS_KEY_ID: ${{ secrets.PROD_BACKUP_R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_BACKUP_R2_SECRET_ACCESS_KEY }}
+
+    steps:
+      - name: Check out trusted main
+        uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - name: Guard trusted ref and manual SHA
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "RPO watch may only run from main." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            expected_sha="${{ inputs.expected_sha }}"
+            if [[ ! "$expected_sha" =~ ^[0-9a-f]{40}$ || "$GITHUB_SHA" != "$expected_sha" ]]; then
+              echo "Manual RPO watch requires the exact current main SHA." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Validate R2 configuration and AWS CLI v2
+        run: |
+          set -euo pipefail
+          for name in CLOUDFLARE_ACCOUNT_ID MATRUNDAN_BACKUP_R2_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing RPO watch environment value: $name" >&2
+              exit 1
+            fi
+          done
+          aws_version="$(aws --version 2>&1)"
+          [[ "$aws_version" =~ ^aws-cli/2\. ]] || {
+            echo "RPO watch requires AWS CLI v2." >&2
+            exit 1
+          }
+
+      - name: Fail when latest complete backup exceeds RPO
+        run: node scripts/offsite-backup-r2.mjs check-rpo "$BACKUP_RPO_HOURS"
+
+      - name: Summarize RPO watch
+        if: success()
+        run: |
+          {
+            echo '## Off-site backup RPO watch'
+            echo
+            echo '- Latest complete generation is within the 24-hour RPO.'
+            echo '- No production data was read or modified by this job.'
+          } >> "$GITHUB_STEP_SUMMARY"
