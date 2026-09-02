@@ -93,6 +93,8 @@ Efter miljögrinden startas och valideras den tomma lokala Supabase-stacken **in
 
 Backupgenerationen ligger endast på runnerns temporära disk, laddas inte upp som Actions-artifact och tas bort tillsammans med den lokala stacken efter körningen. PR-kod får inte staging- eller production-hemligheterna eftersom jobbet endast kan köras från `main`.
 
+För upprepad anslutningsfelsökning finns även `Recovery DB diagnostics` (`.github/workflows/recovery-db-diagnostics.yml`). Det är ett separat manuellt `main`-låst workflow som använder samma recovery-runner men endast vald environments databas-URL, aldrig service-role. Det skapar ingen backup och startar inget restoremål. En körning rapporterar endast säker målklassificering (host/port), DNS- och TCP-status på runnern samt i PostgreSQL-containern med både host- och bridge-nätverk, plus en read-only `show server_version_num` för respektive containernätverk. Rå `psql`-stderr, databasuser, lösenord och upplösta IP-adresser loggas inte. Workflowet kan därför köras om mot samma verifierade `main`-SHA för flera felsökningsvarv utan att ändra recoverygrindens backup-/restoresemantik eller ge feature-/PR-kod produktionshemligheter.
+
 Mediarestore är idempotent på byte-nivå: ett redan korrekt målobjekt lämnas orört, annars laddas backupens objekt upp och verifieras med SHA-256 efteråt.
 
 ## Säkerhet och retention
