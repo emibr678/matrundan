@@ -31,7 +31,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BACKUP_DAILY_CRON: '17 2 * * *'
   BACKUP_RPO_HOURS: '24'
   SOURCE_SUPABASE_PROJECT_ID: wsikirbxqejjwtgxcvjl
   SOURCE_SUPABASE_URL: https://wsikirbxqejjwtgxcvjl.supabase.co
@@ -199,7 +198,7 @@ jobs:
             bun scripts/backup-manifest.mjs create "$backup_dir"
           bun scripts/backup-manifest.mjs verify "$backup_dir"
 
-      - name: Upload generation to private R2
+      - name: Stage generation in private R2
         id: offsite
         env:
           BACKUP_DIR: ${{ steps.local_backup.outputs.backup_dir }}
@@ -212,13 +211,18 @@ jobs:
           fi
           echo "generation_id=$generation_id" >> "$GITHUB_OUTPUT"
 
-      - name: Download and checksum-verify off-site generation
+      - name: Download and checksum-verify staged R2 bytes
         env:
-          GENERATION_ID: ${{ steps.offsite.outputs.generation_id }}
+          BACKUP_DIR: ${{ steps.local_backup.outputs.backup_dir }}
           VERIFY_DIR: ${{ steps.local_backup.outputs.verify_dir }}
         run: |
           set -euo pipefail
-          bun scripts/offsite-backup-r2.mjs download "$GENERATION_ID" "$VERIFY_DIR"
+          bun scripts/offsite-backup-r2.mjs verify-staged "$BACKUP_DIR" "$VERIFY_DIR"
+
+      - name: Commit verified off-site generation
+        env:
+          BACKUP_DIR: ${{ steps.local_backup.outputs.backup_dir }}
+        run: bun scripts/offsite-backup-r2.mjs commit "$BACKUP_DIR"
 
       - name: Apply 7 daily + 4 weekly retention
         run: bun scripts/offsite-backup-r2.mjs retention
@@ -238,7 +242,7 @@ jobs:
             echo "- Generation: \`$GENERATION_ID\`"
             echo '- Source: Matrundan Production (read-only export)'
             echo '- Destination: private Cloudflare R2 bucket'
-            echo '- Off-site bytes: downloaded again and SHA-256 verified'
+            echo '- Off-site bytes: downloaded again and SHA-256 verified before commit'
             echo '- Retention: 7 latest daily + 4 older weekly restore points'
             echo '- RPO: 24 hours verified'
             echo '- Production database: not modified'
