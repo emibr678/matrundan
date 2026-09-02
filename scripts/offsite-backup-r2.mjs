@@ -208,7 +208,10 @@ async function upload(directory) {
   }
 
   const localFiles = await collectLocalFiles(root);
-  const expected = [...manifest.files.map((entry) => normalizeRelative(entry.path)), MANIFEST_FILE].sort();
+  const expected = [
+    ...manifest.files.map((entry) => normalizeRelative(entry.path)),
+    MANIFEST_FILE,
+  ].sort();
   if (JSON.stringify(localFiles) !== JSON.stringify(expected)) {
     fail("Lokal backup matchar inte manifestets filuppsättning före off-site-upload.");
   }
@@ -242,14 +245,22 @@ async function verifyStaged(directory, targetDirectory) {
     const relative = normalizeRelative(entry.path);
     const localPath = path.join(target, ...relative.split("/"));
     await mkdir(path.dirname(localPath), { recursive: true, mode: 0o700 });
-    aws(["s3", "cp", remoteUri(bucket, `${prefix}${relative}`), localPath, "--only-show-errors", "--no-progress"]);
+    aws([
+      "s3",
+      "cp",
+      remoteUri(bucket, `${prefix}${relative}`),
+      localPath,
+      "--only-show-errors",
+      "--no-progress",
+    ]);
   }
 
   const verify = spawnSync("bun", ["scripts/backup-manifest.mjs", "verify", target], {
     stdio: "inherit",
     env: process.env,
   });
-  if (verify.error || verify.status !== 0) fail("Den staged off-site-generationen klarade inte manifestverifieringen.");
+  if (verify.error || verify.status !== 0)
+    fail("Den staged off-site-generationen klarade inte manifestverifieringen.");
   console.log(`Staged off-site-generation verifierad: ${id}`);
 }
 
@@ -305,22 +316,38 @@ async function downloadGeneration(id, targetDirectory) {
   await mkdir(target, { recursive: true, mode: 0o700 });
 
   const manifestPath = path.join(target, MANIFEST_FILE);
-  aws(["s3", "cp", remoteUri(bucket, `${prefix}${MANIFEST_FILE}`), manifestPath, "--only-show-errors", "--no-progress"]);
+  aws([
+    "s3",
+    "cp",
+    remoteUri(bucket, `${prefix}${MANIFEST_FILE}`),
+    manifestPath,
+    "--only-show-errors",
+    "--no-progress",
+  ]);
   const manifest = await readManifest(target);
-  if (generationId(manifest) !== id) fail("Off-site-manifestets created_at matchar inte generationens nyckel.");
+  if (generationId(manifest) !== id)
+    fail("Off-site-manifestets created_at matchar inte generationens nyckel.");
 
   for (const entry of manifest.files) {
     const relative = normalizeRelative(entry.path);
     const localPath = path.join(target, ...relative.split("/"));
     await mkdir(path.dirname(localPath), { recursive: true, mode: 0o700 });
-    aws(["s3", "cp", remoteUri(bucket, `${prefix}${relative}`), localPath, "--only-show-errors", "--no-progress"]);
+    aws([
+      "s3",
+      "cp",
+      remoteUri(bucket, `${prefix}${relative}`),
+      localPath,
+      "--only-show-errors",
+      "--no-progress",
+    ]);
   }
 
   const verify = spawnSync("bun", ["scripts/backup-manifest.mjs", "verify", target], {
     stdio: "inherit",
     env: process.env,
   });
-  if (verify.error || verify.status !== 0) fail("Nedladdad off-site-generation klarade inte manifestverifieringen.");
+  if (verify.error || verify.status !== 0)
+    fail("Nedladdad off-site-generation klarade inte manifestverifieringen.");
   console.log(`Off-site-generation verifierad: ${id}`);
 }
 
@@ -335,7 +362,9 @@ function applyRetention() {
   if (complete.length === 0) fail("Ingen komplett off-site-backup hittades; retention avbryts.");
 
   const keep = selectRetentionIds(complete);
-  const allIds = new Set(objects.map((object) => parseGenerationFromKey(object.Key)?.id).filter(Boolean));
+  const allIds = new Set(
+    objects.map((object) => parseGenerationFromKey(object.Key)?.id).filter(Boolean),
+  );
   const completeIds = new Set(complete.map((item) => item.id));
   const newestComplete = Math.max(...complete.map((item) => item.createdAt.getTime()));
   const stalePartialBefore = Date.now() - STALE_PARTIAL_HOURS * 3600_000;
@@ -350,18 +379,28 @@ function applyRetention() {
       continue;
     }
 
-    const generationObjects = objects.filter((object) => parseGenerationFromKey(object.Key)?.id === id);
+    const generationObjects = objects.filter(
+      (object) => parseGenerationFromKey(object.Key)?.id === id,
+    );
     const newestObjectTime = Math.max(
-      ...generationObjects.map((object) => new Date(object.LastModified ?? 0).getTime()).filter(Number.isFinite),
+      ...generationObjects
+        .map((object) => new Date(object.LastModified ?? 0).getTime())
+        .filter(Number.isFinite),
       0,
     );
-    if (newestObjectTime > 0 && newestObjectTime < stalePartialBefore && new Date(id).getTime() < newestComplete) {
+    if (
+      newestObjectTime > 0 &&
+      newestObjectTime < stalePartialBefore &&
+      new Date(id).getTime() < newestComplete
+    ) {
       deleteGeneration(id);
       deleted += 1;
     }
   }
 
-  console.log(`Retention klar: ${keep.size} kompletta generationer behålls, ${deleted} generationer raderades.`);
+  console.log(
+    `Retention klar: ${keep.size} kompletta generationer behålls, ${deleted} generationer raderades.`,
+  );
 }
 
 function checkRpo(hours = DEFAULT_RPO_HOURS) {
@@ -372,9 +411,13 @@ function checkRpo(hours = DEFAULT_RPO_HOURS) {
   const ageHours = (Date.now() - latest.createdAt.getTime()) / 3600_000;
   if (ageHours < 0) fail("Senaste backupgenerationen ligger i framtiden.");
   if (ageHours > hours) {
-    fail(`Senaste kompletta off-site-backup är ${ageHours.toFixed(1)} timmar gammal och överskrider RPO ${hours}h.`);
+    fail(
+      `Senaste kompletta off-site-backup är ${ageHours.toFixed(1)} timmar gammal och överskrider RPO ${hours}h.`,
+    );
   }
-  console.log(`RPO OK: senaste kompletta off-site-backup är ${ageHours.toFixed(1)} timmar gammal (${latest.id}).`);
+  console.log(
+    `RPO OK: senaste kompletta off-site-backup är ${ageHours.toFixed(1)} timmar gammal (${latest.id}).`,
+  );
 }
 
 function selfTest() {
@@ -407,7 +450,8 @@ try {
   else if (command === "commit" && args.length === 1) await commitGeneration(args[0]);
   else if (command === "download" && args.length === 2) await downloadGeneration(args[0], args[1]);
   else if (command === "retention" && args.length === 0) applyRetention();
-  else if (command === "check-rpo" && args.length <= 1) checkRpo(args[0] ? Number(args[0]) : DEFAULT_RPO_HOURS);
+  else if (command === "check-rpo" && args.length <= 1)
+    checkRpo(args[0] ? Number(args[0]) : DEFAULT_RPO_HOURS);
   else usage();
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
