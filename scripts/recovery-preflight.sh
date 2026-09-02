@@ -78,6 +78,91 @@ classify_psql_connection_error() {
   esac
 }
 
+report_recovery_db_network_diagnostics() {
+  local target=""
+  local host=""
+  local port=""
+  local runner_ipv4="unavailable"
+  local runner_ipv6="unavailable"
+  local runner_tcp="unavailable"
+  local container_ipv4="unavailable"
+  local container_ipv6="unavailable"
+  local container_tcp="unavailable"
+  local container_status=""
+
+  if ! target="$(
+    bun -e '
+      const raw = process.env.SUPABASE_DB_URL ?? "";
+      try {
+        const url = new URL(raw);
+        if (url.protocol !== "postgresql:" && url.protocol !== "postgres:") process.exit(2);
+        if (!url.hostname) process.exit(3);
+        process.stdout.write(`${url.hostname}\t${url.port || "5432"}`);
+      } catch {
+        process.exit(1);
+      }
+    ' 2>/dev/null
+  )"; then
+    printf '%s\n' "Recovery DB diagnostics: connection URI could not be parsed safely; target metadata withheld."
+    return 0
+  fi
+
+  IFS=$'\t' read -r host port <<< "$target"
+  if [[ -z "$host" || ! "$host" =~ ^[A-Za-z0-9._:-]+$ || ! "$port" =~ ^[0-9]+$ ]]; then
+    printf '%s\n' "Recovery DB diagnostics: parsed target metadata was not safe to report."
+    return 0
+  fi
+
+  if have_command getent; then
+    if getent ahostsv4 "$host" >/dev/null 2>&1; then runner_ipv4="resolved"; else runner_ipv4="unresolved"; fi
+    if getent ahostsv6 "$host" >/dev/null 2>&1; then runner_ipv6="resolved"; else runner_ipv6="unresolved"; fi
+  fi
+
+  if have_command timeout; then
+    if timeout 5 bash -c 'exec 3<>"/dev/tcp/$1/$2"' _ "$host" "$port" >/dev/null 2>&1; then
+      runner_tcp="reachable"
+    else
+      runner_tcp="unreachable"
+    fi
+  fi
+
+  if $docker_ready; then
+    container_status="$(
+      docker run --rm --network host \
+        -e RECOVERY_DIAG_HOST="$host" \
+        -e RECOVERY_DIAG_PORT="$port" \
+        "${POSTGRES_CLIENT_IMAGE:-postgres:17-bookworm}" \
+        bash -c '
+          set -u
+          ipv4="unavailable"
+          ipv6="unavailable"
+          tcp="unavailable"
+
+          if command -v getent >/dev/null 2>&1; then
+            if getent ahostsv4 "$RECOVERY_DIAG_HOST" >/dev/null 2>&1; then ipv4="resolved"; else ipv4="unresolved"; fi
+            if getent ahostsv6 "$RECOVERY_DIAG_HOST" >/dev/null 2>&1; then ipv6="resolved"; else ipv6="unresolved"; fi
+          fi
+
+          if command -v timeout >/dev/null 2>&1; then
+            if timeout 5 bash -c '\''exec 3<>"/dev/tcp/$1/$2"'\'' _ "$RECOVERY_DIAG_HOST" "$RECOVERY_DIAG_PORT" >/dev/null 2>&1; then
+              tcp="reachable"
+            else
+              tcp="unreachable"
+            fi
+          fi
+
+          printf "%s\\t%s\\t%s" "$ipv4" "$ipv6" "$tcp"
+        ' 2>/dev/null || true
+    )"
+    if [[ -n "$container_status" ]]; then
+      IFS=$'\t' read -r container_ipv4 container_ipv6 container_tcp <<< "$container_status"
+    fi
+  fi
+
+  printf 'Recovery DB diagnostics: host=%s port=%s runner_dns_ipv4=%s runner_dns_ipv6=%s runner_tcp=%s container_dns_ipv4=%s container_dns_ipv6=%s container_tcp=%s\n' \
+    "$host" "$port" "$runner_ipv4" "$runner_ipv6" "$runner_tcp" "$container_ipv4" "$container_ipv6" "$container_tcp"
+}
+
 expected_postgres_major="${POSTGRES_MAJOR:-17}"
 min_free_kb="${RECOVERY_MIN_FREE_KB:-10485760}"
 runner_os="${RUNNER_OS:-$(uname -s 2>/dev/null || printf 'unknown')}"
@@ -210,6 +295,7 @@ if $psql_ready && [[ -n "${SUPABASE_DB_URL:-}" ]]; then
   else
     connection_detail="$(classify_psql_connection_error "$remote_stderr_file")"
     rm -f -- "$remote_stderr_file"
+    report_recovery_db_network_diagnostics
     fail "Could not connect to the source database. $connection_detail"
   fi
 fi
