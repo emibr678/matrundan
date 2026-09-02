@@ -224,7 +224,66 @@ async function upload(directory) {
     ]);
   }
 
-  // Manifestet laddas upp sist och fungerar som generationens commit-markör.
+  console.log(id);
+}
+
+async function verifyStaged(directory, targetDirectory) {
+  const root = path.resolve(directory);
+  const manifest = await readManifest(root);
+  const id = generationId(manifest);
+  const prefix = generationPrefix(id);
+  const { bucket } = config();
+  const target = path.resolve(targetDirectory);
+  await rm(target, { recursive: true, force: true });
+  await mkdir(target, { recursive: true, mode: 0o700 });
+  await Bun.write(path.join(target, MANIFEST_FILE), await readFile(path.join(root, MANIFEST_FILE)));
+
+  for (const entry of manifest.files) {
+    const relative = normalizeRelative(entry.path);
+    const localPath = path.join(target, ...relative.split("/"));
+    await mkdir(path.dirname(localPath), { recursive: true, mode: 0o700 });
+    aws(["s3", "cp", remoteUri(bucket, `${prefix}${relative}`), localPath, "--only-show-errors", "--no-progress"]);
+  }
+
+  const verify = spawnSync("bun", ["scripts/backup-manifest.mjs", "verify", target], {
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (verify.error || verify.status !== 0) fail("Den staged off-site-generationen klarade inte manifestverifieringen.");
+  console.log(`Staged off-site-generation verifierad: ${id}`);
+}
+
+async function commitGeneration(directory) {
+  const root = path.resolve(directory);
+  const manifest = await readManifest(root);
+  const id = generationId(manifest);
+  const prefix = generationPrefix(id);
+  const { bucket } = config();
+  const manifestKey = `${prefix}${MANIFEST_FILE}`;
+
+  const existing = JSON.parse(
+    aws(
+      [
+        "s3api",
+        "list-objects-v2",
+        "--bucket",
+        bucket,
+        "--prefix",
+        manifestKey,
+        "--max-items",
+        "1",
+        "--output",
+        "json",
+        "--no-cli-pager",
+      ],
+      { capture: true },
+    ) || "{}",
+  );
+  if ((existing.Contents ?? []).some((item) => item.Key === manifestKey)) {
+    fail("Backupgenerationen är redan committad off-site.");
+  }
+
+  // Manifestet publiceras först efter full byteverifiering och är generationens commit-markör.
   aws([
     "s3",
     "cp",
@@ -235,8 +294,7 @@ async function upload(directory) {
     "--content-type",
     "application/json",
   ]);
-
-  console.log(id);
+  console.log(`Off-site-generation committad: ${id}`);
 }
 
 async function downloadGeneration(id, targetDirectory) {
@@ -336,7 +394,7 @@ function selfTest() {
 
 function usage() {
   console.error(
-    "Användning: bun scripts/offsite-backup-r2.mjs <upload DIR|download GENERATION DIR|retention|check-rpo [HOURS]|self-test>",
+    "Användning: bun scripts/offsite-backup-r2.mjs <upload DIR|verify-staged DIR TARGET|commit DIR|download GENERATION DIR|retention|check-rpo [HOURS]|self-test>",
   );
   process.exit(2);
 }
@@ -345,6 +403,8 @@ const [command, ...args] = process.argv.slice(2);
 try {
   if (command === "self-test" && args.length === 0) selfTest();
   else if (command === "upload" && args.length === 1) await upload(args[0]);
+  else if (command === "verify-staged" && args.length === 2) await verifyStaged(args[0], args[1]);
+  else if (command === "commit" && args.length === 1) await commitGeneration(args[0]);
   else if (command === "download" && args.length === 2) await downloadGeneration(args[0], args[1]);
   else if (command === "retention" && args.length === 0) applyRetention();
   else if (command === "check-rpo" && args.length <= 1) checkRpo(args[0] ? Number(args[0]) : DEFAULT_RPO_HOURS);
