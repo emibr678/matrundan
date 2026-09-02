@@ -60,11 +60,39 @@ if [[ ${#auth_tables[@]} -lt 2 ]] || [[ " ${auth_tables[*]} " != *" auth.users "
   exit 1
 fi
 
-data_exclude_args=(
-  -x "storage.buckets_vectors"
-  -x "storage.vector_indexes"
+mapfile -t storage_data_tables < <(
+  psql "$SUPABASE_DB_URL" -X --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 <<'SQL'
+select table_schema || '.' || table_name
+from information_schema.tables
+where table_schema = 'storage'
+  and table_type = 'BASE TABLE'
+order by table_name;
+SQL
 )
+
+if [[ ${#storage_data_tables[@]} -eq 0 ]]; then
+  echo "Storage-backup kunde inte upptäcka Supabases Storage-tabeller." >&2
+  exit 1
+fi
+
+mapfile -t storage_bucket_ids < <(
+  psql "$SUPABASE_DB_URL" -X --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 <<'SQL'
+select id
+from storage.buckets
+order by id;
+SQL
+)
+
+if [[ ${#storage_bucket_ids[@]} -ne 1 ]] || [[ "${storage_bucket_ids[0]:-}" != "visit-photos" ]]; then
+  echo "Recovery-backup stöder exakt Storage-bucketen visit-photos; källans bucket-konfiguration avviker." >&2
+  exit 1
+fi
+
+data_exclude_args=()
 for table in "${auth_data_tables[@]}"; do
+  data_exclude_args+=(-x "$table")
+done
+for table in "${storage_data_tables[@]}"; do
   data_exclude_args+=(-x "$table")
 done
 
@@ -79,6 +107,11 @@ supabase db dump \
 
 if grep -Eq '^[[:space:]]*(COPY|INSERT[[:space:]]+INTO)[[:space:]]+"?auth"?\.' "$partial/data.sql"; then
   echo "Den generella databackupen innehåller Auth-data trots explicit exkludering." >&2
+  exit 1
+fi
+
+if grep -Eq '^[[:space:]]*(COPY|INSERT[[:space:]]+INTO)[[:space:]]+"?storage"?\.' "$partial/data.sql"; then
+  echo "Den generella databackupen innehåller Supabase Storage-data trots explicit exkludering." >&2
   exit 1
 fi
 
