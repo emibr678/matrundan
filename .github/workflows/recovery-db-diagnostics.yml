@@ -1,0 +1,131 @@
+name: Recovery DB diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA to diagnose
+        required: true
+        type: string
+      source:
+        description: Supabase source to diagnose read-only
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      confirm_production_source:
+        description: Confirm read-only diagnostics against Matrundan Prod
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: recovery-db-diagnostics-${{ inputs.source }}
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Read-only DB diagnostics (${{ inputs.source }})
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.MATRUNDAN_RECOVERY_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 10
+    environment: ${{ inputs.source }}
+    env:
+      SUPABASE_DB_URL: ${{ inputs.source == 'production' && secrets.PROD_SUPABASE_DB_URL || secrets.STAGING_SUPABASE_DB_URL }}
+      POSTGRES_CLIENT_IMAGE: postgres:17-bookworm
+
+    steps:
+      - name: Check out exact trusted diagnostics candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard trusted ref, source and exact SHA
+        env:
+          RECOVERY_SOURCE: ${{ inputs.source }}
+          CONFIRM_PRODUCTION_SOURCE: ${{ inputs.confirm_production_source }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Recovery DB diagnostics may only run from main so feature/PR code cannot receive production database credentials." >&2
+            exit 1
+          fi
+
+          case "$RECOVERY_SOURCE" in
+            staging)
+              ;;
+            production)
+              if [[ "$CONFIRM_PRODUCTION_SOURCE" != "true" ]]; then
+                echo "Production diagnostics require explicit confirmation of the read-only Prod source." >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Unsupported diagnostics source." >&2
+              exit 1
+              ;;
+          esac
+
+          expected_sha="${{ inputs.expected_sha }}"
+          if [[ ! "$expected_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Expected SHA must be a full 40-character Git SHA." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_SHA" != "$expected_sha" ]]; then
+            echo "Expected SHA does not match the checked-out main SHA." >&2
+            echo "expected=$expected_sha" >&2
+            echo "actual=$GITHUB_SHA" >&2
+            exit 1
+          fi
+          if [[ -z "${SUPABASE_DB_URL:-}" ]]; then
+            echo "Recovery database URL is not configured for the selected environment." >&2
+            exit 1
+          fi
+
+      - name: Prepare diagnostics runner
+        run: |
+          set -euo pipefail
+          if [[ "$RUNNER_OS" != "Linux" ]]; then
+            echo "Recovery DB diagnostics require a Linux runner; actual OS is $RUNNER_OS." >&2
+            exit 1
+          fi
+          echo "RECOVERY_RUNNER_TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "Diagnostics runner: $RUNNER_NAME ($RUNNER_OS/$RUNNER_ARCH)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Configured recovery target: ${{ vars.MATRUNDAN_RECOVERY_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Run read-only database diagnostics
+        run: bash scripts/recovery-db-diagnostics.sh
+
+      - name: Summarize diagnostics contract
+        if: always()
+        env:
+          RECOVERY_SOURCE: ${{ inputs.source }}
+        run: |
+          {
+            echo '## Recovery DB diagnostics'
+            echo
+            echo "- Candidate SHA: \`$GITHUB_SHA\`"
+            echo "- Source: \`$RECOVERY_SOURCE\`"
+            echo '- Trust boundary: exact `main` only'
+            echo '- Credential scope: database URL only; no Supabase service-role credential'
+            echo '- Probes: safe URI target classification, runner DNS/TCP, Docker host/bridge DNS/TCP and PostgreSQL server-version read'
+            echo '- Writes: none'
+            echo '- Backup/restore: none'
+            echo '- Artifacts: none'
+          } >> "$GITHUB_STEP_SUMMARY"
