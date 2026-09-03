@@ -1,0 +1,145 @@
+name: Production health watch
+
+on:
+  schedule:
+    - cron: '17 0,8,16 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: production-health-watch
+  cancel-in-progress: false
+
+env:
+  PROD_PUBLIC_URL: https://app.matrundan.workers.dev
+
+jobs:
+  health:
+    name: Check production health
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Determine whether scheduled production watch is active
+        id: activation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          async function main() {
+            if (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch') {
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, 'active=true\n');
+              console.log('Manual health watch requested; running regardless of publication history.');
+              return;
+            }
+
+            const workflow = encodeURIComponent('cloudflare-prod-publish.yml');
+            const url = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?status=success&per_page=1`;
+            const response = await fetch(url, {
+              headers: {
+                accept: 'application/vnd.github+json',
+                authorization: `Bearer ${process.env.GH_TOKEN}`,
+                'x-github-api-version': '2022-11-28',
+              },
+            });
+            if (!response.ok) {
+              throw new Error(`Could not read production publication history: HTTP ${response.status}`);
+            }
+
+            const payload = await response.json();
+            const active = Array.isArray(payload.workflow_runs) && payload.workflow_runs.length > 0;
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `active=${active}\n`);
+            console.log(
+              active
+                ? 'Production has a successful publish run; scheduled health watch is active.'
+                : 'No successful production publish exists yet; scheduled health watch remains dormant.',
+            );
+          }
+
+          main().catch((error) => {
+            console.error(error instanceof Error ? error.message : String(error));
+            process.exit(1);
+          });
+          NODE
+
+      - name: Probe Cloudflare, Supabase Auth and Postgres
+        if: steps.activation.outputs.active == 'true'
+        run: |
+          node <<'NODE'
+          const HEALTH_URL = `${process.env.PROD_PUBLIC_URL}/api/health`;
+          const MAX_ATTEMPTS = 3;
+          const RETRY_DELAY_MS = 20_000;
+          const REQUEST_TIMEOUT_MS = 15_000;
+
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+          async function probe() {
+            const response = await fetch(HEALTH_URL, {
+              headers: { accept: 'application/json', 'cache-control': 'no-cache' },
+              signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+            });
+            const text = await response.text();
+            let payload = null;
+            try {
+              payload = text ? JSON.parse(text) : null;
+            } catch {
+              // Invalid JSON is handled by the contract check below.
+            }
+
+            if (
+              response.ok &&
+              payload?.status === 'ok' &&
+              typeof payload?.release === 'string' &&
+              /^[0-9a-f]{40}$/.test(payload.release)
+            ) {
+              return payload.release;
+            }
+
+            throw new Error(
+              `HTTP ${response.status}; status=${String(payload?.status)}; release=${String(payload?.release)}`,
+            );
+          }
+
+          async function main() {
+            let lastFailure = 'health endpoint did not respond';
+            for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+              try {
+                const release = await probe();
+                console.log(`Production health OK on attempt ${attempt}; release=${release}.`);
+                return;
+              } catch (error) {
+                lastFailure = error instanceof Error ? error.message : String(error);
+                console.error(`Health attempt ${attempt}/${MAX_ATTEMPTS} failed: ${lastFailure}`);
+                if (attempt < MAX_ATTEMPTS) await sleep(RETRY_DELAY_MS);
+              }
+            }
+            throw new Error(`Production health failed after ${MAX_ATTEMPTS} attempts: ${lastFailure}`);
+          }
+
+          main().catch((error) => {
+            console.error(error instanceof Error ? error.message : String(error));
+            process.exit(1);
+          });
+          NODE
+
+      - name: Summarize watch state
+        if: always()
+        run: |
+          {
+            echo '## Production health watch'
+            echo
+            echo '- Cadence: 3 checks/day (00:17, 08:17, 16:17 UTC)'
+            echo '- Target: `https://app.matrundan.workers.dev/api/health`'
+            echo '- Probe contract: Cloudflare runtime + Supabase Auth + data-free Postgres RPC'
+            echo '- Retry policy: 3 attempts, 20 seconds apart'
+            if [[ '${{ steps.activation.outputs.active }}' == 'true' ]]; then
+              echo '- Scheduled watch state: active'
+            else
+              echo '- Scheduled watch state: dormant until first successful Cloudflare prod publish'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
