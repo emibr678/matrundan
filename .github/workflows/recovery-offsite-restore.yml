@@ -1,0 +1,301 @@
+name: Recovery off-site restore drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact current main SHA to verify before restore
+        required: true
+        type: string
+      generation_id:
+        description: Exact committed production backup generation (UTC ISO timestamp)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: recovery-offsite-restore
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    name: Off-site generation + local restore
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.MATRUNDAN_RECOVERY_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 40
+    environment: production
+    env:
+      CI: 'true'
+      SUPABASE_CLI_VERSION: 2.115.0
+      POSTGRES_MAJOR: '17'
+      POSTGRES_CLIENT_IMAGE: postgres:17-bookworm
+      RECOVERY_MIN_FREE_KB: '10485760'
+      MATRUNDAN_BACKUP_S3_BUCKET: ${{ vars.PROD_BACKUP_S3_BUCKET }}
+      MATRUNDAN_BACKUP_S3_ENDPOINT: ${{ vars.PROD_BACKUP_S3_ENDPOINT }}
+      MATRUNDAN_BACKUP_S3_REGION: ${{ vars.PROD_BACKUP_S3_REGION }}
+      MATRUNDAN_BACKUP_EXPECTED_SOURCE_REF: wsikirbxqejjwtgxcvjl
+      AWS_ACCESS_KEY_ID: ${{ secrets.PROD_BACKUP_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_BACKUP_S3_SECRET_ACCESS_KEY }}
+
+    steps:
+      - name: Check out exact main recovery candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard trusted ref, exact SHA and generation id
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GENERATION_ID: ${{ inputs.generation_id }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Off-site recovery restore drill may only run from main." >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "expected_sha must be a full 40-character Git SHA." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "Expected SHA does not match current main." >&2
+            echo "expected=$EXPECTED_SHA" >&2
+            echo "actual=$GITHUB_SHA" >&2
+            exit 1
+          fi
+          if [[ ! "$GENERATION_ID" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$ ]]; then
+            echo "generation_id must be an exact UTC ISO timestamp with milliseconds." >&2
+            exit 1
+          fi
+
+      - name: Prepare private recovery paths
+        run: |
+          set -euo pipefail
+          if [[ "$RUNNER_OS" != "Linux" ]]; then
+            echo "Off-site recovery restore requires a Linux runner." >&2
+            exit 1
+          fi
+          echo "RECOVERY_RUNNER_TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "Recovery runner: $RUNNER_NAME ($RUNNER_OS/$RUNNER_ARCH)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Configured recovery target: ${{ vars.MATRUNDAN_RECOVERY_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Restore repo-pinned Bun after Supabase CLI setup
+        uses: ./.github/actions/setup-bun
+
+      - name: Set up PostgreSQL 17 client
+        run: |
+          set -euo pipefail
+          client_bin="$RECOVERY_RUNNER_TEMP/matrundan-postgres-${POSTGRES_MAJOR}-bin"
+          mkdir -p "$client_bin"
+
+          cat > "$client_bin/psql" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker run --rm -i --network host "${POSTGRES_CLIENT_IMAGE:-postgres:17-bookworm}" psql "$@"
+          SCRIPT
+
+          chmod 700 "$client_bin/psql"
+          echo "$client_bin" >> "$GITHUB_PATH"
+
+      - name: Validate local recovery and off-site prerequisites
+        run: |
+          set -euo pipefail
+          required=(
+            MATRUNDAN_BACKUP_S3_BUCKET
+            MATRUNDAN_BACKUP_S3_ENDPOINT
+            MATRUNDAN_BACKUP_S3_REGION
+            AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY
+            RECOVERY_RUNNER_TEMP
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing off-site recovery environment value: $name" >&2
+              exit 1
+            fi
+          done
+
+          for command in aws docker supabase bun psql df; do
+            command -v "$command" >/dev/null 2>&1 || {
+              echo "Missing off-site recovery command: $command" >&2
+              exit 1
+            }
+          done
+
+          aws_version="$(aws --version 2>&1)"
+          if [[ ! "$aws_version" =~ ^aws-cli/2\. ]]; then
+            echo "Off-site recovery requires AWS CLI v2; got: ${aws_version:0:120}" >&2
+            exit 1
+          fi
+
+          docker info >/dev/null 2>&1 || {
+            echo "Docker CLI is present but the Docker daemon is unavailable." >&2
+            exit 1
+          }
+          docker_os="$(docker info --format '{{.OSType}}' 2>/dev/null || true)"
+          if [[ "$docker_os" != "linux" ]]; then
+            echo "Docker daemon must provide Linux containers; reported OSType is ${docker_os:-unknown}." >&2
+            exit 1
+          fi
+
+          actual_supabase_version="$(supabase --version 2>/dev/null || true)"
+          if [[ "$actual_supabase_version" != "$SUPABASE_CLI_VERSION" ]]; then
+            echo "Supabase CLI version mismatch: expected $SUPABASE_CLI_VERSION, got ${actual_supabase_version:-unavailable}." >&2
+            exit 1
+          fi
+
+          expected_bun_version="$(bun -e 'const value = (await Bun.file("package.json").json()).packageManager ?? ""; process.stdout.write(value.replace(/^bun@/, ""));')"
+          actual_bun_version="$(bun --version)"
+          if [[ -z "$expected_bun_version" || "$actual_bun_version" != "$expected_bun_version" ]]; then
+            echo "Bun version mismatch: expected ${expected_bun_version:-unknown}, got ${actual_bun_version:-unavailable}." >&2
+            exit 1
+          fi
+
+          psql_version="$(psql --version 2>/dev/null || true)"
+          if [[ ! "$psql_version" =~ PostgreSQL\)?[[:space:]]+${POSTGRES_MAJOR}([.[:space:]]|$) ]]; then
+            echo "psql major version must be $POSTGRES_MAJOR; got ${psql_version:-unavailable}." >&2
+            exit 1
+          fi
+
+          available_kb="$(df -Pk "$RECOVERY_RUNNER_TEMP" 2>/dev/null | awk 'NR == 2 { print $4 }')"
+          if [[ ! "$available_kb" =~ ^[0-9]+$ ]]; then
+            echo "Could not determine free disk space for the recovery runner." >&2
+            exit 1
+          fi
+          if (( available_kb < RECOVERY_MIN_FREE_KB )); then
+            echo "Recovery runner has ${available_kb} KiB free; at least ${RECOVERY_MIN_FREE_KB} KiB is required." >&2
+            exit 1
+          fi
+
+          node scripts/offsite-backup-s3.mjs self-test
+
+      - name: Start and validate empty local Supabase stack
+        run: |
+          set -euo pipefail
+          supabase start
+          eval "$(supabase status -o env)"
+          : "${DB_URL:?Supabase CLI status did not expose DB_URL}"
+
+          local_version_num="$(
+            psql "$DB_URL" \
+              -X \
+              --no-psqlrc \
+              --tuples-only \
+              --no-align \
+              --set ON_ERROR_STOP=1 \
+              --command "show server_version_num" |
+              tr -d '[:space:]'
+          )"
+          if [[ ! "$local_version_num" =~ ^[0-9]+$ ]]; then
+            echo "Could not read the local recovery database version." >&2
+            exit 1
+          fi
+          local_major=$((local_version_num / 10000))
+          if [[ "$local_major" != "$POSTGRES_MAJOR" ]]; then
+            echo "Local recovery database major version is $local_major; expected $POSTGRES_MAJOR." >&2
+            exit 1
+          fi
+
+          initial_counts="$(
+            psql "$DB_URL" \
+              -X \
+              --no-psqlrc \
+              --tuples-only \
+              --no-align \
+              --set ON_ERROR_STOP=1 <<'SQL' |
+          select
+            (select count(*) from auth.users)::text || '|' ||
+            (select count(*) from public.groups)::text || '|' ||
+            (select count(*) from public.visit_media)::text;
+          SQL
+              tr -d '[:space:]'
+          )"
+          if [[ "$initial_counts" != "0|0|0" ]]; then
+            echo "Local recovery target is not empty (auth.users|groups|visit_media=$initial_counts)." >&2
+            exit 1
+          fi
+
+          echo "Local recovery target: PostgreSQL $local_major, empty schema from repo migrations." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Download and verify committed off-site generation
+        id: backup
+        env:
+          GENERATION_ID: ${{ inputs.generation_id }}
+        run: |
+          set -euo pipefail
+          backup_dir="$RECOVERY_RUNNER_TEMP/matrundan-offsite-restore-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "backup_dir=$backup_dir" >> "$GITHUB_OUTPUT"
+          bun scripts/offsite-backup-s3.mjs download "$GENERATION_ID" "$backup_dir"
+
+      - name: Restore and verify locally
+        env:
+          BACKUP_DIR: ${{ steps.backup.outputs.backup_dir }}
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          : "${DB_URL:?Supabase CLI status did not expose DB_URL}"
+          : "${API_URL:?Supabase CLI status did not expose API_URL}"
+          : "${SERVICE_ROLE_KEY:?Supabase CLI status did not expose SERVICE_ROLE_KEY}"
+
+          export LOCAL_SUPABASE_DB_URL="$DB_URL"
+          export TARGET_SUPABASE_URL="$API_URL"
+          export TARGET_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          bash scripts/restore-supabase-local.sh "$BACKUP_DIR"
+
+      - name: Summarize off-site recovery drill
+        if: success()
+        env:
+          GENERATION_ID: ${{ inputs.generation_id }}
+        run: |
+          {
+            echo '## Recovery off-site restore drill'
+            echo
+            echo "- Candidate SHA: \`$GITHUB_SHA\`"
+            echo "- Off-site generation: \`$GENERATION_ID\`"
+            echo '- Source: committed private off-site production backup'
+            echo '- Source project ref: verified from backup manifest'
+            echo '- Production Supabase DB/API credentials: not passed to this workflow'
+            echo '- Off-site bytes: downloaded and SHA-256 manifest-verified before restore'
+            echo '- Restore target: ephemeral local Supabase/Docker stack'
+            echo '- Database/Auth restore: verified'
+            echo '- Auth schema compatibility: verified before import'
+            echo '- Private visit media: byte-verified'
+            echo '- Inventory + production preflight: verified'
+            echo '- Authenticated group read: verified'
+            echo '- Off-site source: read-only during this workflow'
+            echo '- Backup artifacts: not uploaded or retained by this workflow'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Destroy local restore target and private backup files
+        if: always()
+        env:
+          BACKUP_DIR: ${{ steps.backup.outputs.backup_dir }}
+        run: |
+          set +e
+          supabase stop --no-backup >/dev/null 2>&1
+          if [[ -n "${BACKUP_DIR:-}" && "$BACKUP_DIR" == "$RECOVERY_RUNNER_TEMP"/matrundan-offsite-restore-* ]]; then
+            rm -rf -- "$BACKUP_DIR"
+          fi
