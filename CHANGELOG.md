@@ -14,6 +14,14 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.3] – 2026-09-03
+
+### Förbättrat
+
+- Produktionsdriften får en liten automatisk health-vakt tre gånger per dygn som
+  verifierar Cloudflare-runtime, Supabase Auth och en datalös Postgres-förfrågan
+  utan att läsa privat grupp- eller användardata.
+
 ## [1.38.2] – 2026-08-22
 
 ### Förbättrat
