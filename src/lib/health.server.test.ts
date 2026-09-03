@@ -5,15 +5,17 @@ import { handleHealthRequest } from "./health.server";
 const SUPABASE_URL = "https://example.supabase.co";
 const PUBLISHABLE_KEY = "test-publishable-key";
 
-async function withHealthEnvironment<T>(
-  fetchImpl: typeof fetch,
-  run: () => Promise<T>,
-): Promise<T> {
+type TestFetch = (
+  input: Parameters<typeof fetch>[0],
+  init?: Parameters<typeof fetch>[1],
+) => Promise<Response>;
+
+async function withHealthEnvironment<T>(fetchImpl: TestFetch, run: () => Promise<T>): Promise<T> {
   const originalFetch = globalThis.fetch;
   const originalUrl = process.env.SUPABASE_URL;
   const originalKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 
-  globalThis.fetch = fetchImpl;
+  globalThis.fetch = fetchImpl as typeof fetch;
   process.env.SUPABASE_URL = SUPABASE_URL;
   process.env.SUPABASE_PUBLISHABLE_KEY = PUBLISHABLE_KEY;
 
@@ -31,7 +33,7 @@ async function withHealthEnvironment<T>(
 describe("platform health", () => {
   test("verifierar både Supabase Auth och en datalös Postgres-RPC", async () => {
     const requests: Array<{ url: string; init?: RequestInit }> = [];
-    const fakeFetch: typeof fetch = async (input, init) => {
+    const fakeFetch: TestFetch = async (input, init) => {
       const url = String(input);
       requests.push({ url, init });
       if (url.endsWith("/auth/v1/health")) return Response.json({ status: "ok" });
@@ -60,7 +62,7 @@ describe("platform health", () => {
 
   test("rapporterar degraded om Postgres-proben misslyckas", async () => {
     let requestNumber = 0;
-    const fakeFetch: typeof fetch = async () => {
+    const fakeFetch: TestFetch = async () => {
       requestNumber += 1;
       if (requestNumber === 1) return Response.json({ status: "ok" });
       return Response.json({ message: "unavailable" }, { status: 503 });
