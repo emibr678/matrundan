@@ -3,6 +3,14 @@ import { logUnexpectedServerError, responseWithRequestId } from "./server-observ
 
 const HEALTH_TIMEOUT_MS = 5_000;
 
+function supabaseHealthHeaders(publishableKey: string): HeadersInit {
+  return {
+    accept: "application/json",
+    apikey: publishableKey,
+    authorization: `Bearer ${publishableKey}`,
+  };
+}
+
 async function checkSupabaseReachability(): Promise<void> {
   const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, "");
   const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -11,16 +19,32 @@ async function checkSupabaseReachability(): Promise<void> {
     throw new Error("HEALTH_CONFIG_MISSING");
   }
 
-  const response = await fetch(`${supabaseUrl}/auth/v1/health`, {
-    headers: {
-      accept: "application/json",
-      apikey: publishableKey,
-    },
+  const authResponse = await fetch(`${supabaseUrl}/auth/v1/health`, {
+    headers: supabaseHealthHeaders(publishableKey),
     signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
   });
 
-  if (!response.ok) {
-    throw new Error(`SUPABASE_HEALTH_${response.status}`);
+  if (!authResponse.ok) {
+    throw new Error(`SUPABASE_HEALTH_${authResponse.status}`);
+  }
+
+  const databaseResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/health_probe_v1`, {
+    method: "POST",
+    headers: {
+      ...supabaseHealthHeaders(publishableKey),
+      "content-type": "application/json",
+    },
+    body: "{}",
+    signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
+  });
+
+  if (!databaseResponse.ok) {
+    throw new Error(`SUPABASE_DB_HEALTH_${databaseResponse.status}`);
+  }
+
+  const databaseHealthy = await databaseResponse.json().catch(() => null);
+  if (databaseHealthy !== true) {
+    throw new Error("SUPABASE_DB_HEALTH_INVALID_RESPONSE");
   }
 }
 
