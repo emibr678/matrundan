@@ -19,27 +19,54 @@ function requiredEnv(name) {
   return value;
 }
 
+function normalizeEndpoint(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    fail("MATRUNDAN_BACKUP_S3_ENDPOINT måste vara en giltig HTTPS-URL.");
+  }
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash ||
+    (parsed.pathname && parsed.pathname !== "/")
+  ) {
+    fail(
+      "MATRUNDAN_BACKUP_S3_ENDPOINT måste vara en ren HTTPS-origin utan credentials, path, query eller fragment.",
+    );
+  }
+  return parsed.origin;
+}
+
 function config() {
-  const bucket = requiredEnv("MATRUNDAN_BACKUP_R2_BUCKET");
-  const accountId = requiredEnv("CLOUDFLARE_ACCOUNT_ID");
+  const bucket = requiredEnv("MATRUNDAN_BACKUP_S3_BUCKET");
+  const endpoint = normalizeEndpoint(requiredEnv("MATRUNDAN_BACKUP_S3_ENDPOINT"));
+  const region = requiredEnv("MATRUNDAN_BACKUP_S3_REGION");
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(region)) {
+    fail("MATRUNDAN_BACKUP_S3_REGION har ogiltigt format.");
+  }
   requiredEnv("AWS_ACCESS_KEY_ID");
   requiredEnv("AWS_SECRET_ACCESS_KEY");
   return {
     bucket,
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    endpoint,
+    region,
     expectedSourceRef: process.env.MATRUNDAN_BACKUP_EXPECTED_SOURCE_REF?.trim() || null,
   };
 }
 
 function aws(args, { capture = false } = {}) {
-  const { endpoint } = config();
+  const { endpoint, region } = config();
   const result = spawnSync("aws", [...args, "--endpoint-url", endpoint], {
     encoding: "utf8",
     stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit",
     env: {
       ...process.env,
-      AWS_REGION: "auto",
-      AWS_DEFAULT_REGION: "auto",
+      AWS_REGION: region,
+      AWS_DEFAULT_REGION: region,
       AWS_EC2_METADATA_DISABLED: "true",
     },
     maxBuffer: 64 * 1024 * 1024,
@@ -432,12 +459,18 @@ function selfTest() {
   const weekly = generations.slice(7).filter((item) => keep.has(item.id));
   assert.equal(new Set(weekly.map((item) => isoWeekKey(item.createdAt))).size, 4);
   assert.equal(weekly.length, 4);
-  console.log("Off-site retention self-test OK.");
+  assert.equal(
+    normalizeEndpoint("https://s3.eu-central-003.backblazeb2.com"),
+    "https://s3.eu-central-003.backblazeb2.com",
+  );
+  assert.throws(() => normalizeEndpoint("http://example.com"));
+  assert.throws(() => normalizeEndpoint("https://example.com/path"));
+  console.log("Off-site retention and S3 endpoint self-test OK.");
 }
 
 function usage() {
   console.error(
-    "Användning: bun scripts/offsite-backup-r2.mjs <upload DIR|verify-staged DIR TARGET|commit DIR|download GENERATION DIR|retention|check-rpo [HOURS]|self-test>",
+    "Användning: bun scripts/offsite-backup-s3.mjs <upload DIR|verify-staged DIR TARGET|commit DIR|download GENERATION DIR|retention|check-rpo [HOURS]|self-test>",
   );
   process.exit(2);
 }
