@@ -57,7 +57,7 @@ describe("platform health", () => {
     expect(databaseRequest?.init?.body).toBe("{}");
     const headers = new Headers(databaseRequest?.init?.headers);
     expect(headers.get("apikey")).toBe(PUBLISHABLE_KEY);
-    expect(headers.get("authorization")).toBe(`Bearer ${PUBLISHABLE_KEY}`);
+    expect(headers.get("authorization")).toBeNull();
   });
 
   test("rapporterar degraded om Postgres-proben misslyckas", async () => {
