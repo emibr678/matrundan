@@ -7,7 +7,6 @@ function supabaseHealthHeaders(publishableKey: string): HeadersInit {
   return {
     accept: "application/json",
     apikey: publishableKey,
-    authorization: `Bearer ${publishableKey}`,
   };
 }
 
