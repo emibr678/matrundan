@@ -34,7 +34,9 @@ function normalizeEndpoint(value) {
     parsed.hash ||
     (parsed.pathname && parsed.pathname !== "/")
   ) {
-    fail("MATRUNDAN_BACKUP_S3_ENDPOINT måste vara en ren HTTPS-origin utan credentials, path, query eller fragment.");
+    fail(
+      "MATRUNDAN_BACKUP_S3_ENDPOINT måste vara en ren HTTPS-origin utan credentials, path, query eller fragment.",
+    );
   }
   return parsed.origin;
 }
