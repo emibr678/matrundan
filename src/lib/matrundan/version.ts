@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_3_CHANGELOG: ChangelogEntry = {
+  version: "1.38.3",
+  date: "2026-09-03",
+  summary: "Driften övervakas automatiskt så större avbrott kan upptäckas tidigare.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Produktionsmiljön får en liten automatisk hälsokontroll som verifierar appens drift och databasanslutning utan att läsa privat grupp- eller användardata.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_2_CHANGELOG: ChangelogEntry = {
   version: "1.38.2",
   date: "2026-08-22",
@@ -188,6 +202,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_3_CHANGELOG,
   VERSION_1_38_2_CHANGELOG,
   VERSION_1_38_1_CHANGELOG,
   VERSION_1_38_0_CHANGELOG,
