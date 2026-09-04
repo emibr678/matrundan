@@ -11,10 +11,7 @@ export function expectedSupabaseHostForBrowserUrl(browserUrl: string): string | 
   return SUPABASE_HOST_BY_ENVIRONMENT[environment];
 }
 
-export function hasSupabaseEnvironmentMismatch(
-  browserUrl: string,
-  supabaseUrl: string,
-): boolean {
+export function hasSupabaseEnvironmentMismatch(browserUrl: string, supabaseUrl: string): boolean {
   const expectedHost = expectedSupabaseHostForBrowserUrl(browserUrl);
   if (!expectedHost) return false;
 
@@ -30,7 +27,5 @@ export function assertBrowserSupabaseEnvironment(supabaseUrl: string): void {
   if (!hasSupabaseEnvironmentMismatch(window.location.href, supabaseUrl)) return;
 
   const environment = environmentForRequestUrl(window.location.href);
-  throw new Error(
-    `MATRUNDAN_ENVIRONMENT_MISMATCH: ${environment} kör mot fel Supabase-miljö.`,
-  );
+  throw new Error(`MATRUNDAN_ENVIRONMENT_MISMATCH: ${environment} kör mot fel Supabase-miljö.`);
 }
