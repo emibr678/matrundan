@@ -5,8 +5,6 @@ const SUPABASE_HOST_BY_ENVIRONMENT = {
   prod: "wsikirbxqejjwtgxcvjl.supabase.co",
 } as const;
 
-export type SupabaseDeploymentEnvironment = keyof typeof SUPABASE_HOST_BY_ENVIRONMENT;
-
 export function expectedSupabaseHostForBrowserUrl(browserUrl: string): string | null {
   const environment = environmentForRequestUrl(browserUrl);
   if (environment !== "staging" && environment !== "prod") return null;
