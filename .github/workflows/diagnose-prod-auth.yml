@@ -44,7 +44,14 @@ jobs:
           try {
             const context = await browser.newContext();
             const page = await context.newPage();
-            await page.goto(PROD_URL, { waitUntil: 'networkidle', timeout: 30_000 });
+            const documentResponse = await page.goto(PROD_URL, {
+              waitUntil: 'networkidle',
+              timeout: 30_000,
+            });
+            if (!documentResponse) throw new Error('Production document did not return a response.');
+
+            const cacheControl = documentResponse.headers()['cache-control'] ?? '<missing>';
+            console.log(`::notice title=Production document cache-control::${cacheControl}`);
 
             const authRequestPromise = page.waitForRequest((request) => {
               const url = new URL(request.url());
@@ -55,7 +62,7 @@ jobs:
             const authRequest = await authRequestPromise;
             const authUrl = new URL(authRequest.url());
 
-            console.log(`Production page requested OAuth from ${authUrl.hostname}${authUrl.pathname}`);
+            console.log(`::notice title=Production OAuth host::${authUrl.hostname}`);
             if (authUrl.hostname === FORBIDDEN_AUTH_HOST) {
               throw new Error('Production page started OAuth against Matrundan Staging.');
             }
