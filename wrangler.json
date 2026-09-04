@@ -10,6 +10,9 @@
   "preview_urls": true,
   "keep_vars": true,
   "no_bundle": true,
+  "vars": {
+    "MATRUNDAN_PUBLIC_URL": "https://staging.matrundan.workers.dev"
+  },
   "rules": [
     {
       "type": "ESModule",
@@ -21,6 +24,9 @@
       "name": "staging",
       "workers_dev": true,
       "preview_urls": true,
+      "vars": {
+        "MATRUNDAN_PUBLIC_URL": "https://staging.matrundan.workers.dev"
+      },
       "observability": {
         "enabled": true,
         "head_sampling_rate": 1,
@@ -34,6 +40,9 @@
       "name": "app",
       "workers_dev": true,
       "preview_urls": false,
+      "vars": {
+        "MATRUNDAN_PUBLIC_URL": "https://app.matrundan.workers.dev"
+      },
       "secrets": {
         "required": ["GEOAPIFY_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "VAPID_PRIVATE_KEY"]
       },
