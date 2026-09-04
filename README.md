@@ -125,11 +125,12 @@ Gruppen är den primära produkt- och integritetsgränsen. Kanoniska platser och
 besök får återanvändas utan att ursprungsgrupp, privata kommentarer, medlemskap
 eller interna identifierare exponeras.
 
-Den versionshanterade `.env` innehåller endast public-safe browserkonfiguration
-och kan fortsatt användas av lokala och valfria Lovable-previewflöden.
-Privilegierade nycklar, service-role, databaslösenord och andra serverhemligheter
-får aldrig committas eller exponeras via `VITE_*`. Den fulla public-readiness-
-grinden finns i [docs/public-repository-readiness.md](./docs/public-repository-readiness.md).
+Den versionshanterade `.env.example` dokumenterar endast public-safe
+browser-/runtimekonfiguration och kan användas som referens för lokala och
+valfria Lovable-previewflöden. Privilegierade nycklar, service-role,
+databaslösenord och andra serverhemligheter får aldrig committas eller exponeras
+via `VITE_*`. Den fulla public-readiness-grinden finns i
+[docs/public-repository-readiness.md](./docs/public-repository-readiness.md).
 
 ## Leverans
 
