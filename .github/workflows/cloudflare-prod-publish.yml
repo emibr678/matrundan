@@ -226,7 +226,18 @@ jobs:
             const text = JSON.stringify(row);
             return text.includes(tag) && text.includes(message);
           });
-          const latestMatch = matchingRows[0];
+          const rankedMatches = matchingRows
+            .map((row) => {
+              const createdOn = row?.metadata?.created_on ?? row?.created_on;
+              const createdAt = Date.parse(createdOn);
+              if (!Number.isFinite(createdAt)) {
+                console.error('Matching preflight candidate is missing a valid created_on timestamp.');
+                process.exit(1);
+              }
+              return { row, createdAt };
+            })
+            .sort((left, right) => right.createdAt - left.createdAt);
+          const latestMatch = rankedMatches[0]?.row;
           if (!latestMatch || !JSON.stringify(latestMatch).includes(versionId)) {
             console.error('candidate_version_id is not the latest preflight candidate for this exact main SHA.');
             process.exit(1);
