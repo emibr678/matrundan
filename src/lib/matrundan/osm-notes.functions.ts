@@ -12,7 +12,6 @@ import { APP_VERSION } from "./version";
 
 const OSM_API_BASE = "https://api.openstreetmap.org/api/0.6";
 const REQUEST_TIMEOUT_MS = 12_000;
-const APP_URL = "https://matrundan.lovable.app";
 
 interface RpcResponse {
   data: unknown;
@@ -22,12 +21,7 @@ interface RpcResponse {
 type RpcCall = (fn: string, args?: Record<string, unknown>) => Promise<RpcResponse>;
 
 type OsmErrorCode =
-  | "moderation_zone"
-  | "rate_limit"
-  | "rejected"
-  | "unavailable"
-  | "timeout"
-  | "malformed";
+  "moderation_zone" | "rate_limit" | "rejected" | "unavailable" | "timeout" | "malformed";
 
 class OsmRequestError extends Error {
   constructor(
@@ -62,12 +56,31 @@ export interface OsmNoteActionResult {
   checkedAt: string;
 }
 
+function getAppUrl(): string {
+  const configured = process.env.MATRUNDAN_PUBLIC_URL?.trim();
+  if (!configured) {
+    throw new Error("MATRUNDAN_PUBLIC_URL saknas i servermiljön.");
+  }
+
+  let url: URL;
+  try {
+    url = new URL(configured);
+  } catch {
+    throw new Error("MATRUNDAN_PUBLIC_URL måste vara en giltig publik HTTPS-adress.");
+  }
+  if (url.protocol !== "https:") {
+    throw new Error("MATRUNDAN_PUBLIC_URL måste vara en giltig publik HTTPS-adress.");
+  }
+  return url.origin;
+}
+
 function headers(includeJson = false): HeadersInit {
+  const appUrl = getAppUrl();
   return {
     accept: "application/json",
     ...(includeJson ? { "content-type": "application/json" } : {}),
-    "user-agent": `Matrundan/${APP_VERSION} (+${APP_URL})`,
-    referer: APP_URL,
+    "user-agent": `Matrundan/${APP_VERSION} (+${appUrl})`,
+    referer: appUrl,
   };
 }
 

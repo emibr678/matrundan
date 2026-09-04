@@ -28,11 +28,38 @@ async function assertMissing(path, label) {
   fail(`${label} får inte finnas när wrangler.json är deploy-source of truth.`);
 }
 
-function assertNoInlineRuntimeConfig(config, label) {
-  for (const forbiddenKey of ["route", "routes", "triggers", "vars"]) {
+function assertSafeInlineRuntimeConfig(config, label) {
+  for (const forbiddenKey of ["route", "routes", "triggers"]) {
     if (forbiddenKey in config) {
-      fail(`${label} får inte innehålla ${forbiddenKey} i den isolerade migrationsfasen.`);
+      fail(`${label} får inte innehålla ${forbiddenKey} i repoets deploykonfiguration.`);
     }
+  }
+
+  if (!("vars" in config)) return;
+  const vars = config.vars;
+  if (!vars || typeof vars !== "object" || Array.isArray(vars)) {
+    fail(`${label} har ogiltiga inline runtime-variabler.`);
+  }
+
+  const keys = Object.keys(vars);
+  if (keys.length !== 1 || keys[0] !== "MATRUNDAN_PUBLIC_URL") {
+    fail(`${label} får bara innehålla den icke-hemliga MATRUNDAN_PUBLIC_URL inline.`);
+  }
+
+  const publicUrl = vars.MATRUNDAN_PUBLIC_URL;
+  if (typeof publicUrl !== "string") {
+    fail(`${label} måste ange MATRUNDAN_PUBLIC_URL som text.`);
+  }
+  try {
+    const parsed = new URL(publicUrl);
+    if (parsed.protocol !== "https:" || parsed.origin !== publicUrl) {
+      fail(`${label} måste ange MATRUNDAN_PUBLIC_URL som en ren HTTPS-origin.`);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Cloudflare-artifact ogiltigt:")) {
+      throw error;
+    }
+    fail(`${label} måste ange MATRUNDAN_PUBLIC_URL som en giltig HTTPS-origin.`);
   }
 }
 
@@ -50,7 +77,7 @@ function assertEnvironment(config, envName, workerName, previewUrls, label) {
   if (environment.preview_urls !== previewUrls) {
     fail(`${label} måste ha preview_urls=${String(previewUrls)} för ${envName}.`);
   }
-  assertNoInlineRuntimeConfig(environment, `${label} (${envName})`);
+  assertSafeInlineRuntimeConfig(environment, `${label} (${envName})`);
 }
 
 function assertMatrundanCloudflareConfig(config, label) {
@@ -64,7 +91,7 @@ function assertMatrundanCloudflareConfig(config, label) {
   }
 
   if (config.keep_vars !== true) {
-    fail(`${label} måste behålla runtime-variabler som hanteras utanför repot.`);
+    fail(`${label} måste behålla övriga runtime-variabler som hanteras utanför repot.`);
   }
 
   if (config.no_bundle !== true) {
@@ -106,7 +133,7 @@ function assertMatrundanCloudflareConfig(config, label) {
     fail(`${label} får inte ange nodejs_compat explicit från compatibility date 2026-08-04.`);
   }
 
-  assertNoInlineRuntimeConfig(config, label);
+  assertSafeInlineRuntimeConfig(config, label);
   assertEnvironment(config, "staging", "staging", true, label);
   assertEnvironment(config, "prod", "app", false, label);
 }

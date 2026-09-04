@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_4_CHANGELOG: ChangelogEntry = {
+  version: "1.38.4",
+  date: "2026-09-04",
+  summary: "Driftidentiteten pekar konsekvent på den nya produktionsmiljön.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "OpenStreetMap-anrop identifierar nu Matrundan med den aktiva Cloudflare-produktionsadressen i stället för den tidigare Lovable-adressen.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_3_CHANGELOG: ChangelogEntry = {
   version: "1.38.3",
   date: "2026-09-03",
@@ -202,6 +216,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_4_CHANGELOG,
   VERSION_1_38_3_CHANGELOG,
   VERSION_1_38_2_CHANGELOG,
   VERSION_1_38_1_CHANGELOG,

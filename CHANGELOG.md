@@ -14,6 +14,13 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.4] – 2026-09-04
+
+### Rättat
+
+- OpenStreetMap-anrop identifierar nu Matrundan med den aktiva
+  Cloudflare-produktionsadressen i stället för den tidigare Lovable-adressen.
+
 ## [1.38.3] – 2026-09-03
 
 ### Förbättrat

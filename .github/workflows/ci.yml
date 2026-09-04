@@ -22,7 +22,7 @@ defaults:
     shell: bash
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-hosted-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
         github.event.pull_request.draft == false &&
         github.event.pull_request.head.repo.full_name == github.repository
       )
-    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
       base_sha: ${{ steps.changes.outputs.base_sha }}
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           echo "Full verification: browser checks run when relevant." >> "$GITHUB_STEP_SUMMARY"
-          echo "Configured target: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Configured target: ubuntu-24.04 (GitHub-hosted)" >> "$GITHUB_STEP_SUMMARY"
           echo "Actual runner: ${{ runner.name }} (${{ runner.os }}/${{ runner.arch }}, ${{ runner.environment }})" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up pinned Bun
@@ -170,7 +170,7 @@ jobs:
   browser:
     needs: verify
     if: needs.verify.result == 'success' && needs.verify.outputs.has_ui == 'true'
-    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
@@ -286,10 +286,11 @@ jobs:
       - browser
     if: >-
       always() &&
+      !cancelled() &&
       github.event_name == 'pull_request' &&
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       actions: write
