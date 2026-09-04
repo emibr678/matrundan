@@ -12,7 +12,7 @@ import { APP_VERSION } from "./version";
 
 const OSM_API_BASE = "https://api.openstreetmap.org/api/0.6";
 const REQUEST_TIMEOUT_MS = 12_000;
-const APP_URL = "https://matrundan.lovable.app";
+const APP_URL = "https://app.matrundan.workers.dev";
 
 interface RpcResponse {
   data: unknown;
