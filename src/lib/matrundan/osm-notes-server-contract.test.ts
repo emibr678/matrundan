@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 const source = await Bun.file("src/lib/matrundan/osm-notes.functions.ts").text();
+const wrangler = JSON.parse(await Bun.file("wrangler.json").text());
 
 describe("OSM Notes-servergränsen", () => {
   test("är autentiserad och kör externa anrop endast från serverfunktioner", () => {
@@ -10,11 +11,19 @@ describe("OSM Notes-servergränsen", () => {
     expect(source).toContain("REQUEST_TIMEOUT_MS");
   });
 
-  test("identifierar Matrundan med den aktuella produktionsadressen och använder JSON-formatet", () => {
-    expect(source).toContain('const APP_URL = "https://app.matrundan.workers.dev"');
+  test("identifierar Matrundan via portabel deploymentkonfiguration", () => {
+    expect(source).toContain("process.env.MATRUNDAN_PUBLIC_URL");
     expect(source).not.toContain("matrundan.lovable.app");
-    expect(source).toContain('"user-agent": `Matrundan/${APP_VERSION} (+${APP_URL})`');
-    expect(source).toContain("referer: APP_URL");
+    expect(source).not.toContain("workers.dev");
+    expect(source).toContain('"user-agent": `Matrundan/${APP_VERSION} (+${appUrl})`');
+    expect(source).toContain("referer: appUrl");
+    expect(wrangler.vars?.MATRUNDAN_PUBLIC_URL).toBe("https://staging.matrundan.workers.dev");
+    expect(wrangler.env?.staging?.vars?.MATRUNDAN_PUBLIC_URL).toBe(
+      "https://staging.matrundan.workers.dev",
+    );
+    expect(wrangler.env?.prod?.vars?.MATRUNDAN_PUBLIC_URL).toBe(
+      "https://app.matrundan.workers.dev",
+    );
     expect(source).toContain("new URL(`${OSM_API_BASE}/notes.json`)");
     expect(source).toContain("JSON.stringify({ lat, lon: lng, text: publicText })");
   });
