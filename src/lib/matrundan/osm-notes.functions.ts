@@ -21,12 +21,7 @@ interface RpcResponse {
 type RpcCall = (fn: string, args?: Record<string, unknown>) => Promise<RpcResponse>;
 
 type OsmErrorCode =
-  | "moderation_zone"
-  | "rate_limit"
-  | "rejected"
-  | "unavailable"
-  | "timeout"
-  | "malformed";
+  "moderation_zone" | "rate_limit" | "rejected" | "unavailable" | "timeout" | "malformed";
 
 class OsmRequestError extends Error {
   constructor(
