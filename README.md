@@ -52,13 +52,15 @@ Exempel och demo ska efterlikna produktflöden utan att bli en separat produktmo
 - shadcn/ui och Radix UI
 - Bun som låst pakethanterare/runtime
 - Supabase för auth, Postgres och privat lagring
-- Lovable för nuvarande produktions-/previewflöde
+- Cloudflare Workers för staging och produktion
+- Lovable som valfritt UX-/editor- och previewverktyg, inte som runtimekrav
 - Geoapify, OpenStreetMap och MapLibre för plats- och kartfunktioner
 - Playwright för browser- och mobilregressioner
 
-Plattformen är under aktiv portabilitetsplanering i **Issue #207 — Frikoppla
-drift från Lovable Cloud och etablera portabel plattform**. Aktuell målbild finns
-i [docs/platform-migration-plan.md](./docs/platform-migration-plan.md).
+Plattformens portabilitetskontrakt och migrationsmål finns i
+[docs/platform-migration-plan.md](./docs/platform-migration-plan.md). Aktiv
+avveckling och återstående migrationsstatus följs i **Issue #207 — Frikoppla
+drift från Lovable Cloud och etablera portabel plattform**.
 
 ## Kom igång
 
@@ -123,11 +125,11 @@ Gruppen är den primära produkt- och integritetsgränsen. Kanoniska platser och
 besök får återanvändas utan att ursprungsgrupp, privata kommentarer, medlemskap
 eller interna identifierare exponeras.
 
-Den versionshanterade `.env` är avsiktlig så länge Lovables nuvarande
-projektkontrakt kräver public-safe browserkonfiguration. Privilegierade nycklar,
-service-role, databaslösenord och andra serverhemligheter får aldrig committas
-eller exponeras via `VITE_*`. Den fulla public-readiness-grinden finns i
-[docs/public-repository-readiness.md](./docs/public-repository-readiness.md).
+Den versionshanterade `.env` innehåller endast public-safe browserkonfiguration
+och kan fortsatt användas av lokala och valfria Lovable-previewflöden.
+Privilegierade nycklar, service-role, databaslösenord och andra serverhemligheter
+får aldrig committas eller exponeras via `VITE_*`. Den fulla public-readiness-
+grinden finns i [docs/public-repository-readiness.md](./docs/public-repository-readiness.md).
 
 ## Leverans
 
