@@ -10,7 +10,9 @@ describe("OSM Notes-servergränsen", () => {
     expect(source).toContain("REQUEST_TIMEOUT_MS");
   });
 
-  test("identifierar Matrundan och använder JSON-formatet för en ny note", () => {
+  test("identifierar Matrundan med den aktuella produktionsadressen och använder JSON-formatet", () => {
+    expect(source).toContain('const APP_URL = "https://app.matrundan.workers.dev"');
+    expect(source).not.toContain("matrundan.lovable.app");
     expect(source).toContain('"user-agent": `Matrundan/${APP_VERSION} (+${APP_URL})`');
     expect(source).toContain("referer: APP_URL");
     expect(source).toContain("new URL(`${OSM_API_BASE}/notes.json`)");
