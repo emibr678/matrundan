@@ -1,0 +1,68 @@
+name: Diagnose production auth target
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prod-auth-target:
+    name: Probe public production OAuth target
+    if: github.head_ref == 'fix/issue-260-prod-auth-environment'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out diagnostic branch
+        uses: actions/checkout@v4
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Probe production OAuth request without authenticating
+        run: |
+          set -euo pipefail
+          bun <<'EOF'
+          import { chromium } from '@playwright/test';
+
+          const PROD_URL = 'https://app.matrundan.workers.dev';
+          const EXPECTED_AUTH_HOST = 'wsikirbxqejjwtgxcvjl.supabase.co';
+          const FORBIDDEN_AUTH_HOST = 'wpihfmwbubvdiaavtpia.supabase.co';
+
+          const browser = await chromium.launch();
+          try {
+            const context = await browser.newContext();
+            const page = await context.newPage();
+            await page.goto(PROD_URL, { waitUntil: 'networkidle', timeout: 30_000 });
+
+            const authRequestPromise = page.waitForRequest((request) => {
+              const url = new URL(request.url());
+              return url.pathname.includes('/auth/v1/authorize') || url.pathname === '/authorize';
+            }, { timeout: 15_000 });
+
+            await page.getByRole('button', { name: 'Fortsätt med Google' }).click();
+            const authRequest = await authRequestPromise;
+            const authUrl = new URL(authRequest.url());
+
+            console.log(`Production page requested OAuth from ${authUrl.hostname}${authUrl.pathname}`);
+            if (authUrl.hostname === FORBIDDEN_AUTH_HOST) {
+              throw new Error('Production page started OAuth against Matrundan Staging.');
+            }
+            if (authUrl.hostname !== EXPECTED_AUTH_HOST) {
+              throw new Error(`Unexpected production OAuth host: ${authUrl.hostname}`);
+            }
+          } finally {
+            await browser.close();
+          }
+          EOF
