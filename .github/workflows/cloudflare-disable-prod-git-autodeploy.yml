@@ -1,0 +1,144 @@
+name: Cloudflare disable prod Git auto-deploy
+
+on:
+  push:
+    branches:
+      - fix/issue-262-disable-prod-git-autodeploy
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  disable:
+    name: Disable app Workers Builds triggers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Verify and remove app Git build triggers
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          if (!accountId || !token) {
+            console.error('Cloudflare production credentials are missing.');
+            process.exit(1);
+          }
+
+          const apiRoot = `https://api.cloudflare.com/client/v4/accounts/${accountId}`;
+
+          async function cloudflare(path, init = {}) {
+            const response = await fetch(`${apiRoot}${path}`, {
+              ...init,
+              headers: {
+                accept: 'application/json',
+                authorization: `Bearer ${token}`,
+                ...(init.body ? { 'content-type': 'application/json' } : {}),
+              },
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.success !== true) {
+              const messages = [
+                ...(Array.isArray(payload?.errors) ? payload.errors : []),
+                ...(Array.isArray(payload?.messages) ? payload.messages : []),
+              ]
+                .map((entry) => entry?.message)
+                .filter(Boolean)
+                .join('; ');
+              console.error(`Cloudflare API ${init.method ?? 'GET'} ${path} failed (HTTP ${response.status})${messages ? `: ${messages}` : ''}.`);
+              process.exit(1);
+            }
+            return payload.result;
+          }
+
+          const scripts = await cloudflare('/workers/scripts');
+          const scriptRows = Array.isArray(scripts) ? scripts : [];
+          const scriptByName = new Map(scriptRows.map((script) => [script.id ?? script.name, script]));
+
+          function scriptIdentifier(name) {
+            const script = scriptByName.get(name);
+            if (!script) {
+              console.error(`Worker ${name} was not found in this Cloudflare account.`);
+              process.exit(1);
+            }
+            return script.tag ?? script.id ?? script.name ?? name;
+          }
+
+          async function listTriggers(name) {
+            const identifier = encodeURIComponent(scriptIdentifier(name));
+            const result = await cloudflare(`/builds/workers/${identifier}/triggers`);
+            return Array.isArray(result) ? result : [];
+          }
+
+          function safeTrigger(trigger) {
+            return {
+              trigger_uuid: trigger.trigger_uuid,
+              trigger_name: trigger.trigger_name,
+              branch_includes: trigger.branch_includes,
+              branch_excludes: trigger.branch_excludes,
+              build_command: trigger.build_command,
+              deploy_command: trigger.deploy_command,
+              provider_type: trigger.provider_type,
+              repo_name: trigger.repo_name,
+            };
+          }
+
+          const stagingBefore = await listTriggers('staging');
+          const appBefore = await listTriggers('app');
+          console.log(`Staging Workers Builds triggers before: ${JSON.stringify(stagingBefore.map(safeTrigger))}`);
+          console.log(`App Workers Builds triggers before: ${JSON.stringify(appBefore.map(safeTrigger))}`);
+
+          if (appBefore.length === 0) {
+            console.log('Worker app already has no Workers Builds triggers; nothing to remove.');
+          } else {
+            const mainDeployingTrigger = appBefore.find((trigger) =>
+              Array.isArray(trigger.branch_includes) &&
+              trigger.branch_includes.includes('main') &&
+              typeof trigger.deploy_command === 'string' &&
+              /wrangler\s+deploy/.test(trigger.deploy_command),
+            );
+            if (!mainDeployingTrigger) {
+              console.error('App has Workers Builds trigger(s), but none match the expected main + wrangler deploy hypothesis. Refusing destructive cleanup until configuration is understood.');
+              process.exit(1);
+            }
+
+            for (const trigger of appBefore) {
+              if (typeof trigger.trigger_uuid !== 'string' || !trigger.trigger_uuid) {
+                console.error('App trigger is missing trigger_uuid; refusing partial cleanup.');
+                process.exit(1);
+              }
+            }
+
+            for (const trigger of appBefore) {
+              await cloudflare(`/builds/triggers/${encodeURIComponent(trigger.trigger_uuid)}`, {
+                method: 'DELETE',
+              });
+              console.log(`Removed app Workers Builds trigger ${trigger.trigger_uuid}.`);
+            }
+          }
+
+          const appAfter = await listTriggers('app');
+          const stagingAfter = await listTriggers('staging');
+          if (appAfter.length !== 0) {
+            console.error(`Worker app still has ${appAfter.length} Workers Builds trigger(s) after cleanup.`);
+            process.exit(1);
+          }
+
+          const beforeIds = stagingBefore.map((trigger) => trigger.trigger_uuid).filter(Boolean).sort();
+          const afterIds = stagingAfter.map((trigger) => trigger.trigger_uuid).filter(Boolean).sort();
+          if (JSON.stringify(beforeIds) !== JSON.stringify(afterIds)) {
+            console.error('Staging Workers Builds triggers changed during app cleanup; refusing to report success.');
+            process.exit(1);
+          }
+
+          console.log('Verified: Worker app has no Workers Builds Git triggers and staging triggers are unchanged.');
+          NODE
