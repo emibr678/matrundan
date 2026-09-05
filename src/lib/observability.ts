@@ -1,8 +1,30 @@
 const SAFE_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,63}$/;
 const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const OPAQUE_SEGMENT = /^[A-Za-z0-9_-]{20,}$/;
+const LOVABLE_PROJECT_ID = "d389634e-227c-4689-85ed-8714fdc602f7";
+const LOVABLE_PREVIEW_ZONES = [
+  "lovable.app",
+  "lovableproject.com",
+  "lovableproject-dev.com",
+  "gpt-eng.com",
+  "gptengineer.run",
+] as const;
 
 export type RuntimeEnvironment = "staging" | "prod" | "local" | "unknown";
+
+function isMatrundanLovablePreviewHost(hostname: string): boolean {
+  const zone = LOVABLE_PREVIEW_ZONES.find(
+    (candidate) => hostname === candidate || hostname.endsWith(`.${candidate}`),
+  );
+  if (!zone || hostname === zone) return false;
+
+  const subdomain = hostname.slice(0, -(zone.length + 1));
+  return (
+    subdomain === LOVABLE_PROJECT_ID ||
+    subdomain.endsWith(`--${LOVABLE_PROJECT_ID}`) ||
+    subdomain.startsWith(`${LOVABLE_PROJECT_ID}-`)
+  );
+}
 
 export function environmentForRequestUrl(value: string): RuntimeEnvironment {
   let hostname: string;
@@ -12,6 +34,9 @@ export function environmentForRequestUrl(value: string): RuntimeEnvironment {
     return "unknown";
   }
 
+  if (isMatrundanLovablePreviewHost(hostname)) {
+    return "staging";
+  }
   if (
     hostname === "staging.matrundan.workers.dev" ||
     hostname.endsWith("-staging.matrundan.workers.dev")
