@@ -1,0 +1,84 @@
+name: Issue 260 prod runner reset
+
+on:
+  push:
+    branches:
+      - ops/issue-260-prod-preflight-dispatch
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  reset:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Remove stale prod runner override and redispatch preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: f9c8898d430530402fa779ed5b8bbab04122c323
+          QUEUED_PREFLIGHT_RUN_ID: '33939824585'
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const api = `https://api.github.com/repos/${owner}/${repo}`;
+          const headers = {
+            accept: 'application/vnd.github+json',
+            authorization: `Bearer ${process.env.GH_TOKEN}`,
+            'content-type': 'application/json',
+            'x-github-api-version': '2022-11-28',
+          };
+
+          const mainResponse = await fetch(`${api}/git/ref/heads/main`, { headers });
+          const main = await mainResponse.json().catch(() => null);
+          if (!mainResponse.ok || main?.object?.sha !== process.env.EXPECTED_SHA) {
+            throw new Error(`Current main is not expected SHA ${process.env.EXPECTED_SHA}.`);
+          }
+
+          const variableUrl = `${api}/actions/variables/MATRUNDAN_PROD_PREFLIGHT_RUNNER`;
+          const variableResponse = await fetch(variableUrl, { headers });
+          const variable = await variableResponse.json().catch(() => null);
+          if (!variableResponse.ok) {
+            throw new Error(`Could not read MATRUNDAN_PROD_PREFLIGHT_RUNNER (HTTP ${variableResponse.status}).`);
+          }
+          if (variable?.value !== 'matrundan-self-hosted') {
+            throw new Error(`Refusing runner reset; unexpected current value: ${String(variable?.value)}.`);
+          }
+
+          const deleteResponse = await fetch(variableUrl, { method: 'DELETE', headers });
+          if (deleteResponse.status !== 204) {
+            throw new Error(`Could not remove stale prod runner override (HTTP ${deleteResponse.status}).`);
+          }
+          console.log('Removed stale MATRUNDAN_PROD_PREFLIGHT_RUNNER=matrundan-self-hosted override.');
+
+          const queuedResponse = await fetch(`${api}/actions/runs/${process.env.QUEUED_PREFLIGHT_RUN_ID}`, { headers });
+          const queued = await queuedResponse.json().catch(() => null);
+          if (queuedResponse.ok && ['queued', 'in_progress', 'waiting', 'pending'].includes(queued?.status)) {
+            const cancel = await fetch(`${api}/actions/runs/${process.env.QUEUED_PREFLIGHT_RUN_ID}/cancel`, {
+              method: 'POST',
+              headers,
+            });
+            if (![202, 409].includes(cancel.status)) {
+              throw new Error(`Could not cancel queued prod preflight (HTTP ${cancel.status}).`);
+            }
+            console.log(`Cancelled queued preflight run ${process.env.QUEUED_PREFLIGHT_RUN_ID}.`);
+          }
+
+          const dispatch = await fetch(`${api}/actions/workflows/cloudflare-prod-preflight.yml/dispatches`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              ref: 'main',
+              inputs: {
+                expected_sha: process.env.EXPECTED_SHA,
+                upload_version: true,
+              },
+            }),
+          });
+          if (![200, 204].includes(dispatch.status)) {
+            throw new Error(`Prod preflight redispatch failed (HTTP ${dispatch.status}).`);
+          }
+          console.log(`Redispatched canonical prod preflight for ${process.env.EXPECTED_SHA}.`);
+          NODE
