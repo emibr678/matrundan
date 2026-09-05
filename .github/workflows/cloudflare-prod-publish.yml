@@ -37,7 +37,8 @@ jobs:
   publish:
     name: Publish verified prod candidate
     if: github.ref == 'refs/heads/main'
-    runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    # Production publication must not depend on an optional local CI runner.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: production
     env:
