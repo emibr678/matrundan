@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { handleHealthRequest } from "./lib/health.server";
+import { withPrivateDocumentCachePolicy } from "./lib/http-cache";
 import {
   logUnexpectedServerError,
   requestIdFor,
@@ -80,17 +81,20 @@ export default {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response, request, startedAt);
-      return responseWithRequestId(normalized, requestId);
+      const cacheSafe = withPrivateDocumentCachePolicy(normalized);
+      return responseWithRequestId(cacheSafe, requestId);
     } catch (error) {
       const errorId = logUnexpectedServerError(request, error, {
         status: 500,
         durationMs: performance.now() - startedAt,
       });
       return responseWithRequestId(
-        new Response(renderErrorPage(), {
-          status: 500,
-          headers: { "content-type": "text/html; charset=utf-8" },
-        }),
+        withPrivateDocumentCachePolicy(
+          new Response(renderErrorPage(), {
+            status: 500,
+            headers: { "content-type": "text/html; charset=utf-8" },
+          }),
+        ),
         errorId,
       );
     }
