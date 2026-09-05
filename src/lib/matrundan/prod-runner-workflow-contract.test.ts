@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const workflows = [
   ".github/workflows/cloudflare-prod-preflight.yml",
   ".github/workflows/cloudflare-prod-publish.yml",
-] as const;
+];
 
 describe("productionflödets runner-kontrakt", () => {
   test.each(workflows)("%s använder GitHub-hostad runner utan repository-override", (path) => {
