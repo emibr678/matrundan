@@ -14,5 +14,7 @@ describe("productionflödets runner-kontrakt", () => {
     expect(workflow).toContain("runs-on: ubuntu-24.04");
     expect(workflow).not.toContain("MATRUNDAN_PROD_PREFLIGHT_RUNNER");
     expect(workflow).not.toContain("MATRUNDAN_CI_RUNNER");
+    expect(workflow).toContain("if: github.ref == 'refs/heads/main'");
+    expect(workflow).toContain("environment: production");
   });
 });
