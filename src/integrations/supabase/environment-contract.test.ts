@@ -6,7 +6,8 @@ import {
 
 const STAGING_SUPABASE = "https://wpihfmwbubvdiaavtpia.supabase.co";
 const PROD_SUPABASE = "https://wsikirbxqejjwtgxcvjl.supabase.co";
-const LEGACY_LOVABLE_CLOUD_SUPABASE = "https://bkyzxkfrenbbkgiymofk.supabase.co";
+const LEGACY_LOVABLE_CLOUD_SUPABASE =
+  "https://bkyzxkfrenbbkgiymofk.supabase.co";
 const LOVABLE_PREVIEW =
   "https://id-preview--d389634e-227c-4689-85ed-8714fdc602f7.lovable.app/";
 
