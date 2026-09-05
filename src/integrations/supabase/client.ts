@@ -56,6 +56,10 @@ function createSupabaseClient() {
     throw new Error(message);
   }
 
+  // Auth can construct OAuth redirects without going through the custom fetch.
+  // Validate the browser/deployment boundary before the Supabase client exists at all.
+  assertBrowserSupabaseEnvironment(SUPABASE_URL);
+
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL),
