@@ -36,7 +36,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     # This job may read production credentials and upload an inert Worker version,
     # but it never restores data or promotes production traffic.
-    runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    # Production preflight must not depend on an optional local CI runner.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     environment: production
     env:
