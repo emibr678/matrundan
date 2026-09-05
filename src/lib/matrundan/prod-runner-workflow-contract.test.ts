@@ -1,0 +1,18 @@
+import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const workflows = [
+  ".github/workflows/cloudflare-prod-preflight.yml",
+  ".github/workflows/cloudflare-prod-publish.yml",
+] as const;
+
+describe("productionflödets runner-kontrakt", () => {
+  test.each(workflows)("%s använder GitHub-hostad runner utan repository-override", (path) => {
+    const workflow = readFileSync(resolve(process.cwd(), path), "utf8");
+
+    expect(workflow).toContain("runs-on: ubuntu-24.04");
+    expect(workflow).not.toContain("MATRUNDAN_PROD_PREFLIGHT_RUNNER");
+    expect(workflow).not.toContain("MATRUNDAN_CI_RUNNER");
+  });
+});
