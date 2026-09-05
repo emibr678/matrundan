@@ -1,0 +1,112 @@
+name: Agent prod publish dispatch
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  actions: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  dispatch:
+    name: Dispatch exact verified prod candidate
+    if: >-
+      github.event.issue.number == 207 &&
+      !github.event.issue.pull_request &&
+      github.event.comment.author_association == 'OWNER' &&
+      github.event.comment.user.login == github.repository_owner &&
+      startsWith(github.event.comment.body, '/prod-publish ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GITHUB_API_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Validate command and dispatch exact production candidate
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const body = event.comment?.body?.trim() ?? '';
+          const match = body.match(
+            /^\/prod-publish ([0-9a-f]{40}) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) PUBLISH_PROD$/,
+          );
+          if (!match) {
+            console.error(
+              'Command must be exactly: /prod-publish <40-character-main-sha> <candidate-version-uuid> PUBLISH_PROD',
+            );
+            process.exit(1);
+          }
+
+          if (
+            event.issue?.number !== 207 ||
+            event.issue?.pull_request ||
+            event.comment?.author_association !== 'OWNER' ||
+            event.comment?.user?.login !== process.env.GITHUB_REPOSITORY_OWNER
+          ) {
+            console.error('Refusing prod publish dispatch from an unauthorized issue comment.');
+            process.exit(1);
+          }
+
+          const [, expectedSha, candidateVersionId] = match;
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const apiRoot = 'https://api.github.com';
+          const headers = {
+            accept: 'application/vnd.github+json',
+            authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
+            'x-github-api-version': '2022-11-28',
+          };
+
+          const mainResponse = await fetch(`${apiRoot}/repos/${owner}/${repo}/git/ref/heads/main`, {
+            headers,
+            signal: AbortSignal.timeout(10_000),
+          });
+          const mainPayload = await mainResponse.json().catch(() => null);
+          const mainSha = mainPayload?.object?.sha;
+          if (!mainResponse.ok || typeof mainSha !== 'string') {
+            console.error(`Could not resolve current main SHA (HTTP ${mainResponse.status}).`);
+            process.exit(1);
+          }
+          if (mainSha !== expectedSha) {
+            console.error(`Refusing stale prod publish command: expected ${expectedSha}, current main is ${mainSha}.`);
+            process.exit(1);
+          }
+
+          const dispatchResponse = await fetch(
+            `${apiRoot}/repos/${owner}/${repo}/actions/workflows/cloudflare-prod-publish.yml/dispatches`,
+            {
+              method: 'POST',
+              headers: {
+                ...headers,
+                'content-type': 'application/json',
+              },
+              body: JSON.stringify({
+                ref: 'main',
+                inputs: {
+                  expected_sha: expectedSha,
+                  candidate_version_id: candidateVersionId,
+                  confirmation: 'PUBLISH_PROD',
+                },
+              }),
+              signal: AbortSignal.timeout(10_000),
+            },
+          );
+
+          if (dispatchResponse.status !== 200 && dispatchResponse.status !== 204) {
+            const text = await dispatchResponse.text().catch(() => '');
+            console.error(`Prod publish workflow dispatch failed (HTTP ${dispatchResponse.status}).`);
+            if (text) console.error(text.slice(0, 500));
+            process.exit(1);
+          }
+
+          console.log(
+            `Dispatched Cloudflare prod publish for exact main SHA ${expectedSha} and candidate ${candidateVersionId}.`,
+          );
+          NODE
