@@ -33,11 +33,22 @@ describe("observability-kontrakt", () => {
     expect(
       environmentForRequestUrl("https://preview-123-staging.matrundan.workers.dev/grupp"),
     ).toBe("staging");
+    expect(
+      environmentForRequestUrl(
+        "https://id-preview--d389634e-227c-4689-85ed-8714fdc602f7.lovable.app/grupp",
+      ),
+    ).toBe("staging");
+    expect(
+      environmentForRequestUrl(
+        "https://id-preview-4e9d03a8--d389634e-227c-4689-85ed-8714fdc602f7.lovable.app/grupp",
+      ),
+    ).toBe("staging");
     expect(environmentForRequestUrl("https://app.matrundan.workers.dev/grupp")).toBe("prod");
     expect(environmentForRequestUrl("https://prod-candidate-app.matrundan.workers.dev/grupp")).toBe(
       "prod",
     );
     expect(environmentForRequestUrl("http://localhost:3000/grupp")).toBe("local");
+    expect(environmentForRequestUrl("https://matrundan.lovable.app/grupp")).toBe("unknown");
     expect(environmentForRequestUrl("https://example.invalid/grupp")).toBe("unknown");
   });
 
