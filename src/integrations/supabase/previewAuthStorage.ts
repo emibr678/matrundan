@@ -10,10 +10,15 @@ export function brokeredPreviewStorage() {
   // Read the id only from non-user-controlled host positions, so a user-named
   // preview--<name> host can't smuggle another project's id.
   const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
-  const projectId = onPreviewZone
+  const MATRUNDAN_PROJECT_ID = 'd389634e-227c-4689-85ed-8714fdc602f7';
+  const hostProjectId = onPreviewZone
     ? (host.match(new RegExp('^(?:id-preview(?:-[a-z0-9]+)?|project)--(' + UUID + ')(?:-dev)?(?=\\.|$)', 'i'))?.[1]
         ?? host.match(new RegExp('^(' + UUID + ')(?=[.-])', 'i'))?.[1])
     : undefined;
+  // Only this project's framed preview surfaces use the broker; the stable
+  // preview--matrundan host and every other surface keep normal localStorage.
+  const projectId =
+    hostProjectId && hostProjectId.toLowerCase() === MATRUNDAN_PROJECT_ID ? hostProjectId : undefined;
   const framed = window.parent && window.parent !== window;
   if (!projectId || !framed) return localStorage;
 
