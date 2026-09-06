@@ -20,6 +20,8 @@
     "check:release": "bun scripts/release-check.mjs",
     "check:database": "bun scripts/database-contract-check.mjs && bun scripts/visit-photo-policy-contract-check.mjs",
     "check:dead-code": "bun scripts/dead-code-check.mjs",
+    "supabase:types:generate": "bash scripts/supabase-types.sh generate src/integrations/supabase/types.ts",
+    "supabase:types:check": "bash scripts/supabase-types.sh check src/integrations/supabase/types.ts",
     "lint": "eslint .",
     "lint:changed": "bun scripts/repo-tools.mjs lint-changed",
     "format": "bun run format:changed",
