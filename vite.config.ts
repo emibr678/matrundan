@@ -26,17 +26,22 @@ export default defineConfig(({ command }) => {
       }),
       ...(command === "build"
         ? [
-            nitro({
-              preset: "cloudflare-module",
-              cloudflare: {
-                // Wrangler environments live in the checked-in source config. Nitro's generated
-                // redirected deploy config cannot legally contain environments.
-                deployConfig: false,
-                nodeCompat: true,
-              },
-            }),
+            nitro(
+              process.env.MATRUNDAN_CLOUDFLARE_BUILD === "1"
+                ? {
+                    preset: "cloudflare-module",
+                    cloudflare: {
+                      // Wrangler environments live in the checked-in source config. Nitro's
+                      // generated redirected deploy config cannot legally contain environments.
+                      deployConfig: false,
+                      nodeCompat: true,
+                    },
+                  }
+                : {},
+            ),
           ]
         : []),
+
       viteReact(),
     ],
     resolve: {
