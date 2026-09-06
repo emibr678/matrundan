@@ -14,6 +14,14 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.8] – 2026-09-06
+
+### Rättat
+
+- Lovable-preview använder Matrundan Stagings direkta Supabase OAuth-flöde och
+  validerar authmålet innan navigation, så previewn inte faller tillbaka till
+  Lovables äldre OAuth-broker eller fel Supabase-miljö.
+
 ## [1.38.7] – 2026-09-06
 
 ### Förbättrat
