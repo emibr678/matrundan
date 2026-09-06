@@ -14,6 +14,15 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.7] – 2026-09-06
+
+### Förbättrat
+
+- Kartkomponenten städar sina interna klustermarkörer mot samma
+  livscykelinstans och dokumenterar när kameran medvetet följer
+  koordinatinnehåll i stället för objektreferenser. Kartflöde och interaktioner
+  är oförändrade.
+
 ## [1.38.6] – 2026-09-06
 
 ### Förbättrat

@@ -52,13 +52,7 @@ interface ClusterMarkerEntry {
 }
 
 type MapFailureCode =
-  | "webgl"
-  | "style-auth"
-  | "style-network"
-  | "resources"
-  | "worker"
-  | "timeout"
-  | "runtime";
+  "webgl" | "style-auth" | "style-network" | "resources" | "worker" | "timeout" | "runtime";
 
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 18;
@@ -462,6 +456,7 @@ export function PlaceMap({
     let cancelled = false;
     const element = mapElementRef.current;
     if (!element) return;
+    const clusterMarkers = clusterMarkersRef.current;
 
     setMapFailure(null);
     if (!supportsWebGl()) {
@@ -582,7 +577,7 @@ export function PlaceMap({
 
     return () => {
       cancelled = true;
-      clearClusterMarkers(clusterMarkersRef.current);
+      clearClusterMarkers(clusterMarkers);
       syncClustersRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
@@ -612,6 +607,7 @@ export function PlaceMap({
 
     const map = mapRef.current;
     const mapLibre = mapLibreRef.current;
+    const clusterMarkers = clusterMarkersRef.current;
     const primary = readThemeColor("--primary", "#c96342");
     const ink = readThemeColor("--foreground", "#3d2d27");
     const background = readThemeColor("--background", "#fbf5e8");
@@ -885,7 +881,7 @@ export function PlaceMap({
       });
       map.off("idle", syncClusters);
       if (syncClustersRef.current === syncClusters) syncClustersRef.current = null;
-      clearClusterMarkers(clusterMarkersRef.current);
+      clearClusterMarkers(clusterMarkers);
     };
   }, [
     clusterConfig.labelMinZoom,
@@ -910,19 +906,16 @@ export function PlaceMap({
   React.useEffect(() => {
     if (mapStatus !== "ready" || !mapRef.current) return;
     const source = mapRef.current.getSource(SELECTED_SOURCE_ID) as
-      | MapLibreGeoJSONSource
-      | undefined;
+      MapLibreGeoJSONSource | undefined;
     source?.setData(selectedCollection(selected));
   }, [mapStatus, selected]);
 
   React.useEffect(() => {
     if (mapStatus !== "ready" || !mapRef.current) return;
     const radiusSource = mapRef.current.getSource(RADIUS_SOURCE_ID) as
-      | MapLibreGeoJSONSource
-      | undefined;
+      MapLibreGeoJSONSource | undefined;
     const centerSource = mapRef.current.getSource(CENTER_SOURCE_ID) as
-      | MapLibreGeoJSONSource
-      | undefined;
+      MapLibreGeoJSONSource | undefined;
     radiusSource?.setData(radiusCollection(center, radiusKm));
     centerSource?.setData(centerCollection(center));
   }, [center, mapStatus, radiusKm]);
@@ -951,6 +944,8 @@ export function PlaceMap({
         duration: 0,
       });
     });
+    // Camera fitting intentionally keys on coordinate content, not parent object identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitSignature, mapStatus, mappedItems.length, profile]);
 
   if (mappedItems.length === 0 && !center) {
