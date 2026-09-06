@@ -68,7 +68,7 @@ Restoreövning ska göras mot en separat tom testmiljö, aldrig mot staging elle
 4. återställ den separata Auth-exporten och därefter `data.sql` med triggers avstängda under importen där det krävs;
 5. återställ privata Storage-bytes med `visit-photo-backup.mjs restore`; verktyget kräver att återställd `visit_media` redan matchar backupen;
 6. återetablera environment-specifika Auth-providerinställningar, callbacks och secrets från driftkonfiguration när ett permanent restoremål används – aldrig från backupfilerna;
-7. kör `supabase/production-preflight.sql`, radantals-/integritetskontroller och autentiserad smoke mot en verklig återställd testgrupp;
+7. kör den kanoniska aggregate-grinden `supabase/production-preflight-all.sql`, radantals-/integritetskontroller och autentiserad smoke mot en verklig återställd testgrupp; aggregate-filen inkluderar baspreflighten och samtliga obligatoriska fokuserade preflights;
 8. dokumentera faktisk start/sluttid, backupgeneration och resultat så att uppmätt RTO är känd.
 
 `Recovery restore drill` (`.github/workflows/recovery-restore.yml`) är den manuella pre-cutovergrinden. Den får endast köras från en uttryckligen angiven exakt `main`-SHA och kan använda antingen GitHubs `staging`-environment för repetition eller `production`-environment för den slutliga recoverygrinden efter liveimporten till Matrundan Prod. Productionkälla kräver ett extra uttryckligt workflow-val, läses endast för backup/export och återställs aldrig tillbaka till Prod. Själva restoremålet är alltid runnerns lokala Docker-stack.
