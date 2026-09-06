@@ -40,7 +40,7 @@ function ShellBody() {
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isInvitationRoute = pathname.startsWith("/inbjudan/");
-  const isPublicInfoRoute = pathname === "/integritet";
+  const isPublicStandaloneRoute = pathname === "/integritet" || pathname === "/nytt-losenord";
   const [liveState, setLiveState] = React.useState<AppState | null>(null);
   const [liveError, setLiveError] = React.useState<string | null>(null);
   const [demoRevision, setDemoRevision] = React.useState(0);
@@ -111,7 +111,9 @@ function ShellBody() {
       setDemoRevision((current) => current + 1);
     };
     window.addEventListener(DEMO_STATE_CHANGED_EVENT, handler);
-    return () => window.removeEventListener(DEMO_STATE_CHANGED_EVENT, handler);
+    return () => {
+      window.removeEventListener(DEMO_STATE_CHANGED_EVENT, handler);
+    };
   }, [mode]);
 
   if (loading) {
@@ -122,7 +124,7 @@ function ShellBody() {
     );
   }
 
-  if (isInvitationRoute || isPublicInfoRoute) {
+  if (isInvitationRoute || isPublicStandaloneRoute) {
     return (
       <div className="paper-grain min-h-dvh">
         <Header showAuth />
