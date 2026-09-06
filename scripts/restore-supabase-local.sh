@@ -120,7 +120,7 @@ for (const sourceTable of expected.tables) {
   const sourceColumns = new Map(sourceTable.columns.map((column) => [column.name, column]));
   const targetColumns = new Map(targetTable.columns.map((column) => [column.name, column]));
 
-  for (const sourceColumn of expected.tables.find((table) => table.name === sourceTable.name)?.columns ?? []) {
+  for (const sourceColumn of sourceTable.columns) {
     const targetColumn = targetColumns.get(sourceColumn.name);
     if (!targetColumn) {
       problems.push(`auth.${sourceTable.name}.${sourceColumn.name} saknas lokalt`);
