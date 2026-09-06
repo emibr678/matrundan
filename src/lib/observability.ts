@@ -29,6 +29,14 @@ function isMatrundanLovablePreviewHost(hostname: string): boolean {
   );
 }
 
+export function isMatrundanLovablePreviewUrl(value: string): boolean {
+  try {
+    return isMatrundanLovablePreviewHost(new URL(value, "http://localhost").hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 export function environmentForRequestUrl(value: string): RuntimeEnvironment {
   let hostname: string;
   try {
