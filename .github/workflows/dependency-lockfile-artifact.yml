@@ -8,7 +8,7 @@ on:
       - .github/workflows/dependency-lockfile-artifact.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate-lockfile:
@@ -29,6 +29,22 @@ jobs:
           test "$(bun --version)" = "1.3.14"
           test -s bun.lock
           git status --short -- package.json bun.lock
+
+      - name: Store generated lockfile as unattached Git blob
+        id: lockfile-blob
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const content = fs.readFileSync('bun.lock').toString('base64');
+            const { data } = await github.rest.git.createBlob({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              content,
+              encoding: 'base64',
+            });
+            core.info(`Generated lockfile blob SHA: ${data.sha}`);
+            core.setOutput('sha', data.sha);
 
       - name: Upload generated lockfile
         uses: actions/upload-artifact@v4
