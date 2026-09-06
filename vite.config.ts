@@ -3,7 +3,6 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
-import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig(({ command }) => {
   const releaseSha =
@@ -17,7 +16,6 @@ export default defineConfig(({ command }) => {
       "import.meta.env.VITE_MATRUNDAN_RELEASE_SHA": JSON.stringify(releaseSha),
     },
     plugins: [
-      tsConfigPaths(),
       tailwindcss(),
       tanstackStart({
         server: {
@@ -40,6 +38,7 @@ export default defineConfig(({ command }) => {
       viteReact(),
     ],
     resolve: {
+      tsconfigPaths: true,
       dedupe: ["react", "react-dom", "@tanstack/react-router"],
     },
   };
