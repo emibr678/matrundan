@@ -51,9 +51,7 @@ export async function dispatchNotificationOutbox(): Promise<DispatchSummary> {
   }
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const admin = supabaseAdmin as unknown as {
-    from: (table: string) => any;
-  };
+  const admin = supabaseAdmin;
 
   const { data: pending, error } = await admin
     .from("notification_outbox")

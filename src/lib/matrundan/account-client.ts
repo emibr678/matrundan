@@ -28,3 +28,20 @@ export async function clearLocalAccountSession(): Promise<void> {
   const { error } = await supabase.auth.signOut({ scope: "local" });
   if (error) throw error;
 }
+
+export function subscribeToPasswordRecovery(onRecovery: () => void): () => void {
+  const { data } = supabase.auth.onAuthStateChange((event) => {
+    if (event === "PASSWORD_RECOVERY") onRecovery();
+  });
+  return () => data.subscription.unsubscribe();
+}
+
+export async function hasCurrentAccountSession(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession();
+  return Boolean(data.session);
+}
+
+export async function updateOwnPassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}

@@ -9,7 +9,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  hasCurrentAccountSession,
+  subscribeToPasswordRecovery,
+  updateOwnPassword,
+} from "@/lib/matrundan/account-client";
 
 export const Route = createFileRoute("/nytt-losenord")({
   head: () => ({
@@ -44,20 +48,20 @@ function NewPasswordPage() {
 
   React.useEffect(() => {
     let cancelled = false;
-    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" && !cancelled) {
+    const unsubscribe = subscribeToPasswordRecovery(() => {
+      if (!cancelled) {
         setHasRecovery(true);
         setReady(true);
       }
     });
-    supabase.auth.getSession().then(({ data }) => {
+    void hasCurrentAccountSession().then((hasSession) => {
       if (cancelled) return;
-      if (data.session) setHasRecovery(true);
+      if (hasSession) setHasRecovery(true);
       setReady(true);
     });
     return () => {
       cancelled = true;
-      subscription.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
@@ -70,8 +74,7 @@ function NewPasswordPage() {
     }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      await updateOwnPassword(password);
       toast.success("Lösenordet är uppdaterat.");
       void navigate({ to: "/" });
     } catch (error) {
