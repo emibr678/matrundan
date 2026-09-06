@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_5_CHANGELOG: ChangelogEntry = {
+  version: "1.38.5",
+  date: "2026-09-06",
+  summary: "Lösenordsåterställningen har fått en stabilare teknisk grund.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Lösenordsåterställningen använder nu samma interna konto- och authgräns som övriga kontoflöden utan att ändra lösenordspolicy eller hur sidan används.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_4_CHANGELOG: ChangelogEntry = {
   version: "1.38.4",
   date: "2026-09-04",
@@ -216,6 +230,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_5_CHANGELOG,
   VERSION_1_38_4_CHANGELOG,
   VERSION_1_38_3_CHANGELOG,
   VERSION_1_38_2_CHANGELOG,
