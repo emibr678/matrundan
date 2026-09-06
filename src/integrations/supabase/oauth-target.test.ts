@@ -9,7 +9,10 @@ const PROD_SUPABASE = "https://wsikirbxqejjwtgxcvjl.supabase.co";
 const STAGING_SUPABASE = "https://wpihfmwbubvdiaavtpia.supabase.co";
 const TEST_PUBLISHABLE_KEY = "sb_publishable_environment_contract_test";
 
-async function googleOAuthTargetFor(supabaseUrl: string, browserUrl = PROD_BROWSER_URL): Promise<URL> {
+async function googleOAuthTargetFor(
+  supabaseUrl: string,
+  browserUrl = PROD_BROWSER_URL,
+): Promise<URL> {
   const client = createClient(supabaseUrl, TEST_PUBLISHABLE_KEY, {
     auth: {
       autoRefreshToken: false,
