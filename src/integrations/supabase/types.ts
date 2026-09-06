@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       account_deletion_jobs: {
@@ -422,6 +417,8 @@ export type Database = {
           lng: number
           provider: string
           provider_place_id: string
+          result_type: string | null
+          search_mode: string
           sort_order: number
           updated_at: string
         }
@@ -434,6 +431,8 @@ export type Database = {
           lng: number
           provider: string
           provider_place_id: string
+          result_type?: string | null
+          search_mode?: string
           sort_order?: number
           updated_at?: string
         }
@@ -446,6 +445,8 @@ export type Database = {
           lng?: number
           provider?: string
           provider_place_id?: string
+          result_type?: string | null
+          search_mode?: string
           sort_order?: number
           updated_at?: string
         }
@@ -755,6 +756,130 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "next_stop_date_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      next_stop_place_proposals: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          place_id: string
+          proposed_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          place_id: string
+          proposed_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          place_id?: string
+          proposed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_stop_place_proposals_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_stop_place_proposals_group_place_fk"
+            columns: ["group_id", "place_id"]
+            isOneToOne: true
+            referencedRelation: "group_places"
+            referencedColumns: ["group_id", "place_id"]
+          },
+          {
+            foreignKeyName: "next_stop_place_proposals_proposed_by_fkey"
+            columns: ["proposed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      next_stop_place_supports: {
+        Row: {
+          member_id: string
+          proposal_id: string
+          updated_at: string
+        }
+        Insert: {
+          member_id: string
+          proposal_id: string
+          updated_at?: string
+        }
+        Update: {
+          member_id?: string
+          proposal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_stop_place_supports_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_stop_place_supports_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "next_stop_place_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      next_stop_plans: {
+        Row: {
+          created_at: string
+          group_id: string
+          planned_date: string | null
+          planned_time: string | null
+          revision: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          planned_date?: string | null
+          planned_time?: string | null
+          revision?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          planned_date?: string | null
+          planned_time?: string | null
+          revision?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_stop_plans_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: true
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_stop_plans_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1510,6 +1635,48 @@ export type Database = {
         }
         Relationships: []
       }
+      review_group_reactions: {
+        Row: {
+          created_at: string
+          group_id: string
+          reaction: string
+          review_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          reaction: string
+          review_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          reaction?: string
+          review_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_group_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_group_reactions_visibility_fk"
+            columns: ["review_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "review_group_visibility"
+            referencedColumns: ["review_id", "group_id"]
+          },
+        ]
+      }
       review_group_visibility: {
         Row: {
           comment_visible: boolean
@@ -1771,6 +1938,42 @@ export type Database = {
           },
         ]
       }
+      visit_participation_self_corrections: {
+        Row: {
+          status: string
+          updated_at: string
+          user_id: string
+          visit_id: string
+        }
+        Insert: {
+          status: string
+          updated_at?: string
+          user_id: string
+          visit_id: string
+        }
+        Update: {
+          status?: string
+          updated_at?: string
+          user_id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_participation_self_corrections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_participation_self_corrections_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visits: {
         Row: {
           created_at: string
@@ -1856,6 +2059,18 @@ export type Database = {
       }
       can_delete_original_visit: {
         Args: { _group_id: string; _user_id: string; _visit_id: string }
+        Returns: boolean
+      }
+      can_delete_own_visit_photo: {
+        Args: { _group_id: string; _visit_id: string }
+        Returns: boolean
+      }
+      can_delete_visit_photo: {
+        Args: { _group_id: string; _user_id: string; _visit_id: string }
+        Returns: boolean
+      }
+      can_manage_own_visit_photo: {
+        Args: { _group_id: string; _visit_id: string }
         Returns: boolean
       }
       can_manage_visit_photo: {
@@ -2090,6 +2305,22 @@ export type Database = {
         }
         Returns: string
       }
+      create_visit_with_review_v3: {
+        Args: {
+          _comment?: string
+          _group_id: string
+          _guest_names?: string[]
+          _meal_type: string
+          _overall?: number
+          _participant_ids: string[]
+          _place_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visited_on: string
+        }
+        Returns: string
+      }
       cross_group_practical_info_candidate_v1: {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json
@@ -2143,6 +2374,17 @@ export type Database = {
       get_group_app_state_v5f: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5g: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5h: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5h_boundary_base: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      get_group_app_state_v5i: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5i_participation_base: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      get_group_app_state_v5j: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5k: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2174,6 +2416,10 @@ export type Database = {
         Returns: Json
       }
       get_place_maintenance_access_v1: { Args: never; Returns: boolean }
+      get_visit_review_reactions_v1: {
+        Args: { _group_id: string; _visit_id: string }
+        Returns: Json
+      }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
         Args: { _group_id: string; _roles: string[]; _user_id: string }
@@ -2183,6 +2429,7 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      health_probe_v1: { Args: never; Returns: boolean }
       hide_group_place_suggestion: {
         Args: {
           _address?: string
@@ -2354,6 +2601,25 @@ export type Database = {
         Args: { _kind: string; _work_item_id: string }
         Returns: string
       }
+      next_stop_v2_assert_revision: {
+        Args: { _expected_revision: number; _group_id: string }
+        Returns: undefined
+      }
+      next_stop_v2_ensure_plan: {
+        Args: { _group_id: string; _uid: string }
+        Returns: undefined
+      }
+      next_stop_v2_lock: { Args: { _group_id: string }; Returns: undefined }
+      next_stop_v2_sync_legacy_date: {
+        Args: {
+          _group_id: string
+          _place_id: string
+          _planned_date: string
+          _planned_time: string
+          _uid: string
+        }
+        Returns: undefined
+      }
       normalize_food_tags: { Args: { _values: string[] }; Returns: string[] }
       normalize_place_match_text_v1: {
         Args: { _value: string }
@@ -2378,6 +2644,10 @@ export type Database = {
           _proposed_date: string
           _proposed_time?: string
         }
+        Returns: string
+      }
+      propose_next_stop_place_v2: {
+        Args: { _group_id: string; _place_id: string }
         Returns: string
       }
       queue_notification: {
@@ -2452,6 +2722,18 @@ export type Database = {
         Args: { _value: string }
         Returns: boolean
       }
+      save_own_review_for_visit_v1: {
+        Args: {
+          _comment?: string
+          _group_id: string
+          _overall: number
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visit_id: string
+        }
+        Returns: string
+      }
       save_place_external_info_snapshot_v1: {
         Args: {
           _fetched_at: string
@@ -2484,6 +2766,14 @@ export type Database = {
         Returns: undefined
       }
       search_area_label_is_broad: { Args: { _label: string }; Returns: boolean }
+      select_next_stop_place_v2: {
+        Args: {
+          _expected_revision?: number
+          _group_id: string
+          _proposal_id: string
+        }
+        Returns: undefined
+      }
       set_member_role: {
         Args: { _group_id: string; _role: string; _user_id: string }
         Returns: undefined
@@ -2496,8 +2786,38 @@ export type Database = {
         Args: { _group_id: string; _proposal_id: string; _status: string }
         Returns: undefined
       }
+      set_next_stop_day_response_v2: {
+        Args: { _group_id: string; _response?: string }
+        Returns: undefined
+      }
+      set_next_stop_place_support_v2: {
+        Args: { _group_id: string; _proposal_id: string; _supported: boolean }
+        Returns: undefined
+      }
+      set_next_stop_schedule_v2: {
+        Args: {
+          _expected_revision?: number
+          _group_id: string
+          _planned_date: string
+          _planned_time?: string
+        }
+        Returns: undefined
+      }
       set_notification_preference: {
         Args: { _enabled: boolean; _type: string }
+        Returns: undefined
+      }
+      set_own_review_reaction_v1: {
+        Args: {
+          _group_id: string
+          _reaction?: string
+          _review_id: string
+          _visit_id: string
+        }
+        Returns: undefined
+      }
+      set_own_visit_participation_v1: {
+        Args: { _group_id: string; _participating: boolean; _visit_id: string }
         Returns: undefined
       }
       set_review_group_visibility: {
@@ -2619,6 +2939,10 @@ export type Database = {
       }
       visit_photo_path_group: { Args: { _name: string }; Returns: string }
       visit_photo_path_visit: { Args: { _name: string }; Returns: string }
+      withdraw_next_stop_place_v2: {
+        Args: { _group_id: string; _proposal_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
