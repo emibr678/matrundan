@@ -52,13 +52,7 @@ interface ClusterMarkerEntry {
 }
 
 type MapFailureCode =
-  | "webgl"
-  | "style-auth"
-  | "style-network"
-  | "resources"
-  | "worker"
-  | "timeout"
-  | "runtime";
+  "webgl" | "style-auth" | "style-network" | "resources" | "worker" | "timeout" | "runtime";
 
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 18;
@@ -912,19 +906,16 @@ export function PlaceMap({
   React.useEffect(() => {
     if (mapStatus !== "ready" || !mapRef.current) return;
     const source = mapRef.current.getSource(SELECTED_SOURCE_ID) as
-      | MapLibreGeoJSONSource
-      | undefined;
+      MapLibreGeoJSONSource | undefined;
     source?.setData(selectedCollection(selected));
   }, [mapStatus, selected]);
 
   React.useEffect(() => {
     if (mapStatus !== "ready" || !mapRef.current) return;
     const radiusSource = mapRef.current.getSource(RADIUS_SOURCE_ID) as
-      | MapLibreGeoJSONSource
-      | undefined;
+      MapLibreGeoJSONSource | undefined;
     const centerSource = mapRef.current.getSource(CENTER_SOURCE_ID) as
-      | MapLibreGeoJSONSource
-      | undefined;
+      MapLibreGeoJSONSource | undefined;
     radiusSource?.setData(radiusCollection(center, radiusKm));
     centerSource?.setData(centerCollection(center));
   }, [center, mapStatus, radiusKm]);
