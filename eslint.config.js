@@ -10,6 +10,18 @@ const serverOnlyRestriction = {
     "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
 };
 
+const intentionalRefreshExports = [
+  "usePlacePracticalInfo",
+  "badgeVariants",
+  "buttonVariants",
+  "setPendingInvitePath",
+  "consumePendingInvitePath",
+  "useSession",
+  "useStore",
+  "formatDate",
+  "googleMapsUrl",
+];
+
 export default tseslint.config(
   { ignores: ["dist", ".output", ".vinxi"] },
   {
@@ -26,7 +38,15 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "no-restricted-imports": ["error", { paths: [serverOnlyRestriction] }],
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "react-refresh/only-export-components": [
+        "warn",
+        {
+          allowConstantExport: true,
+          // These named helpers are intentionally colocated with their component/provider module.
+          // Keep the rule active for every other non-component export instead of disabling it per file.
+          allowExportNames: intentionalRefreshExports,
+        },
+      ],
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
