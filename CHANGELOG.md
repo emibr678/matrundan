@@ -14,6 +14,14 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.6] – 2026-09-06
+
+### Förbättrat
+
+- Serverfunktioner använder TanStack Starts aktuella validator-API och
+  byggkonfigurationen använder Vites inbyggda TypeScript-sökvägsstöd. Det
+  minskar tekniskt byggbrus utan att ändra användarflöden eller dataregler.
+
 ## [1.38.5] – 2026-09-06
 
 ### Förbättrat
