@@ -2,6 +2,7 @@ const SAFE_ERROR_CODE = /^[A-Z][A-Z0-9_]{1,63}$/;
 const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const OPAQUE_SEGMENT = /^[A-Za-z0-9_-]{20,}$/;
 const LOVABLE_PROJECT_ID = "d389634e-227c-4689-85ed-8714fdc602f7";
+const LOVABLE_STABLE_PREVIEW_HOST = "preview--matrundan.lovable.app";
 const LOVABLE_PREVIEW_ZONES = [
   "lovable.app",
   "lovableproject.com",
@@ -13,6 +14,8 @@ const LOVABLE_PREVIEW_ZONES = [
 export type RuntimeEnvironment = "staging" | "prod" | "local" | "unknown";
 
 function isMatrundanLovablePreviewHost(hostname: string): boolean {
+  if (hostname === LOVABLE_STABLE_PREVIEW_HOST) return true;
+
   const zone = LOVABLE_PREVIEW_ZONES.find(
     (candidate) => hostname === candidate || hostname.endsWith(`.${candidate}`),
   );
