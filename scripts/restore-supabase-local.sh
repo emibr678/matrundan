@@ -120,7 +120,7 @@ for (const sourceTable of expected.tables) {
   const sourceColumns = new Map(sourceTable.columns.map((column) => [column.name, column]));
   const targetColumns = new Map(targetTable.columns.map((column) => [column.name, column]));
 
-  for (const sourceColumn of sourceTable.columns) {
+  for (const sourceColumn of expected.tables.find((table) => table.name === sourceTable.name)?.columns ?? []) {
     const targetColumn = targetColumns.get(sourceColumn.name);
     if (!targetColumn) {
       problems.push(`auth.${sourceTable.name}.${sourceColumn.name} saknas lokalt`);
@@ -230,8 +230,8 @@ if (mismatches.length > 0) {
 console.log(`Restoreinventering verifierad: ${keys.length} räknare matchar backupen.`);
 NODE
 
-# Produktionspreflighten är skrivskyddad. Visa endast namn på eventuella falska kontroller,
-# inte hela SQL-outputen, så restorejobbet inte blir en extra loggkanal.
+# Den samlade produktionspreflighten är skrivskyddad. Visa endast namn på eventuella
+# falska kontroller, inte hela SQL-outputen, så restorejobbet inte blir en extra loggkanal.
 psql "$LOCAL_SUPABASE_DB_URL" \
   -X \
   --no-psqlrc \
@@ -239,7 +239,7 @@ psql "$LOCAL_SUPABASE_DB_URL" \
   --no-align \
   --field-separator='|' \
   --set ON_ERROR_STOP=1 \
-  < supabase/production-preflight.sql \
+  < supabase/production-preflight-all.sql \
   > "$preflight_output"
 
 mapfile -t failed_preflight < <(awk -F'|' '$NF == "f" { print $1 }' "$preflight_output")
@@ -249,7 +249,7 @@ if (( ${#failed_preflight[@]} > 0 )); then
 fi
 
 # Autentiserad smoke utan lösenord: simulera en återställd användares JWT-claims i samma
-# databasroll som PostgREST använder och läs verklig återställd gruppstate. Inga UUID:n loggas.
+# databasroll som PostgREST använder och läs aktuell verklig gruppstate. Inga UUID:n loggas.
 psql "$LOCAL_SUPABASE_DB_URL" \
   -X \
   --no-psqlrc \
@@ -272,8 +272,8 @@ select set_config(
   true
 );
 SET LOCAL ROLE authenticated;
-select public.get_group_app_state_v5h(:'smoke_group_id'::uuid);
+select public.get_group_app_state_v5k(:'smoke_group_id'::uuid);
 ROLLBACK;
 SQL
 
-echo "Lokal restoreövning verifierad: Auth, data, privat media, inventory, preflight och autentiserad gruppread."
+echo "Lokal restoreövning verifierad: Auth, data, privat media, inventory, samlad preflight och autentiserad current group read."
