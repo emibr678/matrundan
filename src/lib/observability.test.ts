@@ -33,6 +33,9 @@ describe("observability-kontrakt", () => {
     expect(
       environmentForRequestUrl("https://preview-123-staging.matrundan.workers.dev/grupp"),
     ).toBe("staging");
+    expect(environmentForRequestUrl("https://preview--matrundan.lovable.app/grupp")).toBe(
+      "staging",
+    );
     expect(
       environmentForRequestUrl(
         "https://id-preview--d389634e-227c-4689-85ed-8714fdc602f7.lovable.app/grupp",
