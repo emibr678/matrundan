@@ -301,8 +301,8 @@ export const geoapifyResolveSearchAreaBoundary = createServerFn({ method: "POST"
       })
       .parse(input),
   )
-  .handler(
-    async ({ data }): Promise<SearchAreaBoundaryResponse> => resolveSearchAreaBoundary(data),
+  .handler(async ({ data }): Promise<SearchAreaBoundaryResponse> =>
+    resolveSearchAreaBoundary(data),
   );
 
 export const geoapifyLoadSearchAreaBoundaries = createServerFn({ method: "POST" })
