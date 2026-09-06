@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_6_CHANGELOG: ChangelogEntry = {
+  version: "1.38.6",
+  date: "2026-09-06",
+  summary: "Tekniskt underhåll minskar byggvarningar utan att ändra appens flöden.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Serverfunktioner använder TanStack Starts aktuella validator-API och byggkonfigurationen använder Vites inbyggda TypeScript-sökvägsstöd. Det minskar tekniskt byggbrus utan att ändra användarflöden eller dataregler.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_5_CHANGELOG: ChangelogEntry = {
   version: "1.38.5",
   date: "2026-09-06",
@@ -230,6 +244,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_6_CHANGELOG,
   VERSION_1_38_5_CHANGELOG,
   VERSION_1_38_4_CHANGELOG,
   VERSION_1_38_3_CHANGELOG,
