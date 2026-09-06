@@ -146,11 +146,8 @@ jobs:
           if-no-files-found: error
           retention-days: 5
 
-      - name: ESLint changed code
-        if: steps.changes.outputs.has_code == 'true'
-        env:
-          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
-        run: bun run lint:changed
+      - name: ESLint full repository
+        run: bun run lint
 
       - name: Unit tests
         run: bun run test:unit
