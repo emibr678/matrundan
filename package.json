@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "cloudflare:build": "bun scripts/cloudflare-artifact-clean.mjs && MATRUNDAN_CLOUDFLARE_BUILD=1 vite build && bun scripts/cloudflare-artifact-check.mjs",
+    "cloudflare:build": "bun scripts/cloudflare-artifact-clean.mjs && vite build && bun scripts/cloudflare-artifact-check.mjs",
     "check:cloudflare-artifact": "bun scripts/cloudflare-artifact-check.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
