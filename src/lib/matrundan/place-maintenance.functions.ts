@@ -155,7 +155,7 @@ function toPublicMatch(match: NormalizedPlaceSuggestion): PlaceMaintenanceProvid
 
 export const searchPlaceMaintenanceProviderMatches = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => workItemInputSchema.parse(input))
+  .validator((input) => workItemInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<PlaceMaintenanceProviderMatch[]> => {
     const rpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
     const candidate = await loadCandidate(rpc, data.workItemId);
@@ -165,7 +165,7 @@ export const searchPlaceMaintenanceProviderMatches = createServerFn({ method: "P
 
 export const linkPlaceMaintenanceProviderMatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => linkInputSchema.parse(input))
+  .validator((input) => linkInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ placeId: string }> => {
     const rpc = context.supabase.rpc.bind(context.supabase) as unknown as RpcCall;
     const candidate = await loadCandidate(rpc, data.workItemId);

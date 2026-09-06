@@ -253,7 +253,7 @@ async function searchPlacesAtArea(
 
 export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .validator((input) =>
     z
       .object({
         text: z.string().trim().min(2).max(120),
@@ -293,7 +293,7 @@ export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
 
 export const geoapifyResolveSearchAreaBoundary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .validator((input) =>
     z
       .object({
         placeId: z.string().trim().min(1).max(240),
@@ -301,13 +301,13 @@ export const geoapifyResolveSearchAreaBoundary = createServerFn({ method: "POST"
       })
       .parse(input),
   )
-  .handler(
-    async ({ data }): Promise<SearchAreaBoundaryResponse> => resolveSearchAreaBoundary(data),
+  .handler(async ({ data }): Promise<SearchAreaBoundaryResponse> =>
+    resolveSearchAreaBoundary(data),
   );
 
 export const geoapifyLoadSearchAreaBoundaries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .validator((input) =>
     z
       .object({
         areas: z
@@ -334,7 +334,7 @@ export const geoapifyLoadSearchAreaBoundaries = createServerFn({ method: "POST" 
 
 export const geoapifySearchPlaces = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .validator((input) =>
     z
       .object({
         text: z.string().trim().max(120).optional(),
@@ -353,7 +353,7 @@ export const geoapifySearchPlaces = createServerFn({ method: "POST" })
 
 export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .validator((input) =>
     z
       .object({
         text: z.string().trim().max(120).optional(),

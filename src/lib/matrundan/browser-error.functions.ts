@@ -14,7 +14,7 @@ const browserErrorSchema = z.object({
 
 export const reportBrowserErrorEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => browserErrorSchema.parse(input))
+  .validator((input) => browserErrorSchema.parse(input))
   .handler(async ({ data }) => {
     const request = getRequest();
     const errorId = logSafeEvent(request, {
