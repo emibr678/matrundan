@@ -1,4 +1,4 @@
--- Matrundans kanoniska samlade production-preflight.
+-- Matrundans samlade production-preflight-körgrind.
 --
 -- Kör den här filen med psql när hela aktuella databaskontraktet ska verifieras.
 -- De fokuserade production-preflight-*.sql-filerna finns kvar som smala
