@@ -197,7 +197,7 @@ async function resolveSearchAreaBoundary(input: {
 
 export const geoapifyResolveSearchAreaBoundary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+  .validator((input) =>
     z
       .object({
         placeId: z.string().trim().min(1).max(240),
