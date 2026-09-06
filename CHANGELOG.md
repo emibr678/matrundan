@@ -14,6 +14,13 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.5] – 2026-09-06
+
+### Förbättrat
+
+- Lösenordsåterställningen använder nu samma interna konto- och authgräns som
+  övriga kontoflöden utan att ändra lösenordspolicy eller hur sidan används.
+
 ## [1.38.4] – 2026-09-04
 
 ### Rättat
