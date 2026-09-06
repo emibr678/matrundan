@@ -21,6 +21,11 @@ const MAP_FILES = new Set([
   "playwright.config.ts",
   "tests/e2e/mobile-matstallen.spec.ts",
 ]);
+const DATABASE_TYPE_FILES = new Set([
+  "src/integrations/supabase/types.ts",
+  "supabase/config.toml",
+  "scripts/supabase-types.sh",
+]);
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -137,6 +142,10 @@ function isMapFile(file) {
   return MAP_FILES.has(file);
 }
 
+function isDatabaseTypeFile(file) {
+  return file.startsWith("supabase/migrations/") || DATABASE_TYPE_FILES.has(file);
+}
+
 function classify(files) {
   return {
     all: files,
@@ -144,6 +153,7 @@ function classify(files) {
     code: files.filter(isCodeFile),
     ui: files.filter(isUiFile),
     map: files.filter(isMapFile),
+    databaseTypes: files.filter(isDatabaseTypeFile),
     workflows: files.filter((file) => file.startsWith(".github/workflows/")),
     dependencies: files.filter((file) => file === "package.json" || file === "bun.lock"),
   };
@@ -310,6 +320,7 @@ function ciFlags(explicitBase) {
   console.log(`has_code=${bool(changed.code.length > 0)}`);
   console.log(`has_ui=${bool(changed.ui.length > 0)}`);
   console.log(`has_map=${bool(changed.map.length > 0)}`);
+  console.log(`has_database_types=${bool(changed.databaseTypes.length > 0)}`);
   console.log(`has_workflow=${bool(changed.workflows.length > 0)}`);
   console.log(`has_dependencies=${bool(changed.dependencies.length > 0)}`);
 }
@@ -322,7 +333,10 @@ switch (command) {
     doctor();
     break;
   case "changed-files": {
-    const group = args.find((arg) => ["all", "format", "code", "ui", "map"].includes(arg)) ?? "all";
+    const group =
+      args.find((arg) =>
+        ["all", "format", "code", "ui", "map", "databaseTypes"].includes(arg),
+      ) ?? "all";
     printFiles(classify(collectChangedFiles(explicitBase))[group]);
     break;
   }
@@ -346,7 +360,7 @@ switch (command) {
     break;
   default:
     console.log(
-      `Användning: bun scripts/repo-tools.mjs <kommando>\n\nKommandon:\n  doctor\n  changed-files [all|format|code|ui|map]\n  format-changed [--check]\n  lint-changed\n  guard-tooling\n  verify-changed\n  verify-agent\n  ci-flags`,
+      `Användning: bun scripts/repo-tools.mjs <kommando>\n\nKommandon:\n  doctor\n  changed-files [all|format|code|ui|map|databaseTypes]\n  format-changed [--check]\n  lint-changed\n  guard-tooling\n  verify-changed\n  verify-agent\n  ci-flags`,
     );
     if (command !== "help") process.exit(1);
 }
