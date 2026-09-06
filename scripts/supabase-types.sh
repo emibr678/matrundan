@@ -33,10 +33,10 @@ if [[ "$MODE" == "generate" ]]; then
   exit 0
 fi
 
-if ! diff --ignore-space-at-eol --strip-trailing-cr --brief "$TARGET" "$tmp" >/dev/null; then
+if ! cmp -s "$TARGET" "$tmp"; then
   echo "De incheckade Supabase-typerna matchar inte repoets lokala migrationsschema." >&2
   echo "Kör 'bun run supabase:types:generate' efter att lokal Supabase-databas har startats." >&2
-  diff --ignore-space-at-eol --strip-trailing-cr -u "$TARGET" "$tmp" || true
+  diff -u "$TARGET" "$tmp" || true
   exit 1
 fi
 
