@@ -5,7 +5,6 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig(({ command }) => {
-  const isCloudflareBuild = process.env.MATRUNDAN_CLOUDFLARE_BUILD === "1";
   const releaseSha =
     process.env.WORKERS_CI_COMMIT_SHA ??
     process.env.GITHUB_SHA ??
@@ -26,7 +25,7 @@ export default defineConfig(({ command }) => {
       ...(command === "build"
         ? [
             nitro({
-              ...(isCloudflareBuild ? { preset: "cloudflare-module" as const } : {}),
+              preset: "cloudflare-module",
               cloudflare: {
                 // Wrangler environments live in the checked-in source config. Nitro's generated
                 // redirected deploy config cannot legally contain environments.
