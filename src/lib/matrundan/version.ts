@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_7_CHANGELOG: ChangelogEntry = {
+  version: "1.38.7",
+  date: "2026-09-06",
+  summary: "Kartans interna livscykel är tydligare utan att ändra hur kartan används.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Kartkomponenten städar sina interna klustermarkörer mot samma livscykelinstans och dokumenterar när kameran medvetet följer koordinatinnehåll i stället för objektreferenser. Kartflöde och interaktioner är oförändrade.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_6_CHANGELOG: ChangelogEntry = {
   version: "1.38.6",
   date: "2026-09-06",
@@ -244,6 +258,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_7_CHANGELOG,
   VERSION_1_38_6_CHANGELOG,
   VERSION_1_38_5_CHANGELOG,
   VERSION_1_38_4_CHANGELOG,
