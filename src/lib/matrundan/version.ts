@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_8_CHANGELOG: ChangelogEntry = {
+  version: "1.38.8",
+  date: "2026-09-06",
+  summary: "Google-inloggning i Lovable-preview går direkt via stagingmiljön.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "Lovable-preview använder nu Matrundan Stagings direkta Supabase OAuth-flöde och validerar authmålet innan navigation, så previewn inte faller tillbaka till Lovables äldre OAuth-broker eller fel Supabase-miljö.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_7_CHANGELOG: ChangelogEntry = {
   version: "1.38.7",
   date: "2026-09-06",
@@ -258,6 +272,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_8_CHANGELOG,
   VERSION_1_38_7_CHANGELOG,
   VERSION_1_38_6_CHANGELOG,
   VERSION_1_38_5_CHANGELOG,
