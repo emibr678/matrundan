@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           show-progress: false
@@ -56,7 +56,7 @@ jobs:
           done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
 
       - name: Set up pinned Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22.12.0
 
@@ -76,7 +76,7 @@ jobs:
 
       - name: Cache Bun downloads
         if: runner.environment != 'self-hosted'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
@@ -139,7 +139,7 @@ jobs:
 
       - name: Upload formatting patch
         if: failure() && steps.changes.outputs.has_format == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: formatting-patch-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
           path: formatting.patch
@@ -172,7 +172,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           show-progress: false
@@ -186,7 +186,7 @@ jobs:
           done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
 
       - name: Set up pinned Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22.12.0
 
@@ -195,7 +195,7 @@ jobs:
 
       - name: Cache Bun downloads
         if: runner.environment != 'self-hosted'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
@@ -207,7 +207,7 @@ jobs:
 
       - name: Cache Playwright browsers
         if: runner.environment != 'self-hosted'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}-map-${{ needs.verify.outputs.has_map }}
@@ -270,7 +270,7 @@ jobs:
       - name: Upload browser report on failure
         if: failure()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
           path: playwright-report
@@ -295,7 +295,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           show-progress: false
 
