@@ -48,7 +48,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           show-progress: false
 
@@ -61,7 +61,7 @@ jobs:
           done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
 
       - name: Set up pinned Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22.12.0
 
@@ -70,7 +70,7 @@ jobs:
 
       - name: Cache Bun downloads
         if: runner.environment != 'self-hosted'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
@@ -82,7 +82,7 @@ jobs:
 
       - name: Cache Playwright Chromium
         if: runner.environment != 'self-hosted'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
           key: visual-review-playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -102,7 +102,7 @@ jobs:
 
       - name: Upload visual review artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: visual-review-${{ github.event_name == 'pull_request' && format('pr-{0}-{1}', github.event.pull_request.number, github.run_id) || format('manual-{0}', github.run_id) }}
           path: visual-review
@@ -124,7 +124,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           show-progress: false
 
