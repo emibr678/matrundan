@@ -9,6 +9,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { installBrowserErrorReporting, reportBrowserError } from "../lib/browser-error-reporting";
+import { safeErrorCode } from "../lib/observability";
 import { AppShell } from "@/components/matrundan/AppShell";
 
 function NotFoundComponent() {
@@ -31,8 +32,19 @@ function NotFoundComponent() {
   );
 }
 
+function lovablePreviewDiagnosticCode(error: Error): string | null {
+  if (typeof window === "undefined") return null;
+  if (!window.location.hostname.endsWith(".lovable.app")) return null;
+
+  if (error.message.startsWith("Missing Supabase environment variable(s):")) {
+    return "SUPABASE_ENV_MISSING";
+  }
+  return safeErrorCode(error, "BROWSER_UNEXPECTED_ERROR");
+}
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
+  const diagnosticCode = lovablePreviewDiagnosticCode(error);
   useEffect(() => {
     reportBrowserError(error, { mechanism: "react_error_boundary", handled: true });
   }, [error]);
@@ -42,6 +54,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
       <div className="max-w-md text-center">
         <h1 className="font-display text-xl">Något gick snett</h1>
         <p className="mt-2 text-sm text-muted-foreground">Prova att ladda om sidan.</p>
+        {diagnosticCode ? (
+          <p className="mt-2 text-xs text-muted-foreground">Diagnos: {diagnosticCode}</p>
+        ) : null}
         <button
           onClick={() => {
             router.invalidate();
