@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:portable": "MATRUNDAN_PORTABLE_BUILD=1 vite build",
-    "cloudflare:build": "bun scripts/cloudflare-artifact-clean.mjs && MATRUNDAN_CLOUDFLARE_BUILD=1 vite build && bun scripts/cloudflare-artifact-check.mjs",
+    "build:portable": "vite build --config vite.platform.config.ts",
+    "cloudflare:build": "bun scripts/cloudflare-artifact-clean.mjs && MATRUNDAN_CLOUDFLARE_BUILD=1 vite build --config vite.platform.config.ts && bun scripts/cloudflare-artifact-check.mjs",
     "check:cloudflare-artifact": "bun scripts/cloudflare-artifact-check.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
