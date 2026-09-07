@@ -7,10 +7,6 @@
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  shouldManuallyNavigateOAuth,
-  validatedOAuthAuthorizeUrl,
-} from "@/integrations/supabase/oauth-target";
 
 export type AppMode = "landing" | "demo" | "live";
 export type GroupRole = "owner" | "admin" | "member";
@@ -207,24 +203,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = React.useCallback(async (opts?: { redirectPath?: string }) => {
     const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-    const manualNavigation = Boolean(origin && shouldManuallyNavigateOAuth(origin));
     clearExampleSession();
     if (opts?.redirectPath) setPendingInvitePath(opts.redirectPath);
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: origin,
-        skipBrowserRedirect: manualNavigation,
       },
     });
     if (error) {
       console.error("[Matrundan] Google-inloggning misslyckades:", error);
       throw error;
-    }
-
-    if (manualNavigation && origin && typeof window !== "undefined") {
-      const target = validatedOAuthAuthorizeUrl(origin, data.url);
-      window.location.assign(target);
     }
   }, []);
 

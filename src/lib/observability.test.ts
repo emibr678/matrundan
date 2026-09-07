@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test";
 
 import {
   environmentForRequestUrl,
-  isMatrundanLovablePreviewUrl,
   isRequestId,
   safeErrorCode,
   sanitizeOperation,
@@ -54,23 +53,6 @@ describe("observability-kontrakt", () => {
     expect(environmentForRequestUrl("http://localhost:3000/grupp")).toBe("local");
     expect(environmentForRequestUrl("https://matrundan.lovable.app/grupp")).toBe("unknown");
     expect(environmentForRequestUrl("https://example.invalid/grupp")).toBe("unknown");
-  });
-
-  test("identifierar endast Matrundans Lovable-previewytor", () => {
-    expect(isMatrundanLovablePreviewUrl("https://preview--matrundan.lovable.app/")).toBe(true);
-    expect(
-      isMatrundanLovablePreviewUrl(
-        "https://id-preview--d389634e-227c-4689-85ed-8714fdc602f7.lovable.app/",
-      ),
-    ).toBe(true);
-    expect(
-      isMatrundanLovablePreviewUrl(
-        "https://d389634e-227c-4689-85ed-8714fdc602f7.lovableproject.com/",
-      ),
-    ).toBe(true);
-    expect(isMatrundanLovablePreviewUrl("https://matrundan.lovable.app/")).toBe(false);
-    expect(isMatrundanLovablePreviewUrl("https://staging.matrundan.workers.dev/")).toBe(false);
-    expect(isMatrundanLovablePreviewUrl("not a url")).toBe(false);
   });
 
   test("använder stabil felkod utan att logga felmeddelandet", () => {

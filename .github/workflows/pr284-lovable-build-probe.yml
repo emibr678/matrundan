@@ -1,0 +1,53 @@
+name: PR 284 lockfile and Lovable build probe
+
+on:
+  push:
+    branches:
+      - fix/issue-207-lovable-preview-direct-supabase-oauth
+    paths:
+      - package.json
+      - vite.config.ts
+      - .github/workflows/pr284-lovable-build-probe.yml
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Refresh lockfile
+        run: bun install --lockfile-only
+
+      - name: Verify frozen install
+        run: bun install --frozen-lockfile
+
+      - name: Verify portable build path
+        run: bun run build
+
+      - name: Verify Lovable wrapper build path
+        env:
+          MATRUNDAN_LOVABLE_BUILD: "1"
+        run: bun run build
+
+      - name: Verify Cloudflare build path
+        run: bun run cloudflare:build
+
+      - name: Upload regenerated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr284-regenerated-bun-lock
+          path: bun.lock
+          if-no-files-found: error
+          retention-days: 1
