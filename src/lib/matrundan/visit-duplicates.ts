@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 
 const strongVisitDuplicateCandidateSchema = z.object({
@@ -11,6 +12,37 @@ const strongVisitDuplicateCandidateSchema = z.object({
 export type StrongVisitDuplicateCandidate = z.infer<typeof strongVisitDuplicateCandidateSchema>;
 
 const nullableStrongVisitDuplicateCandidateSchema = strongVisitDuplicateCandidateSchema.nullable();
+
+type LocalVisitDuplicateInput = Pick<
+  Visit,
+  "id" | "placeId" | "date" | "meal" | "participantIds"
+>;
+
+export function findLocalRegistrationVisitDuplicate(
+  visits: LocalVisitDuplicateInput[],
+  currentUserId: string,
+  placeId: string,
+  visitedOn: string,
+  mealType: string,
+): StrongVisitDuplicateCandidate | null {
+  const candidate = visits
+    .filter(
+      (visit) =>
+        visit.placeId === placeId &&
+        visit.date.slice(0, 10) === visitedOn &&
+        visit.meal === mealType &&
+        visit.participantIds.includes(currentUserId),
+    )
+    .sort((a, b) => a.id.localeCompare(b.id))[0];
+
+  if (!candidate) return null;
+  return {
+    visitId: candidate.id,
+    visitedOn,
+    mealType: candidate.meal,
+    alreadyVisibleInTargetGroup: true,
+  };
+}
 
 export async function findRegistrationVisitDuplicate(
   groupId: string,
