@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 const migration = await Bun.file(
   "supabase/migrations/20260908162707_fix_review_comment_visibility.sql",
 ).text();
+const preflight = await Bun.file("supabase/production-preflight-review-reactions.sql").text();
 
 describe("databaskontrakt för kommentarsynlighet vid reviewredigering", () => {
   test("behåller befintliga auth-, grupp- och deltagargränser", () => {
@@ -30,7 +31,9 @@ describe("databaskontrakt för kommentarsynlighet vid reviewredigering", () => {
   });
 
   test("senare redigering av en redan befintlig kommentar lämnar explicit synlighet orörd", () => {
-    const visibilityUpdate = migration.slice(migration.indexOf("UPDATE public.review_group_visibility"));
+    const visibilityUpdate = migration.slice(
+      migration.indexOf("UPDATE public.review_group_visibility"),
+    );
 
     expect(visibilityUpdate).toContain("comment_visible = true");
     expect(visibilityUpdate).not.toContain("INSERT INTO public.review_group_visibility");
@@ -44,5 +47,12 @@ describe("databaskontrakt för kommentarsynlighet vid reviewredigering", () => {
     expect(migration).toContain(
       "GRANT EXECUTE ON FUNCTION public.update_own_review(\n  uuid, uuid, smallint, smallint, smallint, smallint, text\n) TO authenticated;",
     );
+  });
+
+  test("produktionspreflight verifierar den deployade övergångsregeln", () => {
+    expect(preflight).toContain("review_reactions:edit-first-comment-visibility");
+    expect(preflight).toContain("public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)");
+    expect(preflight).toContain("position('_previous_comment'");
+    expect(preflight).toContain("position('group_id = _group_id'");
   });
 });
