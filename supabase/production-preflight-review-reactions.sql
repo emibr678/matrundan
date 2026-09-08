@@ -14,7 +14,12 @@ WITH checks(name, ok) AS (
       COALESCE(
         position('visit_group_links' IN pg_get_functiondef(to_regprocedure('public.set_own_review_reaction_v1(uuid,uuid,uuid,text)'))) > 0
         AND position('review_group_visibility' IN pg_get_functiondef(to_regprocedure('public.set_own_review_reaction_v1(uuid,uuid,uuid,text)'))) > 0
-        AND position('comment_visible = true' IN pg_get_functiondef(to_regprocedure('public.set_own_review_reaction_v1(uuid,uuid,uuid,text)'))) > 0
+        AND position('comment_visible=true' IN regexp_replace(
+          pg_get_functiondef(to_regprocedure('public.set_own_review_reaction_v1(uuid,uuid,uuid,text)')),
+          '[[:space:]]+',
+          '',
+          'g'
+        )) > 0
         AND position('group_is_active' IN pg_get_functiondef(to_regprocedure('public.set_own_review_reaction_v1(uuid,uuid,uuid,text)'))) > 0,
         false
       )),
@@ -31,7 +36,12 @@ WITH checks(name, ok) AS (
     ('review_reactions:read-is-minified',
       COALESCE(
         position('source_group_id' IN pg_get_functiondef(to_regprocedure('public.get_visit_review_reactions_v1(uuid,uuid)'))) = 0
-        AND position('comment_visible = true' IN pg_get_functiondef(to_regprocedure('public.get_visit_review_reactions_v1(uuid,uuid)'))) > 0,
+        AND position('comment_visible=true' IN regexp_replace(
+          pg_get_functiondef(to_regprocedure('public.get_visit_review_reactions_v1(uuid,uuid)')),
+          '[[:space:]]+',
+          '',
+          'g'
+        )) > 0,
         false
       )),
     ('review_reactions:authenticated-rpcs',
