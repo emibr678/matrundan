@@ -43,7 +43,9 @@ test("dubblettprompten återanvänder samma demobesök på 360 px", async ({ pag
   const { duplicatePrompt } = await openKnownDuplicate(page);
 
   await expect(duplicatePrompt).toContainText("Du har redan ett besök");
-  await expect(duplicatePrompt.getByRole("button", { name: "Det var ett annat besök" })).toBeVisible();
+  await expect(
+    duplicatePrompt.getByRole("button", { name: "Det var ett annat besök" }),
+  ).toBeVisible();
   await expect(
     duplicatePrompt.getByRole("button", { name: "Öppna och komplettera besöket" }),
   ).toBeVisible();
