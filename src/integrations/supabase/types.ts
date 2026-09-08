@@ -2349,6 +2349,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      find_registration_visit_duplicate_v1: {
+        Args: {
+          _group_id: string
+          _meal_type: string
+          _place_id: string
+          _visited_on: string
+        }
+        Returns: Json
+      }
       find_reusable_manual_place_candidates_v1: {
         Args: {
           _address: string
@@ -2359,6 +2368,10 @@ export type Database = {
           _lng: number
           _name: string
         }
+        Returns: Json
+      }
+      find_share_visit_duplicate_v1: {
+        Args: { _target_group_id: string; _visit_id: string }
         Returns: Json
       }
       get_account_deletion_requirements: { Args: never; Returns: Json }
@@ -2837,6 +2850,15 @@ export type Database = {
         }
         Returns: string
       }
+      share_visit_to_group_v2: {
+        Args: {
+          _allow_strong_duplicate?: boolean
+          _share_own_comment?: boolean
+          _target_group_id: string
+          _visit_id: string
+        }
+        Returns: string
+      }
       shares_group: {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
@@ -3075,3 +3097,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
