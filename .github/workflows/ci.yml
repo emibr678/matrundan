@@ -161,6 +161,9 @@ jobs:
       - name: Playwright TypeScript
         run: bun run typecheck:e2e
 
+      - name: Lovable preview build contract
+        run: bun run build
+
       - name: Production build and Cloudflare staging artifact
         run: bun run cloudflare:build
 
