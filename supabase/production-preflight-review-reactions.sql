@@ -1,5 +1,6 @@
--- Produktions-preflight för Issue #101: privata omdömesreaktioner och notis om
--- senare deltagaromdömen. Körs skrivskyddat efter migration. Alla rader ska ge ok=true.
+-- Produktions-preflight för Issue #101 och regressionsfix #244: privata
+-- omdömesreaktioner, kommentarsynlighet och notis om senare deltagaromdömen.
+-- Körs skrivskyddat efter migration. Alla rader ska ge ok=true.
 
 WITH checks(name, ok) AS (
   VALUES
@@ -15,6 +16,16 @@ WITH checks(name, ok) AS (
         AND position('review_group_visibility' IN pg_get_functiondef(to_regprocedure('public.set_own_review_reaction_v1(uuid,uuid,uuid,text)'))) > 0
         AND position('comment_visible = true' IN pg_get_functiondef(to_regprocedure('public.set_own_review_reaction_v1(uuid,uuid,uuid,text)'))) > 0
         AND position('group_is_active' IN pg_get_functiondef(to_regprocedure('public.set_own_review_reaction_v1(uuid,uuid,uuid,text)'))) > 0,
+        false
+      )),
+    ('review_reactions:edit-first-comment-visibility',
+      COALESCE(
+        position('_previous_comment' IN pg_get_functiondef(to_regprocedure('public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('_normalized_comment' IN pg_get_functiondef(to_regprocedure('public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('review_group_visibility' IN pg_get_functiondef(to_regprocedure('public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('group_id = _group_id' IN pg_get_functiondef(to_regprocedure('public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('rating_visible = true' IN pg_get_functiondef(to_regprocedure('public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('comment_visible = false' IN pg_get_functiondef(to_regprocedure('public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)'))) > 0,
         false
       )),
     ('review_reactions:read-is-minified',

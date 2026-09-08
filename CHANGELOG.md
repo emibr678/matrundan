@@ -14,6 +14,14 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.9] – 2026-09-08
+
+### Rättat
+
+- En första kommentar som läggs till när ett befintligt deltagaromdöme redigeras
+  blir synlig och reagerbar i den aktuella gruppen utan att synliggöras i andra
+  grupper eller återöppna en redan explicit dold kommentar.
+
 ## [1.38.8] – 2026-09-08
 
 ### Förbättrat

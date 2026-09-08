@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_9_CHANGELOG: ChangelogEntry = {
+  version: "1.38.9",
+  date: "2026-09-08",
+  summary: "Kommentarer som läggs till i efterhand blir reagerbara i rätt grupp.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "En första kommentar som läggs till när ett befintligt deltagaromdöme redigeras blir synlig och reagerbar i den aktuella gruppen utan att synliggöras i andra grupper eller återöppna en redan explicit dold kommentar.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_8_CHANGELOG: ChangelogEntry = {
   version: "1.38.8",
   date: "2026-09-08",
@@ -272,6 +286,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_9_CHANGELOG,
   VERSION_1_38_8_CHANGELOG,
   VERSION_1_38_7_CHANGELOG,
   VERSION_1_38_6_CHANGELOG,
