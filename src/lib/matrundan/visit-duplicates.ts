@@ -13,10 +13,7 @@ export type StrongVisitDuplicateCandidate = z.infer<typeof strongVisitDuplicateC
 
 const nullableStrongVisitDuplicateCandidateSchema = strongVisitDuplicateCandidateSchema.nullable();
 
-type LocalVisitDuplicateInput = Pick<
-  Visit,
-  "id" | "placeId" | "date" | "meal" | "participantIds"
->;
+type LocalVisitDuplicateInput = Pick<Visit, "id" | "placeId" | "date" | "meal" | "participantIds">;
 
 export function findLocalRegistrationVisitDuplicate(
   visits: LocalVisitDuplicateInput[],
