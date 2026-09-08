@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { transientSearchAreaId } from "@/lib/matrundan/add-place-v16-utils";
+import { transientSearchAreaId } from "@/lib/matrundan/add-place-utils";
 import { SEARCH_RADIUS_OPTIONS, searchAreaMode } from "@/lib/matrundan/search-areas";
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
@@ -143,7 +143,7 @@ function InlineSearchRadius({
   );
 }
 
-export function SearchAreaControlsV16({
+export function SearchAreaControls({
   heading,
   addAreaActionLabel,
   savedAreas,

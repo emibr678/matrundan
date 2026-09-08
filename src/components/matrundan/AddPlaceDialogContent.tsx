@@ -1,10 +1,10 @@
 import * as React from "react";
 import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { AddPlaceResultDialogsV16 } from "./AddPlaceResultDialogsV16";
-import { ManualAddPlaceFormV16 } from "./ManualAddPlaceFormV16";
-import { PlaceDiscoveryV16, type PlaceDiscoverySnapshot } from "./PlaceDiscoveryV16";
-import type { SourceMatchResult } from "./SearchResultSectionsV16";
+import { AddPlaceResultDialogs } from "./AddPlaceResultDialogs";
+import { ManualAddPlaceForm } from "./ManualAddPlaceForm";
+import { PlaceDiscovery, type PlaceDiscoverySnapshot } from "./PlaceDiscovery";
+import type { SourceMatchResult } from "./SearchResultSections";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
+import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
 import {
   completedBulkExternalIds,
   remainingBulkSelections,
@@ -49,7 +49,7 @@ import { useStore } from "@/lib/matrundan/store";
 
 type AddPlaceView = "search" | "fallback";
 
-export function AddPlaceDialogV16({
+export function AddPlaceDialogContent({
   open,
   onOpenChange,
 }: {
@@ -339,7 +339,7 @@ export function AddPlaceDialogV16({
           </DialogHeader>
 
           {view === "search" ? (
-            <PlaceDiscoveryV16
+            <PlaceDiscovery
               addedResultIds={addedResultIds}
               selectedResults={selectedResults}
               bulkBusy={bulkBusy || sourceLinkBusy}
@@ -366,12 +366,12 @@ export function AddPlaceDialogV16({
                 <ArrowLeft className="h-4 w-4" />
                 Tillbaka till sök
               </Button>
-              <ManualAddPlaceFormV16 onClose={() => handleOpenChange(false)} />
+              <ManualAddPlaceForm onClose={() => handleOpenChange(false)} />
             </>
           )}
         </DialogContent>
       </Dialog>
-      <AddPlaceResultDialogsV16
+      <AddPlaceResultDialogs
         parentOpen={open}
         pending={pending}
         onPendingChange={setPending}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { providerMessage, transientSearchAreaId } from "./add-place-v16-utils";
+import { providerMessage, transientSearchAreaId } from "./add-place-utils";
 import { demoAutocompleteLocations } from "./demo-location-suggestions";
 import { normalizeLocationFeature, resolveLocationPresentation } from "./geoapify-normalize";
 import { isBroadAdministrativeSearchArea } from "./search-areas";

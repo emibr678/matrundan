@@ -3,6 +3,20 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_8_CHANGELOG: ChangelogEntry = {
+  version: "1.38.8",
+  date: "2026-09-08",
+  summary: "Repo- och testunderhåll är tydligare utan att ändra appens användarflöden.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Aktiva interna komponentnamn, testhygien och plattformsdokumentation har städats efter migrationen utan att ändra produktflöden, gruppdata eller användarsynlig UX.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_7_CHANGELOG: ChangelogEntry = {
   version: "1.38.7",
   date: "2026-09-06",
@@ -258,6 +272,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_8_CHANGELOG,
   VERSION_1_38_7_CHANGELOG,
   VERSION_1_38_6_CHANGELOG,
   VERSION_1_38_5_CHANGELOG,

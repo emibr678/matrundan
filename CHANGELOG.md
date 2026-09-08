@@ -14,6 +14,14 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.8] – 2026-09-08
+
+### Förbättrat
+
+- Aktiva interna komponentnamn, testhygien och plattformsdokumentation har
+  städats efter migrationen utan att ändra produktflöden, gruppdata eller
+  användarsynlig UX.
+
 ## [1.38.7] – 2026-09-06
 
 ### Förbättrat

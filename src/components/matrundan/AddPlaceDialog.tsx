@@ -1,6 +1,6 @@
-import { AddPlaceDialogV16 } from "./AddPlaceDialogImplV16";
+import { AddPlaceDialogContent } from "./AddPlaceDialogContent";
 
 export function AddPlaceDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
   if (!props.open) return null;
-  return <AddPlaceDialogV16 {...props} />;
+  return <AddPlaceDialogContent {...props} />;
 }

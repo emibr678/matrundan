@@ -35,8 +35,10 @@ Följande invariants är permanenta:
 
 ## Runtime och driftsmiljö
 
-Frontend är en Vite/React-applikation. Live-data ligger i Supabase/Postgres och
-skrivningar går i huvudsak genom explicita RPC:er.
+Matrundan kör TanStack Start/Vite/React på Cloudflare Workers. Liveproduktionens
+data och auth ligger i Supabase **Matrundan Production**; staging och
+branchpreview använder Supabase **Matrundan Staging** enligt repots miljökontrakt.
+Känsliga skrivningar går genom validerade server-/RPC-gränser.
 
 Produktionskedjan är:
 
@@ -46,15 +48,21 @@ Produktionskedjan är:
 4. `supabase/production-preflight.sql` körs skrivskyddat efter migration;
 5. PostgREST schema-cache laddas om när RPC-yta eller schema ändrats;
 6. en autentiserad smoke test mot verklig gruppdata görs;
-7. Lovable-preview och publik app behandlas som separata leveranssteg.
+7. Cloudflare-production publiceras genom ett separat uttryckligt
+   publiceringssteg.
+
+Lovable-preview är ett valfritt parallellt UX-/editorsteg mot staging när det
+uttryckligen efterfrågas. Det är inte Matrundans productionruntime och en preview
+är aldrig samma sak som publicering.
 
 En merge är alltså inte samma sak som databasdriftsättning eller publicering.
 
 ## Portabilitet och klientoberoende
 
-Web/PWA är Matrundans nuvarande primärklient och Lovable är fortfarande en del av
-dagens drift- och previewkedja. De är däremot inte Matrundans domän- eller
-säkerhetsgräns.
+Web/PWA är Matrundans nuvarande primärklient. Productionruntime är Cloudflare
+Workers med Supabase Production som dagens backend; Lovable är endast ett
+valfritt UX-/editor- och previewverktyg mot staging. Ingen av dessa plattformar är
+Matrundans domän- eller säkerhetsgräns.
 
 Följande är varaktiga arkitekturprinciper:
 
@@ -78,11 +86,12 @@ Följande är varaktiga arkitekturprinciper:
   parallella implementationer införs först när en känslig eller kostsam gräns
   behöver isoleras eller en konkret andra implementation finns.
 
-#207 – **Frikoppla drift från Lovable Cloud och etablera portabel plattform** och
-`docs/platform-migration-plan.md` beskriver den nuvarande målbilden för att
-minska Lovable-runtimeberoendet. Målbilden ändrar inte den faktiska
-produktionskedjan förrän respektive migrationssteg har implementerats,
-verifierats och driftsatts med separata godkännanden.
+#207 – **Frikoppla drift från Lovable Cloud och etablera portabel plattform** är
+tekniskt genomfört i sin kärna. Issue #207 hålls fortsatt öppen för den sista
+verifierade avvecklingen av den tidigare Lovable-runtimeytan. Den aktuella
+miljömodellen och de varaktiga portabilitetsgränserna dokumenteras i
+`docs/platform-migration-plan.md`; operativ migrationshistorik och checkpoint-
+evidens hör i Issue #207 och berörda PR:er.
 
 ## Trust boundaries
 

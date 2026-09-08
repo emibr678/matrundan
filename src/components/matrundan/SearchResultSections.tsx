@@ -5,7 +5,7 @@ import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceData
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-v16-utils";
+import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-utils";
 import type { ManualSourceMatchReason } from "@/lib/matrundan/manual-place-source-linking";
 import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-source-linking";
 import { placeSignalKey, type PlaceDataSignal } from "@/lib/matrundan/place-data-signals";
@@ -20,7 +20,7 @@ export interface SourceMatchResult {
   reason: ManualSourceMatchReason;
 }
 
-export function SearchResultSectionsV16({
+export function SearchResultSections({
   available,
   sourceMatches,
   existing,
@@ -116,7 +116,7 @@ export function SearchResultSectionsV16({
             const signal = signalFor(match.result);
             const statusFooter = statusFooterFor(match.result, signal);
             return (
-              <SuggestionRowV16
+              <SuggestionRow
                 key={match.result.externalId}
                 result={match.result}
                 signal={signal}
@@ -157,7 +157,7 @@ export function SearchResultSectionsV16({
             const bulkSelected = selectedResultIds.has(result.externalId);
             const signal = signalFor(result);
             return (
-              <SuggestionRowV16
+              <SuggestionRow
                 key={result.externalId}
                 result={result}
                 signal={signal}
@@ -224,7 +224,7 @@ export function SearchResultSectionsV16({
               const place = matchingPlace(places, result);
               const signal = signalFor(result);
               return (
-                <SuggestionRowV16
+                <SuggestionRow
                   key={result.externalId}
                   result={result}
                   signal={signal}
@@ -272,7 +272,7 @@ function searchAreaContextFor(result: PlaceSuggestion): string {
   return alreadyShown ? "" : ` · ${label}`;
 }
 
-function SuggestionRowV16({
+function SuggestionRow({
   result,
   signal,
   selected,

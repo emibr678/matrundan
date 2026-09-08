@@ -57,10 +57,11 @@ Exempel och demo ska efterlikna produktflöden utan att bli en separat produktmo
 - Geoapify, OpenStreetMap och MapLibre för plats- och kartfunktioner
 - Playwright för browser- och mobilregressioner
 
-Plattformens portabilitetskontrakt och migrationsmål finns i
-[docs/platform-migration-plan.md](./docs/platform-migration-plan.md). Aktiv
-avveckling och återstående migrationsstatus följs i **Issue #207 — Frikoppla
-drift från Lovable Cloud och etablera portabel plattform**.
+Plattformens aktuella driftmodell och varaktiga portabilitetskontrakt finns i
+[docs/platform-migration-plan.md](./docs/platform-migration-plan.md). Kärnan i
+plattformsmigrationen är genomförd; **Issue #207 — Frikoppla drift från Lovable
+Cloud och etablera portabel plattform** hålls öppen för den sista verifierade
+avvecklingen av den tidigare Lovable-runtimeytan.
 
 ## Kom igång
 
@@ -131,6 +132,17 @@ valfria Lovable-previewflöden. Privilegierade nycklar, service-role,
 databaslösenord och andra serverhemligheter får aldrig committas eller exponeras
 via `VITE_*`. Den fulla public-readiness-grinden finns i
 [docs/public-repository-readiness.md](./docs/public-repository-readiness.md).
+
+## Rättigheter och säkerhetsrapportering
+
+Matrundan är proprietär programvara och repositoryt har medvetet **ingen
+open-source-licens**. Ett framtida byte till publik repository-visibility innebär
+inte i sig rätt att kopiera, distribuera, driftsätta eller kommersialisera
+projektets källkod. Se [COPYRIGHT.md](./COPYRIGHT.md) för rättighetsinformationen;
+tredjepartsberoenden behåller sina egna licenser.
+
+Säkerhetsproblem ska rapporteras privat enligt [SECURITY.md](./SECURITY.md), inte
+med känsliga detaljer i en vanlig publik Issue.
 
 ## Leverans
 

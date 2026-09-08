@@ -21,7 +21,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { emojiForCategory, safeParse } from "@/lib/matrundan/add-place-v16-utils";
+import { emojiForCategory, safeParse } from "@/lib/matrundan/add-place-utils";
 import {
   hideDemoPlaceSuggestion,
   hideGroupPlaceSuggestion,
@@ -161,7 +161,7 @@ function PendingPlaceSignalStatus({
   return <PlaceSuggestionSignalPanel signal={signal} target={target} disabled={disabled} />;
 }
 
-export function AddPlaceResultDialogsV16({
+export function AddPlaceResultDialogs({
   parentOpen,
   pending,
   onPendingChange,
