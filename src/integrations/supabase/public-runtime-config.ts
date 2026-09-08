@@ -8,8 +8,7 @@ const LOVABLE_STABLE_PREVIEW_HOST = "preview--matrundan.lovable.app";
 // values even though its sandbox runtime has them. Production and Cloudflare staging keep
 // using deployment-provided configuration and never fall back here.
 const LOVABLE_STAGING_SUPABASE_URL = "https://wpihfmwbubvdiaavtpia.supabase.co";
-const LOVABLE_STAGING_SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_waWGvTQMw5e1FXNEbKtF1A_lTPIh5OU";
+const LOVABLE_STAGING_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_waWGvTQMw5e1FXNEbKtF1A_lTPIh5OU";
 
 type PublicSupabaseConfigInput = {
   configuredUrl?: string;
