@@ -9,58 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RapporteradeFelRouteImport } from './routes/rapporterade-fel'
-import { Route as PlatsunderhallRouteImport } from './routes/platsunderhall'
-import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnostik'
-import { Route as NyttLosenordRouteImport } from './routes/nytt-losenord'
-import { Route as MatstallenRouteImport } from './routes/matstallen'
-import { Route as IntegritetRouteImport } from './routes/integritet'
-import { Route as GruppenRouteImport } from './routes/gruppen'
-import { Route as ExempelRouteImport } from './routes/exempel'
-import { Route as BesokRouteImport } from './routes/besok'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
+import { Route as BesokRouteImport } from './routes/besok'
+import { Route as ExempelRouteImport } from './routes/exempel'
+import { Route as GruppenRouteImport } from './routes/gruppen'
+import { Route as IntegritetRouteImport } from './routes/integritet'
+import { Route as MatstallenRouteImport } from './routes/matstallen'
+import { Route as NyttLosenordRouteImport } from './routes/nytt-losenord'
+import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnostik'
+import { Route as PlatsunderhallRouteImport } from './routes/platsunderhall'
+import { Route as RapporteradeFelRouteImport } from './routes/rapporterade-fel'
 import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
+import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
 import { Route as ApiPublicHooksPushDispatchRouteImport } from './routes/api/public/hooks/push-dispatch'
 
-const RapporteradeFelRoute = RapporteradeFelRouteImport.update({
-  id: '/rapporterade-fel',
-  path: '/rapporterade-fel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlatsunderhallRoute = PlatsunderhallRouteImport.update({
-  id: '/platsunderhall',
-  path: '/platsunderhall',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlacemapdiagnostikRoute = PlacemapdiagnostikRouteImport.update({
-  id: '/placemapdiagnostik',
-  path: '/placemapdiagnostik',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NyttLosenordRoute = NyttLosenordRouteImport.update({
-  id: '/nytt-losenord',
-  path: '/nytt-losenord',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MatstallenRoute = MatstallenRouteImport.update({
-  id: '/matstallen',
-  path: '/matstallen',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IntegritetRoute = IntegritetRouteImport.update({
-  id: '/integritet',
-  path: '/integritet',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GruppenRoute = GruppenRouteImport.update({
-  id: '/gruppen',
-  path: '/gruppen',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExempelRoute = ExempelRouteImport.update({
-  id: '/exempel',
-  path: '/exempel',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BesokRoute = BesokRouteImport.update({
@@ -68,20 +33,55 @@ const BesokRoute = BesokRouteImport.update({
   path: '/besok',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ExempelRoute = ExempelRouteImport.update({
+  id: '/exempel',
+  path: '/exempel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GruppenRoute = GruppenRouteImport.update({
+  id: '/gruppen',
+  path: '/gruppen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegritetRoute = IntegritetRouteImport.update({
+  id: '/integritet',
+  path: '/integritet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatstallenRoute = MatstallenRouteImport.update({
+  id: '/matstallen',
+  path: '/matstallen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NyttLosenordRoute = NyttLosenordRouteImport.update({
+  id: '/nytt-losenord',
+  path: '/nytt-losenord',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlacemapdiagnostikRoute = PlacemapdiagnostikRouteImport.update({
+  id: '/placemapdiagnostik',
+  path: '/placemapdiagnostik',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatsunderhallRoute = PlatsunderhallRouteImport.update({
+  id: '/platsunderhall',
+  path: '/platsunderhall',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RapporteradeFelRoute = RapporteradeFelRouteImport.update({
+  id: '/rapporterade-fel',
+  path: '/rapporterade-fel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InbjudanTokenRoute = InbjudanTokenRouteImport.update({
+  id: '/inbjudan/$token',
+  path: '/inbjudan/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatstallenPlaceIdRoute = MatstallenPlaceIdRouteImport.update({
   id: '/$placeId',
   path: '/$placeId',
   getParentRoute: () => MatstallenRoute,
-} as any)
-const InbjudanTokenRoute = InbjudanTokenRouteImport.update({
-  id: '/inbjudan/$token',
-  path: '/inbjudan/$token',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHooksPushDispatchRoute =
   ApiPublicHooksPushDispatchRouteImport.update({
@@ -201,60 +201,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/rapporterade-fel': {
-      id: '/rapporterade-fel'
-      path: '/rapporterade-fel'
-      fullPath: '/rapporterade-fel'
-      preLoaderRoute: typeof RapporteradeFelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/platsunderhall': {
-      id: '/platsunderhall'
-      path: '/platsunderhall'
-      fullPath: '/platsunderhall'
-      preLoaderRoute: typeof PlatsunderhallRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/placemapdiagnostik': {
-      id: '/placemapdiagnostik'
-      path: '/placemapdiagnostik'
-      fullPath: '/placemapdiagnostik'
-      preLoaderRoute: typeof PlacemapdiagnostikRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/nytt-losenord': {
-      id: '/nytt-losenord'
-      path: '/nytt-losenord'
-      fullPath: '/nytt-losenord'
-      preLoaderRoute: typeof NyttLosenordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/matstallen': {
-      id: '/matstallen'
-      path: '/matstallen'
-      fullPath: '/matstallen'
-      preLoaderRoute: typeof MatstallenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/integritet': {
-      id: '/integritet'
-      path: '/integritet'
-      fullPath: '/integritet'
-      preLoaderRoute: typeof IntegritetRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gruppen': {
-      id: '/gruppen'
-      path: '/gruppen'
-      fullPath: '/gruppen'
-      preLoaderRoute: typeof GruppenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/exempel': {
-      id: '/exempel'
-      path: '/exempel'
-      fullPath: '/exempel'
-      preLoaderRoute: typeof ExempelRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/besok': {
@@ -264,11 +215,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BesokRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/exempel': {
+      id: '/exempel'
+      path: '/exempel'
+      fullPath: '/exempel'
+      preLoaderRoute: typeof ExempelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gruppen': {
+      id: '/gruppen'
+      path: '/gruppen'
+      fullPath: '/gruppen'
+      preLoaderRoute: typeof GruppenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integritet': {
+      id: '/integritet'
+      path: '/integritet'
+      fullPath: '/integritet'
+      preLoaderRoute: typeof IntegritetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/matstallen': {
+      id: '/matstallen'
+      path: '/matstallen'
+      fullPath: '/matstallen'
+      preLoaderRoute: typeof MatstallenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nytt-losenord': {
+      id: '/nytt-losenord'
+      path: '/nytt-losenord'
+      fullPath: '/nytt-losenord'
+      preLoaderRoute: typeof NyttLosenordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/placemapdiagnostik': {
+      id: '/placemapdiagnostik'
+      path: '/placemapdiagnostik'
+      fullPath: '/placemapdiagnostik'
+      preLoaderRoute: typeof PlacemapdiagnostikRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platsunderhall': {
+      id: '/platsunderhall'
+      path: '/platsunderhall'
+      fullPath: '/platsunderhall'
+      preLoaderRoute: typeof PlatsunderhallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rapporterade-fel': {
+      id: '/rapporterade-fel'
+      path: '/rapporterade-fel'
+      fullPath: '/rapporterade-fel'
+      preLoaderRoute: typeof RapporteradeFelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbjudan/$token': {
+      id: '/inbjudan/$token'
+      path: '/inbjudan/$token'
+      fullPath: '/inbjudan/$token'
+      preLoaderRoute: typeof InbjudanTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/matstallen/$placeId': {
@@ -277,13 +284,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/matstallen/$placeId'
       preLoaderRoute: typeof MatstallenPlaceIdRouteImport
       parentRoute: typeof MatstallenRoute
-    }
-    '/inbjudan/$token': {
-      id: '/inbjudan/$token'
-      path: '/inbjudan/$token'
-      fullPath: '/inbjudan/$token'
-      preLoaderRoute: typeof InbjudanTokenRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/push-dispatch': {
       id: '/api/public/hooks/push-dispatch'
