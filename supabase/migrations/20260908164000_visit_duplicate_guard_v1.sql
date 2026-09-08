@@ -125,6 +125,20 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Du deltog inte i besöket';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.visit_group_links source_access
+    JOIN public.groups source_group
+      ON source_group.id = source_access.group_id
+     AND source_group.lifecycle_status = 'active'
+    JOIN public.memberships source_membership
+      ON source_membership.group_id = source_access.group_id
+     AND source_membership.user_id = _uid
+     AND source_membership.status = 'active'
+    WHERE source_access.visit_id = _visit_id
+  ) THEN
+    RAISE EXCEPTION 'Du har inte längre åtkomst till besöket';
+  END IF;
 
   SELECT v.place_id, v.visited_on, v.meal_type
   INTO _place_id, _visited_on, _meal_type
