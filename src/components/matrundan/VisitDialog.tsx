@@ -253,9 +253,7 @@ export function VisitDialog({
         await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
         sharedCount += 1;
       } catch {
-        failed.push(
-          shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp",
-        );
+        failed.push(shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp");
       }
     }
     if (sharedCount > 0 && typeof window !== "undefined") {
@@ -353,7 +351,9 @@ export function VisitDialog({
         search: { visit: candidate.visitId },
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte öppna det befintliga besöket.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte öppna det befintliga besöket.",
+      );
     } finally {
       setDuplicateBusy(false);
     }
