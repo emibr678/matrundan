@@ -38,9 +38,7 @@ describe("databaskontrakt för starka besöksdubletter", () => {
   });
 
   test("delningskontrollen kräver både källåtkomst och medlemskap i målgruppen", () => {
-    expect(migration).toContain(
-      "CREATE OR REPLACE FUNCTION public.find_share_visit_duplicate_v1(",
-    );
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.find_share_visit_duplicate_v1(");
     expect(migration).toContain("public.group_is_active(_target_group_id)");
     expect(migration).toContain("public.has_membership(_target_group_id, _uid)");
     expect(migration).toContain("source_group.lifecycle_status = 'active'");
