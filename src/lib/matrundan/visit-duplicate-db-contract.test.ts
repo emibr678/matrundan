@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 const migration = await Bun.file(
   "supabase/migrations/20260908164000_visit_duplicate_guard_v1.sql",
 ).text();
+const preflight = await Bun.file("supabase/production-preflight-visit-duplicates.sql").text();
 
 describe("databaskontrakt för starka besöksdubletter", () => {
   test("registreringskontrollen är auth-styrd och kräver legitim aktiv åtkomst", () => {
@@ -73,5 +74,13 @@ describe("databaskontrakt för starka besöksdubletter", () => {
     expect(migration).toContain(
       "GRANT EXECUTE ON FUNCTION public.share_visit_to_group_v2(uuid, uuid, boolean, boolean)\n  TO authenticated;",
     );
+  });
+
+  test("produktionspreflight verifierar minimering, åtkomst och grants", () => {
+    expect(preflight).toContain("visit_duplicates:registration-minified");
+    expect(preflight).toContain("visit_duplicates:source-access-guard");
+    expect(preflight).toContain("visit_duplicates:explicit-bypass-only");
+    expect(preflight).toContain("visit_duplicates:authenticated-rpcs");
+    expect(preflight).toContain("visit_duplicates:no-anon-rpcs");
   });
 });
