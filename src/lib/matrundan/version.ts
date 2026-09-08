@@ -3,6 +3,26 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_10_CHANGELOG: ChangelogEntry = {
+  version: "1.38.10",
+  date: "2026-09-08",
+  summary: "Dubblettskydd hjälper gruppen återanvända samma verkliga besök.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Vid registrering och delning varnar Matrundan när samma matställe, datum och tillfälle ser ut att vara samma verkliga besök. Du kan återanvända det befintliga besöket eller uttryckligen ange att det var ett annat besök.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Dubblettkontrollen återanvänder kanoniska besök utan att exponera ursprungsgrupp, andra medlemskap eller privata kommentarer.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_9_CHANGELOG: ChangelogEntry = {
   version: "1.38.9",
   date: "2026-09-08",
@@ -286,6 +306,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_10_CHANGELOG,
   VERSION_1_38_9_CHANGELOG,
   VERSION_1_38_8_CHANGELOG,
   VERSION_1_38_7_CHANGELOG,
