@@ -19,6 +19,11 @@ import {
   shareVisitToGroup,
   type VisitShareTarget,
 } from "@/lib/matrundan/live-sharing";
+import {
+  findShareVisitDuplicate,
+  type StrongVisitDuplicateCandidate,
+} from "@/lib/matrundan/visit-duplicates";
+import { VisitDuplicatePrompt } from "./VisitDuplicatePrompt";
 
 interface Props {
   visitId: string | null;
@@ -46,6 +51,8 @@ export function ShareVisitDialog({
   const [selected, setSelected] = React.useState<string | null>(null);
   const [shareComment, setShareComment] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [duplicateCandidate, setDuplicateCandidate] =
+    React.useState<StrongVisitDuplicateCandidate | null>(null);
 
   React.useEffect(() => {
     if (!open || !visitId) return;
@@ -55,6 +62,7 @@ export function ShareVisitDialog({
     setTargets(null);
     setSelected(null);
     setShareComment(false);
+    setDuplicateCandidate(null);
     listVisitShareTargets(visitId)
       .then((rows) => {
         if (cancelled) return;
@@ -74,18 +82,30 @@ export function ShareVisitDialog({
 
   const chosen = targets?.find((t) => t.groupId === selected) ?? null;
 
+  async function completeShare(allowStrongDuplicate: boolean) {
+    if (!visitId || !chosen) return;
+    await shareVisitToGroup(
+      visitId,
+      chosen.groupId,
+      chosen.ownHasComment ? shareComment : false,
+      allowStrongDuplicate,
+    );
+    toast.success(`Besöket är tillagt i ${chosen.name}.`);
+    await onShared();
+    setDuplicateCandidate(null);
+    onOpenChange(false);
+  }
+
   async function submit() {
     if (!visitId || !chosen || submitting) return;
     setSubmitting(true);
     try {
-      await shareVisitToGroup(
-        visitId,
-        chosen.groupId,
-        chosen.ownHasComment ? shareComment : false,
-      );
-      toast.success(`Besöket är tillagt i ${chosen.name}.`);
-      await onShared();
-      onOpenChange(false);
+      const duplicate = await findShareVisitDuplicate(visitId, chosen.groupId);
+      if (duplicate) {
+        setDuplicateCandidate(duplicate);
+        return;
+      }
+      await completeShare(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Kunde inte dela besöket.");
     } finally {
@@ -93,144 +113,175 @@ export function ShareVisitDialog({
     }
   }
 
+  async function shareDifferentVisit() {
+    if (!visitId || !chosen || submitting) return;
+    setSubmitting(true);
+    try {
+      await completeShare(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Kunde inte dela besöket.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function keepExistingVisit() {
+    if (!chosen) return;
+    setDuplicateCandidate(null);
+    onOpenChange(false);
+    toast.info(`Det befintliga besöket i ${chosen.name} behölls.`);
+  }
+
   const otherGroups = (targets ?? []).filter((t) => t.groupId !== currentGroupId);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Lägg till besöket i en annan grupp</DialogTitle>
-          <DialogDescription>
-            Bara du och personer med aktivt medlemskap i mottagargruppen syns
-            som deltagare. Övriga räknas anonymt.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Lägg till besöket i en annan grupp</DialogTitle>
+            <DialogDescription>
+              Bara du och personer med aktivt medlemskap i mottagargruppen syns
+              som deltagare. Övriga räknas anonymt.
+            </DialogDescription>
+          </DialogHeader>
 
-        {loading ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            Laddar grupper…
-          </div>
-        ) : error ? (
-          <div className="py-8 text-center text-sm text-destructive">{error}</div>
-        ) : otherGroups.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            Du är inte medlem i någon annan aktiv grupp än den här.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {otherGroups.map((t) => {
-              const active = selected === t.groupId;
-              return (
-                <Card
-                  key={t.groupId}
-                  className={[
-                    "rounded-2xl border-border/70 p-0 transition-colors",
-                    t.alreadyLinked
-                      ? "opacity-60"
-                      : active
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-accent/40",
-                  ].join(" ")}
-                >
-                  <button
-                    type="button"
-                    disabled={t.alreadyLinked}
-                    onClick={() => setSelected(t.groupId)}
-                    className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none disabled:cursor-not-allowed"
-                    aria-pressed={active}
+          {loading ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Laddar grupper…
+            </div>
+          ) : error ? (
+            <div className="py-8 text-center text-sm text-destructive">{error}</div>
+          ) : otherGroups.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Du är inte medlem i någon annan aktiv grupp än den här.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {otherGroups.map((t) => {
+                const active = selected === t.groupId;
+                return (
+                  <Card
+                    key={t.groupId}
+                    className={[
+                      "rounded-2xl border-border/70 p-0 transition-colors",
+                      t.alreadyLinked
+                        ? "opacity-60"
+                        : active
+                          ? "border-primary bg-primary/5"
+                          : "hover:bg-accent/40",
+                    ].join(" ")}
                   >
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-xl">
-                      {t.emoji}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{t.name}</div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {t.alreadyLinked
-                          ? "Redan tillagt"
-                          : `${t.visibleParticipants.length} deltagare från gruppen`}
+                    <button
+                      type="button"
+                      disabled={t.alreadyLinked}
+                      onClick={() => {
+                        setSelected(t.groupId);
+                        setDuplicateCandidate(null);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none disabled:cursor-not-allowed"
+                      aria-pressed={active}
+                    >
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-xl">
+                        {t.emoji}
                       </div>
-                    </div>
-                    {t.alreadyLinked ? (
-                      <Badge variant="outline" className="rounded-full text-[10px]">
-                        Redan tillagt
-                      </Badge>
-                    ) : null}
-                  </button>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{t.name}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {t.alreadyLinked
+                            ? "Redan tillagt"
+                            : `${t.visibleParticipants.length} deltagare från gruppen`}
+                        </div>
+                      </div>
+                      {t.alreadyLinked ? (
+                        <Badge variant="outline" className="rounded-full text-[10px]">
+                          Redan tillagt
+                        </Badge>
+                      ) : null}
+                    </button>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
-        {chosen && !chosen.alreadyLinked ? (
-          <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-3 text-sm">
-            <div className="flex items-start gap-2">
-              <Users2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Deltagare från gruppen</div>
-                <div className="mt-0.5 text-muted-foreground">
-                  {chosen.visibleParticipants.length > 0
-                    ? chosen.visibleParticipants
-                        .map((p) =>
-                          p.status === "left"
-                            ? `${p.name} (tidigare medlem)`
-                            : p.name,
-                        )
-                        .join(", ")
-                    : "Ingen av deltagarna är eller har varit medlem i mottagargruppen."}
-                  {chosen.externalParticipantCount > 0 ? (
-                    <>
-                      {" · "}
-                      <span>+{chosen.externalParticipantCount} person{chosen.externalParticipantCount === 1 ? "" : "er"} utanför gruppen</span>
-                    </>
-                  ) : null}
+          {chosen && !chosen.alreadyLinked ? (
+            <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <Users2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div>
+                  <div className="font-medium">Deltagare från gruppen</div>
+                  <div className="mt-0.5 text-muted-foreground">
+                    {chosen.visibleParticipants.length > 0
+                      ? chosen.visibleParticipants
+                          .map((p) =>
+                            p.status === "left" ? `${p.name} (tidigare medlem)` : p.name,
+                          )
+                          .join(", ")
+                      : "Ingen av deltagarna är eller har varit medlem i mottagargruppen."}
+                    {chosen.externalParticipantCount > 0 ? (
+                      <>
+                        {" · "}
+                        <span>
+                          +{chosen.externalParticipantCount} person
+                          {chosen.externalParticipantCount === 1 ? "" : "er"} utanför gruppen
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="text-muted-foreground">
-                {chosen.relevantReviewCount} betyg från personer som är eller har
-                varit medlemmar blir synliga i gruppen. Kommentarer följer inte
-                automatiskt.
+              <div className="flex items-start gap-2">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="text-muted-foreground">
+                  {chosen.relevantReviewCount} betyg från personer som är eller har
+                  varit medlemmar blir synliga i gruppen. Kommentarer följer inte
+                  automatiskt.
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="text-muted-foreground">
-                {chosen.sharedVisitsCountForProgression
-                  ? "Gruppen räknar delade besök mot progression."
-                  : "Gruppen räknar inte delade besök mot progression."}
+              <div className="flex items-start gap-2">
+                <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="text-muted-foreground">
+                  {chosen.sharedVisitsCountForProgression
+                    ? "Gruppen räknar delade besök mot progression."
+                    : "Gruppen räknar inte delade besök mot progression."}
+                </div>
               </div>
+              {chosen.ownHasComment ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-background/50 p-2">
+                  <Label htmlFor="share-comment" className="flex items-center gap-2 text-sm">
+                    <MessageSquare className="h-4 w-4" />
+                    Dela min kommentar
+                  </Label>
+                  <Switch
+                    id="share-comment"
+                    checked={shareComment}
+                    onCheckedChange={setShareComment}
+                  />
+                </div>
+              ) : null}
             </div>
-            {chosen.ownHasComment ? (
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-background/50 p-2">
-                <Label htmlFor="share-comment" className="flex items-center gap-2 text-sm">
-                  <MessageSquare className="h-4 w-4" />
-                  Dela min kommentar
-                </Label>
-                <Switch
-                  id="share-comment"
-                  checked={shareComment}
-                  onCheckedChange={setShareComment}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+          ) : null}
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Avbryt
-          </Button>
-          <Button
-            onClick={submit}
-            disabled={!chosen || chosen.alreadyLinked || submitting}
-          >
-            {submitting ? "Delar…" : chosen ? `Lägg till i ${chosen.name}` : "Välj grupp"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>
+              Avbryt
+            </Button>
+            <Button onClick={submit} disabled={!chosen || chosen.alreadyLinked || submitting}>
+              {submitting ? "Kontrollerar…" : chosen ? `Lägg till i ${chosen.name}` : "Välj grupp"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <VisitDuplicatePrompt
+        candidate={duplicateCandidate}
+        mode="share"
+        busy={submitting}
+        onDismiss={() => setDuplicateCandidate(null)}
+        onUseExisting={keepExistingVisit}
+        onDifferentVisit={() => void shareDifferentVisit()}
+      />
+    </>
   );
 }
