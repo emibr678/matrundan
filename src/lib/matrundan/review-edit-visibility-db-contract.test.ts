@@ -51,7 +51,9 @@ describe("databaskontrakt för kommentarsynlighet vid reviewredigering", () => {
 
   test("produktionspreflight verifierar den deployade övergångsregeln", () => {
     expect(preflight).toContain("review_reactions:edit-first-comment-visibility");
-    expect(preflight).toContain("public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)");
+    expect(preflight).toContain(
+      "public.update_own_review(uuid,uuid,smallint,smallint,smallint,smallint,text)",
+    );
     expect(preflight).toContain("position('_previous_comment'");
     expect(preflight).toContain("position('group_id = _group_id'");
   });
