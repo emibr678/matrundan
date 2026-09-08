@@ -311,7 +311,12 @@ export function VisitDialog({
     try {
       let duplicate: StrongVisitDuplicateCandidate | null = null;
       if (mode === "live" && activeGroupId) {
-        duplicate = await findRegistrationVisitDuplicate(activeGroupId, currentPlace.id, date, meal);
+        duplicate = await findRegistrationVisitDuplicate(
+          activeGroupId,
+          currentPlace.id,
+          date,
+          meal,
+        );
       } else if (mode === "demo") {
         duplicate = findLocalRegistrationVisitDuplicate(
           state.visits,
