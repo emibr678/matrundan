@@ -14,6 +14,19 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.10] – 2026-09-08
+
+### Nytt
+
+- Vid registrering och delning varnar Matrundan när samma matställe, datum och
+  tillfälle ser ut att vara samma verkliga besök. Användaren kan återanvända det
+  befintliga besöket eller uttryckligen ange att det var ett annat besök.
+
+### Förbättrat
+
+- Dubblettkontrollen återanvänder kanoniska besök utan att exponera
+  ursprungsgrupp, andra medlemskap eller privata kommentarer.
+
 ## [1.38.9] – 2026-09-08
 
 ### Rättat
