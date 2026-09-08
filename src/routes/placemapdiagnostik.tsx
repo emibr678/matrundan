@@ -1,11 +1,14 @@
 import * as React from "react";
 import { Clipboard, RefreshCw } from "lucide-react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { Button } from "@/components/ui/button";
 
-// Tillfällig intern route som isolerar PlaceMap från dialogens responsiva livscykel.
+// Explicit Playwright/dev-harness. Production builds return 404 before rendering it.
 export const Route = createFileRoute("/placemapdiagnostik")({
+  beforeLoad: () => {
+    if (import.meta.env.PROD) throw notFound();
+  },
   head: () => ({
     meta: [{ title: "PlaceMap-diagnostik · Matrundan" }],
   }),

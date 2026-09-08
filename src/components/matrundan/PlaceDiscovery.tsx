@@ -3,8 +3,8 @@ import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
-import { SearchAreaControlsV16 } from "./SearchAreaControlsV16";
-import { SearchResultSectionsV16, type SourceMatchResult } from "./SearchResultSectionsV16";
+import { SearchAreaControls } from "./SearchAreaControls";
+import { SearchResultSections, type SourceMatchResult } from "./SearchResultSections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import {
   matchingPlace,
   providerMessage,
   toPlaceSuggestion,
-} from "@/lib/matrundan/add-place-v16-utils";
+} from "@/lib/matrundan/add-place-utils";
 import {
   geoapifyLoadSearchAreaBoundaries,
   geoapifySearchPlacesMulti,
@@ -81,7 +81,7 @@ export interface PlaceDiscoverySnapshot {
   nextOffset: number;
 }
 
-export function PlaceDiscoveryV16({
+export function PlaceDiscovery({
   addedResultIds,
   selectedResults,
   bulkBusy,
@@ -646,7 +646,7 @@ export function PlaceDiscoveryV16({
   ).length;
   const actionableResultCount = sourceMatches.length + availableResults.length;
   const resultSections = (
-    <SearchResultSectionsV16
+    <SearchResultSections
       available={availableResults}
       sourceMatches={sourceMatches}
       existing={existingResults}
@@ -697,7 +697,7 @@ export function PlaceDiscoveryV16({
 
   return (
     <div className="space-y-4">
-      <SearchAreaControlsV16
+      <SearchAreaControls
         heading="Sök i"
         addAreaActionLabel="Lägg till område eller adress"
         savedAreas={savedAreas}

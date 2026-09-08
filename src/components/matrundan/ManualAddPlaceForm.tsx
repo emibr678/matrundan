@@ -21,7 +21,7 @@ import {
   emptyManualPlace,
   emojiForCategory,
   type ManualPlaceDraft,
-} from "@/lib/matrundan/add-place-v16-utils";
+} from "@/lib/matrundan/add-place-utils";
 import type { ManualPlaceMutationHints } from "@/lib/matrundan/live-mutations";
 import { normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
 import {
@@ -42,7 +42,7 @@ import { CATEGORY_LABEL, type Place, type PlaceCategory } from "@/lib/matrundan/
 
 type ManualAddInput = Omit<Place, "id" | "addedAt"> & ManualPlaceMutationHints;
 
-export function ManualAddPlaceFormV16({ onClose }: { onClose: () => void }) {
+export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
   const { state, addPlace, submitting } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
   const [draft, setDraft] = React.useState<ManualPlaceDraft>(() => emptyManualPlace(""));
