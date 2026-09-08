@@ -120,13 +120,15 @@ export async function shareVisitToGroup(
   visitId: string,
   targetGroupId: string,
   shareOwnComment: boolean,
+  allowStrongDuplicate = false,
 ): Promise<string> {
   return rpcClient.call(
-    "share_visit_to_group",
+    "share_visit_to_group_v2",
     {
       _visit_id: visitId,
       _target_group_id: targetGroupId,
       _share_own_comment: shareOwnComment,
+      _allow_strong_duplicate: allowStrongDuplicate,
     },
     z.string().min(1),
     "Kunde inte dela besöket.",
