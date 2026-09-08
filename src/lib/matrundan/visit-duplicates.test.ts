@@ -20,14 +20,14 @@ const visits = [
 
 describe("lokal dubblettkontroll för besök", () => {
   test("hittar samma plats, datum och tillfälle när aktuell användare deltog", () => {
-    expect(
-      findLocalRegistrationVisitDuplicate(visits, "m1", "p1", "2026-09-08", "middag"),
-    ).toEqual({
-      visitId: "v2",
-      visitedOn: "2026-09-08",
-      mealType: "middag",
-      alreadyVisibleInTargetGroup: true,
-    });
+    expect(findLocalRegistrationVisitDuplicate(visits, "m1", "p1", "2026-09-08", "middag")).toEqual(
+      {
+        visitId: "v2",
+        visitedOn: "2026-09-08",
+        mealType: "middag",
+        alreadyVisibleInTargetGroup: true,
+      },
+    );
   });
 
   test("ignorerar besök där aktuell användare inte deltog", () => {
