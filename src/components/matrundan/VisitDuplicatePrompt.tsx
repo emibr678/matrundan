@@ -7,10 +7,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  formatMealType,
-  formatOwnVisitDate,
-} from "@/lib/matrundan/sharing-selection";
+import { formatMealType, formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
 import type { StrongVisitDuplicateCandidate } from "@/lib/matrundan/visit-duplicates";
 
 export function VisitDuplicatePrompt({
@@ -56,12 +53,7 @@ export function VisitDuplicatePrompt({
           <Button type="button" variant="ghost" onClick={onDismiss} disabled={busy}>
             Avbryt
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onDifferentVisit}
-            disabled={busy}
-          >
+          <Button type="button" variant="outline" onClick={onDifferentVisit} disabled={busy}>
             Det var ett annat besök
           </Button>
           <Button type="button" onClick={onUseExisting} disabled={busy}>
