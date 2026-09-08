@@ -38,13 +38,7 @@ interface Props {
  * All data hämtas via list_visit_share_targets: klienten ser aldrig andra
  * gruppers namn, källgrupp eller externa deltagares identiteter.
  */
-export function ShareVisitDialog({
-  visitId,
-  currentGroupId,
-  open,
-  onOpenChange,
-  onShared,
-}: Props) {
+export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, onShared }: Props) {
   const [targets, setTargets] = React.useState<VisitShareTarget[] | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -140,15 +134,13 @@ export function ShareVisitDialog({
         <DialogHeader>
           <DialogTitle>Lägg till besöket i en annan grupp</DialogTitle>
           <DialogDescription>
-            Bara du och personer med aktivt medlemskap i mottagargruppen syns
-            som deltagare. Övriga räknas anonymt.
+            Bara du och personer med aktivt medlemskap i mottagargruppen syns som deltagare. Övriga
+            räknas anonymt.
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            Laddar grupper…
-          </div>
+          <div className="py-8 text-center text-sm text-muted-foreground">Laddar grupper…</div>
         ) : error ? (
           <div className="py-8 text-center text-sm text-destructive">{error}</div>
         ) : otherGroups.length === 0 ? (
@@ -213,17 +205,16 @@ export function ShareVisitDialog({
                 <div className="mt-0.5 text-muted-foreground">
                   {chosen.visibleParticipants.length > 0
                     ? chosen.visibleParticipants
-                        .map((p) =>
-                          p.status === "left"
-                            ? `${p.name} (tidigare medlem)`
-                            : p.name,
-                        )
+                        .map((p) => (p.status === "left" ? `${p.name} (tidigare medlem)` : p.name))
                         .join(", ")
                     : "Ingen av deltagarna är eller har varit medlem i mottagargruppen."}
                   {chosen.externalParticipantCount > 0 ? (
                     <>
                       {" · "}
-                      <span>+{chosen.externalParticipantCount} person{chosen.externalParticipantCount === 1 ? "" : "er"} utanför gruppen</span>
+                      <span>
+                        +{chosen.externalParticipantCount} person
+                        {chosen.externalParticipantCount === 1 ? "" : "er"} utanför gruppen
+                      </span>
                     </>
                   ) : null}
                 </div>
@@ -232,9 +223,8 @@ export function ShareVisitDialog({
             <div className="flex items-start gap-2">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="text-muted-foreground">
-                {chosen.relevantReviewCount} betyg från personer som är eller har
-                varit medlemmar blir synliga i gruppen. Kommentarer följer inte
-                automatiskt.
+                {chosen.relevantReviewCount} betyg från personer som är eller har varit medlemmar
+                blir synliga i gruppen. Kommentarer följer inte automatiskt.
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -265,10 +255,7 @@ export function ShareVisitDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button
-            onClick={submit}
-            disabled={!chosen || chosen.alreadyLinked || submitting}
-          >
+          <Button onClick={submit} disabled={!chosen || chosen.alreadyLinked || submitting}>
             {submitting ? "Kontrollerar…" : chosen ? `Lägg till i ${chosen.name}` : "Välj grupp"}
           </Button>
         </DialogFooter>
