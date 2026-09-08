@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronDown, Loader2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +34,14 @@ import { useSession } from "@/lib/matrundan/session";
 import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisitParticipant } from "@/lib/matrundan/types";
+import {
+  findLocalRegistrationVisitDuplicate,
+  findRegistrationVisitDuplicate,
+  type StrongVisitDuplicateCandidate,
+} from "@/lib/matrundan/visit-duplicates";
 import { RatingInput } from "./Rating";
 import { ShareVisitDialog } from "./ShareVisitDialog";
+import { VisitDuplicatePrompt } from "./VisitDuplicatePrompt";
 import { VisitPhotoField } from "./VisitPhotoField";
 
 const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
@@ -64,6 +71,7 @@ export function VisitDialog({
   onOpenChange: (v: boolean) => void;
   placeId: string | null;
 }) {
+  const navigate = useNavigate();
   const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
   const { activeGroupId } = useSession();
   const [shareTargets, setShareTargets] = React.useState<PlaceShareTarget[]>([]);
@@ -76,11 +84,14 @@ export function VisitDialog({
   const showShareSection =
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
   const [busy, setBusy] = React.useState(false);
+  const [duplicateBusy, setDuplicateBusy] = React.useState(false);
+  const [duplicateCandidate, setDuplicateCandidate] =
+    React.useState<StrongVisitDuplicateCandidate | null>(null);
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
     groupId: string;
   } | null>(null);
-  const isBusy = busy || submitting;
+  const isBusy = busy || duplicateBusy || submitting;
   const place = placeId ? getPlace(placeId) : undefined;
 
   const [meal, setMeal] = React.useState<(typeof MEALS)[number]>("middag");
@@ -124,6 +135,8 @@ export function VisitDialog({
       setShareTargets([]);
       setShareTargetsError(null);
       setShareGroupIds([]);
+      setDuplicateCandidate(null);
+      setDuplicateBusy(false);
     }
   }, [open, state.currentUserId]);
 
@@ -161,6 +174,7 @@ export function VisitDialog({
   }, [activeGroupId, open, mode, placeId]);
 
   if (!place) return null;
+  const currentPlace = place;
 
   const toggleParticipant = (id: string) => {
     if (id === state.currentUserId) return;
@@ -188,18 +202,8 @@ export function VisitDialog({
     setGuestName("");
   }
 
-  const submit = async () => {
-    if (isBusy) return;
-    if (!currentUserParticipates) {
-      toast.error("Den som registrerar besöket måste vara deltagare.");
-      return;
-    }
-    if (overall < 1) {
-      toast.error("Ge ett helhetsbetyg");
-      return;
-    }
-
-    const participantSnapshots: VisitParticipant[] = [
+  function participantSnapshots(): VisitParticipant[] {
+    return [
       ...state.members
         .filter((member) => participants.includes(member.id))
         .map((member) => ({
@@ -217,72 +221,117 @@ export function VisitDialog({
         status: "guest" as const,
       })),
     ];
+  }
+
+  async function persistNewVisit(allowStrongDuplicate = false) {
+    const created = await addVisit({
+      placeId: currentPlace.id,
+      date: new Date(date).toISOString(),
+      meal,
+      participantIds: participants,
+      participants: participantSnapshots(),
+      currentUserParticipationStatus: "participant",
+      overall,
+      taste: taste || undefined,
+      value: value || undefined,
+      service: service || undefined,
+      comment: comment.trim() || undefined,
+      createdBy: state.currentUserId,
+    });
+    let photoError: Error | null = null;
+    if (photoFile && created?.id) {
+      try {
+        await saveVisitPhoto(created.id, photoFile, created);
+      } catch (error) {
+        photoError = error instanceof Error ? error : new Error("Fotot kunde inte sparas.");
+      }
+    }
+
+    const targets = canShare && created?.id ? shareGroupIds : [];
+    const failed: string[] = [];
+    let sharedCount = 0;
+    for (const groupId of targets) {
+      try {
+        await shareVisitToGroup(
+          created.id,
+          groupId,
+          hasComment ? shareComment : false,
+          allowStrongDuplicate,
+        );
+        sharedCount += 1;
+      } catch {
+        failed.push(shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp");
+      }
+    }
+    if (sharedCount > 0 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("matrundan:reload"));
+    }
+
+    onOpenChange(false);
+    toast.success("Besök registrerat", {
+      description:
+        sharedCount > 0
+          ? `${currentPlace.name} · tillagt i ${sharedCount} ${sharedCount === 1 ? "grupp" : "grupper"} till`
+          : currentPlace.name,
+      duration: canShare && sharedCount === 0 ? 8000 : undefined,
+      action:
+        canShare && sharedCount === 0 && activeGroupId && created?.id
+          ? {
+              label: "Lägg till i annan grupp",
+              onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
+            }
+          : undefined,
+    });
+    if (failed.length > 0) {
+      toast.warning("Besöket kunde inte läggas till i alla grupper.", {
+        description: failed.join(", "),
+      });
+    }
+    if (photoError) {
+      toast.warning("Besöket sparades utan foto.", { description: photoError.message });
+    }
+  }
+
+  function validateVisitDraft(): boolean {
+    if (!currentUserParticipates) {
+      toast.error("Den som registrerar besöket måste vara deltagare.");
+      return false;
+    }
+    if (overall < 1) {
+      toast.error("Ge ett helhetsbetyg");
+      return false;
+    }
+    return true;
+  }
+
+  const submit = async () => {
+    if (isBusy || !validateVisitDraft()) return;
 
     setBusy(true);
     try {
-      const created = await addVisit({
-        placeId: place.id,
-        date: new Date(date).toISOString(),
-        meal,
-        participantIds: participants,
-        participants: participantSnapshots,
-        currentUserParticipationStatus: "participant",
-        overall,
-        taste: taste || undefined,
-        value: value || undefined,
-        service: service || undefined,
-        comment: comment.trim() || undefined,
-        createdBy: state.currentUserId,
-      });
-      let photoError: Error | null = null;
-      if (photoFile && created?.id) {
-        try {
-          await saveVisitPhoto(created.id, photoFile, created);
-        } catch (error) {
-          photoError = error instanceof Error ? error : new Error("Fotot kunde inte sparas.");
-        }
+      let duplicate: StrongVisitDuplicateCandidate | null = null;
+      if (mode === "live" && activeGroupId) {
+        duplicate = await findRegistrationVisitDuplicate(
+          activeGroupId,
+          currentPlace.id,
+          date,
+          meal,
+        );
+      } else if (mode === "demo") {
+        duplicate = findLocalRegistrationVisitDuplicate(
+          state.visits,
+          state.currentUserId,
+          currentPlace.id,
+          date,
+          meal,
+        );
       }
 
-      const targets = canShare && created?.id ? shareGroupIds : [];
-      const failed: string[] = [];
-      let sharedCount = 0;
-      for (const groupId of targets) {
-        try {
-          await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
-          sharedCount += 1;
-        } catch {
-          failed.push(
-            shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp",
-          );
-        }
+      if (duplicate) {
+        setDuplicateCandidate(duplicate);
+        return;
       }
-      if (sharedCount > 0 && typeof window !== "undefined") {
-        window.dispatchEvent(new Event("matrundan:reload"));
-      }
-
-      onOpenChange(false);
-      toast.success("Besök registrerat", {
-        description:
-          sharedCount > 0
-            ? `${place.name} · tillagt i ${sharedCount} ${sharedCount === 1 ? "grupp" : "grupper"} till`
-            : place.name,
-        duration: canShare && sharedCount === 0 ? 8000 : undefined,
-        action:
-          canShare && sharedCount === 0 && activeGroupId && created?.id
-            ? {
-                label: "Lägg till i annan grupp",
-                onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
-              }
-            : undefined,
-      });
-      if (failed.length > 0) {
-        toast.warning("Besöket kunde inte läggas till i alla grupper.", {
-          description: failed.join(", "),
-        });
-      }
-      if (photoError) {
-        toast.warning("Besöket sparades utan foto.", { description: photoError.message });
-      }
+      await persistNewVisit();
     } catch (error) {
       toast.error((error as Error).message || "Kunde inte spara besöket.");
     } finally {
@@ -290,13 +339,56 @@ export function VisitDialog({
     }
   };
 
+  async function registerDifferentVisit() {
+    if (isBusy || !validateVisitDraft()) return;
+    setDuplicateCandidate(null);
+    setBusy(true);
+    try {
+      await persistNewVisit(true);
+    } catch (error) {
+      toast.error((error as Error).message || "Kunde inte spara besöket.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openExistingVisit() {
+    const candidate = duplicateCandidate;
+    if (!candidate || duplicateBusy) return;
+    if (!candidate.alreadyVisibleInTargetGroup && !activeGroupId) return;
+
+    setDuplicateBusy(true);
+    try {
+      if (!candidate.alreadyVisibleInTargetGroup && activeGroupId) {
+        await shareVisitToGroup(candidate.visitId, activeGroupId, false);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("matrundan:reload"));
+        }
+      }
+
+      setDuplicateCandidate(null);
+      onOpenChange(false);
+      void navigate({
+        to: "/matstallen/$placeId",
+        params: { placeId: currentPlace.id },
+        search: { visit: candidate.visitId },
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte öppna det befintliga besöket.",
+      );
+    } finally {
+      setDuplicateBusy(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">Registrera besök</DialogTitle>
           <DialogDescription>
-            {place.name} · {place.address}
+            {currentPlace.name} · {currentPlace.address}
           </DialogDescription>
         </DialogHeader>
 
@@ -589,6 +681,14 @@ export function VisitDialog({
             window.dispatchEvent(new Event("matrundan:reload"));
           }
         }}
+      />
+      <VisitDuplicatePrompt
+        candidate={duplicateCandidate}
+        mode="register"
+        busy={duplicateBusy || busy}
+        onDismiss={() => setDuplicateCandidate(null)}
+        onUseExisting={() => void openExistingVisit()}
+        onDifferentVisit={() => void registerDifferentVisit()}
       />
     </Dialog>
   );
