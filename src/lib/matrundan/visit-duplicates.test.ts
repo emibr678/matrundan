@@ -16,7 +16,7 @@ const visits = [
     meal: "lunch",
     participantIds: ["m1"],
   },
-];
+] satisfies Parameters<typeof findLocalRegistrationVisitDuplicate>[0];
 
 describe("lokal dubblettkontroll för besök", () => {
   test("hittar samma plats, datum och tillfälle när aktuell användare deltog", () => {
