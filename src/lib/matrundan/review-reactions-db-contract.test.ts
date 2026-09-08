@@ -47,4 +47,16 @@ describe("databaskontrakt för privata omdömesreaktioner", () => {
     expect(preflight).toContain("review_reactions:account-delete-cleanup");
     expect(preflight).toContain("review_notifications:first-later-review-only");
   });
+
+  test("produktionspreflight normaliserar SQL-whitespace för kommentarsynlighet", () => {
+    expect(preflight.match(/regexp_replace\(/g)?.length).toBe(2);
+    expect(preflight.match(/'\[\[:space:\]\]\+'/g)?.length).toBe(2);
+    expect(preflight.match(/position\('comment_visible=true' IN regexp_replace\(/g)?.length).toBe(2);
+    expect(preflight).not.toContain("position('comment_visible = true' IN pg_get_functiondef");
+
+    const minifiedProdDefinition = "WHERE visibility.comment_visible=true";
+    const formattedDefinition = "WHERE visibility.comment_visible = true";
+    expect(minifiedProdDefinition.replace(/\s+/g, "")).toContain("comment_visible=true");
+    expect(formattedDefinition.replace(/\s+/g, "")).toContain("comment_visible=true");
+  });
 });
