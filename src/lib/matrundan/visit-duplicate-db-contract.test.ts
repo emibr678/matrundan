@@ -36,8 +36,19 @@ describe("databaskontrakt för starka besöksdubletter", () => {
     expect(registrationFunction).not.toContain("'comment'");
   });
 
+  test("delningskontrollen kräver både källåtkomst och medlemskap i målgruppen", () => {
+    expect(migration).toContain(
+      "CREATE OR REPLACE FUNCTION public.find_share_visit_duplicate_v1(",
+    );
+    expect(migration).toContain("public.group_is_active(_target_group_id)");
+    expect(migration).toContain("public.has_membership(_target_group_id, _uid)");
+    expect(migration).toContain("source_group.lifecycle_status = 'active'");
+    expect(migration).toContain("source_membership.user_id = _uid");
+    expect(migration).toContain("source_membership.status = 'active'");
+    expect(migration).toContain("source_access.visit_id = _visit_id");
+  });
+
   test("delningskontrollen letar bara efter ett annat matchande besök i målgruppen", () => {
-    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.find_share_visit_duplicate_v1(");
     expect(migration).toContain("candidate.id <> _visit_id");
     expect(migration).toContain("candidate.place_id = _place_id");
     expect(migration).toContain("candidate.visited_on = _visited_on");
