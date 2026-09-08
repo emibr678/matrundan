@@ -37,9 +37,7 @@ describe("databaskontrakt för starka besöksdubletter", () => {
   });
 
   test("delningskontrollen letar bara efter ett annat matchande besök i målgruppen", () => {
-    expect(migration).toContain(
-      "CREATE OR REPLACE FUNCTION public.find_share_visit_duplicate_v1(",
-    );
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.find_share_visit_duplicate_v1(");
     expect(migration).toContain("candidate.id <> _visit_id");
     expect(migration).toContain("candidate.place_id = _place_id");
     expect(migration).toContain("candidate.visited_on = _visited_on");
