@@ -142,31 +142,40 @@ Första leveransen av **#169 Bekräfta deltagande och komplettera gemensamma
 besök** genomfördes via PR #201, **#203 Samla deltagaromdömen i en tydlig
 besöksvy** via PR #206 och **#204 Synliggör besök som väntar på ditt omdöme** i
 v1.36.0 via PR #218. **#106 Nästa stopp v2: enkla förslag utan överskrivning**
-genomfördes i v1.37.0 via PR #223.
+genomfördes i v1.37.0 via PR #223. **#101 Privata reaktioner på deltagarnas
+omdömen** är också genomförd och ligger kvar som produktkontrakt för gruppscopade,
+lågmälda reaktioner.
+
+**#244 Kommentar tillagd i efterhand blir inte reagerbar i gruppen** är en
+`priority:now`-regression i den redan levererade #101-semantiken. Den ska
+hanteras som en tillitskritisk korrigering före nästa större feature, men får
+ingen egen `order:*` eftersom den inte ändrar den strategiska produktordningen.
 
 Den närmaste beslutade produktkön är nu:
 
-1. `order:030` – **#101 Privata reaktioner på deltagarnas omdömen**.
-2. `order:040` – **#213 Förebygg dubbla kanoniska besök vid registrering och
-   delning**.
-3. `order:050` – **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**.
-4. `order:060` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
+1. `order:040` – **#213 Förebygg dubbla kanoniska besök vid registrering och
+   delning** (`priority:next`).
+2. `order:050` – **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**.
+3. `order:060` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
    besök**.
-5. `order:070` – **#197 Renodla besökskontext med Något att dricka och valfri
+4. `order:070` – **#197 Renodla besökskontext med Något att dricka och valfri
    Hämtmat-markering**.
 
-**#101 Privata reaktioner på deltagarnas omdömen** är det aktiva
-kärnproduktsteget. Historiska luckor i `order:*` lämnas medvetet kvar; operativ
-ordning kräver inte omnumrering.
+**#213 Förebygg dubbla kanoniska besök vid registrering och delning** är nästa
+sekvenserade kärnproduktfeature efter #244-regressionen. Historiska luckor i
+`order:*` lämnas medvetet kvar; operativ ordning kräver inte omnumrering.
 
 **#169 Bekräfta deltagande och komplettera gemensamma besök** ligger kvar som
 parent och varaktig produkt-/integritetsram för redan levererad deltagarsemantik
 samt de utbrutna senare delarna #213 och #214. Parent-issuen ska inte ha en egen
 plats i den sekventiella kön.
 
-**#207 Frikoppla drift från Lovable Cloud och etablera portabel plattform** är ett
-separat aktivt plattformsspår. Det har avsiktligt ingen `order:*` i förhållande
-till produktkön förrän en explicit cross-track-ordning beslutas.
+Kärnan i **#207 Frikoppla drift från Lovable Cloud och etablera portabel
+plattform** är tekniskt genomförd: produktion kör Cloudflare/Supabase och Lovable
+är ett valfritt editor-/previewverktyg mot Staging. Issuen hålls öppen för den
+sista externa avvecklingen eller pausen av kvarvarande legacy Lovable
+Cloud-resurser och är fortsatt ett separat plattformsspår utan `order:*` mot
+produktkön.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -224,7 +233,8 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
-**Prioritet:** aktivt genom #101; #169, #203 och #204 är redan genomförda
+**Prioritet:** aktivt; #169, #203, #204 och #101 är genomförda, #244 är närmaste
+regressionsfix och #213 nästa sekvenserade feature
 
 Rekommenderad paketordning:
 
@@ -244,13 +254,14 @@ Rekommenderad paketordning:
    diskret pending-signal på hemvyn och i besökshistoriken när deras eget
    omdöme saknas; signalen leder tillbaka till samma kanoniska besök och
    försvinner efter eget omdöme eller korrigerad deltagarstatus.
-4. **#101 Privata reaktioner på deltagarnas omdömen** (`order:030`)  
-   Låt gruppen svara lågmält med ❤️, 🤤, 🙌 eller 😂 på en deltagares synliga
+4. ✅ **#101 Privata reaktioner på deltagarnas omdömen**  
+   Gruppen kan svara lågmält med ❤️, 🤤, 🙌 eller 😂 på en deltagares synliga
    omdömeskommentar. Reaktionen hör till omdömesbidraget men isoleras per grupp;
-   ett nytt senare deltagaromdöme får vara upptäckbart via push och deep-link
-   utan separat diskussion, reaktionsfeed, Hem-unread eller social progression.
+   funktionen skapar ingen separat diskussion, reaktionsfeed eller social
+   progression. #244 är en avgränsad regressionsuppföljning på redigerad
+   kommentarsynlighet.
 5. **#213 Förebygg dubbla kanoniska besök vid registrering och delning**
-   (`order:040`)  
+   (`order:040`, `priority:next`)  
    Lägg ett konservativt dubblettskydd före nyregistrering eller delning när
    användaren redan legitimt kan nå ett starkt kandidatbesök. Återanvänd samma
    kanoniska visit när användaren väljer det; ingen automatisk efterhandsmerge
@@ -265,7 +276,7 @@ Rekommenderad paketordning:
    en viss målgrupp. Fotoåtkomsten ska vara serverstyrd per målgrupp och får inte
    exponera ursprungsgrupp eller ge mottagargruppen rätt att ändra originalfotot.
 8. **#197 Renodla besökskontext med Något att dricka och valfri
-   Hämtmat-markering** (`order:070`)  
+   Hämtmat-markering** (`order:070`, `priority:later`)  
    Gör besökstillfället semantiskt konsekvent genom att ersätta `Kväll` med
    `Något att dricka` och låt Hämtmat vara en separat, valfri besöksegenskap där
    På plats är implicit normalfall. Progression och betydelsen av `besökt` får
@@ -278,8 +289,8 @@ rangordnas genom #213 och #214 i stället för genom parent-issuen.
 
 Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
 gruppens gemensamma minne. #203 gör flerpersons-omdömena begripliga i besöksvyn,
-#204 gör saknade egna omdömen upptäckbara utan nagging, #101 lägger lågmälda
-privata reaktioner på deltagarnas omdömesbidrag, #213 förebygger nya kanoniska
+#204 gör saknade egna omdömen upptäckbara utan nagging, #101 ger lågmälda privata
+reaktioner på deltagarnas omdömesbidrag, #213 förebygger nya kanoniska
 besöksdubletter, #214 hanterar känslig cross-group-identitet, #179 gäller
 uttrycklig och behörighetsstyrd fotodelning och #197 renodlar själva
 besökskontexten. Ingen av funktionerna får skapa global feed, offentlig social
@@ -347,14 +358,22 @@ eller tillitskritiska korrigeringar får göras mellan produktsteg; större DX- 
 refaktoriseringsarbete prioriteras först när det ger konkret utvecklingsnytta.
 
 - ✅ **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** är genomfört.
-- **#207 Frikoppla drift från Lovable Cloud och etablera portabel plattform** är
-  ett aktivt, parallellt plattformsspår med egen migrationsplan. Det får ingen
-  `order:*` mot produktkön förrän en explicit relativ ordning beslutas.
-- **#127 DX2B: Konsolidera Playwright-fixtures och minska sköra layouttester**,
-  **#128 DX2C: Inför ändringsfragment och separat release-PR**, **#129 DX2D1:
-  Automatisera branchstädning och förbättra repohygien** och **#130 DX2D2:
-  Åtgärda deprecated API:er, döda beroenden och byggvarningar** ligger kvar som
-  underhållsskuld och ska tas evidensbaserat.
+- **#207 Frikoppla drift från Lovable Cloud och etablera portabel plattform** har
+  genomfört kärnmigrationen. Issuen är fortsatt öppen endast för den sista
+  verifierade avvecklingen/pausen av legacy Lovable Cloud-resurser; Lovable som
+  valfritt editor-/previewverktyg mot Staging ska finnas kvar.
+- **#127 DX2B: Konsolidera Playwright-fixtures och minska sköra layouttester** och
+  **#128 DX2C: Inför ändringsfragment och separat release-PR** ligger kvar som
+  oordnad maintenance-inbox och ska tas först när konkret utvecklingsnytta
+  motiverar dem.
+- ✅ **#129 DX2D1: Automatisera branchstädning och förbättra repohygien** är
+  genomfört.
+- ✅ **#130 DX2D2: Åtgärda deprecated API:er, döda beroenden och byggvarningar**
+  är genomfört.
+- **#296 Slutför public-repo polish och kosmetisk kodhygien** samlar den
+  återstående post-migrationspolishen utan produktbeteendeförändring. Det ska
+  inte tränga undan den beslutade produktkön efter att den aktuella kandidaten
+  är avslutad.
 - **#143 Utred föräldralöst objekt i besöksfoto-bucketen** är ett separat
   driftfynd; ingen destruktiv åtgärd får göras utan uttryckligt godkännande.
 - **#133 Samla rättning och komplettering av platsuppgifter i ett begripligt
