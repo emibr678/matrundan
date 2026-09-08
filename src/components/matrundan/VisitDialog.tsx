@@ -174,6 +174,7 @@ export function VisitDialog({
   }, [activeGroupId, open, mode, placeId]);
 
   if (!place) return null;
+  const currentPlace = place;
 
   const toggleParticipant = (id: string) => {
     if (id === state.currentUserId) return;
@@ -224,7 +225,7 @@ export function VisitDialog({
 
   async function persistNewVisit(allowStrongDuplicate = false) {
     const created = await addVisit({
-      placeId: place.id,
+      placeId: currentPlace.id,
       date: new Date(date).toISOString(),
       meal,
       participantIds: participants,
@@ -270,8 +271,8 @@ export function VisitDialog({
     toast.success("Besök registrerat", {
       description:
         sharedCount > 0
-          ? `${place.name} · tillagt i ${sharedCount} ${sharedCount === 1 ? "grupp" : "grupper"} till`
-          : place.name,
+          ? `${currentPlace.name} · tillagt i ${sharedCount} ${sharedCount === 1 ? "grupp" : "grupper"} till`
+          : currentPlace.name,
       duration: canShare && sharedCount === 0 ? 8000 : undefined,
       action:
         canShare && sharedCount === 0 && activeGroupId && created?.id
@@ -310,12 +311,12 @@ export function VisitDialog({
     try {
       let duplicate: StrongVisitDuplicateCandidate | null = null;
       if (mode === "live" && activeGroupId) {
-        duplicate = await findRegistrationVisitDuplicate(activeGroupId, place.id, date, meal);
+        duplicate = await findRegistrationVisitDuplicate(activeGroupId, currentPlace.id, date, meal);
       } else if (mode === "demo") {
         duplicate = findLocalRegistrationVisitDuplicate(
           state.visits,
           state.currentUserId,
-          place.id,
+          currentPlace.id,
           date,
           meal,
         );
@@ -364,7 +365,7 @@ export function VisitDialog({
       onOpenChange(false);
       void navigate({
         to: "/matstallen/$placeId",
-        params: { placeId: place.id },
+        params: { placeId: currentPlace.id },
         search: { visit: candidate.visitId },
       });
     } catch (error) {
@@ -382,7 +383,7 @@ export function VisitDialog({
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">Registrera besök</DialogTitle>
           <DialogDescription>
-            {place.name} · {place.address}
+            {currentPlace.name} · {currentPlace.address}
           </DialogDescription>
         </DialogHeader>
 
