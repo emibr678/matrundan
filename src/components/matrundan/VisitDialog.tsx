@@ -35,6 +35,7 @@ import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharin
 import { useStore } from "@/lib/matrundan/store";
 import type { VisitParticipant } from "@/lib/matrundan/types";
 import {
+  findLocalRegistrationVisitDuplicate,
   findRegistrationVisitDuplicate,
   type StrongVisitDuplicateCandidate,
 } from "@/lib/matrundan/visit-duplicates";
@@ -221,7 +222,7 @@ export function VisitDialog({
     ];
   }
 
-  async function persistNewVisit() {
+  async function persistNewVisit(allowStrongDuplicate = false) {
     const created = await addVisit({
       placeId: place.id,
       date: new Date(date).toISOString(),
@@ -250,7 +251,12 @@ export function VisitDialog({
     let sharedCount = 0;
     for (const groupId of targets) {
       try {
-        await shareVisitToGroup(created.id, groupId, hasComment ? shareComment : false);
+        await shareVisitToGroup(
+          created.id,
+          groupId,
+          hasComment ? shareComment : false,
+          allowStrongDuplicate,
+        );
         sharedCount += 1;
       } catch {
         failed.push(shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp");
@@ -302,12 +308,22 @@ export function VisitDialog({
 
     setBusy(true);
     try {
+      let duplicate: StrongVisitDuplicateCandidate | null = null;
       if (mode === "live" && activeGroupId) {
-        const duplicate = await findRegistrationVisitDuplicate(activeGroupId, place.id, date, meal);
-        if (duplicate) {
-          setDuplicateCandidate(duplicate);
-          return;
-        }
+        duplicate = await findRegistrationVisitDuplicate(activeGroupId, place.id, date, meal);
+      } else if (mode === "demo") {
+        duplicate = findLocalRegistrationVisitDuplicate(
+          state.visits,
+          state.currentUserId,
+          place.id,
+          date,
+          meal,
+        );
+      }
+
+      if (duplicate) {
+        setDuplicateCandidate(duplicate);
+        return;
       }
       await persistNewVisit();
     } catch (error) {
@@ -322,7 +338,7 @@ export function VisitDialog({
     setDuplicateCandidate(null);
     setBusy(true);
     try {
-      await persistNewVisit();
+      await persistNewVisit(true);
     } catch (error) {
       toast.error((error as Error).message || "Kunde inte spara besöket.");
     } finally {
@@ -332,11 +348,12 @@ export function VisitDialog({
 
   async function openExistingVisit() {
     const candidate = duplicateCandidate;
-    if (!candidate || !activeGroupId || duplicateBusy) return;
+    if (!candidate || duplicateBusy) return;
+    if (!candidate.alreadyVisibleInTargetGroup && !activeGroupId) return;
 
     setDuplicateBusy(true);
     try {
-      if (!candidate.alreadyVisibleInTargetGroup) {
+      if (!candidate.alreadyVisibleInTargetGroup && activeGroupId) {
         await shareVisitToGroup(candidate.visitId, activeGroupId, false);
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("matrundan:reload"));
