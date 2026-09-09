@@ -6,6 +6,7 @@ import { AuthMenu } from "@/components/matrundan/AuthMenu";
 import { CreateGroupAuthDialog } from "@/components/matrundan/CreateGroupAuthDialog";
 import { MatrundanBrand } from "@/components/matrundan/MatrundanBrand";
 import { Button } from "@/components/ui/button";
+import { clearExampleGuestProposalState } from "@/lib/matrundan/demo-state";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
@@ -33,6 +34,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
   const brand = <MatrundanBrand />;
 
   function resetExample() {
+    clearExampleGuestProposalState();
     resetDemo();
     window.dispatchEvent(new Event("matrundan:demo-reset"));
     toast.success("Exempelgruppen är återställd.");
