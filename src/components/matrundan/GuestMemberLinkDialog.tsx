@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2, UserRoundCheck } from "lucide-react";
+import { Check, Loader2, UserRoundCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,27 @@ function statusLabel(status: GuestMemberProposalStatus | null): string | null {
   }
 }
 
+function isBlockingProposal(status: GuestMemberProposalStatus | null): boolean {
+  return status === "pending" || status === "deferred" || status === "accepted";
+}
+
+function linkableGuestIds(targets: GuestMemberTarget[], completedGuestIds: Set<string>): string[] {
+  const rowsByGuest = new Map<string, GuestMemberTarget[]>();
+  for (const target of targets) {
+    const current = rowsByGuest.get(target.guestId) ?? [];
+    current.push(target);
+    rowsByGuest.set(target.guestId, current);
+  }
+
+  return [...rowsByGuest.entries()]
+    .filter(([guestId, rows]) => {
+      if (completedGuestIds.has(guestId)) return false;
+      if (rows.some((row) => isBlockingProposal(row.proposalStatus))) return false;
+      return rows.some((row) => row.proposalStatus === null);
+    })
+    .map(([guestId]) => guestId);
+}
+
 export function GuestMemberLinkDialog({
   visitId,
   sourceGroupId,
@@ -51,6 +72,8 @@ export function GuestMemberLinkDialog({
   const [selectedGuestId, setSelectedGuestId] = React.useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = React.useState<string | null>(null);
   const [selectedMemberId, setSelectedMemberId] = React.useState<string | null>(null);
+  const [completedGuestIds, setCompletedGuestIds] = React.useState<string[]>([]);
+  const [continuation, setContinuation] = React.useState<{ memberName: string } | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -62,17 +85,17 @@ export function GuestMemberLinkDialog({
     setSelectedGuestId(null);
     setSelectedGroupId(null);
     setSelectedMemberId(null);
+    setCompletedGuestIds([]);
+    setContinuation(null);
 
     listVisitGuestMemberTargets(sourceGroupId, visitId)
       .then((rows) => {
-        if (cancelled) return;
-        setTargets(rows);
-        const guestIds = [...new Set(rows.map((row) => row.guestId))];
-        if (guestIds.length === 1) setSelectedGuestId(guestIds[0]);
+        if (!cancelled) setTargets(rows);
       })
       .catch((error) => {
-        if (cancelled) return;
-        setLoadError(error instanceof Error ? error.message : "Kunde inte läsa deltagare.");
+        if (!cancelled) {
+          setLoadError(error instanceof Error ? error.message : "Kunde inte läsa deltagare.");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -83,17 +106,37 @@ export function GuestMemberLinkDialog({
     };
   }, [open, sourceGroupId, visitId]);
 
+  const completedGuestIdSet = React.useMemo(
+    () => new Set(completedGuestIds),
+    [completedGuestIds],
+  );
+  const availableGuestIds = React.useMemo(
+    () => linkableGuestIds(targets, completedGuestIdSet),
+    [completedGuestIdSet, targets],
+  );
   const guests = React.useMemo(() => {
     const byId = new Map<string, string>();
-    for (const target of targets) byId.set(target.guestId, target.guestName);
+    for (const target of targets) {
+      if (availableGuestIds.includes(target.guestId)) {
+        byId.set(target.guestId, target.guestName);
+      }
+    }
     return [...byId.entries()].map(([id, name]) => ({ id, name }));
-  }, [targets]);
+  }, [availableGuestIds, targets]);
+
+  React.useEffect(() => {
+    if (continuation) return;
+    setSelectedGuestId((current) => {
+      if (current && guests.some((guest) => guest.id === current)) return current;
+      return guests.length === 1 ? guests[0].id : null;
+    });
+  }, [continuation, guests]);
 
   const groups = React.useMemo(() => {
     if (!selectedGuestId) return [];
     const byId = new Map<string, { id: string; name: string; emoji: string | null }>();
     for (const target of targets) {
-      if (target.guestId !== selectedGuestId) continue;
+      if (target.guestId !== selectedGuestId || target.proposalStatus !== null) continue;
       byId.set(target.groupId, {
         id: target.groupId,
         name: target.groupName,
@@ -119,7 +162,10 @@ export function GuestMemberLinkDialog({
     [selectedGroupId, selectedGuestId, targets],
   );
 
-  const chosen = members.find((member) => member.memberId === selectedMemberId) ?? null;
+  const chosen =
+    members.find(
+      (member) => member.memberId === selectedMemberId && member.proposalStatus === null,
+    ) ?? null;
 
   async function submit() {
     if (!visitId || !sourceGroupId || !chosen || submitting) return;
@@ -132,10 +178,22 @@ export function GuestMemberLinkDialog({
         chosen.groupId,
         chosen.memberId,
       );
-      toast.success(`Frågan är skickad till ${chosen.memberName}.`, {
-        description: "Personen behöver själv bekräfta att hen var med.",
-      });
-      onOpenChange(false);
+
+      const nextCompletedGuestIds = [...new Set([...completedGuestIds, chosen.guestId])];
+      const remainingGuestIds = linkableGuestIds(targets, new Set(nextCompletedGuestIds));
+      setCompletedGuestIds(nextCompletedGuestIds);
+      setSelectedGuestId(null);
+      setSelectedGroupId(null);
+      setSelectedMemberId(null);
+
+      if (remainingGuestIds.length > 0) {
+        setContinuation({ memberName: chosen.memberName });
+      } else {
+        toast.success(`Frågan är skickad till ${chosen.memberName}.`, {
+          description: "Personen behöver själv bekräfta att hen var med.",
+        });
+        onOpenChange(false);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte skicka frågan.");
     } finally {
@@ -154,19 +212,40 @@ export function GuestMemberLinkDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
+        {continuation ? (
+          <Card
+            role="status"
+            className="space-y-2 rounded-2xl border-primary/25 bg-primary/5 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+                aria-hidden
+              >
+                <Check className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Frågan är skickad till {continuation.memberName}.</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Personen behöver själv bekräfta att hen var med. Du kan koppla en annan gäst nu
+                  eller bli klar.
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : loading ? (
           <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Hämtar möjliga deltagare…
           </div>
         ) : loadError ? (
           <div className="py-6 text-sm text-destructive">{loadError}</div>
-        ) : targets.length === 0 ? (
+        ) : targets.length === 0 || guests.length === 0 ? (
           <Card className="space-y-1 rounded-2xl border-border/70 bg-muted/30 p-4">
-            <p className="text-sm font-medium">Ingen möjlig koppling ännu</p>
+            <p className="text-sm font-medium">Ingen möjlig koppling just nu</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Besöket behöver först finnas i en annan aktiv grupp där du också är medlem. Därifrån
-              kan en medlem bekräfta sitt deltagande.
+              Besöket behöver finnas i en annan aktiv grupp där du också är medlem. Gäster som redan
+              har en väntande eller bekräftad koppling kan inte kopplas en gång till.
             </p>
           </Card>
         ) : (
@@ -270,19 +349,30 @@ export function GuestMemberLinkDialog({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Avbryt
-          </Button>
-          <Button type="button" disabled={!chosen || submitting} onClick={() => void submit()}>
-            {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <UserRoundCheck className="h-4 w-4" />
-            )}
-            {submitting ? "Skickar…" : "Skicka fråga"}
-          </Button>
-        </DialogFooter>
+        {continuation ? (
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Klar
+            </Button>
+            <Button type="button" onClick={() => setContinuation(null)}>
+              Koppla en till
+            </Button>
+          </DialogFooter>
+        ) : (
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Avbryt
+            </Button>
+            <Button type="button" disabled={!chosen || submitting} onClick={() => void submit()}>
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserRoundCheck className="h-4 w-4" />
+              )}
+              {submitting ? "Skickar…" : "Skicka fråga"}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
