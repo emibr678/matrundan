@@ -4,7 +4,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { persistDemoState } from "@/lib/matrundan/demo-state";
+import {
+  persistDemoState,
+  persistExampleGuestProposalStatus,
+  readExampleGuestProposalStatus,
+} from "@/lib/matrundan/demo-state";
 import { acceptOwnDemoGuestParticipation } from "@/lib/matrundan/demo-visit-participation";
 import {
   getOwnVisitGuestProposal,
@@ -15,18 +19,22 @@ import {
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
+export type VisitGuestParticipationPromptState = "loading" | "actionable" | "none";
+
 export function VisitGuestParticipationPrompt({
   visitId,
   groupId,
   groupArchived,
   onChanged,
   demoPending = false,
+  onProposalStateChange,
 }: {
   visitId: string;
   groupId: string | null;
   groupArchived: boolean;
   onChanged: () => void | Promise<void>;
   demoPending?: boolean;
+  onProposalStateChange?: (state: VisitGuestParticipationPromptState) => void;
 }) {
   const { state, demoReadOnly } = useStore();
   const { mode, exampleMode } = useSession();
@@ -40,33 +48,42 @@ export function VisitGuestParticipationPrompt({
     setLoading(true);
     setProposal(null);
     setExpandedDeferred(false);
+    onProposalStateChange?.("loading");
 
     if (mode !== "live") {
-      setProposal(
-        demoPending
+      const persistedStatus = exampleMode ? readExampleGuestProposalStatus(visitId) : null;
+      const nextProposal =
+        demoPending && persistedStatus !== "declined"
           ? {
               proposalId: `demo-guest-proposal:${visitId}`,
-              status: "pending",
+              status: persistedStatus ?? "pending",
             }
-          : null,
-      );
+          : null;
+      setProposal(nextProposal);
+      onProposalStateChange?.(nextProposal ? "actionable" : "none");
       setLoading(false);
       return;
     }
 
     if (!groupId) {
+      onProposalStateChange?.("none");
       setLoading(false);
       return;
     }
 
     getOwnVisitGuestProposal(groupId, visitId)
       .then((result) => {
-        if (!cancelled) setProposal(result);
+        if (cancelled) return;
+        setProposal(result);
+        onProposalStateChange?.(result ? "actionable" : "none");
       })
       .catch(() => {
         // Detta är en sekundär prompt på ett i övrigt läsbart besök. En tillfälligt
         // otillgänglig RPC ska därför inte blockera eller ersätta besöksdetaljen.
-        if (!cancelled) setProposal(null);
+        if (!cancelled) {
+          setProposal(null);
+          onProposalStateChange?.("none");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -75,7 +92,7 @@ export function VisitGuestParticipationPrompt({
     return () => {
       cancelled = true;
     };
-  }, [demoPending, groupId, mode, visitId]);
+  }, [demoPending, exampleMode, groupId, mode, onProposalStateChange, visitId]);
 
   async function respond(response: GuestMemberProposalResponse) {
     if (!proposal || saving || groupArchived || demoReadOnly) return;
@@ -85,7 +102,12 @@ export function VisitGuestParticipationPrompt({
         if (!groupId) throw new Error("Ingen aktiv grupp.");
         await respondVisitGuestProposal(groupId, proposal.proposalId, response);
       } else if (response === "accept") {
+        if (exampleMode) persistExampleGuestProposalStatus(visitId, null);
         persistDemoState(acceptOwnDemoGuestParticipation(state, visitId), exampleMode);
+      } else if (exampleMode && response === "decline") {
+        persistExampleGuestProposalStatus(visitId, "declined");
+      } else if (exampleMode && response === "defer") {
+        persistExampleGuestProposalStatus(visitId, "deferred");
       }
 
       if (response === "accept") {
@@ -93,13 +115,16 @@ export function VisitGuestParticipationPrompt({
           description: "Besöket räknas nu som ett besök du faktiskt var med på.",
         });
         setProposal(null);
+        onProposalStateChange?.("none");
         await onChanged();
       } else if (response === "decline") {
         toast.success("Tack, deltagandeförslaget är avvisat.");
         setProposal(null);
+        onProposalStateChange?.("none");
       } else {
         setProposal({ ...proposal, status: "deferred" });
         setExpandedDeferred(false);
+        onProposalStateChange?.("actionable");
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte spara ditt svar.");
@@ -141,8 +166,8 @@ export function VisitGuestParticipationPrompt({
       <div className="space-y-1">
         <p className="text-sm font-medium">Var du med på det här besöket?</p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          En medlem i gruppen tror att du var med. Bekräfta bara om det stämmer. Ditt svar gäller
-          samma verkliga besök som redan visas här.
+          En medlem i gruppen tror att du var med. Bekräfta bara om det stämmer. Då registreras du
+          som deltagare på besöket.
         </p>
       </div>
 
