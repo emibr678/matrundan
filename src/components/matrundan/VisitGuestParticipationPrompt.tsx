@@ -112,13 +112,13 @@ export function VisitGuestParticipationPrompt({
 
       if (response === "accept") {
         toast.success("Ditt deltagande är bekräftat.", {
-          description: "Besöket räknas nu som ett besök du faktiskt var med på.",
+          description: "Du är nu registrerad som deltagare på besöket.",
         });
         setProposal(null);
         onProposalStateChange?.("none");
         await onChanged();
       } else if (response === "decline") {
-        toast.success("Tack, deltagandeförslaget är avvisat.");
+        toast.success("Tack, då räknas du inte som deltagare.");
         setProposal(null);
         onProposalStateChange?.("none");
       } else {
@@ -148,8 +148,8 @@ export function VisitGuestParticipationPrompt({
           <Clock3 className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">Deltagande väntar på svar</p>
-          <p className="text-xs text-muted-foreground">Du valde att svara senare.</p>
+          <p className="text-sm font-medium">Du svarar senare</p>
+          <p className="text-xs text-muted-foreground">Frågan finns kvar här.</p>
         </div>
         <Button type="button" size="sm" variant="outline" onClick={() => setExpandedDeferred(true)}>
           Svara nu
@@ -166,8 +166,8 @@ export function VisitGuestParticipationPrompt({
       <div className="space-y-1">
         <p className="text-sm font-medium">Var du med på det här besöket?</p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          En medlem i gruppen tror att du var med. Bekräfta bara om det stämmer. Då registreras du
-          som deltagare på besöket.
+          En medlem i gruppen tror att du var med. Bekräfta om det stämmer, så registreras du som
+          deltagare.
         </p>
       </div>
 
