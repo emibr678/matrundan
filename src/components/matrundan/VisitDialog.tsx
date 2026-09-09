@@ -273,13 +273,10 @@ export function VisitDialog({
     }
 
     const continueToGuestLink =
-      mode === "live" &&
-      guests.length > 0 &&
-      sharedCount > 0 &&
-      !!activeGroupId &&
-      !!created?.id;
+      mode === "live" && guests.length > 0 && sharedCount > 0 && !!activeGroupId && !!created?.id;
 
     if (continueToGuestLink && activeGroupId && created?.id) {
+      onOpenChange(false);
       setGuestLinkPayload({ visitId: created.id, sourceGroupId: activeGroupId });
     } else {
       onOpenChange(false);
@@ -444,7 +441,8 @@ export function VisitDialog({
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Deltagare</legend>
               <p className="text-xs text-muted-foreground">
-                Du registrerar besöket och räknas därför som deltagare. Välj vilka andra som var med.
+                Du registrerar besöket och räknas därför som deltagare. Välj vilka andra som var
+                med.
               </p>
               <div className="flex flex-wrap gap-2">
                 {state.members.map((member) => {
@@ -614,8 +612,8 @@ export function VisitDialog({
                   <div className="space-y-1">
                     <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
                     <p className="text-xs text-muted-foreground">
-                      Besöket och matstället läggs till i de valda grupperna. Ursprungsgrupp, privata
-                      kommentarer, gästnamn och andra gruppers medlemmar syns aldrig.
+                      Besöket och matstället läggs till i de valda grupperna. Ursprungsgrupp,
+                      privata kommentarer, gästnamn och andra gruppers medlemmar syns aldrig.
                     </p>
                   </div>
                   <button
@@ -649,9 +647,13 @@ export function VisitDialog({
                           aria-label={`Dela besöket med ${group.name}`}
                         />
                         <span aria-hidden>{group.emoji ?? "🍽️"}</span>
-                        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{group.name}</span>
+                        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                          {group.name}
+                        </span>
                         {group.placeExistsInGroup ? (
-                          <span className="shrink-0 text-xs text-muted-foreground">finns redan</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            finns redan
+                          </span>
                         ) : null}
                       </label>
                     );
@@ -692,7 +694,11 @@ export function VisitDialog({
             >
               Avbryt
             </Button>
-            <Button onClick={submit} disabled={isBusy || overall === 0} className="w-full sm:w-auto">
+            <Button
+              onClick={submit}
+              disabled={isBusy || overall === 0}
+              className="w-full sm:w-auto"
+            >
               {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Spara besök
             </Button>
