@@ -9,12 +9,18 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
   test("förslag ligger server-only och har tydliga svarsstates", () => {
     expect(migration).toContain("CREATE TABLE public.visit_guest_member_proposals");
     expect(migration).toContain("'pending', 'deferred', 'declined', 'accepted', 'cancelled'");
-    expect(migration).toContain("ALTER TABLE public.visit_guest_member_proposals ENABLE ROW LEVEL SECURITY");
+    expect(migration).toContain(
+      "ALTER TABLE public.visit_guest_member_proposals ENABLE ROW LEVEL SECURITY",
+    );
     expect(migration).toContain(
       "REVOKE ALL ON TABLE public.visit_guest_member_proposals FROM PUBLIC, anon, authenticated",
     );
-    expect(migration).toContain("target_user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE");
-    expect(migration).toContain("proposed_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL");
+    expect(migration).toContain(
+      "target_user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE",
+    );
+    expect(migration).toContain(
+      "proposed_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL",
+    );
   });
 
   test("kandidatlistan är bunden till originalgrupp och redan länkat besök", () => {
@@ -56,7 +62,9 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
   });
 
   test("endast målmedlemmen kan acceptera och accept använder samma kanoniska visit", () => {
-    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.respond_visit_guest_proposal_v1(");
+    expect(migration).toContain(
+      "CREATE OR REPLACE FUNCTION public.respond_visit_guest_proposal_v1(",
+    );
     expect(migration).toContain("proposal.target_user_id = _uid");
     expect(migration).toContain("_response NOT IN ('accept', 'decline', 'defer')");
     expect(migration).toContain("INSERT INTO public.visit_participants (visit_id, user_id)");
