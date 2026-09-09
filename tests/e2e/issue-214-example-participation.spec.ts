@@ -10,7 +10,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   );
 }
 
-test("exempelgruppen bevarar Inte nu och Nej tills den återställs", async ({ page }) => {
+test("exempelgruppen bevarar Inte nu och nej-svar tills den återställs", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
