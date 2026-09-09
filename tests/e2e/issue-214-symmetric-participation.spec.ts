@@ -432,6 +432,7 @@ for (const viewport of VIEWPORTS) {
     });
 
     const linkDialog = page.getByRole("dialog", { name: "Koppla gäst till medlem" });
+    await expect(registerDialog).toBeHidden();
     await expect(linkDialog).toBeVisible();
     await expect(linkDialog.getByText("Joppe", { exact: true })).toBeVisible();
     await expect(linkDialog.getByText("Jobbgänget", { exact: true })).toBeVisible();
@@ -475,7 +476,9 @@ for (const viewport of VIEWPORTS) {
       _visit_id: VISIT_ID,
       _target_user_id: TARGET_USER_ID,
     });
-    await expect(page.getByText("Frågan är skickad till Johan Andersson.", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Frågan är skickad till Johan Andersson.", { exact: true }),
+    ).toBeVisible();
     await expectNoHorizontalOverflow(page, `mottagargruppens deltagarförslag ${viewport.name}`);
   });
 }
