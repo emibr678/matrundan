@@ -436,6 +436,7 @@ for (const viewport of VIEWPORTS) {
     await expect(registerDialog.getByText("Joppe", { exact: true })).toBeVisible();
     await expect(registerDialog.getByText("Sara", { exact: true })).toBeVisible();
     await expect(registerDialog.getByText("Jobbgänget", { exact: true })).toBeVisible();
+    await registerDialog.getByRole("checkbox", { name: "Dela besöket med Jobbgänget" }).check();
     await expect(
       registerDialog.getByText(
         "Efter att besöket sparats kan du direkt koppla en gäst till en medlem i en vald grupp.",
