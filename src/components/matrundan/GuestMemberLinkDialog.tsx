@@ -177,7 +177,17 @@ export function GuestMemberLinkDialog({
       );
 
       const nextCompletedGuestIds = [...new Set([...completedGuestIds, chosen.guestId])];
-      const remainingGuestIds = linkableGuestIds(targets, new Set(nextCompletedGuestIds));
+      let remainingGuestIds: string[] = [];
+
+      try {
+        const refreshedTargets = await listVisitGuestMemberTargets(sourceGroupId, visitId);
+        setTargets(refreshedTargets);
+        remainingGuestIds = linkableGuestIds(refreshedTargets, new Set(nextCompletedGuestIds));
+      } catch {
+        // Förslaget är redan skapat. Om den gemensamma kapaciteten inte kan
+        // verifieras igen erbjuder vi inte en potentiellt inaktuell fortsättning.
+      }
+
       setCompletedGuestIds(nextCompletedGuestIds);
       setSelectedGuestId(null);
       setSelectedGroupId(null);
