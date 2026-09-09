@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
+import { MapPin, Share2, Trash2, UserRoundCheck, UserRoundPlus, Users2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -25,6 +25,7 @@ import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { removeSharedVisitFromGroup } from "@/lib/matrundan/live-sharing";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
+import { SharedVisitMemberProposalDialog } from "./SharedVisitMemberProposalDialog";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitGuestParticipationPrompt } from "./VisitGuestParticipationPrompt";
 import { VisitParticipationControls } from "./VisitParticipationControls";
@@ -71,6 +72,7 @@ export function VisitDetailSheet({
   const author = visit ? memberById(visit.createdBy) : undefined;
 
   const isLive = mode === "live" && !!activeGroupId;
+  const isDemo = mode === "demo";
   const groupArchived = state.group.lifecycleStatus === "archived";
   const participantFallback = !!visit && visit.participantIds.includes(state.currentUserId);
   const participationStatus =
@@ -80,8 +82,11 @@ export function VisitDetailSheet({
   const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
   const hasPrivateGuests =
     visit?.participants?.some((participant) => participant.status === "guest") ?? false;
+  const hasExternalParticipants = (visit?.externalParticipantCount ?? 0) > 0;
   const canLinkGuest =
     !groupArchived && isLive && !isShared && hasPrivateGuests && activeGroupCount >= 2;
+  const canSuggestSharedParticipant =
+    !groupArchived && !!visit && isShared && hasExternalParticipants && (isLive || isDemo);
   const canUnlink =
     !groupArchived &&
     isLive &&
@@ -98,9 +103,28 @@ export function VisitDetailSheet({
     !!visit && canDeleteVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
+  const demoSharedCandidates = React.useMemo(
+    () =>
+      isDemo && visit
+        ? state.members
+            .filter(
+              (member) =>
+                member.id !== state.currentUserId && !visit.participantIds.includes(member.id),
+            )
+            .map((member) => ({
+              memberId: member.id,
+              memberName: member.name,
+              memberAvatar: member.avatar ?? null,
+              memberAvatarImage: member.avatarImage ?? null,
+              proposalStatus: null,
+            }))
+        : [],
+    [isDemo, state.currentUserId, state.members, visit],
+  );
 
   const [shareOpen, setShareOpen] = React.useState(false);
   const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
+  const [sharedProposalOpen, setSharedProposalOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [unlinking, setUnlinking] = React.useState(false);
@@ -244,7 +268,7 @@ export function VisitDetailSheet({
                         ) : null}
                       </Badge>
                     ))}
-                    {(visit.externalParticipantCount ?? 0) > 0 ? (
+                    {hasExternalParticipants ? (
                       <Badge
                         variant="outline"
                         className="rounded-full border-border/70 bg-muted px-2.5 py-1 text-xs font-normal text-muted-foreground"
@@ -274,14 +298,27 @@ export function VisitDetailSheet({
                       ) : null}
                     </div>
                   ) : null}
+                  {canSuggestSharedParticipant ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="mt-1.5 h-auto min-h-10 px-2 text-xs text-muted-foreground"
+                      onClick={() => setSharedProposalOpen(true)}
+                    >
+                      <UserRoundPlus className="h-3.5 w-3.5" />
+                      Föreslå deltagare från gruppen
+                    </Button>
+                  ) : null}
                 </section>
 
-                {isLive && activeGroupId ? (
+                {(isLive && activeGroupId) || (isDemo && isShared && !isParticipant) ? (
                   <VisitGuestParticipationPrompt
                     visitId={visit.id}
-                    groupId={activeGroupId}
+                    groupId={isLive ? activeGroupId : null}
                     groupArchived={groupArchived}
                     onChanged={reload}
+                    demoPending={isDemo && isShared && !isParticipant && hasExternalParticipants}
                   />
                 ) : null}
 
@@ -380,6 +417,16 @@ export function VisitDetailSheet({
             onOpenChange={setGuestLinkOpen}
           />
         </>
+      ) : null}
+
+      {canSuggestSharedParticipant ? (
+        <SharedVisitMemberProposalDialog
+          visitId={visit?.id ?? null}
+          groupId={isLive ? activeGroupId : null}
+          open={sharedProposalOpen}
+          onOpenChange={setSharedProposalOpen}
+          demoCandidates={isDemo ? demoSharedCandidates : undefined}
+        />
       ) : null}
 
       <AlertDialog open={confirmUnlink} onOpenChange={setConfirmUnlink}>
