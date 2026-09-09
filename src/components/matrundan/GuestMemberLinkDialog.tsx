@@ -114,8 +114,7 @@ export function GuestMemberLinkDialog({
   const members = React.useMemo(
     () =>
       targets.filter(
-        (target) =>
-          target.guestId === selectedGuestId && target.groupId === selectedGroupId,
+        (target) => target.guestId === selectedGuestId && target.groupId === selectedGroupId,
       ),
     [selectedGroupId, selectedGuestId, targets],
   );
@@ -255,7 +254,9 @@ export function GuestMemberLinkDialog({
                           {member.memberAvatar ?? "🙂"}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">{member.memberName}</span>
+                          <span className="block truncate text-sm font-medium">
+                            {member.memberName}
+                          </span>
                           {label ? (
                             <span className="block text-xs text-muted-foreground">{label}</span>
                           ) : null}
