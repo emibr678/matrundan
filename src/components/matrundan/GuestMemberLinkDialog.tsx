@@ -106,10 +106,7 @@ export function GuestMemberLinkDialog({
     };
   }, [open, sourceGroupId, visitId]);
 
-  const completedGuestIdSet = React.useMemo(
-    () => new Set(completedGuestIds),
-    [completedGuestIds],
-  );
+  const completedGuestIdSet = React.useMemo(() => new Set(completedGuestIds), [completedGuestIds]);
   const availableGuestIds = React.useMemo(
     () => linkableGuestIds(targets, completedGuestIdSet),
     [completedGuestIdSet, targets],
@@ -213,10 +210,7 @@ export function GuestMemberLinkDialog({
         </DialogHeader>
 
         {continuation ? (
-          <Card
-            role="status"
-            className="space-y-2 rounded-2xl border-primary/25 bg-primary/5 p-4"
-          >
+          <Card role="status" className="space-y-2 rounded-2xl border-primary/25 bg-primary/5 p-4">
             <div className="flex items-start gap-3">
               <span
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
@@ -225,7 +219,9 @@ export function GuestMemberLinkDialog({
                 <Check className="h-4 w-4" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-medium">Frågan är skickad till {continuation.memberName}.</p>
+                <p className="text-sm font-medium">
+                  Frågan är skickad till {continuation.memberName}.
+                </p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   Personen behöver själv bekräfta att hen var med. Du kan koppla en annan gäst nu
                   eller bli klar.
