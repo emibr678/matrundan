@@ -52,7 +52,7 @@ export function VisitGuestParticipationPrompt({
 
     if (mode !== "live") {
       const persistedStatus = exampleMode ? readExampleGuestProposalStatus(visitId) : null;
-      const nextProposal =
+      const nextProposal: OwnGuestMemberProposal | null =
         demoPending && persistedStatus !== "declined"
           ? {
               proposalId: `demo-guest-proposal:${visitId}`,
