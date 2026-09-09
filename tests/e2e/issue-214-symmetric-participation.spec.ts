@@ -5,12 +5,15 @@ const ACTIVE_GROUP_KEY = "matrundan.activeGroup.v1";
 const SOURCE_USER_ID = "11111111-1111-4111-8111-111111111111";
 const TARGET_ACTOR_ID = "22222222-2222-4222-8222-222222222222";
 const TARGET_USER_ID = "99999999-9999-4999-8999-999999999999";
+const SECOND_TARGET_USER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const SOURCE_GROUP_ID = "33333333-3333-4333-8333-333333333333";
 const TARGET_GROUP_ID = "44444444-4444-4444-8444-444444444444";
 const PLACE_ID = "55555555-5555-4555-8555-555555555555";
 const VISIT_ID = "66666666-6666-4666-8666-666666666666";
 const GUEST_ID = "77777777-7777-4777-8777-777777777777";
+const SECOND_GUEST_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const PROPOSAL_ID = "88888888-8888-4888-8888-888888888888";
+const SECOND_PROPOSAL_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
 const VIEWPORTS = [
   { name: "360 px", width: 360, height: 800 },
@@ -201,7 +204,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
 async function mockRegistration(page: Page) {
   let createdPayload: Record<string, unknown> | null = null;
   let sharedPayload: Record<string, unknown> | null = null;
-  let proposedPayload: Record<string, unknown> | null = null;
+  const proposedPayloads: Record<string, unknown>[] = [];
 
   await page.route("**/rest/v1/rpc/**", async (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
@@ -298,17 +301,32 @@ async function mockRegistration(page: Page) {
             memberAvatarImage: null,
             proposalStatus: null,
           },
+          {
+            guestId: SECOND_GUEST_ID,
+            guestName: "Sara",
+            groupId: TARGET_GROUP_ID,
+            groupName: "Jobbgänget",
+            groupEmoji: "🥘",
+            memberId: SECOND_TARGET_USER_ID,
+            memberName: "Maja Lind",
+            memberAvatar: "🐰",
+            memberAvatarImage: null,
+            proposalStatus: null,
+          },
         ]),
       });
       return;
     }
 
     if (rpc === "propose_visit_guest_member_v1") {
-      proposedPayload = route.request().postDataJSON() as Record<string, unknown>;
+      const payload = route.request().postDataJSON() as Record<string, unknown>;
+      proposedPayloads.push(payload);
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(PROPOSAL_ID),
+        body: JSON.stringify(
+          payload._target_user_id === SECOND_TARGET_USER_ID ? SECOND_PROPOSAL_ID : PROPOSAL_ID,
+        ),
       });
       return;
     }
@@ -324,7 +342,7 @@ async function mockRegistration(page: Page) {
   return {
     createdPayload: () => createdPayload,
     sharedPayload: () => sharedPayload,
-    proposedPayload: () => proposedPayload,
+    proposedPayloads: () => proposedPayloads,
   };
 }
 
@@ -399,7 +417,7 @@ async function mockRecipient(page: Page) {
 }
 
 for (const viewport of VIEWPORTS) {
-  test(`registrering + delning fortsätter direkt till gästkoppling — ${viewport.name}`, async ({
+  test(`registrering + delning kan koppla flera gäster i följd — ${viewport.name}`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
@@ -413,7 +431,10 @@ for (const viewport of VIEWPORTS) {
     await registerDialog.getByRole("button", { name: "Lägg till gäst" }).click();
     await registerDialog.getByPlaceholder("Gästens namn").fill("Joppe");
     await registerDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
+    await registerDialog.getByPlaceholder("Gästens namn").fill("Sara");
+    await registerDialog.getByRole("button", { name: "Lägg till", exact: true }).click();
     await expect(registerDialog.getByText("Joppe", { exact: true })).toBeVisible();
+    await expect(registerDialog.getByText("Sara", { exact: true })).toBeVisible();
     await expect(registerDialog.getByText("Jobbgänget", { exact: true })).toBeVisible();
     await expect(
       registerDialog.getByText(
@@ -434,18 +455,44 @@ for (const viewport of VIEWPORTS) {
     const linkDialog = page.getByRole("dialog", { name: "Koppla gäst till medlem" });
     await expect(registerDialog).toBeHidden();
     await expect(linkDialog).toBeVisible();
-    await expect(linkDialog.getByText("Joppe", { exact: true })).toBeVisible();
+    await linkDialog.getByRole("button", { name: "Joppe" }).click();
     await expect(linkDialog.getByText("Jobbgänget", { exact: true })).toBeVisible();
     await linkDialog.getByRole("button", { name: "Johan Andersson" }).click();
     await linkDialog.getByRole("button", { name: "Skicka fråga" }).click();
 
-    await expect.poll(mock.proposedPayload).toMatchObject({
+    await expect.poll(() => mock.proposedPayloads().length).toBe(1);
+    expect(mock.proposedPayloads()[0]).toMatchObject({
       _source_group_id: SOURCE_GROUP_ID,
       _visit_id: VISIT_ID,
       _guest_id: GUEST_ID,
       _target_group_id: TARGET_GROUP_ID,
       _target_user_id: TARGET_USER_ID,
     });
+    await expect(
+      linkDialog.getByText("Frågan är skickad till Johan Andersson.", { exact: true }),
+    ).toBeVisible();
+    await expect(linkDialog.getByRole("button", { name: "Koppla en till" })).toBeVisible();
+    await expect(linkDialog.getByRole("button", { name: "Klar" })).toBeVisible();
+    await expectNoHorizontalOverflow(page, `första gästkopplingen ${viewport.name}`);
+
+    await linkDialog.getByRole("button", { name: "Koppla en till" }).click();
+    await expect(linkDialog.getByText("Sara", { exact: true })).toBeVisible();
+    await expect(linkDialog.getByRole("button", { name: "Maja Lind" })).toBeVisible();
+    await linkDialog.getByRole("button", { name: "Maja Lind" }).click();
+    await linkDialog.getByRole("button", { name: "Skicka fråga" }).click();
+
+    await expect.poll(() => mock.proposedPayloads().length).toBe(2);
+    expect(mock.proposedPayloads()[1]).toMatchObject({
+      _source_group_id: SOURCE_GROUP_ID,
+      _visit_id: VISIT_ID,
+      _guest_id: SECOND_GUEST_ID,
+      _target_group_id: TARGET_GROUP_ID,
+      _target_user_id: SECOND_TARGET_USER_ID,
+    });
+    await expect(linkDialog).toBeHidden();
+    await expect(
+      page.getByText("Frågan är skickad till Maja Lind.", { exact: true }),
+    ).toBeVisible();
     await expectNoHorizontalOverflow(page, `registrering och gästkoppling ${viewport.name}`);
   });
 
