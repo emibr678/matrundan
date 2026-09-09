@@ -1,4 +1,4 @@
--- Produktions-preflight för Issue #214 — gäst → medlem över gruppgränser.
+-- Produktions-preflight för Issue #214 — deltagande över gruppgränser.
 -- Körs skrivskyddat efter migration och före publicering. Alla rader ska ge ok=true.
 
 WITH checks(name, ok) AS (
@@ -11,10 +11,30 @@ WITH checks(name, ok) AS (
         FROM pg_class c
         WHERE c.oid = to_regclass('public.visit_guest_member_proposals')
       ), false)),
+    ('schema:guest-id-nullable',
+      COALESCE((
+        SELECT c.is_nullable = 'YES'
+        FROM information_schema.columns c
+        WHERE c.table_schema = 'public'
+          AND c.table_name = 'visit_guest_member_proposals'
+          AND c.column_name = 'guest_id'
+      ), false)),
+    ('schema:proposal-kind',
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns c
+        WHERE c.table_schema = 'public'
+          AND c.table_name = 'visit_guest_member_proposals'
+          AND c.column_name = 'proposal_kind'
+      )),
     ('rpc:list-targets',
       to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)') IS NOT NULL),
-    ('rpc:propose',
+    ('rpc:propose-guest',
       to_regprocedure('public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)') IS NOT NULL),
+    ('rpc:list-shared-members',
+      to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)') IS NOT NULL),
+    ('rpc:propose-shared-member',
+      to_regprocedure('public.propose_shared_visit_member_v1(uuid,uuid,uuid)') IS NOT NULL),
     ('rpc:get-own-proposal',
       to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)') IS NOT NULL),
     ('rpc:respond',
@@ -40,14 +60,54 @@ WITH checks(name, ok) AS (
         )) > 0,
         false
       )),
-    ('guard:proposal-validates-target-membership',
+    ('guard:shared-candidates-current-group-only',
+      COALESCE(
+        position('candidate.group_id = _group_id' IN pg_get_functiondef(
+          to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)')
+        )) > 0
+        AND position('link.link_type = ''shared''' IN pg_get_functiondef(
+          to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)')
+        )) > 0,
+        false
+      )),
+    ('guard:shared-candidates-no-guest-alias',
+      COALESCE(
+        position('guest.display_name' IN pg_get_functiondef(
+          to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)')
+        )) = 0
+        AND position('guestId' IN pg_get_functiondef(
+          to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)')
+        )) = 0,
+        false
+      )),
+    ('guard:shared-proposal-target-member',
       COALESCE(
         position('membership.user_id = _target_user_id' IN pg_get_functiondef(
-          to_regprocedure('public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)')
+          to_regprocedure('public.propose_shared_visit_member_v1(uuid,uuid,uuid)')
         )) > 0
         AND position('membership.status = ''active''' IN pg_get_functiondef(
-          to_regprocedure('public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)')
+          to_regprocedure('public.propose_shared_visit_member_v1(uuid,uuid,uuid)')
         )) > 0,
+        false
+      )),
+    ('guard:shared-proposal-not-self',
+      COALESCE(
+        position('_target_user_id = _uid' IN pg_get_functiondef(
+          to_regprocedure('public.propose_shared_visit_member_v1(uuid,uuid,uuid)')
+        )) > 0,
+        false
+      )),
+    ('guard:participant-linked-group-membership',
+      COALESCE(
+        position('JOIN public.memberships membership' IN pg_get_functiondef(
+          to_regprocedure('public.validate_visit_participant()')
+        )) > 0
+        AND position('membership.status = ''active''' IN pg_get_functiondef(
+          to_regprocedure('public.validate_visit_participant()')
+        )) > 0
+        AND position('link_type = ''original''' IN pg_get_functiondef(
+          to_regprocedure('public.validate_visit_participant()')
+        )) = 0,
         false
       )),
     ('guard:response-owned-by-target-user',
@@ -80,12 +140,12 @@ WITH checks(name, ok) AS (
         )) = 0,
         false
       )),
-    ('read-rpc:deduplicates-accepted-guest',
+    ('read-rpc:deduplicates-visible-accepted-person',
       COALESCE(
-        position('visit_guest_member_proposals' IN pg_get_functiondef(
+        position('accepted_visible_count' IN pg_get_functiondef(
           to_regprocedure('public.get_group_app_state_v5k(uuid)')
         )) > 0
-        AND position('accepted_visible_count' IN pg_get_functiondef(
+        AND position('external_count - visit_row.accepted_visible_count' IN pg_get_functiondef(
           to_regprocedure('public.get_group_app_state_v5k(uuid)')
         )) > 0,
         false
@@ -93,11 +153,15 @@ WITH checks(name, ok) AS (
     ('grant:authenticated-rpcs',
       has_function_privilege('authenticated', 'public.list_visit_guest_member_targets_v1(uuid,uuid)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)', 'EXECUTE')
+      AND has_function_privilege('authenticated', 'public.list_visit_shared_member_candidates_v1(uuid,uuid)', 'EXECUTE')
+      AND has_function_privilege('authenticated', 'public.propose_shared_visit_member_v1(uuid,uuid,uuid)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.get_own_visit_guest_proposal_v1(uuid,uuid)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.respond_visit_guest_proposal_v1(uuid,uuid,text)', 'EXECUTE')),
     ('isolation:no-anon-rpcs',
       NOT has_function_privilege('anon', 'public.list_visit_guest_member_targets_v1(uuid,uuid)', 'EXECUTE')
       AND NOT has_function_privilege('anon', 'public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)', 'EXECUTE')
+      AND NOT has_function_privilege('anon', 'public.list_visit_shared_member_candidates_v1(uuid,uuid)', 'EXECUTE')
+      AND NOT has_function_privilege('anon', 'public.propose_shared_visit_member_v1(uuid,uuid,uuid)', 'EXECUTE')
       AND NOT has_function_privilege('anon', 'public.get_own_visit_guest_proposal_v1(uuid,uuid)', 'EXECUTE')
       AND NOT has_function_privilege('anon', 'public.respond_visit_guest_proposal_v1(uuid,uuid,text)', 'EXECUTE')),
     ('isolation:no-authenticated-table-read',
