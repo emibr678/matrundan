@@ -4,24 +4,32 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { persistDemoState } from "@/lib/matrundan/demo-state";
+import { acceptOwnDemoGuestParticipation } from "@/lib/matrundan/demo-visit-participation";
 import {
   getOwnVisitGuestProposal,
   respondVisitGuestProposal,
   type GuestMemberProposalResponse,
   type OwnGuestMemberProposal,
 } from "@/lib/matrundan/live-visit-guest-members";
+import { useSession } from "@/lib/matrundan/session";
+import { useStore } from "@/lib/matrundan/store";
 
 export function VisitGuestParticipationPrompt({
   visitId,
   groupId,
   groupArchived,
   onChanged,
+  demoPending = false,
 }: {
   visitId: string;
-  groupId: string;
+  groupId: string | null;
   groupArchived: boolean;
   onChanged: () => void | Promise<void>;
+  demoPending?: boolean;
 }) {
+  const { state, demoReadOnly } = useStore();
+  const { mode, exampleMode } = useSession();
   const [proposal, setProposal] = React.useState<OwnGuestMemberProposal | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState<GuestMemberProposalResponse | null>(null);
@@ -32,6 +40,24 @@ export function VisitGuestParticipationPrompt({
     setLoading(true);
     setProposal(null);
     setExpandedDeferred(false);
+
+    if (mode !== "live") {
+      setProposal(
+        demoPending
+          ? {
+              proposalId: `demo-guest-proposal:${visitId}`,
+              status: "pending",
+            }
+          : null,
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (!groupId) {
+      setLoading(false);
+      return;
+    }
 
     getOwnVisitGuestProposal(groupId, visitId)
       .then((result) => {
@@ -49,13 +75,19 @@ export function VisitGuestParticipationPrompt({
     return () => {
       cancelled = true;
     };
-  }, [groupId, visitId]);
+  }, [demoPending, groupId, mode, visitId]);
 
   async function respond(response: GuestMemberProposalResponse) {
-    if (!proposal || saving || groupArchived) return;
+    if (!proposal || saving || groupArchived || demoReadOnly) return;
     setSaving(response);
     try {
-      await respondVisitGuestProposal(groupId, proposal.proposalId, response);
+      if (mode === "live") {
+        if (!groupId) throw new Error("Ingen aktiv grupp.");
+        await respondVisitGuestProposal(groupId, proposal.proposalId, response);
+      } else if (response === "accept") {
+        persistDemoState(acceptOwnDemoGuestParticipation(state, visitId), exampleMode);
+      }
+
       if (response === "accept") {
         toast.success("Ditt deltagande är bekräftat.", {
           description: "Besöket räknas nu som ett besök du faktiskt var med på.",
@@ -102,7 +134,10 @@ export function VisitGuestParticipationPrompt({
   }
 
   return (
-    <Card className="space-y-3 rounded-2xl border-primary/25 bg-primary/5 p-4" aria-label="Bekräfta deltagande">
+    <Card
+      className="space-y-3 rounded-2xl border-primary/25 bg-primary/5 p-4"
+      aria-label="Bekräfta deltagande"
+    >
       <div className="space-y-1">
         <p className="text-sm font-medium">Var du med på det här besöket?</p>
         <p className="text-xs leading-relaxed text-muted-foreground">
@@ -115,7 +150,7 @@ export function VisitGuestParticipationPrompt({
         <Button
           type="button"
           className="w-full"
-          disabled={saving !== null}
+          disabled={saving !== null || demoReadOnly}
           onClick={() => void respond("accept")}
         >
           {saving === "accept" ? (
@@ -129,7 +164,7 @@ export function VisitGuestParticipationPrompt({
           type="button"
           variant="outline"
           className="w-full"
-          disabled={saving !== null}
+          disabled={saving !== null || demoReadOnly}
           onClick={() => void respond("decline")}
         >
           {saving === "decline" ? (
@@ -145,7 +180,7 @@ export function VisitGuestParticipationPrompt({
         type="button"
         variant="ghost"
         className="w-full text-muted-foreground"
-        disabled={saving !== null}
+        disabled={saving !== null || demoReadOnly}
         onClick={() => void respond("defer")}
       >
         {saving === "defer" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
