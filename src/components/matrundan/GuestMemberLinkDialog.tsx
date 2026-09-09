@@ -197,7 +197,7 @@ export function GuestMemberLinkDialog({
         setContinuation({ memberName: chosen.memberName });
       } else {
         toast.success(`Frågan är skickad till ${chosen.memberName}.`, {
-          description: "Personen behöver själv bekräfta att hen var med.",
+          description: "Personen bekräftar själv.",
         });
         onOpenChange(false);
       }
@@ -214,8 +214,7 @@ export function GuestMemberLinkDialog({
         <DialogHeader>
           <DialogTitle>Koppla gäst till medlem</DialogTitle>
           <DialogDescription>
-            Välj en medlem i en grupp där besöket redan finns. Personen måste själv bekräfta att hen
-            var med.
+            Välj vem gästen är i en grupp där besöket redan finns. Personen bekräftar själv.
           </DialogDescription>
         </DialogHeader>
 
@@ -233,8 +232,7 @@ export function GuestMemberLinkDialog({
                   Frågan är skickad till {continuation.memberName}.
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Personen behöver själv bekräfta att hen var med. Du kan koppla en annan gäst nu
-                  eller bli klar.
+                  Du kan koppla nästa gäst eller vara klar.
                 </p>
               </div>
             </div>
@@ -250,8 +248,8 @@ export function GuestMemberLinkDialog({
           <Card className="space-y-1 rounded-2xl border-border/70 bg-muted/30 p-4">
             <p className="text-sm font-medium">Ingen möjlig koppling just nu</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Besöket behöver finnas i en annan aktiv grupp där du också är medlem. Gäster som redan
-              har en väntande eller bekräftad koppling kan inte kopplas en gång till.
+              Besöket måste finnas i en annan aktiv grupp där du också är medlem. Gäster med en
+              väntande eller bekräftad koppling visas inte här.
             </p>
           </Card>
         ) : (
