@@ -30,7 +30,8 @@ test("exempelgruppen bevarar Inte nu och Nej tills den återställs", async ({ p
   visitDialog = page.getByRole("dialog").first();
   const deferred = visitDialog.getByLabel("Deltagandeförslag väntar på svar");
   await expect(deferred).toBeVisible();
-  await expect(deferred.getByText("Du valde att svara senare.", { exact: true })).toBeVisible();
+  await expect(deferred.getByText("Du svarar senare", { exact: true })).toBeVisible();
+  await expect(deferred.getByText("Frågan finns kvar här.", { exact: true })).toBeVisible();
   await expect(
     visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }),
   ).toHaveCount(0);
