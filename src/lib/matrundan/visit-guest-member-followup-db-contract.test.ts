@@ -7,7 +7,9 @@ const preflight = await Bun.file("supabase/production-preflight-visit-guest-memb
 
 describe("uppföljande databaskontrakt för Issue #214", () => {
   test("deltagarvakten accepterar medlemskap i en länkad grupp utan originalgruppstvång", () => {
-    const start = migration.indexOf("CREATE OR REPLACE FUNCTION public.validate_visit_participant()");
+    const start = migration.indexOf(
+      "CREATE OR REPLACE FUNCTION public.validate_visit_participant()",
+    );
     const end = migration.indexOf("ALTER TABLE public.visit_guest_member_proposals", start);
     const body = migration.slice(start, end);
 
