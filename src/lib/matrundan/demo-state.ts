@@ -3,8 +3,7 @@ import type { AppState } from "./types";
 export const EXAMPLE_STATE_STORAGE_KEY = "matrundan.exampleState.v3";
 export const SANDBOX_STATE_STORAGE_KEY = "matrundan.state.v1";
 export const DEMO_STATE_CHANGED_EVENT = "matrundan:demo-state-changed";
-export const EXAMPLE_GUEST_PROPOSAL_STORAGE_KEY =
-  `${EXAMPLE_STATE_STORAGE_KEY}.guestParticipationProposals.v1`;
+export const EXAMPLE_GUEST_PROPOSAL_STORAGE_KEY = `${EXAMPLE_STATE_STORAGE_KEY}.guestParticipationProposals.v1`;
 
 export type ExampleGuestProposalStatus = "deferred" | "declined";
 
@@ -33,9 +32,7 @@ function readExampleGuestProposalState(): Record<string, ExampleGuestProposalSta
   }
 }
 
-export function readExampleGuestProposalStatus(
-  visitId: string,
-): ExampleGuestProposalStatus | null {
+export function readExampleGuestProposalStatus(visitId: string): ExampleGuestProposalStatus | null {
   return readExampleGuestProposalState()[visitId] ?? null;
 }
 
