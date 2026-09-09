@@ -87,7 +87,7 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
     expect(preflight).toContain("guard:response-owned-by-target-user");
     expect(preflight).toContain("guard:accept-writes-canonical-participation");
     expect(preflight).toContain("guard:own-proposal-minimized");
-    expect(preflight).toContain("read-rpc:deduplicates-accepted-guest");
+    expect(preflight).toContain("read-rpc:deduplicates-visible-accepted-person");
     expect(preflight).toContain("isolation:no-authenticated-table-read");
     expect(preflight).toContain("isolation:no-client-v5k-base");
   });
