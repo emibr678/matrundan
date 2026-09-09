@@ -37,6 +37,21 @@ describe("rpc-client", () => {
     );
   });
 
+  test("döljer teknisk RPC-text i deltagarflödet", async () => {
+    const execute: RpcExecutor = async () => ({
+      data: null,
+      error: {
+        message:
+          "Could not find the function public.list_visit_shared_member_candidates_v1(_group_id, _visit_id) in the schema cache",
+      },
+    });
+    const client = createRpcClient(execute);
+
+    await expect(
+      client.call("list_visit_shared_member_candidates_v1", {}, z.array(z.unknown())),
+    ).rejects.toThrow("Deltagarvalet är tillfälligt otillgängligt. Ladda om och försök igen.");
+  });
+
   test("stoppar oväntade returvärden vid integrationsgränsen", async () => {
     const execute: RpcExecutor = async () => ({ data: { id: "fel format" }, error: null });
     const client = createRpcClient(execute);
