@@ -407,7 +407,9 @@ for (const viewport of VIEWPORTS) {
       _target_group_id: TARGET_GROUP_ID,
       _target_user_id: TARGET_USER_ID,
     });
-    await expect(page.getByText("Frågan är skickad till Johan Andersson.", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Frågan är skickad till Johan Andersson.", { exact: true }),
+    ).toBeVisible();
     await expectNoHorizontalOverflow(page, `gästkoppling ${viewport.name}`);
   });
 
