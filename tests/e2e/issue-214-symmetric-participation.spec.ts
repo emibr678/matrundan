@@ -439,7 +439,7 @@ for (const viewport of VIEWPORTS) {
     await registerDialog.getByRole("checkbox", { name: "Dela besöket med Jobbgänget" }).check();
     await expect(
       registerDialog.getByText(
-        "Efter att besöket sparats kan du direkt koppla en gäst till en medlem i en vald grupp.",
+        "Efter sparandet kan du koppla en gäst till en medlem i en vald grupp.",
         { exact: false },
       ),
     ).toBeVisible();
