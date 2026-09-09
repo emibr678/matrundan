@@ -44,8 +44,6 @@ async function executeSupabaseRpc(
   functionName: string,
   args?: Record<string, unknown>,
 ): Promise<RpcResult> {
-  // De genererade Supabase-typerna ligger tillfälligt efter migrationerna.
-  // Typ-escape hatchen hålls därför på denna enda integrationsgräns.
   const execute = supabase.rpc.bind(supabase) as unknown as RpcExecutor;
   return execute(functionName, args);
 }
