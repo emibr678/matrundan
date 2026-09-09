@@ -407,6 +407,7 @@ for (const viewport of VIEWPORTS) {
       _target_group_id: TARGET_GROUP_ID,
       _target_user_id: TARGET_USER_ID,
     });
+    await expect(linkDialog).toBeHidden();
     await expect(
       page.getByText("Frågan är skickad till Johan Andersson.", { exact: true }),
     ).toBeVisible();
@@ -425,9 +426,15 @@ for (const viewport of VIEWPORTS) {
     const prompt = visitDialog.getByLabel("Bekräfta deltagande");
     await expect(prompt).toBeVisible();
     await expect(prompt.getByText("Var du med på det här besöket?", { exact: true })).toBeVisible();
+    await expect(
+      prompt.getByText("Då registreras du som deltagare på besöket.", { exact: false }),
+    ).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Ja, jag var med" })).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Jag var inte med" })).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Inte nu" })).toBeVisible();
+    await expect(
+      visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }),
+    ).toHaveCount(0);
 
     await expect(visitDialog.getByText("Joppe", { exact: true })).toHaveCount(0);
     await expect(visitDialog.getByText("Kompisgänget", { exact: true })).toHaveCount(0);
