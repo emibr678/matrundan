@@ -3,6 +3,27 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_38_11_CHANGELOG: ChangelogEntry = {
+  version: "1.38.11",
+  date: "2026-09-09",
+  summary: "Delade besök kan få rätt deltagare utan att öppna gruppgränserna.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "En gäst på ett delat besök kan kopplas till en medlem som själv bekräftar att hen var med, och mottagargruppen kan föreslå en egen medlem utan att få se privat gästnamn eller ursprungsgrupp.",
+        "När ett besök registreras och delas samtidigt kan gästkopplingen fortsätta direkt efter sparandet utan att besöket behöver letas upp igen.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Bekräftat deltagande återanvänder samma kanoniska besök, påverkar deltagarstatistik och progression och undviker att samma person samtidigt räknas som medlem och anonym extern deltagare i en grupp där identiteten får visas.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_10_CHANGELOG: ChangelogEntry = {
   version: "1.38.10",
   date: "2026-09-08",
@@ -306,6 +327,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_38_11_CHANGELOG,
   VERSION_1_38_10_CHANGELOG,
   VERSION_1_38_9_CHANGELOG,
   VERSION_1_38_8_CHANGELOG,
