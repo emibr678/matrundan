@@ -111,8 +111,8 @@ export function SharedVisitMemberProposalDialog({
         <DialogHeader>
           <DialogTitle>Föreslå deltagare</DialogTitle>
           <DialogDescription>
-            Välj någon i den här gruppen som du vet var med på besöket. Personen får själv
-            bekräfta innan deltagandet räknas.
+            Välj någon i den här gruppen som du vet var med på besöket. Personen får själv bekräfta
+            innan deltagandet räknas.
           </DialogDescription>
         </DialogHeader>
 
@@ -167,7 +167,9 @@ export function SharedVisitMemberProposalDialog({
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{candidate.memberName}</span>
+                    <span className="block truncate text-sm font-medium">
+                      {candidate.memberName}
+                    </span>
                     {label ? (
                       <span className="block text-xs text-muted-foreground">{label}</span>
                     ) : null}
