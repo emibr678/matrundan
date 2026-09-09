@@ -166,3 +166,46 @@ export function setOwnDemoVisitParticipation(
     ),
   };
 }
+
+/**
+ * Exempelgruppens lokala motsvarighet till ett accepterat #214-förslag.
+ * Den simulerar bara produktutfallet: samma användare blir faktisk deltagare
+ * och en anonym extern person ersätts i den aktuella gruppens presentation.
+ */
+export function acceptOwnDemoGuestParticipation(state: AppState, visitId: string): AppState {
+  const visit = state.visits.find((item) => item.id === visitId);
+  if (!visit) throw new Error("Besöket finns inte.");
+  if (visit.participantIds.includes(state.currentUserId)) return state;
+  if ((visit.externalParticipantCount ?? 0) < 1) {
+    throw new Error("Det finns ingen extern deltagare att koppla till dig.");
+  }
+
+  const member = state.members.find((candidate) => candidate.id === state.currentUserId);
+  if (!member) throw new Error("Din medlem kunde inte hittas.");
+
+  return {
+    ...state,
+    visits: state.visits.map((item) =>
+      item.id === visitId
+        ? aggregateVisit({
+            ...item,
+            participantIds: [...item.participantIds, state.currentUserId],
+            participants: [
+              ...(item.participants ?? []).filter(
+                (participant) => participant.id !== state.currentUserId,
+              ),
+              {
+                id: member.id,
+                name: member.name,
+                avatar: member.avatar ?? null,
+                avatarImage: member.avatarImage ?? null,
+                status: "active",
+              },
+            ],
+            currentUserParticipationStatus: "participant",
+            externalParticipantCount: Math.max(0, (item.externalParticipantCount ?? 0) - 1),
+          })
+        : item,
+    ),
+  };
+}
