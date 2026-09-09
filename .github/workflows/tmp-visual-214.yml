@@ -31,6 +31,9 @@ jobs:
       - name: Install Chromium
         run: bunx playwright install --with-deps chromium
       - name: Capture visual review
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_matrundan_e2e
         run: bun run test:visual-review
       - name: Upload visual review
         if: always()
