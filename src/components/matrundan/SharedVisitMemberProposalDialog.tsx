@@ -95,7 +95,7 @@ export function SharedVisitMemberProposalDialog({
         await proposeSharedVisitMember(groupId, visitId, chosen.memberId);
       }
       toast.success(`Frågan är skickad till ${chosen.memberName}.`, {
-        description: "Personen behöver själv bekräfta att hen var med.",
+        description: "Personen bekräftar själv.",
       });
       onOpenChange(false);
     } catch (error) {
@@ -111,8 +111,7 @@ export function SharedVisitMemberProposalDialog({
         <DialogHeader>
           <DialogTitle>Föreslå deltagare</DialogTitle>
           <DialogDescription>
-            Välj någon i den här gruppen som du vet var med på besöket. Personen får själv bekräfta
-            innan deltagandet räknas.
+            Välj någon i gruppen som du vet var med. Personen bekräftar själv.
           </DialogDescription>
         </DialogHeader>
 
@@ -127,8 +126,7 @@ export function SharedVisitMemberProposalDialog({
           <Card className="space-y-1 rounded-2xl border-border/70 bg-muted/30 p-4">
             <p className="text-sm font-medium">Ingen att föreslå just nu</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Alla möjliga deltagare är redan registrerade, har ett väntande förslag eller så finns
-              ingen okopplad gäst kvar på besöket.
+              Alla möjliga deltagare är redan registrerade eller har en fråga väntande.
             </p>
           </Card>
         ) : (
