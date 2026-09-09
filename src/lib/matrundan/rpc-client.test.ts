@@ -37,7 +37,7 @@ describe("rpc-client", () => {
     );
   });
 
-  test("döljer teknisk RPC-text i deltagarflödet", async () => {
+  test("visar användarvänlig text när deltagar-RPC saknas", async () => {
     const execute: RpcExecutor = async () => ({
       data: null,
       error: {
