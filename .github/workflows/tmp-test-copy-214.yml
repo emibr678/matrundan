@@ -1,0 +1,41 @@
+name: Temporary #214 test copy sync
+
+on:
+  push:
+    branches:
+      - feat/214-confirm-cross-group-participation
+    paths:
+      - '.github/workflows/tmp-test-copy-214.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/214-confirm-cross-group-participation
+          show-progress: false
+      - name: Sync final copy expectation
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('tests/e2e/issue-214-symmetric-participation.spec.ts')
+          text = p.read_text(encoding='utf-8')
+          old = 'Efter att besöket sparats kan du direkt koppla en gäst till en medlem i en vald grupp.'
+          new = 'Efter sparandet kan du koppla en gäst till en medlem i en vald grupp.'
+          if old not in text:
+              raise SystemExit('Expected stale copy not found')
+          p.write_text(text.replace(old, new), encoding='utf-8')
+          Path('.github/workflows/tmp-test-copy-214.yml').unlink()
+      - name: Commit test sync
+        run: |
+          git config user.name "Matrundan Agent"
+          git config user.email "55993222+emibr678@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Synka registreringstest med slutcopy #214"
+          git push origin HEAD:feat/214-confirm-cross-group-participation
