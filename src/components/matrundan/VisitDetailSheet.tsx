@@ -85,7 +85,7 @@ export function VisitDetailSheet({
   const hasExternalParticipants = (visit?.externalParticipantCount ?? 0) > 0;
   const canLinkGuest =
     !groupArchived && isLive && !isShared && hasPrivateGuests && activeGroupCount >= 2;
-  const canSuggestSharedParticipant =
+  const canSuggestSharedParticipantBase =
     !groupArchived && !!visit && isShared && hasExternalParticipants && (isLive || isDemo);
   const canUnlink =
     !groupArchived &&
@@ -125,10 +125,20 @@ export function VisitDetailSheet({
   const [shareOpen, setShareOpen] = React.useState(false);
   const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
   const [sharedProposalOpen, setSharedProposalOpen] = React.useState(false);
+  const [ownGuestProposalState, setOwnGuestProposalState] = React.useState<
+    "loading" | "actionable" | "none"
+  >("loading");
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [unlinking, setUnlinking] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+
+  React.useEffect(() => {
+    setOwnGuestProposalState(canSuggestSharedParticipantBase ? "loading" : "none");
+  }, [canSuggestSharedParticipantBase, visit?.id]);
+
+  const canSuggestSharedParticipant =
+    canSuggestSharedParticipantBase && ownGuestProposalState === "none";
 
   async function reload() {
     if (typeof window !== "undefined") {
@@ -319,6 +329,7 @@ export function VisitDetailSheet({
                     groupArchived={groupArchived}
                     onChanged={reload}
                     demoPending={isDemo && isShared && !isParticipant && hasExternalParticipants}
+                    onProposalStateChange={setOwnGuestProposalState}
                   />
                 ) : null}
 
