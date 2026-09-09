@@ -132,7 +132,7 @@ function baseState(currentUserId: string, groupId: string) {
                 status: "active",
               },
             ],
-            visibleReviews: [],
+            reviews: [],
             overall: 0,
             photo: null,
           },
