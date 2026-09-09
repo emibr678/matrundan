@@ -427,7 +427,7 @@ for (const viewport of VIEWPORTS) {
     await expect(prompt).toBeVisible();
     await expect(prompt.getByText("Var du med på det här besöket?", { exact: true })).toBeVisible();
     await expect(
-      prompt.getByText("Då registreras du som deltagare på besöket.", { exact: false }),
+      prompt.getByText("så registreras du som deltagare.", { exact: false }),
     ).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Ja, jag var med" })).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Jag var inte med" })).toBeVisible();

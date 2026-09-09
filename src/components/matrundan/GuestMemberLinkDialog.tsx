@@ -309,7 +309,7 @@ export function GuestMemberLinkDialog({
 
             {selectedGroupId ? (
               <section className="space-y-2">
-                <h3 className="text-sm font-medium">3. Vem var med?</h3>
+                <h3 className="text-sm font-medium">3. Vem är gästen?</h3>
                 <div className="space-y-2">
                   {members.map((member) => {
                     const label = statusLabel(member.proposalStatus);

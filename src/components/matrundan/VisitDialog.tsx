@@ -285,9 +285,7 @@ export function VisitDialog({
     toast.success("Besök registrerat", {
       description:
         sharedCount > 0
-          ? continueToGuestLink
-            ? `${currentPlace.name} · välj nu om någon gäst är medlem i en delad grupp`
-            : `${currentPlace.name} · tillagt i ${sharedCount} ${sharedCount === 1 ? "grupp" : "grupper"} till`
+          ? `${currentPlace.name} · tillagt i ${sharedCount} ${sharedCount === 1 ? "grupp" : "grupper"} till`
           : currentPlace.name,
       duration: canShare && sharedCount === 0 ? 8000 : undefined,
       action:
@@ -663,8 +661,8 @@ export function VisitDialog({
                   <div className="flex gap-2 rounded-xl bg-background px-3 py-2.5 text-xs text-muted-foreground">
                     <UserRoundCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <p>
-                      Efter att besöket sparats kan du direkt koppla en gäst till en medlem i en
-                      vald grupp. Personen bekräftar själv att hen var med.
+                      Efter sparandet kan du koppla en gäst till en medlem i en vald grupp. Personen
+                      bekräftar själv.
                     </p>
                   </div>
                 ) : null}

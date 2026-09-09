@@ -292,7 +292,7 @@ export function VisitDetailSheet({
                   {hasPrivateGuests ? (
                     <div className="mt-1.5 space-y-1.5">
                       <p className="text-[11px] text-muted-foreground">
-                        Gäster hör bara till detta besök och får ingen medlemsprogression.
+                        Gäster hör bara till besöket och räknas inte som gruppmedlemmar.
                       </p>
                       {canLinkGuest ? (
                         <Button

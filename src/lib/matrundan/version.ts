@@ -18,7 +18,7 @@ const VERSION_1_38_11_CHANGELOG: ChangelogEntry = {
     {
       kind: "Förbättrat",
       items: [
-        "Bekräftat deltagande återanvänder samma kanoniska besök, påverkar deltagarstatistik och progression och undviker att samma person samtidigt räknas som medlem och anonym extern deltagare i en grupp där identiteten får visas.",
+        "Bekräftat deltagande kopplas till samma delade besök och räknas i deltagarstatistik och progression, utan att samma person samtidigt visas som medlem och anonym deltagare i gruppen.",
       ],
     },
   ],
