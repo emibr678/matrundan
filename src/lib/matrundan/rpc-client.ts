@@ -20,6 +20,18 @@ const INVALID_SERVER_RESPONSE = "Servern svarade med ett oväntat format.";
 const RPC_UNAVAILABLE_MESSAGES: Partial<Record<string, string>> = {
   create_place_data_report_from_suggestion_v1:
     "Platsdatarapportering är tillfälligt otillgänglig. Ladda om appen och försök igen.",
+  list_visit_guest_member_targets_v1:
+    "Deltagarvalet är tillfälligt otillgängligt. Ladda om och försök igen.",
+  propose_visit_guest_member_v1:
+    "Kunde inte skicka frågan just nu. Ladda om och försök igen.",
+  list_visit_shared_member_candidates_v1:
+    "Deltagarvalet är tillfälligt otillgängligt. Ladda om och försök igen.",
+  propose_shared_visit_member_v1:
+    "Kunde inte skicka frågan just nu. Ladda om och försök igen.",
+  get_own_visit_guest_proposal_v1:
+    "Deltagarfrågan är tillfälligt otillgänglig. Ladda om och försök igen.",
+  respond_visit_guest_proposal_v1:
+    "Kunde inte spara ditt svar just nu. Ladda om och försök igen.",
 };
 
 function toRpcError(functionName: string, error: RpcErrorLike | null): Error {
