@@ -100,6 +100,13 @@ export async function proposeSharedVisitMember(
   );
 }
 
+export async function confirmSharedVisitSelf(groupId: string, visitId: string): Promise<void> {
+  await rpcClient.callVoid("confirm_shared_visit_self_v1", {
+    _group_id: groupId,
+    _visit_id: visitId,
+  });
+}
+
 export async function getOwnVisitGuestProposal(
   groupId: string,
   visitId: string,
