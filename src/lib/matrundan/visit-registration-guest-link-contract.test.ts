@@ -9,7 +9,9 @@ describe("registrering + delning för Issue #214", () => {
     expect(visitDialog).toContain("guests.length > 0");
     expect(visitDialog).toContain("sharedCount > 0");
     expect(visitDialog).toContain("!!created?.id");
-    expect(visitDialog).toContain("setGuestLinkPayload({ visitId: created.id, sourceGroupId: activeGroupId })");
+    expect(visitDialog).toContain(
+      "setGuestLinkPayload({ visitId: created.id, sourceGroupId: activeGroupId })",
+    );
   });
 
   test("stänger registreringsdialogen innan gästkopplingsdialogen tar över", () => {
