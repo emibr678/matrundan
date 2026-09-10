@@ -17,14 +17,6 @@ const guestMemberTargetSchema = z.object({
   proposalStatus: proposalStatusSchema.nullable(),
 });
 
-const sharedMemberCandidateSchema = z.object({
-  memberId: z.string().min(1),
-  memberName: z.string().min(1),
-  memberAvatar: z.string().nullable(),
-  memberAvatarImage: z.string().nullable(),
-  proposalStatus: proposalStatusSchema.nullable(),
-});
-
 const ownProposalSchema = z
   .object({
     proposalId: z.string().min(1),
@@ -34,7 +26,6 @@ const ownProposalSchema = z
 
 export type GuestMemberProposalStatus = z.infer<typeof proposalStatusSchema>;
 export type GuestMemberTarget = z.infer<typeof guestMemberTargetSchema>;
-export type SharedVisitMemberCandidate = z.infer<typeof sharedMemberCandidateSchema>;
 export type OwnGuestMemberProposal = Exclude<z.infer<typeof ownProposalSchema>, null>;
 export type GuestMemberProposalResponse = "accept" | "decline" | "defer";
 
@@ -69,42 +60,6 @@ export async function proposeVisitGuestMember(
     z.string().min(1),
     "Kunde inte skapa deltagandeförslaget.",
   );
-}
-
-export async function listSharedVisitMemberCandidates(
-  groupId: string,
-  visitId: string,
-): Promise<SharedVisitMemberCandidate[]> {
-  return rpcClient.call(
-    "list_visit_shared_member_candidates_v1",
-    { _group_id: groupId, _visit_id: visitId },
-    z.array(sharedMemberCandidateSchema),
-    "Kunde inte läsa möjliga deltagare i gruppen.",
-  );
-}
-
-export async function proposeSharedVisitMember(
-  groupId: string,
-  visitId: string,
-  targetUserId: string,
-): Promise<string> {
-  return rpcClient.call(
-    "propose_shared_visit_member_v1",
-    {
-      _group_id: groupId,
-      _visit_id: visitId,
-      _target_user_id: targetUserId,
-    },
-    z.string().min(1),
-    "Kunde inte skapa deltagandeförslaget.",
-  );
-}
-
-export async function confirmSharedVisitSelf(groupId: string, visitId: string): Promise<void> {
-  await rpcClient.callVoid("confirm_shared_visit_self_v1", {
-    _group_id: groupId,
-    _visit_id: visitId,
-  });
 }
 
 export async function getOwnVisitGuestProposal(
