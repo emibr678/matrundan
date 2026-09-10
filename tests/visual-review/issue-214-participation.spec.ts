@@ -248,7 +248,7 @@ test("fånga exempelgruppens egen deltagandefråga och deltagarval", async ({ pa
 
   await prompt.getByRole("button", { name: "Jag var inte med" }).click();
   visitDialog = page.getByRole("dialog").first();
-  const proposeButton = visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" });
+  const proposeButton = visitDialog.getByRole("button", { name: "Lägg till deltagare" });
   await expect(proposeButton).toBeVisible();
   await proposeButton.click();
   const proposalDialog = page.getByRole("dialog", { name: "Lägg till deltagare" });
