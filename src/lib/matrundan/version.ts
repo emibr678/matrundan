@@ -5,20 +5,20 @@ export type { ChangelogEntry };
 
 const VERSION_1_38_11_CHANGELOG: ChangelogEntry = {
   version: "1.38.11",
-  date: "2026-09-09",
+  date: "2026-09-10",
   summary: "Delade besök kan få rätt deltagare utan att öppna gruppgränserna.",
   sections: [
     {
       kind: "Nytt",
       items: [
-        "En gäst på ett delat besök kan kopplas till en medlem som själv bekräftar att hen var med, och mottagargruppen kan föreslå en egen medlem utan att få se privat gästnamn eller ursprungsgrupp.",
+        "En namngiven gäst på ett delat besök kan kopplas till en medlem i en grupp där besöket redan finns. Den utpekade medlemmen bekräftar själv innan deltagandet räknas.",
         "När ett besök registreras och delas samtidigt kan gästkopplingen fortsätta direkt efter sparandet utan att besöket behöver letas upp igen.",
       ],
     },
     {
       kind: "Förbättrat",
       items: [
-        "Bekräftat deltagande kopplas till samma delade besök och räknas i deltagarstatistik och progression, utan att samma person samtidigt visas som medlem och anonym deltagare i gruppen.",
+        "Gästnamn stannar i originalgruppen. Mottagaren ser bara sin egen bekräftelsefråga, och bekräftat deltagande kopplas till samma besök utan dubbelräkning.",
       ],
     },
   ],
