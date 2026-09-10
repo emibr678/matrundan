@@ -1822,7 +1822,7 @@ export type Database = {
       visit_guest_member_proposals: {
         Row: {
           created_at: string
-          guest_id: string | null
+          guest_id: string
           id: string
           proposal_kind: string
           proposed_by: string | null
@@ -1835,7 +1835,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          guest_id?: string | null
+          guest_id: string
           id?: string
           proposal_kind?: string
           proposed_by?: string | null
@@ -1848,7 +1848,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          guest_id?: string | null
+          guest_id?: string
           id?: string
           proposal_kind?: string
           proposed_by?: string | null
@@ -2180,10 +2180,6 @@ export type Database = {
           _provider_place_id: string
           _verdict: string
         }
-        Returns: undefined
-      }
-      confirm_shared_visit_self_v1: {
-        Args: { _group_id: string; _visit_id: string }
         Returns: undefined
       }
       create_group_invitation: {
@@ -2700,10 +2696,6 @@ export type Database = {
         Args: { _visit_id: string }
         Returns: Json
       }
-      list_visit_shared_member_candidates_v1: {
-        Args: { _group_id: string; _visit_id: string }
-        Returns: Json
-      }
       mark_place_improvement_candidate_needs_osm_v1: {
         Args: { _candidate_id: string }
         Returns: string
@@ -2759,10 +2751,6 @@ export type Database = {
       }
       propose_next_stop_place_v2: {
         Args: { _group_id: string; _place_id: string }
-        Returns: string
-      }
-      propose_shared_visit_member_v1: {
-        Args: { _group_id: string; _target_user_id: string; _visit_id: string }
         Returns: string
       }
       propose_visit_guest_member_v1: {
