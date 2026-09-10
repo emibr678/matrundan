@@ -10,12 +10,30 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   );
 }
 
+async function disableMotion(page: Page) {
+  await page.addStyleTag({
+    content: `
+      *, *::before, *::after {
+        animation-delay: 0s !important;
+        animation-duration: 0s !important;
+        transition-delay: 0s !important;
+        transition-duration: 0s !important;
+      }
+    `,
+  });
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
 test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 
   await page.goto("/matstallen/p9?visit=v9");
+  await disableMotion(page);
   let visitDialog = page.getByRole("dialog").first();
   let prompt = visitDialog.getByLabel("Bekräfta deltagande");
   await expect(prompt).toBeVisible();
@@ -25,6 +43,7 @@ test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", 
   await expect(visitDialog.getByLabel("Deltagandeförslag väntar på svar")).toBeVisible();
 
   await page.reload();
+  await disableMotion(page);
   visitDialog = page.getByRole("dialog").first();
   const deferred = visitDialog.getByLabel("Deltagandeförslag väntar på svar");
   await expect(deferred).toBeVisible();
@@ -40,6 +59,7 @@ test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", 
   await expect(addParticipantButton).toBeVisible();
 
   await page.reload();
+  await disableMotion(page);
   visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByLabel("Bekräfta deltagande")).toHaveCount(0);
   await expect(visitDialog.getByLabel("Deltagandeförslag väntar på svar")).toHaveCount(0);
@@ -65,6 +85,7 @@ test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", 
   await expect(page.getByText("Exempelgruppen är återställd.", { exact: true })).toBeVisible();
 
   await page.goto("/matstallen/p9?visit=v9");
+  await disableMotion(page);
   visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByLabel("Bekräfta deltagande")).toBeVisible();
   await expect(visitDialog.getByRole("button", { name: "Lägg till deltagare" })).toHaveCount(0);
