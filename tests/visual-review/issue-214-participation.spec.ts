@@ -45,7 +45,7 @@ async function seedSourceSession(page: Page) {
   await page.addInitScript(
     ({ storageKey, activeGroupKey, session }) => {
       window.localStorage.setItem(storageKey, JSON.stringify(session));
-      window.localStorage.setItem(activeGroupKey, "33333333-3333-4333-8333-333333333333");
+      window.localStorage.setItem(activeGroupKey, SOURCE_GROUP_ID);
     },
     {
       storageKey: SUPABASE_AUTH_STORAGE_KEY,
@@ -156,8 +156,20 @@ function sourceState() {
         participantIds: [SOURCE_USER_ID],
         currentUserParticipationStatus: "participant",
         participants: [
-          { id: SOURCE_USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, status: "active" },
-          { id: `guest:${GUEST_ID}`, name: "Joppe", avatar: "👤", avatarImage: null, status: "guest" },
+          {
+            id: SOURCE_USER_ID,
+            name: "Emil",
+            avatar: "🙂",
+            avatarImage: null,
+            status: "active",
+          },
+          {
+            id: `guest:${GUEST_ID}`,
+            name: "Joppe",
+            avatar: "👤",
+            avatarImage: null,
+            status: "guest",
+          },
         ],
         reviews: [],
         photo: null,
@@ -178,14 +190,30 @@ async function mockSource(page: Page) {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify([
-          { id: SOURCE_GROUP_ID, name: "Kompisgänget", emoji: "🍜", role: "owner", lifecycleStatus: "active" },
-          { id: TARGET_GROUP_ID, name: "Jobbgänget", emoji: "🥘", role: "member", lifecycleStatus: "active" },
+          {
+            id: SOURCE_GROUP_ID,
+            name: "Kompisgänget",
+            emoji: "🍜",
+            role: "owner",
+            lifecycleStatus: "active",
+          },
+          {
+            id: TARGET_GROUP_ID,
+            name: "Jobbgänget",
+            emoji: "🥘",
+            role: "member",
+            lifecycleStatus: "active",
+          },
         ]),
       });
       return;
     }
     if (rpc.startsWith("get_group_app_state_v5")) {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(sourceState()) });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(sourceState()),
+      });
       return;
     }
     if (rpc === "list_visit_guest_member_targets_v1") {
@@ -232,7 +260,7 @@ test("fånga originalgruppens gästkoppling", async ({ page }, testInfo) => {
   await capture(page, testInfo, "issue-214-koppla-gast");
 });
 
-test("fånga exempelgruppens egen deltagandefråga och deltagarval", async ({ page }, testInfo) => {
+test("fånga exempelgruppens mottagna deltagandefråga", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await page.goto("/exempel", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
@@ -240,21 +268,10 @@ test("fånga exempelgruppens egen deltagandefråga och deltagarval", async ({ pa
   await expect(page.getByText("Exempelgruppen är återställd.", { exact: true })).toBeVisible();
 
   await page.goto("/matstallen/p9?visit=v9", { waitUntil: "domcontentloaded" });
-  let visitDialog = page.getByRole("dialog").first();
+  const visitDialog = page.getByRole("dialog").first();
   const prompt = visitDialog.getByLabel("Bekräfta deltagande");
   await expect(prompt).toBeVisible();
+  await expect(visitDialog.getByRole("button", { name: "Lägg till deltagare" })).toHaveCount(0);
   await stabilize(page);
   await capture(page, testInfo, "issue-214-bekrafta-deltagande");
-
-  await prompt.getByRole("button", { name: "Jag var inte med" }).click();
-  visitDialog = page.getByRole("dialog").first();
-  const proposeButton = visitDialog.getByRole("button", { name: "Lägg till deltagare" });
-  await expect(proposeButton).toBeVisible();
-  await proposeButton.click();
-  const proposalDialog = page.getByRole("dialog", { name: "Lägg till deltagare" });
-  await expect(proposalDialog).toBeVisible();
-  await expect(proposalDialog.getByText("Var du själv med?", { exact: true })).toBeVisible();
-  await expect(proposalDialog.getByRole("button", { name: "Ja, lägg till mig" })).toBeVisible();
-  await stabilize(page);
-  await capture(page, testInfo, "issue-214-lagg-till-deltagare");
 });
