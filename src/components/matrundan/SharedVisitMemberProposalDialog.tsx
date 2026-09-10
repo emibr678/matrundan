@@ -181,7 +181,7 @@ export function SharedVisitMemberProposalDialog({
         <DialogHeader>
           <DialogTitle>Lägg till deltagare</DialogTitle>
           <DialogDescription>
-            Var du själv med kan du lägga till dig direkt. Annars kan du föreslå någon annan.
+            Om du själv var med kan du lägga till dig direkt. Annars kan du föreslå någon annan.
           </DialogDescription>
         </DialogHeader>
 
