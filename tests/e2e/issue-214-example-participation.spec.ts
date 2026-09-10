@@ -64,9 +64,9 @@ test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", 
   await participantDialog.getByRole("button", { name: "Ja, lägg till mig" }).click();
   await expect(page.getByText("Du är tillagd som deltagare.", { exact: true })).toBeVisible();
   await expect(participantDialog).toBeHidden();
-  await expect(
-    page.getByTitle("Personer utanför den här gruppen visas anonymt."),
-  ).toContainText("+1 utanför gruppen");
+  await expect(page.getByTitle("Personer utanför den här gruppen visas anonymt.")).toContainText(
+    "+1 utanför gruppen",
+  );
 
   await page.goto("/exempel");
   await page.getByRole("button", { name: "Återställ" }).click();
