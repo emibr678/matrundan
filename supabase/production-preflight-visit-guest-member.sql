@@ -35,6 +35,8 @@ WITH checks(name, ok) AS (
       to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)') IS NOT NULL),
     ('rpc:propose-shared-member',
       to_regprocedure('public.propose_shared_visit_member_v1(uuid,uuid,uuid)') IS NOT NULL),
+    ('rpc:confirm-shared-self',
+      to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)') IS NOT NULL),
     ('rpc:get-own-proposal',
       to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)') IS NOT NULL),
     ('rpc:respond',
@@ -70,6 +72,13 @@ WITH checks(name, ok) AS (
         )) > 0,
         false
       )),
+    ('guard:shared-candidates-include-self-option',
+      COALESCE(
+        position('candidate.user_id <> _uid' IN pg_get_functiondef(
+          to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)')
+        )) = 0,
+        false
+      )),
     ('guard:shared-candidates-no-guest-alias',
       COALESCE(
         position('guest.display_name' IN pg_get_functiondef(
@@ -94,6 +103,36 @@ WITH checks(name, ok) AS (
       COALESCE(
         position('_target_user_id = _uid' IN pg_get_functiondef(
           to_regprocedure('public.propose_shared_visit_member_v1(uuid,uuid,uuid)')
+        )) > 0,
+        false
+      )),
+    ('guard:shared-self-active-member',
+      COALESCE(
+        position('public.has_membership(_group_id, _uid)' IN pg_get_functiondef(
+          to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)')
+        )) > 0
+        AND position('link.link_type = ''shared''' IN pg_get_functiondef(
+          to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)')
+        )) > 0,
+        false
+      )),
+    ('guard:shared-self-free-slot',
+      COALESCE(
+        position('_reserved_count >= _guest_count' IN pg_get_functiondef(
+          to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)')
+        )) > 0,
+        false
+      )),
+    ('guard:shared-self-canonical-participation',
+      COALESCE(
+        position('''accepted''' IN pg_get_functiondef(
+          to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)')
+        )) > 0
+        AND position('INSERT INTO public.visit_participants' IN pg_get_functiondef(
+          to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)')
+        )) > 0
+        AND position('VALUES (_visit_id, _uid)' IN pg_get_functiondef(
+          to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)')
         )) > 0,
         false
       )),
@@ -155,6 +194,7 @@ WITH checks(name, ok) AS (
       AND has_function_privilege('authenticated', 'public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.list_visit_shared_member_candidates_v1(uuid,uuid)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.propose_shared_visit_member_v1(uuid,uuid,uuid)', 'EXECUTE')
+      AND has_function_privilege('authenticated', 'public.confirm_shared_visit_self_v1(uuid,uuid)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.get_own_visit_guest_proposal_v1(uuid,uuid)', 'EXECUTE')
       AND has_function_privilege('authenticated', 'public.respond_visit_guest_proposal_v1(uuid,uuid,text)', 'EXECUTE')),
     ('isolation:no-anon-rpcs',
@@ -162,6 +202,7 @@ WITH checks(name, ok) AS (
       AND NOT has_function_privilege('anon', 'public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)', 'EXECUTE')
       AND NOT has_function_privilege('anon', 'public.list_visit_shared_member_candidates_v1(uuid,uuid)', 'EXECUTE')
       AND NOT has_function_privilege('anon', 'public.propose_shared_visit_member_v1(uuid,uuid,uuid)', 'EXECUTE')
+      AND NOT has_function_privilege('anon', 'public.confirm_shared_visit_self_v1(uuid,uuid)', 'EXECUTE')
       AND NOT has_function_privilege('anon', 'public.get_own_visit_guest_proposal_v1(uuid,uuid)', 'EXECUTE')
       AND NOT has_function_privilege('anon', 'public.respond_visit_guest_proposal_v1(uuid,uuid,text)', 'EXECUTE')),
     ('isolation:no-authenticated-table-read',
