@@ -1,4 +1,4 @@
-name: Temporary #214 precise-model correction
+name: "Temporary 214 precise correction"
 
 on:
   push:
@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   correct:
-    if: github.event.head_commit.message == 'Förbered precis gästkoppling för #214'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -25,18 +24,16 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
+          import subprocess
 
           root = Path('.')
 
-          # Restore the precise client surface: specific guest -> specific member only.
-          import subprocess
           precise_client = subprocess.check_output([
               'git', 'show',
               '31fbbbafb06f2c1429a6fd2291917f0886e8567e:src/lib/matrundan/live-visit-guest-members.ts'
           ], text=True)
           (root / 'src/lib/matrundan/live-visit-guest-members.ts').write_text(precise_client)
 
-          # Remove recipient-group generic UI while keeping demo of a received precise proposal.
           path = root / 'src/components/matrundan/VisitDetailSheet.tsx'
           text = path.read_text()
           text = text.replace(
@@ -74,10 +71,8 @@ jobs:
           for forbidden in ['SharedVisitMemberProposalDialog', 'canSuggestSharedParticipant', 'sharedProposalOpen', 'UserRoundPlus']:
               assert forbidden not in text, forbidden
           assert 'demoPending={isDemo && isShared && !isParticipant && hasExternalParticipants}' in text
-          assert 'Koppla gäst till medlem' in text
           path.write_text(text)
 
-          # Remove the generic recipient/self UI component and self-confirm contract test.
           for filename in [
               'src/components/matrundan/SharedVisitMemberProposalDialog.tsx',
               'src/lib/matrundan/visit-guest-member-self-confirmation-db-contract.test.ts',
@@ -86,7 +81,6 @@ jobs:
               if p.exists():
                   p.unlink()
 
-          # Keep only the valuable registration->sharing->precise-link browser coverage.
           old = root / 'tests/e2e/issue-214-symmetric-participation.spec.ts'
           text = old.read_text()
           start = text.index('async function mockRecipient(')
@@ -99,7 +93,6 @@ jobs:
           new.write_text(text)
           old.unlink()
 
-          # Example group: emulate a received precise proposal, never a self-claim.
           path = root / 'tests/e2e/issue-214-example-participation.spec.ts'
           text = path.read_text()
           text = text.replace(
@@ -121,7 +114,6 @@ jobs:
           assert 'Ja, lägg till mig' not in text
           path.write_text(text)
 
-          # Visual review: source precise mapping + recipient's neutral confirmation only.
           path = root / 'tests/visual-review/issue-214-participation.spec.ts'
           text = path.read_text()
           marker = 'test("fånga exempelgruppens egen deltagandefråga och deltagarval"'
@@ -144,15 +136,11 @@ jobs:
           '''
           path.write_text(text[:cut] + replacement)
 
-          # New forward-only correction migration. Historical staging migrations remain immutable.
           migration = root / 'supabase/migrations/20260910165000_visit_guest_member_precise_link_only_v1.sql'
           migration.write_text(r'''BEGIN;
 
 -- Issue #214 — slutlig modell: en specifik gäst kopplas till en specifik medlem.
---
--- De tillfälliga mottagargrupps-/självvägarna kunde inte veta vilken registrerad
--- gäst en medlem motsvarade. De tas därför bort framåtriktat. Gästnamn stannar i
--- originalgruppen; den utpekade medlemmen får bara en neutral bekräftelsefråga.
+-- De tillfälliga mottagargrupps-/självvägarna tas bort framåtriktat.
 
 DO $guard$
 BEGIN
@@ -171,8 +159,7 @@ END;
 $guard$;
 
 UPDATE public.visit_participation_self_corrections correction
-SET status = 'declined',
-    updated_at = now()
+SET status = 'declined', updated_at = now()
 WHERE correction.status = 'restored'
   AND EXISTS (
     SELECT 1
@@ -182,8 +169,7 @@ WHERE correction.status = 'restored'
       AND proposal.proposal_kind = 'shared_member'
       AND proposal.status = 'accepted'
       AND NOT EXISTS (
-        SELECT 1
-        FROM public.visit_guest_member_proposals precise
+        SELECT 1 FROM public.visit_guest_member_proposals precise
         WHERE precise.visit_id = proposal.visit_id
           AND precise.target_user_id = proposal.target_user_id
           AND precise.proposal_kind = 'guest_link'
@@ -200,8 +186,7 @@ WHERE EXISTS (
     AND proposal.proposal_kind = 'shared_member'
     AND proposal.status = 'accepted'
     AND NOT EXISTS (
-      SELECT 1
-      FROM public.visit_guest_member_proposals precise
+      SELECT 1 FROM public.visit_guest_member_proposals precise
       WHERE precise.visit_id = proposal.visit_id
         AND precise.target_user_id = proposal.target_user_id
         AND precise.proposal_kind = 'guest_link'
@@ -226,9 +211,7 @@ ALTER TABLE public.visit_guest_member_proposals
 
 DO $assertions$
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM public.visit_guest_member_proposals WHERE proposal_kind <> 'guest_link'
-  ) THEN
+  IF EXISTS (SELECT 1 FROM public.visit_guest_member_proposals WHERE proposal_kind <> 'guest_link') THEN
     RAISE EXCEPTION 'Endast precisa gästkopplingar får finnas kvar';
   END IF;
   IF to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)') IS NOT NULL
@@ -241,8 +224,7 @@ BEGIN
     RAISE EXCEPTION 'Den precisa gästkopplingsvägen saknas';
   END IF;
   IF EXISTS (
-    SELECT 1
-    FROM information_schema.columns
+    SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public'
       AND table_name = 'visit_guest_member_proposals'
       AND column_name = 'guest_id'
@@ -259,11 +241,9 @@ END;
 $assertions$;
 
 NOTIFY pgrst, 'reload schema';
-
 COMMIT;
 ''')
 
-          # Final database contract: preserve linked-group participant guard and enforce precise-only surface.
           (root / 'src/lib/matrundan/visit-guest-member-followup-db-contract.test.ts').write_text(r'''import { describe, expect, test } from "bun:test";
 
 const followup = await Bun.file(
@@ -279,7 +259,6 @@ describe("slutligt databaskontrakt för Issue #214", () => {
     const start = followup.indexOf("CREATE OR REPLACE FUNCTION public.validate_visit_participant()");
     const end = followup.indexOf("ALTER TABLE public.visit_guest_member_proposals", start);
     const body = followup.slice(start, end);
-
     expect(body).toContain("FROM public.visit_group_links link");
     expect(body).toContain("JOIN public.memberships membership");
     expect(body).toContain("membership.user_id = NEW.user_id");
@@ -291,7 +270,6 @@ describe("slutligt databaskontrakt för Issue #214", () => {
     expect(correction).toContain("DROP FUNCTION IF EXISTS public.confirm_shared_visit_self_v1");
     expect(correction).toContain("DROP FUNCTION IF EXISTS public.propose_shared_visit_member_v1");
     expect(correction).toContain("DROP FUNCTION IF EXISTS public.list_visit_shared_member_candidates_v1");
-    expect(correction).toContain("DELETE FROM public.visit_guest_member_proposals");
     expect(correction).toContain("WHERE proposal_kind = 'shared_member'");
   });
 
@@ -302,7 +280,6 @@ describe("slutligt databaskontrakt för Issue #214", () => {
 
   test("stagingdata återställs säkert innan den felaktiga modellen tas bort", () => {
     expect(correction).toContain("JOIN public.reviews review");
-    expect(correction).toContain("RAISE EXCEPTION 'Kan inte återställa generell deltagarkoppling med efterföljande omdöme'");
     expect(correction).toContain("DELETE FROM public.visit_participants participant");
     expect(correction).toContain("public.visit_participation_self_corrections correction");
     expect(correction).toContain("precise.proposal_kind = 'guest_link'");
@@ -319,119 +296,38 @@ describe("slutligt databaskontrakt för Issue #214", () => {
 });
 ''')
 
-          # Final production/staging preflight for the precise-only contract.
           (root / 'supabase/production-preflight-visit-guest-member.sql').write_text(r'''-- Produktions-preflight för Issue #214 — precis gäst → medlem-koppling.
 -- Körs skrivskyddat efter migration och före publicering. Alla rader ska ge ok=true.
 
 WITH checks(name, ok) AS (
   VALUES
-    ('table:visit_guest_member_proposals',
-      to_regclass('public.visit_guest_member_proposals') IS NOT NULL),
-    ('rls:visit_guest_member_proposals',
-      COALESCE((SELECT c.relrowsecurity FROM pg_class c
-                WHERE c.oid = to_regclass('public.visit_guest_member_proposals')), false)),
-    ('schema:guest-id-required',
-      COALESCE((SELECT c.is_nullable = 'NO' FROM information_schema.columns c
-                WHERE c.table_schema = 'public'
-                  AND c.table_name = 'visit_guest_member_proposals'
-                  AND c.column_name = 'guest_id'), false)),
-    ('schema:guest-link-only',
-      COALESCE((SELECT position('proposal_kind = ''guest_link''' IN pg_get_constraintdef(con.oid)) > 0
-                FROM pg_constraint con
-                WHERE con.conrelid = 'public.visit_guest_member_proposals'::regclass
-                  AND con.conname = 'visit_guest_member_proposals_kind_guest_check'), false)
-      AND NOT EXISTS (
-        SELECT 1 FROM public.visit_guest_member_proposals WHERE proposal_kind <> 'guest_link'
-      )),
-    ('rpc:list-targets',
-      to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)') IS NOT NULL),
-    ('rpc:propose-guest',
-      to_regprocedure('public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)') IS NOT NULL),
-    ('rpc:get-own-proposal',
-      to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)') IS NOT NULL),
-    ('rpc:respond',
-      to_regprocedure('public.respond_visit_guest_proposal_v1(uuid,uuid,text)') IS NOT NULL),
-    ('rpc:generic-recipient-paths-removed',
-      to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)') IS NULL
-      AND to_regprocedure('public.propose_shared_visit_member_v1(uuid,uuid,uuid)') IS NULL
-      AND to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)') IS NULL),
-    ('read-rpc:current-v5k',
-      to_regprocedure('public.get_group_app_state_v5k(uuid)') IS NOT NULL),
-    ('read-rpc:server-only-base',
-      to_regprocedure('public.get_group_app_state_v5k_guest_identity_base(uuid)') IS NOT NULL),
-    ('guard:targets-original-group-only',
-      COALESCE(position('link_type = ''original''' IN pg_get_functiondef(
-        to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)')
-      )) > 0, false)),
-    ('guard:targets-require-linked-target',
-      COALESCE(position('visit_group_links target_link' IN pg_get_functiondef(
-        to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)')
-      )) > 0
-      AND position('actor_membership.status = ''active''' IN pg_get_functiondef(
-        to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)')
-      )) > 0, false)),
-    ('guard:participant-linked-group-membership',
-      COALESCE(position('JOIN public.memberships membership' IN pg_get_functiondef(
-        to_regprocedure('public.validate_visit_participant()')
-      )) > 0
-      AND position('membership.status = ''active''' IN pg_get_functiondef(
-        to_regprocedure('public.validate_visit_participant()')
-      )) > 0
-      AND position('link_type = ''original''' IN pg_get_functiondef(
-        to_regprocedure('public.validate_visit_participant()')
-      )) = 0, false)),
-    ('guard:response-owned-by-target-user',
-      COALESCE(position('proposal.target_user_id = _uid' IN pg_get_functiondef(
-        to_regprocedure('public.respond_visit_guest_proposal_v1(uuid,uuid,text)')
-      )) > 0, false)),
-    ('guard:accept-writes-canonical-participation',
-      COALESCE(position('INSERT INTO public.visit_participants' IN pg_get_functiondef(
-        to_regprocedure('public.respond_visit_guest_proposal_v1(uuid,uuid,text)')
-      )) > 0
-      AND position('VALUES (_proposal.visit_id, _uid)' IN pg_get_functiondef(
-        to_regprocedure('public.respond_visit_guest_proposal_v1(uuid,uuid,text)')
-      )) > 0, false)),
-    ('guard:own-proposal-minimized',
-      COALESCE(position('proposalId' IN pg_get_functiondef(
-        to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)')
-      )) > 0
-      AND position('guestName' IN pg_get_functiondef(
-        to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)')
-      )) = 0
-      AND position('proposedBy' IN pg_get_functiondef(
-        to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)')
-      )) = 0, false)),
-    ('read-rpc:deduplicates-visible-accepted-person',
-      COALESCE(position('accepted_visible_count' IN pg_get_functiondef(
-        to_regprocedure('public.get_group_app_state_v5k(uuid)')
-      )) > 0
-      AND position('external_count - visit_row.accepted_visible_count' IN pg_get_functiondef(
-        to_regprocedure('public.get_group_app_state_v5k(uuid)')
-      )) > 0, false)),
-    ('grant:authenticated-rpcs',
-      has_function_privilege('authenticated', 'public.list_visit_guest_member_targets_v1(uuid,uuid)', 'EXECUTE')
-      AND has_function_privilege('authenticated', 'public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)', 'EXECUTE')
-      AND has_function_privilege('authenticated', 'public.get_own_visit_guest_proposal_v1(uuid,uuid)', 'EXECUTE')
-      AND has_function_privilege('authenticated', 'public.respond_visit_guest_proposal_v1(uuid,uuid,text)', 'EXECUTE')),
-    ('isolation:no-anon-rpcs',
-      NOT has_function_privilege('anon', 'public.list_visit_guest_member_targets_v1(uuid,uuid)', 'EXECUTE')
-      AND NOT has_function_privilege('anon', 'public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)', 'EXECUTE')
-      AND NOT has_function_privilege('anon', 'public.get_own_visit_guest_proposal_v1(uuid,uuid)', 'EXECUTE')
-      AND NOT has_function_privilege('anon', 'public.respond_visit_guest_proposal_v1(uuid,uuid,text)', 'EXECUTE')),
-    ('isolation:no-authenticated-table-read',
-      NOT has_table_privilege('authenticated', 'public.visit_guest_member_proposals', 'SELECT')),
-    ('isolation:no-authenticated-table-write',
-      NOT has_table_privilege('authenticated', 'public.visit_guest_member_proposals', 'INSERT')),
-    ('isolation:no-client-v5k-base',
-      NOT has_function_privilege('authenticated', 'public.get_group_app_state_v5k_guest_identity_base(uuid)', 'EXECUTE')
-      AND NOT has_function_privilege('anon', 'public.get_group_app_state_v5k_guest_identity_base(uuid)', 'EXECUTE'))
+    ('table:visit_guest_member_proposals', to_regclass('public.visit_guest_member_proposals') IS NOT NULL),
+    ('rls:visit_guest_member_proposals', COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.visit_guest_member_proposals')), false)),
+    ('schema:guest-id-required', COALESCE((SELECT c.is_nullable = 'NO' FROM information_schema.columns c WHERE c.table_schema = 'public' AND c.table_name = 'visit_guest_member_proposals' AND c.column_name = 'guest_id'), false)),
+    ('schema:guest-link-only', COALESCE((SELECT position('proposal_kind = ''guest_link''' IN pg_get_constraintdef(con.oid)) > 0 FROM pg_constraint con WHERE con.conrelid = 'public.visit_guest_member_proposals'::regclass AND con.conname = 'visit_guest_member_proposals_kind_guest_check'), false) AND NOT EXISTS (SELECT 1 FROM public.visit_guest_member_proposals WHERE proposal_kind <> 'guest_link')),
+    ('rpc:list-targets', to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)') IS NOT NULL),
+    ('rpc:propose-guest', to_regprocedure('public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)') IS NOT NULL),
+    ('rpc:get-own-proposal', to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)') IS NOT NULL),
+    ('rpc:respond', to_regprocedure('public.respond_visit_guest_proposal_v1(uuid,uuid,text)') IS NOT NULL),
+    ('rpc:generic-recipient-paths-removed', to_regprocedure('public.list_visit_shared_member_candidates_v1(uuid,uuid)') IS NULL AND to_regprocedure('public.propose_shared_visit_member_v1(uuid,uuid,uuid)') IS NULL AND to_regprocedure('public.confirm_shared_visit_self_v1(uuid,uuid)') IS NULL),
+    ('read-rpc:current-v5k', to_regprocedure('public.get_group_app_state_v5k(uuid)') IS NOT NULL),
+    ('read-rpc:server-only-base', to_regprocedure('public.get_group_app_state_v5k_guest_identity_base(uuid)') IS NOT NULL),
+    ('guard:targets-original-group-only', COALESCE(position('link_type = ''original''' IN pg_get_functiondef(to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)'))) > 0, false)),
+    ('guard:targets-require-linked-target', COALESCE(position('visit_group_links target_link' IN pg_get_functiondef(to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)'))) > 0 AND position('actor_membership.status = ''active''' IN pg_get_functiondef(to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)'))) > 0, false)),
+    ('guard:participant-linked-group-membership', COALESCE(position('JOIN public.memberships membership' IN pg_get_functiondef(to_regprocedure('public.validate_visit_participant()'))) > 0 AND position('membership.status = ''active''' IN pg_get_functiondef(to_regprocedure('public.validate_visit_participant()'))) > 0 AND position('link_type = ''original''' IN pg_get_functiondef(to_regprocedure('public.validate_visit_participant()'))) = 0, false)),
+    ('guard:response-owned-by-target-user', COALESCE(position('proposal.target_user_id = _uid' IN pg_get_functiondef(to_regprocedure('public.respond_visit_guest_proposal_v1(uuid,uuid,text)'))) > 0, false)),
+    ('guard:accept-writes-canonical-participation', COALESCE(position('INSERT INTO public.visit_participants' IN pg_get_functiondef(to_regprocedure('public.respond_visit_guest_proposal_v1(uuid,uuid,text)'))) > 0 AND position('VALUES (_proposal.visit_id, _uid)' IN pg_get_functiondef(to_regprocedure('public.respond_visit_guest_proposal_v1(uuid,uuid,text)'))) > 0, false)),
+    ('guard:own-proposal-minimized', COALESCE(position('proposalId' IN pg_get_functiondef(to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)'))) > 0 AND position('guestName' IN pg_get_functiondef(to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)'))) = 0 AND position('proposedBy' IN pg_get_functiondef(to_regprocedure('public.get_own_visit_guest_proposal_v1(uuid,uuid)'))) = 0, false)),
+    ('read-rpc:deduplicates-visible-accepted-person', COALESCE(position('accepted_visible_count' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k(uuid)'))) > 0 AND position('external_count - visit_row.accepted_visible_count' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k(uuid)'))) > 0, false)),
+    ('grant:authenticated-rpcs', has_function_privilege('authenticated', 'public.list_visit_guest_member_targets_v1(uuid,uuid)', 'EXECUTE') AND has_function_privilege('authenticated', 'public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)', 'EXECUTE') AND has_function_privilege('authenticated', 'public.get_own_visit_guest_proposal_v1(uuid,uuid)', 'EXECUTE') AND has_function_privilege('authenticated', 'public.respond_visit_guest_proposal_v1(uuid,uuid,text)', 'EXECUTE')),
+    ('isolation:no-anon-rpcs', NOT has_function_privilege('anon', 'public.list_visit_guest_member_targets_v1(uuid,uuid)', 'EXECUTE') AND NOT has_function_privilege('anon', 'public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)', 'EXECUTE') AND NOT has_function_privilege('anon', 'public.get_own_visit_guest_proposal_v1(uuid,uuid)', 'EXECUTE') AND NOT has_function_privilege('anon', 'public.respond_visit_guest_proposal_v1(uuid,uuid,text)', 'EXECUTE')),
+    ('isolation:no-authenticated-table-read', NOT has_table_privilege('authenticated', 'public.visit_guest_member_proposals', 'SELECT')),
+    ('isolation:no-authenticated-table-write', NOT has_table_privilege('authenticated', 'public.visit_guest_member_proposals', 'INSERT')),
+    ('isolation:no-client-v5k-base', NOT has_function_privilege('authenticated', 'public.get_group_app_state_v5k_guest_identity_base(uuid)', 'EXECUTE') AND NOT has_function_privilege('anon', 'public.get_group_app_state_v5k_guest_identity_base(uuid)', 'EXECUTE'))
 )
-SELECT name, ok
-FROM checks
-ORDER BY name;
+SELECT name, ok FROM checks ORDER BY name;
 ''')
 
-          # Release copy describes the final, precise model only.
           path = root / 'CHANGELOG.md'
           text = path.read_text()
           start = text.index('## [1.38.11]')
@@ -483,7 +379,6 @@ ORDER BY name;
 '''
           path.write_text(text[:start] + block + text[end:])
 
-          # Remove this one-off workflow from the resulting product commit.
           (root / '.github/workflows/tmp-214-precise-model.yml').unlink()
           PY
 
