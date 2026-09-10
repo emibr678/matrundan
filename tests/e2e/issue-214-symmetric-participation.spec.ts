@@ -75,8 +75,30 @@ function group(id: string, name: string, ownerId: string) {
   };
 }
 
-function baseState(currentUserId: string, groupId: string) {
+function baseState(currentUserId: string, groupId: string, confirmedSelf = false) {
   const source = groupId === SOURCE_GROUP_ID;
+  const targetParticipants = confirmedSelf ? [TARGET_ACTOR_ID, TARGET_USER_ID] : [TARGET_ACTOR_ID];
+  const targetSnapshots = [
+    {
+      id: TARGET_ACTOR_ID,
+      name: "Anna",
+      avatar: "🐻",
+      avatarImage: null,
+      status: "active",
+    },
+    ...(confirmedSelf
+      ? [
+          {
+            id: TARGET_USER_ID,
+            name: "Johan Andersson",
+            avatar: "🦊",
+            avatarImage: null,
+            status: "active",
+          },
+        ]
+      : []),
+  ];
+
   return {
     currentUserId,
     group: group(groupId, source ? "Kompisgänget" : "Jobbgänget", currentUserId),
@@ -119,19 +141,12 @@ function baseState(currentUserId: string, groupId: string) {
             linkType: "shared",
             linkedBy: TARGET_ACTOR_ID,
             linkedAt: "2026-09-02T09:00:00Z",
-            externalParticipantCount: 1,
+            externalParticipantCount: confirmedSelf ? 0 : 1,
             countsForProgression: true,
-            participantIds: [TARGET_ACTOR_ID],
-            currentUserParticipationStatus: "participant",
-            participants: [
-              {
-                id: TARGET_ACTOR_ID,
-                name: "Anna",
-                avatar: "🐻",
-                avatarImage: null,
-                status: "active",
-              },
-            ],
+            participantIds: targetParticipants,
+            currentUserParticipationStatus:
+              currentUserId === TARGET_ACTOR_ID || confirmedSelf ? "participant" : "none",
+            participants: targetSnapshots,
             reviews: [],
             overall: 0,
             photo: null,
@@ -346,8 +361,10 @@ async function mockRegistration(page: Page) {
   };
 }
 
-async function mockRecipient(page: Page) {
+async function mockRecipient(page: Page, currentUserId = TARGET_ACTOR_ID) {
   let proposedPayload: Record<string, unknown> | null = null;
+  let confirmedSelfPayload: Record<string, unknown> | null = null;
+  let confirmedSelf = false;
 
   await page.route("**/rest/v1/rpc/**", async (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
@@ -361,7 +378,7 @@ async function mockRecipient(page: Page) {
             id: TARGET_GROUP_ID,
             name: "Jobbgänget",
             emoji: "🥘",
-            role: "owner",
+            role: currentUserId === TARGET_ACTOR_ID ? "owner" : "member",
             lifecycleStatus: "active",
           },
         ]),
@@ -373,7 +390,7 @@ async function mockRecipient(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(baseState(TARGET_ACTOR_ID, TARGET_GROUP_ID)),
+        body: JSON.stringify(baseState(currentUserId, TARGET_GROUP_ID, confirmedSelf)),
       });
       return;
     }
@@ -384,18 +401,30 @@ async function mockRecipient(page: Page) {
     }
 
     if (rpc === "list_visit_shared_member_candidates_v1") {
+      const rows =
+        currentUserId === TARGET_USER_ID
+          ? [
+              {
+                memberId: TARGET_USER_ID,
+                memberName: "Johan Andersson",
+                memberAvatar: "🦊",
+                memberAvatarImage: null,
+                proposalStatus: null,
+              },
+            ]
+          : [
+              {
+                memberId: TARGET_USER_ID,
+                memberName: "Johan Andersson",
+                memberAvatar: "🦊",
+                memberAvatarImage: null,
+                proposalStatus: null,
+              },
+            ];
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify([
-          {
-            memberId: TARGET_USER_ID,
-            memberName: "Johan Andersson",
-            memberAvatar: "🦊",
-            memberAvatarImage: null,
-            proposalStatus: null,
-          },
-        ]),
+        body: JSON.stringify(rows),
       });
       return;
     }
@@ -410,10 +439,20 @@ async function mockRecipient(page: Page) {
       return;
     }
 
+    if (rpc === "confirm_shared_visit_self_v1") {
+      confirmedSelfPayload = route.request().postDataJSON() as Record<string, unknown>;
+      confirmedSelf = true;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+      return;
+    }
+
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
 
-  return { proposedPayload: () => proposedPayload };
+  return {
+    proposedPayload: () => proposedPayload,
+    confirmedSelfPayload: () => confirmedSelfPayload,
+  };
 }
 
 for (const viewport of VIEWPORTS) {
@@ -510,8 +549,8 @@ for (const viewport of VIEWPORTS) {
     await expect(visitDialog.getByText("Joppe", { exact: true })).toHaveCount(0);
     await expect(visitDialog.getByText("Kompisgänget", { exact: true })).toHaveCount(0);
 
-    await visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }).click();
-    const proposalDialog = page.getByRole("dialog", { name: "Föreslå deltagare" });
+    await visitDialog.getByRole("button", { name: "Lägg till deltagare" }).click();
+    const proposalDialog = page.getByRole("dialog", { name: "Lägg till deltagare" });
     await expect(proposalDialog.getByText("Johan Andersson", { exact: true })).toBeVisible();
     await expect(proposalDialog.getByText("Joppe", { exact: true })).toHaveCount(0);
     await expect(proposalDialog.getByText("Kompisgänget", { exact: true })).toHaveCount(0);
@@ -528,5 +567,40 @@ for (const viewport of VIEWPORTS) {
       page.getByText("Frågan är skickad till Johan Andersson.", { exact: true }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page, `mottagargruppens deltagarförslag ${viewport.name}`);
+  });
+
+  test(`mottagarmedlemmen kan lägga till sig själv utan privat gästidentitet — ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await seedSession(page, TARGET_USER_ID, TARGET_GROUP_ID);
+    const mock = await mockRecipient(page, TARGET_USER_ID);
+
+    await page.goto(`/besok?visit=${VISIT_ID}`);
+    let visitDialog = page.getByRole("dialog").first();
+    await expect(visitDialog.getByText("+1 utanför gruppen", { exact: false })).toBeVisible();
+    await expect(visitDialog.getByText("Joppe", { exact: true })).toHaveCount(0);
+    await expect(visitDialog.getByText("Kompisgänget", { exact: true })).toHaveCount(0);
+
+    await visitDialog.getByRole("button", { name: "Lägg till deltagare" }).click();
+    const participantDialog = page.getByRole("dialog", { name: "Lägg till deltagare" });
+    await expect(participantDialog.getByText("Var du själv med?", { exact: true })).toBeVisible();
+    await expect(participantDialog.getByRole("button", { name: "Ja, lägg till mig" })).toBeVisible();
+    await expect(participantDialog.getByText("Joppe", { exact: true })).toHaveCount(0);
+    await expect(participantDialog.getByText("Kompisgänget", { exact: true })).toHaveCount(0);
+    await expectNoHorizontalOverflow(page, `egen deltagarbekräftelse ${viewport.name}`);
+
+    await participantDialog.getByRole("button", { name: "Ja, lägg till mig" }).click();
+    await expect.poll(mock.confirmedSelfPayload).toEqual({
+      _group_id: TARGET_GROUP_ID,
+      _visit_id: VISIT_ID,
+    });
+    await expect(page.getByText("Du är tillagd som deltagare.", { exact: true })).toBeVisible();
+    await expect(participantDialog).toBeHidden();
+
+    visitDialog = page.getByRole("dialog").first();
+    await expect(visitDialog.getByText("Johan Andersson", { exact: true })).toBeVisible();
+    await expect(visitDialog.getByText("+1 utanför gruppen", { exact: false })).toHaveCount(0);
+    await expectNoHorizontalOverflow(page, `bekräftad egen deltagare ${viewport.name}`);
   });
 }
