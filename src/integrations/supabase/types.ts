@@ -2182,6 +2182,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      confirm_shared_visit_self_v1: {
+        Args: { _group_id: string; _visit_id: string }
+        Returns: undefined
+      }
       create_group_invitation: {
         Args: {
           _expires_in_days?: number
