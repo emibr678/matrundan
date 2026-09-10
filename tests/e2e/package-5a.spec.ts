@@ -100,7 +100,7 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
   await page.goto("/matstallen/p3?visit=v2");
   await expect(page.getByText("Aya", { exact: true })).toBeVisible();
   await expect(page.getByText("· Gäst", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Gäster hör bara till detta besök/)).toBeVisible();
+  await expect(page.getByText(/Gäster hör bara till besöket/)).toBeVisible();
 
   await page.goto("/matstallen/p6?visit=v3");
   await expect(page.getByText("Lina", { exact: true })).toBeVisible();
