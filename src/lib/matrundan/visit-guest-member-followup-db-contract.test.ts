@@ -26,7 +26,9 @@ describe("slutligt databaskontrakt för Issue #214", () => {
   test("slutmodellen tar bort generella mottagar- och självvägar", () => {
     expect(correction).toContain("DROP FUNCTION IF EXISTS public.confirm_shared_visit_self_v1");
     expect(correction).toContain("DROP FUNCTION IF EXISTS public.propose_shared_visit_member_v1");
-    expect(correction).toContain("DROP FUNCTION IF EXISTS public.list_visit_shared_member_candidates_v1");
+    expect(correction).toContain(
+      "DROP FUNCTION IF EXISTS public.list_visit_shared_member_candidates_v1",
+    );
     expect(correction).toContain("WHERE proposal_kind = 'shared_member'");
   });
 
