@@ -81,9 +81,7 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
     expect(dedupMigration).toContain("accepted_count");
     expect(dedupMigration).toContain("accepted_visible_count");
     expect(dedupMigration).toContain("external_count - visit_row.accepted_count");
-    expect(dedupMigration).toContain(
-      "visit_row.accepted_count - visit_row.accepted_visible_count",
-    );
+    expect(dedupMigration).toContain("visit_row.accepted_count - visit_row.accepted_visible_count");
     expect(dedupMigration).toContain("'guest:' || proposal.guest_id::text");
   });
 
