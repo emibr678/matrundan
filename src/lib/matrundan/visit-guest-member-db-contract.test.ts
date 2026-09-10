@@ -3,6 +3,9 @@ import { describe, expect, test } from "bun:test";
 const migration = await Bun.file(
   "supabase/migrations/20260908190000_visit_guest_member_confirmation_v1.sql",
 ).text();
+const dedupMigration = await Bun.file(
+  "supabase/migrations/20260910171500_visit_guest_member_multi_group_dedup_v1.sql",
+).text();
 const preflight = await Bun.file("supabase/production-preflight-visit-guest-member.sql").text();
 
 describe("databaskontrakt för cross-group gäst till medlem", () => {
@@ -72,13 +75,16 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
     expect(migration).toContain("status = 'accepted'");
   });
 
-  test("read-modellen undviker dubbel gäst och medlem efter accept", () => {
-    expect(migration).toContain("RENAME TO get_group_app_state_v5k_guest_identity_base");
-    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_group_app_state_v5k(");
-    expect(migration).toContain("proposal.status = 'accepted'");
-    expect(migration).toContain("accepted_visible_count");
-    expect(migration).toContain("GREATEST(0, visit_row.external_count - visit_row.accepted_count)");
-    expect(migration).toContain("'guest:' || proposal.guest_id::text");
+  test("read-modellen deduplicerar flera accepterade gäster i flera gruppkontexter", () => {
+    expect(dedupMigration).toContain("CREATE OR REPLACE FUNCTION public.get_group_app_state_v5k(");
+    expect(dedupMigration).toContain("proposal.proposal_kind = 'guest_link'");
+    expect(dedupMigration).toContain("accepted_count");
+    expect(dedupMigration).toContain("accepted_visible_count");
+    expect(dedupMigration).toContain("external_count - visit_row.accepted_count");
+    expect(dedupMigration).toContain(
+      "visit_row.accepted_count - visit_row.accepted_visible_count",
+    );
+    expect(dedupMigration).toContain("'guest:' || proposal.guest_id::text");
   });
 
   test("preflight skyddar grants, ägarskap och minimerad output", () => {
@@ -87,7 +93,7 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
     expect(preflight).toContain("guard:response-owned-by-target-user");
     expect(preflight).toContain("guard:accept-writes-canonical-participation");
     expect(preflight).toContain("guard:own-proposal-minimized");
-    expect(preflight).toContain("read-rpc:deduplicates-visible-accepted-person");
+    expect(preflight).toContain("read-rpc:deduplicates-accepted-guests-in-every-group-context");
     expect(preflight).toContain("isolation:no-authenticated-table-read");
     expect(preflight).toContain("isolation:no-client-v5k-base");
   });

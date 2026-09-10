@@ -151,12 +151,18 @@ WITH checks(name, ok) AS (
       )
     ),
     (
-      'read-rpc:deduplicates-visible-accepted-person',
+      'read-rpc:deduplicates-accepted-guests-in-every-group-context',
       COALESCE(
-        position('accepted_visible_count' IN pg_get_functiondef(
+        position('accepted_count' IN pg_get_functiondef(
           to_regprocedure('public.get_group_app_state_v5k(uuid)')
         )) > 0
-        AND position('external_count - visit_row.accepted_visible_count' IN pg_get_functiondef(
+        AND position('accepted_visible_count' IN pg_get_functiondef(
+          to_regprocedure('public.get_group_app_state_v5k(uuid)')
+        )) > 0
+        AND position('external_count - visit_row.accepted_count' IN pg_get_functiondef(
+          to_regprocedure('public.get_group_app_state_v5k(uuid)')
+        )) > 0
+        AND position('visit_row.accepted_count - visit_row.accepted_visible_count' IN pg_get_functiondef(
           to_regprocedure('public.get_group_app_state_v5k(uuid)')
         )) > 0,
         false
