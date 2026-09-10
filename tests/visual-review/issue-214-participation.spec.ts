@@ -232,7 +232,7 @@ test("fånga originalgruppens gästkoppling", async ({ page }, testInfo) => {
   await capture(page, testInfo, "issue-214-koppla-gast");
 });
 
-test("fånga exempelgruppens egen deltagandefråga och mottagarförslag", async ({ page }, testInfo) => {
+test("fånga exempelgruppens egen deltagandefråga och deltagarval", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await page.goto("/exempel", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
@@ -251,10 +251,10 @@ test("fånga exempelgruppens egen deltagandefråga och mottagarförslag", async 
   const proposeButton = visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" });
   await expect(proposeButton).toBeVisible();
   await proposeButton.click();
-  const proposalDialog = page.getByRole("dialog", { name: "Föreslå deltagare" });
+  const proposalDialog = page.getByRole("dialog", { name: "Lägg till deltagare" });
   await expect(proposalDialog).toBeVisible();
-  const selectableMember = proposalDialog.locator("button[aria-pressed]").filter({ hasNotText: "Väntar på svar" }).first();
-  if (await selectableMember.count()) await selectableMember.click();
+  await expect(proposalDialog.getByText("Var du själv med?", { exact: true })).toBeVisible();
+  await expect(proposalDialog.getByRole("button", { name: "Ja, lägg till mig" })).toBeVisible();
   await stabilize(page);
-  await capture(page, testInfo, "issue-214-foresla-deltagare");
+  await capture(page, testInfo, "issue-214-lagg-till-deltagare");
 });
