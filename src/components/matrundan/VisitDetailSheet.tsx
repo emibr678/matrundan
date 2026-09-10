@@ -317,7 +317,7 @@ export function VisitDetailSheet({
                       onClick={() => setSharedProposalOpen(true)}
                     >
                       <UserRoundPlus className="h-3.5 w-3.5" />
-                      Föreslå deltagare från gruppen
+                      Lägg till deltagare
                     </Button>
                   ) : null}
                 </section>
