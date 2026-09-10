@@ -65,7 +65,7 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await expect(visitDialog.getByText("Maja", { exact: true })).toBeVisible();
   await expect(visitDialog.getByTitle("Gäst på detta besök")).toBeVisible();
   await expect(
-    visitDialog.getByText("Gäster hör bara till detta besök och får ingen medlemsprogression."),
+    visitDialog.getByText("Gäster hör bara till besöket och räknas inte som gruppmedlemmar."),
   ).toBeVisible();
   await expect(visitDialog.getByRole("button", { name: "Jag var inte med" })).toHaveCount(0);
   await visitDialog.getByRole("button", { name: "Stäng", exact: true }).click();
