@@ -19,9 +19,7 @@ test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", 
   let visitDialog = page.getByRole("dialog").first();
   let prompt = visitDialog.getByLabel("Bekräfta deltagande");
   await expect(prompt).toBeVisible();
-  await expect(
-    visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }),
-  ).toHaveCount(0);
+  await expect(visitDialog.getByRole("button", { name: "Lägg till deltagare" })).toHaveCount(0);
 
   await prompt.getByRole("button", { name: "Inte nu" }).click();
   await expect(visitDialog.getByLabel("Deltagandeförslag väntar på svar")).toBeVisible();
@@ -32,29 +30,23 @@ test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", 
   await expect(deferred).toBeVisible();
   await expect(deferred.getByText("Du svarar senare", { exact: true })).toBeVisible();
   await expect(deferred.getByText("Frågan finns kvar här.", { exact: true })).toBeVisible();
-  await expect(
-    visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }),
-  ).toHaveCount(0);
+  await expect(visitDialog.getByRole("button", { name: "Lägg till deltagare" })).toHaveCount(0);
 
   await deferred.getByRole("button", { name: "Svara nu" }).click();
   prompt = visitDialog.getByLabel("Bekräfta deltagande");
   await prompt.getByRole("button", { name: "Jag var inte med" }).click();
   await expect(prompt).toBeHidden();
-  const addParticipantButton = visitDialog.getByRole("button", {
-    name: "Föreslå deltagare från gruppen",
-  });
+  const addParticipantButton = visitDialog.getByRole("button", { name: "Lägg till deltagare" });
   await expect(addParticipantButton).toBeVisible();
 
   await page.reload();
   visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByLabel("Bekräfta deltagande")).toHaveCount(0);
   await expect(visitDialog.getByLabel("Deltagandeförslag väntar på svar")).toHaveCount(0);
-  await expect(
-    visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }),
-  ).toBeVisible();
+  await expect(visitDialog.getByRole("button", { name: "Lägg till deltagare" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "exempelgruppens avvisade deltagandeförslag");
 
-  await visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }).click();
+  await visitDialog.getByRole("button", { name: "Lägg till deltagare" }).click();
   const participantDialog = page.getByRole("dialog", { name: "Lägg till deltagare" });
   await expect(participantDialog).toBeVisible();
   await expect(participantDialog.getByText("Var du själv med?", { exact: true })).toBeVisible();
@@ -75,8 +67,6 @@ test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", 
   await page.goto("/matstallen/p9?visit=v9");
   visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByLabel("Bekräfta deltagande")).toBeVisible();
-  await expect(
-    visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }),
-  ).toHaveCount(0);
+  await expect(visitDialog.getByRole("button", { name: "Lägg till deltagare" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "återställd exempelgrupp med deltagandefråga");
 });
