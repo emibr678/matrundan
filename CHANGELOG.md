@@ -14,21 +14,21 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
-## [1.38.11] – 2026-09-09
+## [1.38.11] – 2026-09-10
 
 ### Nytt
 
-- En gäst på ett delat besök kan kopplas till en medlem som själv bekräftar att
-  hen var med. Mottagargruppen kan också föreslå en egen medlem utan att få se
-  privat gästnamn eller ursprungsgrupp.
+- En namngiven gäst på ett delat besök kan kopplas till en medlem i en grupp där
+  besöket redan finns. Den utpekade medlemmen bekräftar själv innan deltagandet
+  räknas.
 - När ett besök registreras och delas samtidigt kan gästkopplingen fortsätta
   direkt efter sparandet utan att besöket behöver letas upp igen.
 
 ### Förbättrat
 
-- Bekräftat deltagande kopplas till samma delade besök och räknas i
-  deltagarstatistik och progression, utan att samma person samtidigt visas som
-  medlem och anonym deltagare i gruppen.
+- Gästnamn stannar i originalgruppen. Mottagaren ser bara sin egen
+  bekräftelsefråga, och bekräftat deltagande kopplas till samma besök utan
+  dubbelräkning.
 
 ## [1.38.10] – 2026-09-08
 
