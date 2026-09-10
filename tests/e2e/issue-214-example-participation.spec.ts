@@ -10,7 +10,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   );
 }
 
-test("exempelgruppen bevarar Inte nu och nej-svar tills den återställs", async ({ page }) => {
+test("exempelgruppen bevarar svar och låter medlemmen lägga till sig själv", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
@@ -40,9 +40,10 @@ test("exempelgruppen bevarar Inte nu och nej-svar tills den återställs", async
   prompt = visitDialog.getByLabel("Bekräfta deltagande");
   await prompt.getByRole("button", { name: "Jag var inte med" }).click();
   await expect(prompt).toBeHidden();
-  await expect(
-    visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }),
-  ).toBeVisible();
+  const addParticipantButton = visitDialog.getByRole("button", {
+    name: "Föreslå deltagare från gruppen",
+  });
+  await expect(addParticipantButton).toBeVisible();
 
   await page.reload();
   visitDialog = page.getByRole("dialog").first();
@@ -52,6 +53,20 @@ test("exempelgruppen bevarar Inte nu och nej-svar tills den återställs", async
     visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "exempelgruppens avvisade deltagandeförslag");
+
+  await visitDialog.getByRole("button", { name: "Föreslå deltagare från gruppen" }).click();
+  const participantDialog = page.getByRole("dialog", { name: "Lägg till deltagare" });
+  await expect(participantDialog).toBeVisible();
+  await expect(participantDialog.getByText("Var du själv med?", { exact: true })).toBeVisible();
+  await expect(participantDialog.getByRole("button", { name: "Ja, lägg till mig" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "egen deltagarbekräftelse i exempelgruppen");
+
+  await participantDialog.getByRole("button", { name: "Ja, lägg till mig" }).click();
+  await expect(page.getByText("Du är tillagd som deltagare.", { exact: true })).toBeVisible();
+  await expect(participantDialog).toBeHidden();
+  await expect(
+    page.getByTitle("Personer utanför den här gruppen visas anonymt."),
+  ).toContainText("+1 utanför gruppen");
 
   await page.goto("/exempel");
   await page.getByRole("button", { name: "Återställ" }).click();
