@@ -401,26 +401,15 @@ async function mockRecipient(page: Page, currentUserId = TARGET_ACTOR_ID) {
     }
 
     if (rpc === "list_visit_shared_member_candidates_v1") {
-      const rows =
-        currentUserId === TARGET_USER_ID
-          ? [
-              {
-                memberId: TARGET_USER_ID,
-                memberName: "Johan Andersson",
-                memberAvatar: "🦊",
-                memberAvatarImage: null,
-                proposalStatus: null,
-              },
-            ]
-          : [
-              {
-                memberId: TARGET_USER_ID,
-                memberName: "Johan Andersson",
-                memberAvatar: "🦊",
-                memberAvatarImage: null,
-                proposalStatus: null,
-              },
-            ];
+      const rows = [
+        {
+          memberId: TARGET_USER_ID,
+          memberName: "Johan Andersson",
+          memberAvatar: "🦊",
+          memberAvatarImage: null,
+          proposalStatus: null,
+        },
+      ];
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -585,7 +574,9 @@ for (const viewport of VIEWPORTS) {
     await visitDialog.getByRole("button", { name: "Lägg till deltagare" }).click();
     const participantDialog = page.getByRole("dialog", { name: "Lägg till deltagare" });
     await expect(participantDialog.getByText("Var du själv med?", { exact: true })).toBeVisible();
-    await expect(participantDialog.getByRole("button", { name: "Ja, lägg till mig" })).toBeVisible();
+    await expect(
+      participantDialog.getByRole("button", { name: "Ja, lägg till mig" }),
+    ).toBeVisible();
     await expect(participantDialog.getByText("Joppe", { exact: true })).toHaveCount(0);
     await expect(participantDialog.getByText("Kompisgänget", { exact: true })).toHaveCount(0);
     await expectNoHorizontalOverflow(page, `egen deltagarbekräftelse ${viewport.name}`);
