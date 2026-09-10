@@ -1,0 +1,70 @@
+name: Temporary #214 type sync
+
+on:
+  push:
+    branches:
+      - feat/214-confirm-cross-group-participation
+    paths:
+      - .github/workflows/tmp-sync-214-types.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v7
+        with:
+          ref: feat/214-confirm-cross-group-participation
+
+      - name: Apply exact generated type cleanup
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/integrations/supabase/types.ts')
+          text = path.read_text()
+
+          start = text.index('      visit_guest_member_proposals: {')
+          end = text.index('      visit_guests: {', start)
+          block = text[start:end]
+          old = block
+          block = block.replace('          guest_id: string | null\n', '          guest_id: string\n', 1)
+          block = block.replace('        Insert: {\n          created_at?: string\n          guest_id?: string | null\n', '        Insert: {\n          created_at?: string\n          guest_id: string\n', 1)
+          block = block.replace('        Update: {\n          created_at?: string\n          guest_id?: string | null\n', '        Update: {\n          created_at?: string\n          guest_id?: string\n', 1)
+          if block == old:
+              raise SystemExit('visit_guest_member_proposals type block was not updated')
+          text = text[:start] + block + text[end:]
+
+          stale_blocks = [
+              '''      confirm_shared_visit_self_v1: {\n        Args: { _group_id: string; _visit_id: string }\n        Returns: undefined\n      }\n''',
+              '''      list_visit_shared_member_candidates_v1: {\n        Args: { _group_id: string; _visit_id: string }\n        Returns: Json\n      }\n''',
+              '''      propose_shared_visit_member_v1: {\n        Args: { _group_id: string; _target_user_id: string; _visit_id: string }\n        Returns: string\n      }\n''',
+          ]
+          for stale in stale_blocks:
+              count = text.count(stale)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one stale RPC block, found {count}: {stale.splitlines()[0]}')
+              text = text.replace(stale, '', 1)
+
+          path.write_text(text)
+          PY
+
+          git diff --check
+          git diff -- src/integrations/supabase/types.ts
+
+      - name: Commit generated type cleanup
+        shell: bash
+        run: |
+          if git diff --quiet -- src/integrations/supabase/types.ts; then
+            echo 'No type changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/integrations/supabase/types.ts
+          git commit -m 'Synka Supabase-typer för precis gästkoppling (#214)'
+          git push origin HEAD:feat/214-confirm-cross-group-participation
