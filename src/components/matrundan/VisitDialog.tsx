@@ -34,11 +34,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisitParticipant } from "@/lib/matrundan/types";
-import {
-  VISIT_MEALS,
-  VISIT_MEAL_LABEL,
-  visitMealHasScore,
-} from "@/lib/matrundan/visit-context";
+import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
 import {
   findLocalRegistrationVisitDuplicate,
   findRegistrationVisitDuplicate,
@@ -571,7 +567,12 @@ export function VisitDialog({
             {scoredVisit ? (
               <>
                 <div className="rounded-2xl bg-secondary/60 p-4">
-                  <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
+                  <RatingInput
+                    value={overall}
+                    onChange={setOverall}
+                    label="Helhetsbetyg"
+                    size={32}
+                  />
                   <p className="mt-1 text-xs text-muted-foreground">
                     {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
                   </p>
