@@ -61,10 +61,7 @@ describe("pending omdöme", () => {
 
   test("scorelöst Något att dricka skapar aldrig en omdömesbacklog", () => {
     expect(
-      isVisitReviewPending(
-        visit({ meal: "dryck", overall: 0, visibleReviews: [] }),
-        USER_ID,
-      ),
+      isVisitReviewPending(visit({ meal: "dryck", overall: 0, visibleReviews: [] }), USER_ID),
     ).toBe(false);
     expect(
       getAttentionPendingVisitReviews(
