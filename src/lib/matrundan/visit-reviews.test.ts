@@ -65,6 +65,48 @@ describe("reviewunderlag för besöksvyn", () => {
     expect(summary.ownReview?.id).toBe("review-me");
   });
 
+  test("scorelösa besök räknar synliga kommentarer utan att kräva ratingVisible", () => {
+    const input = visit({
+      meal: "dryck",
+      overall: 0,
+      taste: undefined,
+      value: undefined,
+      service: undefined,
+      visibleReviews: [
+        visibleReview("review-sam", "sam", 4, {
+          overall: null,
+          taste: null,
+          value: null,
+          service: null,
+          ratingVisible: false,
+          comment: "Skål!",
+        }),
+        visibleReview("review-kim", "kim", 3, {
+          overall: null,
+          taste: null,
+          value: null,
+          service: null,
+          ratingVisible: false,
+          commentVisible: false,
+          comment: "Privat kommentar",
+        }),
+        visibleReview("review-me", "me", 5, {
+          overall: null,
+          taste: null,
+          value: null,
+          service: null,
+          ratingVisible: false,
+          comment: "Ett glas före konserten.",
+        }),
+      ],
+    });
+
+    const summary = getVisitReviewSummary(input, "me");
+
+    expect(summary.reviewCount).toBe(2);
+    expect(summary.reviews.map((review) => review.userId)).toEqual(["me", "sam"]);
+  });
+
   test("räknar varje deltagare högst en gång även om ett trasigt payload duplicerar review", () => {
     const input = visit({
       participantIds: ["me", "me", "sam"],
