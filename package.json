@@ -38,7 +38,7 @@
     "verify:changed": "bun run check:shell && bun run check:dead-code && bun run typecheck:unit && bun run typecheck:e2e && bun scripts/repo-tools.mjs verify-changed",
     "verify:agent": "bun run check:shell && bun run check:dead-code && bun run typecheck:unit && bun run typecheck:e2e && bun scripts/repo-tools.mjs verify-agent",
     "verify:full": "bun run format:check && bun run lint && bun run check:shell && bun run check:public-readiness && bun run check:release && bun run check:database && bun run check:dead-code && bun run test:unit && bun run typecheck && bun run typecheck:unit && bun run typecheck:e2e && bun run build",
-    "test:mobile": "playwright test --project=mobile-chromium",
+    "test:mobile": "playwright test --project=mobile-chromium --workers=2",
     "test:mobile:changed": "playwright test --project=mobile-chromium --pass-with-no-tests --max-failures=1 --retries=0",
     "test:map": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-chromium",
     "test:map:cross-browser": "playwright test tests/e2e/mobile-matstallen.spec.ts --project=mobile-webkit --project=desktop-chromium",
