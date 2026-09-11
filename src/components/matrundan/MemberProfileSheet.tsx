@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
+import { formatVisitContext } from "@/lib/matrundan/visit-context";
 import { RatingStars } from "./Rating";
 import { ActivityRow } from "./ActivityRow";
 import {
@@ -202,7 +203,7 @@ export function MemberProfileSheet({
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{profile.lastVisit.place.name}</div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="capitalize">{profile.lastVisit.meal}</span>
+                        <span>{formatVisitContext(profile.lastVisit)}</span>
                         <span>· {formatDate(profile.lastVisit.date)}</span>
                       </div>
                     </div>

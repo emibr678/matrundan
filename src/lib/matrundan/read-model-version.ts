@@ -1,5 +1,5 @@
-export const CURRENT_GROUP_STATE_RPC = "get_group_app_state_v5k";
-export const PREVIOUS_GROUP_STATE_RPC = "get_group_app_state_v5j";
+export const CURRENT_GROUP_STATE_RPC = "get_group_app_state_v5l";
+export const PREVIOUS_GROUP_STATE_RPC = "get_group_app_state_v5k";
 
 export interface PostgrestErrorLike {
   code?: string | null;

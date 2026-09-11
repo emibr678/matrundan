@@ -1,4 +1,5 @@
 import type { AppState } from "./types";
+import { visitHasScore } from "./visit-context";
 
 export type ReviewReactionKey = "heart" | "drool" | "celebrate" | "laugh";
 
@@ -126,7 +127,11 @@ export function setOwnDemoReviewReaction(
   if (!visit || !review) {
     throw new Error("Omdömet finns inte i besöket.");
   }
-  if (!review.ratingVisible || !review.commentVisible || !review.comment?.trim()) {
+  const commentCanBeReactedTo =
+    review.commentVisible &&
+    Boolean(review.comment?.trim()) &&
+    (review.ratingVisible || !visitHasScore(visit));
+  if (!commentCanBeReactedTo) {
     throw new Error("Omdömet kan inte reageras på i den här gruppen.");
   }
 

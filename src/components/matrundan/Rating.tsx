@@ -11,6 +11,8 @@ export function RatingStars({
   size?: number;
   className?: string;
 }) {
+  if (value <= 0) return null;
+
   return (
     <div
       className={["flex items-center gap-0.5", className].filter(Boolean).join(" ")}

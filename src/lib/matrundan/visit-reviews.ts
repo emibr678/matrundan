@@ -1,4 +1,5 @@
 import type { Visit, VisibleReview } from "./types";
+import { visitHasScore } from "./visit-context";
 
 export interface VisitReviewSummary {
   reviews: VisibleReview[];
@@ -13,21 +14,27 @@ function uniqueParticipantIds(visit: Visit): string[] {
 }
 
 /**
- * Underlag för den gemensamma omdömesytan.
+ * Underlag för den gemensamma omdömes-/kommentarsytan.
  *
  * `visibleReviews` kan innehålla historiskt eller gruppfiltrerat material. UI:t
- * ska bara räkna aktiva, synliga omdömen från personer som fortfarande finns i
- * besökets kanoniska deltagarlista. Detta speglar samma deltagarsanning som
- * progressionen och undviker att registreraren får ett eget reviewkort bara för
- * att hen skapade besöket.
+ * ska bara räkna bidrag från personer som fortfarande finns i besökets
+ * kanoniska deltagarlista. På scorebara besök krävs ett synligt betyg för
+ * andras bidrag; på scorelösa besök krävs en synlig kommentar. Den egna raden
+ * behålls även när den är dold i gruppen så att användaren kan redigera sitt
+ * eget bidrag.
  */
 export function getVisitReviewSummary(visit: Visit, currentUserId: string): VisitReviewSummary {
   const participantIds = uniqueParticipantIds(visit);
   const participantSet = new Set(participantIds);
   const seenAuthors = new Set<string>();
+  const scored = visitHasScore(visit);
 
   const reviews = (visit.visibleReviews ?? []).filter((review) => {
-    if (!review.ratingVisible || !participantSet.has(review.userId)) return false;
+    if (!participantSet.has(review.userId)) return false;
+    const visibleContribution = scored
+      ? review.ratingVisible
+      : review.commentVisible && Boolean(review.comment?.trim());
+    if (!visibleContribution && review.userId !== currentUserId) return false;
     if (seenAuthors.has(review.userId)) return false;
     seenAuthors.add(review.userId);
     return true;

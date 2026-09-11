@@ -14,6 +14,19 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.12] – 2026-09-11
+
+### Nytt
+
+- **Något att dricka** kan väljas som tillfälle för besök där gruppen främst gick
+  ut för dryck, och **Hämtmat** kan markeras separat när maten inte åts på plats.
+
+### Förbättrat
+
+- På plats förblir normalfallet utan extra etikett, medan Hämtmat visas tillsammans
+  med tillfället i besökshistoriken. Äldre besök med tillfället **Kväll** förblir
+  läsbara men Kväll kan inte längre väljas för nya besök.
+
 ## [1.38.11] – 2026-09-10
 
 ### Nytt

@@ -12,6 +12,7 @@ export type SearchRadiusKm = 1 | 2 | 3 | 5 | 10 | 25 | 50;
 export type SearchAreaMode = "point" | "boundary";
 export type SearchAreaBoundaryGeometry = Polygon | MultiPolygon;
 export type OwnVisitParticipationStatus = "participant" | "declined" | "none";
+export type VisitMeal = "frukost" | "lunch" | "fika" | "middag" | "dryck" | "kväll";
 
 export interface Member {
   id: string;
@@ -82,7 +83,8 @@ export interface Place {
 export interface VisibleReview {
   id: string;
   userId: string;
-  overall: number;
+  /** Null för scorelösa besök, i dag `Något att dricka`. */
+  overall: number | null;
   taste?: number | null;
   value?: number | null;
   service?: number | null;
@@ -120,11 +122,15 @@ export interface Visit {
   id: string;
   placeId: string;
   date: string;
-  meal: "frukost" | "lunch" | "fika" | "middag" | "kväll";
+  /** `kväll` finns kvar enbart för historisk data; nya besök använder inte värdet. */
+  meal: VisitMeal;
+  /** På plats är normalfallet. Undefined i äldre klientdata behandlas som false. */
+  isTakeaway?: boolean;
   /** Endast faktiska gruppmedlemmar. Gäster ligger i participants med status guest. */
   participantIds: string[];
   /** Den inloggade användarens kanoniska deltagarstatus på just detta besök. */
   currentUserParticipationStatus?: OwnVisitParticipationStatus;
+  /** Aggregerad score. 0 betyder att besöket saknar score och ingår inte i betygssnitt. */
   overall: number;
   taste?: number;
   value?: number;
@@ -141,7 +147,7 @@ export interface Visit {
   externalParticipantCount?: number;
   /** Räknas mot progression i denna grupp (alltid true för original). */
   countsForProgression?: boolean;
-  /** Recensioner som är synliga för denna grupp – bas för aggregat och synlighets-UI. */
+  /** Recensioner/kommentarer som är synliga för denna grupp – bas för aggregat och UI. */
   visibleReviews?: VisibleReview[];
   /** Grupprelevanta medlemmar samt privata gäster i besökets ursprungsgrupp. */
   participants?: VisitParticipant[];
@@ -290,7 +296,7 @@ export interface AppState {
   nextPlaceId: string | null;
   /** Ett öppet eller bekräftat legacy-datumförslag för äldre klienter. */
   nextStopDateProposal?: NextStopDateProposal | null;
-  /** Ny gruppscopad nästa-stopp-modell. Undefined betyder att v5k ännu saknas. */
+  /** Ny gruppscopad nästa-stopp-modell. Undefined betyder att aktuella read-modellen ännu saknas. */
   nextStop?: NextStopState | null;
 }
 
@@ -310,7 +316,8 @@ export const OCCASION_LABEL: Record<Occasion, string> = {
 };
 
 export const OCCASION_DESCRIPTION: Record<Occasion, string> = {
-  snabbt: "När det ska vara enkelt att svänga förbi, äta relativt snabbt eller ta med maten.",
+  snabbt:
+    "När det ska vara enkelt att svänga förbi och äta relativt snabbt utan att göra en stor sak av besöket.",
   avslappnat:
     "För en ledig måltid med partner, vänner eller familj där det är lätt att trivas utan att göra en stor sak av besöket.",
   middag:

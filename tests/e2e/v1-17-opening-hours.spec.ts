@@ -153,6 +153,7 @@ async function mockLiveGroup(
   };
 
   for (const rpc of [
+    "get_group_app_state_v5l",
     "get_group_app_state_v5k",
     "get_group_app_state_v5j",
     "get_group_app_state_v5i",

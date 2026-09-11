@@ -13,6 +13,7 @@ import { createManualPlaceFromFallback, reuseManualPlaceInGroup } from "./reusab
 import type { Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 import { flushNotificationOutbox } from "./notifications.functions";
+import { visitMealHasScore } from "./visit-context";
 
 /**
  * Interna mutationshintar för det manuella tilläggsflödet. De lagras aldrig på
@@ -134,18 +135,20 @@ export async function liveCreateVisitWithReview(
     .map((participant) => participant.name.trim())
     .filter(Boolean);
   const registrarParticipates = input.participantIds.includes(input.createdBy);
+  const scored = visitMealHasScore(input.meal);
   const visitId = await rpcClient.call(
-    "create_visit_with_review_v3",
+    "create_visit_with_review_v4",
     {
       _group_id: groupId,
       _place_id: input.placeId,
       _visited_on: visitedOn,
       _meal_type: input.meal,
       _participant_ids: input.participantIds ?? [],
-      _overall: registrarParticipates ? input.overall : null,
-      _taste: registrarParticipates ? nn(input.taste) : null,
-      _value: registrarParticipates ? nn(input.value) : null,
-      _service: registrarParticipates ? nn(input.service) : null,
+      _is_takeaway: scored && input.isTakeaway === true,
+      _overall: registrarParticipates && scored ? input.overall : null,
+      _taste: registrarParticipates && scored ? nn(input.taste) : null,
+      _value: registrarParticipates && scored ? nn(input.value) : null,
+      _service: registrarParticipates && scored ? nn(input.service) : null,
       _comment: registrarParticipates ? nn(input.comment) : null,
       _guest_names: guestNames,
     },

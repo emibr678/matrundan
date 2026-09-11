@@ -1721,7 +1721,7 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
-          overall: number
+          overall: number | null
           service: number | null
           taste: number | null
           updated_at: string
@@ -1733,7 +1733,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
-          overall: number
+          overall?: number | null
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -1745,7 +1745,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
-          overall?: number
+          overall?: number | null
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -2057,6 +2057,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          is_takeaway: boolean
           meal_type: string
           place_id: string
           updated_at: string
@@ -2066,6 +2067,7 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          is_takeaway?: boolean
           meal_type: string
           place_id: string
           updated_at?: string
@@ -2075,6 +2077,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          is_takeaway?: boolean
           meal_type?: string
           place_id?: string
           updated_at?: string
@@ -2399,6 +2402,23 @@ export type Database = {
         }
         Returns: string
       }
+      create_visit_with_review_v4: {
+        Args: {
+          _comment?: string
+          _group_id: string
+          _guest_names?: string[]
+          _is_takeaway?: boolean
+          _meal_type: string
+          _overall?: number
+          _participant_ids: string[]
+          _place_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visited_on: string
+        }
+        Returns: string
+      }
       cross_group_practical_info_candidate_v1: {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json
@@ -2436,6 +2456,16 @@ export type Database = {
         }
         Returns: Json
       }
+      find_registration_visit_duplicate_v2: {
+        Args: {
+          _group_id: string
+          _is_takeaway?: boolean
+          _meal_type: string
+          _place_id: string
+          _visited_on: string
+        }
+        Returns: Json
+      }
       find_reusable_manual_place_candidates_v1: {
         Args: {
           _address: string
@@ -2449,6 +2479,10 @@ export type Database = {
         Returns: Json
       }
       find_share_visit_duplicate_v1: {
+        Args: { _target_group_id: string; _visit_id: string }
+        Returns: Json
+      }
+      find_share_visit_duplicate_v2: {
         Args: { _target_group_id: string; _visit_id: string }
         Returns: Json
       }
@@ -2480,6 +2514,7 @@ export type Database = {
         Args: { _group_id: string }
         Returns: Json
       }
+      get_group_app_state_v5l: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2963,6 +2998,15 @@ export type Database = {
         }
         Returns: string
       }
+      share_visit_to_group_v3: {
+        Args: {
+          _allow_strong_duplicate?: boolean
+          _share_own_comment?: boolean
+          _target_group_id: string
+          _visit_id: string
+        }
+        Returns: string
+      }
       shares_group: {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
@@ -3201,4 +3245,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

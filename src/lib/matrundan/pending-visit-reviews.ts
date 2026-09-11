@@ -1,4 +1,5 @@
 import type { Visit } from "./types";
+import { visitHasScore } from "./visit-context";
 
 export const PENDING_REVIEW_ATTENTION_DAYS = 45;
 
@@ -49,11 +50,11 @@ function nowCalendarDayNumber(now: Date): number | null {
 
 /**
  * Kanonisk klienthärledning för att aktuell användare behöver komplettera ett
- * redan synligt besök med sitt eget omdöme. Registreraren särbehandlas inte:
- * serverinvarianten för nya besök gör registreraren till faktisk deltagare med
- * ett eget review redan i registreringsflödet.
+ * redan synligt, scorebart besök med sitt eget omdöme. Scorelösa besök som
+ * `Något att dricka` kan ha kommentarer men ska aldrig skapa en omdömesbacklog.
  */
 export function isVisitReviewPending(visit: Visit, currentUserId: string): boolean {
+  if (!visitHasScore(visit)) return false;
   if (ownParticipationStatus(visit, currentUserId) !== "participant") return false;
   return !hasOwnCanonicalReview(visit, currentUserId);
 }

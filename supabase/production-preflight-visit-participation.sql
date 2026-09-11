@@ -3,6 +3,8 @@
 
 WITH checks(name, ok) AS (
   VALUES
+    ('read_rpc:get_group_app_state_v5l',
+      to_regprocedure('public.get_group_app_state_v5l(uuid)') IS NOT NULL),
     ('read_rpc:get_group_app_state_v5k',
       to_regprocedure('public.get_group_app_state_v5k(uuid)') IS NOT NULL),
     ('read_rpc:get_group_app_state_v5j',
@@ -131,6 +133,8 @@ WITH checks(name, ok) AS (
       AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_place_proposals')), false)
       AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_place_supports')), false)
       AND COALESCE((SELECT c.relrowsecurity FROM pg_class c WHERE c.oid = to_regclass('public.next_stop_date_responses')), false)),
+    ('grant:authenticated-v5l',
+      has_function_privilege('authenticated', 'public.get_group_app_state_v5l(uuid)', 'EXECUTE')),
     ('grant:authenticated-v5k',
       has_function_privilege('authenticated', 'public.get_group_app_state_v5k(uuid)', 'EXECUTE')),
     ('grant:authenticated-v5j',
@@ -147,6 +151,8 @@ WITH checks(name, ok) AS (
       has_function_privilege('authenticated', 'public.save_own_review_for_visit_v1(uuid,uuid,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('grant:authenticated-self-participation',
       has_function_privilege('authenticated', 'public.set_own_visit_participation_v1(uuid,uuid,boolean)', 'EXECUTE')),
+    ('isolation:no-anon-v5l',
+      NOT has_function_privilege('anon', 'public.get_group_app_state_v5l(uuid)', 'EXECUTE')),
     ('isolation:no-anon-v5k',
       NOT has_function_privilege('anon', 'public.get_group_app_state_v5k(uuid)', 'EXECUTE')),
     ('isolation:no-anon-v5j',

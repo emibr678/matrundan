@@ -10,6 +10,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit, VisibleReview } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
+import { visitHasScore } from "@/lib/matrundan/visit-context";
 import { getVisitReviewSummary, visitReviewProgressLabel } from "@/lib/matrundan/visit-reviews";
 import { AddVisitReviewDialog } from "./AddVisitReviewDialog";
 import { DemoAddVisitReviewDialog } from "./DemoAddVisitReviewDialog";
@@ -43,6 +44,7 @@ export function VisitReviewsSection({
   const handledFocusKeyRef = React.useRef<string | null>(null);
   const focusHighlightTimeoutRef = React.useRef<number | null>(null);
   const currentUserId = state.currentUserId;
+  const scored = visitHasScore(visit);
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const participationStatus =
     visit.currentUserParticipationStatus ?? (fallbackParticipant ? "participant" : "none");
@@ -118,7 +120,7 @@ export function VisitReviewsSection({
     if (!activeGroupId || groupArchived) return;
     setSavingVisibility(true);
     try {
-      await setReviewGroupVisibility(review.id, activeGroupId, true, next);
+      await setReviewGroupVisibility(review.id, activeGroupId, review.ratingVisible, next);
       toast.success(
         next ? "Din kommentar är synlig i gruppen." : "Din kommentar är dold i gruppen.",
       );
@@ -140,33 +142,42 @@ export function VisitReviewsSection({
         <div className="flex items-end justify-between gap-3">
           <div>
             <h3 id={`visit-reviews-${visit.id}`} className="text-sm font-medium">
-              Gängets omdömen
+              {scored ? "Gängets omdömen" : "Gängets kommentarer"}
             </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {visitReviewProgressLabel(summary.reviewCount, summary.participantCount)}
+              {scored
+                ? visitReviewProgressLabel(summary.reviewCount, summary.participantCount)
+                : "Något att dricka · påverkar inte ställets betyg"}
             </p>
           </div>
         </div>
 
         <Card className="overflow-hidden rounded-2xl border-border/70">
           <div className="space-y-3 p-3">
-            {visit.overall > 0 ? (
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <RatingStars value={visit.overall} size={18} />
-                  <span className="font-display text-xl font-semibold">
-                    {formatRating(visit.overall)} / 5
+            {scored ? (
+              visit.overall > 0 ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <RatingStars value={visit.overall} size={18} />
+                    <span className="font-display text-xl font-semibold">
+                      {formatRating(visit.overall)} / 5
+                    </span>
+                  </div>
+                  <span className="sr-only">
+                    Gruppens helhetsbetyg {formatRating(visit.overall)} av 5
                   </span>
                 </div>
-                <span className="sr-only">
-                  Gruppens helhetsbetyg {formatRating(visit.overall)} av 5
-                </span>
-              </div>
+              ) : (
+                <p className="text-sm font-medium">Inget omdöme ännu</p>
+              )
             ) : (
-              <p className="text-sm font-medium">Inget omdöme ännu</p>
+              <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                <MessageCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>Det här besöket är scorelöst. Kommentarer sparas som minnen utan stjärnbetyg.</p>
+              </div>
             )}
 
-            {visit.taste != null || visit.value != null || visit.service != null ? (
+            {scored && (visit.taste != null || visit.value != null || visit.service != null) ? (
               <div className="grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center">
                 <SummaryDetail label="Smak" value={visit.taste} />
                 <SummaryDetail label="Prisvärt" value={visit.value} />
@@ -194,6 +205,7 @@ export function VisitReviewsSection({
                   currentUserId={currentUserId}
                   writable={writable}
                   mode={mode === "live" ? "live" : "demo"}
+                  scoreless={!scored}
                   onChanged={onChanged}
                 />
               ) : null}
@@ -232,7 +244,7 @@ export function VisitReviewsSection({
                 className="min-h-11 text-sm text-primary"
                 onClick={() => setShowAll(true)}
               >
-                Visa alla {summary.reviewCount} omdömen
+                Visa alla {summary.reviewCount} {scored ? "omdömen" : "kommentarer"}
               </Button>
             </div>
           ) : showAll && summary.reviews.length > INITIAL_VISIBLE_REVIEWS ? (
@@ -259,6 +271,7 @@ function OwnReviewPrompt({
   currentUserId,
   writable,
   mode,
+  scoreless,
   onChanged,
 }: {
   visit: Visit;
@@ -266,6 +279,7 @@ function OwnReviewPrompt({
   currentUserId: string;
   writable: boolean;
   mode: "demo" | "live";
+  scoreless: boolean;
   onChanged: () => void | Promise<void>;
 }) {
   const participant = visit.participants?.find((item) => item.id === currentUserId);
@@ -280,13 +294,15 @@ function OwnReviewPrompt({
         <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name="Du" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="text-sm font-medium">Ditt omdöme</p>
+            <p className="text-sm font-medium">{scoreless ? "Din kommentar" : "Ditt omdöme"}</p>
             <Badge variant="outline" className="rounded-full px-1.5 py-0 text-[10px] text-primary">
               Du
             </Badge>
           </div>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Du var med men har inte lämnat något omdöme ännu.
+            {scoreless
+              ? "Du var med. Lägg till en minnesnotering om du vill."
+              : "Du var med men har inte lämnat något omdöme ännu."}
           </p>
         </div>
       </div>
@@ -295,11 +311,17 @@ function OwnReviewPrompt({
           <AddVisitReviewDialog
             visitId={visit.id}
             placeName={placeName}
+            scoreless={scoreless}
             disabled={!writable}
             onSaved={onChanged}
           />
         ) : (
-          <DemoAddVisitReviewDialog visitId={visit.id} placeName={placeName} disabled={!writable} />
+          <DemoAddVisitReviewDialog
+            visitId={visit.id}
+            placeName={placeName}
+            scoreless={scoreless}
+            disabled={!writable}
+          />
         )}
       </div>
     </div>
@@ -341,7 +363,9 @@ function ReviewRow({
   const comment = review.comment?.trim();
   const showComment = Boolean(comment && (own || review.commentVisible));
   const reactableComment = Boolean(comment && review.commentVisible);
-  const hasDetails = review.taste != null || review.value != null || review.service != null;
+  const hasRating = review.ratingVisible && review.overall != null;
+  const hasDetails =
+    hasRating && (review.taste != null || review.value != null || review.service != null);
   const longComment = Boolean(showComment && (comment?.length ?? 0) > 110);
   const canEditOwn = own && !groupArchived && !demoReadOnly;
   const canToggleComment = canEditOwn && live && Boolean(comment);
@@ -394,13 +418,17 @@ function ReviewRow({
             <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
           ) : null}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <RatingStars value={review.overall} size={13} />
-          <span className="text-xs font-medium">{formatRating(review.overall)} / 5</span>
-          <span className="sr-only">
-            {name} gav {formatRating(review.overall)} av 5
-          </span>
-        </div>
+        {hasRating ? (
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <RatingStars value={review.overall as number} size={13} />
+            <span className="text-xs font-medium">
+              {formatRating(review.overall as number)} / 5
+            </span>
+            <span className="sr-only">
+              {name} gav {formatRating(review.overall as number)} av 5
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {longComment && !focused ? (
