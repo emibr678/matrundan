@@ -34,7 +34,11 @@ import { useSession } from "@/lib/matrundan/session";
 import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisitParticipant } from "@/lib/matrundan/types";
-import { VISIT_MEALS, VISIT_MEAL_LABEL } from "@/lib/matrundan/visit-context";
+import {
+  VISIT_MEALS,
+  VISIT_MEAL_LABEL,
+  visitMealHasScore,
+} from "@/lib/matrundan/visit-context";
 import {
   findLocalRegistrationVisitDuplicate,
   findRegistrationVisitDuplicate,
@@ -107,6 +111,7 @@ export function VisitDialog({
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
+  const scoredVisit = visitMealHasScore(meal);
   const currentUserParticipates = participants.includes(state.currentUserId);
   const canShare = showShareSection && currentUserParticipates && shareableGroups.length > 0;
   const hasComment = currentUserParticipates && comment.trim().length > 0;
@@ -146,6 +151,10 @@ export function VisitDialog({
       );
     }
   }, [open, state.currentUserId]);
+
+  React.useEffect(() => {
+    if (meal === "dryck") setIsTakeaway(false);
+  }, [meal]);
 
   React.useEffect(() => {
     if (!open || mode !== "live" || !placeId) return;
@@ -227,14 +236,14 @@ export function VisitDialog({
       placeId: currentPlace.id,
       date: new Date(date).toISOString(),
       meal,
-      isTakeaway,
+      isTakeaway: scoredVisit ? isTakeaway : false,
       participantIds: participants,
       participants: participantSnapshots(),
       currentUserParticipationStatus: "participant",
-      overall,
-      taste: taste || undefined,
-      value: value || undefined,
-      service: service || undefined,
+      overall: scoredVisit ? overall : 0,
+      taste: scoredVisit ? taste || undefined : undefined,
+      value: scoredVisit ? value || undefined : undefined,
+      service: scoredVisit ? service || undefined : undefined,
       comment: comment.trim() || undefined,
       createdBy: state.currentUserId,
     });
@@ -306,7 +315,7 @@ export function VisitDialog({
       toast.error("Den som registrerar besöket måste vara deltagare.");
       return false;
     }
-    if (overall < 1) {
+    if (scoredVisit && overall < 1) {
       toast.error("Ge ett helhetsbetyg");
       return false;
     }
@@ -325,7 +334,7 @@ export function VisitDialog({
           currentPlace.id,
           date,
           meal,
-          isTakeaway,
+          scoredVisit ? isTakeaway : false,
         );
       } else if (mode === "demo") {
         duplicate = findLocalRegistrationVisitDuplicate(
@@ -334,7 +343,7 @@ export function VisitDialog({
           currentPlace.id,
           date,
           meal,
-          isTakeaway,
+          scoredVisit ? isTakeaway : false,
         );
       }
 
@@ -433,23 +442,25 @@ export function VisitDialog({
               </div>
             </div>
 
-            <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border/70 bg-secondary/35 px-3 py-2.5">
-              <div className="min-w-0">
-                <Label htmlFor="visit-takeaway" className="text-sm font-medium">
-                  Hämtmat
-                </Label>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Markera om maten inte åts på plats.
-                </p>
+            {scoredVisit ? (
+              <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border/70 bg-secondary/35 px-3 py-2.5">
+                <div className="min-w-0">
+                  <Label htmlFor="visit-takeaway" className="text-sm font-medium">
+                    Hämtmat
+                  </Label>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    Markera om maten inte åts på plats.
+                  </p>
+                </div>
+                <Switch
+                  id="visit-takeaway"
+                  checked={isTakeaway}
+                  onCheckedChange={setIsTakeaway}
+                  disabled={isBusy}
+                  aria-label="Markera besöket som Hämtmat"
+                />
               </div>
-              <Switch
-                id="visit-takeaway"
-                checked={isTakeaway}
-                onCheckedChange={setIsTakeaway}
-                disabled={isBusy}
-                aria-label="Markera besöket som Hämtmat"
-              />
-            </div>
+            ) : null}
 
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Deltagare</legend>
@@ -557,33 +568,45 @@ export function VisitDialog({
               </p>
             </fieldset>
 
-            <div className="rounded-2xl bg-secondary/60 p-4">
-              <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
-              <p className="mt-1 text-xs text-muted-foreground">
-                {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
-              </p>
-            </div>
-
-            <Collapsible open={showDetails} onOpenChange={setShowDetails}>
-              <CollapsibleTrigger asChild>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
-                >
-                  <span>Detaljbetyg (frivilligt)</span>
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
-                  />
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-3">
-                <div className="grid gap-3">
-                  <RatingInput value={taste} onChange={setTaste} label="Smak" />
-                  <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
-                  <RatingInput value={service} onChange={setService} label="Service" />
+            {scoredVisit ? (
+              <>
+                <div className="rounded-2xl bg-secondary/60 p-4">
+                  <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
+                  </p>
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
+
+                <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
+                    >
+                      <span>Detaljbetyg (frivilligt)</span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-3 pt-3">
+                    <div className="grid gap-3">
+                      <RatingInput value={taste} onChange={setTaste} label="Smak" />
+                      <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
+                      <RatingInput value={service} onChange={setService} label="Service" />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
+                <p className="text-sm font-medium">Inget stjärnbetyg för dryckesbesök</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Besöket räknas i gruppens historik och progression, men påverkar inte matställets
+                  betyg. Lägg gärna till en kommentar eller ett foto som minne.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="comment">Kommentar (frivilligt)</Label>
@@ -709,7 +732,7 @@ export function VisitDialog({
             </Button>
             <Button
               onClick={submit}
-              disabled={isBusy || overall === 0}
+              disabled={isBusy || (scoredVisit && overall === 0)}
               className="w-full sm:w-auto"
             >
               {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
