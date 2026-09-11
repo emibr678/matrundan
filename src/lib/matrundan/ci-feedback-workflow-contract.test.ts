@@ -5,15 +5,19 @@ import { resolve } from "node:path";
 const visualWorkflowPath = ".github/workflows/visual-review.yml";
 const ciWorkflowPath = ".github/workflows/ci.yml";
 const playwrightConfigPath = "playwright.config.ts";
+const visualPlaywrightConfigPath = "playwright.visual.config.ts";
 
 describe("PR-verifieringens feedbackkontrakt", () => {
-  test("visual review använder GitHub-hostad runner utan self-hosted override", () => {
+  test("visual review använder GitHub-hostad runner med portabel testmiljö", () => {
     const workflow = readFileSync(resolve(process.cwd(), visualWorkflowPath), "utf8");
+    const config = readFileSync(resolve(process.cwd(), visualPlaywrightConfigPath), "utf8");
 
     expect(workflow).toContain("runs-on: ubuntu-24.04");
     expect(workflow).not.toContain("MATRUNDAN_CI_RUNNER");
     expect(workflow).toContain("- [x] Skapa visuella granskningsbilder");
     expect(workflow).toContain("cancel-in-progress: true");
+    expect(config).toContain('VITE_SUPABASE_URL: e2eSupabaseUrl');
+    expect(config).toContain('VITE_SUPABASE_PUBLISHABLE_KEY: e2eSupabasePublishableKey');
   });
 
   test("redo-CI behåller hela mobilregressionen men kör två Playwright-workers", () => {
