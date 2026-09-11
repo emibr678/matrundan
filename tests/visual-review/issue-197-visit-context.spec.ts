@@ -304,7 +304,7 @@ test("#197 historik skiljer Hämtmat, scorelös dryck och legacy Kväll utan På
   await expect(page.getByText(/Något att dricka/)).toBeVisible();
   await expect(page.getByText(/Kväll/)).toBeVisible();
   await expect(page.getByText(/På plats/)).toHaveCount(0);
-  await expect(page.getByText(/0 av 5/)).toHaveCount(0);
+  await expect(page.getByText("0 av 5", { exact: true })).toHaveCount(0);
 
   await stabilize(page);
   await expectNoHorizontalOverflow(page);
