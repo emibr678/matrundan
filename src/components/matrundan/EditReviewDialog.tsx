@@ -28,11 +28,12 @@ export function EditReviewDialog({
   compact?: boolean;
 }) {
   const { updateOwnReview, submitting, state, demoReadOnly } = useStore();
+  const scoreless = review.overall == null;
   const [open, setOpen] = React.useState(false);
   const [showDetails, setShowDetails] = React.useState(
     review.taste != null || review.value != null || review.service != null,
   );
-  const [overall, setOverall] = React.useState(review.overall);
+  const [overall, setOverall] = React.useState(review.overall ?? 0);
   const [taste, setTaste] = React.useState(review.taste ?? 0);
   const [value, setValue] = React.useState(review.value ?? 0);
   const [service, setService] = React.useState(review.service ?? 0);
@@ -41,7 +42,7 @@ export function EditReviewDialog({
 
   React.useEffect(() => {
     if (!open) return;
-    setOverall(review.overall);
+    setOverall(review.overall ?? 0);
     setTaste(review.taste ?? 0);
     setValue(review.value ?? 0);
     setService(review.service ?? 0);
@@ -50,22 +51,27 @@ export function EditReviewDialog({
   }, [open, review]);
 
   async function save() {
-    if (overall < 1 || overall > 5) {
+    if (scoreless) {
+      if (!comment.trim()) {
+        toast.error("Kommentaren kan inte vara tom.");
+        return;
+      }
+    } else if (overall < 1 || overall > 5) {
       toast.error("Helhetsbetyget måste vara 1–5.");
       return;
     }
     try {
       await updateOwnReview(review.id, {
-        overall,
-        taste: taste || null,
-        value: value || null,
-        service: service || null,
+        overall: scoreless ? null : overall,
+        taste: scoreless ? null : taste || null,
+        value: scoreless ? null : value || null,
+        service: scoreless ? null : service || null,
         comment: comment.trim() || null,
       });
-      toast.success("Ditt omdöme är uppdaterat.");
+      toast.success(scoreless ? "Din kommentar är uppdaterad." : "Ditt omdöme är uppdaterat.");
       setOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera omdömet.");
+      toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera.");
     }
   }
 
@@ -76,7 +82,7 @@ export function EditReviewDialog({
       <DialogTrigger asChild>
         <Button
           variant={compact ? "ghost" : "secondary"}
-          aria-label={compact ? "Redigera omdöme" : undefined}
+          aria-label={compact ? (scoreless ? "Redigera kommentar" : "Redigera omdöme") : undefined}
           className={
             compact
               ? "min-h-10 w-auto gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
@@ -84,44 +90,51 @@ export function EditReviewDialog({
           }
         >
           <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-          {compact ? "Redigera" : "Redigera omdöme"}
+          {compact ? "Redigera" : scoreless ? "Redigera kommentar" : "Redigera omdöme"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Redigera ditt omdöme</DialogTitle>
+          <DialogTitle>{scoreless ? "Redigera din kommentar" : "Redigera ditt omdöme"}</DialogTitle>
           <DialogDescription>
-            {placeName}. Omdömet är ditt och ändringen gäller överallt där samma besök och omdöme är
-            synligt.
+            {scoreless
+              ? `${placeName}. Dryckesbesöket påverkar inte ställets betyg.`
+              : `${placeName}. Omdömet är ditt och ändringen gäller överallt där samma besök och omdöme är synligt.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-2xl bg-secondary/60 p-4">
-            <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
-          </div>
+          {!scoreless ? (
+            <>
+              <div className="rounded-2xl bg-secondary/60 p-4">
+                <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
+              </div>
 
-          <Collapsible open={showDetails} onOpenChange={setShowDetails}>
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className="flex min-h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
-              >
-                <span>Detaljbetyg (frivilligt)</span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
-                />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-3 pt-3">
-              <RatingInput value={taste} onChange={setTaste} label="Smak" />
-              <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
-              <RatingInput value={service} onChange={setService} label="Service" />
-            </CollapsibleContent>
-          </Collapsible>
+              <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex min-h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
+                  >
+                    <span>Detaljbetyg (frivilligt)</span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-3">
+                  <RatingInput value={taste} onChange={setTaste} label="Smak" />
+                  <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
+                  <RatingInput value={service} onChange={setService} label="Service" />
+                </CollapsibleContent>
+              </Collapsible>
+            </>
+          ) : null}
 
           <div className="space-y-1.5">
-            <Label htmlFor={`edit-review-comment-${review.id}`}>Kommentar (frivilligt)</Label>
+            <Label htmlFor={`edit-review-comment-${review.id}`}>
+              {scoreless ? "Kommentar" : "Kommentar (frivilligt)"}
+            </Label>
             <Textarea
               id={`edit-review-comment-${review.id}`}
               value={comment}
@@ -136,8 +149,8 @@ export function EditReviewDialog({
           <Button variant="ghost" disabled={submitting} onClick={() => setOpen(false)}>
             Avbryt
           </Button>
-          <Button disabled={submitting} onClick={() => void save()}>
-            {submitting ? "Sparar…" : "Spara omdöme"}
+          <Button disabled={submitting || (scoreless && !comment.trim())} onClick={() => void save()}>
+            {submitting ? "Sparar…" : scoreless ? "Spara kommentar" : "Spara omdöme"}
           </Button>
         </DialogFooter>
       </DialogContent>
