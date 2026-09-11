@@ -123,7 +123,7 @@ export async function shareVisitToGroup(
   allowStrongDuplicate = false,
 ): Promise<string> {
   return rpcClient.call(
-    "share_visit_to_group_v2",
+    "share_visit_to_group_v3",
     {
       _visit_id: visitId,
       _target_group_id: targetGroupId,

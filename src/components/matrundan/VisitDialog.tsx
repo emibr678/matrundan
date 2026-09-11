@@ -34,6 +34,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisitParticipant } from "@/lib/matrundan/types";
+import { VISIT_MEALS, VISIT_MEAL_LABEL } from "@/lib/matrundan/visit-context";
 import {
   findLocalRegistrationVisitDuplicate,
   findRegistrationVisitDuplicate,
@@ -44,15 +45,6 @@ import { RatingInput } from "./Rating";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitDuplicatePrompt } from "./VisitDuplicatePrompt";
 import { VisitPhotoField } from "./VisitPhotoField";
-
-const MEALS = ["frukost", "lunch", "fika", "middag", "kväll"] as const;
-const MEAL_LABEL: Record<(typeof MEALS)[number], string> = {
-  frukost: "Frukost",
-  lunch: "Lunch",
-  fika: "Fika",
-  middag: "Middag",
-  kväll: "Kväll",
-};
 
 interface DraftGuest {
   id: string;
@@ -99,7 +91,8 @@ export function VisitDialog({
   const isBusy = busy || duplicateBusy || submitting;
   const place = placeId ? getPlace(placeId) : undefined;
 
-  const [meal, setMeal] = React.useState<(typeof MEALS)[number]>("middag");
+  const [meal, setMeal] = React.useState<(typeof VISIT_MEALS)[number]>("middag");
+  const [isTakeaway, setIsTakeaway] = React.useState(false);
   const [date, setDate] = React.useState<string>(new Date().toISOString().slice(0, 10));
   const [overall, setOverall] = React.useState(0);
   const [participants, setParticipants] = React.useState<string[]>([state.currentUserId]);
@@ -124,6 +117,7 @@ export function VisitDialog({
   React.useEffect(() => {
     if (!open) {
       setMeal("middag");
+      setIsTakeaway(false);
       setDate(new Date().toISOString().slice(0, 10));
       setOverall(0);
       setParticipants([state.currentUserId]);
@@ -233,6 +227,7 @@ export function VisitDialog({
       placeId: currentPlace.id,
       date: new Date(date).toISOString(),
       meal,
+      isTakeaway,
       participantIds: participants,
       participants: participantSnapshots(),
       currentUserParticipationStatus: "participant",
@@ -330,6 +325,7 @@ export function VisitDialog({
           currentPlace.id,
           date,
           meal,
+          isTakeaway,
         );
       } else if (mode === "demo") {
         duplicate = findLocalRegistrationVisitDuplicate(
@@ -338,6 +334,7 @@ export function VisitDialog({
           currentPlace.id,
           date,
           meal,
+          isTakeaway,
         );
       }
 
@@ -426,14 +423,32 @@ export function VisitDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {MEALS.map((value) => (
+                    {VISIT_MEALS.map((value) => (
                       <SelectItem key={value} value={value}>
-                        {MEAL_LABEL[value]}
+                        {VISIT_MEAL_LABEL[value]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border/70 bg-secondary/35 px-3 py-2.5">
+              <div className="min-w-0">
+                <Label htmlFor="visit-takeaway" className="text-sm font-medium">
+                  Hämtmat
+                </Label>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  Markera om maten inte åts på plats.
+                </p>
+              </div>
+              <Switch
+                id="visit-takeaway"
+                checked={isTakeaway}
+                onCheckedChange={setIsTakeaway}
+                disabled={isBusy}
+                aria-label="Markera besöket som Hämtmat"
+              />
             </div>
 
             <fieldset className="space-y-2">

@@ -1,3 +1,5 @@
+import { visitMealLabel } from "./visit-context";
+
 export interface PlaceShareTargetLike {
   groupId: string;
   placeExistsInGroup: boolean;
@@ -24,14 +26,6 @@ const MONTH_NAMES = [
   "november",
   "december",
 ] as const;
-
-const MEAL_LABELS: Record<string, string> = {
-  frukost: "Frukost",
-  lunch: "Lunch",
-  fika: "Fika",
-  middag: "Middag",
-  kväll: "Kväll",
-};
 
 export function defaultShareGroupIds(
   targets: PlaceShareTargetLike[],
@@ -66,5 +60,5 @@ export function formatOwnVisitDate(value: string): string {
 }
 
 export function formatMealType(value: string): string {
-  return MEAL_LABELS[value] ?? value;
+  return visitMealLabel(value);
 }

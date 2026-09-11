@@ -135,13 +135,14 @@ export async function liveCreateVisitWithReview(
     .filter(Boolean);
   const registrarParticipates = input.participantIds.includes(input.createdBy);
   const visitId = await rpcClient.call(
-    "create_visit_with_review_v3",
+    "create_visit_with_review_v4",
     {
       _group_id: groupId,
       _place_id: input.placeId,
       _visited_on: visitedOn,
       _meal_type: input.meal,
       _participant_ids: input.participantIds ?? [],
+      _is_takeaway: input.isTakeaway === true,
       _overall: registrarParticipates ? input.overall : null,
       _taste: registrarParticipates ? nn(input.taste) : null,
       _value: registrarParticipates ? nn(input.value) : null,

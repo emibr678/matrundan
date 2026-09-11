@@ -11,15 +11,8 @@ import { Card } from "@/components/ui/card";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
+import { formatVisitContext } from "@/lib/matrundan/visit-context";
 import { formatRating } from "@/lib/matrundan/version";
-
-const MEAL_LABEL: Record<string, string> = {
-  frukost: "Frukost",
-  lunch: "Lunch",
-  fika: "Fika",
-  middag: "Middag",
-  kväll: "Kväll",
-};
 
 const VISIT_SEARCH_DEFAULTS = { visit: "" };
 const visitSearchSchema = z.object({
@@ -148,7 +141,7 @@ function VisitHistory() {
                             {place.name}
                           </h2>
                           <p className="text-xs text-muted-foreground">
-                            {formatDate(visit.date)} · {MEAL_LABEL[visit.meal] ?? visit.meal}
+                            {formatDate(visit.date)} · {formatVisitContext(visit)}
                           </p>
                           {ownReviewPending ? (
                             <span className="mt-1 inline-flex max-w-full rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">

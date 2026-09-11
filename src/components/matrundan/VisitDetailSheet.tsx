@@ -24,6 +24,7 @@ import {
 import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { removeSharedVisitFromGroup } from "@/lib/matrundan/live-sharing";
+import { formatVisitContext } from "@/lib/matrundan/visit-context";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitGuestParticipationPrompt } from "./VisitGuestParticipationPrompt";
@@ -32,14 +33,6 @@ import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
 import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { canDeleteOriginalVisit } from "@/lib/matrundan/visit-permissions";
-
-const MEAL_LABEL: Record<string, string> = {
-  frukost: "Frukost",
-  lunch: "Lunch",
-  fika: "Fika",
-  middag: "Middag",
-  kväll: "Kväll",
-};
 
 function formatVisitDate(iso: string) {
   const calendarDate = /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(0, 10)}T12:00:00` : iso;
@@ -189,7 +182,7 @@ export function VisitDetailSheet({
                   {place.address}, {place.city}
                 </SheetDescription>
                 <SheetDescription className="mt-1 text-xs">
-                  {formatVisitDate(visit.date)} · {MEAL_LABEL[visit.meal] ?? visit.meal}
+                  {formatVisitDate(visit.date)} · {formatVisitContext(visit)}
                 </SheetDescription>
               </SheetHeader>
 

@@ -58,6 +58,7 @@ type VisitRow = {
   placeId: string;
   date: string;
   meal: Visit["meal"];
+  isTakeaway?: boolean;
   createdBy: string;
   linkType: "original" | "shared";
   linkedBy: string;
@@ -429,6 +430,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       placeId: v.placeId,
       date: v.date,
       meal: v.meal,
+      isTakeaway: v.isTakeaway ?? false,
       participantIds,
       currentUserParticipationStatus,
       overall: avg(overall) ?? 0,

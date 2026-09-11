@@ -39,15 +39,8 @@ import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-r
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
+import { formatVisitContext } from "@/lib/matrundan/visit-context";
 import { formatRating } from "@/lib/matrundan/version";
-
-const MEAL_LABEL: Record<string, string> = {
-  frukost: "Frukost",
-  lunch: "Lunch",
-  fika: "Fika",
-  middag: "Middag",
-  kväll: "Kväll",
-};
 
 const PLACE_SEARCH_DEFAULTS = { visit: "" };
 
@@ -455,7 +448,7 @@ function PlaceDetail() {
                           <span className="font-medium">{author?.name}</span>
                           <span className="text-muted-foreground">
                             {" "}
-                            · {MEAL_LABEL[visit.meal] ?? visit.meal} · {formatDate(visit.date)}
+                            · {formatVisitContext(visit)} · {formatDate(visit.date)}
                           </span>
                         </div>
                         <RatingStars value={visit.overall} size={12} />
