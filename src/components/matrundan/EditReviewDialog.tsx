@@ -149,7 +149,10 @@ export function EditReviewDialog({
           <Button variant="ghost" disabled={submitting} onClick={() => setOpen(false)}>
             Avbryt
           </Button>
-          <Button disabled={submitting || (scoreless && !comment.trim())} onClick={() => void save()}>
+          <Button
+            disabled={submitting || (scoreless && !comment.trim())}
+            onClick={() => void save()}
+          >
             {submitting ? "Sparar…" : scoreless ? "Spara kommentar" : "Spara omdöme"}
           </Button>
         </DialogFooter>
