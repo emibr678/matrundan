@@ -111,8 +111,8 @@ export function DemoAddVisitReviewDialog({
                 <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground" aria-live="polite">
-                {ratingsSet} av 4 betyg satta. Helhetsbetyg krävs; de andra hjälper gruppen att minnas
-                upplevelsen bättre men är frivilliga.
+                {ratingsSet} av 4 betyg satta. Helhetsbetyg krävs; de andra hjälper gruppen att
+                minnas upplevelsen bättre men är frivilliga.
               </p>
             </>
           ) : null}
