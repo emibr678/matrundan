@@ -28,11 +28,7 @@ export function getVisitReviewSummary(visit: Visit, currentUserId: string): Visi
 
   const reviews = (visit.visibleReviews ?? []).filter((review) => {
     if (!participantSet.has(review.userId)) return false;
-    if (
-      !review.ratingVisible &&
-      !review.commentVisible &&
-      review.userId !== currentUserId
-    ) {
+    if (!review.ratingVisible && !review.commentVisible && review.userId !== currentUserId) {
       return false;
     }
     if (seenAuthors.has(review.userId)) return false;
