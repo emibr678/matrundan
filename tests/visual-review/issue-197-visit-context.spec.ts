@@ -152,7 +152,9 @@ function groupState() {
         countsForProgression: true,
         participantIds: [USER_ID],
         currentUserParticipationStatus: "participant",
-        participants: [{ id: USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, status: "active" }],
+        participants: [
+          { id: USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, status: "active" },
+        ],
         reviews: [
           {
             id: "55555555-5555-4555-8555-555555555555",
@@ -182,8 +184,22 @@ function groupState() {
         countsForProgression: true,
         participantIds: [USER_ID],
         currentUserParticipationStatus: "participant",
-        participants: [{ id: USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, status: "active" }],
-        reviews: [],
+        participants: [
+          { id: USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, status: "active" },
+        ],
+        reviews: [
+          {
+            id: "88888888-8888-4888-8888-888888888888",
+            userId: USER_ID,
+            overall: null,
+            taste: null,
+            value: null,
+            service: null,
+            comment: "Ett glas vin före konserten.",
+            ratingVisible: false,
+            commentVisible: true,
+          },
+        ],
         photo: null,
       },
       {
@@ -199,7 +215,9 @@ function groupState() {
         countsForProgression: true,
         participantIds: [USER_ID],
         currentUserParticipationStatus: "participant",
-        participants: [{ id: USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, status: "active" }],
+        participants: [
+          { id: USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, status: "active" },
+        ],
         reviews: [],
         photo: null,
       },
@@ -231,7 +249,11 @@ async function mockBackend(page: Page) {
       return;
     }
     if (rpc.startsWith("get_group_app_state_v5")) {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(groupState()) });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(groupState()),
+      });
       return;
     }
     if (rpc === "list_place_share_targets_v4b") {
@@ -242,7 +264,9 @@ async function mockBackend(page: Page) {
   });
 }
 
-test("#197 registrering visar Något att dricka och lågfriktions-Hämtmat", async ({ page }, testInfo) => {
+test("#197 registrering visar scorelöst Något att dricka utan Hämtmat", async ({
+  page,
+}, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await seedSession(page);
   await mockBackend(page);
@@ -251,19 +275,26 @@ test("#197 registrering visar Något att dricka och lågfriktions-Hämtmat", asy
 
   const dialog = page.getByRole("dialog", { name: "Registrera besök" });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" })).toBeVisible();
   await dialog.getByRole("combobox").click();
   await expect(page.getByRole("option", { name: "Något att dricka" })).toBeVisible();
   await expect(page.getByRole("option", { name: "Kväll" })).toHaveCount(0);
   await page.getByRole("option", { name: "Något att dricka" }).click();
-  await dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" }).click();
-  await expect(dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" })).toBeChecked();
+
+  await expect(dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" })).toHaveCount(0);
+  await expect(dialog.getByText("Inget stjärnbetyg för dryckesbesök")).toBeVisible();
+  await expect(dialog.getByText("Helhetsbetyg")).toHaveCount(0);
+  await expect(dialog.getByText(/Detaljbetyg/)).toHaveCount(0);
+  await expect(dialog.getByLabel("Kommentar (frivilligt)")).toBeVisible();
 
   await stabilize(page);
   await expectNoHorizontalOverflow(page);
-  await capture(page, testInfo, "issue-197-registrera-dryck-hamtmat");
+  await capture(page, testInfo, "issue-197-registrera-dryck-scorelost");
 });
 
-test("#197 historik skiljer Hämtmat, dryck och legacy Kväll utan På plats-brus", async ({ page }, testInfo) => {
+test("#197 historik skiljer Hämtmat, scorelös dryck och legacy Kväll utan På plats-brus", async ({
+  page,
+}, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await seedSession(page);
   await mockBackend(page);
@@ -273,6 +304,7 @@ test("#197 historik skiljer Hämtmat, dryck och legacy Kväll utan På plats-bru
   await expect(page.getByText(/Något att dricka/)).toBeVisible();
   await expect(page.getByText(/Kväll/)).toBeVisible();
   await expect(page.getByText(/På plats/)).toHaveCount(0);
+  await expect(page.getByText(/0 av 5/)).toHaveCount(0);
 
   await stabilize(page);
   await expectNoHorizontalOverflow(page);
