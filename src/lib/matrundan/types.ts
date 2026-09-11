@@ -83,7 +83,8 @@ export interface Place {
 export interface VisibleReview {
   id: string;
   userId: string;
-  overall: number;
+  /** Null för scorelösa besök, i dag `Något att dricka`. */
+  overall: number | null;
   taste?: number | null;
   value?: number | null;
   service?: number | null;
@@ -129,6 +130,7 @@ export interface Visit {
   participantIds: string[];
   /** Den inloggade användarens kanoniska deltagarstatus på just detta besök. */
   currentUserParticipationStatus?: OwnVisitParticipationStatus;
+  /** Aggregerad score. 0 betyder att besöket saknar score och ingår inte i betygssnitt. */
   overall: number;
   taste?: number;
   value?: number;
@@ -145,7 +147,7 @@ export interface Visit {
   externalParticipantCount?: number;
   /** Räknas mot progression i denna grupp (alltid true för original). */
   countsForProgression?: boolean;
-  /** Recensioner som är synliga för denna grupp – bas för aggregat och synlighets-UI. */
+  /** Recensioner/kommentarer som är synliga för denna grupp – bas för aggregat och UI. */
   visibleReviews?: VisibleReview[];
   /** Grupprelevanta medlemmar samt privata gäster i besökets ursprungsgrupp. */
   participants?: VisitParticipant[];
@@ -294,7 +296,7 @@ export interface AppState {
   nextPlaceId: string | null;
   /** Ett öppet eller bekräftat legacy-datumförslag för äldre klienter. */
   nextStopDateProposal?: NextStopDateProposal | null;
-  /** Ny gruppscopad nästa-stopp-modell. Undefined betyder att v5k ännu saknas. */
+  /** Ny gruppscopad nästa-stopp-modell. Undefined betyder att aktuella read-modellen ännu saknas. */
   nextStop?: NextStopState | null;
 }
 
