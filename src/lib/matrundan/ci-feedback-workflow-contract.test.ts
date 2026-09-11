@@ -15,9 +15,17 @@ describe("PR-verifieringens feedbackkontrakt", () => {
     expect(workflow).toContain("runs-on: ubuntu-24.04");
     expect(workflow).not.toContain("MATRUNDAN_CI_RUNNER");
     expect(workflow).toContain("- [x] Skapa visuella granskningsbilder");
-    expect(workflow).toContain("cancel-in-progress: true");
     expect(config).toContain("VITE_SUPABASE_URL: e2eSupabaseUrl");
     expect(config).toContain("VITE_SUPABASE_PUBLISHABLE_KEY: e2eSupabasePublishableKey");
+  });
+
+  test("visual review låser bara screenshot-jobbet mot samtidiga körningar", () => {
+    const workflow = readFileSync(resolve(process.cwd(), visualWorkflowPath), "utf8");
+
+    expect(workflow).not.toContain("\nconcurrency:\n");
+    expect(workflow).toContain("\n    concurrency:\n");
+    expect(workflow).toContain("group: visual-review-screenshots-v2-${{ github.ref }}");
+    expect(workflow).toContain("cancel-in-progress: true");
   });
 
   test("redo-CI behåller hela mobilregressionen men kör två Playwright-workers", () => {

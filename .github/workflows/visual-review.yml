@@ -23,10 +23,6 @@ defaults:
   run:
     shell: bash
 
-concurrency:
-  group: visual-review-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   screenshots:
     if: >-
@@ -43,6 +39,9 @@ jobs:
           )
         )
       )
+    concurrency:
+      group: visual-review-screenshots-v2-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
