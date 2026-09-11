@@ -11,6 +11,7 @@ import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
+import type { VisibleReview } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
 export const Route = createFileRoute("/")({
@@ -92,9 +93,10 @@ export function Home() {
   const lastVisitReview = React.useMemo(() => {
     if (!lastVisit) return undefined;
     return (lastVisit.visibleReviews ?? []).find(
-      (review) =>
+      (review): review is VisibleReview & { overall: number } =>
         review.userId !== state.currentUserId &&
         review.ratingVisible &&
+        review.overall != null &&
         review.commentVisible &&
         Boolean(review.comment?.trim()),
     );
