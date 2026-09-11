@@ -16,8 +16,8 @@ describe("PR-verifieringens feedbackkontrakt", () => {
     expect(workflow).not.toContain("MATRUNDAN_CI_RUNNER");
     expect(workflow).toContain("- [x] Skapa visuella granskningsbilder");
     expect(workflow).toContain("cancel-in-progress: true");
-    expect(config).toContain('VITE_SUPABASE_URL: e2eSupabaseUrl');
-    expect(config).toContain('VITE_SUPABASE_PUBLISHABLE_KEY: e2eSupabasePublishableKey');
+    expect(config).toContain("VITE_SUPABASE_URL: e2eSupabaseUrl");
+    expect(config).toContain("VITE_SUPABASE_PUBLISHABLE_KEY: e2eSupabasePublishableKey");
   });
 
   test("redo-CI behåller hela mobilregressionen men kör två Playwright-workers", () => {
