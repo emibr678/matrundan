@@ -27,7 +27,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 defaults:
   run:
@@ -55,6 +55,7 @@ jobs:
         with:
           fetch-depth: 0
           show-progress: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Set up pinned Node
         uses: actions/setup-node@v7
@@ -70,6 +71,21 @@ jobs:
       - name: Generate expected types on failure
         if: failure()
         run: bash scripts/supabase-types.sh generate supabase-types.generated.ts
+
+      - name: Commit generated types to PR branch
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          cp supabase-types.generated.ts src/integrations/supabase/types.ts
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/integrations/supabase/types.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'chore: synka genererade Supabase-typer'
+          git push origin "HEAD:${HEAD_REF}"
 
       - name: Upload expected types on failure
         if: failure()
