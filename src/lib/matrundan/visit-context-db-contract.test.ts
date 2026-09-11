@@ -11,7 +11,10 @@ const readModelPreflight = readFileSync(
   resolve(root, "supabase/production-preflight-read-model.sql"),
   "utf8",
 );
-const restoreScript = readFileSync(resolve(root, "scripts/restore-supabase-local.sh"), "utf8");
+const restoreScript = readFileSync(
+  resolve(root, "scripts/restore-supabase-local.sh"),
+  "utf8",
+);
 
 describe("Issue #197 — besökskontextens databaskontrakt", () => {
   test("lagrar Hämtmat separat och bevarar legacy-Kväll i schemat", () => {
