@@ -1721,7 +1721,7 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
-          overall: number
+          overall: number | null
           service: number | null
           taste: number | null
           updated_at: string
@@ -1733,7 +1733,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
-          overall: number
+          overall?: number | null
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -1745,7 +1745,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
-          overall?: number
+          overall?: number | null
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -3245,4 +3245,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
