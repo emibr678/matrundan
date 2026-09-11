@@ -3,7 +3,8 @@ import { flushNotificationOutbox } from "./notifications.functions";
 import { rpcClient } from "./rpc-client";
 
 export interface OwnVisitReviewInput {
-  overall: number;
+  /** Null för scorelösa besök som `Något att dricka`. */
+  overall: number | null;
   taste: number | null;
   value: number | null;
   service: number | null;
