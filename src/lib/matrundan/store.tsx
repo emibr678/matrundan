@@ -43,6 +43,7 @@ import type {
   VisibleReview,
 } from "./types";
 import { APP_VERSION } from "./version";
+import { visitHasScore } from "./visit-context";
 import { canDeleteOriginalVisit } from "./visit-permissions";
 import {
   blobToDataUrl,
@@ -74,11 +75,26 @@ function aggregateVisit(visit: Visit): Visit {
   const reviews = (visit.visibleReviews ?? []).filter((review) =>
     visit.participantIds.includes(review.userId),
   );
-  const rated = reviews.filter((review) => review.ratingVisible);
+  const rated = reviews.filter(
+    (review): review is VisibleReview & { overall: number } =>
+      review.ratingVisible && review.overall != null,
+  );
+  const comment = reviews.find(
+    (review) => review.commentVisible && Boolean(review.comment?.trim()),
+  )?.comment;
+
   if (!rated.length) {
-    return { ...visit, visibleReviews: reviews, overall: 0, comment: undefined };
+    return {
+      ...visit,
+      visibleReviews: reviews,
+      overall: 0,
+      taste: undefined,
+      value: undefined,
+      service: undefined,
+      comment: comment ?? undefined,
+    };
   }
-  const comments = rated.find((review) => review.commentVisible && review.comment?.trim());
+
   return {
     ...visit,
     visibleReviews: reviews,
@@ -92,7 +108,7 @@ function aggregateVisit(visit: Visit): Visit {
     service: avg(
       rated.map((review) => review.service).filter((value): value is number => value != null),
     ),
-    comment: comments?.comment ?? undefined,
+    comment: comment ?? undefined,
   };
 }
 
@@ -117,22 +133,38 @@ function normalizePlace(place: Place): Place {
 function normalizeDemoState(input: AppState): AppState {
   const places = input.places.map(normalizePlace);
   const visits = input.visits.map((visit) => {
+    const scored = visitHasScore(visit);
+    const fallbackReview: VisibleReview | null = scored
+      ? {
+          id: `demo-review-${visit.id}-${visit.createdBy}`,
+          userId: visit.createdBy,
+          overall: visit.overall,
+          taste: visit.taste ?? null,
+          value: visit.value ?? null,
+          service: visit.service ?? null,
+          comment: visit.comment ?? null,
+          ratingVisible: true,
+          commentVisible: true,
+        }
+      : visit.comment?.trim()
+        ? {
+            id: `demo-review-${visit.id}-${visit.createdBy}`,
+            userId: visit.createdBy,
+            overall: null,
+            taste: null,
+            value: null,
+            service: null,
+            comment: visit.comment,
+            ratingVisible: false,
+            commentVisible: true,
+          }
+        : null;
     const reviews: VisibleReview[] =
       visit.visibleReviews && visit.visibleReviews.length > 0
         ? visit.visibleReviews
-        : [
-            {
-              id: `demo-review-${visit.id}-${visit.createdBy}`,
-              userId: visit.createdBy,
-              overall: visit.overall,
-              taste: visit.taste ?? null,
-              value: visit.value ?? null,
-              service: visit.service ?? null,
-              comment: visit.comment ?? null,
-              ratingVisible: true,
-              commentVisible: true,
-            },
-          ];
+        : fallbackReview
+          ? [fallbackReview]
+          : [];
     return aggregateVisit({ ...visit, visibleReviews: reviews });
   });
   return {
@@ -421,21 +453,25 @@ export function StoreProvider({
           throw new Error("Lägg tillbaka matstället innan ett nytt besök registreras.");
         }
         const timestamp = Date.now();
-        const review: VisibleReview = {
-          id: `demo-review-${timestamp}`,
-          userId: state.currentUserId,
-          overall: visitInput.overall,
-          taste: visitInput.taste ?? null,
-          value: visitInput.value ?? null,
-          service: visitInput.service ?? null,
-          comment: visitInput.comment ?? null,
-          ratingVisible: true,
-          commentVisible: true,
-        };
+        const scored = visitHasScore(visitInput);
+        const review: VisibleReview | null =
+          scored || visitInput.comment?.trim()
+            ? {
+                id: `demo-review-${timestamp}`,
+                userId: state.currentUserId,
+                overall: scored ? visitInput.overall : null,
+                taste: scored ? visitInput.taste ?? null : null,
+                value: scored ? visitInput.value ?? null : null,
+                service: scored ? visitInput.service ?? null : null,
+                comment: visitInput.comment ?? null,
+                ratingVisible: scored,
+                commentVisible: true,
+              }
+            : null;
         const visit = aggregateVisit({
           ...visitInput,
           id: `v-${timestamp}`,
-          visibleReviews: [review],
+          visibleReviews: review ? [review] : [],
         });
         setState((current) => {
           const place = current.places.find((item) => item.id === visit.placeId);
@@ -756,15 +792,17 @@ export function StoreProvider({
         setState((current) => ({
           ...current,
           visits: current.visits.map((visit) => {
+            const scored = visitHasScore(visit);
             const reviews = (visit.visibleReviews ?? []).map((review) => {
               if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
               return {
                 ...review,
-                overall: input.overall,
-                taste: input.taste ?? null,
-                value: input.value ?? null,
-                service: input.service ?? null,
+                overall: scored ? input.overall : null,
+                taste: scored ? input.taste ?? null : null,
+                value: scored ? input.value ?? null : null,
+                service: scored ? input.service ?? null : null,
                 comment: input.comment ?? null,
+                ratingVisible: scored ? review.ratingVisible : false,
               };
             });
             return aggregateVisit({ ...visit, visibleReviews: reviews });
@@ -792,7 +830,9 @@ export function StoreProvider({
           .filter((visit) => visit.placeId === placeId)
           .sort((a, b) => (a.date < b.date ? 1 : -1)),
       avgRating: (placeId) => {
-        const visits = state.visits.filter((visit) => visit.placeId === placeId);
+        const visits = state.visits.filter(
+          (visit) => visit.placeId === placeId && visitHasScore(visit) && visit.overall > 0,
+        );
         if (!visits.length) return { overall: 0, count: 0 };
         const sum = visits.reduce((total, visit) => total + visit.overall, 0);
         return { overall: sum / visits.length, count: visits.length };
