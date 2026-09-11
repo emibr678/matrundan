@@ -44,7 +44,7 @@ const ROLE_LABEL: Record<string, Role> = {
 type ReviewRow = {
   id: string;
   userId: string;
-  overall: number;
+  overall: number | null;
   taste: number | null;
   value: number | null;
   service: number | null;
@@ -412,13 +412,17 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       ratingVisible: r.ratingVisible,
       commentVisible: r.commentVisible,
     }));
-    // Aggregat räknas bara från synliga betyg.
-    const rated = visibleReviews.filter((r) => r.ratingVisible);
+    // Aggregat räknas bara från synliga, faktiska scores. Scorelösa kommentarer
+    // kan fortfarande bidra med besöksminnet men aldrig med ett numeriskt betyg.
+    const rated = visibleReviews.filter(
+      (review): review is VisibleReview & { overall: number } =>
+        review.ratingVisible && review.overall != null,
+    );
     const overall = rated.map((r) => r.overall);
     const taste = rated.map((r) => r.taste).filter((x): x is number => x != null);
     const value = rated.map((r) => r.value).filter((x): x is number => x != null);
     const service = rated.map((r) => r.service).filter((x): x is number => x != null);
-    const comment = rated.find((r) => r.commentVisible && r.comment)?.comment ?? undefined;
+    const comment = visibleReviews.find((r) => r.commentVisible && r.comment?.trim())?.comment;
     const currentUserParticipationStatus =
       v.currentUserParticipationStatus === "declined"
         ? ("declined" as const)
