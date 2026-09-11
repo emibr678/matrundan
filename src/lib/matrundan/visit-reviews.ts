@@ -13,13 +13,13 @@ function uniqueParticipantIds(visit: Visit): string[] {
 }
 
 /**
- * Underlag för den gemensamma omdömesytan.
+ * Underlag för den gemensamma omdömes-/kommentarsytan.
  *
  * `visibleReviews` kan innehålla historiskt eller gruppfiltrerat material. UI:t
- * ska bara räkna aktiva, synliga omdömen från personer som fortfarande finns i
- * besökets kanoniska deltagarlista. Detta speglar samma deltagarsanning som
- * progressionen och undviker att registreraren får ett eget reviewkort bara för
- * att hen skapade besöket.
+ * ska bara räkna bidrag från personer som fortfarande finns i besökets
+ * kanoniska deltagarlista. Ett bidrag får vara ett synligt betyg eller en synlig
+ * scorelös kommentar. Den egna raden behålls även när den är dold i gruppen så
+ * att användaren kan redigera sitt eget bidrag.
  */
 export function getVisitReviewSummary(visit: Visit, currentUserId: string): VisitReviewSummary {
   const participantIds = uniqueParticipantIds(visit);
@@ -27,7 +27,14 @@ export function getVisitReviewSummary(visit: Visit, currentUserId: string): Visi
   const seenAuthors = new Set<string>();
 
   const reviews = (visit.visibleReviews ?? []).filter((review) => {
-    if (!review.ratingVisible || !participantSet.has(review.userId)) return false;
+    if (!participantSet.has(review.userId)) return false;
+    if (
+      !review.ratingVisible &&
+      !review.commentVisible &&
+      review.userId !== currentUserId
+    ) {
+      return false;
+    }
     if (seenAuthors.has(review.userId)) return false;
     seenAuthors.add(review.userId);
     return true;
