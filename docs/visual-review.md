@@ -177,7 +177,7 @@ Under draft används i första hand `bun run test:visual-smoke -- <routes>` för
 bun run test:visual-review
 ```
 
-**Visual review artifacts** har ett eget runnerkontrakt. Workflowen kan fortfarande läsa `MATRUNDAN_CI_RUNNER` och faller annars tillbaka till `ubuntu-24.04`; ordinarie CI är däremot explicit GitHub-hostad och använder inte längre denna variabel. Läs därför respektive workflow i stället för att anta att samma runner-val gäller överallt.
+**Visual review artifacts** kör explicit på GitHub-hostad `ubuntu-24.04` och påverkas inte av den lokala `MATRUNDAN_CI_RUNNER`-override:n. Det håller granskningsgrinden tillgänglig även när den valfria self-hosted-runnern är offline, i linje med ordinarie CI:s runnerkontrakt.
 
 Standardmatrisen fångar följande demosökvägar:
 

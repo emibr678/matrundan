@@ -1,5 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const inheritedEnvironment = Object.fromEntries(
+  Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+);
+
+const e2eSupabaseUrl = process.env.VITE_SUPABASE_URL ?? "http://127.0.0.1:54321";
+const e2eSupabasePublishableKey =
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_matrundan_e2e";
+
 export default defineConfig({
   testDir: "./tests/visual-review",
   timeout: 45_000,
@@ -18,6 +26,11 @@ export default defineConfig({
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      ...inheritedEnvironment,
+      VITE_SUPABASE_URL: e2eSupabaseUrl,
+      VITE_SUPABASE_PUBLISHABLE_KEY: e2eSupabasePublishableKey,
+    },
   },
   projects: [
     {
