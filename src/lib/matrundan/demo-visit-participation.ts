@@ -1,5 +1,6 @@
 import type { AppState, Visit, VisibleReview } from "./types";
 import type { OwnVisitReviewInput } from "./live-visit-participation";
+import { visitHasScore } from "./visit-context";
 
 function average(values: number[]): number | undefined {
   if (values.length === 0) return undefined;
@@ -11,8 +12,16 @@ function aggregateVisit(visit: Visit, preserveInactiveReviews = false): Visit {
     ? (visit.visibleReviews ?? [])
     : (visit.visibleReviews ?? []).filter((review) => visit.participantIds.includes(review.userId));
   const rated = reviews.filter(
-    (review) => review.ratingVisible && visit.participantIds.includes(review.userId),
+    (review) =>
+      review.ratingVisible && review.overall != null && visit.participantIds.includes(review.userId),
   );
+  const comment = reviews.find(
+    (review) =>
+      review.commentVisible &&
+      visit.participantIds.includes(review.userId) &&
+      Boolean(review.comment?.trim()),
+  )?.comment;
+
   if (rated.length === 0) {
     return {
       ...visit,
@@ -21,15 +30,14 @@ function aggregateVisit(visit: Visit, preserveInactiveReviews = false): Visit {
       taste: undefined,
       value: undefined,
       service: undefined,
-      comment: undefined,
+      comment: comment ?? undefined,
     };
   }
 
-  const comment = rated.find((review) => review.commentVisible && review.comment?.trim())?.comment;
   return {
     ...visit,
     visibleReviews: reviews,
-    overall: average(rated.map((review) => review.overall)) ?? 0,
+    overall: average(rated.map((review) => review.overall as number)) ?? 0,
     taste: average(
       rated.map((review) => review.taste).filter((value): value is number => value != null),
     ),
@@ -54,16 +62,35 @@ export function saveOwnDemoReviewForVisit(
     throw new Error("Endast faktiska deltagare kan lämna ett omdöme.");
   }
 
+  const scored = visitHasScore(visit);
+  if (scored) {
+    if (input.overall == null || input.overall < 1 || input.overall > 5) {
+      throw new Error("Helhetsbetyget måste vara 1–5.");
+    }
+  } else {
+    if (
+      input.overall != null ||
+      input.taste != null ||
+      input.value != null ||
+      input.service != null
+    ) {
+      throw new Error("Något att dricka ska inte ha stjärnbetyg.");
+    }
+    if (!input.comment?.trim()) {
+      throw new Error("Skriv en kommentar först.");
+    }
+  }
+
   const existing = visit.visibleReviews?.find((review) => review.userId === state.currentUserId);
   const review: VisibleReview = {
     id: existing?.id ?? `demo-review-${visitId}-${state.currentUserId}`,
     userId: state.currentUserId,
-    overall: input.overall,
-    taste: input.taste,
-    value: input.value,
-    service: input.service,
+    overall: scored ? input.overall : null,
+    taste: scored ? input.taste : null,
+    value: scored ? input.value : null,
+    service: scored ? input.service : null,
     comment: input.comment,
-    ratingVisible: true,
+    ratingVisible: scored,
     commentVisible: existing?.commentVisible ?? true,
   };
 
@@ -129,7 +156,9 @@ export function setOwnDemoVisitParticipation(
               ],
               currentUserParticipationStatus: "participant",
               visibleReviews: (item.visibleReviews ?? []).map((review) =>
-                review.userId === state.currentUserId ? { ...review, ratingVisible: true } : review,
+                review.userId === state.currentUserId
+                  ? { ...review, ratingVisible: visitHasScore(item) }
+                  : review,
               ),
             })
           : item,
