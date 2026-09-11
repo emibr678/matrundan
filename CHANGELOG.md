@@ -14,6 +14,22 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.38.11] – 2026-09-10
+
+### Nytt
+
+- En namngiven gäst på ett delat besök kan kopplas till en medlem i en grupp där
+  besöket redan finns. Den utpekade medlemmen bekräftar själv innan deltagandet
+  räknas.
+- När ett besök registreras och delas samtidigt kan gästkopplingen fortsätta
+  direkt efter sparandet utan att besöket behöver letas upp igen.
+
+### Förbättrat
+
+- Gästnamn stannar i originalgruppen. Mottagaren ser bara sin egen
+  bekräftelsefråga, och bekräftat deltagande kopplas till samma besök utan
+  dubbelräkning.
+
 ## [1.38.10] – 2026-09-08
 
 ### Nytt

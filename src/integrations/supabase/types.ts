@@ -1819,6 +1819,84 @@ export type Database = {
           },
         ]
       }
+      visit_guest_member_proposals: {
+        Row: {
+          created_at: string
+          guest_id: string
+          id: string
+          proposal_kind: string
+          proposed_by: string | null
+          responded_at: string | null
+          status: string
+          target_group_id: string
+          target_user_id: string
+          updated_at: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          id?: string
+          proposal_kind?: string
+          proposed_by?: string | null
+          responded_at?: string | null
+          status?: string
+          target_group_id: string
+          target_user_id: string
+          updated_at?: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          id?: string
+          proposal_kind?: string
+          proposed_by?: string | null
+          responded_at?: string | null
+          status?: string
+          target_group_id?: string
+          target_user_id?: string
+          updated_at?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_guest_member_proposals_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "visit_guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_guest_member_proposals_proposed_by_fkey"
+            columns: ["proposed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_guest_member_proposals_target_group_id_fkey"
+            columns: ["target_group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_guest_member_proposals_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_guest_member_proposals_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visit_guests: {
         Row: {
           created_at: string
@@ -2398,12 +2476,20 @@ export type Database = {
       }
       get_group_app_state_v5j: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5k: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5k_guest_identity_base: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
       }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
       get_notification_settings: { Args: never; Returns: Json }
+      get_own_visit_guest_proposal_v1: {
+        Args: { _group_id: string; _visit_id: string }
+        Returns: Json
+      }
       get_place_data_report_osm_refresh_v1: {
         Args: { _group_id: string; _report_id: string }
         Returns: Json
@@ -2601,6 +2687,10 @@ export type Database = {
         Returns: Json
       }
       list_user_groups_v4b: { Args: never; Returns: Json }
+      list_visit_guest_member_targets_v1: {
+        Args: { _source_group_id: string; _visit_id: string }
+        Returns: Json
+      }
       list_visit_share_targets: { Args: { _visit_id: string }; Returns: Json }
       list_visit_share_targets_v4b: {
         Args: { _visit_id: string }
@@ -2663,6 +2753,16 @@ export type Database = {
         Args: { _group_id: string; _place_id: string }
         Returns: string
       }
+      propose_visit_guest_member_v1: {
+        Args: {
+          _guest_id: string
+          _source_group_id: string
+          _target_group_id: string
+          _target_user_id: string
+          _visit_id: string
+        }
+        Returns: string
+      }
       queue_notification: {
         Args: {
           _body: string
@@ -2703,6 +2803,10 @@ export type Database = {
         Returns: string
       }
       respond_next_stop_date: {
+        Args: { _group_id: string; _proposal_id: string; _response: string }
+        Returns: undefined
+      }
+      respond_visit_guest_proposal_v1: {
         Args: { _group_id: string; _proposal_id: string; _response: string }
         Returns: undefined
       }

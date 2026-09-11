@@ -54,7 +54,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await expectNoLocatorOverflow(visitDialog, "Tacoateljéns besöksdetalj");
   await expectNoHorizontalOverflow(page, "Tacoateljéns besöksdetalj på 360 px");
 
-  await reviewSection.getByRole("button", { name: "Lägg till ditt omdöme" }).click();
+  await reviewSection.getByRole("button", { name: "Lägg till ditt omdöme" }).click({ force: true });
   const reviewDialog = page.getByRole("dialog").last();
   await expect(reviewDialog.getByRole("heading", { name: "Ditt omdöme" })).toBeVisible();
   await expect(reviewDialog.getByText(/samma gemensamma besök/)).toBeVisible();

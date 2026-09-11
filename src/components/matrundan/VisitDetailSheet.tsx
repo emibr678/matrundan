@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, Share2, Trash2, Users2 } from "lucide-react";
+import { MapPin, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -24,7 +24,9 @@ import {
 import { useStore } from "@/lib/matrundan/store";
 import { useSession } from "@/lib/matrundan/session";
 import { removeSharedVisitFromGroup } from "@/lib/matrundan/live-sharing";
+import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
 import { ShareVisitDialog } from "./ShareVisitDialog";
+import { VisitGuestParticipationPrompt } from "./VisitGuestParticipationPrompt";
 import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
@@ -69,6 +71,7 @@ export function VisitDetailSheet({
   const author = visit ? memberById(visit.createdBy) : undefined;
 
   const isLive = mode === "live" && !!activeGroupId;
+  const isDemo = mode === "demo";
   const groupArchived = state.group.lifecycleStatus === "archived";
   const participantFallback = !!visit && visit.participantIds.includes(state.currentUserId);
   const participationStatus =
@@ -76,6 +79,11 @@ export function VisitDetailSheet({
   const isParticipant = participationStatus === "participant";
   const isShared = visit?.linkType === "shared";
   const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
+  const hasPrivateGuests =
+    visit?.participants?.some((participant) => participant.status === "guest") ?? false;
+  const hasExternalParticipants = (visit?.externalParticipantCount ?? 0) > 0;
+  const canLinkGuest =
+    !groupArchived && isLive && !isShared && hasPrivateGuests && activeGroupCount >= 2;
   const canUnlink =
     !groupArchived &&
     isLive &&
@@ -94,6 +102,7 @@ export function VisitDetailSheet({
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
 
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [unlinking, setUnlinking] = React.useState(false);
@@ -237,7 +246,7 @@ export function VisitDetailSheet({
                         ) : null}
                       </Badge>
                     ))}
-                    {(visit.externalParticipantCount ?? 0) > 0 ? (
+                    {hasExternalParticipants ? (
                       <Badge
                         variant="outline"
                         className="rounded-full border-border/70 bg-muted px-2.5 py-1 text-xs font-normal text-muted-foreground"
@@ -248,12 +257,36 @@ export function VisitDetailSheet({
                       </Badge>
                     ) : null}
                   </div>
-                  {visit.participants?.some((participant) => participant.status === "guest") ? (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Gäster hör bara till detta besök och får ingen medlemsprogression.
-                    </p>
+                  {hasPrivateGuests ? (
+                    <div className="mt-1.5 space-y-1.5">
+                      <p className="text-[11px] text-muted-foreground">
+                        Gäster hör bara till besöket och räknas inte som gruppmedlemmar.
+                      </p>
+                      {canLinkGuest ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-auto min-h-10 px-2 text-xs text-muted-foreground"
+                          onClick={() => setGuestLinkOpen(true)}
+                        >
+                          <UserRoundCheck className="h-3.5 w-3.5" />
+                          Koppla gäst till medlem
+                        </Button>
+                      ) : null}
+                    </div>
                   ) : null}
                 </section>
+
+                {(isLive && activeGroupId) || (isDemo && isShared && !isParticipant) ? (
+                  <VisitGuestParticipationPrompt
+                    visitId={visit.id}
+                    groupId={isLive ? activeGroupId : null}
+                    groupArchived={groupArchived}
+                    onChanged={reload}
+                    demoPending={isDemo && isShared && !isParticipant && hasExternalParticipants}
+                  />
+                ) : null}
 
                 {participationStatus === "declined" ? (
                   <VisitParticipationControls
@@ -335,13 +368,21 @@ export function VisitDetailSheet({
       </Sheet>
 
       {isLive && activeGroupId && !groupArchived ? (
-        <ShareVisitDialog
-          visitId={visit?.id ?? null}
-          currentGroupId={activeGroupId}
-          open={shareOpen}
-          onOpenChange={setShareOpen}
-          onShared={reload}
-        />
+        <>
+          <ShareVisitDialog
+            visitId={visit?.id ?? null}
+            currentGroupId={activeGroupId}
+            open={shareOpen}
+            onOpenChange={setShareOpen}
+            onShared={reload}
+          />
+          <GuestMemberLinkDialog
+            visitId={visit?.id ?? null}
+            sourceGroupId={activeGroupId}
+            open={guestLinkOpen}
+            onOpenChange={setGuestLinkOpen}
+          />
+        </>
       ) : null}
 
       <AlertDialog open={confirmUnlink} onOpenChange={setConfirmUnlink}>
