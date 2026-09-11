@@ -23,6 +23,18 @@ export function visitMealLabel(meal: VisitMeal | string): string {
 }
 
 /**
+ * `Något att dricka` är ett fullvärdigt besök men inte underlag för ställets
+ * matbetyg. Legacy-`kväll` behåller sin historiska scoresemantik.
+ */
+export function visitMealHasScore(meal: VisitMeal | string): boolean {
+  return meal !== "dryck";
+}
+
+export function visitHasScore(visit: Pick<Visit, "meal">): boolean {
+  return visitMealHasScore(visit.meal);
+}
+
+/**
  * På plats är implicit normalfall. Hämtmat läggs därför bara till när markeringen
  * faktiskt finns på det kanoniska besöket.
  */
