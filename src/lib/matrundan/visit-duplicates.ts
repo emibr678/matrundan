@@ -24,7 +24,7 @@ export function findLocalRegistrationVisitDuplicate(
   placeId: string,
   visitedOn: string,
   mealType: string,
-  isTakeaway: boolean,
+  isTakeaway = false,
 ): StrongVisitDuplicateCandidate | null {
   const candidate = visits
     .filter(
