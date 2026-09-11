@@ -22,7 +22,8 @@ describe("sammanhangskategorier", () => {
     for (const occasion of OCCASION_VALUES) {
       expect(OCCASION_DESCRIPTION[occasion].length).toBeGreaterThan(30);
     }
-    expect(OCCASION_DESCRIPTION.snabbt).toContain("ta med maten");
+    expect(OCCASION_DESCRIPTION.snabbt).toContain("äta relativt snabbt");
+    expect(OCCASION_DESCRIPTION.snabbt).not.toContain("ta med maten");
     expect(OCCASION_DESCRIPTION.avslappnat).toContain("vänner eller familj");
     expect(OCCASION_DESCRIPTION.middag).toContain("finkrog");
   });
