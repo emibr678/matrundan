@@ -16,6 +16,14 @@ const visits = [
     meal: "lunch",
     participantIds: ["m1"],
   },
+  {
+    id: "v3",
+    placeId: "p1",
+    date: "2026-09-09T18:00:00.000Z",
+    meal: "middag",
+    isTakeaway: true,
+    participantIds: ["m1"],
+  },
 ] satisfies Parameters<typeof findLocalRegistrationVisitDuplicate>[0];
 
 describe("lokal dubblettkontroll för besök", () => {
@@ -40,5 +48,19 @@ describe("lokal dubblettkontroll för besök", () => {
     expect(
       findLocalRegistrationVisitDuplicate(visits, "m1", "p1", "2026-09-08", "fika"),
     ).toBeNull();
+  });
+
+  test("På plats och Hämtmat räknas som olika verkliga besök", () => {
+    expect(
+      findLocalRegistrationVisitDuplicate(visits, "m1", "p1", "2026-09-09", "middag"),
+    ).toBeNull();
+    expect(
+      findLocalRegistrationVisitDuplicate(visits, "m1", "p1", "2026-09-09", "middag", true),
+    ).toEqual({
+      visitId: "v3",
+      visitedOn: "2026-09-09",
+      mealType: "middag",
+      alreadyVisibleInTargetGroup: true,
+    });
   });
 });
