@@ -13,7 +13,9 @@ function aggregateVisit(visit: Visit, preserveInactiveReviews = false): Visit {
     : (visit.visibleReviews ?? []).filter((review) => visit.participantIds.includes(review.userId));
   const rated = reviews.filter(
     (review) =>
-      review.ratingVisible && review.overall != null && visit.participantIds.includes(review.userId),
+      review.ratingVisible &&
+      review.overall != null &&
+      visit.participantIds.includes(review.userId),
   );
   const comment = reviews.find(
     (review) =>
