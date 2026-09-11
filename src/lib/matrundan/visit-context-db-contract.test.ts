@@ -11,10 +11,7 @@ const readModelPreflight = readFileSync(
   resolve(root, "supabase/production-preflight-read-model.sql"),
   "utf8",
 );
-const restoreScript = readFileSync(
-  resolve(root, "scripts/restore-supabase-local.sh"),
-  "utf8",
-);
+const restoreScript = readFileSync(resolve(root, "scripts/restore-supabase-local.sh"), "utf8");
 
 describe("Issue #197 — besökskontextens databaskontrakt", () => {
   test("lagrar Hämtmat separat och bevarar legacy-Kväll i schemat", () => {
@@ -38,9 +35,7 @@ describe("Issue #197 — besökskontextens databaskontrakt", () => {
       "CREATE OR REPLACE FUNCTION public.find_registration_visit_duplicate_v2",
     );
     expect(migration).toContain("v.is_takeaway = COALESCE(_is_takeaway, false)");
-    expect(migration).toContain(
-      "CREATE OR REPLACE FUNCTION public.find_share_visit_duplicate_v2",
-    );
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.find_share_visit_duplicate_v2");
     expect(migration).toContain("candidate.is_takeaway = COALESCE(_is_takeaway, false)");
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.share_visit_to_group_v3");
   });
