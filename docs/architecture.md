@@ -266,19 +266,21 @@ behörighet att läsa den.
 
 ## Gruppstate
 
-`get_group_app_state_v5k(uuid)` är nuvarande primära read-RPC för gruppens
-applikationsstate. `get_group_app_state_v5j(uuid)` är den närmast föregående
-kompatibla läs-RPC:n och får användas som strikt fallback när v5k uttryckligen
+`get_group_app_state_v5l(uuid)` är nuvarande primära read-RPC för gruppens
+applikationsstate. `get_group_app_state_v5k(uuid)` är den närmast föregående
+kompatibla läs-RPC:n och får användas som strikt fallback när v5l uttryckligen
 saknas under en säker rullning. Andra auth-, nätverks- eller datafel får inte
 döljas genom fallback.
 
-v5k bygger additivt på v5j och lägger till den privata `nextStop`-projektionen.
-v5j bevarar i sin tur deltagarsemantiken genom v5i-wrappern över den
-serverinterna `get_group_app_state_v5i_participation_base(uuid)`. Basfunktionen
-får inte vara direkt körbar av `anon` eller `authenticated`. Wrappern filtrerar
-synliga reviews mot aktuella rader i `visit_participants` och exponerar endast
-den inloggade användarens minimerade deltagarstatus (`participant`, `declined`
-eller `none`).
+v5l bygger additivt på v5k och kompletterar redan auktoriserade besök med den
+kanoniska `isTakeaway`-kontexten utan att bredda gruppens läsrättigheter. v5k
+lägger i sin tur till den privata `nextStop`-projektionen ovanpå v5j. v5j bevarar
+deltagarsemantiken genom v5i-wrappern över den serverinterna
+`get_group_app_state_v5i_participation_base(uuid)`. Basfunktionen får inte vara
+direkt körbar av `anon` eller `authenticated`. Wrappern filtrerar synliga
+reviews mot aktuella rader i `visit_participants` och exponerar endast den
+inloggade användarens minimerade deltagarstatus (`participant`, `declined` eller
+`none`).
 
 Read-RPC:n ska:
 
@@ -289,7 +291,7 @@ Read-RPC:n ska:
 - undvika att exponera interna tabellfält som klienten inte behöver.
 
 Sekundär, potentiellt växande besöksdata som omdömesreaktioner ska inte läggas in
-i hela gruppens v5k-payload bara för att den visas i besöksdetaljen. Den läses i
+i hela gruppens v5l-payload bara för att den visas i besöksdetaljen. Den läses i
 stället lazy genom en grupp- och medlemsvaliderad, minifierad per-besök-RPC.
 
 ## Nästa stopp
@@ -313,8 +315,8 @@ dagsvar, medan byte av dag nollställer svaren på den tidigare dagen.
 
 `next_stop_plans`, `next_stop_place_proposals` och `next_stop_place_supports` är
 server-only för klientroller. De läses genom den minimerade `nextStop`-
-projektionen i v5k; dagsvaren läses genom samma gruppscopade kompatibilitetsdata
-som den befintliga datumresponsen.
+projektionen som v5l återanvänder från v5k; dagsvaren läses genom samma
+gruppscopade kompatibilitetsdata som den befintliga datumresponsen.
 
 `group_next_place` behålls som bakåtkompatibel och auktoritativ projektion av
 gruppens aktuella fokuserade **Nästa stopp**. Det första aktiva förslaget får
@@ -354,11 +356,29 @@ kanoniska besöket. Progression, deltagarlistor, delningsbehörighet och aktivt
 deltagaromdöme ska härledas från den sanningen i stället för från en separat
 registreringspoäng eller administrativ kredit.
 
-`create_visit_with_review_v3` är den serverstyrda mutationsytan för nya besök i
+`create_visit_with_review_v4` är den serverstyrda mutationsytan för nya besök i
 den här modellen. Den som registrerar ett nytt besök måste själv finnas bland de
-validerade deltagarna och lämnar sitt eget omdöme i samma flöde. Helhetsbetyg
-krävs; smak, service och prisvärdhet är frivilliga men uppmuntras. Servern
-avvisar ett nytt besök där `auth.uid()` inte finns bland de validerade
+validerade deltagarna. Nya besök använder `frukost`, `lunch`, `fika`, `middag`
+eller `dryck`; `kväll` bevaras endast som läsbart legacyvärde och avvisas för nya
+v4-skrivningar.
+
+För scorebara matbesök krävs helhetsbetyg 1–5 medan smak, service och prisvärdhet
+är frivilliga. `dryck` (**Något att dricka**) är däremot ett fullvärdigt men
+scorelöst besök: inga numeriska reviewfält får sättas och besöket påverkar inte
+matställets betyg, men deltagande, progression, återbesök, kommentar och foto
+fungerar enligt samma kanoniska besöksmodell. `reviews.overall` är därför
+nullable endast för genuint scorelösa bidrag; servern behåller 1–5-invarianten
+för scorebara matbesök.
+
+`visits.is_takeaway` är en kanonisk egenskap på besöket. `false` är implicit På
+plats och `true` betyder Hämtmat; den är inte ett `Passar för`-värde och ändrar
+inte progression. `dryck` normaliseras alltid till `is_takeaway = false`.
+Eftersom delning återanvänder samma `visits.id` följer Hämtmat-kontexten med utan
+att källgrupp eller annan privat gruppdata exponeras. Dubblettskyddet tar med
+Hämtmat-kontexten för scorebara matbesök så På plats och Hämtmat inte felaktigt
+behandlas som samma starka dubblett.
+
+Servern avvisar ett nytt besök där `auth.uid()` inte finns bland de validerade
 `visit_participants`.
 
 Registreringshandlingen i sig ger ingen extra progression. Registreraren får
@@ -370,9 +390,12 @@ andra.
 
 `save_own_review_for_visit_v1` kompletterar ett redan existerande kanoniskt
 besök. Servern kräver att användaren är faktisk deltagare och att besöket är
-legitimt synligt i den aktuella gruppen. `reviews` behåller invarianten högst en
-kanonisk review per `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt
-i `review_group_visibility` och löses inte genom reviewkopior.
+legitimt synligt i den aktuella gruppen. För scorebara besök krävs fortsatt
+helhetsbetyg 1–5. För `dryck` tillåts i stället en scorelös kommentar med null i
+alla ratingfält och `rating_visible = false`; en tom kommentar skapar inte ett
+meningslöst reviewobjekt. `reviews` behåller invarianten högst en kanonisk review
+per `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt i
+`review_group_visibility` och löses inte genom reviewkopior.
 
 ### Privata omdömesreaktioner
 
@@ -418,7 +441,9 @@ nya regeln införs.
 Regler:
 
 - registreraren är låst som faktisk deltagare vid nya besök och lämnar sitt eget
-  omdöme i registreringsflödet;
+  omdöme i registreringsflödet för scorebara matbesök;
+- scorelösa dryckesbesök räknas som verkliga besök men skapar ingen rating eller
+  omdömesbacklog;
 - registreraren får ingen extra progression eller belöning för själva
   registreringshandlingen;
 - andra valda eller senare återställda faktiska gruppmedlemmar får
