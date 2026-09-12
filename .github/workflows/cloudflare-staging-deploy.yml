@@ -141,7 +141,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          node --input-type=commonjs <<'NODE'
+          node --input-type=module <<'NODE'
           const repository = process.env.GITHUB_REPOSITORY;
           const targetSha = process.env.TARGET_SHA;
           const token = process.env.GITHUB_TOKEN;
@@ -194,8 +194,8 @@ jobs:
           GITHUB_CONFIGURED_MAPS_KEY: ${{ vars.STAGING_GEOAPIFY_MAPS_KEY }}
         run: |
           set -euo pipefail
-          node --input-type=commonjs <<'NODE'
-          const fs = require('node:fs');
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
 
           const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
           const token = process.env.CLOUDFLARE_API_TOKEN;
@@ -269,9 +269,9 @@ jobs:
               -c "select name from supabase_migrations.schema_migrations order by version" \
             > "$remote_names"
 
-          node --input-type=commonjs - "$remote_names" <<'NODE'
-          const fs = require('node:fs');
-          const path = require('node:path');
+          node --input-type=module - "$remote_names" <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
 
           const remote = new Set(
             fs.readFileSync(process.argv[2], 'utf8').split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
@@ -332,7 +332,7 @@ jobs:
         if: steps.guard.outputs.deploy == 'true'
         run: |
           set -euo pipefail
-          node --input-type=commonjs <<'NODE'
+          node --input-type=module <<'NODE'
           const expectedRelease = process.env.TARGET_SHA;
           const url = `${process.env.STAGING_PUBLIC_URL}/api/health`;
           let lastFailure = 'staging did not respond';
