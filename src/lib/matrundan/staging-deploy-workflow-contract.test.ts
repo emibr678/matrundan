@@ -6,7 +6,7 @@ const workflowPath = ".github/workflows/cloudflare-staging-deploy.yml";
 const workflow = readFileSync(resolve(process.cwd(), workflowPath), "utf8");
 
 describe("staging-deployens kontrakt", () => {
-  test("deployar endast verifierad current main efter grön CI och type drift", () => {
+  test("deployar endast verifierad current main efter grön CI", () => {
     expect(workflow).toContain("workflow_run:");
     expect(workflow).toContain("workflows: [CI]");
     expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'");
@@ -14,10 +14,22 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).toContain("github.event.workflow_run.head_branch == 'main'");
     expect(workflow).toContain("git rev-parse origin/main");
     expect(workflow).toContain("Skipping superseded staging candidate");
-    expect(workflow).toContain("Supabase type drift");
-    expect(workflow).toContain("actions: read");
     expect(workflow).toContain("runs-on: ubuntu-24.04");
     expect(workflow).toContain("environment: staging");
+  });
+
+  test("kräver type drift endast när samma main-ändring är databasrelevant", () => {
+    expect(workflow).toContain("Detect whether Supabase type drift is relevant");
+    expect(workflow).toContain('git diff --name-only "$parent" "$TARGET_SHA"');
+    expect(workflow).toContain("supabase/migrations/*");
+    expect(workflow).toContain("supabase/config.toml");
+    expect(workflow).toContain("src/integrations/supabase/types.ts");
+    expect(workflow).toContain("scripts/supabase-types.sh");
+    expect(workflow).toContain(".github/workflows/supabase-types.yml");
+    expect(workflow).toContain("steps.db_scope.outputs.db_relevant == 'true'");
+    expect(workflow).toContain("Supabase type drift");
+    expect(workflow).toContain("actions: read");
+    expect(workflow).toContain("not required for this merge (no database/type files changed)");
   });
 
   test("kräver kompatibel stagingdatabas utan att själv applicera migrationer", () => {
