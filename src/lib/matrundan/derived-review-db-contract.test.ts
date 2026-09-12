@@ -7,6 +7,10 @@ const migration = readFileSync(
   resolve(root, "supabase/migrations/20260912170500_derived_review_model_v1.sql"),
   "utf8",
 );
+const archivedCompletionMigration = readFileSync(
+  resolve(root, "supabase/migrations/20260912171000_derived_review_model_archived_completion.sql"),
+  "utf8",
+);
 
 describe("Issue #307 — härledd reviewmodell i databasen", () => {
   test("bevarar legacy och lagrar explicit fryst modell för nya reviews", () => {
@@ -49,5 +53,14 @@ describe("Issue #307 — härledd reviewmodell i databasen", () => {
     expect(migration).toContain("_result := public.get_group_app_state_v5l(_group_id)");
     expect(migration).toContain("'{atmosphere}'");
     expect(migration).toContain("'{reviewModel}'");
+  });
+
+  test("historiska besök kan kompletteras även om matstället senare arkiverats", () => {
+    expect(archivedCompletionMigration).toContain(
+      "CREATE OR REPLACE FUNCTION public.resolve_new_review_model_v1",
+    );
+    expect(archivedCompletionMigration).not.toContain("gp.collection_status = 'active'");
+    expect(archivedCompletionMigration).toContain("Matstället finns inte i gruppen");
+    expect(migration).toContain("AND collection_status = 'active'");
   });
 });
