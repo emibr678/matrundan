@@ -104,8 +104,39 @@ jobs:
         with:
           node-version: 22.12.0
 
-      - name: Require successful Supabase type drift for exact SHA
+      - name: Detect whether Supabase type drift is relevant
+        id: db_scope
         if: steps.guard.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          parent="$(git rev-parse "${TARGET_SHA}^1" 2>/dev/null || true)"
+          if [[ -z "$parent" ]]; then
+            echo "No parent commit available; require type drift conservatively."
+            echo "db_relevant=true" >> "$GITHUB_OUTPUT"
+            echo "TYPE_DRIFT_STATUS=required and verified before deploy" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          db_relevant=false
+          while IFS= read -r file; do
+            case "$file" in
+              supabase/migrations/*|supabase/config.toml|src/integrations/supabase/types.ts|scripts/supabase-types.sh|.github/workflows/supabase-types.yml)
+                echo "Database/type-relevant change: $file"
+                db_relevant=true
+                break
+                ;;
+            esac
+          done < <(git diff --name-only "$parent" "$TARGET_SHA")
+
+          echo "db_relevant=$db_relevant" >> "$GITHUB_OUTPUT"
+          if [[ "$db_relevant" == "true" ]]; then
+            echo "TYPE_DRIFT_STATUS=required and verified before deploy" >> "$GITHUB_ENV"
+          else
+            echo "TYPE_DRIFT_STATUS=not required for this merge (no database/type files changed)" >> "$GITHUB_ENV"
+          fi
+
+      - name: Require successful Supabase type drift for exact SHA
+        if: steps.guard.outputs.deploy == 'true' && steps.db_scope.outputs.db_relevant == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -336,7 +367,7 @@ jobs:
             echo
             echo "- SHA: \`$TARGET_SHA\`"
             echo '- Trigger: successful post-merge CI on current `main` (or explicit manual retry)'
-            echo '- Supabase type drift: verified for exact SHA'
+            echo "- Supabase type drift: $TYPE_DRIFT_STATUS"
             echo '- Supabase Staging migration compatibility: verified read-only; no migration applied'
             echo '- Worker: `staging` (`--env staging`)'
             echo "- URL: $STAGING_PUBLIC_URL"
