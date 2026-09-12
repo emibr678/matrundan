@@ -483,10 +483,6 @@ export function VisitDialog({
 
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Deltagare</legend>
-              <p className="text-xs text-muted-foreground">
-                Du registrerar besöket och räknas därför som deltagare. Välj vilka andra som var
-                med.
-              </p>
               <div className="flex flex-wrap gap-2">
                 {state.members.map((member) => {
                   const active = participants.includes(member.id);
@@ -543,32 +539,37 @@ export function VisitDialog({
               ) : null}
 
               {guestInputOpen ? (
-                <div className="flex min-w-0 gap-2">
-                  <Label htmlFor="visit-guest-name" className="sr-only">
-                    Gästens namn
-                  </Label>
-                  <Input
-                    id="visit-guest-name"
-                    value={guestName}
-                    maxLength={60}
-                    placeholder="Gästens namn"
-                    autoFocus
-                    onChange={(event) => setGuestName(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addGuest();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addGuest}
-                    disabled={guests.length >= 10}
-                  >
-                    Lägg till
-                  </Button>
+                <div className="space-y-1.5">
+                  <div className="flex min-w-0 gap-2">
+                    <Label htmlFor="visit-guest-name" className="sr-only">
+                      Gästens namn
+                    </Label>
+                    <Input
+                      id="visit-guest-name"
+                      value={guestName}
+                      maxLength={60}
+                      placeholder="Gästens namn"
+                      autoFocus
+                      onChange={(event) => setGuestName(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addGuest();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addGuest}
+                      disabled={guests.length >= 10}
+                    >
+                      Lägg till
+                    </Button>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Gäster hör bara till besöket och visas anonymt vid delning.
+                  </p>
                 </div>
               ) : (
                 <Button
@@ -581,10 +582,6 @@ export function VisitDialog({
                   <UserPlus className="h-4 w-4" /> Lägg till gäst
                 </Button>
               )}
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Gästen kopplas bara till besöket och blir inte medlem i gruppen. Vid delning visas
-                gäster anonymt som ett antal.
-              </p>
             </fieldset>
 
             {scoredVisit ? (
@@ -646,7 +643,12 @@ export function VisitDialog({
               </div>
             ) : null}
 
-            <VisitPhotoField file={photoFile} onFileChange={setPhotoFile} disabled={isBusy} />
+            <VisitPhotoField
+              file={photoFile}
+              onFileChange={setPhotoFile}
+              disabled={isBusy}
+              showHelpText={false}
+            />
 
             {showShareSection && shareTargetsLoading ? (
               <div

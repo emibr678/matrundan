@@ -47,16 +47,17 @@ export function ReviewScoreFields({
       ) : null}
 
       <div
-        className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-secondary/60 px-3 py-2.5"
+        className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-secondary/60 px-4 py-3"
         aria-live="polite"
       >
         <div className="min-w-0">
-          <div className="text-xs font-medium text-muted-foreground">Helhetsbetyg</div>
-          <div className="text-sm font-semibold">
+          <div className="text-sm font-semibold">Helhetsbetyg</div>
+          <div className="text-xs text-muted-foreground">Räknas automatiskt</div>
+          <div className={overall == null ? "mt-1 text-sm font-semibold" : "mt-1 text-xl font-bold"}>
             {overall == null ? "Sätt alla betyg" : `${formatRating(overall)} / 5`}
           </div>
         </div>
-        {overall != null ? <RatingStars value={overall} size={18} /> : null}
+        {overall != null ? <RatingStars value={overall} size={20} /> : null}
       </div>
     </div>
   );
