@@ -19,18 +19,31 @@ export function RatingStars({
       aria-hidden="true"
     >
       {Array.from({ length: max }).map((_, i) => {
-        const filled = i + 1 <= Math.round(value);
+        const fill = Math.max(0, Math.min(1, value - i));
         return (
-          <Star
+          <span
             key={i}
-            width={size}
-            height={size}
-            className={
-              filled
-                ? "fill-mustard stroke-mustard-foreground/40"
-                : "fill-transparent stroke-muted-foreground/50"
-            }
-          />
+            className="relative block shrink-0"
+            style={{ width: size, height: size }}
+          >
+            <Star
+              width={size}
+              height={size}
+              className="absolute inset-0 fill-transparent stroke-muted-foreground/50"
+            />
+            {fill > 0 ? (
+              <span
+                className="absolute inset-y-0 left-0 overflow-hidden"
+                style={{ width: `${fill * 100}%` }}
+              >
+                <Star
+                  width={size}
+                  height={size}
+                  className="max-w-none fill-mustard stroke-mustard-foreground/40"
+                />
+              </span>
+            ) : null}
+          </span>
         );
       })}
     </div>
