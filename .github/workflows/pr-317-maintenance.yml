@@ -1,0 +1,99 @@
+name: PR 317 maintenance
+
+on:
+  push:
+    branches:
+      - feat/307-derived-review-model
+    paths:
+      - '.github/workflows/pr-317-maintenance.yml'
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  SUPABASE_CLI_VERSION: '2.115.0'
+  SUPABASE_TELEMETRY_DISABLED: '1'
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v7
+        with:
+          ref: feat/307-derived-review-model
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.12.0
+
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build migration-local database
+        run: npx --yes "supabase@${SUPABASE_CLI_VERSION}" db start
+
+      - name: Generate Supabase types
+        run: bash scripts/supabase-types.sh generate src/integrations/supabase/types.ts
+
+      - name: Format changed #307 files
+        run: |
+          bunx prettier --write \
+            CHANGELOG.md \
+            src/components/matrundan/AddVisitReviewDialog.tsx \
+            src/components/matrundan/DemoAddVisitReviewDialog.tsx \
+            src/components/matrundan/EditReviewDialog.tsx \
+            src/components/matrundan/PlaceCard.tsx \
+            src/components/matrundan/Rating.tsx \
+            src/components/matrundan/ReviewScoreFields.tsx \
+            src/components/matrundan/VisitDialog.tsx \
+            src/components/matrundan/VisitReviewsSection.tsx \
+            src/integrations/supabase/types.ts \
+            src/lib/matrundan/demo-visit-participation.ts \
+            src/lib/matrundan/derived-rating-display.test.ts \
+            src/lib/matrundan/derived-review-aggregate.test.ts \
+            src/lib/matrundan/derived-review-db-contract.test.ts \
+            src/lib/matrundan/live-admin-4b.ts \
+            src/lib/matrundan/live-mutations.ts \
+            src/lib/matrundan/live-repository.ts \
+            src/lib/matrundan/live-visit-participation.ts \
+            src/lib/matrundan/read-model-version.ts \
+            src/lib/matrundan/review-model-ui-contract.test.ts \
+            src/lib/matrundan/review-model.test.ts \
+            src/lib/matrundan/review-model.ts \
+            src/lib/matrundan/store.tsx \
+            src/lib/matrundan/types.ts \
+            src/lib/matrundan/version.ts \
+            'src/routes/matstallen.$placeId.tsx'
+
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/pr-317-maintenance.yml
+
+      - name: Commit generated maintenance changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No maintenance changes to commit.'
+            exit 0
+          fi
+          git commit -m 'chore: synca genererade filer och formattering (#307)'
+          git push origin HEAD:feat/307-derived-review-model
+
+      - name: Stop local Supabase database
+        if: always()
+        run: npx --yes "supabase@${SUPABASE_CLI_VERSION}" stop --no-backup
