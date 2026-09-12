@@ -53,7 +53,9 @@ export function ReviewScoreFields({
         <div className="min-w-0">
           <div className="text-sm font-semibold">Helhetsbetyg</div>
           <div className="text-xs text-muted-foreground">Räknas automatiskt</div>
-          <div className={overall == null ? "mt-1 text-sm font-semibold" : "mt-1 text-xl font-bold"}>
+          <div
+            className={overall == null ? "mt-1 text-sm font-semibold" : "mt-1 text-xl font-bold"}
+          >
             {overall == null ? "Sätt alla betyg" : `${formatRating(overall)} / 5`}
           </div>
         </div>
