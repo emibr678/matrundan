@@ -28,7 +28,9 @@ async function openKnownDuplicate(page: Page) {
   await visitDialog.getByLabel("Datum").fill(demoDateDaysAgo(5));
   await visitDialog.getByRole("combobox").click();
   await page.getByRole("option", { name: "Fika" }).click();
-  await visitDialog.getByRole("button", { name: "4 av 5" }).click();
+  for (const dimension of ["Smak", "Service", "Prisvärdhet", "Atmosfär"]) {
+    await visitDialog.getByRole("button", { name: `${dimension}: 4 av 5` }).click();
+  }
   await visitDialog.getByRole("button", { name: "Spara besök" }).click();
 
   const duplicatePrompt = page.getByRole("alertdialog", {
