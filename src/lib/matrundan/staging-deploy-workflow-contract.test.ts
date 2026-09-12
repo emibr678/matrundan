@@ -34,9 +34,9 @@ describe("staging-deployens kontrakt", () => {
 
   test("kör inline-node explicit som CommonJS i ESM-repot", () => {
     expect(workflow).not.toContain("node <<'NODE'");
-    expect(workflow).not.toContain('node - "$remote_names" <<\'NODE\'');
+    expect(workflow).not.toContain("node - \"$remote_names\" <<'NODE'");
     expect(workflow.match(/node --input-type=commonjs/g)?.length).toBe(4);
-    expect(workflow).toContain('node --input-type=commonjs - "$remote_names" <<\'NODE\'');
+    expect(workflow).toContain("node --input-type=commonjs - \"$remote_names\" <<'NODE'");
   });
 
   test("kräver kompatibel stagingdatabas utan att själv applicera migrationer", () => {
