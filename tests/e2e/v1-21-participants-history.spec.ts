@@ -48,7 +48,9 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await page.getByRole("button", { name: "Lägg till", exact: true }).click();
   await expect(page.getByText("Maja")).toBeVisible();
 
-  await page.getByRole("button", { name: "Helhetsbetyg: 5 av 5" }).click();
+  for (const dimension of ["Smak", "Service", "Prisvärdhet", "Atmosfär"]) {
+    await page.getByRole("button", { name: `${dimension}: 5 av 5` }).click();
+  }
   await page.getByRole("button", { name: "Spara besök" }).click();
   await expect(page.getByText("Besök registrerat")).toBeVisible();
 
