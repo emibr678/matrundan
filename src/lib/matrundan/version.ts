@@ -3,6 +3,27 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_39_0_CHANGELOG: ChangelogEntry = {
+  version: "1.39.0",
+  date: "2026-09-12",
+  summary: "Helhetsbetyget speglar nu de delar av matupplevelsen som faktiskt bedöms.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Nya omdömen bygger på Smak, Service och Prisvärdhet samt Atmosfär när vistelsen på plats är en relevant del av upplevelsen. Helhetsbetyget räknas automatiskt som ett transparent medelvärde.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hämtmat och ställen som endast passar för Snabbt och enkelt bedöms utan Atmosfär, medan decimalbetyg visas med motsvarande delvis fyllda stjärnor.",
+        "Äldre omdömen behåller sin tidigare betygsmodell och verkliga besök kan fortfarande sparas även om Passar för behöver kompletteras innan ett nytt omdöme lämnas.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_12_CHANGELOG: ChangelogEntry = {
   version: "1.38.12",
   date: "2026-09-11",
@@ -347,6 +368,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_39_0_CHANGELOG,
   VERSION_1_38_12_CHANGELOG,
   VERSION_1_38_11_CHANGELOG,
   VERSION_1_38_10_CHANGELOG,
