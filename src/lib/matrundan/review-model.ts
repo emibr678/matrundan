@@ -1,7 +1,7 @@
 import { normalizeOccasionClassification } from "./occasions";
-import type { Occasion } from "./types";
+import type { Occasion, ReviewModel } from "./types";
 
-export type ReviewModel = "food_v1_takeaway" | "food_v1_quick" | "food_v1_atmosphere";
+export type { ReviewModel } from "./types";
 
 export interface ReviewDimensionValues {
   taste: number;
@@ -42,7 +42,7 @@ export function reviewModelExplanation(model: ReviewModel): string | null {
 }
 
 function isWholeStar(value: number | null | undefined): value is number {
-  return Number.isInteger(value) && value != null && value >= 1 && value <= 5;
+  return value != null && Number.isInteger(value) && value >= 1 && value <= 5;
 }
 
 export function reviewRatingsComplete(
