@@ -12,6 +12,7 @@ const root = process.cwd();
 const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const migrationRoot = resolve(root, "supabase/migrations");
 const preflightPath = resolve(root, "supabase/production-preflight.sql");
+const preflightReadModelPath = resolve(root, "supabase/production-preflight-read-model.sql");
 const preflightLocationPath = resolve(root, "supabase/production-preflight-place-location.sql");
 const preflightBoundaryPath = resolve(root, "supabase/production-preflight-search-boundaries.sql");
 const preflightVisitParticipationPath = resolve(
@@ -189,6 +190,9 @@ for (const index of [
 if (!existsSync(preflightPath)) {
   errors.push("supabase/production-preflight.sql saknas.");
 }
+if (!existsSync(preflightReadModelPath)) {
+  errors.push("supabase/production-preflight-read-model.sql saknas.");
+}
 if (!existsSync(preflightLocationPath)) {
   errors.push("supabase/production-preflight-place-location.sql saknas.");
 }
@@ -203,18 +207,22 @@ if (!existsSync(preflightReviewReactionsPath)) {
 }
 if (
   existsSync(preflightPath) &&
+  existsSync(preflightReadModelPath) &&
   existsSync(preflightLocationPath) &&
   existsSync(preflightBoundaryPath) &&
   existsSync(preflightVisitParticipationPath) &&
   existsSync(preflightReviewReactionsPath)
 ) {
   const preflight = `${readFileSync(preflightPath, "utf8")}\n${readFileSync(
-    preflightLocationPath,
+    preflightReadModelPath,
     "utf8",
-  )}\n${readFileSync(preflightBoundaryPath, "utf8")}\n${readFileSync(
-    preflightVisitParticipationPath,
+  )}\n${readFileSync(preflightLocationPath, "utf8")}\n${readFileSync(
+    preflightBoundaryPath,
     "utf8",
-  )}\n${readFileSync(preflightReviewReactionsPath, "utf8")}`;
+  )}\n${readFileSync(preflightVisitParticipationPath, "utf8")}\n${readFileSync(
+    preflightReviewReactionsPath,
+    "utf8",
+  )}`;
   for (const name of requiredFunctions) {
     if (!preflight.includes(name)) {
       errors.push(`Produktions-preflight saknar ${name}.`);
