@@ -26,7 +26,9 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).toContain("select name from supabase_migrations.schema_migrations");
     expect(workflow).toContain("stem.replaceAll('-', '_')");
     expect(workflow).toContain("suffix.replaceAll('-', '_')");
-    expect(workflow).toContain("Apply database migrations only after separate explicit database-deployment approval");
+    expect(workflow).toContain(
+      "Apply database migrations only after separate explicit database-deployment approval",
+    );
     expect(workflow).not.toContain("supabase db push");
     expect(workflow).not.toContain("supabase migration up");
     expect(workflow).not.toContain("apply_migration");
