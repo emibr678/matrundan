@@ -12,6 +12,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -47,7 +48,6 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-      CONFIGURED_STAGING_GEOAPIFY_MAPS_KEY: ${{ vars.STAGING_GEOAPIFY_MAPS_KEY }}
 
     steps:
       - name: Check out exact staging candidate
@@ -97,6 +97,65 @@ jobs:
             printf 'Missing staging deployment configuration: %s\n' "${missing[*]}" >&2
             exit 1
           fi
+
+      - name: Set up pinned Node
+        if: steps.guard.outputs.deploy == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Require successful Supabase type drift for exact SHA
+        if: steps.guard.outputs.deploy == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const repository = process.env.GITHUB_REPOSITORY;
+          const targetSha = process.env.TARGET_SHA;
+          const token = process.env.GITHUB_TOKEN;
+          const endpoint = `https://api.github.com/repos/${repository}/actions/runs?head_sha=${targetSha}&per_page=100`;
+          let last = 'no matching Supabase type drift run yet';
+
+          for (let attempt = 1; attempt <= 30; attempt += 1) {
+            const response = await fetch(endpoint, {
+              headers: {
+                accept: 'application/vnd.github+json',
+                authorization: `Bearer ${token}`,
+                'x-github-api-version': '2022-11-28',
+              },
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+              console.error(`Could not read GitHub workflow runs (HTTP ${response.status}).`);
+              process.exit(1);
+            }
+
+            const run = (payload?.workflow_runs ?? [])
+              .filter((candidate) =>
+                candidate?.name === 'Supabase type drift' &&
+                candidate?.head_branch === 'main' &&
+                candidate?.event === 'push'
+              )
+              .sort((a, b) => String(b?.created_at ?? '').localeCompare(String(a?.created_at ?? '')))[0];
+
+            if (run?.status === 'completed' && run?.conclusion === 'success') {
+              console.log(`Verified Supabase type drift run #${run.run_number} for ${targetSha}.`);
+              process.exit(0);
+            }
+            if (run?.status === 'completed') {
+              console.error(`Supabase type drift run #${run.run_number} completed with ${run.conclusion}. Staging deploy is blocked.`);
+              process.exit(1);
+            }
+
+            last = run ? `run #${run.run_number} status=${run.status}` : last;
+            await new Promise((resolve) => setTimeout(resolve, 10_000));
+          }
+
+          console.error(`Timed out waiting for Supabase type drift on ${targetSha}: ${last}`);
+          process.exit(1);
+          NODE
 
       - name: Resolve public staging build configuration
         if: steps.guard.outputs.deploy == 'true'
@@ -183,30 +242,35 @@ jobs:
           const fs = require('node:fs');
           const path = require('node:path');
 
-          const remotePath = process.argv[2];
           const remote = new Set(
-            fs.readFileSync(remotePath, 'utf8').split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
+            fs.readFileSync(process.argv[2], 'utf8').split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
           );
           const local = fs.readdirSync('supabase/migrations')
             .filter((name) => name.endsWith('.sql'))
-            .map((name) => path.basename(name, '.sql').replace(/^\d+_/, ''));
-          const missing = local.filter((name) => !remote.has(name));
+            .map((name) => path.basename(name, '.sql'));
+
+          const candidatesFor = (stem) => {
+            const suffix = stem.replace(/^\d+_/, '');
+            return new Set([
+              stem,
+              stem.replaceAll('-', '_'),
+              suffix,
+              suffix.replaceAll('-', '_'),
+            ]);
+          };
+          const missing = local.filter(
+            (stem) => ![...candidatesFor(stem)].some((candidate) => remote.has(candidate)),
+          );
 
           if (missing.length > 0) {
             console.error('Staging database is missing migration(s) required by current main:');
-            for (const name of missing) console.error(`- ${name}`);
+            for (const stem of missing) console.error(`- ${stem}`);
             console.error('Staging deploy is blocked. Apply database migrations only after separate explicit database-deployment approval, then rerun this workflow.');
             process.exit(1);
           }
 
-          console.log(`Verified ${local.length} main migration(s) are present in Supabase Staging; extra forward-compatible staging migrations are allowed.`);
+          console.log(`Verified ${local.length} main migration(s) are represented in Supabase Staging; legacy imported names and extra forward-compatible staging migrations are allowed.`);
           NODE
-
-      - name: Set up pinned Node
-        if: steps.guard.outputs.deploy == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.12.0
 
       - name: Set up pinned Bun
         if: steps.guard.outputs.deploy == 'true'
@@ -272,6 +336,7 @@ jobs:
             echo
             echo "- SHA: \`$TARGET_SHA\`"
             echo '- Trigger: successful post-merge CI on current `main` (or explicit manual retry)'
+            echo '- Supabase type drift: verified for exact SHA'
             echo '- Supabase Staging migration compatibility: verified read-only; no migration applied'
             echo '- Worker: `staging` (`--env staging`)'
             echo "- URL: $STAGING_PUBLIC_URL"

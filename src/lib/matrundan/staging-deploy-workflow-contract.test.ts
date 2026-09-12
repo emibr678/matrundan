@@ -6,7 +6,7 @@ const workflowPath = ".github/workflows/cloudflare-staging-deploy.yml";
 const workflow = readFileSync(resolve(process.cwd(), workflowPath), "utf8");
 
 describe("staging-deployens kontrakt", () => {
-  test("deployar endast verifierad current main efter grön CI", () => {
+  test("deployar endast verifierad current main efter grön CI och type drift", () => {
     expect(workflow).toContain("workflow_run:");
     expect(workflow).toContain("workflows: [CI]");
     expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'");
@@ -14,6 +14,8 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).toContain("github.event.workflow_run.head_branch == 'main'");
     expect(workflow).toContain("git rev-parse origin/main");
     expect(workflow).toContain("Skipping superseded staging candidate");
+    expect(workflow).toContain("Supabase type drift");
+    expect(workflow).toContain("actions: read");
     expect(workflow).toContain("runs-on: ubuntu-24.04");
     expect(workflow).toContain("environment: staging");
   });
@@ -22,6 +24,8 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).toContain("STAGING_SUPABASE_DB_URL");
     expect(workflow).toContain("supabase_migrations.schema_migrations");
     expect(workflow).toContain("select name from supabase_migrations.schema_migrations");
+    expect(workflow).toContain("stem.replaceAll('-', '_')");
+    expect(workflow).toContain("suffix.replaceAll('-', '_')");
     expect(workflow).toContain("Apply database migrations only after separate explicit database-deployment approval");
     expect(workflow).not.toContain("supabase db push");
     expect(workflow).not.toContain("supabase migration up");
