@@ -66,6 +66,33 @@ Första rökprovet i en ny Codex-miljö ska vara en läs- och verifieringsuppgif
 Kör bun run doctor och bun run verify:changed. Ändra inga filer. Redovisa exakta kommandon och resultat.
 ```
 
+## Exekveringslägen
+
+Repot ska fungera i två agentlägen:
+
+- **Checkout-läge** — lokal utveckling eller Codex med verifierad checkout. Här
+  kan de kanoniska kommandona nedan köras före push.
+- **Connector-läge** — exempelvis ChatGPT via GitHub-appen utan lokal checkout.
+  Här sker läsning och skrivning genom GitHub API och lokala kommandon får inte
+  påstås vara körda.
+
+I connector-läge ska relaterade flerfilsändringar normalt batchas genom Git Data
+API i en enda checkpoint:
+
+```text
+blobs → tree → commit → fast-forward ref
+```
+
+Utgå från verifierad aktuell branch/head och dess tree. Skapa inte en commit per
+fil när ändringarna hör ihop, och skapa aldrig en no-op-commit enbart för att
+starta CI. Håll PR:n draft under API-iteration. Om connectorn saknar en nödvändig
+Git Data-operation används minsta möjliga antal filvisa commits och begränsningen
+redovisas i PR:n.
+
+Connector-läge ger inte en implicit shellmiljö. GitHub-baserad verifiering används
+när repot exponerar en sådan väg; annars ska full CI sparas till en sammanhängande
+kandidat i stället för att användas efter varje API-skrivning.
+
 ## Kanoniska kommandon
 
 Kontrollera miljön:
@@ -172,7 +199,7 @@ Dessutom inkluderas staged, unstaged och otrackade filer. Samma klassificering a
 
 De statiska kontrollerna och browserverifieringen körs i separata jobb. Ett browsertestfel kan därför läsas och återköras utan att döljas längst ned i samma jobb som format, typning och bygge.
 
-Draft-PR startar inga runnerjobb i GitHub Actions. Under implementation och diagnostik körs i stället de kanoniska lokala/Codex-kontrollerna, normalt:
+Draft-PR startar inga runnerjobb i GitHub Actions. I checkout-läge körs under implementation och diagnostik de kanoniska lokala/Codex-kontrollerna, normalt:
 
 ```bash
 bun run verify:changed
@@ -183,6 +210,12 @@ och för UI:
 ```bash
 bun run verify:agent
 ```
+
+I connector-läge hålls PR:n också draft under iteration, men agenten får inte
+låtsas att lokala kontroller har körts. Använd en särskild GitHub-baserad riktad
+verifiering när en sådan finns. Om den saknas ska branchdiffen och relevant
+impact granskas först och PR:n flyttas till ready först när kandidaten är stabil
+nog att motivera full CI.
 
 Det gör att en serie draft-pushar inte förbrukar GitHub-hostade minuter. När PR:n markeras redo, när en redan redo PR uppdateras, när `main` uppdateras eller vid manuell workflow-körning körs full CI. För UI ingår hela mobil Chromium-sviten; kartrelaterade ändringar kör även WebKit/iPhone och desktop Chromium.
 
@@ -269,7 +302,8 @@ Self-hosted runners är därför undantag för uttryckligen avgränsade workflow
 ## Iterationsdisciplin
 
 - Håll PR:n som draft medan implementation, visuell justering eller diagnostik pågår.
-- Pusha en sammanhängande kandidat efter riktad lokal kontroll, inte varje experiment.
+- I checkout-läge: pusha en sammanhängande kandidat efter riktad lokal kontroll, inte varje experiment.
+- I connector-läge: batcha relaterade API-skrivningar till sammanhållna commits och undvik att en filändring blir en egen CI-trigger.
 - Om en redo-PR behöver flera nya hypoteser eller visuella iterationer ska den flyttas tillbaka till draft innan fler pushar.
 - Lovable ska användas på en avgränsad branch eller sandbox. Undvik en serie små direktpushar till `main`.
 - Exakta pixelgränser i E2E-test ska endast användas när pixelmåttet är ett avsiktligt stabilt kontrakt. För normal responsiv UX föredras ordning, overflow, minsta tryckyta och robusta relativa relationer.

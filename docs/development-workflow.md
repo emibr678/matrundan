@@ -32,6 +32,14 @@ En ny funktion eller större förändring får inte implementeras före uttryckl
 implementationsgodkännande. Implementation innebär inte godkännande för merge,
 databas eller publicering. Bredda inte scope tyst.
 
+Efter uttryckligt implementationsgodkännande ska agenten normalt fortsätta genom
+allt agentägt arbete inom scopet tills en verklig användargrind nås. En push,
+pågående CI, kvarvarande UX-review, väntande preview eller annan verifiering som
+agenten själv kan utföra är inte en handoff. Verkliga användargrindar är främst
+scopeutvidgning eller produktbeslut, uttryckligt användartest/val, merge,
+databasdriftsättning, publicering eller en blockerare som agenten faktiskt inte
+kan lösa med tillgängliga verktyg.
+
 Korrigerande dokumentation och små maintenanceändringar får göras inom ett
 uttryckligt granskningsuppdrag om de inte skapar nytt produktbeteende.
 
@@ -76,6 +84,29 @@ att patcha, committa eller pusha produktkod tillbaka till en branch.
 PR-mallen är ett evidenskvitto. Den ska beskriva vad som faktiskt ändrades,
 vilken riskprofil som gäller, vad som verifierats och vad som återstår; den ska
 inte återberätta hela detta dokument.
+
+### Exekveringslägen
+
+Matrundan stödjer två normala agentlägen och de får inte låtsas ha samma
+förmågor:
+
+- **Checkout-läge** — agenten har en verifierad checkout, kan ändra flera filer
+  lokalt och köra repots kanoniska kommandon före en sammanhållen push.
+- **Connector-läge** — agenten arbetar direkt via GitHub API utan lokal checkout.
+  Lokala kommandon får då inte påstås vara körda. Relaterade filändringar ska
+  normalt batchas till en sammanhållen commit/ref-uppdatering i stället för en
+  commit per fil, och PR:n hålls draft under API-iteration.
+
+När connectorn exponerar Git Data API är normal flerfilsväg
+`blobs → tree → commit → ref`. Om en nödvändig connectorförmåga saknas ska
+agenten minimera antalet filvisa commits och redovisa begränsningen i PR:n; skapa
+inte no-op-commits enbart för att trigga CI. Eftersom GitHub inte kan öppna en PR
+utan branchdiff får första draft-PR:n i connector-läge skapas direkt efter den
+första sammanhållna checkpointen.
+
+Valet av exekveringsläge ändrar inte godkännandegränserna. Det ändrar endast hur
+implementation och verifiering genomförs och vilken evidens agenten faktiskt kan
+påstå sig ha.
 
 ### Cloudflare branch-preview och staging
 
@@ -190,6 +221,12 @@ Verifieringsprincipen är:
 2. relevant domän-/browserkontroll för kandidatens faktiska risk;
 3. repoets ordinarie kandidat-/CI-kontroller före merge.
 
+I checkout-läge görs steg 1–2 normalt i checkouten före push. I connector-läge
+används en GitHub-baserad riktad verifieringsväg när repot exponerar en sådan;
+om den saknas hålls PR:n draft genom implementationen och full CI startas först
+när den sammanhängande kandidaten är värd en bred körning. Connector-läge får
+inte ersätta saknad verifiering med påstådd lokal evidens.
+
 GUI-kandidater redovisar reviewnivå, states och viewportar enligt
 `visual-review.md`. Databas/RPC-kandidater granskar minst autentisering,
 medlemskap/roller, `SECURITY DEFINER`/`search_path`, grants, gruppisolering och
@@ -243,36 +280,42 @@ Publicering kräver konsekvent version, in-app-historik och `CHANGELOG.md` när
 ändringen är releasepliktig. En dokumentations- eller maintenance-PR behöver
 inte publiceras bara för att den mergas.
 
-## 9. Leveranskvitto i chatten
+## 9. Mobil handoff i chatten
 
-Efter en kandidat/push som är avsedd att granskas och efter merge ska agenten ge
-ett kort, skannbart beslutsunderlag. Kärnfälten hålls stabila; villkorade fält
-visas bara när de faktiskt är relevanta.
+Chatten är användarens mobila kontrollpanel, inte den fullständiga revisionsloggen.
+PR:n och Actions behåller den tekniska evidensen. Agenten ska därför inte skicka
+ett leveranskvitto medan inget krävs från användaren och agentägt arbete kan
+fortsätta.
+
+När en verklig handoff nås:
+
+- börja med läget i användarspråk och om användaren behöver göra något;
+- visa högst den aktuella blockeraren eller beslutspunkten, inte flera interna
+  delsteg som likvärdiga problem;
+- visa alltid relevant verifierad previewlänk när en sådan finns;
+- håll SHA, tree-hash, runnerdetaljer, migrationsfilnamn och rå workflowstatus i
+  PR/Actions om de inte behövs för själva beslutet;
+- lista inte allt som inte har gjorts om det inte finns konkret risk att blanda
+  ihop merge, databas, Lovable eller publicering;
+- avsluta med **Nästa från dig: ...** när användarinput faktiskt krävs.
+
+En normal testhandoff kan vara:
 
 ```text
-Status:
-Issue / PR:
-Branch/head:
-CI:
-UX/preview:
-Databas:
-Ej verifierat:
-Nästa steg:
+Redo att testa
+Preview: https://...
+CI + UX: ✅
+Testa främst: A, B, C
+Nästa från dig: säg vad som känns fel eller om kandidaten ser bra ut.
 ```
 
-`Issue / PR:` skrivs normalt med nummer och full titel. `CI:` anger faktisk
-status och relevanta kontroller. `UX/preview:` anger reviewnivå och relevant
-granskningsunderlag när GUI påverkas, annars kort `Inte relevant`. `Databas:` ska
-alltid skilja mellan ingen påverkan, migration i PR men inte driftsatt och faktiskt
-driftssatt databas. `Status:` ska tydligt skilja kandidat, mergegodkännande och
-utförd merge.
+En docs/backend-kandidat utan preview kan i stället kort säga att kandidaten är
+verifierad och vilken beslutspunkt som återstår. Efter merge redovisas endast de
+separata statusar som är relevanta för att undvika sammanblandning, exempelvis
+om databasen fortfarande inte är driftsatt eller publicering inte har skett.
 
-Lägg endast till korta rader för `Testa:`, `Lovable:`, `Exempelgrupp:`,
-`Roadmap/version:` eller `Publicering:` när de behövs för användarens nästa beslut.
-Lovable-raden visas alltså normalt inte alls när Lovable inte har begärts.
-
-PR-mallen är fortsatt GitHubs fullständigare evidenskvitto. Chattkvittot ska vara
-den minsta status användaren behöver för att tryggt granska och fatta nästa
+PR-mallen är fortsatt GitHubs fullständigare evidenskvitto. Chattens handoff ska
+vara den minsta status användaren behöver för att tryggt granska och fatta nästa
 beslut, inte en kopia av PR-mallen.
 
 ## 10. Dokumentägarskap
