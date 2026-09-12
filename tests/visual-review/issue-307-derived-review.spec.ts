@@ -200,6 +200,11 @@ async function openVisitDialog(page: Page, occasions: string[]) {
 test("#307 På plats visar Atmosfär och härlett helhetsbetyg", async ({ page }, testInfo) => {
   const dialog = await openVisitDialog(page, ["avslappnat"]);
 
+  await expect(dialog.getByText("Välj alla som var med.", { exact: true })).toBeVisible();
+  const registrar = dialog.getByRole("button", { name: "Emil, du, deltagare" });
+  await expect(registrar).toBeDisabled();
+  await expect(registrar.getByText("Du", { exact: true })).toBeVisible();
+
   await dialog.getByRole("button", { name: "Smak: 5 av 5" }).click();
   await dialog.getByRole("button", { name: "Service: 4 av 5" }).click();
   await dialog.getByRole("button", { name: "Prisvärdhet: 4 av 5" }).click();
@@ -210,6 +215,33 @@ test("#307 På plats visar Atmosfär och härlett helhetsbetyg", async ({ page }
   await stabilize(page);
   await expectNoHorizontalOverflow(page, dialog);
   await capture(page, testInfo, "issue-307-pa-plats-atmosfar");
+});
+
+test("#307 gästflödet är progressivt och går att stänga", async ({ page }, testInfo) => {
+  const dialog = await openVisitDialog(page, ["avslappnat"]);
+
+  await expect(dialog.getByLabel("Gästens namn")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Lägg till gäst" }).click();
+
+  const guestInput = dialog.getByLabel("Gästens namn");
+  await expect(guestInput).toBeVisible();
+  await expect(
+    dialog.getByText("Gäster hör bara till besöket och visas anonymt vid delning."),
+  ).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Avbryt lägg till gäst" })).toBeVisible();
+  await stabilize(page);
+  await expectNoHorizontalOverflow(page, dialog);
+  await capture(page, testInfo, "issue-307-gast-inline");
+
+  await dialog.getByRole("button", { name: "Avbryt lägg till gäst" }).click();
+  await expect(guestInput).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Lägg till gäst" })).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Lägg till gäst" }).click();
+  await dialog.getByLabel("Gästens namn").fill("Maja");
+  await dialog.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await expect(dialog.getByLabel("Gästens namn")).toHaveCount(0);
+  await expect(dialog.getByText("Maja", { exact: true })).toBeVisible();
 });
 
 test("#307 Hämtmat utelämnar Atmosfär och härleder tre dimensioner", async ({

@@ -208,6 +208,11 @@ export function VisitDialog({
   const toggleShareGroup = (id: string) =>
     setShareGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
+  function closeGuestInput() {
+    setGuestInputOpen(false);
+    setGuestName("");
+  }
+
   function addGuest() {
     const name = normalizeGuestName(guestName);
     if (!name) {
@@ -223,7 +228,7 @@ export function VisitDialog({
       return;
     }
     setGuests((current) => [...current, { id: `guest-${Date.now()}-${current.length}`, name }]);
-    setGuestName("");
+    closeGuestInput();
   }
 
   function participantSnapshots(): VisitParticipant[] {
@@ -483,6 +488,7 @@ export function VisitDialog({
 
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Deltagare</legend>
+              <p className="text-xs text-muted-foreground">Välj alla som var med.</p>
               <div className="flex flex-wrap gap-2">
                 {state.members.map((member) => {
                   const active = participants.includes(member.id);
@@ -495,7 +501,7 @@ export function VisitDialog({
                       aria-pressed={active}
                       aria-label={
                         isRegistrar
-                          ? `${member.name} är deltagare eftersom du registrerar besöket`
+                          ? `${member.name}, du, deltagare`
                           : `${active ? "Ta bort" : "Lägg till"} ${member.name} som deltagare`
                       }
                       disabled={isRegistrar}
@@ -507,6 +513,9 @@ export function VisitDialog({
                       >
                         <span aria-hidden>{member.avatar}</span>
                         <span>{member.name}</span>
+                        {isRegistrar ? (
+                          <span className="ml-0.5 text-[10px] font-semibold opacity-75">Du</span>
+                        ) : null}
                       </Badge>
                     </button>
                   );
@@ -540,7 +549,7 @@ export function VisitDialog({
 
               {guestInputOpen ? (
                 <div className="space-y-1.5">
-                  <div className="flex min-w-0 gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <Label htmlFor="visit-guest-name" className="sr-only">
                       Gästens namn
                     </Label>
@@ -550,11 +559,16 @@ export function VisitDialog({
                       maxLength={60}
                       placeholder="Gästens namn"
                       autoFocus
+                      className="min-w-0 flex-1"
                       onChange={(event) => setGuestName(event.target.value)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
                           event.preventDefault();
                           addGuest();
+                        }
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          closeGuestInput();
                         }
                       }}
                     />
@@ -565,6 +579,16 @@ export function VisitDialog({
                       disabled={guests.length >= 10}
                     >
                       Lägg till
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 shrink-0"
+                      onClick={closeGuestInput}
+                      aria-label="Avbryt lägg till gäst"
+                    >
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
