@@ -16,6 +16,11 @@ import { DEMO_STATE } from "./demo-data";
 import { normalizeFoodTags } from "./food-tags";
 import { normalizeOccasionClassification } from "./occasions";
 import {
+  deriveReviewOverall,
+  reviewModelForContext,
+  reviewRatingsComplete,
+} from "./review-model";
+import {
   archiveGroup as liveArchiveGroup,
   archiveGroupPlace as liveArchiveGroupPlace,
   reactivateGroup as liveReactivateGroup,
@@ -32,6 +37,7 @@ import {
   liveDeleteOriginalVisit,
   liveSetNextPlace,
   liveToggleFavorite,
+  type VisitMutationInput,
 } from "./live-mutations";
 import type {
   Activity,
@@ -91,6 +97,7 @@ function aggregateVisit(visit: Visit): Visit {
       taste: undefined,
       value: undefined,
       service: undefined,
+      atmosphere: undefined,
       comment: comment ?? undefined,
     };
   }
@@ -107,6 +114,9 @@ function aggregateVisit(visit: Visit): Visit {
     ),
     service: avg(
       rated.map((review) => review.service).filter((value): value is number => value != null),
+    ),
+    atmosphere: avg(
+      rated.map((review) => review.atmosphere).filter((value): value is number => value != null),
     ),
     comment: comment ?? undefined,
   };
@@ -142,6 +152,8 @@ function normalizeDemoState(input: AppState): AppState {
           taste: visit.taste ?? null,
           value: visit.value ?? null,
           service: visit.service ?? null,
+          atmosphere: visit.atmosphere ?? null,
+          reviewModel: null,
           comment: visit.comment ?? null,
           ratingVisible: true,
           commentVisible: true,
@@ -154,6 +166,8 @@ function normalizeDemoState(input: AppState): AppState {
             taste: null,
             value: null,
             service: null,
+            atmosphere: null,
+            reviewModel: null,
             comment: visit.comment,
             ratingVisible: false,
             commentVisible: true,
@@ -201,7 +215,7 @@ interface StoreContextValue {
     raw: unknown;
   }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
-  addVisit: (visit: Omit<Visit, "id">) => Promise<Visit>;
+  addVisit: (visit: VisitMutationInput) => Promise<Visit>;
   saveVisitPhoto: (visitId: string, file: File, visitSnapshot?: Visit) => Promise<void>;
   deleteVisitPhoto: (visitId: string) => Promise<void>;
   deleteVisit: (visitId: string) => Promise<void>;
@@ -446,38 +460,88 @@ export function StoreProvider({
           return { ...visitInput, id } as Visit;
         }
         assertDemoWritable(state, demoReadOnly);
-        if (
-          state.places.find((place) => place.id === visitInput.placeId)?.collectionStatus ===
-          "archived"
-        ) {
+        const currentPlace = state.places.find((place) => place.id === visitInput.placeId);
+        if (currentPlace?.collectionStatus === "archived") {
           throw new Error("Lägg tillbaka matstället innan ett nytt besök registreras.");
         }
         const timestamp = Date.now();
         const scored = visitHasScore(visitInput);
+        const hasNewDimensions =
+          scored &&
+          [visitInput.taste, visitInput.value, visitInput.service, visitInput.atmosphere].some(
+            (rating) => rating != null && rating > 0,
+          );
+        const normalizedReviewOccasions = normalizeOccasionClassification(
+          visitInput.reviewOccasions ?? [],
+        );
+        const reviewOccasions =
+          currentPlace?.occasions?.length ? currentPlace.occasions : normalizedReviewOccasions;
+        const reviewModel = hasNewDimensions
+          ? reviewModelForContext({
+              isTakeaway: visitInput.isTakeaway === true,
+              occasions: reviewOccasions,
+            })
+          : null;
+
+        if (
+          hasNewDimensions &&
+          (!reviewModel ||
+            !reviewRatingsComplete(reviewModel, {
+              taste: visitInput.taste ?? 0,
+              value: visitInput.value ?? 0,
+              service: visitInput.service ?? 0,
+              atmosphere: visitInput.atmosphere ?? 0,
+            }))
+        ) {
+          throw new Error(reviewModel ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.");
+        }
+        if (scored && !hasNewDimensions && !visitInput.overall && visitInput.comment?.trim()) {
+          throw new Error("Sätt alla relevanta betyg innan kommentaren sparas med omdömet.");
+        }
+
+        const derivedOverall = reviewModel
+          ? deriveReviewOverall(reviewModel, {
+              taste: visitInput.taste ?? 0,
+              value: visitInput.value ?? 0,
+              service: visitInput.service ?? 0,
+              atmosphere: visitInput.atmosphere ?? 0,
+            })
+          : null;
+        const legacyReview = scored && !hasNewDimensions && visitInput.overall > 0;
         const review: VisibleReview | null =
-          scored || visitInput.comment?.trim()
+          hasNewDimensions || legacyReview || (!scored && Boolean(visitInput.comment?.trim()))
             ? {
                 id: `demo-review-${timestamp}`,
                 userId: state.currentUserId,
-                overall: scored ? visitInput.overall : null,
+                overall: scored ? (derivedOverall ?? visitInput.overall) : null,
                 taste: scored ? (visitInput.taste ?? null) : null,
                 value: scored ? (visitInput.value ?? null) : null,
                 service: scored ? (visitInput.service ?? null) : null,
+                atmosphere: scored && reviewModel ? (visitInput.atmosphere ?? null) : null,
+                reviewModel,
                 comment: visitInput.comment ?? null,
                 ratingVisible: scored,
                 commentVisible: true,
               }
             : null;
+        const { reviewOccasions: _writeHint, ...visitData } = visitInput;
         const visit = aggregateVisit({
-          ...visitInput,
+          ...visitData,
           id: `v-${timestamp}`,
           visibleReviews: review ? [review] : [],
         });
         setState((current) => {
           const place = current.places.find((item) => item.id === visit.placeId);
+          const nextPlaces =
+            hasNewDimensions && place?.occasions.length === 0 && reviewOccasions.length > 0
+              ? current.places.map((item) =>
+                  item.id === visit.placeId ? { ...item, occasions: reviewOccasions } : item,
+                )
+              : current.places;
           return pushActivity(
             {
               ...current,
+              places: nextPlaces,
               visits: [visit, ...current.visits],
               nextPlaceId: current.nextPlaceId === visit.placeId ? null : current.nextPlaceId,
             },
@@ -783,24 +847,47 @@ export function StoreProvider({
           return;
         }
         assertDemoWritable(state, demoReadOnly);
-        const exists = state.visits.some((visit) =>
-          visit.visibleReviews?.some(
-            (review) => review.id === reviewId && review.userId === state.currentUserId,
-          ),
-        );
-        if (!exists) throw new Error("Ditt omdöme hittades inte.");
+        const target = state.visits
+          .flatMap((visit) => (visit.visibleReviews ?? []).map((review) => ({ visit, review })))
+          .find(
+            ({ review }) => review.id === reviewId && review.userId === state.currentUserId,
+          );
+        if (!target) throw new Error("Ditt omdöme hittades inte.");
+
+        if (target.review.reviewModel) {
+          if (
+            !reviewRatingsComplete(target.review.reviewModel, {
+              taste: input.taste ?? 0,
+              value: input.value ?? 0,
+              service: input.service ?? 0,
+              atmosphere: input.atmosphere ?? 0,
+            })
+          ) {
+            throw new Error("Sätt alla relevanta betyg.");
+          }
+        }
+
         setState((current) => ({
           ...current,
           visits: current.visits.map((visit) => {
             const scored = visitHasScore(visit);
             const reviews = (visit.visibleReviews ?? []).map((review) => {
               if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
+              const derivedOverall = review.reviewModel
+                ? deriveReviewOverall(review.reviewModel, {
+                    taste: input.taste ?? 0,
+                    value: input.value ?? 0,
+                    service: input.service ?? 0,
+                    atmosphere: input.atmosphere ?? 0,
+                  })
+                : null;
               return {
                 ...review,
-                overall: scored ? input.overall : null,
+                overall: scored ? (derivedOverall ?? input.overall) : null,
                 taste: scored ? (input.taste ?? null) : null,
                 value: scored ? (input.value ?? null) : null,
                 service: scored ? (input.service ?? null) : null,
+                atmosphere: scored && review.reviewModel ? (input.atmosphere ?? null) : null,
                 comment: input.comment ?? null,
                 ratingVisible: scored ? review.ratingVisible : false,
               };
@@ -830,12 +917,19 @@ export function StoreProvider({
           .filter((visit) => visit.placeId === placeId)
           .sort((a, b) => (a.date < b.date ? 1 : -1)),
       avgRating: (placeId) => {
-        const visits = state.visits.filter(
-          (visit) => visit.placeId === placeId && visitHasScore(visit) && visit.overall > 0,
-        );
-        if (!visits.length) return { overall: 0, count: 0 };
-        const sum = visits.reduce((total, visit) => total + visit.overall, 0);
-        return { overall: sum / visits.length, count: visits.length };
+        const reviews = state.visits
+          .filter((visit) => visit.placeId === placeId && visitHasScore(visit))
+          .flatMap((visit) =>
+            (visit.visibleReviews ?? []).filter(
+              (review): review is VisibleReview & { overall: number } =>
+                visit.participantIds.includes(review.userId) &&
+                review.ratingVisible &&
+                review.overall != null,
+            ),
+          );
+        if (!reviews.length) return { overall: 0, count: 0 };
+        const sum = reviews.reduce((total, review) => total + review.overall, 0);
+        return { overall: sum / reviews.length, count: reviews.length };
       },
       isFavorite: (placeId) =>
         state.favorites.some(
