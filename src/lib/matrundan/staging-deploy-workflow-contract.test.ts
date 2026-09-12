@@ -32,6 +32,13 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).toContain("not required for this merge (no database/type files changed)");
   });
 
+  test("kör inline-node explicit som CommonJS i ESM-repot", () => {
+    expect(workflow).not.toContain("node <<'NODE'");
+    expect(workflow).not.toContain('node - "$remote_names" <<\'NODE\'');
+    expect(workflow.match(/node --input-type=commonjs/g)?.length).toBe(4);
+    expect(workflow).toContain('node --input-type=commonjs - "$remote_names" <<\'NODE\'');
+  });
+
   test("kräver kompatibel stagingdatabas utan att själv applicera migrationer", () => {
     expect(workflow).toContain("STAGING_SUPABASE_DB_URL");
     expect(workflow).toContain("supabase_migrations.schema_migrations");
