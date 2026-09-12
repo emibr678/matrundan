@@ -112,20 +112,27 @@ function PlaceDetail() {
   );
   const nextPendingReviewVisit = pendingReviewVisits[0] ?? null;
   const detail = React.useMemo(() => {
-    const taste: number[] = [];
-    const value: number[] = [];
-    const service: number[] = [];
-    visits.forEach((visit) => {
-      if (visit.taste) taste.push(visit.taste);
-      if (visit.value) value.push(visit.value);
-      if (visit.service) service.push(visit.service);
-    });
+    const ratedReviews = visits.flatMap((visit) =>
+      (visit.visibleReviews ?? []).filter(
+        (review) =>
+          visit.participantIds.includes(review.userId) &&
+          review.ratingVisible &&
+          review.overall != null,
+      ),
+    );
     const avg = (values: number[]) =>
       values.length ? values.reduce((sum, item) => sum + item, 0) / values.length : 0;
+    const dimension = (key: "taste" | "value" | "service" | "atmosphere") =>
+      avg(
+        ratedReviews
+          .map((review) => review[key])
+          .filter((value): value is number => value != null),
+      );
     return {
-      taste: avg(taste),
-      value: avg(value),
-      service: avg(service),
+      taste: dimension("taste"),
+      value: dimension("value"),
+      service: dimension("service"),
+      atmosphere: dimension("atmosphere"),
     };
   }, [visits]);
 
@@ -542,12 +549,19 @@ function PlaceDetail() {
         <section>
           <h2 className="mb-2 font-display text-lg">Betygsdetaljer</h2>
           <p className="mb-2 text-xs text-muted-foreground">
-            Frivilliga snitt per aspekt – syns bara när gänget har lämnat dem.
+            Snitt per aspekt från de omdömen där aspekten ingår.
           </p>
-          <Card className="grid grid-cols-3 gap-3 rounded-2xl border-border/70 p-4">
+          <Card
+            className={`grid gap-3 rounded-2xl border-border/70 p-4 ${
+              detail.atmosphere > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+            }`}
+          >
             <RatingCell label="Smak" value={detail.taste} />
             <RatingCell label="Prisvärd" value={detail.value} />
             <RatingCell label="Service" value={detail.service} />
+            {detail.atmosphere > 0 ? (
+              <RatingCell label="Atmosfär" value={detail.atmosphere} />
+            ) : null}
           </Card>
         </section>
       ) : null}
