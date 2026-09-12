@@ -21,13 +21,14 @@ describe("reviewModelForContext", () => {
     );
   });
 
-  test.each([
-    [["avslappnat"]],
-    [["middag"]],
-    [["snabbt", "avslappnat"]],
-    [["snabbt", "middag"]],
-  ] as const)("På plats med %j kräver Atmosfär", ([occasions]) => {
-    expect(reviewModelForContext({ isTakeaway: false, occasions })).toBe(
+  test("Avslappnat kräver Atmosfär", () => {
+    expect(reviewModelForContext({ isTakeaway: false, occasions: ["avslappnat"] })).toBe(
+      "food_v1_atmosphere",
+    );
+  });
+
+  test("Något extra kräver Atmosfär även ihop med Snabbt och enkelt", () => {
+    expect(reviewModelForContext({ isTakeaway: false, occasions: ["snabbt", "middag"] })).toBe(
       "food_v1_atmosphere",
     );
   });
@@ -71,13 +72,13 @@ describe("deriveReviewOverall", () => {
     ).toBeNull();
   });
 
-  test("Atmosfär ignoreras inte tyst i en tredimensionell modell", () => {
+  test("en tredimensionell modell kräver inte Atmosfär", () => {
     expect(
       reviewRatingsComplete("food_v1_quick", {
         taste: 5,
         service: 4,
         value: 4,
-        atmosphere: 2,
+        atmosphere: 0,
       }),
     ).toBe(true);
     expect(reviewModelIncludesAtmosphere("food_v1_quick")).toBe(false);
