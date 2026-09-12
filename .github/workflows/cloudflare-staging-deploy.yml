@@ -1,0 +1,345 @@
+name: Cloudflare staging deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact current main SHA to deploy
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: cloudflare-staging-deploy
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  WRANGLER_VERSION: 4.125.0
+  FORCE_COLOR: '0'
+  STAGING_PUBLIC_URL: https://staging.matrundan.workers.dev
+  STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
+  STAGING_SUPABASE_URL: https://wpihfmwbubvdiaavtpia.supabase.co
+  TARGET_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_sha }}
+
+jobs:
+  deploy:
+    name: Deploy exact main SHA to staging
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: staging
+    env:
+      CI: 'true'
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+
+    steps:
+      - name: Check out exact staging candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard exact current main SHA
+        id: guard
+        run: |
+          set -euo pipefail
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "TARGET_SHA must be a full 40-character Git SHA." >&2
+            exit 1
+          fi
+
+          git fetch --no-tags origin main
+          current_main="$(git rev-parse origin/main)"
+          if [[ "$TARGET_SHA" != "$current_main" ]]; then
+            if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+              echo "Skipping superseded staging candidate $TARGET_SHA; current main is $current_main."
+              echo "deploy=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Manual staging deploy must target current main." >&2
+            echo "expected=$TARGET_SHA" >&2
+            echo "current=$current_main" >&2
+            exit 1
+          fi
+
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+
+      - name: Validate staging deployment credentials
+        if: steps.guard.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          required=(CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN STAGING_SUPABASE_DB_URL)
+          missing=()
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            printf 'Missing staging deployment configuration: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Set up pinned Node
+        if: steps.guard.outputs.deploy == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+
+      - name: Require successful Supabase type drift for exact SHA
+        if: steps.guard.outputs.deploy == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const repository = process.env.GITHUB_REPOSITORY;
+          const targetSha = process.env.TARGET_SHA;
+          const token = process.env.GITHUB_TOKEN;
+          const endpoint = `https://api.github.com/repos/${repository}/actions/runs?head_sha=${targetSha}&per_page=100`;
+          let last = 'no matching Supabase type drift run yet';
+
+          for (let attempt = 1; attempt <= 30; attempt += 1) {
+            const response = await fetch(endpoint, {
+              headers: {
+                accept: 'application/vnd.github+json',
+                authorization: `Bearer ${token}`,
+                'x-github-api-version': '2022-11-28',
+              },
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+              console.error(`Could not read GitHub workflow runs (HTTP ${response.status}).`);
+              process.exit(1);
+            }
+
+            const run = (payload?.workflow_runs ?? [])
+              .filter((candidate) =>
+                candidate?.name === 'Supabase type drift' &&
+                candidate?.head_branch === 'main' &&
+                candidate?.event === 'push'
+              )
+              .sort((a, b) => String(b?.created_at ?? '').localeCompare(String(a?.created_at ?? '')))[0];
+
+            if (run?.status === 'completed' && run?.conclusion === 'success') {
+              console.log(`Verified Supabase type drift run #${run.run_number} for ${targetSha}.`);
+              process.exit(0);
+            }
+            if (run?.status === 'completed') {
+              console.error(`Supabase type drift run #${run.run_number} completed with ${run.conclusion}. Staging deploy is blocked.`);
+              process.exit(1);
+            }
+
+            last = run ? `run #${run.run_number} status=${run.status}` : last;
+            await new Promise((resolve) => setTimeout(resolve, 10_000));
+          }
+
+          console.error(`Timed out waiting for Supabase type drift on ${targetSha}: ${last}`);
+          process.exit(1);
+          NODE
+
+      - name: Resolve public staging build configuration
+        if: steps.guard.outputs.deploy == 'true'
+        env:
+          GITHUB_CONFIGURED_MAPS_KEY: ${{ vars.STAGING_GEOAPIFY_MAPS_KEY }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/staging/settings`;
+          const response = await fetch(url, {
+            headers: {
+              accept: 'application/json',
+              authorization: `Bearer ${token}`,
+            },
+            signal: AbortSignal.timeout(10_000),
+          });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || payload?.success !== true) {
+            console.error(`Could not read Worker staging settings (HTTP ${response.status}).`);
+            process.exit(1);
+          }
+
+          const plain = new Map(
+            (payload.result?.bindings ?? [])
+              .filter((binding) => binding?.type === 'plain_text' && typeof binding?.name === 'string')
+              .map((binding) => [binding.name, binding.text]),
+          );
+
+          const expectedProjectId = process.env.STAGING_SUPABASE_PROJECT_ID;
+          const expectedUrl = process.env.STAGING_SUPABASE_URL;
+          const workerProjectId = plain.get('SUPABASE_PROJECT_ID');
+          const workerUrl = plain.get('SUPABASE_URL');
+          const publishableKey = plain.get('SUPABASE_PUBLISHABLE_KEY');
+          const mapsKey = process.env.GITHUB_CONFIGURED_MAPS_KEY || plain.get('VITE_GEOAPIFY_MAPS_KEY');
+
+          if (workerProjectId && workerProjectId !== expectedProjectId) {
+            console.error('Worker staging SUPABASE_PROJECT_ID points at the wrong project.');
+            process.exit(1);
+          }
+          if (workerUrl && workerUrl !== expectedUrl) {
+            console.error('Worker staging SUPABASE_URL points at the wrong project.');
+            process.exit(1);
+          }
+          if (!publishableKey || !publishableKey.startsWith('sb_publishable_')) {
+            console.error('Worker staging is missing a valid SUPABASE_PUBLISHABLE_KEY binding.');
+            process.exit(1);
+          }
+          if (!mapsKey) {
+            console.error('Missing staging Geoapify browser key. Configure STAGING_GEOAPIFY_MAPS_KEY in the GitHub staging environment or keep VITE_GEOAPIFY_MAPS_KEY as a Worker plain-text binding.');
+            process.exit(1);
+          }
+
+          const envFile = process.env.GITHUB_ENV;
+          const values = {
+            SUPABASE_PROJECT_ID: expectedProjectId,
+            SUPABASE_URL: expectedUrl,
+            SUPABASE_PUBLISHABLE_KEY: publishableKey,
+            VITE_SUPABASE_PROJECT_ID: expectedProjectId,
+            VITE_SUPABASE_URL: expectedUrl,
+            VITE_SUPABASE_PUBLISHABLE_KEY: publishableKey,
+            VITE_GEOAPIFY_MAPS_KEY: mapsKey,
+          };
+          fs.appendFileSync(envFile, Object.entries(values).map(([key, value]) => `${key}=${value}\n`).join(''));
+          console.log('Resolved staging browser configuration from locked environment identity and current Worker bindings.');
+          NODE
+
+      - name: Verify staging database contains every main migration
+        if: steps.guard.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          remote_names="$RUNNER_TEMP/staging-migration-names.txt"
+          docker run --rm postgres:17-bookworm \
+            psql "$STAGING_SUPABASE_DB_URL" \
+              -v ON_ERROR_STOP=1 \
+              -At \
+              -c "select name from supabase_migrations.schema_migrations order by version" \
+            > "$remote_names"
+
+          node - "$remote_names" <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const remote = new Set(
+            fs.readFileSync(process.argv[2], 'utf8').split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
+          );
+          const local = fs.readdirSync('supabase/migrations')
+            .filter((name) => name.endsWith('.sql'))
+            .map((name) => path.basename(name, '.sql'));
+
+          const candidatesFor = (stem) => {
+            const suffix = stem.replace(/^\d+_/, '');
+            return new Set([
+              stem,
+              stem.replaceAll('-', '_'),
+              suffix,
+              suffix.replaceAll('-', '_'),
+            ]);
+          };
+          const missing = local.filter(
+            (stem) => ![...candidatesFor(stem)].some((candidate) => remote.has(candidate)),
+          );
+
+          if (missing.length > 0) {
+            console.error('Staging database is missing migration(s) required by current main:');
+            for (const stem of missing) console.error(`- ${stem}`);
+            console.error('Staging deploy is blocked. Apply database migrations only after separate explicit database-deployment approval, then rerun this workflow.');
+            process.exit(1);
+          }
+
+          console.log(`Verified ${local.length} main migration(s) are represented in Supabase Staging; legacy imported names and extra forward-compatible staging migrations are allowed.`);
+          NODE
+
+      - name: Set up pinned Bun
+        if: steps.guard.outputs.deploy == 'true'
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        if: steps.guard.outputs.deploy == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build exact staging candidate
+        if: steps.guard.outputs.deploy == 'true'
+        env:
+          MATRUNDAN_ENVIRONMENT: staging
+          MATRUNDAN_RELEASE_SHA: ${{ env.TARGET_SHA }}
+          WORKERS_CI_COMMIT_SHA: ${{ env.TARGET_SHA }}
+        run: bun run cloudflare:build
+
+      - name: Deploy exact candidate to Worker staging
+        if: steps.guard.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          npx --yes "wrangler@$WRANGLER_VERSION" deploy \
+            --env staging \
+            --keep-vars=true \
+            --strict
+
+      - name: Verify active staging release and database reachability
+        if: steps.guard.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const expectedRelease = process.env.TARGET_SHA;
+          const url = `${process.env.STAGING_PUBLIC_URL}/api/health`;
+          let lastFailure = 'staging did not respond';
+
+          for (let attempt = 1; attempt <= 18; attempt += 1) {
+            try {
+              const response = await fetch(url, {
+                headers: { accept: 'application/json', 'cache-control': 'no-cache' },
+                signal: AbortSignal.timeout(10_000),
+              });
+              const payload = await response.json().catch(() => null);
+              if (response.ok && payload?.status === 'ok' && payload?.release === expectedRelease) {
+                console.log(`Verified staging release ${expectedRelease} and Supabase reachability on attempt ${attempt}.`);
+                process.exit(0);
+              }
+              lastFailure = `HTTP ${response.status}, status=${String(payload?.status)}, release=${String(payload?.release)}`;
+            } catch (error) {
+              lastFailure = error instanceof Error ? error.message : String(error);
+            }
+            await new Promise((resolve) => setTimeout(resolve, 5_000));
+          }
+
+          console.error(`Staging release verification failed: ${lastFailure}`);
+          process.exit(1);
+          NODE
+
+      - name: Summarize staging deployment
+        if: steps.guard.outputs.deploy == 'true' && success()
+        run: |
+          {
+            echo '## Cloudflare staging deploy'
+            echo
+            echo "- SHA: \`$TARGET_SHA\`"
+            echo '- Trigger: successful post-merge CI on current `main` (or explicit manual retry)'
+            echo '- Supabase type drift: verified for exact SHA'
+            echo '- Supabase Staging migration compatibility: verified read-only; no migration applied'
+            echo '- Worker: `staging` (`--env staging`)'
+            echo "- URL: $STAGING_PUBLIC_URL"
+            echo '- `/api/health`: exact release SHA and Supabase reachability verified'
+            echo '- Production Worker/database: untouched'
+          } >> "$GITHUB_STEP_SUMMARY"
