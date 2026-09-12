@@ -16,41 +16,60 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { persistDemoState } from "@/lib/matrundan/demo-state";
 import { saveOwnDemoReviewForVisit } from "@/lib/matrundan/demo-visit-participation";
+import {
+  reviewModelForContext,
+  reviewRatingsComplete,
+} from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
-import { RatingInput } from "./Rating";
+import type { Occasion } from "@/lib/matrundan/types";
+import { OccasionPicker } from "./OccasionPicker";
+import { ReviewScoreFields } from "./ReviewScoreFields";
 
 export function DemoAddVisitReviewDialog({
   visitId,
   placeName,
   scoreless = false,
+  isTakeaway = false,
+  placeOccasions = [],
   disabled = false,
 }: {
   visitId: string;
   placeName: string;
   scoreless?: boolean;
+  isTakeaway?: boolean;
+  placeOccasions?: Occasion[];
   disabled?: boolean;
 }) {
   const { state } = useStore();
   const { exampleMode } = useSession();
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [overall, setOverall] = React.useState(0);
   const [taste, setTaste] = React.useState(0);
   const [value, setValue] = React.useState(0);
   const [service, setService] = React.useState(0);
+  const [atmosphere, setAtmosphere] = React.useState(0);
+  const [reviewOccasions, setReviewOccasions] = React.useState<Occasion[]>([]);
   const [comment, setComment] = React.useState("");
 
   React.useEffect(() => {
     if (open) return;
-    setOverall(0);
     setTaste(0);
     setValue(0);
     setService(0);
+    setAtmosphere(0);
+    setReviewOccasions([]);
     setComment("");
   }, [open]);
 
-  const ratingsSet = [overall, taste, value, service].filter((rating) => rating > 0).length;
+  const needsOccasion = !scoreless && !isTakeaway && placeOccasions.length === 0;
+  const model = scoreless
+    ? null
+    : reviewModelForContext({
+        isTakeaway,
+        occasions: needsOccasion ? reviewOccasions : placeOccasions,
+      });
+  const complete = reviewRatingsComplete(model, { taste, service, value, atmosphere });
 
   function save() {
     if (scoreless) {
@@ -58,18 +77,19 @@ export function DemoAddVisitReviewDialog({
         toast.error("Skriv en kommentar först.");
         return;
       }
-    } else if (overall < 1 || overall > 5) {
-      toast.error("Ge ett helhetsbetyg mellan 1 och 5.");
+    } else if (!model || !complete) {
+      toast.error(model ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.");
       return;
     }
     setSaving(true);
     try {
       const nextState = saveOwnDemoReviewForVisit(state, visitId, {
-        overall: scoreless ? null : overall,
-        taste: scoreless ? null : taste || null,
-        value: scoreless ? null : value || null,
-        service: scoreless ? null : service || null,
+        taste: scoreless ? null : taste,
+        value: scoreless ? null : value,
+        service: scoreless ? null : service,
+        atmosphere: scoreless ? null : atmosphere || null,
         comment: comment.trim() || null,
+        reviewOccasions: needsOccasion ? reviewOccasions : undefined,
       });
       persistDemoState(nextState, exampleMode);
       toast.success(scoreless ? "Din kommentar är tillagd." : "Ditt omdöme är tillagt.");
@@ -95,27 +115,38 @@ export function DemoAddVisitReviewDialog({
           <DialogDescription>
             {scoreless
               ? `${placeName}. Dryckesbesöket räknas som ett besök men påverkar inte ställets betyg.`
-              : `${placeName}. Det sparas på samma gemensamma besök — inget nytt besök skapas.`}
+              : `${placeName}. Helhetsbetyget räknas automatiskt från de relevanta delarna.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {!scoreless ? (
-            <>
-              <div className="rounded-2xl bg-secondary/60 p-4">
-                <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
-              </div>
-              <div className="grid gap-4 rounded-2xl border border-border/70 p-4">
-                <RatingInput value={taste} onChange={setTaste} label="Smak" />
-                <RatingInput value={service} onChange={setService} label="Service" />
-                <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
-              </div>
-              <p className="text-xs leading-relaxed text-muted-foreground" aria-live="polite">
-                {ratingsSet} av 4 betyg satta. Helhetsbetyg krävs; de andra hjälper gruppen att
-                minnas upplevelsen bättre men är frivilliga.
-              </p>
-            </>
+          {!scoreless && needsOccasion ? (
+            <div className="rounded-2xl bg-secondary/40 p-4">
+              <OccasionPicker
+                id={`demo-visit-review-occasions-${visitId}`}
+                value={reviewOccasions}
+                onChange={setReviewOccasions}
+                disabled={saving}
+                required
+                description="Välj vad stället passar för så vet Matrundan vilka delar som är relevanta för omdömet."
+              />
+            </div>
           ) : null}
+
+          {!scoreless && model ? (
+            <ReviewScoreFields
+              model={model}
+              taste={taste}
+              service={service}
+              value={value}
+              atmosphere={atmosphere}
+              onTasteChange={setTaste}
+              onServiceChange={setService}
+              onValueChange={setValue}
+              onAtmosphereChange={setAtmosphere}
+            />
+          ) : null}
+
           <div className="space-y-1.5">
             <Label htmlFor={`demo-visit-review-comment-${visitId}`}>
               {scoreless ? "Kommentar" : "Kommentar (frivilligt)"}
@@ -134,7 +165,7 @@ export function DemoAddVisitReviewDialog({
           <Button variant="ghost" disabled={saving} onClick={() => setOpen(false)}>
             Avbryt
           </Button>
-          <Button disabled={saving || (scoreless ? !comment.trim() : overall === 0)} onClick={save}>
+          <Button disabled={saving || (scoreless ? !comment.trim() : !complete)} onClick={save}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {scoreless ? "Spara kommentar" : "Spara omdöme"}
           </Button>
