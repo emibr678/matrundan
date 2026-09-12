@@ -3,6 +3,7 @@ import type { MultiPolygon, Polygon } from "geojson";
 export type PlaceCategory = "restaurang" | "café" | "bageri" | "snabbmat" | "pub" | "matvagn";
 
 export type Occasion = "snabbt" | "avslappnat" | "middag";
+export type ReviewModel = "food_v1_takeaway" | "food_v1_quick" | "food_v1_atmosphere";
 
 export type Role = "ägare" | "admin" | "medlem";
 export type GroupLifecycleStatus = "active" | "archived";
@@ -47,7 +48,7 @@ export interface Place {
   cuisines: string[];
   /** Kanoniska kökstyper innan eventuell gruppspecifik korrigering. */
   canonicalCuisines?: string[];
-  /** Null/undefined betyder att gruppen använder kanoniska kökstyper. */
+  /** Null/undefined betyder att gruppen använder kanonisk kökstyper. */
   cuisinesOverride?: string[] | null;
   occasions: Occasion[];
   address: string;
@@ -88,6 +89,9 @@ export interface VisibleReview {
   taste?: number | null;
   value?: number | null;
   service?: number | null;
+  atmosphere?: number | null;
+  /** Null/undefined är en review från före den härledda modellen. */
+  reviewModel?: ReviewModel | null;
   comment?: string | null;
   ratingVisible: boolean;
   commentVisible: boolean;
@@ -135,6 +139,7 @@ export interface Visit {
   taste?: number;
   value?: number;
   service?: number;
+  atmosphere?: number;
   comment?: string;
   createdBy: string;
   /** Privat foto för just den aktiva gruppens koppling till besöket. */
