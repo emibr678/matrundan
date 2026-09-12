@@ -427,9 +427,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     const taste = rated.map((r) => r.taste).filter((x): x is number => x != null);
     const value = rated.map((r) => r.value).filter((x): x is number => x != null);
     const service = rated.map((r) => r.service).filter((x): x is number => x != null);
-    const atmosphere = rated
-      .map((r) => r.atmosphere)
-      .filter((x): x is number => x != null);
+    const atmosphere = rated.map((r) => r.atmosphere).filter((x): x is number => x != null);
     const comment = visibleReviews.find((r) => r.commentVisible && r.comment?.trim())?.comment;
     const currentUserParticipationStatus =
       v.currentUserParticipationStatus === "declined"

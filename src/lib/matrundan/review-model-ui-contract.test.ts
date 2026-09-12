@@ -3,10 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "../../..");
-const visitDialog = readFileSync(
-  resolve(root, "src/components/matrundan/VisitDialog.tsx"),
-  "utf8",
-);
+const visitDialog = readFileSync(resolve(root, "src/components/matrundan/VisitDialog.tsx"), "utf8");
 const scoreFields = readFileSync(
   resolve(root, "src/components/matrundan/ReviewScoreFields.tsx"),
   "utf8",

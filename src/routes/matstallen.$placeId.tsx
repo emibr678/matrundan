@@ -124,9 +124,7 @@ function PlaceDetail() {
       values.length ? values.reduce((sum, item) => sum + item, 0) / values.length : 0;
     const dimension = (key: "taste" | "value" | "service" | "atmosphere") =>
       avg(
-        ratedReviews
-          .map((review) => review[key])
-          .filter((value): value is number => value != null),
+        ratedReviews.map((review) => review[key]).filter((value): value is number => value != null),
       );
     return {
       taste: dimension("taste"),

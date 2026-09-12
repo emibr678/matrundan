@@ -1,10 +1,6 @@
 import type { AppState, ReviewModel, Visit, VisibleReview } from "./types";
 import type { OwnVisitReviewInput } from "./live-visit-participation";
-import {
-  deriveReviewOverall,
-  reviewModelForContext,
-  reviewRatingsComplete,
-} from "./review-model";
+import { deriveReviewOverall, reviewModelForContext, reviewRatingsComplete } from "./review-model";
 import { normalizeOccasionClassification } from "./occasions";
 import { visitHasScore } from "./visit-context";
 

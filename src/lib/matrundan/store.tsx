@@ -15,11 +15,7 @@ import { toast } from "sonner";
 import { DEMO_STATE } from "./demo-data";
 import { normalizeFoodTags } from "./food-tags";
 import { normalizeOccasionClassification } from "./occasions";
-import {
-  deriveReviewOverall,
-  reviewModelForContext,
-  reviewRatingsComplete,
-} from "./review-model";
+import { deriveReviewOverall, reviewModelForContext, reviewRatingsComplete } from "./review-model";
 import {
   archiveGroup as liveArchiveGroup,
   archiveGroupPlace as liveArchiveGroupPlace,
@@ -474,8 +470,9 @@ export function StoreProvider({
         const normalizedReviewOccasions = normalizeOccasionClassification(
           visitInput.reviewOccasions ?? [],
         );
-        const reviewOccasions =
-          currentPlace?.occasions?.length ? currentPlace.occasions : normalizedReviewOccasions;
+        const reviewOccasions = currentPlace?.occasions?.length
+          ? currentPlace.occasions
+          : normalizedReviewOccasions;
         const reviewModel = hasNewDimensions
           ? reviewModelForContext({
               isTakeaway: visitInput.isTakeaway === true,
@@ -493,7 +490,9 @@ export function StoreProvider({
               atmosphere: visitInput.atmosphere ?? 0,
             }))
         ) {
-          throw new Error(reviewModel ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.");
+          throw new Error(
+            reviewModel ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.",
+          );
         }
         if (scored && !hasNewDimensions && !visitInput.overall && visitInput.comment?.trim()) {
           throw new Error("Sätt alla relevanta betyg innan kommentaren sparas med omdömet.");
@@ -849,9 +848,7 @@ export function StoreProvider({
         assertDemoWritable(state, demoReadOnly);
         const target = state.visits
           .flatMap((visit) => (visit.visibleReviews ?? []).map((review) => ({ visit, review })))
-          .find(
-            ({ review }) => review.id === reviewId && review.userId === state.currentUserId,
-          );
+          .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
         if (!target) throw new Error("Ditt omdöme hittades inte.");
 
         if (target.review.reviewModel) {

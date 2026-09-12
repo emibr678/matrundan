@@ -10,9 +10,9 @@ import {
 
 describe("reviewModelForContext", () => {
   test("Hämtmat använder tre dimensioner oavsett Passar för", () => {
-    expect(
-      reviewModelForContext({ isTakeaway: true, occasions: ["avslappnat", "middag"] }),
-    ).toBe("food_v1_takeaway");
+    expect(reviewModelForContext({ isTakeaway: true, occasions: ["avslappnat", "middag"] })).toBe(
+      "food_v1_takeaway",
+    );
   });
 
   test("endast Snabbt och enkelt använder tre dimensioner", () => {

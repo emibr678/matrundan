@@ -16,10 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { persistDemoState } from "@/lib/matrundan/demo-state";
 import { saveOwnDemoReviewForVisit } from "@/lib/matrundan/demo-visit-participation";
-import {
-  reviewModelForContext,
-  reviewRatingsComplete,
-} from "@/lib/matrundan/review-model";
+import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion } from "@/lib/matrundan/types";

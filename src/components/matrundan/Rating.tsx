@@ -21,11 +21,7 @@ export function RatingStars({
       {Array.from({ length: max }).map((_, i) => {
         const fill = Math.max(0, Math.min(1, value - i));
         return (
-          <span
-            key={i}
-            className="relative block shrink-0"
-            style={{ width: size, height: size }}
-          >
+          <span key={i} className="relative block shrink-0" style={{ width: size, height: size }}>
             <Star
               width={size}
               height={size}

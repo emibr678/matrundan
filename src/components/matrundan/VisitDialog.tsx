@@ -261,10 +261,8 @@ export function VisitDialog({
       taste: hasReview ? taste : undefined,
       value: hasReview ? value : undefined,
       service: hasReview ? service : undefined,
-      atmosphere:
-        hasReview && reviewModelIncludesAtmosphere(reviewModel) ? atmosphere : undefined,
-      comment:
-        scoredVisit && !hasReview ? undefined : comment.trim() || undefined,
+      atmosphere: hasReview && reviewModelIncludesAtmosphere(reviewModel) ? atmosphere : undefined,
+      comment: scoredVisit && !hasReview ? undefined : comment.trim() || undefined,
       reviewOccasions: hasReview && needsOccasionForReview ? reviewOccasions : undefined,
       createdBy: state.currentUserId,
     });

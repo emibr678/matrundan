@@ -1718,10 +1718,12 @@ export type Database = {
       }
       reviews: {
         Row: {
+          atmosphere: number | null
           comment: string | null
           created_at: string
           id: string
           overall: number | null
+          review_model: string | null
           service: number | null
           taste: number | null
           updated_at: string
@@ -1730,10 +1732,12 @@ export type Database = {
           visit_id: string
         }
         Insert: {
+          atmosphere?: number | null
           comment?: string | null
           created_at?: string
           id?: string
           overall?: number | null
+          review_model?: string | null
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -1742,10 +1746,12 @@ export type Database = {
           visit_id: string
         }
         Update: {
+          atmosphere?: number | null
           comment?: string | null
           created_at?: string
           id?: string
           overall?: number | null
+          review_model?: string | null
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -2419,6 +2425,24 @@ export type Database = {
         }
         Returns: string
       }
+      create_visit_with_review_v5: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _guest_names?: string[]
+          _is_takeaway?: boolean
+          _meal_type: string
+          _participant_ids: string[]
+          _place_id: string
+          _review_occasions?: string[]
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visited_on: string
+        }
+        Returns: string
+      }
       cross_group_practical_info_candidate_v1: {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json
@@ -2430,6 +2454,16 @@ export type Database = {
       delete_visit_photo: {
         Args: { _group_id: string; _visit_id: string }
         Returns: string
+      }
+      derive_review_overall_v1: {
+        Args: {
+          _atmosphere?: number
+          _review_model: string
+          _service: number
+          _taste: number
+          _value: number
+        }
+        Returns: number
       }
       dismiss_place_improvement_candidate_v1: {
         Args: { _candidate_id: string; _reason: string }
@@ -2515,6 +2549,7 @@ export type Database = {
         Returns: Json
       }
       get_group_app_state_v5l: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5m: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2833,6 +2868,15 @@ export type Database = {
         Args: { _areas: Json; _default_radius_km: number; _group_id: string }
         Returns: undefined
       }
+      resolve_new_review_model_v1: {
+        Args: {
+          _group_id: string
+          _is_takeaway: boolean
+          _place_id: string
+          _review_occasions?: string[]
+        }
+        Returns: string
+      }
       resolve_place_maintenance_work_item_v1: {
         Args: { _kind: string; _work_item_id: string }
         Returns: string
@@ -2879,6 +2923,19 @@ export type Database = {
           _comment?: string
           _group_id: string
           _overall: number
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visit_id: string
+        }
+        Returns: string
+      }
+      save_own_review_for_visit_v2: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _review_occasions?: string[]
           _service?: number
           _taste?: number
           _value?: number
@@ -3077,6 +3134,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_own_review_v2: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _overall?: number
+          _review_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+        }
+        Returns: undefined
+      }
       update_place_data_report_osm_status_v1: {
         Args: {
           _note_closed_at: string
@@ -3245,3 +3315,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

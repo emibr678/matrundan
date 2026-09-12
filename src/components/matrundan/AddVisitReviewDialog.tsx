@@ -15,10 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveOwnReviewForVisit } from "@/lib/matrundan/live-visit-participation";
-import {
-  reviewModelForContext,
-  reviewRatingsComplete,
-} from "@/lib/matrundan/review-model";
+import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import type { Occasion } from "@/lib/matrundan/types";
 import { OccasionPicker } from "./OccasionPicker";
