@@ -44,6 +44,7 @@ export function VisitReviewsSection({
   const handledFocusKeyRef = React.useRef<string | null>(null);
   const focusHighlightTimeoutRef = React.useRef<number | null>(null);
   const currentUserId = state.currentUserId;
+  const place = state.places.find((item) => item.id === visit.placeId);
   const scored = visitHasScore(visit);
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const participationStatus =
@@ -132,6 +133,13 @@ export function VisitReviewsSection({
     }
   }
 
+  const summaryDetails = [
+    { label: "Smak", value: visit.taste },
+    { label: "Service", value: visit.service },
+    { label: "Prisvärt", value: visit.value },
+    ...(visit.atmosphere != null ? [{ label: "Atmosfär", value: visit.atmosphere }] : []),
+  ];
+
   return (
     <VisitReviewReactionsProvider
       visit={visit}
@@ -177,11 +185,15 @@ export function VisitReviewsSection({
               </div>
             )}
 
-            {scored && (visit.taste != null || visit.value != null || visit.service != null) ? (
-              <div className="grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center">
-                <SummaryDetail label="Smak" value={visit.taste} />
-                <SummaryDetail label="Prisvärt" value={visit.value} />
-                <SummaryDetail label="Service" value={visit.service} />
+            {scored && summaryDetails.some((detail) => detail.value != null) ? (
+              <div
+                className={`grid gap-2 border-t border-border/60 pt-3 text-center ${
+                  summaryDetails.length === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+                }`}
+              >
+                {summaryDetails.map((detail) => (
+                  <SummaryDetail key={detail.label} label={detail.label} value={detail.value} />
+                ))}
               </div>
             ) : null}
 
@@ -202,6 +214,7 @@ export function VisitReviewsSection({
                 <OwnReviewPrompt
                   visit={visit}
                   placeName={placeName}
+                  placeOccasions={place?.occasions ?? []}
                   currentUserId={currentUserId}
                   writable={writable}
                   mode={mode === "live" ? "live" : "demo"}
@@ -268,6 +281,7 @@ export function VisitReviewsSection({
 function OwnReviewPrompt({
   visit,
   placeName,
+  placeOccasions,
   currentUserId,
   writable,
   mode,
@@ -276,6 +290,7 @@ function OwnReviewPrompt({
 }: {
   visit: Visit;
   placeName: string;
+  placeOccasions: Visit extends never ? never : import("@/lib/matrundan/types").Occasion[];
   currentUserId: string;
   writable: boolean;
   mode: "demo" | "live";
@@ -312,6 +327,8 @@ function OwnReviewPrompt({
             visitId={visit.id}
             placeName={placeName}
             scoreless={scoreless}
+            isTakeaway={visit.isTakeaway === true}
+            placeOccasions={placeOccasions}
             disabled={!writable}
             onSaved={onChanged}
           />
@@ -320,6 +337,8 @@ function OwnReviewPrompt({
             visitId={visit.id}
             placeName={placeName}
             scoreless={scoreless}
+            isTakeaway={visit.isTakeaway === true}
+            placeOccasions={placeOccasions}
             disabled={!writable}
           />
         )}
@@ -364,8 +383,14 @@ function ReviewRow({
   const showComment = Boolean(comment && (own || review.commentVisible));
   const reactableComment = Boolean(comment && review.commentVisible);
   const hasRating = review.ratingVisible && review.overall != null;
-  const hasDetails =
-    hasRating && (review.taste != null || review.value != null || review.service != null);
+  const detailItems = hasRating
+    ? [
+        { label: "Smak", value: review.taste },
+        { label: "Service", value: review.service },
+        { label: "Prisvärt", value: review.value },
+        ...(review.atmosphere != null ? [{ label: "Atmosfär", value: review.atmosphere }] : []),
+      ].filter((detail) => detail.value != null)
+    : [];
   const longComment = Boolean(showComment && (comment?.length ?? 0) > 110);
   const canEditOwn = own && !groupArchived && !demoReadOnly;
   const canToggleComment = canEditOwn && live && Boolean(comment);
@@ -443,11 +468,15 @@ function ReviewRow({
         </Button>
       ) : null}
 
-      {hasDetails ? (
-        <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl bg-secondary/35 p-2 text-center">
-          <ReviewDetail label="Smak" value={review.taste} />
-          <ReviewDetail label="Prisvärt" value={review.value} />
-          <ReviewDetail label="Service" value={review.service} />
+      {detailItems.length > 0 ? (
+        <div
+          className={`mt-2 grid gap-2 rounded-xl bg-secondary/35 p-2 text-center ${
+            detailItems.length === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+          }`}
+        >
+          {detailItems.map((detail) => (
+            <ReviewDetail key={detail.label} label={detail.label} value={detail.value} />
+          ))}
         </div>
       ) : null}
 
