@@ -29,7 +29,7 @@ describe("demo-paritet för gemensamma besök", () => {
       (review) => review.userId === reviewed.currentUserId,
     );
     expect(ownReview?.overall).toBe(4.25);
-    expect(ownReview?.reviewModel).toBe("derived-v1-four-dim");
+    expect(ownReview?.reviewModel).toBe("food_v1_atmosphere");
     expect(reviewedVisit?.currentUserParticipationStatus).toBe("participant");
 
     const declined = setOwnDemoVisitParticipation(reviewed, visitId, false);
