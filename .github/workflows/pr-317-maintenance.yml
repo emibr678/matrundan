@@ -8,20 +8,17 @@ on:
       - '.github/workflows/pr-317-maintenance.yml'
 
 permissions:
+  actions: read
   contents: write
 
 defaults:
   run:
     shell: bash
 
-env:
-  SUPABASE_CLI_VERSION: '2.115.0'
-  SUPABASE_TELEMETRY_DISABLED: '1'
-
 jobs:
   sync:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Check out feature branch
         uses: actions/checkout@v7
@@ -29,11 +26,6 @@ jobs:
           ref: feat/307-derived-review-model
           fetch-depth: 0
           show-progress: false
-
-      - name: Set up pinned Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22.12.0
 
       - name: Set up pinned Bun
         uses: oven-sh/setup-bun@v2
@@ -43,16 +35,26 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build migration-local database
-        run: npx --yes "supabase@${SUPABASE_CLI_VERSION}" db start
-
-      - name: Generate Supabase types
-        run: bash scripts/supabase-types.sh generate src/integrations/supabase/types.ts
+      - name: Reuse generated Supabase types from current PR artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pr317-types
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/10301019558/zip" \
+            > /tmp/pr317-types.zip
+          unzip -q /tmp/pr317-types.zip -d /tmp/pr317-types
+          generated="$(find /tmp/pr317-types -type f -name 'supabase-types.generated.ts' -print -quit)"
+          test -n "$generated"
+          cp "$generated" src/integrations/supabase/types.ts
 
       - name: Format changed #307 files
         run: |
           bunx prettier --write \
             CHANGELOG.md \
+            scripts/database-contract-check.mjs \
             src/components/matrundan/AddVisitReviewDialog.tsx \
             src/components/matrundan/DemoAddVisitReviewDialog.tsx \
             src/components/matrundan/EditReviewDialog.tsx \
@@ -87,13 +89,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          if git diff --cached --quiet; then
-            echo 'No maintenance changes to commit.'
-            exit 0
-          fi
           git commit -m 'chore: synca genererade filer och formattering (#307)'
           git push origin HEAD:feat/307-derived-review-model
-
-      - name: Stop local Supabase database
-        if: always()
-        run: npx --yes "supabase@${SUPABASE_CLI_VERSION}" stop --no-backup
