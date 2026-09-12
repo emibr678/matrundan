@@ -1,5 +1,11 @@
-import type { AppState, Visit, VisibleReview } from "./types";
+import type { AppState, ReviewModel, Visit, VisibleReview } from "./types";
 import type { OwnVisitReviewInput } from "./live-visit-participation";
+import {
+  deriveReviewOverall,
+  reviewModelForContext,
+  reviewRatingsComplete,
+} from "./review-model";
+import { normalizeOccasionClassification } from "./occasions";
 import { visitHasScore } from "./visit-context";
 
 function average(values: number[]): number | undefined {
@@ -32,6 +38,7 @@ function aggregateVisit(visit: Visit, preserveInactiveReviews = false): Visit {
       taste: undefined,
       value: undefined,
       service: undefined,
+      atmosphere: undefined,
       comment: comment ?? undefined,
     };
   }
@@ -49,6 +56,9 @@ function aggregateVisit(visit: Visit, preserveInactiveReviews = false): Visit {
     service: average(
       rated.map((review) => review.service).filter((value): value is number => value != null),
     ),
+    atmosphere: average(
+      rated.map((review) => review.atmosphere).filter((value): value is number => value != null),
+    ),
     comment: comment ?? undefined,
   };
 }
@@ -65,16 +75,38 @@ export function saveOwnDemoReviewForVisit(
   }
 
   const scored = visitHasScore(visit);
+  const existing = visit.visibleReviews?.find((review) => review.userId === state.currentUserId);
+  let reviewModel: ReviewModel | null = existing?.reviewModel ?? null;
+  let nextOccasions = state.places.find((place) => place.id === visit.placeId)?.occasions ?? [];
+
   if (scored) {
-    if (input.overall == null || input.overall < 1 || input.overall > 5) {
-      throw new Error("Helhetsbetyget måste vara 1–5.");
+    if (!reviewModel) {
+      if (nextOccasions.length === 0 && input.reviewOccasions?.length) {
+        nextOccasions = normalizeOccasionClassification(input.reviewOccasions);
+      }
+      reviewModel = reviewModelForContext({
+        isTakeaway: visit.isTakeaway === true,
+        occasions: nextOccasions,
+      });
+    }
+    if (!reviewModel) throw new Error("Välj vad stället passar för först.");
+    if (
+      !reviewRatingsComplete(reviewModel, {
+        taste: input.taste ?? 0,
+        value: input.value ?? 0,
+        service: input.service ?? 0,
+        atmosphere: input.atmosphere ?? 0,
+      })
+    ) {
+      throw new Error("Sätt alla relevanta betyg.");
     }
   } else {
     if (
       input.overall != null ||
       input.taste != null ||
       input.value != null ||
-      input.service != null
+      input.service != null ||
+      input.atmosphere != null
     ) {
       throw new Error("Något att dricka ska inte ha stjärnbetyg.");
     }
@@ -83,14 +115,23 @@ export function saveOwnDemoReviewForVisit(
     }
   }
 
-  const existing = visit.visibleReviews?.find((review) => review.userId === state.currentUserId);
+  const overall = scored
+    ? deriveReviewOverall(reviewModel, {
+        taste: input.taste ?? 0,
+        value: input.value ?? 0,
+        service: input.service ?? 0,
+        atmosphere: input.atmosphere ?? 0,
+      })
+    : null;
   const review: VisibleReview = {
     id: existing?.id ?? `demo-review-${visitId}-${state.currentUserId}`,
     userId: state.currentUserId,
-    overall: scored ? input.overall : null,
+    overall,
     taste: scored ? input.taste : null,
     value: scored ? input.value : null,
     service: scored ? input.service : null,
+    atmosphere: scored ? (input.atmosphere ?? null) : null,
+    reviewModel: scored ? reviewModel : null,
     comment: input.comment,
     ratingVisible: scored,
     commentVisible: existing?.commentVisible ?? true,
@@ -98,6 +139,14 @@ export function saveOwnDemoReviewForVisit(
 
   return {
     ...state,
+    places:
+      scored && nextOccasions.length > 0
+        ? state.places.map((place) =>
+            place.id === visit.placeId && place.occasions.length === 0
+              ? { ...place, occasions: nextOccasions }
+              : place,
+          )
+        : state.places,
     visits: state.visits.map((item) => {
       if (item.id !== visitId) return item;
       const reviews = [
