@@ -1,11 +1,10 @@
 import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Loader2, UserPlus, UserRoundCheck, X } from "lucide-react";
+import { Loader2, UserPlus, UserRoundCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -30,10 +29,16 @@ import {
   shareVisitToGroup,
   type PlaceShareTarget,
 } from "@/lib/matrundan/live-sharing";
+import {
+  deriveReviewOverall,
+  reviewModelForContext,
+  reviewModelIncludesAtmosphere,
+  reviewRatingsComplete,
+} from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
-import type { VisitParticipant } from "@/lib/matrundan/types";
+import type { Occasion, VisitParticipant } from "@/lib/matrundan/types";
 import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
 import {
   findLocalRegistrationVisitDuplicate,
@@ -41,7 +46,8 @@ import {
   type StrongVisitDuplicateCandidate,
 } from "@/lib/matrundan/visit-duplicates";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
-import { RatingInput } from "./Rating";
+import { OccasionPicker } from "./OccasionPicker";
+import { ReviewScoreFields } from "./ReviewScoreFields";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitDuplicatePrompt } from "./VisitDuplicatePrompt";
 import { VisitPhotoField } from "./VisitPhotoField";
@@ -94,7 +100,6 @@ export function VisitDialog({
   const [meal, setMeal] = React.useState<(typeof VISIT_MEALS)[number]>("middag");
   const [isTakeaway, setIsTakeaway] = React.useState(false);
   const [date, setDate] = React.useState<string>(new Date().toISOString().slice(0, 10));
-  const [overall, setOverall] = React.useState(0);
   const [participants, setParticipants] = React.useState<string[]>([state.currentUserId]);
   const [guests, setGuests] = React.useState<DraftGuest[]>([]);
   const [guestInputOpen, setGuestInputOpen] = React.useState(false);
@@ -102,8 +107,9 @@ export function VisitDialog({
   const [taste, setTaste] = React.useState(0);
   const [value, setValue] = React.useState(0);
   const [service, setService] = React.useState(0);
+  const [atmosphere, setAtmosphere] = React.useState(0);
+  const [reviewOccasions, setReviewOccasions] = React.useState<Occasion[]>([]);
   const [comment, setComment] = React.useState("");
-  const [showDetails, setShowDetails] = React.useState(false);
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
@@ -120,7 +126,6 @@ export function VisitDialog({
       setMeal("middag");
       setIsTakeaway(false);
       setDate(new Date().toISOString().slice(0, 10));
-      setOverall(0);
       setParticipants([state.currentUserId]);
       setGuests([]);
       setGuestInputOpen(false);
@@ -128,8 +133,9 @@ export function VisitDialog({
       setTaste(0);
       setValue(0);
       setService(0);
+      setAtmosphere(0);
+      setReviewOccasions([]);
       setComment("");
-      setShowDetails(false);
       setPhotoFile(null);
       setShareComment(false);
       setShareTargets([]);
@@ -179,6 +185,20 @@ export function VisitDialog({
 
   if (!place) return null;
   const currentPlace = place;
+  const needsOccasionForReview = scoredVisit && !isTakeaway && currentPlace.occasions.length === 0;
+  const applicableOccasions = needsOccasionForReview ? reviewOccasions : currentPlace.occasions;
+  const reviewModel = scoredVisit
+    ? reviewModelForContext({ isTakeaway, occasions: applicableOccasions })
+    : null;
+  const reviewComplete = reviewRatingsComplete(reviewModel, {
+    taste,
+    service,
+    value,
+    atmosphere,
+  });
+  const derivedOverall =
+    deriveReviewOverall(reviewModel, { taste, service, value, atmosphere }) ?? 0;
+  const savingVisitWithoutReview = scoredVisit && reviewModel == null;
 
   const toggleParticipant = (id: string) => {
     if (id === state.currentUserId) return;
@@ -228,6 +248,7 @@ export function VisitDialog({
   }
 
   async function persistNewVisit(allowStrongDuplicate = false) {
+    const hasReview = scoredVisit && reviewModel != null;
     const created = await addVisit({
       placeId: currentPlace.id,
       date: new Date(date).toISOString(),
@@ -236,11 +257,15 @@ export function VisitDialog({
       participantIds: participants,
       participants: participantSnapshots(),
       currentUserParticipationStatus: "participant",
-      overall: scoredVisit ? overall : 0,
-      taste: scoredVisit ? taste || undefined : undefined,
-      value: scoredVisit ? value || undefined : undefined,
-      service: scoredVisit ? service || undefined : undefined,
-      comment: comment.trim() || undefined,
+      overall: hasReview ? derivedOverall : 0,
+      taste: hasReview ? taste : undefined,
+      value: hasReview ? value : undefined,
+      service: hasReview ? service : undefined,
+      atmosphere:
+        hasReview && reviewModelIncludesAtmosphere(reviewModel) ? atmosphere : undefined,
+      comment:
+        scoredVisit && !hasReview ? undefined : comment.trim() || undefined,
+      reviewOccasions: hasReview && needsOccasionForReview ? reviewOccasions : undefined,
       createdBy: state.currentUserId,
     });
     let photoError: Error | null = null;
@@ -311,8 +336,8 @@ export function VisitDialog({
       toast.error("Den som registrerar besöket måste vara deltagare.");
       return false;
     }
-    if (scoredVisit && overall < 1) {
-      toast.error("Ge ett helhetsbetyg");
+    if (scoredVisit && reviewModel && !reviewComplete) {
+      toast.error("Sätt alla relevanta betyg.");
       return false;
     }
     return true;
@@ -565,40 +590,41 @@ export function VisitDialog({
             </fieldset>
 
             {scoredVisit ? (
-              <>
-                <div className="rounded-2xl bg-secondary/60 p-4">
-                  <RatingInput
-                    value={overall}
-                    onChange={setOverall}
-                    label="Helhetsbetyg"
-                    size={32}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {overall > 0 ? `${overall} av 5` : "Välj ett betyg för att kunna spara."}
-                  </p>
-                </div>
+              <div className="space-y-4">
+                {needsOccasionForReview ? (
+                  <div className="rounded-2xl bg-secondary/40 p-4">
+                    <OccasionPicker
+                      id="visit-review-occasions"
+                      value={reviewOccasions}
+                      onChange={setReviewOccasions}
+                      disabled={isBusy}
+                      description="Välj vad stället passar för om du vill lämna omdömet direkt. Det avgör om Atmosfär är relevant."
+                    />
+                  </div>
+                ) : null}
 
-                <Collapsible open={showDetails} onOpenChange={setShowDetails}>
-                  <CollapsibleTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
-                    >
-                      <span>Detaljbetyg (frivilligt)</span>
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-3 pt-3">
-                    <div className="grid gap-3">
-                      <RatingInput value={taste} onChange={setTaste} label="Smak" />
-                      <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
-                      <RatingInput value={service} onChange={setService} label="Service" />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </>
+                {reviewModel ? (
+                  <ReviewScoreFields
+                    model={reviewModel}
+                    taste={taste}
+                    service={service}
+                    value={value}
+                    atmosphere={atmosphere}
+                    onTasteChange={setTaste}
+                    onServiceChange={setService}
+                    onValueChange={setValue}
+                    onAtmosphereChange={setAtmosphere}
+                  />
+                ) : (
+                  <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
+                    <p className="text-sm font-medium">Spara besöket nu, omdömet kan vänta</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Besöket sparas även utan omdöme. Välj Passar för ovan om du vill betygsätta
+                      direkt, eller komplettera ditt omdöme senare.
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
                 <p className="text-sm font-medium">Inget stjärnbetyg för dryckesbesök</p>
@@ -609,16 +635,18 @@ export function VisitDialog({
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="comment">Kommentar (frivilligt)</Label>
-              <Textarea
-                id="comment"
-                value={comment}
-                onChange={(event) => setComment(event.target.value)}
-                rows={2}
-                placeholder="En liten minnesnotering…"
-              />
-            </div>
+            {!scoredVisit || reviewModel ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="comment">Kommentar (frivilligt)</Label>
+                <Textarea
+                  id="comment"
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  rows={2}
+                  placeholder="En liten minnesnotering…"
+                />
+              </div>
+            ) : null}
 
             <VisitPhotoField file={photoFile} onFileChange={setPhotoFile} disabled={isBusy} />
 
@@ -733,11 +761,11 @@ export function VisitDialog({
             </Button>
             <Button
               onClick={submit}
-              disabled={isBusy || (scoredVisit && overall === 0)}
+              disabled={isBusy || (scoredVisit && reviewModel != null && !reviewComplete)}
               className="w-full sm:w-auto"
             >
               {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Spara besök
+              {savingVisitWithoutReview ? "Spara besök utan omdöme" : "Spara besök"}
             </Button>
           </DialogFooter>
         </DialogContent>
