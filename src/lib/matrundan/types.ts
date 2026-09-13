@@ -322,11 +322,10 @@ export const OCCASION_LABEL: Record<Occasion, string> = {
 
 export const OCCASION_DESCRIPTION: Record<Occasion, string> = {
   snabbt:
-    "När det ska vara enkelt att svänga förbi och äta relativt snabbt utan att göra en stor sak av besöket.",
-  avslappnat:
-    "För en ledig måltid med partner, vänner eller familj där det är lätt att trivas utan att göra en stor sak av besöket.",
+    "När ni vill att det ska vara enkelt och smidigt att äta, utan att själva besöket behöver stå i centrum.",
+  avslappnat: "För en ledig måltid där ni kan slå er ner och umgås en stund.",
   middag:
-    "När ni vill göra lite mer av måltiden genom maten, miljön, servicen eller tillfället, utan att det behöver vara finkrog.",
+    "För tillfällen då ni vill att måltiden ska kännas lite mer speciell – genom maten, miljön, servicen eller stämningen.",
 };
 
 export const OCCASION_VALUES = [

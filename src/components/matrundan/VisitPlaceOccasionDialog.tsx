@@ -118,8 +118,8 @@ export function VisitPlaceOccasionDialog({
           {showGuide ? (
             <div className="space-y-3 rounded-2xl bg-secondary/40 p-3">
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Kategorierna beskriver vilken sorts besök stället passar för, inte hur bra stället
-                är.
+                Kategorierna beskriver vilken typ av besök stället passar för – inte hur bra eller
+                exklusivt det är.
               </p>
               {OCCASION_VALUES.map((occasion) => (
                 <div key={occasion}>
