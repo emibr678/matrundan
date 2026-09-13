@@ -1,10 +1,7 @@
 import { CircleHelp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  reviewModelExplanation,
-  type ReviewModel,
-} from "@/lib/matrundan/review-model";
+import { reviewModelExplanation, type ReviewModel } from "@/lib/matrundan/review-model";
 
 export function ReviewModelNotice({ model }: { model: ReviewModel }) {
   const explanation = reviewModelExplanation(model);
@@ -30,10 +27,7 @@ export function ReviewModelNotice({ model }: { model: ReviewModel }) {
             Varför?
           </Button>
         </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl p-4"
-        >
+        <PopoverContent align="start" className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl p-4">
           <div className="space-y-2">
             <div className="text-sm font-medium">Varför räknas inte Atmosfär?</div>
             <p className="text-xs leading-relaxed text-muted-foreground">
