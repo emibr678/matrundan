@@ -120,7 +120,7 @@ for (const sourceTable of expected.tables) {
   const sourceColumns = new Map(sourceTable.columns.map((column) => [column.name, column]));
   const targetColumns = new Map(targetTable.columns.map((column) => [column.name, column]));
 
-  for (const sourceColumn of sourceTable.columns) {
+  for (const sourceColumn of expected.tables.find((table) => table.name === sourceTable.name).columns) {
     const targetColumn = targetColumns.get(sourceColumn.name);
     if (!targetColumn) {
       problems.push(`auth.${sourceTable.name}.${sourceColumn.name} saknas lokalt`);
@@ -272,7 +272,7 @@ select set_config(
   true
 );
 SET LOCAL ROLE authenticated;
-select public.get_group_app_state_v5l(:'smoke_group_id'::uuid);
+select public.get_group_app_state_v5m(:'smoke_group_id'::uuid);
 ROLLBACK;
 SQL
 
