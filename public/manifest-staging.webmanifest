@@ -1,8 +1,8 @@
 {
-  "name": "Matrundan",
-  "short_name": "Matrundan",
+  "name": "Matrundan Staging",
+  "short_name": "Matrundan STG",
   "id": "/",
-  "description": "Gruppens privata matställeslista – lägg till, välj nästa stopp och minns era besök tillsammans.",
+  "description": "Matrundans separata testmiljö för verifiering före publicering.",
   "lang": "sv",
   "start_url": "/",
   "scope": "/",
@@ -12,19 +12,19 @@
   "theme_color": "#c05f3c",
   "icons": [
     {
-      "src": "/icons/matrundan-192.png",
+      "src": "/icons/matrundan-staging-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/matrundan-512.png",
+      "src": "/icons/matrundan-staging-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/matrundan-maskable-512.png",
+      "src": "/icons/matrundan-staging-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

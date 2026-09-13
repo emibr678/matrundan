@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
+import { appPageTitle } from "@/lib/app-environment";
 
 export const Route = createFileRoute("/integritet")({
   head: () => ({
     meta: [
-      { title: "Integritet · Matrundan" },
+      { title: appPageTitle("Integritet") },
       {
         name: "description",
         content: "Så hanterar Matrundan personuppgifter och innehåll i privata grupper.",

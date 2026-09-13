@@ -34,6 +34,7 @@ import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { appPageTitle } from "@/lib/app-environment";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { formatDate, useStore } from "@/lib/matrundan/store";
@@ -55,12 +56,12 @@ export const Route = createFileRoute("/matstallen/$placeId")({
   },
   head: () => ({
     meta: [
-      { title: "Matställe · Matrundan" },
+      { title: appPageTitle("Matställe") },
       {
         name: "description",
         content: "Detaljer, besök och betyg för ett matställe.",
       },
-      { property: "og:title", content: "Matställe · Matrundan" },
+      { property: "og:title", content: appPageTitle("Matställe") },
       { property: "og:description", content: "Detaljer, besök och betyg." },
     ],
   }),

@@ -64,11 +64,12 @@ import {
 } from "@/lib/matrundan/place-maintenance";
 import { useSession } from "@/lib/matrundan/session";
 import { CATEGORY_LABEL } from "@/lib/matrundan/types";
+import { appPageTitle } from "@/lib/app-environment";
 
 export const Route = createFileRoute("/platsunderhall")({
   head: () => ({
     meta: [
-      { title: "Platsunderhåll · Matrundan" },
+      { title: appPageTitle("Platsunderhåll") },
       {
         name: "description",
         content: "Intern global arbetsyta för granskning och underhåll av Matrundans platsdata.",

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmailAuthDialog } from "@/components/matrundan/EmailAuthDialog";
+import { appPageTitle } from "@/lib/app-environment";
 import {
   acceptGroupInvitation,
   getInvitationPreview,
@@ -14,7 +15,7 @@ import { useSession } from "@/lib/matrundan/session";
 export const Route = createFileRoute("/inbjudan/$token")({
   head: () => ({
     meta: [
-      { title: "Gå med i gruppen · Matrundan" },
+      { title: appPageTitle("Gå med i gruppen") },
       {
         name: "description",
         content: "Acceptera din inbjudan och gå med i gruppen på Matrundan.",

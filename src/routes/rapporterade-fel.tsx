@@ -3,11 +3,12 @@ import { ArrowLeft, CircleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { appPageTitle } from "@/lib/app-environment";
 
 export const Route = createFileRoute("/rapporterade-fel")({
   head: () => ({
     meta: [
-      { title: "Rapporterade fel · Matrundan" },
+      { title: appPageTitle("Rapporterade fel") },
       {
         name: "description",
         content: "Information om Matrundans centrala hantering av rapporterade platsfel.",
