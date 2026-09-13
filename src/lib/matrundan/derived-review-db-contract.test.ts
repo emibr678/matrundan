@@ -40,6 +40,14 @@ describe("Issue #307 — härledd reviewmodell i databasen", () => {
     expect(migration).toContain("RETURN 'food_v1_quick'");
   });
 
+  test("Hämtmat kan spara frivilligt Passar för utan att kräva klassificering", () => {
+    expect(archivedCompletionMigration).toContain("SET occasions = _provided");
+    expect(archivedCompletionMigration).toContain(
+      "IF cardinality(COALESCE(_review_occasions, '{}'::text[])) > 0 THEN",
+    );
+    expect(archivedCompletionMigration.match(/RETURN 'food_v1_takeaway'/g)?.length).toBe(2);
+  });
+
   test("nya write-RPC:er tar dimensioner men inget manuellt helhetsbetyg", () => {
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.create_visit_with_review_v5");
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.save_own_review_for_visit_v2");
