@@ -463,3 +463,5 @@ Inga ändringar ännu.
   markering visas endast när nya uppgifter behöver granskas.
 - Exempelgruppen använder samma kontrollflöde med lokala, deterministiska
   uppgifter och utan externa Geoapify- eller OpenStreetMap-anrop.
+- Den klippta röda markeringen bakom kortets överkant visas inte längre när ett
+  ställe är nästa stopp.
