@@ -251,6 +251,24 @@ två allowlistade workflowen. Kommandon accepteras endast från repositoryägare
 en vanlig Issue, aldrig från PR-kommentarer. Production-, recovery- och
 DB-operationer ingår inte i denna brygga.
 
+### Releasekontrakt för staging-first
+
+Feature-PR:er ska normalt inte höja `src/lib/matrundan/version.ts` eller skapa en
+daterad releasepost i `CHANGELOG.md`. Användarsynlig kod eller migration kräver i
+stället en kort svensk releasepunkt i PR-mallens markerade **Releaseunderlag**.
+Ordinarie CI läser underlaget från PR-eventet.
+
+När en separat releasekandidat skapas materialiseras valda mergade
+releaseunderlag till riktig version, datum, `CHANGELOG.md` och in-app-historik.
+Om `version.ts` ändras kräver releasekontrollen fortfarande en högre semver och
+en samtidig changeloguppdatering. Redan pågående versionerade feature-PR:er
+accepteras under övergången men är inte mönstret för nya features.
+
+`Version: inte relevant` används fortsatt endast för dokumentations-, test- och
+verktygsändringar utan användarsynlig kod eller migration. Push till `main`
+validerar fortsatt den materialiserade releasehistorikens interna konsistens men
+kräver inte PR-metadata på nytt.
+
 ## Cloudflare Workers-miljöer
 
 Den låsta miljömodellen är:
