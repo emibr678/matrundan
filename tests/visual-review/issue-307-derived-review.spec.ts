@@ -1,46 +1,118 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
 
-const PLACE_ID = "visual-review-place";
-const GROUP_ID = "visual-review-group";
-const USER_ID = "visual-review-user";
+const AUTH_STORAGE_KEY = "sb-127-auth-token";
+const ACTIVE_GROUP_KEY = "matrundan.activeGroup.v1";
+const USER_ID = "11111111-1111-4111-8111-111111111111";
+const GROUP_ID = "22222222-2222-4222-8222-222222222222";
+const PLACE_ID = "33333333-3333-4333-8333-333333333333";
 
 async function stabilize(page: Page) {
-  await page.evaluate(async () => {
-    if ("fonts" in document) {
-      await (document as Document & { fonts: FontFaceSet }).fonts.ready;
-    }
+  await page.addStyleTag({
+    content: `
+      *, *::before, *::after {
+        animation-delay: 0s !important;
+        animation-duration: 0s !important;
+        caret-color: transparent !important;
+        scroll-behavior: auto !important;
+        transition-delay: 0s !important;
+        transition-duration: 0s !important;
+      }
+    `,
   });
-  await page.waitForTimeout(120);
-}
-
-async function expectNoHorizontalOverflow(page: Page, locator = page.locator("body")) {
-  const overflow = await locator.evaluate((element) => element.scrollWidth - element.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
 }
 
 async function capture(page: Page, testInfo: TestInfo, name: string) {
-  const dir = `visual-review/${testInfo.project.name}`;
-  await page.screenshot({ path: `${dir}/${name}.png`, fullPage: true });
+  const outputDirectory = path.join("visual-review", testInfo.project.name);
+  await mkdir(outputDirectory, { recursive: true });
+  await page.screenshot({ path: path.join(outputDirectory, `${name}.png`), fullPage: true });
 }
 
-async function mockBackend(page: Page, occasions: string[]) {
-  const appState = {
-    readModelVersion: "get_group_app_state_v5m",
+async function expectNoHorizontalOverflow(page: Page, dialog: Locator) {
+  const documentWidths = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }));
+  expect(documentWidths.document).toBeLessThanOrEqual(documentWidths.viewport);
+
+  const dialogWidths = await dialog.evaluate((element) => ({
+    client: element.clientWidth,
+    scroll: element.scrollWidth,
+  }));
+  expect(dialogWidths.scroll).toBeLessThanOrEqual(dialogWidths.client);
+}
+
+async function seedSession(page: Page) {
+  const now = new Date().toISOString();
+  const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+  await page.addInitScript(
+    ({ authKey, groupKey, session }) => {
+      window.localStorage.setItem(authKey, JSON.stringify(session));
+      window.localStorage.setItem(groupKey, GROUP_ID);
+    },
+    {
+      authKey: AUTH_STORAGE_KEY,
+      groupKey: ACTIVE_GROUP_KEY,
+      session: {
+        access_token: `test.${btoa(
+          JSON.stringify({
+            sub: USER_ID,
+            aud: "authenticated",
+            role: "authenticated",
+            email: "emil@example.com",
+            exp: expiresAt,
+          }),
+        )}.signature`,
+        token_type: "bearer",
+        expires_in: 3600,
+        expires_at: expiresAt,
+        refresh_token: "test-refresh-token",
+        user: {
+          id: USER_ID,
+          aud: "authenticated",
+          role: "authenticated",
+          email: "emil@example.com",
+          email_confirmed_at: now,
+          confirmed_at: now,
+          last_sign_in_at: now,
+          app_metadata: { provider: "google", providers: ["google"] },
+          user_metadata: { full_name: "Emil" },
+          identities: [],
+          created_at: now,
+          updated_at: now,
+          is_anonymous: false,
+        },
+      },
+    },
+  );
+}
+
+function groupState(occasions: string[]) {
+  return {
+    currentUserId: USER_ID,
     group: {
       id: GROUP_ID,
-      name: "Visual review",
-      emoji: "🍽️",
-      createdAt: "2026-09-01T12:00:00.000Z",
+      name: "Kompisgänget",
+      emoji: "🍜",
+      city: "Stockholm",
+      createdAt: "2026-01-01T12:00:00Z",
+      ownerId: USER_ID,
       lifecycleStatus: "active",
-      defaultSearchRadiusKm: 2,
-      sharedVisitsCountForProgression: false,
+      archivedAt: null,
+      archivedBy: null,
+      sharedVisitsCountForProgression: true,
+      defaultSearchRadiusKm: 1,
       searchAreas: [],
+      homeLocation: null,
     },
-    currentUserId: USER_ID,
-    members: [
-      { id: USER_ID, name: "Emil", avatar: "🙂", role: "ägare" },
-      { id: "member-2", name: "Sam", avatar: "🐻", role: "medlem" },
-    ],
+    members: [{ id: USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, role: "ägare" }],
     places: [
       {
         id: PLACE_ID,
@@ -53,97 +125,78 @@ async function mockBackend(page: Page, occasions: string[]) {
         cuisinesOverride: null,
         occasions,
         address: "Testgatan 1",
+        area: "Södermalm",
         city: "Stockholm",
-        lat: 59.33,
-        lng: 18.06,
+        lat: 59.31,
+        lng: 18.07,
+        website: null,
+        canonicalWebsite: null,
+        websiteOverride: null,
+        sources: [],
+        photo: null,
+        notes: null,
         addedBy: USER_ID,
-        addedAt: "2026-09-01T12:00:00.000Z",
+        addedAt: "2026-09-01T12:00:00Z",
+        origin: "manual",
         collectionStatus: "active",
-        origin: "provider",
+        archivedAt: null,
+        archivedBy: null,
       },
     ],
     visits: [],
     favorites: [],
     activity: [],
-    achievements: [],
     nextPlaceId: null,
-    nextPlaceCandidates: [],
     nextStopDateProposal: null,
-    currentUserActivityVisitedCount: 0,
   };
+}
 
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5m", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(appState) });
-  });
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5l", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(appState) });
-  });
-  await page.route("**/rest/v1/rpc/update_group_place_metadata", async (route) => {
-    const request = route.request().postDataJSON() as { p_occasions?: string[] };
-    appState.places[0].occasions = request.p_occasions ?? [];
-    await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
-  });
-  await page.route("**/rest/v1/rpc/list_place_share_targets", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
-  });
-  await page.route("**/rest/v1/rpc/find_registration_visit_duplicate", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
-  });
+async function mockBackend(page: Page, initialOccasions: string[]) {
+  let occasions = [...initialOccasions];
+
   await page.route("**/rest/v1/rpc/**", async (route) => {
-    const url = route.request().url();
-    if (
-      url.includes("get_group_app_state_v5m") ||
-      url.includes("get_group_app_state_v5l") ||
-      url.includes("update_group_place_metadata") ||
-      url.includes("list_place_share_targets") ||
-      url.includes("find_registration_visit_duplicate")
-    ) {
-      await route.fallback();
+    const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
+    if (rpc === "list_user_groups_v4b") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            id: GROUP_ID,
+            name: "Kompisgänget",
+            emoji: "🍜",
+            role: "owner",
+            lifecycleStatus: "active",
+          },
+        ]),
+      });
       return;
     }
-    await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+    if (rpc.startsWith("get_group_app_state_v5")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(groupState(occasions)),
+      });
+      return;
+    }
+    if (rpc === "update_group_place_metadata") {
+      const payload = route.request().postDataJSON() as { _occasions?: string[] };
+      if (Array.isArray(payload._occasions)) occasions = [...payload._occasions];
+      await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+      return;
+    }
+    if (rpc === "list_place_share_targets_v4b") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
-
-  await page.route("**/auth/v1/user", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ id: USER_ID, email: "visual@example.com" }),
-    });
-  });
-  await page.route("**/auth/v1/session", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        access_token: "visual-token",
-        refresh_token: "visual-refresh",
-        expires_in: 3600,
-        token_type: "bearer",
-        user: { id: USER_ID, email: "visual@example.com" },
-      }),
-    });
-  });
-
-  await page.addInitScript(
-    ({ groupId, userId }) => {
-      localStorage.setItem("matrundan:selected-group-id", groupId);
-      localStorage.setItem(
-        "sb-localhost-auth-token",
-        JSON.stringify({
-          access_token: "visual-token",
-          refresh_token: "visual-refresh",
-          expires_in: 3600,
-          token_type: "bearer",
-          user: { id: userId, email: "visual@example.com" },
-        }),
-      );
-    },
-    { groupId: GROUP_ID, userId: USER_ID },
-  );
 }
 
 async function startVisitRegistration(page: Page, occasions: string[]) {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await seedSession(page);
   await mockBackend(page, occasions);
   await page.goto(`/matstallen/${PLACE_ID}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Registrera besök" }).click();
