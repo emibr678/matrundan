@@ -19,6 +19,7 @@ import type {
   Place,
   PlaceCategory,
   PlaceCollectionStatus,
+  ReviewModel,
   Role,
   SearchRadiusKm,
   VisibleReview,
@@ -48,6 +49,8 @@ type ReviewRow = {
   taste: number | null;
   value: number | null;
   service: number | null;
+  atmosphere?: number | null;
+  reviewModel?: ReviewModel | null;
   comment: string | null;
   ratingVisible: boolean;
   commentVisible: boolean;
@@ -408,6 +411,8 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       taste: r.taste,
       value: r.value,
       service: r.service,
+      atmosphere: r.atmosphere ?? null,
+      reviewModel: r.reviewModel ?? null,
       comment: r.comment,
       ratingVisible: r.ratingVisible,
       commentVisible: r.commentVisible,
@@ -422,6 +427,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     const taste = rated.map((r) => r.taste).filter((x): x is number => x != null);
     const value = rated.map((r) => r.value).filter((x): x is number => x != null);
     const service = rated.map((r) => r.service).filter((x): x is number => x != null);
+    const atmosphere = rated.map((r) => r.atmosphere).filter((x): x is number => x != null);
     const comment = visibleReviews.find((r) => r.commentVisible && r.comment?.trim())?.comment;
     const currentUserParticipationStatus =
       v.currentUserParticipationStatus === "declined"
@@ -441,6 +447,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       taste: avg(taste),
       value: avg(value),
       service: avg(service),
+      atmosphere: avg(atmosphere),
       comment: comment ?? undefined,
       createdBy: v.createdBy,
       photo: v.photo

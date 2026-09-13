@@ -1,23 +1,23 @@
 import { describe, expect, test } from "bun:test";
 
-const visitDialog = await Bun.file("src/components/matrundan/VisitDialog.tsx").text();
+const visitDialogCore = await Bun.file("src/components/matrundan/VisitDialogCore.tsx").text();
 
 describe("registrering + delning för Issue #214", () => {
   test("fortsätter till precis gästkoppling först efter sparat och delat besök", () => {
-    expect(visitDialog).toContain("const continueToGuestLink");
-    expect(visitDialog).toContain('mode === "live"');
-    expect(visitDialog).toContain("guests.length > 0");
-    expect(visitDialog).toContain("sharedCount > 0");
-    expect(visitDialog).toContain("!!created?.id");
-    expect(visitDialog).toContain(
+    expect(visitDialogCore).toContain("const continueToGuestLink");
+    expect(visitDialogCore).toContain('mode === "live"');
+    expect(visitDialogCore).toContain("guests.length > 0");
+    expect(visitDialogCore).toContain("sharedCount > 0");
+    expect(visitDialogCore).toContain("!!created?.id");
+    expect(visitDialogCore).toContain(
       "setGuestLinkPayload({ visitId: created.id, sourceGroupId: activeGroupId })",
     );
   });
 
   test("stänger registreringsdialogen innan gästkopplingsdialogen tar över", () => {
-    const continuation = visitDialog.slice(
-      visitDialog.indexOf("const continueToGuestLink"),
-      visitDialog.indexOf('toast.success("Besök registrerat"'),
+    const continuation = visitDialogCore.slice(
+      visitDialogCore.indexOf("const continueToGuestLink"),
+      visitDialogCore.indexOf('toast.success("Besök registrerat"'),
     );
 
     expect(continuation).toContain("onOpenChange(false)");

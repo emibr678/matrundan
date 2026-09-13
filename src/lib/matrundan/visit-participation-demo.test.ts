@@ -18,17 +18,18 @@ describe("demo-paritet för gemensamma besök", () => {
     const visitId = EXAMPLE_IDS.visits.guestReviews;
 
     const reviewed = saveOwnDemoReviewForVisit(initial, visitId, {
-      overall: 5,
       taste: 5,
       value: 4,
       service: 4,
+      atmosphere: 4,
       comment: "Mitt eget omdöme",
     });
     const reviewedVisit = reviewed.visits.find((visit) => visit.id === visitId);
     const ownReview = reviewedVisit?.visibleReviews?.find(
       (review) => review.userId === reviewed.currentUserId,
     );
-    expect(ownReview?.overall).toBe(5);
+    expect(ownReview?.overall).toBe(4.25);
+    expect(ownReview?.reviewModel).toBe("food_v1_atmosphere");
     expect(reviewedVisit?.currentUserParticipationStatus).toBe("participant");
 
     const declined = setOwnDemoVisitParticipation(reviewed, visitId, false);

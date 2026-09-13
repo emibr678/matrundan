@@ -14,6 +14,23 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.39.0] – 2026-09-12
+
+### Nytt
+
+- Nya omdömen bygger på **Smak**, **Service** och **Prisvärdhet** samt
+  **Atmosfär** när vistelsen på plats är en relevant del av upplevelsen.
+  Helhetsbetyget räknas automatiskt som ett transparent medelvärde i stället
+  för att sättas separat.
+
+### Förbättrat
+
+- Hämtmat och ställen som endast passar för **Snabbt och enkelt** bedöms utan
+  Atmosfär. Decimalbetyg visas med motsvarande delvis fyllda stjärnor.
+- Äldre omdömen behåller sin tidigare betygsmodell, och verkliga besök kan
+  fortfarande sparas även om **Passar för** behöver kompletteras innan ett nytt
+  omdöme lämnas.
+
 ## [1.38.12] – 2026-09-11
 
 ### Nytt

@@ -9,12 +9,14 @@ export function VisitPhotoField({
   existingUrl,
   disabled = false,
   showLabel = true,
+  showHelpText = true,
 }: {
   file: File | null;
   onFileChange: (file: File | null) => void;
   existingUrl?: string;
   disabled?: boolean;
   showLabel?: boolean;
+  showHelpText?: boolean;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const inputId = React.useId();
@@ -34,12 +36,16 @@ export function VisitPhotoField({
 
   return (
     <div className="space-y-2">
-      <div>
-        {showLabel ? <Label htmlFor={inputId}>Foto från besöket (frivilligt)</Label> : null}
-        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-          Bilden beskärs inte, men komprimeras och platsmetadata tas bort innan den sparas.
-        </p>
-      </div>
+      {showLabel || showHelpText ? (
+        <div>
+          {showLabel ? <Label htmlFor={inputId}>Foto från besöket (frivilligt)</Label> : null}
+          {showHelpText ? (
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+              Bilden beskärs inte, men komprimeras och platsmetadata tas bort innan den sparas.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {shownUrl ? (
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-muted">

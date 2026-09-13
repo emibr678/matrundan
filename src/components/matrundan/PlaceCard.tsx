@@ -66,11 +66,11 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
                 <>
                   <RatingStars value={rating.overall} size={14} />
                   <span className="text-xs text-muted-foreground">
-                    {formatRating(rating.overall)} · {rating.count} besök
+                    {formatRating(rating.overall)} · {rating.count} omdömen
                   </span>
                 </>
               ) : (
-                <span className="text-xs italic text-muted-foreground">Inga besök än</span>
+                <span className="text-xs italic text-muted-foreground">Inga omdömen än</span>
               )}
             </div>
             <StatusBadge placeId={place.id} />

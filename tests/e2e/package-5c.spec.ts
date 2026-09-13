@@ -34,8 +34,9 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
   });
   await expect(visitDialog.getByAltText("Förhandsvisning av valt besöksfoto")).toBeVisible();
   await expect(visitDialog.getByRole("button", { name: "Spara besök" })).toBeDisabled();
-  await visitDialog.getByRole("button", { name: "4 av 5" }).click();
-  await expect(visitDialog.getByText("4 av 5", { exact: true })).toBeVisible();
+  for (const dimension of ["Smak", "Service", "Prisvärdhet", "Atmosfär"]) {
+    await visitDialog.getByRole("button", { name: `${dimension}: 4 av 5` }).click();
+  }
   await expect(visitDialog.getByRole("button", { name: "Spara besök" })).toBeEnabled();
   await expectNoHorizontalOverflow(page, "Besöksdialog med bildförhandsvisning");
 

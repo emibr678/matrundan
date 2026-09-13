@@ -3,6 +3,7 @@ import type { MultiPolygon, Polygon } from "geojson";
 export type PlaceCategory = "restaurang" | "café" | "bageri" | "snabbmat" | "pub" | "matvagn";
 
 export type Occasion = "snabbt" | "avslappnat" | "middag";
+export type ReviewModel = "food_v1_takeaway" | "food_v1_quick" | "food_v1_atmosphere";
 
 export type Role = "ägare" | "admin" | "medlem";
 export type GroupLifecycleStatus = "active" | "archived";
@@ -47,7 +48,7 @@ export interface Place {
   cuisines: string[];
   /** Kanoniska kökstyper innan eventuell gruppspecifik korrigering. */
   canonicalCuisines?: string[];
-  /** Null/undefined betyder att gruppen använder kanoniska kökstyper. */
+  /** Null/undefined betyder att gruppen använder kanonisk kökstyper. */
   cuisinesOverride?: string[] | null;
   occasions: Occasion[];
   address: string;
@@ -88,6 +89,9 @@ export interface VisibleReview {
   taste?: number | null;
   value?: number | null;
   service?: number | null;
+  atmosphere?: number | null;
+  /** Null/undefined är en review från före den härledda modellen. */
+  reviewModel?: ReviewModel | null;
   comment?: string | null;
   ratingVisible: boolean;
   commentVisible: boolean;
@@ -135,6 +139,7 @@ export interface Visit {
   taste?: number;
   value?: number;
   service?: number;
+  atmosphere?: number;
   comment?: string;
   createdBy: string;
   /** Privat foto för just den aktiva gruppens koppling till besöket. */
@@ -317,11 +322,10 @@ export const OCCASION_LABEL: Record<Occasion, string> = {
 
 export const OCCASION_DESCRIPTION: Record<Occasion, string> = {
   snabbt:
-    "När det ska vara enkelt att svänga förbi och äta relativt snabbt utan att göra en stor sak av besöket.",
-  avslappnat:
-    "För en ledig måltid med partner, vänner eller familj där det är lätt att trivas utan att göra en stor sak av besöket.",
+    "När ni vill att det ska vara enkelt och smidigt att äta, utan att själva besöket behöver stå i centrum.",
+  avslappnat: "För en ledig måltid där ni kan slå er ner och umgås en stund.",
   middag:
-    "När ni vill göra lite mer av måltiden genom maten, miljön, servicen eller tillfället, utan att det behöver vara finkrog.",
+    "För tillfällen då ni vill att måltiden ska kännas lite mer speciell – genom maten, miljön, servicen eller stämningen.",
 };
 
 export const OCCASION_VALUES = [

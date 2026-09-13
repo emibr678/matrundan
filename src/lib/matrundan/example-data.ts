@@ -45,9 +45,19 @@ function withBoundarySearchScenario(state: AppState): AppState {
 }
 
 function withVisitParticipationScenarios(state: AppState): AppState {
-  const { members, visits } = EXAMPLE_IDS;
+  const { members, places, visits } = EXAMPLE_IDS;
   return {
     ...state,
+    places: state.places.map((place) =>
+      place.id === places.longLayout
+        ? {
+            ...place,
+            // Ett avsiktligt #307-fall: första besöksregistreringen ska börja
+            // med den separata Passar för-grinden innan själva besöksdialogen.
+            occasions: [],
+          }
+        : place,
+    ),
     visits: state.visits.map((visit) => {
       if (visit.id === visits.repeatCafeLatest && visit.photo) {
         return {
@@ -55,16 +65,19 @@ function withVisitParticipationScenarios(state: AppState): AppState {
           currentUserParticipationStatus: "participant",
           // Nya besök följer #169-invarianten: registreraren är faktisk deltagare
           // och har redan lämnat sitt eget omdöme i registreringsflödet.
-          // Robin har också fyllt på samma besök så Hem kan visa vägen från ett
-          // nytt deltagaromdöme till exakt rätt bidrag i besöksdetaljen.
+          // Alex omdöme är samtidigt ett fryst quick-only #307-exempel så
+          // exempelgruppen kan visa varför Atmosfär saknas utan att äldre
+          // pending-scenarier för samma ställe skrivs över.
           visibleReviews: [
             {
               id: "review-v1-alex",
               userId: members.alex,
               overall: 5,
               taste: 5,
-              value: 4,
+              value: 5,
               service: 5,
+              atmosphere: null,
+              reviewModel: "food_v1_quick",
               comment: "En lugn fredagsfika och en riktigt bra kardemummabulle.",
               ratingVisible: true,
               commentVisible: true,
@@ -146,12 +159,39 @@ function withVisitParticipationScenarios(state: AppState): AppState {
         };
       }
 
+      if (visit.id === visits.limitedInfo) {
+        return {
+          ...visit,
+          isTakeaway: true,
+          overall: 13 / 3,
+          taste: 4,
+          value: 5,
+          service: 4,
+          atmosphere: undefined,
+          visibleReviews: [
+            {
+              id: "review-v7-noor",
+              userId: members.noor,
+              overall: 13 / 3,
+              taste: 4,
+              value: 5,
+              service: 4,
+              atmosphere: null,
+              reviewModel: "food_v1_takeaway",
+              comment: "Prisvärd hämtlunch som höll sig bra hela vägen hem.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+          ],
+        };
+      }
+
       if (visit.id === visits.providerBistroReturn) {
         return {
           ...visit,
+          atmosphere: 4,
           currentUserParticipationStatus: "participant",
-          // Även återbesöket registrerades av Alex och bär därför Alex eget
-          // omdöme från samma registrering i stället för att bli falskt pending.
+          // Återbesöket är ett explicit fyrdimensionellt #307-fall.
           visibleReviews: [
             {
               id: "review-v8-alex",
@@ -160,6 +200,8 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               taste: 5,
               value: 3,
               service: 4,
+              atmosphere: 4,
+              reviewModel: "food_v1_atmosphere",
               comment: "Återbesöket bekräftade att bistron fungerar för en större middag.",
               ratingVisible: true,
               commentVisible: true,
