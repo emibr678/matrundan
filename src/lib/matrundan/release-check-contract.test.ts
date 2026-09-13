@@ -248,7 +248,9 @@ export const CHANGELOG = [
     const result = runReleaseCheck(root, base, { eventName: "pull_request" });
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("versionshöjning kräver en samtidig uppdatering av CHANGELOG.md");
+    expect(result.stderr).toContain(
+      "versionshöjning kräver en samtidig uppdatering av CHANGELOG.md",
+    );
   }, 15_000);
 
   test("kräver fortsatt Version inte relevant för maintenance-PR", () => {
