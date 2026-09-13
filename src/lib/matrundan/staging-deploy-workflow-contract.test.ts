@@ -39,13 +39,14 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).not.toContain("require('node:path')");
     expect(workflow).toContain("import fs from 'node:fs';");
     expect(workflow).toContain("import path from 'node:path';");
-    expect(workflow).toContain("node --input-type=module - \"$remote_names\" <<'NODE'");
   });
 
-  test("kräver kompatibel stagingdatabas utan att själv applicera migrationer", () => {
-    expect(workflow).toContain("STAGING_SUPABASE_DB_URL");
-    expect(workflow).toContain("supabase_migrations.schema_migrations");
+  test("kräver kompatibel stagingdatabas utan DB-lösenord och utan att applicera migrationer", () => {
+    expect(workflow).toContain("STAGING_SUPABASE_ACCESS_TOKEN");
+    expect(workflow).not.toContain("STAGING_SUPABASE_DB_URL");
+    expect(workflow).toContain("https://api.supabase.com/v1/projects/${projectId}/database/query");
     expect(workflow).toContain("select name from supabase_migrations.schema_migrations");
+    expect(workflow).toContain("read_only: true");
     expect(workflow).toContain("stem.replaceAll('-', '_')");
     expect(workflow).toContain("suffix.replaceAll('-', '_')");
     expect(workflow).toContain(
@@ -54,6 +55,7 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).not.toContain("supabase db push");
     expect(workflow).not.toContain("supabase migration up");
     expect(workflow).not.toContain("apply_migration");
+    expect(workflow).not.toContain('psql "$STAGING_SUPABASE_DB_URL"');
   });
 
   test("bygger och deployar staging med exakt releaseidentitet", () => {
