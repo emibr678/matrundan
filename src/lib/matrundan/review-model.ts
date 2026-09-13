@@ -36,7 +36,7 @@ export function reviewModelExplanation(model: ReviewModel): string | null {
     return "Atmosfär ingår inte för Hämtmat eftersom maten inte åts på plats.";
   }
   if (model === "food_v1_quick") {
-    return "Atmosfär ingår inte när stället bara är markerat som Snabbt och enkelt.";
+    return "Atmosfär ingår inte för Snabbt och enkelt.";
   }
   return null;
 }
