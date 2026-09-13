@@ -85,6 +85,45 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   ).toBeVisible();
 });
 
+test("exempelgruppen använder samma #307-logik som registreringsflödet", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+
+  await page.goto("/matstallen/p8");
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  let dialog = page.getByRole("dialog", { name: "Registrera besök" });
+  await expect(dialog.getByText("Atmosfär ingår inte för Snabbt och enkelt.")).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Varför ingår inte Atmosfär för Snabbt och enkelt?" }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Snabbt och enkelt i exempelgruppen");
+
+  await page.goto("/matstallen/p7");
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  dialog = page.getByRole("dialog", { name: "Registrera besök" });
+  await dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" }).click();
+  await expect(dialog.getByText("Atmosfär ingår inte vid Hämtmat.", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Varför ingår inte Atmosfär vid Hämtmat?" }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Hämtmat i exempelgruppen");
+
+  await page.goto("/matstallen/p10");
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  const classification = page.getByRole("dialog", { name: "När passar stället bäst?" });
+  await expect(classification).toBeVisible();
+  await expect(
+    classification.getByText(
+      "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället. Valet sparas för gruppen.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(classification.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
+  await expect(classification.getByText(/saknar Passar för/)).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Passar för-grinden i exempelgruppen");
+});
+
 test("exempelgruppens centrala scenarier går att nå utan privat dataläckage", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
