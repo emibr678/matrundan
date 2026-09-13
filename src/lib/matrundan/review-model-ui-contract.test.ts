@@ -45,16 +45,15 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
 
     expect(visitPlaceOccasionDialog).toContain("När passar stället bäst?");
     expect(visitPlaceOccasionDialog).toContain(
-      "Välj en eller två kategorier som bäst beskriver när ni skulle välja",
+      "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället.",
     );
-    expect(visitPlaceOccasionDialog).toContain(
-      "sparas på stället och hjälper gruppen att välja rätt nästa gång.",
-    );
-    expect(visitPlaceOccasionDialog).toContain("Det styr också vilka");
-    expect(visitPlaceOccasionDialog).toContain("delar som ingår i omdömet.");
+    expect(visitPlaceOccasionDialog).toContain("sparas för gruppen.");
+    expect(visitPlaceOccasionDialog).toContain('occasion === "snabbt" ? "Snabbt & enkelt"');
+    expect(visitPlaceOccasionDialog).toContain("whitespace-nowrap");
     expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
     expect(visitPlaceOccasionDialog).toContain("Vad betyder alternativen?");
     expect(visitPlaceOccasionDialog).toContain("Spara och fortsätt");
+    expect(visitPlaceOccasionDialog).not.toContain("saknar Passar för");
     expect(visitPlaceOccasionDialog).not.toContain("Atmosfär");
   });
 
@@ -87,6 +86,12 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(modelNotice).toContain("en enklare atmosfär är mer");
     expect(modelNotice).toContain("förväntad");
     expect(modelNotice).toContain("Avslappnat eller Något extra");
+
+    for (const source of [visitDialogCore, addReviewDialog, demoAddReviewDialog, editDialog]) {
+      expect(source).toContain("<ReviewScoreFields");
+      expect(source).not.toContain("Atmosfär ingår inte vid Hämtmat.");
+      expect(source).not.toContain("Atmosfär ingår inte för Snabbt och enkelt.");
+    }
   });
 
   test("legacy-review behåller explicit äldre redigeringsmodell", () => {
