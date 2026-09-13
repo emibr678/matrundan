@@ -33,7 +33,7 @@ export function reviewModelIncludesAtmosphere(model: ReviewModel | null | undefi
 
 export function reviewModelExplanation(model: ReviewModel): string | null {
   if (model === "food_v1_takeaway") {
-    return "Atmosfär ingår inte för Hämtmat eftersom maten inte åts på plats.";
+    return "Atmosfär ingår inte vid Hämtmat.";
   }
   if (model === "food_v1_quick") {
     return "Atmosfär ingår inte för Snabbt och enkelt.";

@@ -283,7 +283,11 @@ test("#307 Hämtmat utelämnar Atmosfär och härleder tre dimensioner", async (
   await dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" }).click();
 
   await expect(dialog.getByRole("button", { name: /Atmosfär:/ })).toHaveCount(0);
-  await expect(dialog.getByText(/Atmosfär ingår inte för Hämtmat/)).toBeVisible();
+  await expect(dialog.getByText("Atmosfär ingår inte vid Hämtmat.", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Varför ingår inte Atmosfär vid Hämtmat?" }).click();
+  await expect(page.getByText("Varför räknas inte Atmosfär?", { exact: true })).toBeVisible();
+  await expect(page.getByText(/inte en del av just den besöksupplevelsen/)).toBeVisible();
+  await expect(page.getByText(/räknas inte in i helhetsbetyget/)).toBeVisible();
 
   await dialog.getByRole("button", { name: "Smak: 5 av 5" }).click();
   await dialog.getByRole("button", { name: "Service: 4 av 5" }).click();
@@ -301,10 +305,11 @@ test("#307 saknat Passar för löses före själva besöksregistreringen", async
 }, testInfo) => {
   await startVisitRegistration(page, []);
 
-  const gate = page.getByRole("dialog", { name: "Vad passar stället för?" });
+  const gate = page.getByRole("dialog", { name: "När passar stället bäst?" });
   await expect(gate).toBeVisible();
-  await expect(gate.getByText(/Bistro Test saknar Passar för/)).toBeVisible();
-  await expect(gate.getByText(/Valet sparas på stället för gruppen/)).toBeVisible();
+  await expect(gate.getByText(/när ni skulle välja Bistro Test/)).toBeVisible();
+  await expect(gate.getByText(/Valet sparas på stället/)).toBeVisible();
+  await expect(gate.getByText(/styr också vilka delar som ingår i omdömet/)).toBeVisible();
   await expect(gate.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
   const quick = gate.getByRole("button", { name: "Passar för: Snabbt och enkelt" });

@@ -71,10 +71,11 @@ export function VisitPlaceOccasionDialog({
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !busy && onCancel()}>
       <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
         <DialogHeader className="pr-8 text-left">
-          <DialogTitle className="font-display text-2xl">Vad passar stället för?</DialogTitle>
+          <DialogTitle className="font-display text-2xl">När passar stället bäst?</DialogTitle>
           <DialogDescription className="leading-relaxed">
-            {place.name} saknar Passar för. Välj en eller två kategorier innan du registrerar
-            besöket. Valet sparas på stället för gruppen.
+            Välj en eller två kategorier som bäst beskriver när ni skulle välja {place.name}. Valet
+            sparas på stället och hjälper gruppen att välja rätt nästa gång. Det styr också vilka
+            delar som ingår i omdömet.
           </DialogDescription>
         </DialogHeader>
 

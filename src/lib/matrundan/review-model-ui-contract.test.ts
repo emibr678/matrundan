@@ -43,9 +43,13 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(visitDialogFlow).toContain("open={open && !needsOccasionClassification}");
     expect(visitDialogCore).toContain("<ReviewScoreFields");
 
-    expect(visitPlaceOccasionDialog).toContain("Vad passar stället för?");
-    expect(visitPlaceOccasionDialog).toContain("saknar Passar för");
-    expect(visitPlaceOccasionDialog).toContain("Valet sparas på stället för gruppen.");
+    expect(visitPlaceOccasionDialog).toContain("När passar stället bäst?");
+    expect(visitPlaceOccasionDialog).toContain(
+      "Välj en eller två kategorier som bäst beskriver när ni skulle välja",
+    );
+    expect(visitPlaceOccasionDialog).toContain("Valet sparas på stället");
+    expect(visitPlaceOccasionDialog).toContain("Det styr också vilka");
+    expect(visitPlaceOccasionDialog).toContain("delar som ingår i omdömet.");
     expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
     expect(visitPlaceOccasionDialog).toContain("Vad betyder alternativen?");
     expect(visitPlaceOccasionDialog).toContain("Spara och fortsätt");
@@ -71,10 +75,15 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(scoreFields).toContain("showEmpty");
   });
 
-  test("Snabbt och enkelt har en frivillig förklaring till varför Atmosfär utelämnas", () => {
+  test("Hämtmat och Snabbt och enkelt använder samma Varför-mönster", () => {
+    expect(modelNotice).toContain("Varför ingår inte Atmosfär vid Hämtmat?");
+    expect(modelNotice).toContain("Varför ingår inte Atmosfär för Snabbt och enkelt?");
     expect(modelNotice).toContain("Varför räknas inte Atmosfär?");
+    expect(modelNotice).toContain("inte en del av just den");
+    expect(modelNotice).toContain("besöksupplevelsen och räknas inte in i helhetsbetyget");
     expect(modelNotice).toContain("mindre avgörande för helhetsupplevelsen");
-    expect(modelNotice).toContain("en enklare atmosfär är mer förväntad");
+    expect(modelNotice).toContain("en enklare atmosfär är mer");
+    expect(modelNotice).toContain("förväntad");
     expect(modelNotice).toContain("Avslappnat eller Något extra");
   });
 
