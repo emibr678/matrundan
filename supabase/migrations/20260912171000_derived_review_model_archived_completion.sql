@@ -18,10 +18,6 @@ DECLARE
   _occasions text[];
   _provided text[];
 BEGIN
-  IF COALESCE(_is_takeaway, false) THEN
-    RETURN 'food_v1_takeaway';
-  END IF;
-
   SELECT ARRAY(
     SELECT value
     FROM unnest(ARRAY['snabbt', 'avslappnat', 'middag']::text[]) WITH ORDINALITY allowed(value, ord)
@@ -48,6 +44,12 @@ BEGIN
     ) INTO _provided;
 
     IF cardinality(COALESCE(_provided, '{}'::text[])) = 0 THEN
+      IF cardinality(COALESCE(_review_occasions, '{}'::text[])) > 0 THEN
+        RAISE EXCEPTION 'Passar för innehåller ogiltiga eller för många val';
+      END IF;
+      IF COALESCE(_is_takeaway, false) THEN
+        RETURN 'food_v1_takeaway';
+      END IF;
       RAISE EXCEPTION 'Välj vad stället passar för innan omdömet sparas';
     END IF;
     IF cardinality(COALESCE(_review_occasions, '{}'::text[])) <> cardinality(_provided) THEN
@@ -68,6 +70,9 @@ BEGIN
       AND place_id = _place_id;
   END IF;
 
+  IF COALESCE(_is_takeaway, false) THEN
+    RETURN 'food_v1_takeaway';
+  END IF;
   IF 'avslappnat' = ANY(_occasions) OR 'middag' = ANY(_occasions) THEN
     RETURN 'food_v1_atmosphere';
   END IF;
