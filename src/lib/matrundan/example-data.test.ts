@@ -126,6 +126,7 @@ describe("publik exempeldata", () => {
     const newLongPlace = state.places.find((place) => place.id === places.longLayout);
     expect(newLongPlace?.name.length ?? 0).toBeGreaterThan(40);
     expect(newLongPlace?.address.length ?? 0).toBeGreaterThan(45);
+    expect(newLongPlace?.occasions).toEqual([]);
     expect(state.visits.some((visit) => visit.placeId === places.longLayout)).toBe(false);
 
     const repeatVisits = state.visits.filter((visit) => visit.placeId === places.repeatCafe);
@@ -135,6 +136,28 @@ describe("publik exempeldata", () => {
       "Återbesök",
     );
     expect(repeatVisits.some((visit) => Boolean(visit.photo?.url))).toBe(true);
+
+    const quickReviewVisit = state.visits.find((visit) => visit.id === visits.repeatCafeEarlier);
+    const quickReview = quickReviewVisit?.visibleReviews?.find(
+      (review) => review.userId === members.alex,
+    );
+    expect(quickReview?.reviewModel).toBe("food_v1_quick");
+    expect(quickReview?.atmosphere ?? null).toBeNull();
+    expect(quickReview?.overall).toBe(4);
+
+    const takeawayVisit = state.visits.find((visit) => visit.id === visits.limitedInfo);
+    expect(takeawayVisit?.isTakeaway).toBe(true);
+    expect(takeawayVisit?.visibleReviews?.[0]?.reviewModel).toBe("food_v1_takeaway");
+    expect(takeawayVisit?.visibleReviews?.[0]?.atmosphere ?? null).toBeNull();
+    expect(takeawayVisit?.overall).toBeCloseTo(13 / 3);
+
+    const atmosphereVisit = state.visits.find((visit) => visit.id === visits.providerBistroReturn);
+    const atmosphereReview = atmosphereVisit?.visibleReviews?.find(
+      (review) => review.userId === members.alex,
+    );
+    expect(atmosphereReview?.reviewModel).toBe("food_v1_atmosphere");
+    expect(atmosphereReview?.atmosphere).toBe(4);
+    expect(atmosphereVisit?.atmosphere).toBe(4);
 
     const guestVisit = state.visits.find((visit) => visit.id === visits.guestReviews);
     const guest = guestVisit?.participants?.find((participant) => participant.status === "guest");

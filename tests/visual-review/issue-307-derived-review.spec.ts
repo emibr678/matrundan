@@ -151,7 +151,9 @@ function groupState(occasions: string[]) {
   };
 }
 
-async function mockBackend(page: Page, occasions: string[]) {
+async function mockBackend(page: Page, initialOccasions: string[]) {
+  let occasions = [...initialOccasions];
+
   await page.route("**/rest/v1/rpc/**", async (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
     if (rpc === "list_user_groups_v4b") {
@@ -178,6 +180,12 @@ async function mockBackend(page: Page, occasions: string[]) {
       });
       return;
     }
+    if (rpc === "update_group_place_metadata") {
+      const payload = route.request().postDataJSON() as { _occasions?: string[] };
+      if (Array.isArray(payload._occasions)) occasions = [...payload._occasions];
+      await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+      return;
+    }
     if (rpc === "list_place_share_targets_v4b") {
       await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
       return;
@@ -186,12 +194,16 @@ async function mockBackend(page: Page, occasions: string[]) {
   });
 }
 
-async function openVisitDialog(page: Page, occasions: string[]) {
+async function startVisitRegistration(page: Page, occasions: string[]) {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await seedSession(page);
   await mockBackend(page, occasions);
   await page.goto(`/matstallen/${PLACE_ID}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Registrera besök" }).click();
+}
+
+async function openVisitDialog(page: Page, occasions: string[]) {
+  await startVisitRegistration(page, occasions);
   const dialog = page.getByRole("dialog", { name: "Registrera besök" });
   await expect(dialog).toBeVisible();
   return dialog;
@@ -284,35 +296,39 @@ test("#307 Hämtmat utelämnar Atmosfär och härleder tre dimensioner", async (
   await capture(page, testInfo, "issue-307-hamtmat-tre-betyg");
 });
 
-test("#307 Hämtmat behåller frivilligt Passar för när platsmetadata saknas", async ({
+test("#307 saknat Passar för löses före själva besöksregistreringen", async ({
   page,
 }, testInfo) => {
-  const dialog = await openVisitDialog(page, []);
-  await dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" }).click();
+  await startVisitRegistration(page, []);
 
-  await expect(dialog.getByText("Passar för", { exact: true })).toBeVisible();
-  await expect(dialog.getByText(/Valfritt – välj vad stället passar för/)).toBeVisible();
-  await expect(dialog.getByText(/hjälper gruppen att välja rätt ställe nästa gång/i)).toBeVisible();
-  await expect(dialog.getByRole("button", { name: /Atmosfär:/ })).toHaveCount(0);
-  await expect(dialog.getByText("— / 5", { exact: true })).toBeVisible();
+  const gate = page.getByRole("dialog", { name: "Vad passar stället för?" });
+  await expect(gate).toBeVisible();
+  await expect(gate.getByText(/Bistro Test saknar Passar för/)).toBeVisible();
+  await expect(gate.getByText(/Valet sparas på stället för gruppen/)).toBeVisible();
+  await expect(gate.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
-  await dialog.getByText("Passar för", { exact: true }).scrollIntoViewIfNeeded();
+  const quick = gate.getByRole("button", { name: "Passar för: Snabbt och enkelt" });
+  const relaxed = gate.getByRole("button", { name: "Passar för: Avslappnat" });
+  const extra = gate.getByRole("button", { name: "Passar för: Något extra" });
+  const boxes = await Promise.all([quick, relaxed, extra].map((button) => button.boundingBox()));
+  expect(boxes.every((box) => box != null)).toBe(true);
+  const yPositions = boxes.map((box) => box?.y ?? 0);
+  expect(Math.max(...yPositions) - Math.min(...yPositions)).toBeLessThan(2);
+
+  await relaxed.click();
+  await gate.getByRole("button", { name: "Vad betyder alternativen?" }).click();
+  await expect(gate.getByText(/inte hur bra stället är/)).toBeVisible();
   await stabilize(page);
+  await expectNoHorizontalOverflow(page, gate);
+  await capture(page, testInfo, "issue-307-passar-for-forst");
+
+  await gate.getByRole("button", { name: "Spara och fortsätt" }).click();
+  await expect(gate).toBeHidden();
+
+  const dialog = page.getByRole("dialog", { name: "Registrera besök" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Atmosfär", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Spara besöket nu, omdömet kan vänta")).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Spara besök utan omdöme" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, dialog);
-  await capture(page, testInfo, "issue-307-hamtmat-passar-for-valfritt");
-});
-
-test("#307 saknat Passar för blockerar inte det verkliga besöket", async ({
-  page,
-}, testInfo) => {
-  const dialog = await openVisitDialog(page, []);
-
-  await expect(dialog.getByText("Spara besöket nu, omdömet kan vänta")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Spara besök utan omdöme" })).toBeEnabled();
-  await expect(dialog.getByText("Helhetsbetyg", { exact: true })).toHaveCount(0);
-
-  await dialog.getByText("Spara besöket nu, omdömet kan vänta").scrollIntoViewIfNeeded();
-  await stabilize(page);
-  await expectNoHorizontalOverflow(page, dialog);
-  await capture(page, testInfo, "issue-307-saknat-passar-for");
 });

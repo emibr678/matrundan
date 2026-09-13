@@ -45,9 +45,19 @@ function withBoundarySearchScenario(state: AppState): AppState {
 }
 
 function withVisitParticipationScenarios(state: AppState): AppState {
-  const { members, visits } = EXAMPLE_IDS;
+  const { members, places, visits } = EXAMPLE_IDS;
   return {
     ...state,
+    places: state.places.map((place) =>
+      place.id === places.longLayout
+        ? {
+            ...place,
+            // Ett avsiktligt #307-fall: första besöksregistreringen ska börja
+            // med den separata Passar för-grinden innan själva besöksdialogen.
+            occasions: [],
+          }
+        : place,
+    ),
     visits: state.visits.map((visit) => {
       if (visit.id === visits.repeatCafeLatest && visit.photo) {
         return {
@@ -146,12 +156,63 @@ function withVisitParticipationScenarios(state: AppState): AppState {
         };
       }
 
-      if (visit.id === visits.providerBistroReturn) {
+      if (visit.id === visits.repeatCafeEarlier) {
         return {
           ...visit,
           currentUserParticipationStatus: "participant",
-          // Även återbesöket registrerades av Alex och bär därför Alex eget
-          // omdöme från samma registrering i stället för att bli falskt pending.
+          // Historiken visar även att reviewmodellen är fryst: stället passar i dag
+          // också för Avslappnat, men detta äldre #307-omdöme skapades som quick-only.
+          visibleReviews: [
+            {
+              id: "review-v6-alex",
+              userId: members.alex,
+              overall: 4,
+              taste: 5,
+              value: 3,
+              service: 4,
+              atmosphere: null,
+              reviewModel: "food_v1_quick",
+              comment: "Snabb fika på språng – precis vad vi behövde den dagen.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+          ],
+        };
+      }
+
+      if (visit.id === visits.limitedInfo) {
+        return {
+          ...visit,
+          isTakeaway: true,
+          overall: 13 / 3,
+          taste: 4,
+          value: 5,
+          service: 4,
+          atmosphere: undefined,
+          visibleReviews: [
+            {
+              id: "review-v7-noor",
+              userId: members.noor,
+              overall: 13 / 3,
+              taste: 4,
+              value: 5,
+              service: 4,
+              atmosphere: null,
+              reviewModel: "food_v1_takeaway",
+              comment: "Prisvärd hämtlunch som höll sig bra hela vägen hem.",
+              ratingVisible: true,
+              commentVisible: true,
+            },
+          ],
+        };
+      }
+
+      if (visit.id === visits.providerBistroReturn) {
+        return {
+          ...visit,
+          atmosphere: 4,
+          currentUserParticipationStatus: "participant",
+          // Återbesöket är ett explicit fyrdimensionellt #307-fall.
           visibleReviews: [
             {
               id: "review-v8-alex",
@@ -160,6 +221,8 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               taste: 5,
               value: 3,
               service: 4,
+              atmosphere: 4,
+              reviewModel: "food_v1_atmosphere",
               comment: "Återbesöket bekräftade att bistron fungerar för en större middag.",
               ratingVisible: true,
               commentVisible: true,

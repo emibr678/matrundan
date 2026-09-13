@@ -60,7 +60,8 @@ export function DemoAddVisitReviewDialog({
   }, [open]);
 
   const placeNeedsOccasionClassification = !scoreless && placeOccasions.length === 0;
-  const needsOccasionForReview = placeNeedsOccasionClassification && !isTakeaway;
+  const classificationComplete =
+    !placeNeedsOccasionClassification || reviewOccasions.length > 0;
   const model = scoreless
     ? null
     : reviewModelForContext({
@@ -75,6 +76,9 @@ export function DemoAddVisitReviewDialog({
         toast.error("Skriv en kommentar först.");
         return;
       }
+    } else if (!classificationComplete) {
+      toast.error("Välj vad stället passar för först.");
+      return;
     } else if (!model || !complete) {
       toast.error(model ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.");
       return;
@@ -128,12 +132,8 @@ export function DemoAddVisitReviewDialog({
                 value={reviewOccasions}
                 onChange={setReviewOccasions}
                 disabled={saving}
-                required={needsOccasionForReview}
-                description={
-                  isTakeaway
-                    ? "Valfritt – välj vad stället passar för. Det hjälper gruppen att välja rätt ställe nästa gång."
-                    : "Välj vad stället passar för så vet Matrundan vilka delar som är relevanta för omdömet."
-                }
+                required
+                description="Stället saknar Passar för. Välj en eller två kategorier innan du sparar omdömet."
               />
             </div>
           ) : null}
@@ -170,7 +170,13 @@ export function DemoAddVisitReviewDialog({
           <Button variant="ghost" disabled={saving} onClick={() => setOpen(false)}>
             Avbryt
           </Button>
-          <Button disabled={saving || (scoreless ? !comment.trim() : !complete)} onClick={save}>
+          <Button
+            disabled={
+              saving ||
+              (scoreless ? !comment.trim() : !classificationComplete || !complete)
+            }
+            onClick={save}
+          >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {scoreless ? "Spara kommentar" : "Spara omdöme"}
           </Button>

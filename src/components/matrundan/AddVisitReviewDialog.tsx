@@ -59,7 +59,8 @@ export function AddVisitReviewDialog({
   }, [open]);
 
   const placeNeedsOccasionClassification = !scoreless && placeOccasions.length === 0;
-  const needsOccasionForReview = placeNeedsOccasionClassification && !isTakeaway;
+  const classificationComplete =
+    !placeNeedsOccasionClassification || reviewOccasions.length > 0;
   const model = scoreless
     ? null
     : reviewModelForContext({
@@ -78,6 +79,9 @@ export function AddVisitReviewDialog({
         toast.error("Skriv en kommentar först.");
         return;
       }
+    } else if (!classificationComplete) {
+      toast.error("Välj vad stället passar för först.");
+      return;
     } else if (!model || !complete) {
       toast.error(model ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.");
       return;
@@ -132,12 +136,8 @@ export function AddVisitReviewDialog({
                 value={reviewOccasions}
                 onChange={setReviewOccasions}
                 disabled={saving}
-                required={needsOccasionForReview}
-                description={
-                  isTakeaway
-                    ? "Valfritt – välj vad stället passar för. Det hjälper gruppen att välja rätt ställe nästa gång."
-                    : "Välj vad stället passar för så vet Matrundan vilka delar som är relevanta för omdömet."
-                }
+                required
+                description="Stället saknar Passar för. Välj en eller två kategorier innan du sparar omdömet."
               />
             </div>
           ) : null}
@@ -175,7 +175,10 @@ export function AddVisitReviewDialog({
             Avbryt
           </Button>
           <Button
-            disabled={saving || (scoreless ? !comment.trim() : !complete)}
+            disabled={
+              saving ||
+              (scoreless ? !comment.trim() : !classificationComplete || !complete)
+            }
             onClick={() => void save()}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

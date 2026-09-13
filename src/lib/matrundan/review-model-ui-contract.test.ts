@@ -3,7 +3,18 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "../../..");
-const visitDialog = readFileSync(resolve(root, "src/components/matrundan/VisitDialog.tsx"), "utf8");
+const visitDialogFlow = readFileSync(
+  resolve(root, "src/components/matrundan/VisitDialog.tsx"),
+  "utf8",
+);
+const visitDialogCore = readFileSync(
+  resolve(root, "src/components/matrundan/VisitDialogCore.tsx"),
+  "utf8",
+);
+const visitPlaceOccasionDialog = readFileSync(
+  resolve(root, "src/components/matrundan/VisitPlaceOccasionDialog.tsx"),
+  "utf8",
+);
 const addReviewDialog = readFileSync(
   resolve(root, "src/components/matrundan/AddVisitReviewDialog.tsx"),
   "utf8",
@@ -26,18 +37,29 @@ const editDialog = readFileSync(
 );
 
 describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
-  test("nytt besök använder dimensionsbetyg och kan sparas utan omdöme när Passar för saknas", () => {
-    expect(visitDialog).toContain("<ReviewScoreFields");
-    expect(visitDialog).toContain("Spara besöket nu, omdömet kan vänta");
-    expect(visitDialog).toContain("Spara besök utan omdöme");
-    expect(visitDialog).not.toContain("Detaljbetyg (frivilligt)");
+  test("saknat Passar för löses som platsmetadata före registreringsdialogen", () => {
+    expect(visitDialogFlow).toContain("needsOccasionClassification");
+    expect(visitDialogFlow).toContain("<VisitPlaceOccasionDialog");
+    expect(visitDialogFlow).toContain("open={open && !needsOccasionClassification}");
+    expect(visitDialogCore).toContain("<ReviewScoreFields");
+
+    expect(visitPlaceOccasionDialog).toContain("Vad passar stället för?");
+    expect(visitPlaceOccasionDialog).toContain("saknar Passar för");
+    expect(visitPlaceOccasionDialog).toContain("Valet sparas på stället för gruppen.");
+    expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
+    expect(visitPlaceOccasionDialog).toContain("Vad betyder alternativen?");
+    expect(visitPlaceOccasionDialog).toContain("Spara och fortsätt");
+    expect(visitPlaceOccasionDialog).not.toContain("Atmosfär");
   });
 
-  test("saknat Passar för försvinner inte när Hämtmat väljs", () => {
-    for (const source of [visitDialog, addReviewDialog, demoAddReviewDialog]) {
-      expect(source).toContain("placeNeedsOccasionClassification");
-      expect(source).toContain("Valfritt – välj vad stället passar för");
-      expect(source).toContain("reviewOccasions.length > 0");
+  test("komplettering av äldre omdöme kräver saknat Passar för även vid Hämtmat", () => {
+    for (const source of [addReviewDialog, demoAddReviewDialog]) {
+      expect(source).toContain("classificationComplete");
+      expect(source).toContain("required");
+      expect(source).toContain(
+        "Stället saknar Passar för. Välj en eller två kategorier innan du sparar omdömet.",
+      );
+      expect(source).not.toContain("Valfritt – välj vad stället passar för");
     }
   });
 
