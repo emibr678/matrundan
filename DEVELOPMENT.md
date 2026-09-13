@@ -221,6 +221,36 @@ Det gör att en serie draft-pushar inte förbrukar GitHub-hostade minuter. När 
 
 Ordinarie **CI** kör explicit på GitHub-hostad `ubuntu-24.04`. Andra workflows kan ha egna dokumenterade runnerkontrakt; läs deras faktiska `runs-on` i stället för att anta att `MATRUNDAN_CI_RUNNER` styr hela repot. På GitHub-hostade Linux-runners installerar Playwright både browser och systemberoenden i jobbet.
 
+### Agent Operations i connector-läge
+
+När GitHub-connectorn inte kan starta `workflow_dispatch` direkt används den
+owner-only **Agent Operations**-bryggan via en vanlig Issue-kommentar. Bryggan
+accepterar endast en explicit allowlist och tolkar aldrig fri shell- eller
+workflowtext.
+
+Tillåtna utvecklings-/verifieringskommandon är:
+
+```text
+/agent fast-verify <branch> <40-character-sha> [visual-path]
+/agent public-readiness <40-character-main-sha>
+```
+
+`fast-verify` kräver att angiven branch fortfarande pekar exakt på SHA:n. Den
+checkar ut just den kandidaten på GitHub-hostad `ubuntu-24.04`, kör
+`verify:changed` och, när UI påverkas, changed mobile Playwright. Om en
+`visual-path` anges körs dessutom en riktad 360 px visual smoke för den routen.
+Denna väg använder inga produktionshemligheter och har endast `contents: read`.
+Full redo-CI krävs fortfarande som mergekvitto för färdig kandidat.
+
+`public-readiness` kräver att SHA:n fortfarande är exakt aktuell `main` och
+startar endast repots read-only public-readiness/secret-scan. Den innebär inte
+merge-, databas- eller publiceringsgodkännande.
+
+Agent Operations-dispatchern själv har `actions: write` enbart för att starta de
+två allowlistade workflowen. Kommandon accepteras endast från repositoryägaren på
+en vanlig Issue, aldrig från PR-kommentarer. Production-, recovery- och
+DB-operationer ingår inte i denna brygga.
+
 ## Cloudflare Workers-miljöer
 
 Den låsta miljömodellen är:

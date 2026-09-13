@@ -1,0 +1,170 @@
+name: Agent fast verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Exact repository branch to verify
+        required: true
+        type: string
+      expected_sha:
+        description: Exact 40-character head SHA for the branch
+        required: true
+        type: string
+      visual_path:
+        description: Optional app route for a targeted 360 px visual smoke
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: agent-fast-verify-${{ inputs.branch }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify exact connector candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          show-progress: false
+          persist-credentials: false
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.12.0
+
+      - name: Validate exact branch and SHA
+        env:
+          TARGET_BRANCH: ${{ inputs.branch }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+
+          const branch = process.env.TARGET_BRANCH ?? '';
+          const expectedSha = process.env.EXPECTED_SHA ?? '';
+          const branchIsSafe =
+            branch.length >= 1 &&
+            branch.length <= 200 &&
+            /^[A-Za-z0-9._/-]+$/.test(branch) &&
+            !branch.startsWith('.') &&
+            !branch.startsWith('/') &&
+            !branch.endsWith('.') &&
+            !branch.endsWith('/') &&
+            !branch.includes('..') &&
+            !branch.includes('//') &&
+            !branch.includes('@{') &&
+            !branch.endsWith('.lock');
+
+          if (!branchIsSafe || !/^[0-9a-f]{40}$/.test(expectedSha)) {
+            console.error('Invalid branch or expected SHA input.');
+            process.exit(1);
+          }
+
+          const checkedOutSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+          if (checkedOutSha !== expectedSha) {
+            console.error(`Checked out ${checkedOutSha}, expected ${expectedSha}.`);
+            process.exit(1);
+          }
+
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const response = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/branches/${encodeURIComponent(branch)}`,
+            {
+              headers: {
+                accept: 'application/vnd.github+json',
+                authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
+                'x-github-api-version': '2022-11-28',
+              },
+              signal: AbortSignal.timeout(10_000),
+            },
+          );
+          const payload = await response.json().catch(() => null);
+          const branchSha = payload?.commit?.sha;
+          if (!response.ok || typeof branchSha !== 'string') {
+            console.error(`Could not resolve branch ${branch} (HTTP ${response.status}).`);
+            process.exit(1);
+          }
+          if (branchSha !== expectedSha) {
+            console.error(`Branch advanced to ${branchSha}; refusing stale verification of ${expectedSha}.`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Set up pinned Bun
+        id: bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Cache Bun downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Classify changed files
+        id: changes
+        run: bun scripts/repo-tools.mjs ci-flags >> "$GITHUB_OUTPUT"
+
+      - name: Fast changed verification
+        env:
+          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+        run: bun run verify:changed
+
+      - name: Cache Chromium
+        if: steps.changes.outputs.has_ui == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}-fast-verify
+
+      - name: Install Chromium
+        if: steps.changes.outputs.has_ui == 'true'
+        run: bunx playwright install --with-deps chromium
+
+      - name: Changed mobile Playwright
+        if: steps.changes.outputs.has_ui == 'true'
+        run: bun run test:mobile:changed -- --only-changed="${{ steps.changes.outputs.base_sha }}"
+
+      - name: Targeted visual smoke
+        if: steps.changes.outputs.has_ui == 'true' && inputs.visual_path != ''
+        env:
+          VISUAL_PATH: ${{ inputs.visual_path }}
+        run: bun run test:visual-smoke -- "$VISUAL_PATH"
+
+      - name: Verification summary
+        if: always()
+        env:
+          TARGET_BRANCH: ${{ inputs.branch }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          VISUAL_PATH: ${{ inputs.visual_path }}
+          HAS_UI: ${{ steps.changes.outputs.has_ui }}
+        run: |
+          echo "Fast verify target: $TARGET_BRANCH @ $EXPECTED_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "UI changed: ${HAS_UI:-unknown}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "$VISUAL_PATH" ]]; then
+            echo "Requested visual smoke: $VISUAL_PATH" >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$HAS_UI" == "true" ]]; then
+            echo "No visual route supplied; changed mobile Playwright still ran." >> "$GITHUB_STEP_SUMMARY"
+          fi

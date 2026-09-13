@@ -1,0 +1,159 @@
+name: Agent Operations
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  actions: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  dispatch:
+    name: Dispatch allowlisted agent operation
+    if: >-
+      !github.event.issue.pull_request &&
+      github.event.comment.author_association == 'OWNER' &&
+      github.event.comment.user.login == github.repository_owner &&
+      startsWith(github.event.comment.body, '/agent ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GITHUB_API_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Validate owner command and dispatch allowlisted workflow
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const body = event.comment?.body?.trim() ?? '';
+
+          if (
+            event.issue?.pull_request ||
+            event.comment?.author_association !== 'OWNER' ||
+            event.comment?.user?.login !== process.env.GITHUB_REPOSITORY_OWNER
+          ) {
+            console.error('Refusing Agent Operations command from an unauthorized issue comment.');
+            process.exit(1);
+          }
+
+          const fastVerifyMatch = body.match(
+            /^\/agent fast-verify ([A-Za-z0-9._/-]+) ([0-9a-f]{40})(?: (\S+))?$/,
+          );
+          const publicReadinessMatch = body.match(/^\/agent public-readiness ([0-9a-f]{40})$/);
+
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const apiRoot = 'https://api.github.com';
+          const headers = {
+            accept: 'application/vnd.github+json',
+            authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
+            'x-github-api-version': '2022-11-28',
+          };
+
+          function validBranchName(branch) {
+            return (
+              branch.length >= 1 &&
+              branch.length <= 200 &&
+              /^[A-Za-z0-9._/-]+$/.test(branch) &&
+              !branch.startsWith('.') &&
+              !branch.startsWith('/') &&
+              !branch.endsWith('.') &&
+              !branch.endsWith('/') &&
+              !branch.includes('..') &&
+              !branch.includes('//') &&
+              !branch.includes('@{') &&
+              !branch.endsWith('.lock')
+            );
+          }
+
+          async function resolveBranchSha(branch) {
+            const response = await fetch(
+              `${apiRoot}/repos/${owner}/${repo}/branches/${encodeURIComponent(branch)}`,
+              { headers, signal: AbortSignal.timeout(10_000) },
+            );
+            const payload = await response.json().catch(() => null);
+            const sha = payload?.commit?.sha;
+            if (!response.ok || typeof sha !== 'string') {
+              console.error(`Could not resolve branch ${branch} (HTTP ${response.status}).`);
+              process.exit(1);
+            }
+            return sha;
+          }
+
+          async function dispatch(workflow, inputs) {
+            const response = await fetch(
+              `${apiRoot}/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`,
+              {
+                method: 'POST',
+                headers: { ...headers, 'content-type': 'application/json' },
+                body: JSON.stringify({ ref: 'main', inputs }),
+                signal: AbortSignal.timeout(10_000),
+              },
+            );
+
+            if (response.status !== 200 && response.status !== 204) {
+              const text = await response.text().catch(() => '');
+              console.error(`${workflow} dispatch failed (HTTP ${response.status}).`);
+              if (text) console.error(text.slice(0, 500));
+              process.exit(1);
+            }
+          }
+
+          if (fastVerifyMatch) {
+            const [, branch, expectedSha, visualPath = ''] = fastVerifyMatch;
+            if (!validBranchName(branch)) {
+              console.error('Invalid branch name for fast verify.');
+              process.exit(1);
+            }
+            if (
+              visualPath &&
+              (!visualPath.startsWith('/') || visualPath.length > 500 || /\s/.test(visualPath))
+            ) {
+              console.error('visual_path must be one whitespace-free app route beginning with /.');
+              process.exit(1);
+            }
+
+            const branchSha = await resolveBranchSha(branch);
+            if (branchSha !== expectedSha) {
+              console.error(
+                `Refusing stale fast verify command: ${branch} is ${branchSha}, expected ${expectedSha}.`,
+              );
+              process.exit(1);
+            }
+
+            await dispatch('agent-fast-verify.yml', {
+              branch,
+              expected_sha: expectedSha,
+              visual_path: visualPath,
+            });
+            console.log(`Dispatched fast verify for ${branch} at ${expectedSha}.`);
+            process.exit(0);
+          }
+
+          if (publicReadinessMatch) {
+            const expectedSha = publicReadinessMatch[1];
+            const mainSha = await resolveBranchSha('main');
+            if (mainSha !== expectedSha) {
+              console.error(
+                `Refusing stale public-readiness command: current main is ${mainSha}, expected ${expectedSha}.`,
+              );
+              process.exit(1);
+            }
+
+            await dispatch('public-readiness.yml', { expected_sha: expectedSha });
+            console.log(`Dispatched public readiness for exact main SHA ${expectedSha}.`);
+            process.exit(0);
+          }
+
+          console.error('Allowed commands:');
+          console.error('/agent fast-verify <branch> <40-character-sha> [visual-path]');
+          console.error('/agent public-readiness <40-character-main-sha>');
+          process.exit(1);
+          NODE
