@@ -104,3 +104,77 @@ jobs:
           if (session === 'authentication_failed' && transaction === 'authentication_failed') process.exit(11);
           process.exit(12);
           NODE
+
+  direct:
+    name: Probe staging direct IPv6 auth
+    runs-on: macos-15
+    timeout-minutes: 15
+    environment: staging
+    env:
+      STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      DIRECT_HOST: db.wpihfmwbubvdiaavtpia.supabase.co
+
+    steps:
+      - name: Validate secret is present
+        run: |
+          set -euo pipefail
+          if [[ -z "${STAGING_SUPABASE_DB_URL:-}" ]]; then
+            echo "STAGING_SUPABASE_DB_URL is missing." >&2
+            exit 1
+          fi
+
+      - name: Probe IPv6 route and direct database auth
+        run: |
+          set -euo pipefail
+
+          password="$(node --input-type=module -e 'const u=new URL(process.env.STAGING_SUPABASE_DB_URL); process.stdout.write(decodeURIComponent(u.password))')"
+          echo "diagnostic: direct_host=$DIRECT_HOST"
+          echo "diagnostic: direct_user=postgres"
+          echo "diagnostic: direct_password_length=${#password}"
+
+          if command -v dig >/dev/null 2>&1; then
+            aaaa="$(dig +short AAAA "$DIRECT_HOST" | head -n 1)"
+          else
+            aaaa="$(host -t AAAA "$DIRECT_HOST" 2>/dev/null | awk '/IPv6 address/ {print $NF; exit}')"
+          fi
+          if [[ -z "$aaaa" ]]; then
+            echo "diagnostic: direct_dns_aaaa=missing"
+            exit 20
+          fi
+          echo "diagnostic: direct_dns_aaaa=present"
+
+          if ! nc -6 -G 10 -z "$DIRECT_HOST" 5432 >/dev/null 2>&1; then
+            echo "diagnostic: direct_ipv6_route=unreachable"
+            exit 21
+          fi
+          echo "diagnostic: direct_ipv6_route=reachable"
+
+          if ! command -v psql >/dev/null 2>&1; then
+            brew install libpq >/dev/null
+            export PATH="$(brew --prefix libpq)/bin:$PATH"
+          fi
+
+          set +e
+          output="$(PGHOST="$DIRECT_HOST" PGPORT=5432 PGUSER=postgres PGPASSWORD="$password" PGDATABASE=postgres PGSSLMODE=require PGCONNECT_TIMEOUT=10 \
+            psql -X --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 --command 'select 1' 2>&1)"
+          status=$?
+          set -e
+
+          if [[ $status -eq 0 ]]; then
+            echo "diagnostic: direct_auth=success"
+            exit 0
+          fi
+          if grep -qiE 'password authentication failed|sasl authentication failed' <<<"$output"; then
+            echo "diagnostic: direct_auth=authentication_failed"
+            exit 22
+          fi
+          if grep -qiE 'could not translate host name|name or service not known' <<<"$output"; then
+            echo "diagnostic: direct_auth=dns_failed"
+            exit 23
+          fi
+          if grep -qiE 'timeout|timed out|network is unreachable|no route to host' <<<"$output"; then
+            echo "diagnostic: direct_auth=network_failed"
+            exit 24
+          fi
+          echo "diagnostic: direct_auth=other_failure"
+          exit 25
