@@ -185,8 +185,11 @@ export function VisitDialog({
 
   if (!place) return null;
   const currentPlace = place;
-  const needsOccasionForReview = scoredVisit && !isTakeaway && currentPlace.occasions.length === 0;
-  const applicableOccasions = needsOccasionForReview ? reviewOccasions : currentPlace.occasions;
+  const placeNeedsOccasionClassification = scoredVisit && currentPlace.occasions.length === 0;
+  const needsOccasionForReview = placeNeedsOccasionClassification && !isTakeaway;
+  const applicableOccasions = placeNeedsOccasionClassification
+    ? reviewOccasions
+    : currentPlace.occasions;
   const reviewModel = scoredVisit
     ? reviewModelForContext({ isTakeaway, occasions: applicableOccasions })
     : null;
@@ -268,7 +271,10 @@ export function VisitDialog({
       service: hasReview ? service : undefined,
       atmosphere: hasReview && reviewModelIncludesAtmosphere(reviewModel) ? atmosphere : undefined,
       comment: scoredVisit && !hasReview ? undefined : comment.trim() || undefined,
-      reviewOccasions: hasReview && needsOccasionForReview ? reviewOccasions : undefined,
+      reviewOccasions:
+        hasReview && placeNeedsOccasionClassification && reviewOccasions.length > 0
+          ? reviewOccasions
+          : undefined,
       createdBy: state.currentUserId,
     });
     let photoError: Error | null = null;
@@ -610,14 +616,18 @@ export function VisitDialog({
 
             {scoredVisit ? (
               <div className="space-y-4">
-                {needsOccasionForReview ? (
+                {placeNeedsOccasionClassification ? (
                   <div className="rounded-2xl bg-secondary/40 p-4">
                     <OccasionPicker
                       id="visit-review-occasions"
                       value={reviewOccasions}
                       onChange={setReviewOccasions}
                       disabled={isBusy}
-                      description="Välj vad stället passar för om du vill lämna omdömet direkt. Det avgör om Atmosfär är relevant."
+                      description={
+                        isTakeaway
+                          ? "Valfritt – välj vad stället passar för. Det hjälper gruppen att välja rätt ställe nästa gång."
+                          : "Välj vad stället passar för om du vill lämna omdömet direkt. Det avgör om Atmosfär är relevant."
+                      }
                     />
                   </div>
                 ) : null}
