@@ -10,7 +10,9 @@ describe("CI-iterationskontrakt", () => {
     const workflow = readFileSync(resolve(process.cwd(), supabaseTypesWorkflowPath), "utf8");
 
     expect(workflow).toContain("github.event.pull_request.draft == false");
-    expect(workflow).toContain("github.event.pull_request.head.repo.full_name == github.repository");
+    expect(workflow).toContain(
+      "github.event.pull_request.head.repo.full_name == github.repository",
+    );
     expect(workflow).toContain("- ready_for_review");
   });
 
