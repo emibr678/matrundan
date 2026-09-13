@@ -204,6 +204,7 @@ test("#307 På plats visar Atmosfär och härlett helhetsbetyg", async ({ page }
   const registrar = dialog.getByRole("button", { name: "Emil, du, deltagare" });
   await expect(registrar).toBeDisabled();
   await expect(registrar.getByText("Du", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("— / 5", { exact: true })).toBeVisible();
 
   await dialog.getByRole("button", { name: "Smak: 5 av 5" }).click();
   await dialog.getByRole("button", { name: "Service: 4 av 5" }).click();
@@ -215,6 +216,25 @@ test("#307 På plats visar Atmosfär och härlett helhetsbetyg", async ({ page }
   await stabilize(page);
   await expectNoHorizontalOverflow(page, dialog);
   await capture(page, testInfo, "issue-307-pa-plats-atmosfar");
+});
+
+test("#307 Snabbt och enkelt förklarar varför Atmosfär inte räknas", async ({
+  page,
+}, testInfo) => {
+  const dialog = await openVisitDialog(page, ["snabbt"]);
+
+  await expect(dialog.getByText("Atmosfär ingår inte för Snabbt och enkelt.")).toBeVisible();
+  await dialog
+    .getByRole("button", { name: "Varför ingår inte Atmosfär för Snabbt och enkelt?" })
+    .click();
+  await expect(page.getByText("Varför räknas inte Atmosfär?", { exact: true })).toBeVisible();
+  await expect(page.getByText(/mindre avgörande för helhetsupplevelsen/)).toBeVisible();
+  await expect(page.getByText(/en enklare atmosfär är mer förväntad/)).toBeVisible();
+  await expect(page.getByText(/Avslappnat eller Något extra/)).toBeVisible();
+
+  await stabilize(page);
+  await expectNoHorizontalOverflow(page, dialog);
+  await capture(page, testInfo, "issue-307-snabbt-varfor-atmosfar");
 });
 
 test("#307 gästflödet är progressivt och går att stänga", async ({ page }, testInfo) => {
@@ -262,6 +282,24 @@ test("#307 Hämtmat utelämnar Atmosfär och härleder tre dimensioner", async (
   await stabilize(page);
   await expectNoHorizontalOverflow(page, dialog);
   await capture(page, testInfo, "issue-307-hamtmat-tre-betyg");
+});
+
+test("#307 Hämtmat behåller frivilligt Passar för när platsmetadata saknas", async ({
+  page,
+}, testInfo) => {
+  const dialog = await openVisitDialog(page, []);
+  await dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" }).click();
+
+  await expect(dialog.getByText("Passar för", { exact: true })).toBeVisible();
+  await expect(dialog.getByText(/Valfritt – välj vad stället passar för/)).toBeVisible();
+  await expect(dialog.getByText(/hjälper gruppen att välja rätt ställe nästa gång/i)).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /Atmosfär:/ })).toHaveCount(0);
+  await expect(dialog.getByText("— / 5", { exact: true })).toBeVisible();
+
+  await dialog.getByText("Passar för", { exact: true }).scrollIntoViewIfNeeded();
+  await stabilize(page);
+  await expectNoHorizontalOverflow(page, dialog);
+  await capture(page, testInfo, "issue-307-hamtmat-passar-for-valfritt");
 });
 
 test("#307 saknat Passar för blockerar inte det verkliga besöket", async ({
