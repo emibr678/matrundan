@@ -14,7 +14,7 @@ defaults:
 
 jobs:
   diagnose:
-    name: Probe staging Management API read-only
+    name: Probe staging migration history read-only
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     environment: staging
@@ -35,18 +35,13 @@ jobs:
           const token = process.env.STAGING_SUPABASE_ACCESS_TOKEN;
           const projectRef = process.env.STAGING_SUPABASE_PROJECT_ID;
           const response = await fetch(
-            `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
+            `https://api.supabase.com/v1/projects/${projectRef}/database/migrations`,
             {
-              method: 'POST',
+              method: 'GET',
               headers: {
                 accept: 'application/json',
                 authorization: `Bearer ${token}`,
-                'content-type': 'application/json',
               },
-              body: JSON.stringify({
-                query: 'select name from supabase_migrations.schema_migrations order by version',
-                read_only: true,
-              }),
               signal: AbortSignal.timeout(15_000),
             },
           );
@@ -70,9 +65,10 @@ jobs:
             process.exit(6);
           }
           const names = rows.map((row) => row?.name).filter((value) => typeof value === 'string');
-          console.log(`diagnostic: migration_rows=${names.length}`);
+          console.log(`diagnostic: migration_rows=${rows.length}`);
+          console.log(`diagnostic: named_migration_rows=${names.length}`);
           console.log(`diagnostic: has_visit_context=${names.includes('visit_context_v1')}`);
           console.log(`diagnostic: has_derived_review_model=${names.includes('derived_review_model_v1')}`);
           console.log(`diagnostic: has_derived_review_completion=${names.includes('derived_review_model_archived_completion')}`);
-          console.log('diagnostic: management_api_read_only=success');
+          console.log('diagnostic: migration_history_read=success');
           NODE
