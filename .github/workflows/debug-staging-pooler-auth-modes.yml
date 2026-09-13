@@ -1,0 +1,106 @@
+name: Debug staging pooler auth modes
+
+on:
+  push:
+    branches:
+      - debug/staging-pooler-auth-modes
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  diagnose:
+    name: Compare staging Supavisor session and transaction auth
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: staging
+    env:
+      STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      POSTGRES_CLIENT_IMAGE: postgres:17-bookworm
+
+    steps:
+      - name: Validate secret is present
+        run: |
+          set -euo pipefail
+          if [[ -z "${STAGING_SUPABASE_DB_URL:-}" ]]; then
+            echo "STAGING_SUPABASE_DB_URL is missing." >&2
+            exit 1
+          fi
+
+      - name: Compare port 5432 and 6543 with identical credentials
+        run: |
+          set -euo pipefail
+          docker pull "$POSTGRES_CLIENT_IMAGE" >/dev/null
+
+          node --input-type=module <<'NODE'
+          import { spawnSync } from 'node:child_process';
+
+          const raw = process.env.STAGING_SUPABASE_DB_URL ?? '';
+          const image = process.env.POSTGRES_CLIENT_IMAGE ?? 'postgres:17-bookworm';
+
+          let url;
+          try {
+            url = new URL(raw);
+          } catch {
+            console.error('diagnostic: uri_parse=failed');
+            process.exit(2);
+          }
+
+          const username = decodeURIComponent(url.username);
+          const password = decodeURIComponent(url.password);
+          const host = url.hostname;
+          const database = url.pathname.replace(/^\//, '') || 'postgres';
+
+          console.log(`diagnostic: username=${username}`);
+          console.log(`diagnostic: host=${host}`);
+          console.log(`diagnostic: database=${database}`);
+          console.log(`diagnostic: password_length=${password.length}`);
+
+          const classify = (result) => {
+            if (result.status === 0) return 'success';
+            const detail = `${result.stderr ?? ''}`.toLowerCase();
+            if (detail.includes('password authentication failed') || detail.includes('sasl authentication failed')) return 'authentication_failed';
+            if (detail.includes('tenant or user not found')) return 'pooler_tenant_or_user_failed';
+            if (detail.includes('circuit breaker open')) return 'circuit_breaker_open';
+            if (detail.includes('could not translate host name')) return 'dns_failed';
+            if (detail.includes('connection refused')) return 'connection_refused';
+            if (detail.includes('timeout') || detail.includes('timed out')) return 'connection_timeout';
+            return `failed_exit_${result.status ?? 'unknown'}`;
+          };
+
+          const testPort = (port) => {
+            const env = {
+              ...process.env,
+              PGHOST: host,
+              PGPORT: String(port),
+              PGUSER: username,
+              PGPASSWORD: password,
+              PGDATABASE: database,
+              PGSSLMODE: 'require',
+              PGCONNECT_TIMEOUT: '10',
+            };
+            const result = spawnSync(
+              'docker',
+              ['run', '--rm',
+               '--env', 'PGHOST', '--env', 'PGPORT', '--env', 'PGUSER', '--env', 'PGPASSWORD',
+               '--env', 'PGDATABASE', '--env', 'PGSSLMODE', '--env', 'PGCONNECT_TIMEOUT', image,
+               'psql', '-X', '--no-psqlrc', '--tuples-only', '--no-align', '--set', 'ON_ERROR_STOP=1',
+               '--command', 'select 1'],
+              { env, encoding: 'utf8', timeout: 30_000 },
+            );
+            return classify(result);
+          };
+
+          const session = testPort(5432);
+          const transaction = testPort(6543);
+          console.log(`diagnostic: session_5432=${session}`);
+          console.log(`diagnostic: transaction_6543=${transaction}`);
+
+          if (session === 'success' || transaction === 'success') process.exit(0);
+          if (session === 'authentication_failed' && transaction === 'authentication_failed') process.exit(11);
+          process.exit(12);
+          NODE
