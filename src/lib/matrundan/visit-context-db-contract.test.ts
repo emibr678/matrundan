@@ -64,6 +64,6 @@ describe("Issue #197 — besökskontextens databaskontrakt", () => {
     expect(migration).toContain("'ratingVisible', false");
     expect(readModelPreflight).toContain("read_rpc_current:get_group_app_state_v5m");
     expect(readModelPreflight).toContain("read_rpc_fallback:get_group_app_state_v5l");
-    expect(restoreScript).toContain("public.get_group_app_state_v5l(:'smoke_group_id'::uuid)");
+    expect(restoreScript).toContain("public.get_group_app_state_v5m(:'smoke_group_id'::uuid)");
   });
 });
