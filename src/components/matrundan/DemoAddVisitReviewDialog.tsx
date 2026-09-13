@@ -59,12 +59,13 @@ export function DemoAddVisitReviewDialog({
     setComment("");
   }, [open]);
 
-  const needsOccasion = !scoreless && !isTakeaway && placeOccasions.length === 0;
+  const placeNeedsOccasionClassification = !scoreless && placeOccasions.length === 0;
+  const needsOccasionForReview = placeNeedsOccasionClassification && !isTakeaway;
   const model = scoreless
     ? null
     : reviewModelForContext({
         isTakeaway,
-        occasions: needsOccasion ? reviewOccasions : placeOccasions,
+        occasions: placeNeedsOccasionClassification ? reviewOccasions : placeOccasions,
       });
   const complete = reviewRatingsComplete(model, { taste, service, value, atmosphere });
 
@@ -86,7 +87,10 @@ export function DemoAddVisitReviewDialog({
         service: scoreless ? null : service,
         atmosphere: scoreless ? null : atmosphere || null,
         comment: comment.trim() || null,
-        reviewOccasions: needsOccasion ? reviewOccasions : undefined,
+        reviewOccasions:
+          placeNeedsOccasionClassification && reviewOccasions.length > 0
+            ? reviewOccasions
+            : undefined,
       });
       persistDemoState(nextState, exampleMode);
       toast.success(scoreless ? "Din kommentar är tillagd." : "Ditt omdöme är tillagt.");
@@ -117,15 +121,19 @@ export function DemoAddVisitReviewDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {!scoreless && needsOccasion ? (
+          {!scoreless && placeNeedsOccasionClassification ? (
             <div className="rounded-2xl bg-secondary/40 p-4">
               <OccasionPicker
                 id={`demo-visit-review-occasions-${visitId}`}
                 value={reviewOccasions}
                 onChange={setReviewOccasions}
                 disabled={saving}
-                required
-                description="Välj vad stället passar för så vet Matrundan vilka delar som är relevanta för omdömet."
+                required={needsOccasionForReview}
+                description={
+                  isTakeaway
+                    ? "Valfritt – välj vad stället passar för. Det hjälper gruppen att välja rätt ställe nästa gång."
+                    : "Välj vad stället passar för så vet Matrundan vilka delar som är relevanta för omdömet."
+                }
               />
             </div>
           ) : null}
