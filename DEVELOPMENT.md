@@ -20,6 +20,25 @@ För en miljö som även ska köra mobila Playwright-kontroller:
 bash scripts/bootstrap-agent.sh --with-chromium
 ```
 
+I ChatGPT Work kan systempaket och Playwrights browser-CDN vara blockerade trots
+att checkout, Bun och appserver fungerar. Använd då den opt-in portabla
+Work-browsern för en riktad visuell loop:
+
+```bash
+bun run test:visual-smoke:work -- /?demo=1
+```
+
+Kommandot hämtar Chromium från en versions- och SHA-256-låst GitHub-release till
+användarens cache, startar Vite och Playwright i samma exekveringssession och
+skriver screenshots till den git-ignorerade katalogen `visual-review/`. Lägg
+till `--desktop` efter routen när layouten även behöver granskas vid 1280 px.
+Nedladdningen sker endast första gången versionen används och påverkar inte
+projektets vanliga dependencies eller GitHub Actions. Den portabla browsern kör
+utan browser-sandbox i den isolerade Work-containern och ska endast användas mot
+den lokala Matrundan-appen, aldrig för godtyckliga externa webbplatser. Flera
+routes körs sekventiellt eftersom Work-browserns enkelprocessläge inte kan
+återanvändas säkert mellan parallella testkontexter.
+
 Scriptet är idempotent och gör endast följande:
 
 1. läser den låsta Bun-versionen från `package.json`;
