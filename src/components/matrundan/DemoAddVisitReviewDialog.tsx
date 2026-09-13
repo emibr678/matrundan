@@ -170,7 +170,9 @@ export function DemoAddVisitReviewDialog({
             Avbryt
           </Button>
           <Button
-            disabled={saving || (scoreless ? !comment.trim() : !classificationComplete || !complete)}
+            disabled={
+              saving || (scoreless ? !comment.trim() : !classificationComplete || !complete)
+            }
             onClick={save}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
