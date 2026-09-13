@@ -47,7 +47,9 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(visitPlaceOccasionDialog).toContain(
       "Välj en eller två kategorier som bäst beskriver när ni skulle välja",
     );
-    expect(visitPlaceOccasionDialog).toContain("Valet sparas på stället");
+    expect(visitPlaceOccasionDialog).toContain(
+      "sparas på stället och hjälper gruppen att välja rätt nästa gång.",
+    );
     expect(visitPlaceOccasionDialog).toContain("Det styr också vilka");
     expect(visitPlaceOccasionDialog).toContain("delar som ingår i omdömet.");
     expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
