@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { appPageTitle } from "@/lib/app-environment";
 import { Home } from "./index";
 
 export const Route = createFileRoute("/exempel")({
   head: () => ({
     meta: [
-      { title: "Fredagsgänget · Exempelgrupp · Matrundan" },
+      { title: appPageTitle("Fredagsgänget · Exempelgrupp") },
       {
         name: "description",
         content:

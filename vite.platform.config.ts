@@ -12,9 +12,14 @@ const releaseSha =
   process.env.MATRUNDAN_RELEASE_SHA ??
   "unknown";
 
+const appEnvironment = process.env.MATRUNDAN_ENVIRONMENT?.trim().toLowerCase() ?? "local";
+const deployedAt = process.env.MATRUNDAN_DEPLOYED_AT?.trim() ?? "";
+
 export default defineConfig(({ command }) => ({
   define: {
     "import.meta.env.VITE_MATRUNDAN_RELEASE_SHA": JSON.stringify(releaseSha),
+    "import.meta.env.VITE_MATRUNDAN_ENVIRONMENT": JSON.stringify(appEnvironment),
+    "import.meta.env.VITE_MATRUNDAN_DEPLOYED_AT": JSON.stringify(deployedAt),
   },
   plugins: [
     tailwindcss(),

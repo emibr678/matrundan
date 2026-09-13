@@ -326,6 +326,10 @@ jobs:
         if: steps.guard.outputs.deploy == 'true'
         run: bun install --frozen-lockfile
 
+      - name: Stamp staging deployment
+        if: steps.guard.outputs.deploy == 'true'
+        run: echo "MATRUNDAN_DEPLOYED_AT=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+
       - name: Build exact staging candidate
         if: steps.guard.outputs.deploy == 'true'
         env:
