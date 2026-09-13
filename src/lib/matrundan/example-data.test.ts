@@ -137,13 +137,13 @@ describe("publik exempeldata", () => {
     );
     expect(repeatVisits.some((visit) => Boolean(visit.photo?.url))).toBe(true);
 
-    const quickReviewVisit = state.visits.find((visit) => visit.id === visits.repeatCafeEarlier);
+    const quickReviewVisit = state.visits.find((visit) => visit.id === visits.repeatCafeLatest);
     const quickReview = quickReviewVisit?.visibleReviews?.find(
       (review) => review.userId === members.alex,
     );
     expect(quickReview?.reviewModel).toBe("food_v1_quick");
     expect(quickReview?.atmosphere ?? null).toBeNull();
-    expect(quickReview?.overall).toBe(4);
+    expect(quickReview?.overall).toBe(5);
 
     const takeawayVisit = state.visits.find((visit) => visit.id === visits.limitedInfo);
     expect(takeawayVisit?.isTakeaway).toBe(true);

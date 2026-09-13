@@ -65,16 +65,19 @@ function withVisitParticipationScenarios(state: AppState): AppState {
           currentUserParticipationStatus: "participant",
           // Nya besök följer #169-invarianten: registreraren är faktisk deltagare
           // och har redan lämnat sitt eget omdöme i registreringsflödet.
-          // Robin har också fyllt på samma besök så Hem kan visa vägen från ett
-          // nytt deltagaromdöme till exakt rätt bidrag i besöksdetaljen.
+          // Alex omdöme är samtidigt ett fryst quick-only #307-exempel så
+          // exempelgruppen kan visa varför Atmosfär saknas utan att äldre
+          // pending-scenarier för samma ställe skrivs över.
           visibleReviews: [
             {
               id: "review-v1-alex",
               userId: members.alex,
               overall: 5,
               taste: 5,
-              value: 4,
+              value: 5,
               service: 5,
+              atmosphere: null,
+              reviewModel: "food_v1_quick",
               comment: "En lugn fredagsfika och en riktigt bra kardemummabulle.",
               ratingVisible: true,
               commentVisible: true,
@@ -151,30 +154,6 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               comment: "Den här dolda kommentaren får inte visas i exempelgruppen.",
               ratingVisible: true,
               commentVisible: false,
-            },
-          ],
-        };
-      }
-
-      if (visit.id === visits.repeatCafeEarlier) {
-        return {
-          ...visit,
-          currentUserParticipationStatus: "participant",
-          // Historiken visar även att reviewmodellen är fryst: stället passar i dag
-          // också för Avslappnat, men detta äldre #307-omdöme skapades som quick-only.
-          visibleReviews: [
-            {
-              id: "review-v6-alex",
-              userId: members.alex,
-              overall: 4,
-              taste: 5,
-              value: 3,
-              service: 4,
-              atmosphere: null,
-              reviewModel: "food_v1_quick",
-              comment: "Snabb fika på språng – precis vad vi behövde den dagen.",
-              ratingVisible: true,
-              commentVisible: true,
             },
           ],
         };
