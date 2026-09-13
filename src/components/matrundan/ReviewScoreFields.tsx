@@ -1,11 +1,11 @@
 import { formatRating } from "@/lib/matrundan/version";
 import {
   deriveReviewOverall,
-  reviewModelExplanation,
   reviewModelIncludesAtmosphere,
   type ReviewModel,
 } from "@/lib/matrundan/review-model";
 import { RatingInput, RatingStars } from "./Rating";
+import { ReviewModelNotice } from "./ReviewModelNotice";
 
 export function ReviewScoreFields({
   model,
@@ -29,7 +29,6 @@ export function ReviewScoreFields({
   onAtmosphereChange: (value: number) => void;
 }) {
   const overall = deriveReviewOverall(model, { taste, service, value, atmosphere });
-  const explanation = reviewModelExplanation(model);
 
   return (
     <div className="space-y-3">
@@ -42,9 +41,7 @@ export function ReviewScoreFields({
         ) : null}
       </div>
 
-      {explanation ? (
-        <p className="text-xs leading-relaxed text-muted-foreground">{explanation}</p>
-      ) : null}
+      <ReviewModelNotice model={model} />
 
       <div
         className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-secondary/60 px-4 py-3"
@@ -53,13 +50,11 @@ export function ReviewScoreFields({
         <div className="min-w-0">
           <div className="text-sm font-semibold">Helhetsbetyg</div>
           <div className="text-xs text-muted-foreground">Räknas automatiskt</div>
-          <div
-            className={overall == null ? "mt-1 text-sm font-semibold" : "mt-1 text-xl font-bold"}
-          >
-            {overall == null ? "Sätt alla betyg" : `${formatRating(overall)} / 5`}
+          <div className="mt-1 text-xl font-bold">
+            {overall == null ? "— / 5" : `${formatRating(overall)} / 5`}
           </div>
         </div>
-        {overall != null ? <RatingStars value={overall} size={20} /> : null}
+        <RatingStars value={overall ?? 0} size={20} showEmpty />
       </div>
     </div>
   );
