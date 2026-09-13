@@ -48,7 +48,9 @@ describe("staging-deployens kontrakt", () => {
       "https://api.supabase.com/v1/projects/${projectId}/database/migrations",
     );
     expect(workflow).toContain("method: 'GET'");
-    expect(workflow).not.toContain("https://api.supabase.com/v1/projects/${projectId}/database/query");
+    expect(workflow).not.toContain(
+      "https://api.supabase.com/v1/projects/${projectId}/database/query",
+    );
     expect(workflow).not.toContain("read_only: true");
     expect(workflow).toContain("stem.replaceAll('-', '_')");
     expect(workflow).toContain("suffix.replaceAll('-', '_')");
