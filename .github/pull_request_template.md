@@ -19,14 +19,28 @@ Fyll bara i det som faktiskt är relevant.
 - Exempelgrupp/demo: uppdaterad / befintligt scenario räcker / inte relevant
 - Arkitektur/integritet: uppdaterad / inte relevant
 - Databas/migration: nej / ja, beskriv nedan
-- Version/changelog: uppdaterad / se beslut nedan
+- Releaseunderlag/version: releaseunderlag nedan / releasekandidat / inte relevant
 
-Versionsbeslut:
+### Releaseunderlag
+
+För användarsynlig kod eller migration: skriv 1–3 korta svenska releasepunkter
+mellan markörerna. En normal feature-PR ska inte höja appversionen eller
+materialisera en daterad release; releaseunderlaget samlas i stället upp av en
+separat releasekandidat.
+
+<!-- MATRUNDAN_RELEASE_NOTE_BEGIN -->
+<!-- Skriv 1–3 korta punkter här. -->
+<!-- MATRUNDAN_RELEASE_NOTE_END -->
+
+För dokumentations-, test- eller verktygsändringar utan användarsynlig kod eller
+migration:
 
 - [ ] Version: inte relevant
 
-Markera endast rutan för dokumentations-, test- eller verktygsändringar utan
-användarsynlig kod eller migration. CI läser denna exakta markering.
+CI läser releaseunderlagsmarkörerna för feature-PR:er och den exakta
+`Version: inte relevant`-markeringen för maintenance-PR:er. Redan pågående
+versionerade feature-PR:er kan under övergången fortsatt följa det äldre
+kontraktet, men nya features ska normalt använda releaseunderlag ovan.
 
 Motivering eller särskild risk:
 

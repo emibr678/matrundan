@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -16,6 +16,8 @@ const recentArchivedChangelogPath = resolve(root, "docs/archive/changelog-v1.6.1
 const archivedChangelogPath = resolve(root, "docs/archive/changelog-through-v1.6.md");
 const versionPath = resolve(root, "src/lib/matrundan/version.ts");
 const errors = [];
+const RELEASE_NOTE_BEGIN = "<!-- MATRUNDAN_RELEASE_NOTE_BEGIN -->";
+const RELEASE_NOTE_END = "<!-- MATRUNDAN_RELEASE_NOTE_END -->";
 
 function git(args, allowFailure = false) {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
@@ -84,6 +86,35 @@ function versionFromSource(source) {
   const legacy = /export const APP_VERSION = "(\d+\.\d+\.\d+)"/.exec(source)?.[1];
   if (legacy) return legacy;
   return /version:\s*"(\d+\.\d+\.\d+)"/.exec(source)?.[1] ?? null;
+}
+
+function pullRequestBody(eventName) {
+  if (eventName !== "pull_request") return "";
+
+  if (process.env.MATRUNDAN_PR_BODY !== undefined) {
+    return process.env.MATRUNDAN_PR_BODY;
+  }
+
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (!eventPath || !existsSync(eventPath)) return "";
+
+  try {
+    const event = JSON.parse(readFileSync(eventPath, "utf8"));
+    return typeof event.pull_request?.body === "string" ? event.pull_request.body : "";
+  } catch {
+    return "";
+  }
+}
+
+function releaseNoteFromBody(body) {
+  const begin = body.indexOf(RELEASE_NOTE_BEGIN);
+  const end = body.indexOf(RELEASE_NOTE_END);
+  if (begin === -1 || end === -1 || end <= begin) return "";
+
+  return body
+    .slice(begin + RELEASE_NOTE_BEGIN.length, end)
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .trim();
 }
 
 const { APP_VERSION, APP_VERSION_DATE, CHANGELOG } = await import(
@@ -168,7 +199,9 @@ if (base) {
   const userFacingChanged = files.some(isUserFacing);
   const eventName = process.env.MATRUNDAN_CI_EVENT_NAME ?? "";
   const versionExempt = process.env.MATRUNDAN_VERSION_EXEMPT === "1";
-  const isPostMergeEvent = eventName.length > 0 && eventName !== "pull_request";
+  const isPullRequestEvent = eventName === "pull_request";
+  const isPostMergeEvent = eventName.length > 0 && !isPullRequestEvent;
+  const releaseNote = releaseNoteFromBody(pullRequestBody(eventName));
 
   if (userFacingChanged && versionExempt) {
     errors.push(
@@ -176,14 +209,9 @@ if (base) {
     );
   }
 
-  if (userFacingChanged && !versionChanged) {
+  if (userFacingChanged && isPullRequestEvent && !versionChanged && !releaseNote) {
     errors.push(
-      "Användarsynlig kod eller migration har ändrats utan versionshöjning i version.ts.",
-    );
-  }
-  if (userFacingChanged && !changelogChanged) {
-    errors.push(
-      "Användarsynlig kod eller migration har ändrats utan en daterad uppdatering av CHANGELOG.md.",
+      "Användarsynlig kod eller migration kräver releaseunderlag i PR:n eller en full versionerad releasekandidat.",
     );
   }
 

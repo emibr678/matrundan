@@ -85,6 +85,30 @@ PR-mallen är ett evidenskvitto. Den ska beskriva vad som faktiskt ändrades,
 vilken riskprofil som gäller, vad som verifierats och vad som återstår; den ska
 inte återberätta hela detta dokument.
 
+### Releaseunderlag och staging-first
+
+En normal feature-PR med användarsynlig kod eller migration ska bära kort svensk
+releasecopy i PR-mallens markerade **Releaseunderlag**, men ska normalt inte höja
+appversionen eller materialisera en daterad post i `CHANGELOG.md`. Det minskar
+konflikter mellan parallella features och speglar att flera ändringar kan mergas
+och testas tillsammans i staging innan en faktisk release beslutas.
+
+När en releasekandidat skapas materialiseras de relevanta mergade PR:ernas
+releaseunderlag i en sammanhängande version: `CHANGELOG.md`,
+`src/lib/matrundan/version.ts`, datum och in-app-historik ska då uppdateras och
+fortsatt vara konsekventa. Produktionsgrindarna kräver samma strikta
+versionskonsistens som tidigare.
+
+Redan pågående feature-PR:er som före detta kontrakt materialiserat en full
+version får slutföras enligt det äldre kontraktet så att verifierade kandidater
+inte behöver skrivas om enbart av processkäl. Nya features ska normalt inte
+kopiera det mönstret.
+
+Dokumentations-, test- och verktygsändringar utan användarsynlig kod eller
+migration använder fortsatt den explicita `Version: inte relevant`-markeringen i
+PR-mallen. Featuremerge till `main`/staging är inte i sig en release eller
+publicering.
+
 ### Exekveringslägen
 
 Matrundan stödjer två normala agentlägen och de får inte låtsas ha samma
@@ -249,8 +273,8 @@ Merge får ske först när:
 - relevant verifiering och CI är grön;
 - renderad UX-/nivå-3-grind är uppfylld där den krävs;
 - eventuell uttryckligen begärd Lovable-granskning är uppfylld;
-- dokumentation, roadmap och releasehistorik är konsekventa där ändringen kräver
-  det;
+- dokumentation, roadmap och releaseunderlag/releasehistorik är konsekventa där
+  ändringen kräver det;
 - inga kända blockerare återstår;
 - användaren har uttryckligen godkänt merge.
 
@@ -276,9 +300,14 @@ För Cloudflare betyder publicering att en uttryckligen godkänd kandidat promov
 eller deployas till Worker `app` via Wrangler-miljön `prod`. En PR-preview eller
 en automatisk deployment av `main` till Worker `staging` är inte publicering.
 
-Publicering kräver konsekvent version, in-app-historik och `CHANGELOG.md` när
-ändringen är releasepliktig. En dokumentations- eller maintenance-PR behöver
-inte publiceras bara för att den mergas.
+När en faktisk releasekandidat beslutas ska relevanta mergade feature-PR:ers
+releaseunderlag materialiseras till en daterad release. Då ska appversion,
+in-app-historik och `CHANGELOG.md` vara konsekventa innan produktionspreflight
+och publicering. En featuremerge till staging behöver däremot inte låtsas vara en
+egen produktionsrelease.
+
+En dokumentations- eller maintenance-PR behöver inte publiceras bara för att den
+mergas.
 
 ## 9. Mobil handoff i chatten
 
@@ -329,7 +358,9 @@ beslut, inte en kopia av PR-mallen.
 - `DEVELOPMENT.md` — miljösetup, tooling och exakta kommandon.
 - detta dokument — arbets- och leveransprocess.
 - `docs/visual-review.md` — renderad UX och villkorad Lovable-granskning.
-- `CHANGELOG.md` + in-app-version — användarsynlig releasehistorik.
+- `CHANGELOG.md` + in-app-version — materialiserad användarsynlig releasehistorik;
+  feature-PR:ers tillfälliga releaseunderlag hör hemma i PR-metadata fram till
+  releasekandidat.
 - `docs/archive/` — historik som fortfarande har ett faktiskt referensvärde.
 
 Skapa inte parallella sanningskällor. Kortlivade implementationsplaner och
