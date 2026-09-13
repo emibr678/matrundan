@@ -5,13 +5,15 @@ export function RatingStars({
   max = 5,
   size = 16,
   className,
+  showEmpty = false,
 }: {
   value: number;
   max?: number;
   size?: number;
   className?: string;
+  showEmpty?: boolean;
 }) {
-  if (value <= 0) return null;
+  if (value <= 0 && !showEmpty) return null;
 
   return (
     <div
