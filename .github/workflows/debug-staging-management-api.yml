@@ -20,47 +20,37 @@ jobs:
     environment: staging
     env:
       STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      STAGING_SUPABASE_PAT: ${{ secrets.STAGING_SUPABASE_PAT }}
-      SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
       STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
 
     steps:
-      - name: Detect configured management token and query migration history
+      - name: Query staging migration history read-only
         run: |
           set -euo pipefail
-          node --input-type=module <<'NODE'
-          const candidates = [
-            ['STAGING_SUPABASE_ACCESS_TOKEN', process.env.STAGING_SUPABASE_ACCESS_TOKEN],
-            ['SUPABASE_ACCESS_TOKEN', process.env.SUPABASE_ACCESS_TOKEN],
-            ['STAGING_SUPABASE_PAT', process.env.STAGING_SUPABASE_PAT],
-            ['SUPABASE_PAT', process.env.SUPABASE_PAT],
-          ];
-          const configured = candidates.filter(([, value]) => typeof value === 'string' && value.length > 0);
-          console.log(`diagnostic: configured_token_names=${configured.map(([name]) => name).join(',') || 'none'}`);
-          if (configured.length === 0) {
-            console.error('diagnostic: no Supabase Management API token configured in staging environment');
-            process.exit(3);
-          }
+          if [[ -z "${STAGING_SUPABASE_ACCESS_TOKEN:-}" ]]; then
+            echo "diagnostic: STAGING_SUPABASE_ACCESS_TOKEN is missing" >&2
+            exit 3
+          fi
 
-          const [tokenName, token] = configured[0];
+          node --input-type=module <<'NODE'
+          const token = process.env.STAGING_SUPABASE_ACCESS_TOKEN;
           const projectRef = process.env.STAGING_SUPABASE_PROJECT_ID;
           const response = await fetch(
-            `https://api.supabase.com/v1/projects/${projectRef}/database/query/read-only`,
+            `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
             {
               method: 'POST',
               headers: {
+                accept: 'application/json',
                 authorization: `Bearer ${token}`,
                 'content-type': 'application/json',
               },
               body: JSON.stringify({
                 query: 'select name from supabase_migrations.schema_migrations order by version',
+                read_only: true,
               }),
               signal: AbortSignal.timeout(15_000),
             },
           );
           const text = await response.text();
-          console.log(`diagnostic: token_name=${tokenName}`);
           console.log(`diagnostic: management_api_status=${response.status}`);
           if (!response.ok) {
             console.error(`diagnostic: management_api_error=${text.slice(0, 500)}`);
@@ -79,6 +69,10 @@ jobs:
             console.error(`diagnostic: unexpected_payload_shape=${text.slice(0, 500)}`);
             process.exit(6);
           }
-          console.log(`diagnostic: migration_rows=${rows.length}`);
+          const names = rows.map((row) => row?.name).filter((value) => typeof value === 'string');
+          console.log(`diagnostic: migration_rows=${names.length}`);
+          console.log(`diagnostic: has_visit_context=${names.includes('visit_context_v1')}`);
+          console.log(`diagnostic: has_derived_review_model=${names.includes('derived_review_model_v1')}`);
+          console.log(`diagnostic: has_derived_review_completion=${names.includes('derived_review_model_archived_completion')}`);
           console.log('diagnostic: management_api_read_only=success');
           NODE
