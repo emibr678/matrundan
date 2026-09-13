@@ -93,7 +93,7 @@ export function VisitPlaceOccasionDialog({
                   aria-pressed={active}
                   disabled={busy || (atLimit && !active)}
                   onClick={() => setSelected(toggleOccasionSelection(selected, occasion))}
-                  className={`min-h-16 min-w-0 rounded-xl border px-2 py-2 text-center text-[11px] font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 sm:text-xs ${
+                  className={`min-h-16 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
                     active
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border/70 bg-background hover:bg-secondary/60"
