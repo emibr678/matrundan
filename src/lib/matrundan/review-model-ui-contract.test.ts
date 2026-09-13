@@ -4,6 +4,14 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "../../..");
 const visitDialog = readFileSync(resolve(root, "src/components/matrundan/VisitDialog.tsx"), "utf8");
+const addReviewDialog = readFileSync(
+  resolve(root, "src/components/matrundan/AddVisitReviewDialog.tsx"),
+  "utf8",
+);
+const demoAddReviewDialog = readFileSync(
+  resolve(root, "src/components/matrundan/DemoAddVisitReviewDialog.tsx"),
+  "utf8",
+);
 const scoreFields = readFileSync(
   resolve(root, "src/components/matrundan/ReviewScoreFields.tsx"),
   "utf8",
@@ -26,9 +34,11 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   });
 
   test("saknat Passar för försvinner inte när Hämtmat väljs", () => {
-    expect(visitDialog).toContain("placeNeedsOccasionClassification");
-    expect(visitDialog).toContain("Valfritt – välj vad stället passar för");
-    expect(visitDialog).toContain("reviewOccasions.length > 0");
+    for (const source of [visitDialog, addReviewDialog, demoAddReviewDialog]) {
+      expect(source).toContain("placeNeedsOccasionClassification");
+      expect(source).toContain("Valfritt – välj vad stället passar för");
+      expect(source).toContain("reviewOccasions.length > 0");
+    }
   });
 
   test("helhetsbetyget presenteras som härlett i stället för separat input", () => {
