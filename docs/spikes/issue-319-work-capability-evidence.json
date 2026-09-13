@@ -1,0 +1,49 @@
+{
+  "date": "2026-09-13",
+  "issue": 319,
+  "repository": "emibr678/matrundan",
+  "baseSha": "51113075d23928eb90c1059e5c9828409cbf9d5d",
+  "branch": "spike/319-work-cloud-capability-20260913",
+  "disposable": true,
+  "commands": {
+    "doctor": "passed",
+    "targetedUnitTest": {
+      "command": "bun test src/lib/matrundan/example-data.test.ts",
+      "passed": 6,
+      "failed": 0
+    },
+    "formatChangedCheck": "passed",
+    "verifyChanged": "passed",
+    "vite127001": "started",
+    "vite0000": "blocked_by_uv_interface_addresses"
+  },
+  "browser": {
+    "workCdpLocalhost": "blocked_by_client",
+    "repositoryChromiumBootstrap": "blocked_by_apt_sandbox",
+    "playwrightCdnDownload": "timed_out_or_invalid_archive",
+    "temporaryLocalChromiumRuntime": "worked",
+    "googleFonts": "unavailable_used_local_fallback"
+  },
+  "renderedStates": [
+    {
+      "route": "/?demo=1",
+      "viewport": "360x800",
+      "horizontalOverflow": false,
+      "visuallyInspected": true
+    },
+    {
+      "route": "/?demo=1",
+      "viewport": "1280x900",
+      "horizontalOverflow": false,
+      "visuallyInspected": true
+    },
+    {
+      "route": "/matstallen",
+      "viewport": "360x800",
+      "horizontalOverflow": false,
+      "visuallyInspected": true,
+      "reachedByPlaywrightClick": true
+    }
+  ],
+  "productChangesRemaining": false
+}
