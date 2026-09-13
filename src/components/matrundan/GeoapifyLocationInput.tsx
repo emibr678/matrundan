@@ -102,6 +102,16 @@ export function GeoapifyLocationInput({
   const [selectionError, setSelectionError] = React.useState<string | null>(null);
   const [done, setDone] = React.useState(false);
   const reqRef = React.useRef(0);
+  const blurTimerRef = React.useRef<number | null>(null);
+
+  React.useEffect(
+    () => () => {
+      if (blurTimerRef.current != null) {
+        window.clearTimeout(blurTimerRef.current);
+      }
+    },
+    [],
+  );
 
   React.useEffect(() => {
     const text = value.trim();
@@ -277,8 +287,22 @@ export function GeoapifyLocationInput({
           setOpen(true);
           if (next.trim() === "" && onClearVerified) onClearVerified();
         }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        onFocus={() => {
+          if (blurTimerRef.current != null) {
+            window.clearTimeout(blurTimerRef.current);
+            blurTimerRef.current = null;
+          }
+          setOpen(true);
+        }}
+        onBlur={() => {
+          if (blurTimerRef.current != null) {
+            window.clearTimeout(blurTimerRef.current);
+          }
+          blurTimerRef.current = window.setTimeout(() => {
+            setOpen(false);
+            blurTimerRef.current = null;
+          }, 150);
+        }}
         onKeyDown={onKeyDown}
         placeholder={placeholder ?? "Sök ort, stadsdel eller adress"}
         autoComplete="off"
