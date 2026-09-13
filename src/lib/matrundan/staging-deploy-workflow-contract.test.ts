@@ -41,12 +41,15 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).toContain("import path from 'node:path';");
   });
 
-  test("kräver kompatibel stagingdatabas utan DB-lösenord och utan att applicera migrationer", () => {
+  test("kräver kompatibel stagingdatabas via migrations-API utan DB-lösenord och utan att applicera migrationer", () => {
     expect(workflow).toContain("STAGING_SUPABASE_ACCESS_TOKEN");
     expect(workflow).not.toContain("STAGING_SUPABASE_DB_URL");
-    expect(workflow).toContain("https://api.supabase.com/v1/projects/${projectId}/database/query");
-    expect(workflow).toContain("select name from supabase_migrations.schema_migrations");
-    expect(workflow).toContain("read_only: true");
+    expect(workflow).toContain(
+      "https://api.supabase.com/v1/projects/${projectId}/database/migrations",
+    );
+    expect(workflow).toContain("method: 'GET'");
+    expect(workflow).not.toContain("https://api.supabase.com/v1/projects/${projectId}/database/query");
+    expect(workflow).not.toContain("read_only: true");
     expect(workflow).toContain("stem.replaceAll('-', '_')");
     expect(workflow).toContain("suffix.replaceAll('-', '_')");
     expect(workflow).toContain(
