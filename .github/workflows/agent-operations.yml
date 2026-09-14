@@ -5,8 +5,9 @@ on:
     types: [created]
 
 permissions:
-  contents: read
   actions: write
+  contents: read
+  pull-requests: read
 
 defaults:
   run:

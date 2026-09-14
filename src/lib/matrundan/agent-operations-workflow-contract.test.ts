@@ -26,6 +26,7 @@ describe("Agent Operations workflow-kontrakt", () => {
     );
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("contents: read");
+    expect(workflow).toContain("pull-requests: read");
     expect(workflow).toContain("agent-fast-verify.yml");
     expect(workflow).toContain("public-readiness.yml");
     expect(workflow).toContain("staging-db-apply.yml");
