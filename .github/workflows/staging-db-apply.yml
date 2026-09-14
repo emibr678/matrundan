@@ -1,0 +1,407 @@
+name: Staging database apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Open PR branch whose migrations are approved for Supabase Staging
+        required: true
+        type: string
+      expected_sha:
+        description: Exact current PR head SHA to apply and smoke
+        required: true
+        type: string
+      pr_number:
+        description: Open pull request number for the exact branch and SHA
+        required: true
+        type: string
+      confirmation:
+        description: Must equal APPLY_STAGING_DB
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: staging-database
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
+  BRANCH: ${{ inputs.branch }}
+  TARGET_SHA: ${{ inputs.expected_sha }}
+  PR_NUMBER: ${{ inputs.pr_number }}
+  CONFIRMATION: ${{ inputs.confirmation }}
+
+jobs:
+  apply:
+    name: Apply approved migrations and verify exact preview
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: staging
+    env:
+      GITHUB_API_TOKEN: ${{ github.token }}
+      STAGING_SUPABASE_MIGRATIONS_TOKEN: ${{ secrets.STAGING_SUPABASE_MIGRATIONS_TOKEN }}
+
+    steps:
+      - name: Check out exact approved candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard exact open PR, head SHA, approval and green CI
+        run: |
+          set -euo pipefail
+          if [[ "$CONFIRMATION" != "APPLY_STAGING_DB" ]]; then
+            echo "Staging database apply requires the exact APPLY_STAGING_DB confirmation." >&2
+            exit 1
+          fi
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Invalid exact SHA or PR number." >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$TARGET_SHA" ]]; then
+            echo "Checked out commit does not match the approved SHA." >&2
+            exit 1
+          fi
+
+          node --input-type=module <<'NODE'
+          const apiRoot = 'https://api.github.com';
+          const repository = process.env.GITHUB_REPOSITORY;
+          const branch = process.env.BRANCH;
+          const targetSha = process.env.TARGET_SHA;
+          const prNumber = Number(process.env.PR_NUMBER);
+          const headers = {
+            accept: 'application/vnd.github+json',
+            authorization: 'Bearer ' + process.env.GITHUB_API_TOKEN,
+            'x-github-api-version': '2022-11-28',
+          };
+
+          if (
+            branch.length < 1 ||
+            branch.length > 200 ||
+            !/^[A-Za-z0-9._/-]+$/.test(branch) ||
+            branch.startsWith('.') ||
+            branch.startsWith('/') ||
+            branch.endsWith('.') ||
+            branch.endsWith('/') ||
+            branch.includes('..') ||
+            branch.includes('//') ||
+            branch.includes('@{') ||
+            branch.endsWith('.lock')
+          ) {
+            console.error('Invalid branch name.');
+            process.exit(1);
+          }
+
+          async function getJson(url) {
+            const response = await fetch(url, {
+              headers,
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+              console.error('GitHub guard request failed (HTTP ' + response.status + ').');
+              process.exit(1);
+            }
+            return payload;
+          }
+
+          const encodedBranch = encodeURIComponent(branch);
+          const branchData = await getJson(
+            apiRoot + '/repos/' + repository + '/branches/' + encodedBranch,
+          );
+          const pullRequest = await getJson(
+            apiRoot + '/repos/' + repository + '/pulls/' + prNumber,
+          );
+          if (
+            branchData?.commit?.sha !== targetSha ||
+            pullRequest?.state !== 'open' ||
+            pullRequest?.base?.ref !== 'main' ||
+            pullRequest?.head?.repo?.full_name !== repository ||
+            pullRequest?.head?.ref !== branch ||
+            pullRequest?.head?.sha !== targetSha
+          ) {
+            console.error('PR branch or head SHA no longer matches the approved staging candidate.');
+            process.exit(1);
+          }
+
+          const runs = await getJson(
+            apiRoot +
+              '/repos/' +
+              repository +
+              '/actions/runs?head_sha=' +
+              targetSha +
+              '&per_page=100',
+          );
+          const successfulCi = (runs?.workflow_runs ?? []).some(
+            (run) =>
+              run?.name === 'CI' &&
+              run?.event === 'pull_request' &&
+              run?.status === 'completed' &&
+              run?.conclusion === 'success' &&
+              (run?.pull_requests ?? []).some((candidate) => candidate?.number === prNumber),
+          );
+          if (!successfulCi) {
+            console.error('No successful ordinary CI run exists for this exact PR head SHA.');
+            process.exit(1);
+          }
+
+          console.log('Verified explicit staging approval, exact open PR head and green CI.');
+          NODE
+
+      - name: Validate staging migration credential
+        run: |
+          set -euo pipefail
+          if [[ -z "${STAGING_SUPABASE_MIGRATIONS_TOKEN:-}" ]]; then
+            echo "Missing STAGING_SUPABASE_MIGRATIONS_TOKEN in the GitHub staging environment." >&2
+            exit 1
+          fi
+
+      - name: Apply only missing approved migrations and verify history
+        id: migrations
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const token = process.env.STAGING_SUPABASE_MIGRATIONS_TOKEN;
+          const projectId = process.env.STAGING_SUPABASE_PROJECT_ID;
+          const targetSha = process.env.TARGET_SHA;
+          const endpoint =
+            'https://api.supabase.com/v1/projects/' + projectId + '/database/migrations';
+          const headers = {
+            accept: 'application/json',
+            authorization: 'Bearer ' + token,
+          };
+
+          async function listRemoteNames() {
+            const response = await fetch(endpoint, {
+              method: 'GET',
+              headers,
+              signal: AbortSignal.timeout(15_000),
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !Array.isArray(payload)) {
+              console.error(
+                'Could not read Supabase Staging migration history (HTTP ' + response.status + ').',
+              );
+              process.exit(1);
+            }
+            return new Set(
+              payload
+                .map((row) => row?.name)
+                .filter((value) => typeof value === 'string' && value.length > 0),
+            );
+          }
+
+          function candidatesFor(stem) {
+            const suffix = stem.replace(/^\d+_/, '');
+            return new Set([
+              stem,
+              stem.replaceAll('-', '_'),
+              suffix,
+              suffix.replaceAll('-', '_'),
+            ]);
+          }
+
+          function missingFrom(remote, local) {
+            return local.filter(
+              ({ stem }) =>
+                ![...candidatesFor(stem)].some((candidate) => remote.has(candidate)),
+            );
+          }
+
+          const local = fs
+            .readdirSync('supabase/migrations')
+            .filter((name) => name.endsWith('.sql'))
+            .sort()
+            .map((name) => ({
+              name,
+              stem: path.basename(name, '.sql'),
+              path: path.join('supabase/migrations', name),
+            }));
+          const before = await listRemoteNames();
+          const missing = missingFrom(before, local);
+
+          for (const migration of missing) {
+            const query = fs.readFileSync(migration.path, 'utf8');
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                ...headers,
+                'content-type': 'application/json',
+                'idempotency-key':
+                  'matrundan-staging-' + targetSha + '-' + migration.stem,
+              },
+              body: JSON.stringify({ name: migration.stem, query }),
+              signal: AbortSignal.timeout(120_000),
+            });
+            if (!response.ok) {
+              console.error(
+                'Supabase Staging rejected migration ' +
+                  migration.name +
+                  ' (HTTP ' +
+                  response.status +
+                  ').',
+              );
+              process.exit(1);
+            }
+            console.log('Applied approved staging migration: ' + migration.name);
+          }
+
+          const after = await listRemoteNames();
+          const stillMissing = missingFrom(after, local);
+          if (stillMissing.length > 0) {
+            console.error('Staging migration history is still incomplete after apply:');
+            for (const migration of stillMissing) console.error('- ' + migration.name);
+            process.exit(1);
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'applied_count=' + missing.length + '\n');
+          console.log(
+            'Verified all ' +
+              local.length +
+              ' candidate migrations in Supabase Staging; applied ' +
+              missing.length +
+              '.',
+          );
+          NODE
+
+      - name: Verify exact Cloudflare preview and staging reachability
+        id: preview
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const repository = process.env.GITHUB_REPOSITORY;
+          const prNumber = process.env.PR_NUMBER;
+          const expectedRelease = process.env.TARGET_SHA;
+          const shortSha = expectedRelease.slice(0, 8);
+          const headers = {
+            accept: 'application/vnd.github+json',
+            authorization: 'Bearer ' + process.env.GITHUB_API_TOKEN,
+            'cache-control': 'no-cache',
+            'x-github-api-version': '2022-11-28',
+          };
+          let lastFailure = 'Cloudflare has not reported an exact commit preview yet';
+
+          for (let attempt = 1; attempt <= 30; attempt += 1) {
+            const commentsResponse = await fetch(
+              'https://api.github.com/repos/' +
+                repository +
+                '/issues/' +
+                prNumber +
+                '/comments?per_page=100',
+              { headers, signal: AbortSignal.timeout(10_000) },
+            );
+            const comments = await commentsResponse.json().catch(() => null);
+            if (!commentsResponse.ok || !Array.isArray(comments)) {
+              console.error('Could not read PR preview comments.');
+              process.exit(1);
+            }
+
+            const cloudflareComment = comments
+              .filter(
+                (comment) =>
+                  comment?.user?.login === 'cloudflare-workers-and-pages[bot]' &&
+                  typeof comment?.body === 'string' &&
+                  comment.body.includes(shortSha),
+              )
+              .sort((a, b) =>
+                String(b?.updated_at ?? '').localeCompare(String(a?.updated_at ?? '')),
+              )[0];
+            const previewUrl = cloudflareComment?.body?.match(
+              /https:\/\/[a-z0-9-]+-staging\.matrundan\.workers\.dev/,
+            )?.[0];
+
+            if (previewUrl) {
+              try {
+                const healthResponse = await fetch(previewUrl + '/api/health', {
+                  headers: { accept: 'application/json', 'cache-control': 'no-cache' },
+                  signal: AbortSignal.timeout(10_000),
+                });
+                const payload = await healthResponse.json().catch(() => null);
+                if (
+                  healthResponse.ok &&
+                  payload?.status === 'ok' &&
+                  payload?.release === expectedRelease
+                ) {
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, 'url=' + previewUrl + '\n');
+                  console.log(
+                    'Verified exact preview release and Supabase Staging reachability: ' +
+                      previewUrl,
+                  );
+                  process.exit(0);
+                }
+                lastFailure =
+                  'HTTP ' +
+                  healthResponse.status +
+                  ', status=' +
+                  String(payload?.status) +
+                  ', release=' +
+                  String(payload?.release);
+              } catch (error) {
+                lastFailure = error instanceof Error ? error.message : String(error);
+              }
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 10_000));
+          }
+
+          console.error('Exact staging preview verification failed: ' + lastFailure);
+          process.exit(1);
+          NODE
+
+      - name: Surface verified staging preview on the PR
+        env:
+          APPLIED_COUNT: ${{ steps.migrations.outputs.applied_count }}
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const body = [
+            '## Stagingdatabas och preview verifierade',
+            '',
+            '- Exakt kandidat: `' + process.env.TARGET_SHA + '`',
+            '- Applicerade saknade migrationer: ' + process.env.APPLIED_COUNT,
+            '- Migrationshistorik: komplett för kandidatens repo-migrationer',
+            '- Preview: ' + process.env.PREVIEW_URL,
+            '- `/api/health`: exakt release-SHA och Supabase Staging nåbara',
+            '- Productiondatabas och production-Worker: orörda',
+          ].join('\n');
+          const response = await fetch(
+            'https://api.github.com/repos/' +
+              process.env.GITHUB_REPOSITORY +
+              '/issues/' +
+              process.env.PR_NUMBER +
+              '/comments',
+            {
+              method: 'POST',
+              headers: {
+                accept: 'application/vnd.github+json',
+                authorization: 'Bearer ' + process.env.GITHUB_API_TOKEN,
+                'content-type': 'application/json',
+                'x-github-api-version': '2022-11-28',
+              },
+              body: JSON.stringify({ body }),
+              signal: AbortSignal.timeout(10_000),
+            },
+          );
+          if (!response.ok) {
+            console.error('Could not surface the verified staging preview on the PR.');
+            process.exit(1);
+          }
+          NODE

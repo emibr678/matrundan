@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 const agentOperationsWorkflow = ".github/workflows/agent-operations.yml";
 const fastVerifyWorkflow = ".github/workflows/agent-fast-verify.yml";
 const publicReadinessWorkflow = ".github/workflows/public-readiness.yml";
+const stagingDbWorkflow = ".github/workflows/staging-db-apply.yml";
 
 describe("Agent Operations workflow-kontrakt", () => {
   test("dispatchern är owner-only och har en smal allowlist", () => {
@@ -18,6 +19,8 @@ describe("Agent Operations workflow-kontrakt", () => {
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain("agent-fast-verify.yml");
     expect(workflow).toContain("public-readiness.yml");
+    expect(workflow).toContain("staging-db-apply.yml");
+    expect(workflow).toContain("APPLY_STAGING_DB");
     expect(workflow).not.toContain("cloudflare-prod-preflight.yml/dispatches");
     expect(workflow).not.toContain("cloudflare-prod-publish.yml/dispatches");
     expect(workflow).not.toContain("recovery-offsite-restore.yml/dispatches");
@@ -45,5 +48,20 @@ describe("Agent Operations workflow-kontrakt", () => {
     expect(workflow).toContain("refusing stale public-readiness run");
     expect(workflow).toContain("contents: read");
     expect(workflow).not.toContain("actions: write");
+  });
+
+  test("stagingdatabas kräver exakt öppen PR-head och explicit bekräftelse", () => {
+    const dispatcher = readFileSync(resolve(process.cwd(), agentOperationsWorkflow), "utf8");
+    const workflow = readFileSync(resolve(process.cwd(), stagingDbWorkflow), "utf8");
+
+    expect(dispatcher).toContain(
+      "/agent staging-db <branch> <40-character-sha> <pr-number> APPLY_STAGING_DB",
+    );
+    expect(dispatcher).toContain("pullRequest?.state !== 'open'");
+    expect(dispatcher).toContain("pullRequest?.head?.sha !== expectedSha");
+    expect(workflow).toContain('CONFIRMATION: ${{ inputs.confirmation }}');
+    expect(workflow).toContain('"APPLY_STAGING_DB"');
+    expect(workflow).toContain("environment: staging");
+    expect(workflow).not.toContain("environment: production");
   });
 });
