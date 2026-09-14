@@ -18,7 +18,9 @@ export function formatCompactPlaceAddress(address: string, city: string): string
       .map((part) => part.trim().toLocaleLowerCase("sv"))
       .includes(normalizedCity);
 
-  return [address.trim(), addressAlreadyContainsCity ? "" : city.trim()].filter(Boolean).join(", ");
+  return [address.trim(), addressAlreadyContainsCity ? "" : city.trim()]
+    .filter(Boolean)
+    .join(", ");
 }
 
 export function PlaceThumb({ place, size = "md" }: { place: Place; size?: PlaceIdentityMarkSize }) {
