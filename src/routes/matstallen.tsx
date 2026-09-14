@@ -506,7 +506,6 @@ function PlacesIndex() {
             </button>
           );
         })}
-
       </div>
 
       <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" aria-label="Välj vy">
