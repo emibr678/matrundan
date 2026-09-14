@@ -18,7 +18,10 @@ export function formatCompactPlaceAddress(address: string, city: string): string
       .map((part) => part.trim().toLocaleLowerCase("sv"))
       .includes(normalizedCity);
 
-  return [address.trim(), addressAlreadyContainsCity ? "" : city.trim()]
+  return [
+    address.trim(),
+    addressAlreadyContainsCity ? "" : city.trim(),
+  ]
     .filter(Boolean)
     .join(", ");
 }
