@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Check out exact staging candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
