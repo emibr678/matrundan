@@ -246,7 +246,7 @@ jobs:
           started="$(date +%s)"
           echo "Smoke started: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           set +e
-          bun run test:mobile -- --max-failures=1 --retries=0
+          bun run test:mobile -- --max-failures=3 --retries=0
           status=$?
           set -e
           finished="$(date +%s)"

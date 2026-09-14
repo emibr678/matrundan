@@ -24,4 +24,11 @@ describe("CI-iterationskontrakt", () => {
     expect(workflow).toContain("actions: write");
     expect(workflow).toContain("scope: 'ci'");
   });
+
+  test("full browser-CI samlar ett litet antal fel per dyr körning", () => {
+    const workflow = readFileSync(resolve(process.cwd(), ciWorkflowPath), "utf8");
+
+    expect(workflow).toContain("bun run test:mobile -- --max-failures=3 --retries=0");
+    expect(workflow).not.toContain("bun run test:mobile -- --max-failures=1 --retries=0");
+  });
 });
