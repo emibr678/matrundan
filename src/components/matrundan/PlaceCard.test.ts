@@ -4,9 +4,7 @@ import { formatCompactPlaceAddress } from "./PlaceCard";
 
 describe("formatCompactPlaceAddress", () => {
   test("lägger till ort när adressen inte redan innehåller den", () => {
-    expect(formatCompactPlaceAddress("Stortorget 1", "Stockholm")).toBe(
-      "Stortorget 1, Stockholm",
-    );
+    expect(formatCompactPlaceAddress("Stortorget 1", "Stockholm")).toBe("Stortorget 1, Stockholm");
   });
 
   test("dubblerar inte ort som redan finns som adressdel", () => {
