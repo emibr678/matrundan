@@ -190,7 +190,6 @@ function PlacesIndex() {
     [activePlaces, avgRating, overallTopRated, topOccasion],
   );
   const topLeader = overallTopRated[0] ?? null;
-  const hasRatings = topLeader != null;
 
   const clearAdvanced = () => {
     setCategory("alla");
@@ -235,7 +234,7 @@ function PlacesIndex() {
         </p>
       </div>
 
-      {hasRatings ? (
+      {topLeader ? (
         <Collapsible open={topOpen} onOpenChange={setTopOpen}>
           <section
             aria-labelledby="place-leaderboard-heading"
@@ -508,7 +507,6 @@ function PlacesIndex() {
           );
         })}
 
-
       </div>
 
       <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" aria-label="Välj vy">
@@ -536,7 +534,7 @@ function PlacesIndex() {
 
       {sort === "betyg" ? (
         <p className="text-xs text-muted-foreground">
-          Sorterat på gruppens medelbetyg. Bara ställen med minst ett besök visas.
+          Sorterat på gruppens medelbetyg. Bara ställen med minst ett omdöme visas.
         </p>
       ) : null}
 
