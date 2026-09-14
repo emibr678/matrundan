@@ -229,9 +229,7 @@ function PlacesIndex() {
     <div className="mx-auto max-w-2xl space-y-3 pt-2 md:max-w-4xl">
       <div>
         <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Vad gänget vill prova och har provat
-        </p>
+        <p className="mt-0.5 text-sm text-muted-foreground">Vad gänget vill prova och har provat</p>
       </div>
 
       {topLeader ? (
@@ -243,10 +241,7 @@ function PlacesIndex() {
           >
             <div className="flex min-w-0 items-center gap-3">
               {topOpen ? (
-                <h2
-                  id="place-leaderboard-heading"
-                  className="min-w-0 flex-1 font-display text-lg"
-                >
+                <h2 id="place-leaderboard-heading" className="min-w-0 flex-1 font-display text-lg">
                   Topplista
                 </h2>
               ) : (
