@@ -10,9 +10,9 @@ describe("formatCompactPlaceAddress", () => {
   });
 
   test("dubblerar inte ort som redan finns som adressdel", () => {
-    expect(formatCompactPlaceAddress("Nynäsvägen 302, Stockholm", "Stockholm")).toBe(
-      "Nynäsvägen 302, Stockholm",
-    );
+    expect(
+      formatCompactPlaceAddress("Nynäsvägen 302, Stockholm", "Stockholm"),
+    ).toBe("Nynäsvägen 302, Stockholm");
   });
 
   test("hanterar tom adress eller ort utan extra kommatecken", () => {
