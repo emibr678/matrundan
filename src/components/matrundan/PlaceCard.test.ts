@@ -8,9 +8,7 @@ describe("formatCompactPlaceAddress", () => {
   });
 
   test("dubblerar inte ort som redan finns som adressdel", () => {
-    expect(
-      formatCompactPlaceAddress("Nynäsvägen 302, Stockholm", "Stockholm"),
-    ).toBe(
+    expect(formatCompactPlaceAddress("Nynäsvägen 302, Stockholm", "Stockholm")).toBe(
       "Nynäsvägen 302, Stockholm",
     );
   });
