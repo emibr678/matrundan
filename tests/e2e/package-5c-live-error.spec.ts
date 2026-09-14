@@ -107,7 +107,7 @@ test("ett RPC-fel lämnar laddningsläget och kan återförsökas", async ({ pag
   });
 
   let attempts = 0;
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5l", async (route) => {
+  await page.route("**/rest/v1/rpc/get_group_app_state_v5m", async (route) => {
     attempts += 1;
     if (attempts === 1) {
       await route.fulfill({

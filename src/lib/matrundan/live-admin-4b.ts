@@ -47,7 +47,7 @@ export async function updateGroupPlaceMetadata(
 
 export type ReviewEditInput = Pick<
   VisibleReview,
-  "overall" | "taste" | "value" | "service" | "comment"
+  "overall" | "taste" | "value" | "service" | "atmosphere" | "comment"
 >;
 
 export async function updateOwnReview(
@@ -55,13 +55,14 @@ export async function updateOwnReview(
   reviewId: string,
   input: ReviewEditInput,
 ): Promise<void> {
-  await rpcClient.callVoid("update_own_review", {
+  await rpcClient.callVoid("update_own_review_v2", {
     _group_id: groupId,
     _review_id: reviewId,
     _overall: input.overall,
     _taste: input.taste ?? null,
     _value: input.value ?? null,
     _service: input.service ?? null,
+    _atmosphere: input.atmosphere ?? null,
     _comment: input.comment ?? null,
   });
 }

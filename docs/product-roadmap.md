@@ -146,29 +146,28 @@ genomfördes i v1.37.0 via PR #223. **#101 Privata reaktioner på deltagarnas
 omdömen** är också genomförd och ligger kvar som produktkontrakt för gruppscopade,
 lågmälda reaktioner.
 
-**#244 Kommentar tillagd i efterhand blir inte reagerbar i gruppen** är en
-`priority:now`-regression i den redan levererade #101-semantiken. Den ska
-hanteras som en tillitskritisk korrigering före nästa större feature, men får
-ingen egen `order:*` eftersom den inte ändrar den strategiska produktordningen.
+Den tillitskritiska regressionen **#244 Kommentar tillagd i efterhand blir inte
+reagerbar i gruppen** och de sekvenserade kärnleveranserna **#213 Förebygg dubbla
+kanoniska besök vid registrering och delning**, **#214 Bekräfta gäst→medlem-
+deltagande över gruppgränser**, **#197 Renodla besökskontext med Något att dricka
+och valfri Hämtmat-markering** samt **#307 Härled helhetsbetyg från Smak, Service,
+Prisvärdhet och Atmosfär** är genomförda. Deras aktiva status-, prioritets- och
+`order:*`-etiketter ska därför inte längre uppta den operativa kön.
 
-Den närmaste beslutade produktkön är nu:
+Nästa kvarvarande sekvenserade produktfeature är:
 
-1. `order:040` – **#213 Förebygg dubbla kanoniska besök vid registrering och
-   delning** (`priority:next`).
-2. `order:050` – **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**.
-3. `order:060` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
-   besök**.
-4. `order:070` – **#197 Renodla besökskontext med Något att dricka och valfri
-   Hämtmat-markering**.
+1. `order:080` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
+   besök** (`priority:later`).
 
-**#213 Förebygg dubbla kanoniska besök vid registrering och delning** är nästa
-sekvenserade kärnproduktfeature efter #244-regressionen. Historiska luckor i
-`order:*` lämnas medvetet kvar; operativ ordning kräver inte omnumrering.
+Att #179 nu är först bland de kvarvarande ordnade feature-issues innebär inte ett
+automatiskt beslut att påbörja implementationen eller flytta den till
+`priority:now`; det kräver fortsatt produktbedömning och uttryckligt
+godkännande. Historiska luckor i `order:*` lämnas medvetet kvar och redan
+slutförda steg numreras inte om.
 
 **#169 Bekräfta deltagande och komplettera gemensamma besök** ligger kvar som
-parent och varaktig produkt-/integritetsram för redan levererad deltagarsemantik
-samt de utbrutna senare delarna #213 och #214. Parent-issuen ska inte ha en egen
-plats i den sekventiella kön.
+parent och varaktig produkt-/integritetsram för redan levererad deltagarsemantik.
+Parent-issuen ska inte ha en egen plats i den sekventiella kön.
 
 Kärnan i **#207 Frikoppla drift från Lovable Cloud och etablera portabel
 plattform** är tekniskt genomförd: produktion kör Cloudflare/Supabase och Lovable
@@ -233,8 +232,8 @@ individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
-**Prioritet:** aktivt; #169, #203, #204 och #101 är genomförda, #244 är närmaste
-regressionsfix och #213 nästa sekvenserade feature
+**Prioritet:** aktivt; #169, #203, #204, #101, #244, #213, #214, #197 och #307
+är genomförda. #179 är nästa kvarvarande sekvenserade feature i paketet.
 
 Rekommenderad paketordning:
 
@@ -258,43 +257,51 @@ Rekommenderad paketordning:
    Gruppen kan svara lågmält med ❤️, 🤤, 🙌 eller 😂 på en deltagares synliga
    omdömeskommentar. Reaktionen hör till omdömesbidraget men isoleras per grupp;
    funktionen skapar ingen separat diskussion, reaktionsfeed eller social
-   progression. #244 är en avgränsad regressionsuppföljning på redigerad
-   kommentarsynlighet.
-5. **#213 Förebygg dubbla kanoniska besök vid registrering och delning**
-   (`order:040`, `priority:next`)  
-   Lägg ett konservativt dubblettskydd före nyregistrering eller delning när
-   användaren redan legitimt kan nå ett starkt kandidatbesök. Återanvänd samma
-   kanoniska visit när användaren väljer det; ingen automatisk efterhandsmerge
-   eller cross-group-historikkatalog får uppstå.
-6. **#214 Bekräfta gäst→medlem-deltagande över gruppgränser** (`order:050`)  
+   progression. Regressionen #244 på redigerad kommentarsynlighet är också
+   genomförd.
+5. ✅ **#213 Förebygg dubbla kanoniska besök vid registrering och delning**  
+   Genomförd via PR #303. Ett konservativt dubblettskydd före nyregistrering och
+   delning återanvänder samma kanoniska visit när användaren väljer en stark
+   kandidat, utan automatisk efterhandsmerge eller cross-group-historikkatalog.
+6. ✅ **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**  
    Gäst→medlem-koppling kräver uttryckligt val och den utpekade personens egen
    bekräftelse. Namn är presentation, aldrig identitet; ingen fuzzy
-   personmatchning eller cross-group-personkatalog får uppstå.
-7. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**
-   (`order:060`)  
+   personmatchning eller cross-group-personkatalog uppstår.
+7. ✅ **#197 Renodla besökskontext med Något att dricka och valfri
+   Hämtmat-markering**  
+   På plats är implicit normalfall och Hämtmat en separat frivillig
+   besöksegenskap. `Något att dricka` är ett fullvärdigt kanoniskt besök utan
+   score och påverkar inte reviewaggregatet. Äldre `Kväll`-historik bevaras.
+8. ✅ **#307 Härled helhetsbetyg från Smak, Service, Prisvärdhet och Atmosfär**  
+   Nya scorebara reviews får ett transparent aritmetiskt helhetsbetyg från
+   relevanta detaljbetyg. Hämtmat använder Smak, Service och Prisvärdhet. På
+   plats med endast `Snabbt och enkelt` använder samma tre dimensioner, medan
+   `Avslappnat` och/eller `Något extra` även gör Atmosfär relevant. Reviewns
+   dimensionsmodell fryses historiskt så senare ändringar av `Passar för` inte
+   skriver om gamla reviews. Saknat `Passar för` löses som platsmetadata i en
+   separat platscentrerad fördialog före ny scorebar besöksregistrering.
+   Legacy-reviews bevaras utan destruktiv backfill och varje reviews eget
+   helhetsbetyg väger lika i platsaggregatet.
+9. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**
+   (`order:080`, `priority:later`)  
    Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
    en viss målgrupp. Fotoåtkomsten ska vara serverstyrd per målgrupp och får inte
    exponera ursprungsgrupp eller ge mottagargruppen rätt att ändra originalfotot.
-8. **#197 Renodla besökskontext med Något att dricka och valfri
-   Hämtmat-markering** (`order:070`, `priority:later`)  
-   Gör besökstillfället semantiskt konsekvent genom att ersätta `Kväll` med
-   `Något att dricka` och låt Hämtmat vara en separat, valfri besöksegenskap där
-   På plats är implicit normalfall. Progression och betydelsen av `besökt` får
-   inte ändras tyst och ska verifieras i implementationsplanen.
 
 #169 ligger kvar som parent och bär de varaktiga invariants för faktisk
 närvaro, ett kanoniskt deltagande per `(visit, user)`, ett aktivt eget omdöme per
 `(visit, user)` och cross-group-minimering. De konkreta senare leveranserna
-rangordnas genom #213 och #214 i stället för genom parent-issuen.
+rangordnas genom öppna levererbara issues i stället för genom parent-issuen.
 
 Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
 gruppens gemensamma minne. #203 gör flerpersons-omdömena begripliga i besöksvyn,
 #204 gör saknade egna omdömen upptäckbara utan nagging, #101 ger lågmälda privata
 reaktioner på deltagarnas omdömesbidrag, #213 förebygger nya kanoniska
-besöksdubletter, #214 hanterar känslig cross-group-identitet, #179 gäller
-uttrycklig och behörighetsstyrd fotodelning och #197 renodlar själva
-besökskontexten. Ingen av funktionerna får skapa global feed, offentlig social
-graf, offentliga likes eller progression för social aktivitet.
+besöksdubletter, #214 hanterar känslig cross-group-identitet, #197 renodlar
+besökskontexten, #307 gör reviewdatan mer uttrycksfull och transparent och #179
+gäller uttrycklig och behörighetsstyrd fotodelning. Ingen av funktionerna får
+skapa global feed, offentlig social graf, offentliga likes eller progression för
+social aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
@@ -347,8 +354,8 @@ Rekommenderad ordning:
    Välj den minsta lämpliga presentationen – label, filter eller topplista – i
    stället för att exponera varje härledd dimension överallt.
 
-#198 förutsätter stabil semantik för besökstillfällen och Hämtmat från #197 och
-ska beakta reviewmodellen från #169. Paketet är därför senare än de närmaste
+#198 förutsätter den stabila besökskontexten från #197 och den historiskt frysta,
+transparenta reviewmodellen från #307. Paketet är därför senare än de närmaste
 kärnleveranserna även om #199 kan genomföras fristående som mindre UX-hygien.
 
 ## Parallellt maintenance- och kvalitetsspår

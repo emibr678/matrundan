@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { workChromiumLaunchOptions } from "./scripts/work-browser-config";
+
 const inheritedEnvironment = Object.fromEntries(
   Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
 );
@@ -7,6 +9,7 @@ const inheritedEnvironment = Object.fromEntries(
 const e2eSupabaseUrl = process.env.VITE_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const e2eSupabasePublishableKey =
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_matrundan_e2e";
+const chromiumLaunchOptions = workChromiumLaunchOptions();
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -44,6 +47,7 @@ export default defineConfig({
         viewport: { width: 360, height: 800 },
         hasTouch: true,
         isMobile: true,
+        launchOptions: chromiumLaunchOptions,
       },
     },
     {
@@ -57,6 +61,7 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 900 },
+        launchOptions: chromiumLaunchOptions,
       },
     },
   ],

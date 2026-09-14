@@ -57,8 +57,10 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await reviewSection.getByRole("button", { name: "Lägg till ditt omdöme" }).click({ force: true });
   const reviewDialog = page.getByRole("dialog").last();
   await expect(reviewDialog.getByRole("heading", { name: "Ditt omdöme" })).toBeVisible();
-  await expect(reviewDialog.getByText(/samma gemensamma besök/)).toBeVisible();
-  await reviewDialog.getByRole("button", { name: "Helhetsbetyg: 5 av 5" }).click();
+  await expect(reviewDialog.getByText(/Helhetsbetyget räknas automatiskt/)).toBeVisible();
+  for (const dimension of ["Smak", "Service", "Prisvärdhet", "Atmosfär"]) {
+    await reviewDialog.getByRole("button", { name: `${dimension}: 5 av 5` }).click();
+  }
   await reviewDialog.getByLabel("Kommentar (frivilligt)").fill("Mitt eget minne från kvällen.");
   await reviewDialog.getByRole("button", { name: "Spara omdöme" }).click();
 

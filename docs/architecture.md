@@ -266,21 +266,22 @@ behörighet att läsa den.
 
 ## Gruppstate
 
-`get_group_app_state_v5l(uuid)` är nuvarande primära read-RPC för gruppens
-applikationsstate. `get_group_app_state_v5k(uuid)` är den närmast föregående
-kompatibla läs-RPC:n och får användas som strikt fallback när v5l uttryckligen
+`get_group_app_state_v5m(uuid)` är nuvarande primära read-RPC för gruppens
+applikationsstate. `get_group_app_state_v5l(uuid)` är den närmast föregående
+kompatibla läs-RPC:n och får användas som strikt fallback när v5m uttryckligen
 saknas under en säker rullning. Andra auth-, nätverks- eller datafel får inte
 döljas genom fallback.
 
-v5l bygger additivt på v5k och kompletterar redan auktoriserade besök med den
-kanoniska `isTakeaway`-kontexten utan att bredda gruppens läsrättigheter. v5k
-lägger i sin tur till den privata `nextStop`-projektionen ovanpå v5j. v5j bevarar
-deltagarsemantiken genom v5i-wrappern över den serverinterna
-`get_group_app_state_v5i_participation_base(uuid)`. Basfunktionen får inte vara
-direkt körbar av `anon` eller `authenticated`. Wrappern filtrerar synliga
-reviews mot aktuella rader i `visit_participants` och exponerar endast den
-inloggade användarens minimerade deltagarstatus (`participant`, `declined` eller
-`none`).
+v5m bygger additivt på v5l och kompletterar redan auktoriserade reviewobjekt med
+`atmosphere` och `reviewModel` utan att bredda gruppens läsrättigheter. v5l
+kompletterar i sin tur redan auktoriserade besök med den kanoniska
+`isTakeaway`-kontexten ovanpå v5k. v5k lägger till den privata `nextStop`-
+projektionen ovanpå v5j. v5j bevarar deltagarsemantiken genom v5i-wrappern över
+den serverinterna `get_group_app_state_v5i_participation_base(uuid)`.
+Basfunktionen får inte vara direkt körbar av `anon` eller `authenticated`.
+Wrappern filtrerar synliga reviews mot aktuella rader i `visit_participants` och
+exponerar endast den inloggade användarens minimerade deltagarstatus
+(`participant`, `declined` eller `none`).
 
 Read-RPC:n ska:
 
@@ -291,7 +292,7 @@ Read-RPC:n ska:
 - undvika att exponera interna tabellfält som klienten inte behöver.
 
 Sekundär, potentiellt växande besöksdata som omdömesreaktioner ska inte läggas in
-i hela gruppens v5l-payload bara för att den visas i besöksdetaljen. Den läses i
+i hela gruppens v5m-payload bara för att den visas i besöksdetaljen. Den läses i
 stället lazy genom en grupp- och medlemsvaliderad, minifierad per-besök-RPC.
 
 ## Nästa stopp
@@ -356,19 +357,36 @@ kanoniska besöket. Progression, deltagarlistor, delningsbehörighet och aktivt
 deltagaromdöme ska härledas från den sanningen i stället för från en separat
 registreringspoäng eller administrativ kredit.
 
-`create_visit_with_review_v4` är den serverstyrda mutationsytan för nya besök i
+`create_visit_with_review_v5` är den serverstyrda mutationsytan för nya besök i
 den här modellen. Den som registrerar ett nytt besök måste själv finnas bland de
 validerade deltagarna. Nya besök använder `frukost`, `lunch`, `fika`, `middag`
 eller `dryck`; `kväll` bevaras endast som läsbart legacyvärde och avvisas för nya
-v4-skrivningar.
+v5-skrivningar.
 
-För scorebara matbesök krävs helhetsbetyg 1–5 medan smak, service och prisvärdhet
-är frivilliga. `dryck` (**Något att dricka**) är däremot ett fullvärdigt men
-scorelöst besök: inga numeriska reviewfält får sättas och besöket påverkar inte
-matställets betyg, men deltagande, progression, återbesök, kommentar och foto
-fungerar enligt samma kanoniska besöksmodell. `reviews.overall` är därför
-nullable endast för genuint scorelösa bidrag; servern behåller 1–5-invarianten
-för scorebara matbesök.
+Nya scorebara reviews använder en explicit och historiskt låst `review_model`.
+`food_v1_takeaway` och `food_v1_quick` kräver Smak, Service och Prisvärdhet 1–5.
+`food_v1_atmosphere` kräver samma tre dimensioner plus Atmosfär 1–5.
+Helhetsbetyget sätts inte separat utan härleds server-side som det aritmetiska
+medelvärdet av de dimensioner som ingår i modellen och lagras som decimal.
+Klienten får därför inte skicka ett manuellt overall för en review med ny modell.
+
+Hämtmat väljer alltid takeaway-modellen. För besök på plats avgör gruppens hela
+`Passar för`-mängd om Atmosfär ingår: endast **Snabbt och enkelt** ger quick-
+modellen, medan **Avslappnat** och/eller **Något extra** ger atmosphere-modellen,
+även i kombination med Snabbt. Saknas `Passar för` får den metadata som behövs
+för ett nytt på-plats-omdöme sparas på gruppens platsrelation; ett
+Hämtmat-omdöme förblir entydigt även utan sådan klassificering men ett frivilligt
+val får fortfarande komplettera gruppens platsmetadata. Senare ändringar av
+`Passar för` eller besökskontext skriver aldrig om en befintlig reviews frysta
+modell eller historiska score.
+
+Befintliga reviews från före den härledda modellen har `review_model IS NULL` och
+behåller sitt manuella helhetsbetyg 1–5 samt sina tidigare frivilliga
+detaljbetyg. Migrationen backfillar varken `review_model`, Atmosfär eller nya
+värden på legacy-reviews. `dryck` (**Något att dricka**) är fortsatt ett
+fullvärdigt men scorelöst besök: inga numeriska reviewfält får sättas och
+besöket påverkar inte matställets betyg, men deltagande, progression, återbesök,
+kommentar och foto fungerar enligt samma kanoniska besöksmodell.
 
 `visits.is_takeaway` är en kanonisk egenskap på besöket. `false` är implicit På
 plats och `true` betyder Hämtmat; den är inte ett `Passar för`-värde och ändrar
@@ -388,13 +406,16 @@ deltog i är den avsedda korrigeringen att radera felregistreringen och skapa
 besöket korrekt, inte att använda Matrundan som administrativ registrering åt
 andra.
 
-`save_own_review_for_visit_v1` kompletterar ett redan existerande kanoniskt
+`save_own_review_for_visit_v2` kompletterar ett redan existerande kanoniskt
 besök. Servern kräver att användaren är faktisk deltagare och att besöket är
-legitimt synligt i den aktuella gruppen. För scorebara besök krävs fortsatt
-helhetsbetyg 1–5. För `dryck` tillåts i stället en scorelös kommentar med null i
-alla ratingfält och `rating_visible = false`; en tom kommentar skapar inte ett
-meningslöst reviewobjekt. `reviews` behåller invarianten högst en kanonisk review
-per `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt i
+legitimt synligt i den aktuella gruppen. För scorebara reviews väljer servern
+samma nya reviewmodell och härleder overall från de relevanta dimensionerna. För
+`dryck` tillåts i stället en scorelös kommentar med null i alla ratingfält och
+`rating_visible = false`; en tom kommentar skapar inte ett meningslöst
+reviewobjekt. `update_own_review_v2` behåller en ny reviews frysta modell vid
+normal redigering, medan legacy-reviews fortsätter följa sin tidigare manuella
+modell. `reviews` behåller invarianten högst en kanonisk review per
+`(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt i
 `review_group_visibility` och löses inte genom reviewkopior.
 
 ### Privata omdömesreaktioner

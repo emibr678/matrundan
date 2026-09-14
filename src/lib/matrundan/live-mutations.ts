@@ -10,7 +10,7 @@ import { z } from "zod";
 import type { BulkPlaceAddResult, ProviderPlaceBatchInput } from "./bulk-place-add";
 import { MAX_BULK_PLACE_COUNT } from "./bulk-place-add";
 import { createManualPlaceFromFallback, reuseManualPlaceInGroup } from "./reusable-manual-places";
-import type { Place, Visit } from "./types";
+import type { Occasion, Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 import { flushNotificationOutbox } from "./notifications.functions";
 import { visitMealHasScore } from "./visit-context";
@@ -23,6 +23,11 @@ import { visitMealHasScore } from "./visit-context";
 export type ManualPlaceMutationHints = {
   reusePlaceId?: string;
   declinedReusablePlaceIds?: string[];
+};
+
+export type VisitMutationInput = Omit<Visit, "id"> & {
+  /** Endast när Passar för saknas och behöver frysas tillsammans med en ny review. */
+  reviewOccasions?: Occasion[];
 };
 
 /**
@@ -127,7 +132,7 @@ export async function liveCreatePlace(
 
 export async function liveCreateVisitWithReview(
   groupId: string,
-  input: Omit<Visit, "id">,
+  input: VisitMutationInput,
 ): Promise<string> {
   const visitedOn = input.date.length >= 10 ? input.date.slice(0, 10) : input.date;
   const guestNames = (input.participants ?? [])
@@ -137,7 +142,7 @@ export async function liveCreateVisitWithReview(
   const registrarParticipates = input.participantIds.includes(input.createdBy);
   const scored = visitMealHasScore(input.meal);
   const visitId = await rpcClient.call(
-    "create_visit_with_review_v4",
+    "create_visit_with_review_v5",
     {
       _group_id: groupId,
       _place_id: input.placeId,
@@ -145,12 +150,13 @@ export async function liveCreateVisitWithReview(
       _meal_type: input.meal,
       _participant_ids: input.participantIds ?? [],
       _is_takeaway: scored && input.isTakeaway === true,
-      _overall: registrarParticipates && scored ? input.overall : null,
       _taste: registrarParticipates && scored ? nn(input.taste) : null,
       _value: registrarParticipates && scored ? nn(input.value) : null,
       _service: registrarParticipates && scored ? nn(input.service) : null,
+      _atmosphere: registrarParticipates && scored ? nn(input.atmosphere) : null,
       _comment: registrarParticipates ? nn(input.comment) : null,
       _guest_names: guestNames,
+      _review_occasions: input.reviewOccasions ?? null,
     },
     ID_SCHEMA,
     "Kunde inte registrera besöket.",
