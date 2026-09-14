@@ -4,6 +4,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
 import { CreateGroupAuthDialog } from "@/components/matrundan/CreateGroupAuthDialog";
+import { EnvironmentBadge } from "@/components/matrundan/EnvironmentBadge";
 import { MatrundanBrand } from "@/components/matrundan/MatrundanBrand";
 import { Button } from "@/components/ui/button";
 import { clearExampleGuestProposalState } from "@/lib/matrundan/demo-state";
@@ -44,22 +45,25 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
     <div className="paper-grain min-h-dvh text-foreground">
       <div className="mx-auto flex min-h-dvh max-w-6xl flex-col pb-24 md:pb-8">
         <header className="flex items-center justify-between gap-2 px-4 pb-3 pt-6 md:gap-4 md:px-5 md:pt-8">
-          {exampleMode ? (
-            <a
-              href="/"
-              className="shrink-0"
-              onClick={(event) => {
-                event.preventDefault();
-                exitExampleMode();
-              }}
-            >
-              {brand}
-            </a>
-          ) : (
-            <Link to={homeTarget} className="shrink-0">
-              {brand}
-            </Link>
-          )}
+          <div className="flex min-w-0 flex-col items-start gap-1 md:flex-row md:items-center md:gap-1.5">
+            {exampleMode ? (
+              <a
+                href="/"
+                className="shrink-0"
+                onClick={(event) => {
+                  event.preventDefault();
+                  exitExampleMode();
+                }}
+              >
+                {brand}
+              </a>
+            ) : (
+              <Link to={homeTarget} className="shrink-0">
+                {brand}
+              </Link>
+            )}
+            <EnvironmentBadge />
+          </div>
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Huvudmeny">
             {NAV.map((item) => {

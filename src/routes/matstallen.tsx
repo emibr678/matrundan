@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
+import { appPageTitle } from "@/lib/app-environment";
 
 import {
   Sheet,
@@ -45,12 +46,12 @@ import {
 export const Route = createFileRoute("/matstallen")({
   head: () => ({
     meta: [
-      { title: "Matställen · Matrundan" },
+      { title: appPageTitle("Matställen") },
       {
         name: "description",
         content: "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
       },
-      { property: "og:title", content: "Matställen · Matrundan" },
+      { property: "og:title", content: appPageTitle("Matställen") },
       {
         property: "og:description",
         content: "Gruppens gemensamma matställeslista.",

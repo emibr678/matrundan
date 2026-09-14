@@ -10,6 +10,13 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { installBrowserErrorReporting, reportBrowserError } from "../lib/browser-error-reporting";
 import { AppShell } from "@/components/matrundan/AppShell";
+import {
+  APP_DISPLAY_NAME,
+  APP_ICON_PATH,
+  APP_ICON_TYPE,
+  APP_MANIFEST_PATH,
+  APPLE_TOUCH_ICON_PATH,
+} from "@/lib/app-environment";
 
 function NotFoundComponent() {
   return (
@@ -61,13 +68,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Matrundan – gruppens matställeslista" },
+      { title: `${APP_DISPLAY_NAME} – gruppens matställeslista` },
       {
         name: "description",
         content:
           "Matrundan är en privat matställeslista för vänner och familj. Lägg till, välj nästa stopp, registrera besök och spara gruppens egna betyg.",
       },
-      { property: "og:title", content: "Matrundan – gruppens matställeslista" },
+      { property: "og:title", content: `${APP_DISPLAY_NAME} – gruppens matställeslista` },
       {
         property: "og:description",
         content:
@@ -77,14 +84,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#c05f3c" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "Matrundan" },
+      { name: "apple-mobile-web-app-title", content: APP_DISPLAY_NAME },
       { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "icon", href: APP_ICON_PATH, type: APP_ICON_TYPE },
+      { rel: "manifest", href: APP_MANIFEST_PATH },
+      { rel: "apple-touch-icon", href: APPLE_TOUCH_ICON_PATH, sizes: "180x180" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {

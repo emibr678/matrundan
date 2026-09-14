@@ -8,6 +8,7 @@ import { RatingStars } from "@/components/matrundan/Rating";
 import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { appPageTitle } from "@/lib/app-environment";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/besok")({
   search: { middlewares: [stripSearchParams(VISIT_SEARCH_DEFAULTS)] },
   head: () => ({
     meta: [
-      { title: "Alla besök · Matrundan" },
+      { title: appPageTitle("Alla besök") },
       {
         name: "description",
         content: "Bläddra i gruppens gemensamma besökshistorik.",

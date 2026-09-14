@@ -2,6 +2,7 @@ import { Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router"
 import * as React from "react";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
 import { LandingScreen } from "@/components/matrundan/LandingScreen";
+import { EnvironmentBadge } from "@/components/matrundan/EnvironmentBadge";
 import { MatrundanBrand } from "@/components/matrundan/MatrundanBrand";
 import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
 import { ShellChrome } from "@/components/matrundan/ShellChrome";
@@ -196,10 +197,13 @@ function ShellBody() {
 
 function Header({ showAuth }: { showAuth: boolean }) {
   return (
-    <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 pt-6 pb-3 md:pt-8">
-      <Link to="/" className="shrink-0">
-        <MatrundanBrand />
-      </Link>
+    <header className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 pt-6 pb-3 md:gap-4 md:px-5 md:pt-8">
+      <div className="flex min-w-0 flex-col items-start gap-1 md:flex-row md:items-center md:gap-1.5">
+        <Link to="/" className="shrink-0">
+          <MatrundanBrand />
+        </Link>
+        <EnvironmentBadge />
+      </div>
       {showAuth ? <AuthMenu /> : null}
     </header>
   );

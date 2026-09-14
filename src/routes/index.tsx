@@ -4,6 +4,7 @@ import { ChevronRight, Heart, Plus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { appPageTitle } from "@/lib/app-environment";
 import { useStore } from "@/lib/matrundan/store";
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
@@ -17,12 +18,12 @@ import { formatRating } from "@/lib/matrundan/version";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Hem · Matrundan" },
+      { title: appPageTitle("Hem") },
       {
         name: "description",
         content: "Se gruppens nästa stopp och gemensamma framsteg på ett ställe.",
       },
-      { property: "og:title", content: "Hem · Matrundan" },
+      { property: "og:title", content: appPageTitle("Hem") },
       {
         property: "og:description",
         content: "Nästa stopp och gruppens gemensamma matresa.",
