@@ -24,9 +24,7 @@ describe("stagingdatabas-workflowets kontrakt", () => {
   test("använder endast den staging-scopeade migrationsvägen", () => {
     expect(workflow).toContain("environment: staging");
     expect(workflow).toContain("STAGING_SUPABASE_MIGRATIONS_TOKEN");
-    expect(workflow).toContain(
-      "STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia",
-    );
+    expect(workflow).toContain("STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia");
     expect(workflow).toContain(
       "'https://api.supabase.com/v1/projects/' + projectId + '/database/migrations'",
     );
@@ -47,9 +45,7 @@ describe("stagingdatabas-workflowets kontrakt", () => {
     expect(workflow).toContain("const missing = missingFrom(before, local)");
     expect(workflow).toContain("for (const migration of missing)");
     expect(workflow).toContain("const after = await listRemoteNames()");
-    expect(workflow).toContain(
-      "const stillMissing = missingFrom(after, local)",
-    );
+    expect(workflow).toContain("const stillMissing = missingFrom(after, local)");
   });
 
   test("verifierar exakt Cloudflare-preview och lämnar ett mobilt PR-kvitto", () => {
@@ -58,9 +54,7 @@ describe("stagingdatabas-workflowets kontrakt", () => {
     expect(workflow).toContain("previewUrl + '/api/health'");
     expect(workflow).toContain("payload?.release === expectedRelease");
     expect(workflow).toContain("Surface verified staging preview on the PR");
-    expect(workflow).toContain(
-      "Productiondatabas och production-Worker: orörda",
-    );
+    expect(workflow).toContain("Productiondatabas och production-Worker: orörda");
     expect(workflow).toContain("issues: write");
   });
 });
