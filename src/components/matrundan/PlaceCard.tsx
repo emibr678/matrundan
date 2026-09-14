@@ -18,12 +18,7 @@ export function formatCompactPlaceAddress(address: string, city: string): string
       .map((part) => part.trim().toLocaleLowerCase("sv"))
       .includes(normalizedCity);
 
-  return [
-    address.trim(),
-    addressAlreadyContainsCity ? "" : city.trim(),
-  ]
-    .filter(Boolean)
-    .join(", ");
+  return [address.trim(), addressAlreadyContainsCity ? "" : city.trim()].filter(Boolean).join(", ");
 }
 
 export function PlaceThumb({ place, size = "md" }: { place: Place; size?: PlaceIdentityMarkSize }) {
@@ -95,9 +90,7 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
 
           <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" />
-            <span className="truncate">
-              {formatCompactPlaceAddress(place.address, place.city)}
-            </span>
+            <span className="truncate">{formatCompactPlaceAddress(place.address, place.city)}</span>
           </div>
         </div>
       </div>
