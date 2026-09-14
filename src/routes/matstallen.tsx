@@ -243,7 +243,10 @@ function PlacesIndex() {
           >
             <div className="flex min-w-0 items-center gap-3">
               {topOpen ? (
-                <h2 id="place-leaderboard-heading" className="min-w-0 flex-1 font-display text-lg">
+                <h2
+                  id="place-leaderboard-heading"
+                  className="min-w-0 flex-1 font-display text-lg"
+                >
                   Topplista
                 </h2>
               ) : (
