@@ -17,7 +17,8 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await page.goto("/matstallen?demo=1");
 
   const leaderboard = page.getByTestId("occasion-leaderboard");
-  await leaderboard.getByRole("button", { name: "Visa", exact: true }).click();
+  await expect(leaderboard.getByRole("link", { name: /Ledare i topplistan:/ })).toBeVisible();
+  await leaderboard.getByRole("button", { name: "Visa topp 3", exact: true }).click();
   await expect(
     leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }),
   ).toHaveAttribute("aria-pressed", "true");
