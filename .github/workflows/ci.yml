@@ -135,7 +135,7 @@ jobs:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
         run: |
           bun run format:changed
-          git diff --binary | tee formatting.patch
+          git diff --binary > formatting.patch
 
       - name: Upload formatting patch
         if: failure() && steps.changes.outputs.has_format == 'true'
