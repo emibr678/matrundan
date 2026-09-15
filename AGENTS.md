@@ -141,9 +141,13 @@ Before merge, require the agreed scope, reviewed diff, relevant green checks,
 required rendered UX evidence, any explicitly requested Lovable evidence and no
 known blocker. Database deployment and publication remain separate approvals.
 
-After a candidate or merge, use the structured chat receipt in
+After a candidate or merge, use the visually structured chat receipt in
 `docs/development-workflow.md` and report the relevant evidence without blending
-merge, Lovable, database or publication status.
+merge, Lovable, database or publication status. Always include the `Preview:`
+field. Before handing off a GUI candidate, read the canonical `Mobile PR handoff`
+comment for the current PR head and use its exact verified preview URL; if the
+candidate has no rendered surface, state `Preview: Inte relevant` with a short
+reason instead of omitting the field.
 
 ## Documentation lifecycle
 
