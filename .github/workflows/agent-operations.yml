@@ -5,8 +5,9 @@ on:
     types: [created]
 
 permissions:
-  contents: read
   actions: write
+  contents: read
+  pull-requests: read
 
 defaults:
   run:
@@ -48,6 +49,9 @@ jobs:
             /^\/agent fast-verify ([A-Za-z0-9._/-]+) ([0-9a-f]{40})(?: (\S+))?$/,
           );
           const publicReadinessMatch = body.match(/^\/agent public-readiness ([0-9a-f]{40})$/);
+          const stagingDbMatch = body.match(
+            /^\/agent staging-db ([A-Za-z0-9._/-]+) ([0-9a-f]{40}) ([1-9][0-9]*) APPLY_STAGING_DB$/,
+          );
 
           const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
           const apiRoot = 'https://api.github.com';
@@ -137,6 +141,52 @@ jobs:
             process.exit(0);
           }
 
+          if (stagingDbMatch) {
+            const [, branch, expectedSha, prNumber] = stagingDbMatch;
+            if (!validBranchName(branch)) {
+              console.error('Invalid branch name for staging database apply.');
+              process.exit(1);
+            }
+
+            const branchSha = await resolveBranchSha(branch);
+            if (branchSha !== expectedSha) {
+              console.error(
+                `Refusing stale staging database command: ${branch} is ${branchSha}, expected ${expectedSha}.`,
+              );
+              process.exit(1);
+            }
+
+            const response = await fetch(
+              `${apiRoot}/repos/${owner}/${repo}/pulls/${prNumber}`,
+              { headers, signal: AbortSignal.timeout(10_000) },
+            );
+            const pullRequest = await response.json().catch(() => null);
+            if (
+              !response.ok ||
+              pullRequest?.state !== 'open' ||
+              pullRequest?.base?.ref !== 'main' ||
+              pullRequest?.head?.repo?.full_name !== process.env.GITHUB_REPOSITORY ||
+              pullRequest?.head?.ref !== branch ||
+              pullRequest?.head?.sha !== expectedSha
+            ) {
+              console.error(
+                'Staging database apply requires an open PR to main whose exact head branch and SHA match the command.',
+              );
+              process.exit(1);
+            }
+
+            await dispatch('staging-db-apply.yml', {
+              branch,
+              expected_sha: expectedSha,
+              pr_number: prNumber,
+              confirmation: 'APPLY_STAGING_DB',
+            });
+            console.log(
+              `Dispatched approved staging database apply for PR #${prNumber} at ${expectedSha}.`,
+            );
+            process.exit(0);
+          }
+
           if (publicReadinessMatch) {
             const expectedSha = publicReadinessMatch[1];
             const mainSha = await resolveBranchSha('main');
@@ -155,5 +205,6 @@ jobs:
           console.error('Allowed commands:');
           console.error('/agent fast-verify <branch> <40-character-sha> [visual-path]');
           console.error('/agent public-readiness <40-character-main-sha>');
+          console.error('/agent staging-db <branch> <40-character-sha> <pr-number> APPLY_STAGING_DB');
           process.exit(1);
           NODE
