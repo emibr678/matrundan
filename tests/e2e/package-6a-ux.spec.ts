@@ -119,6 +119,13 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   expect(collectionTop).toBeLessThan(searchBox!.y);
   expect(Math.abs(searchBox!.y - filterBox!.y)).toBeLessThanOrEqual(1);
 
+  const longStatusBox = await page
+    .getByText("3 av 5 har provat", { exact: true })
+    .first()
+    .boundingBox();
+  expect(longStatusBox).not.toBeNull();
+  expect(longStatusBox!.x + longStatusBox!.width).toBeLessThanOrEqual(360);
+
   await search.fill("Kvarterets");
   await expect(leaderboard).toBeVisible();
   await expect(page.getByRole("link", { name: /Kvarterets Kardemumma Café/ })).toBeVisible();
