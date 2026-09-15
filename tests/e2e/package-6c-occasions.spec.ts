@@ -97,13 +97,14 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   ).toHaveCount(0);
 
   await manualDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
-  const guide = page.getByRole("dialog", { name: "Så fungerar Passar för" });
-  await expect(guide).toContainText("Olika ställen för olika tillfällen");
-  await expect(guide).toContainText("Med Passar för beskriver gruppen");
-  await expect(guide).toContainText("inte hur bra eller dyrt det är");
+  const guide = page.getByRole("dialog", { name: "Passar för" });
+  await expect(guide).toContainText("Olika ställen passar olika bra beroende på vad ni är ute efter.");
   await expect(guide).toContainText("pizzeria");
   await expect(guide).toContainText("finkrog");
-  await expect(guide).toContainText("olika topplistor");
+  await expect(guide).toContainText("riktigt bra");
+  await expect(guide).toContainText("vid olika tillfällen");
+  await expect(guide).not.toContainText("inte hur bra eller dyrt det är");
+  await expect(guide).not.toContainText("olika topplistor");
   await expect(guide).not.toContainText("Välj en eller två kategorier");
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
   await guide.getByRole("button", { name: "Stäng", exact: true }).first().click();
