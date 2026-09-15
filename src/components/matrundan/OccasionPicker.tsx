@@ -44,15 +44,16 @@ const OccasionGuideTrigger = React.forwardRef<
 ));
 OccasionGuideTrigger.displayName = "OccasionGuideTrigger";
 
-export function OccasionGuideContent() {
+export function OccasionGuideContent({ showHeading = true }: { showHeading?: boolean }) {
   return (
     <div className="min-w-0 space-y-3">
       <div>
-        <div className="font-medium">Olika ställen för olika tillfällen</div>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Med <strong className="font-semibold text-foreground">Passar för</strong> beskriver
-          gruppen vilken sorts besök ett ställe lämpar sig för – inte hur bra eller dyrt det är. En
-          pizzeria och en finkrog kan båda få höga betyg – i olika topplistor.
+        {showHeading ? <div className="font-medium">Passar för</div> : null}
+        <p
+          className={`${showHeading ? "mt-1 " : ""}text-xs leading-relaxed text-muted-foreground`}
+        >
+          Olika ställen passar olika bra beroende på vad ni är ute efter. En pizzeria och en finkrog
+          kan båda vara riktigt bra – fast vid olika tillfällen.
         </p>
       </div>
       <div className="space-y-2.5">
@@ -80,9 +81,9 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
         </DialogTrigger>
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-sm">
           <DialogHeader className="pr-8 text-left">
-            <DialogTitle>Så fungerar Passar för</DialogTitle>
+            <DialogTitle>Passar för</DialogTitle>
           </DialogHeader>
-          <OccasionGuideContent />
+          <OccasionGuideContent showHeading={false} />
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" className="min-h-11 w-full">
