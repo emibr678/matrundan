@@ -318,30 +318,48 @@ fortsätta.
 
 När en verklig handoff nås:
 
+- använd en tydlig statusrubrik med en konsekvent symbol: **✅ Redo att testa**,
+  **✅ Klar för beslut**, **⏳ Väntar** eller **⛔ Blockerad**;
 - börja med läget i användarspråk och om användaren behöver göra något;
 - visa högst den aktuella blockeraren eller beslutspunkten, inte flera interna
   delsteg som likvärdiga problem;
-- visa alltid relevant verifierad previewlänk när en sådan finns;
+- visa alltid fältet **Preview:**. För en GUI-kandidat ska det vara en klickbar,
+  verifierad länk för exakt kandidat. För en kandidat utan relevant renderad yta
+  skrivs i stället **Inte relevant** med ett kort skäl;
+- gruppera verifiering på en kort rad, exempelvis **CI + mobil browser: ✅**, och
+  skilj väntande från godkänt visuellt i stället för att gömma läget i brödtext;
 - håll SHA, tree-hash, runnerdetaljer, migrationsfilnamn och rå workflowstatus i
   PR/Actions om de inte behövs för själva beslutet;
 - lista inte allt som inte har gjorts om det inte finns konkret risk att blanda
   ihop merge, databas, Lovable eller publicering;
 - avsluta med **Nästa från dig: ...** när användarinput faktiskt krävs.
 
-En normal testhandoff kan vara:
+En normal testhandoff återanvänder samma visuella struktur även när innehållet
+varierar:
 
-```text
-Redo att testa
-Preview: https://...
-CI + UX: ✅
-Testa främst: A, B, C
-Nästa från dig: säg vad som känns fel eller om kandidaten ser bra ut.
+```markdown
+## ✅ Redo att testa
+
+**Preview:** [Öppna appen →](https://...)
+**Verifierat:** CI ✅ · Mobil browser ✅
+**Testa främst:** A, B, C
+**Nästa från dig:** säg vad som känns fel eller om kandidaten ser bra ut.
 ```
 
-En docs/backend-kandidat utan preview kan i stället kort säga att kandidaten är
-verifierad och vilken beslutspunkt som återstår. Efter merge redovisas endast de
-separata statusar som är relevanta för att undvika sammanblandning, exempelvis
-om databasen fortfarande inte är driftsatt eller publicering inte har skett.
+En docs/backend-kandidat använder samma fält men skriver exempelvis
+**Preview: Inte relevant – endast dokumentation**. En GUI-kandidat får inte
+beskrivas som redo för användartest om det maskinella PR-kvittot för aktuell head
+saknar en exakt verifierad preview. Efter merge redovisas endast de separata
+statusar som är relevanta för att undvika sammanblandning, exempelvis om
+databasen fortfarande inte är driftsatt eller publicering inte har skett.
+
+När ordinarie CI blir grön på en redo-PR skapar eller uppdaterar workflowet
+`Mobile PR handoff` ett kanoniskt PR-kvitto. GUI-kandidater får en framträdande
+länk först efter att Cloudflares commit-preview svarat på `/api/health` med exakt
+head-SHA. Kandidater utan GUI-diff får ett uttryckligt **Preview: Inte relevant**.
+Agenten ska läsa det aktuella kvittot före handoff i chatten och anpassa
+**Testa främst** och **Nästa från dig** till uppgiften; den automatiska kommentaren
+är verifierat underlag, inte en ersättning för relevant mänsklig sammanfattning.
 
 PR-mallen är fortsatt GitHubs fullständigare evidenskvitto. Chattens handoff ska
 vara den minsta status användaren behöver för att tryggt granska och fatta nästa
