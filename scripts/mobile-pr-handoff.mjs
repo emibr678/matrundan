@@ -211,7 +211,15 @@ export async function main() {
       body: JSON.stringify({ body }),
     });
     if (!response.ok) {
-      throw new Error("Kunde inte uppdatera det mobila PR-kvittot (HTTP " + response.status + ").");
+      const detail = await response.text().catch(() => "");
+      const acceptedPermissions = response.headers.get("x-accepted-github-permissions");
+      throw new Error(
+        "Kunde inte uppdatera det mobila PR-kvittot (HTTP " +
+          response.status +
+          (acceptedPermissions ? ", kräver " + acceptedPermissions : "") +
+          ")." +
+          (detail ? " GitHub: " + detail.slice(0, 500) : ""),
+      );
     }
   }
 

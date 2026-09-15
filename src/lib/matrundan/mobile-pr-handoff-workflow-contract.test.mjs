@@ -18,7 +18,8 @@ describe("det mobila PR-kvittots workflow-kontrakt", () => {
     expect(workflow).toContain("github.event.workflow_run.event == 'pull_request'");
     expect(workflow).toContain("actions: read");
     expect(workflow).toContain("contents: read");
-    expect(workflow).toContain("issues: write");
+    expect(workflow).toContain("pull-requests: write");
+    expect(workflow).not.toContain("issues: write");
     expect(workflow).toContain("actions/checkout@v7");
     expect(workflow).toContain("ref: main");
     expect(workflow).toContain("persist-credentials: false");
