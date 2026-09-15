@@ -27,7 +27,7 @@ jobs:
   provision:
     name: Provision prod VAPID keypair
     if: github.ref == 'refs/heads/main'
-    runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: production
     env:

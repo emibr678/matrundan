@@ -80,9 +80,10 @@ När ett verkligt permanent restoremål behöver skapas återetableras environme
 
 ### Recovery-runnerns kontrakt
 
-Recovery är avsiktligt separerad från vanlig CI. Recovery-workflows använder repository-variabeln `MATRUNDAN_RECOVERY_RUNNER` och faller tillbaka till GitHub-hostad `ubuntu-24.04`. `MATRUNDAN_CI_RUNNER` ska inte styra recoveryjobben.
-
-GitHub-hostad Ubuntu är canonical recoverymiljö eftersom den är ephemeral och ger en tydlig trust boundary för produktionshemligheter. En alternativ recovery-runner ska vara en dedikerad Linux-runner med fungerande Docker daemon och tillräckligt temporärt diskutrymme.
+Recovery-workflows kör explicit på GitHub-hostad `ubuntu-24.04`. Runnern är
+ephemeral och ger en tydlig trust boundary för produktionshemligheter.
+Repository-variabler får inte styra `runs-on`, och en privat utvecklingsmaskin
+ska inte registreras som alternativ recovery-runner.
 
 Recoveryflödet verifierar bland annat Linux/Docker, repoets låsta verktygsversioner, PostgreSQL 17, tillgängligt diskutrymme och tomt lokalt restoremål innan privata backupbytes används.
 

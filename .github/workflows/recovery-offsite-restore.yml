@@ -27,7 +27,7 @@ jobs:
   restore:
     name: Off-site generation + local restore
     if: github.ref == 'refs/heads/main'
-    runs-on: ${{ vars.MATRUNDAN_RECOVERY_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     environment: production
     env:
@@ -84,7 +84,6 @@ jobs:
           fi
           echo "RECOVERY_RUNNER_TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
           echo "Recovery runner: $RUNNER_NAME ($RUNNER_OS/$RUNNER_ARCH)" >> "$GITHUB_STEP_SUMMARY"
-          echo "Configured recovery target: ${{ vars.MATRUNDAN_RECOVERY_RUNNER || 'ubuntu-24.04' }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up pinned Node
         uses: actions/setup-node@v4

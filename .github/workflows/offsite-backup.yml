@@ -45,7 +45,7 @@ jobs:
     if: >-
       (github.event_name == 'schedule' && github.event.schedule == '17 2 * * *') ||
       (github.event_name == 'workflow_dispatch' && inputs.mode == 'backup')
-    runs-on: ${{ vars.MATRUNDAN_BACKUP_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     environment: production
     env:
@@ -85,7 +85,7 @@ jobs:
             fi
           fi
 
-      - name: Prepare private runner paths
+      - name: Prepare recovery paths
         run: |
           set -euo pipefail
           if [[ "$RUNNER_OS" != "Linux" ]]; then
@@ -270,7 +270,7 @@ jobs:
     if: >-
       (github.event_name == 'schedule' && github.event.schedule != '17 2 * * *') ||
       (github.event_name == 'workflow_dispatch' && inputs.mode == 'check-rpo')
-    runs-on: ${{ vars.MATRUNDAN_BACKUP_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: production
     env:

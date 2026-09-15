@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   history-secret-scan:
-    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
