@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { resetDemoStateBeforeNavigation } from "./helpers/demo-state";
+
 async function expectNoHorizontalOverflow(page: Page, context: string) {
   const metrics = await page.evaluate(() => ({
     documentClientWidth: document.documentElement.clientWidth,
@@ -81,8 +83,7 @@ test("en medlem kan redigera endast sitt eget omdöme", async ({ page }) => {
 
 test("registreraren kan radera ett originalbesök med tydlig konsekvens", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.goto("/matstallen/p2?demo=1");
-  await page.evaluate(() => window.localStorage.removeItem("matrundan.state.v1"));
+  await resetDemoStateBeforeNavigation(page);
   await page.goto("/matstallen/p2?demo=1&visit=v1");
 
   const visitSheet = page.getByRole("dialog");

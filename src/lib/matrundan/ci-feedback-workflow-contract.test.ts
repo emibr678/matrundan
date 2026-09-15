@@ -28,12 +28,12 @@ describe("PR-verifieringens feedbackkontrakt", () => {
     expect(workflow).toContain("cancel-in-progress: true");
   });
 
-  test("redo-CI behåller hela mobilregressionen men kör två Playwright-workers", () => {
+  test("redo-CI kör två Playwright-workers och samlar högst tre fel", () => {
     const config = readFileSync(resolve(process.cwd(), playwrightConfigPath), "utf8");
     const workflow = readFileSync(resolve(process.cwd(), ciWorkflowPath), "utf8");
 
     expect(config).toContain("workers: process.env.CI ? 2 : undefined");
-    expect(workflow).toContain("bun run test:mobile -- --max-failures=1 --retries=0");
+    expect(workflow).toContain("bun run test:mobile -- --max-failures=3 --retries=0");
     expect(workflow).toContain("Mobile Chromium tests discovered:");
   });
 });
