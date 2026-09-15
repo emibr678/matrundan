@@ -98,7 +98,9 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
 
   await manualDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
   const guide = page.getByRole("dialog", { name: "Passar för" });
-  await expect(guide).toContainText("Olika ställen passar olika bra beroende på vad ni är ute efter.");
+  await expect(guide).toContainText(
+    "Olika ställen passar olika bra beroende på vad ni är ute efter.",
+  );
   await expect(guide).toContainText("pizzeria");
   await expect(guide).toContainText("finkrog");
   await expect(guide).toContainText("riktigt bra");
