@@ -49,9 +49,7 @@ export function OccasionGuideContent({ showHeading = true }: { showHeading?: boo
     <div className="min-w-0 space-y-3">
       <div>
         {showHeading ? <div className="font-medium">Passar för</div> : null}
-        <p
-          className={`${showHeading ? "mt-1 " : ""}text-xs leading-relaxed text-muted-foreground`}
-        >
+        <p className={`${showHeading ? "mt-1 " : ""}text-xs leading-relaxed text-muted-foreground`}>
           Olika ställen passar olika bra beroende på vad ni är ute efter. En pizzeria och en finkrog
           kan båda vara riktigt bra – fast vid olika tillfällen.
         </p>
