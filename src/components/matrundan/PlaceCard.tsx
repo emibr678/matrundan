@@ -72,8 +72,8 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
             ) : null}
           </div>
 
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            <div className="flex min-w-0 items-center gap-2">
               {rating.count > 0 ? (
                 <>
                   <RatingStars value={rating.overall} size={14} />
@@ -85,7 +85,9 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
                 <span className="text-xs italic text-muted-foreground">Inga omdömen än</span>
               )}
             </div>
-            <StatusBadge placeId={place.id} />
+            <div className="ml-auto shrink-0">
+              <StatusBadge placeId={place.id} />
+            </div>
           </div>
 
           <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
