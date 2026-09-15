@@ -48,11 +48,10 @@ function OccasionGuideContent() {
   return (
     <div className="min-w-0 space-y-3">
       <div>
-        <div className="font-medium">Topplistor för olika sorters besök</div>
+        <div className="font-medium">När passar stället?</div>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Topplistorna beskriver inte objektiv kvalitet eller prisnivå. De hjälper gruppen att välja
-          ett ställe som passar för besöket. En pizzeria och en finkrog kan båda få höga betyg – i
-          olika listor.
+          Passar för beskriver vilken sorts besök ett ställe lämpar sig för – inte objektiv kvalitet
+          eller prisnivå. En pizzeria och en finkrog kan båda få höga betyg – i olika kategorier.
         </p>
       </div>
       <div className="space-y-2.5">
@@ -66,9 +65,9 @@ function OccasionGuideContent() {
         ))}
       </div>
       <div className="border-t border-border/70 pt-3 text-xs leading-relaxed text-muted-foreground">
-        Välj en eller två kategorier som stället passar för. Valen är likvärdiga, och ett ställe med
-        två val kan visas i båda topplistorna. Det går bra att lämna valet tomt tills stället har
-        upplevts.
+        Välj en eller två kategorier som stället passar för. Valen är likvärdiga och används också
+        för gruppens topplistor. Ett ställe med två val kan visas i båda topplistorna. Det går bra
+        att lämna valet tomt tills stället har upplevts.
       </div>
     </div>
   );

@@ -100,14 +100,18 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
 
   const leaderboard = page.getByTestId("occasion-leaderboard");
   const collectionHeading = page.getByRole("heading", { name: "Gruppens ställen" });
-  const search = page.getByRole("textbox", { name: "Sök i gruppens lista" });
+  const search = page.getByRole("textbox", { name: "Sök bland gruppens ställen" });
   const filterButton = page.getByRole("button", { name: "Öppna filter och sortering" });
 
   await expect(leaderboard).toBeVisible();
   await expect(leaderboard.getByRole("link", { name: /Ledare i topplistan:/ })).toBeVisible();
   await expect(collectionHeading).toBeVisible();
-  await expect(collectionHeading.locator("..").getByText(/\d+ ställen?/)).toBeVisible();
-  await expect(search).toHaveAttribute("placeholder", "Sök i gruppens lista");
+  await expect(
+    collectionHeading
+      .locator("..")
+      .getByText(/\d+ ställen? som gruppen vill prova eller har besökt/),
+  ).toBeVisible();
+  await expect(search).toHaveAttribute("placeholder", "Sök bland gruppens ställen");
 
   const [topListTop, collectionTop, searchBox, filterBox] = await Promise.all([
     leaderboard.evaluate((element) => element.getBoundingClientRect().top),

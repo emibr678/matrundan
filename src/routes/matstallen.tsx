@@ -364,7 +364,9 @@ function PlacesIndex() {
       <div className="flex items-center justify-between gap-3 pt-1">
         <div className="min-w-0">
           <h2 className="font-display text-xl font-semibold">Gruppens ställen</h2>
-          <p className="text-xs text-muted-foreground">{activePlaceCountLabel}</p>
+          <p className="text-xs text-muted-foreground">
+            {activePlaceCountLabel} som gruppen vill prova eller har besökt
+          </p>
         </div>
         {canWrite ? (
           <Button
@@ -385,9 +387,9 @@ function PlacesIndex() {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Sök i gruppens lista"
+            placeholder="Sök bland gruppens ställen"
             className="h-10 rounded-2xl bg-card pl-9"
-            aria-label="Sök i gruppens lista"
+            aria-label="Sök bland gruppens ställen"
           />
         </div>
         <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
