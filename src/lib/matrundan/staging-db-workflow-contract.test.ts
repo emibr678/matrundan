@@ -55,6 +55,7 @@ describe("stagingdatabas-workflowets kontrakt", () => {
     expect(workflow).toContain("payload?.release === expectedRelease");
     expect(workflow).toContain("Surface verified staging preview on the PR");
     expect(workflow).toContain("Productiondatabas och production-Worker: orörda");
-    expect(workflow).toContain("issues: write");
+    expect(workflow).toContain("pull-requests: write");
+    expect(workflow).not.toContain("issues: write");
   });
 });
