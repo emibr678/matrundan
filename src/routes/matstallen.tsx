@@ -291,8 +291,8 @@ function PlacesIndex() {
             </div>
 
             <CollapsibleContent className="pt-3">
-              <div className="mb-2 flex min-h-8 items-center gap-1 text-xs font-medium text-muted-foreground">
-                <span>Passar för</span>
+              <div className="mb-2 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
+                <span>Visa topplista för</span>
                 <OccasionGuide compact />
               </div>
               <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">

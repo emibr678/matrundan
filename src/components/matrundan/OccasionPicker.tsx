@@ -44,14 +44,15 @@ const OccasionGuideTrigger = React.forwardRef<
 ));
 OccasionGuideTrigger.displayName = "OccasionGuideTrigger";
 
-function OccasionGuideContent() {
+export function OccasionGuideContent() {
   return (
     <div className="min-w-0 space-y-3">
       <div>
-        <div className="font-medium">När passar stället?</div>
+        <div className="font-medium">Olika ställen för olika tillfällen</div>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Passar för beskriver vilken sorts besök ett ställe lämpar sig för – inte objektiv kvalitet
-          eller prisnivå. En pizzeria och en finkrog kan båda få höga betyg – i olika kategorier.
+          Med <strong className="font-semibold text-foreground">Passar för</strong> beskriver
+          gruppen vilken sorts besök ett ställe lämpar sig för – inte hur bra eller dyrt det är. En
+          pizzeria och en finkrog kan båda få höga betyg – i olika topplistor.
         </p>
       </div>
       <div className="space-y-2.5">
@@ -63,11 +64,6 @@ function OccasionGuideContent() {
             </p>
           </div>
         ))}
-      </div>
-      <div className="border-t border-border/70 pt-3 text-xs leading-relaxed text-muted-foreground">
-        Välj en eller två kategorier som stället passar för. Valen är likvärdiga och används också
-        för gruppens topplistor. Ett ställe med två val kan visas i båda topplistorna. Det går bra
-        att lämna valet tomt tills stället har upplevts.
       </div>
     </div>
   );

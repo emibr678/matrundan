@@ -15,13 +15,8 @@ import {
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
 import { useStore } from "@/lib/matrundan/store";
-import {
-  OCCASION_DESCRIPTION,
-  OCCASION_LABEL,
-  OCCASION_VALUES,
-  type Occasion,
-  type Place,
-} from "@/lib/matrundan/types";
+import { OCCASION_LABEL, OCCASION_VALUES, type Occasion, type Place } from "@/lib/matrundan/types";
+import { OccasionGuideContent } from "./OccasionPicker";
 
 export function VisitPlaceOccasionDialog({
   open,
@@ -116,19 +111,8 @@ export function VisitPlaceOccasionDialog({
           </button>
 
           {showGuide ? (
-            <div className="space-y-3 rounded-2xl bg-secondary/40 p-3">
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Kategorierna beskriver vilken typ av besök stället passar för – inte hur bra eller
-                exklusivt det är.
-              </p>
-              {OCCASION_VALUES.map((occasion) => (
-                <div key={occasion}>
-                  <div className="text-sm font-medium">{OCCASION_LABEL[occasion]}</div>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    {OCCASION_DESCRIPTION[occasion]}
-                  </p>
-                </div>
-              ))}
+            <div className="rounded-2xl bg-secondary/40 p-3">
+              <OccasionGuideContent />
             </div>
           ) : null}
         </div>
