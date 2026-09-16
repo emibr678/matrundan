@@ -79,13 +79,12 @@ relativ arbetsordning är beslutad används `order:*`.
   Avsaknad av `order:*` betyder **inte exakt sekvenserad**, inte bortglömd.
 - Inbox och större delen av `priority:later` ska normalt lämnas oordnade tills
   deras inbördes plats faktiskt spelar roll. Undvik falsk precision.
-- Tiosteg används för att göra det möjligt att infoga ett nytt arbete mellan två
-  befintliga utan att rutinmässigt numrera om hela kön.
+- Tiosteg används för att göra det möjligt att infoga nytt arbete mellan två
+  befintliga steg utan att rutinmässigt numrera om hela kön.
 - Ett parent-/epic-issue som spänner över flera leveranser ska normalt inte ha en
   egen `order:*`; de konkreta levererbara delarna rangordnas i stället.
 - För issues som ingår i roadmapen får `order:*` och roadmapens relativa ordning
-  inte motsäga varandra. När den ena ändras ska agenten kontrollera och vid behov
-  synka den andra i samma arbete.
+  inte motsäga varandra.
 
 ### Typetiketter
 
@@ -97,266 +96,194 @@ relativ arbetsordning är beslutad används `order:*`.
 
 1. Registrera idén som ett issue med `status:inbox`.
 2. Produktbedöm idén mot den gemensamma matresan.
-3. Dokumentera överenskommet scope och icke-mål i issuen och sätt
-   `status:agreed`.
-4. Ge issuen `order:*` först när dess relativa plats i den aktiva arbetskön är
-   avsiktligt beslutad.
+3. Dokumentera överenskommet scope och icke-mål och sätt `status:agreed`.
+4. Ge `order:*` först när den relativa platsen i den aktiva kön faktiskt är
+   beslutad.
 5. Inspektera aktuell kod, databas och dokumentation när funktionen närmar sig
    implementation.
 6. Lägg en konkret implementationsplan i issuen.
 7. Invänta uttryckligt implementationsgodkännande och sätt därefter
    `status:ready`.
-8. Implementera i en avgränsad branch och PR som refererar eller stänger
-   issuen.
-9. Verifiera och merge enligt utvecklingsflödet.
-10. Bekräfta efter merge att rätt issue stängdes och ta bort `status:ready` och
-    eventuell `order:*` om de ligger kvar på det stängda issuen.
-11. Driftsätt databas och publicera endast efter separat uttryckligt
-    godkännande.
+8. Implementera i avgränsad branch/PR och verifiera enligt utvecklingsflödet.
+9. Merge, databasdriftsättning och publicering kräver sina respektive separata
+   godkännanden.
 
 Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
 chatt. De får omprövas när aktuell kod, nya fakta eller ett tydligt
 produktproblem visar att beslutet behöver ändras.
 
-## Aktuellt arbete
+## Aktuell produktstatus och närmaste horisont
 
-Driftgrinderna **#142 Nygenererad öppen inbjudningslänk behandlas som redan
-använd** och **#137 Återställ produktionsvakter för sökområden och besöksfoton**
-har genomförts i v1.26.5 respektive v1.26.4. **#108 Gemensamt visuellt språk för
-platskandidater och tillagda matställen** genomfördes i v1.27.0.
+Under augusti–september 2026 har flera tidigare beroenden försvunnit:
 
-**Paket B – Sök och geografi** är genomfört. Det sista steget, **#149 Stöd
-geografiska boundaries och visualisera sökområden på kartan**, genomfördes i
-v1.31.0 via PR #180.
+- Paket B – Sök och geografi är genomfört.
+- Nästa stopp v2 är genomfört.
+- Paket E:s grund för kanoniska besök, faktisk deltagarstatus, flera deltagares
+  omdömen, dubblettskydd och gäst→medlem-bekräftelse är genomförd.
+- #197 har stabiliserat besökskontext med `Något att dricka` och separat
+  `Hämtmat`.
+- #307 har etablerat den historiskt frysta reviewmodellen och transparent härlett
+  helhetsbetyg.
+- #331 / PR #334 har tydliggjort Matställen-vyn, `Passar för`-topplistan och
+  gruppens ställen.
 
-Efter den planerade avstickaren till Paket B återupptogs **Paket A – Grundplatta
-och konsekvens**. **#104 Tydligare informationsarkitektur i
-gruppinställningarna** genomfördes i v1.32.0 via PR #190 och **#103 Central
-Matrundan-symbol och konsekvent varumärkesanvändning** genomfördes i v1.33.0 via
-PR #194. Paket A har därmed nått tillräcklig grundnivå för att nästa
-kärnproduktproblem ska prioriteras före återstående symbolpolish i #105 och
-#135.
+Backloggen revaliderades därför 2026-09-16 mot aktuell `main`. Två tidigare
+issues togs ur aktiva kön:
 
-**#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** är genomfört.
-Första leveransen av **#169 Bekräfta deltagande och komplettera gemensamma
-besök** genomfördes via PR #201, **#203 Samla deltagaromdömen i en tydlig
-besöksvy** via PR #206 och **#204 Synliggör besök som väntar på ditt omdöme** i
-v1.36.0 via PR #218. **#106 Nästa stopp v2: enkla förslag utan överskrivning**
-genomfördes i v1.37.0 via PR #223. **#101 Privata reaktioner på deltagarnas
-omdömen** är också genomförd och ligger kvar som produktkontrakt för gruppscopade,
-lågmälda reaktioner.
+- **#200 Uppmuntra faktiska deltagare att komplettera saknad platsmetadata efter
+  besök** stängdes som överspelad i sin föreslagna form. #307 löser redan saknat
+  `Passar för` där det behövs inför ett scorebart besök; generell
+  efterbesöks-nagging ska inte införas.
+- **#132 Gör saknad säker gatuadress handlingsbar i kontrollflödet** stängdes som
+  absorberad av det bredare #133.
 
-Den tillitskritiska regressionen **#244 Kommentar tillagd i efterhand blir inte
-reagerbar i gruppen** och de sekvenserade kärnleveranserna **#213 Förebygg dubbla
-kanoniska besök vid registrering och delning**, **#214 Bekräfta gäst→medlem-
-deltagande över gruppgränser**, **#197 Renodla besökskontext med Något att dricka
-och valfri Hämtmat-markering** samt **#307 Härled helhetsbetyg från Smak, Service,
-Prisvärdhet och Atmosfär** är genomförda. Deras aktiva status-, prioritets- och
-`order:*`-etiketter ska därför inte längre uppta den operativa kön.
+### Nästa produktdiskussion
 
-Nästa kvarvarande sekvenserade produktfeature är:
+**#318 Skala gruppbyte, igenkänning och grupphantering när användaren tillhör
+många grupper** är `priority:next` men fortfarande `status:inbox` eftersom den
+minsta sammanhängande lösningen ännu inte är låst.
 
-1. `order:080` – **#179 Dela besöksfoto uttryckligen tillsammans med delat
-   besök** (`priority:later`).
+Frågan är redan verklig: samma personer kan ha flera grupper med olika syften,
+och appen måste skala utan grupphierarkier, implicit cross-group-historik eller
+tung workspace-administration. #318 ska först spika vad som faktiskt behövs för
+snabbt gruppbyte, igenkänning, kort gruppbeskrivning och eventuell `Alla grupper`-
+yta.
 
-Att #179 nu är först bland de kvarvarande ordnade feature-issues innebär inte ett
-automatiskt beslut att påbörja implementationen eller flytta den till
-`priority:now`; det kräver fortsatt produktbedömning och uttryckligt
-godkännande. Historiska luckor i `order:*` lämnas medvetet kvar och redan
-slutförda steg numreras inte om.
+### Nästa överenskomna kärnleverans
 
-**#169 Bekräfta deltagande och komplettera gemensamma besök** ligger kvar som
-parent och varaktig produkt-/integritetsram för redan levererad deltagarsemantik.
-Parent-issuen ska inte ha en egen plats i den sekventiella kön.
+**#309 Redigera besöksuppgifter och deltagare i efterhand** är
+`status:agreed` + `priority:next`.
 
-Kärnan i **#207 Frikoppla drift från Lovable Cloud och etablera portabel
-plattform** är tekniskt genomförd: produktion kör Cloudflare/Supabase och Lovable
-är ett valfritt editor-/previewverktyg mot Staging. Issuen hålls öppen för den
-sista externa avvecklingen eller pausen av kvarvarande legacy Lovable
-Cloud-resurser och är fortsatt ett separat plattformsspår utan `order:*` mot
-produktkön.
+Att kunna rätta datum, besökskontext och faktiska deltagare på samma kanoniska
+besök är mer grundläggande än att bygga ytterligare statistik eller media ovanpå
+historiken. Funktionen ska följa #169:s deltagarinvarianter och #307:s historiskt
+frysta reviewmodell.
+
+### Närmaste efterföljande produktblock
+
+Följande är den rekommenderade riktningen efter #318/#309. De ligger fortsatt
+`priority:later` tills närmare planering för att undvika falsk precision:
+
+1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
+   besök** – återanvänd samma kanoniska plats mellan användarens grupper utan att
+   kopiera privat gruppdata. Målgruppsväljaren ska följa #318:s beslut.
+2. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
+   för** – slutför den kvarvarande informationsarkitekturen; gör inte om den
+   `Passar för`-copy som redan förbättrats genom #331.
+3. **#198 Härled filtrering och topplistor från verkliga besökstillfällen** – låt
+   faktisk historik börja hjälpa gruppen välja nästa ställe, ovanpå #197, #307
+   och den aktuella Matställen-hierarkin.
+
+Ingen `order:*` låses för detta block ännu. När #318 är produktspikad och #309
+närmar sig leverans ska den faktiska relativa ordningen bedömas igen utifrån
+aktuell produktnytta och beroenden.
+
+### Senare mediautbyggnad
+
+**#179 Dela besöksfoto uttryckligen tillsammans med delat besök** är fortsatt
+relevant men ligger `priority:later` utan `order:*`. Issuet är nu avgränsat till
+uttrycklig, serverstyrd fotoåtkomst per målgrupp.
+
+Den tidigare inbakade flerfotomålbilden har brutits ut till **#338 Stöd flera
+deltagares foton på samma kanoniska besök** (`status:inbox`, `priority:later`).
+Det gör att säker cross-group-fotodelning inte behöver bära ett helt framtida
+galleri i samma leverans.
 
 ## Paket A – Grundplatta och konsekvens
 
-**Prioritet:** `priority:later` för återstående delar
+Grundnivån är genomförd genom #107, #108, #104 och #103. Återstående arbete är
+polish och får inte tränga undan kärnflödet.
 
-Paketet förbättrar produktens konsekvens och skapar bättre förutsättningar för
-kommande funktioner. Efter #108 gick arbetet till Paket B. Paket B är nu
-genomfört och #104 samt #103 är klara. #105 och #135 ligger kvar som värdefull
-visuell polish men blockerar inte nästa kärnproduktsteg.
-
-Intern ordning när Paket A återupptas:
-
-1. ✅ **#107 Levande exempelgrupp med scenariokontrakt**  
-   Gör exempelgruppen till en liten, representativ och löpande underhållen
-   produktfixture. Genomförd i v1.26.3 via #138. Nya större funktioner ska
-   bedöma behovet av nya exempeldata och regressionsscenarier.
-2. ✅ **#108 Gemensamt visuellt språk för platskandidater och tillagda
-   matställen**  
-   Återanvänd platsidentitet och visuell hierarki utan att göra sökresultat och
-   detaljvy innehållsmässigt identiska. Genomförd i v1.27.0 via #151.
-3. ✅ **#104 Tydligare informationsarkitektur i gruppinställningarna**  
-   Organisera gruppytan efter konkreta uppgifter och separera gruppspecifikt
-   innehåll från personliga app- och kontoinställningar. Genomförd i v1.32.0 via
-   PR #190.
-4. ✅ **#103 Central Matrundan-symbol och konsekvent varumärkesanvändning**  
-   Använd en central varumärkeskomponent där symbolen representerar Matrundan,
-   men behåll matsymboler där de representerar grupper eller matställen.
-   Genomförd i v1.33.0 via PR #194.
-5. **#105 Utökat emoji- och symbolstöd för grupper och matställen**  
-   Utöka kurerade symbolval och stöd ett gruppspecifikt manuellt val.
-   Bilduppladdning ingår uttryckligen inte i detta scope.
-6. **#135 Härled representativa matställessymboler från kök och inriktning**  
-   Ge ställen en stabil automatisk symbol från normaliserad inriktning, kök och
-   kategori när ingen uttrycklig symbol finns. Manuellt gruppval ska ha
-   företräde och breda eller motstridiga utbud ska få en neutral fallback.
+- **#105 Utökat emoji- och symbolstöd för grupper och matställen** –
+  `status:agreed`, `priority:later`. Samordna gruppigenkänning med #318 när
+  relevant.
+- **#135 Härled representativa matställessymboler från kök och inriktning** –
+  `status:inbox`, `priority:later`. Revalidera först efter #199 eller när neutral
+  platsidentitet visar sig vara ett konkret problem.
 
 ## Paket D – Personlig inspiration
 
-**Prioritet:** `priority:later`, efter de närmaste kärnleveranserna
+**Prioritet:** senare, efter gruppskalning och de närmaste kärnleveranserna.
 
-Rekommenderad ordning:
+1. **#109 Personlig yta med Min matresa och Mina favoriter** – fortsatt giltig,
+   men ska inte själv designa `Mina grupper` eller gruppnavigation. Den delen
+   följer #318. Första framtida leverans bör sannolikt börja med personlig yta +
+   Mina favoriter före full statistik.
+2. **#102 Genererade personliga avatarer** – varm personlig polish med lokal
+   eller integritetssäker seedad avatar; ingen offentlig profil eller avancerad
+   avatarbyggare.
 
-1. **#109 Personlig yta med Min matresa och Mina favoriter**  
-   Börja med en tydlig personlig yta och Mina favoriter. Lägg därefter till
-   deduplicerad privat statistik över användarens faktiska deltagande i flera
-   grupper. Gruppspecifika profiler, progression och privat innehåll förblir
-   isolerade.
-2. **#102 Genererade personliga avatarer**  
-   Lägg till enkel lokal eller integritetssäker avatargenerering med seed och
-   möjlighet att slumpa om. Ingen avancerad avatarbyggare eller uppladdning av
-   egna profilbilder ingår.
-
-Personliga funktioner får inte skapa offentlig profil, global ranking eller en
-individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
+Personliga funktioner får inte skapa global progression, offentlig profil eller
+en individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
 
 ## Paket E – Gemensamma besöksminnen
 
-**Prioritet:** aktivt; #169, #203, #204, #101, #244, #213, #214, #197 och #307
-är genomförda. #179 är nästa kvarvarande sekvenserade feature i paketet.
+**#169 Bekräfta deltagande och komplettera gemensamma besök** ligger kvar som
+parent och varaktigt produkt-/integritetskontrakt, inte som egen leverans i kön.
+Parenten bär bland annat invariants för faktisk närvaro, ett identifierat
+deltagande per `(visit, user)`, ett aktivt eget omdöme per `(visit, user)` och
+cross-group-minimering.
 
-Rekommenderad paketordning:
+Genomförda delar omfattar #203, #204, #101, #213, #214, #197 och #307.
 
-1. ✅ **#169 Bekräfta deltagande och komplettera gemensamma besök – första
-   leveransen**  
-   Genomförd via PR #201. Den som registrerar ett nytt besök är själv faktisk
-   deltagare och lämnar sitt eget omdöme i registreringsflödet; registreringen
-   ger ingen extra progression utöver vanlig deltagarprogression. Andra
-   identifierade deltagare kan komplettera samma kanoniska besök med egna
-   omdömen och självkorrigera **Jag var inte med** / **Jag var med**.
-2. ✅ **#203 Samla deltagaromdömen i en tydlig besöksvy**  
-   Genomförd via PR #206. Besöksdetaljen samlar gruppens sammanfattning och
-   individuella deltagaromdömen i en gemensam hierarki och gör
-   deltagarkorrigeringen mer kompakt i normalfallet.
-3. ✅ **#204 Synliggör besök som väntar på ditt omdöme**  
-   Genomförd i v1.36.0 via PR #218. Identifierade faktiska deltagare får en
-   diskret pending-signal på hemvyn och i besökshistoriken när deras eget
-   omdöme saknas; signalen leder tillbaka till samma kanoniska besök och
-   försvinner efter eget omdöme eller korrigerad deltagarstatus.
-4. ✅ **#101 Privata reaktioner på deltagarnas omdömen**  
-   Gruppen kan svara lågmält med ❤️, 🤤, 🙌 eller 😂 på en deltagares synliga
-   omdömeskommentar. Reaktionen hör till omdömesbidraget men isoleras per grupp;
-   funktionen skapar ingen separat diskussion, reaktionsfeed eller social
-   progression. Regressionen #244 på redigerad kommentarsynlighet är också
-   genomförd.
-5. ✅ **#213 Förebygg dubbla kanoniska besök vid registrering och delning**  
-   Genomförd via PR #303. Ett konservativt dubblettskydd före nyregistrering och
-   delning återanvänder samma kanoniska visit när användaren väljer en stark
-   kandidat, utan automatisk efterhandsmerge eller cross-group-historikkatalog.
-6. ✅ **#214 Bekräfta gäst→medlem-deltagande över gruppgränser**  
-   Gäst→medlem-koppling kräver uttryckligt val och den utpekade personens egen
-   bekräftelse. Namn är presentation, aldrig identitet; ingen fuzzy
-   personmatchning eller cross-group-personkatalog uppstår.
-7. ✅ **#197 Renodla besökskontext med Något att dricka och valfri
-   Hämtmat-markering**  
-   På plats är implicit normalfall och Hämtmat en separat frivillig
-   besöksegenskap. `Något att dricka` är ett fullvärdigt kanoniskt besök utan
-   score och påverkar inte reviewaggregatet. Äldre `Kväll`-historik bevaras.
-8. ✅ **#307 Härled helhetsbetyg från Smak, Service, Prisvärdhet och Atmosfär**  
-   Nya scorebara reviews får ett transparent aritmetiskt helhetsbetyg från
-   relevanta detaljbetyg. Hämtmat använder Smak, Service och Prisvärdhet. På
-   plats med endast `Snabbt och enkelt` använder samma tre dimensioner, medan
-   `Avslappnat` och/eller `Något extra` även gör Atmosfär relevant. Reviewns
-   dimensionsmodell fryses historiskt så senare ändringar av `Passar för` inte
-   skriver om gamla reviews. Saknat `Passar för` löses som platsmetadata i en
-   separat platscentrerad fördialog före ny scorebar besöksregistrering.
-   Legacy-reviews bevaras utan destruktiv backfill och varje reviews eget
-   helhetsbetyg väger lika i platsaggregatet.
-9. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök**
-   (`order:080`, `priority:later`)  
-   Låt användaren uttryckligen välja om ett privat besöksfoto ska följa med till
-   en viss målgrupp. Fotoåtkomsten ska vara serverstyrd per målgrupp och får inte
-   exponera ursprungsgrupp eller ge mottagargruppen rätt att ändra originalfotot.
+Kvarvarande närliggande leveranser:
 
-#169 ligger kvar som parent och bär de varaktiga invariants för faktisk
-närvaro, ett kanoniskt deltagande per `(visit, user)`, ett aktivt eget omdöme per
-`(visit, user)` och cross-group-minimering. De konkreta senare leveranserna
-rangordnas genom öppna levererbara issues i stället för genom parent-issuen.
+1. **#309 Redigera besöksuppgifter och deltagare i efterhand** –
+   `priority:next`; närmaste överenskomna kärnfeature.
+2. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
+   `priority:later`; avgränsad cross-group-mediaåtkomst.
+3. **#338 Stöd flera deltagares foton på samma kanoniska besök** –
+   `status:inbox`, `priority:later`; separat framtida flerfotomålbild.
 
-Funktionerna ska vara förankrade i ett verkligt kanoniskt besök och stärka
-gruppens gemensamma minne. #203 gör flerpersons-omdömena begripliga i besöksvyn,
-#204 gör saknade egna omdömen upptäckbara utan nagging, #101 ger lågmälda privata
-reaktioner på deltagarnas omdömesbidrag, #213 förebygger nya kanoniska
-besöksdubletter, #214 hanterar känslig cross-group-identitet, #197 renodlar
-besökskontexten, #307 gör reviewdatan mer uttrycksfull och transparent och #179
-gäller uttrycklig och behörighetsstyrd fotodelning. Ingen av funktionerna får
-skapa global feed, offentlig social graf, offentliga likes eller progression för
-social aktivitet.
+Alla funktioner i paketet ska vara förankrade i verkliga kanoniska besök och får
+inte skapa global feed, offentlig social graf eller progression för social
+aktivitet.
 
 ## Paket F – Kanonisk platsidentitet och återanvändning
 
-**Prioritet:** `priority:later`
-
-Rekommenderad ordning:
+**Prioritet:** senare.
 
 1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
-   besök**  
-   Gör återanvändning av samma kanoniska `place_id` explicit från en redan känd
-   plats. Endast målgruppens `group_places`-relation skapas eller återaktiveras;
-   besök, anteckningar, favoriter och annan privat gruppdata följer inte med.
+   besök** – närmaste produktvärdet i paketet. #156 är redan genomfört och
+   blockerar inte längre. Gruppväljaren ska återanvända #318:s mönster.
 2. **#158 Stöd platsalias och säker sammanföring av kanoniska
-   matställesdubletter**  
-   Lägg senare till konservativa alias och dubblettkandidater samt en explicit,
-   administrativt granskad och transaktionell merge för bekräftade historiska
-   dubbletter. Ingen fuzzy automatisk massmerge ingår.
+   matställesdubletter** – fortsatt relevant men tungt historiskt
+   datakvalitetsarbete. Flytta fram först när faktiska dubbletter motiverar
+   migrations- och integritetsrisken.
 
-Paket F bygger vidare på den serverprincip som etablerats i #156 och ska stärka
-kanonisk identitet utan att skapa en publik katalog eller exponera vilka andra
-grupper som använder samma plats.
+Paketet ska stärka kanonisk identitet utan offentlig platskatalog eller läckage
+av vilka andra grupper som använder samma plats.
 
 ## Paket G – Gruppens platskunskap och historikbaserad vägledning
 
-**Prioritet:** `priority:later`
-
-Paketet ska skapa en lågfriktionsloop där gruppens verkliga erfarenheter både
-förbättrar privat platsmetadata och senare hjälper gruppen välja nästa ställe.
-Datan får vara rikare än UI:t: härledda signaler ska bara visas där de faktiskt
-hjälper och får inte skapa context overload eller ett separat statistiksystem.
-
-Rekommenderad ordning:
+**Prioritet:** senare, men #199/#198 ingår i närmaste produktblock efter
+#318/#309/#157.
 
 1. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
-   för**  
-   Gör skillnaden mellan verksamhetstyp, kök/inriktning och gruppens `Passar för`
-   begriplig. Behåll datamodellens ansvar och justera bland annat hjälpcopyn för
-   `Något extra`. Detta är ett litet hygienarbete som kan plockas tidigare om det
-   passar mellan större kärnleveranser, utan att ändra paketets huvudprioritet.
-2. **#200 Uppmuntra faktiska deltagare att komplettera saknad platsmetadata
-   efter besök**  
-   Låt en faktisk deltagare frivilligt komplettera saknat `Passar för` eller kök
-   och inriktning efter att besöket redan sparats. Samordna med #169 så att
-   efterbesöksflödet inte blir en serie konkurrerande prompts.
-3. **#198 Härled filtrering och topplistor från verkliga besökstillfällen**  
-   Använd verkliga besök och transparenta relevanta betyg för historikbaserade
-   signaler som `Bäst för fika` och `Bra för hämtmat`. Synliga betyg ska förbli
-   direkt begripliga från registrerade omdömen; evidensmängd får påverka när en
-   signal kvalificerar eller prioriteras men får inte förvränga betygssiffran.
-   Välj den minsta lämpliga presentationen – label, filter eller topplista – i
-   stället för att exponera varje härledd dimension överallt.
+   för** – fokusera på kvarvarande informationsarkitektur. Den generella
+   `Passar för`-copyn från #331 är redan landad och ska inte göras om utan
+   konkret skäl.
+2. **#198 Härled filtrering och topplistor från verkliga besökstillfällen** –
+   komplettera dagens karaktärsbaserade `Passar för`-topplistor med
+   historikbaserade signaler från verkliga besök. Synliga betyg ska vara direkt
+   begripliga från #307:s reviewvärden och evidensmängd får påverka när en signal
+   visas, inte förvränga stjärnbetyget.
 
-#198 förutsätter den stabila besökskontexten från #197 och den historiskt frysta,
-transparenta reviewmodellen från #307. Paketet är därför senare än de närmaste
-kärnleveranserna även om #199 kan genomföras fristående som mindre UX-hygien.
+**#200** är stängt som överspelat. Saknat `Passar för` hanteras redan i relevant
+platscentrerad kontext inför scorebara besök; generell efterbesöks-prompt för
+metadata ska inte återinföras utan nytt konkret behov.
+
+Datan får vara rikare än UI:t. Härledda signaler ska bara visas där de hjälper
+gruppen välja nästa ställe och får inte skapa ett separat statistiksystem.
+
+## Platsrättning och datakvalitet i användarflödet
+
+**#133 Samla rättning och komplettering av platsuppgifter i ett begripligt
+flöde** ligger fortsatt `priority:later` som den bredare framtida produktfrågan
+för adress, webbplats och öppettider.
+
+**#132** är stängt som absorberat av #133. Saknad säker adress ska alltså lösas i
+det sammanhållna flödet i stället för genom en separat specialväg.
 
 ## Parallellt maintenance- och kvalitetsspår
 
@@ -364,48 +291,27 @@ Maintenance konkurrerar inte automatiskt med produktroadmapen. Små blockerande
 eller tillitskritiska korrigeringar får göras mellan produktsteg; större DX- och
 refaktoriseringsarbete prioriteras först när det ger konkret utvecklingsnytta.
 
-- ✅ **#189 Uppdatera guest-privacy-preflight efter v5h-wrappern** är genomfört.
 - **#207 Frikoppla drift från Lovable Cloud och etablera portabel plattform** har
-  genomfört kärnmigrationen. Issuen är fortsatt öppen endast för den sista
-  verifierade avvecklingen/pausen av legacy Lovable Cloud-resurser; Lovable som
-  valfritt editor-/previewverktyg mot Staging ska finnas kvar.
+  genomfört kärnmigrationen och är fortsatt separat plattformsspår för sista
+  legacy-avvecklingen.
 - **#127 DX2B: Konsolidera Playwright-fixtures och minska sköra layouttester** och
   **#128 DX2C: Inför ändringsfragment och separat release-PR** ligger kvar som
-  oordnad maintenance-inbox och ska tas först när konkret utvecklingsnytta
-  motiverar dem.
-- ✅ **#129 DX2D1: Automatisera branchstädning och förbättra repohygien** är
-  genomfört.
-- ✅ **#130 DX2D2: Åtgärda deprecated API:er, döda beroenden och byggvarningar**
-  är genomfört.
-- **#296 Slutför public-repo polish och kosmetisk kodhygien** samlar den
-  återstående post-migrationspolishen utan produktbeteendeförändring. Det ska
-  inte tränga undan den beslutade produktkön efter att den aktuella kandidaten
-  är avslutad.
+  oordnad maintenance-inbox.
+- **#296 Slutför public-repo polish och kosmetisk kodhygien** är kosmetisk
+  maintenance och ska inte tränga undan produktkön.
 - **#143 Utred föräldralöst objekt i besöksfoto-bucketen** är ett separat
   driftfynd; ingen destruktiv åtgärd får göras utan uttryckligt godkännande.
-- **#133 Samla rättning och komplettering av platsuppgifter i ett begripligt
-  flöde** är den bredare framtida produktfrågan för platsdatakorrigering.
-  **#132 Gör saknad säker gatuadress handlingsbar i kontrollflödet** behandlas
-  som en lägre prioriterad delmängd tills #133 planeras.
 
 ## Genomförda paket
 
-När ett pakets sista issue är mergat flyttas paketet från den aktiva delen hit
-som en kort historisk post med paketnamn, datum eller version och länk till de
-stängda issues som bär detaljerna.
+Roadmapen ska inte återge full releasehistorik. Den finns i stängda issues,
+mergade PR:er, `CHANGELOG.md` och vid behov `docs/architecture.md`.
 
-Roadmapen ska inte återge full implementation eller releasehistorik. Den finns i
-stängda issues, mergade PR:er, `CHANGELOG.md` och vid behov
-`docs/architecture.md`.
-
-- ✅ **Paket B – Sök och geografi**  
-  Genomfört genom #147, #148, #156, #155, #163 och #149. Paketet löpte från
-  v1.27.1 till v1.31.0; sista steget #149 mergades via PR #180.
-- ✅ **Paket C – Nästa stopp v2**  
-  Genomfört i v1.37.0 genom #106 via PR #223. Det första ställesförslaget blir
-  nästa stopp, senare förslag bevaras utan overwrite och gruppen kan uttrycka
-  `Jag vill hit` samt en enkel gemensam dag utan att appen blir en omröstnings-
-  eller eventplanerare.
+- ✅ **Paket B – Sök och geografi** – genomfört genom #147, #148, #156, #155,
+  #163 och #149; sista steget mergades via PR #180.
+- ✅ **Paket C – Nästa stopp v2** – genomfört genom #106 via PR #223.
+- ✅ **Paket A:s grundnivå** – #107, #108, #104 och #103 är genomförda;
+  kvarvarande #105/#135 är senare polish.
 
 ## Exempelgruppen som permanent kontrakt
 
@@ -430,16 +336,13 @@ paket. När nästa arbete väljs bedöms:
 5. om roadmapen behöver uppdateras.
 
 När ett paket avslutas ska nästa paket inte automatiskt flyttas till
-`priority:now` utan en kort produktbedömning. Om prioriteringen ändras ska både
-roadmapen och berörda öppna issues uppdateras i samma PR eller i en omedelbart
-följande docs-only PR.
+`priority:now`. Om prioriteringen ändras ska roadmap och berörda issues hållas
+synkade utan att skapa artificiell `order:*`-precision.
 
 GitHub Project används som den operativa, människovänliga översikten över öppna
 issues. Vyer och sortering ska i första hand bygga på issue-state och labels
-(`status:*`, `priority:*`, `type:*`, `order:*`) som även agenter kan läsa.
-Project-only metadata får inte vara den enda källan till status, prioritet eller
-ordning. Issues som inte hör hemma i produktroadmapen får ändå finnas i
-projektet, och avsaknad av `order:*` är ett giltigt tillstånd.
+(`status:*`, `priority:*`, `type:*`, `order:*`). Project-only metadata får inte
+vara den enda källan till status, prioritet eller ordning.
 
 ## När roadmapen uppdateras
 
@@ -449,12 +352,10 @@ Uppdatera dokumentet när:
 - den relativa `order:*`-ordningen mellan roadmap-issues ändras;
 - ett varaktigt produktbeslut tillkommer eller tas bort;
 - ett övergripande feature-issue delas upp eller ersätts;
-- en funktion är genomförd och ska markeras som klar inom ett pågående paket;
-- ett pakets sista issue är genomfört och paketet flyttas till historik.
+- en funktion är genomförd och påverkar den kvarvarande produktkön;
+- en backloggrevision visar att tidigare beroenden eller scope inte längre är
+  aktuella.
 
-Roadmapen ska normalt **inte** uppdateras för:
-
-- varje commit eller patchversion;
-- små buggrättningar som inte ändrar produktens riktning;
-- tekniska implementationdetaljer som redan hör hemma i kod, PR eller
-  arkitekturdokumentation.
+Roadmapen ska normalt **inte** uppdateras för varje commit, liten buggrättning
+eller teknisk implementationdetalj som redan hör hemma i kod, PR eller
+arkitekturdokumentation.
