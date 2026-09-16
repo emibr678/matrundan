@@ -252,6 +252,7 @@ Tillåtna utvecklings-/verifieringskommandon är:
 ```text
 /agent fast-verify <branch> <40-character-sha> [visual-path]
 /agent public-readiness <40-character-main-sha>
+/agent staging-db <branch> <40-character-sha> <pr-number> APPLY_STAGING_DB
 ```
 
 `fast-verify` kräver att angiven branch fortfarande pekar exakt på SHA:n. Den
@@ -265,10 +266,24 @@ Full redo-CI krävs fortfarande som mergekvitto för färdig kandidat.
 startar endast repots read-only public-readiness/secret-scan. Den innebär inte
 merge-, databas- eller publiceringsgodkännande.
 
+`staging-db` får endast användas efter separat uttryckligt
+stagingdatabasgodkännande. Kommandot kräver en öppen PR till `main`, exakt
+branch/head-SHA, PR-nummer och den bokstavliga bekräftelsen
+`APPLY_STAGING_DB`. Det separata workflowet kräver dessutom grön ordinarie CI
+för samma PR/SHA, applicerar endast saknade repomigrationer mot Supabase
+**Matrundan Staging** och verifierar migrationshistorik samt den exakta
+Cloudflare-previewens `/api/health`. Productiondatabas och production-Worker
+är inte åtkomliga från den vägen.
+
+GitHub-environmenten `staging` ska ha en separat
+`STAGING_SUPABASE_MIGRATIONS_TOKEN`, projektbegränsad till Matrundan Staging
+med endast **Migrations → Read-write**. Den befintliga read-only-tokenen för
+normal Worker-deploy ska inte breddas.
+
 Agent Operations-dispatchern själv har `actions: write` enbart för att starta de
-två allowlistade workflowen. Kommandon accepteras endast från repositoryägaren på
-en vanlig Issue, aldrig från PR-kommentarer. Production-, recovery- och
-DB-operationer ingår inte i denna brygga.
+tre allowlistade workflowen. Kommandon accepteras endast från repositoryägaren på
+en vanlig Issue, aldrig från PR-kommentarer. Production- och
+recoveryoperationer ingår inte i denna brygga.
 
 ### Releasekontrakt för staging-first
 
