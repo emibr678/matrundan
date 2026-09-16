@@ -16,6 +16,7 @@ export interface UserGroupSummary {
   id: string;
   name: string;
   emoji: string | null;
+  description: string | null;
   role: GroupRole;
   lifecycleStatus: GroupLifecycleStatus;
 }
@@ -145,6 +146,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         id: group.id,
         name: group.name,
         emoji: group.emoji,
+        description: typeof group.description === "string" ? group.description : null,
         role: group.role,
         lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
       }))

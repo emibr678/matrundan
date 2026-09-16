@@ -121,6 +121,30 @@ export interface VerifiedSearchArea {
 /** Legacy-alias medan äldre gruppflöden fortfarande kan referera till namnet. */
 export type VerifiedHomeLocation = VerifiedSearchArea;
 
+export const GROUP_DESCRIPTION_MAX_LENGTH = 160;
+
+export interface GroupIdentityInput {
+  name: string;
+  emoji: string | null;
+  description: string | null;
+}
+
+export async function updateGroupIdentity(
+  groupId: string,
+  input: GroupIdentityInput,
+): Promise<void> {
+  const { error } = await supabase.rpc(
+    "update_group_identity_v1" as never,
+    {
+      _group_id: groupId,
+      _name: input.name,
+      _emoji: input.emoji ?? undefined,
+      _description: input.description?.trim() || undefined,
+    } as never,
+  );
+  if (error) throw toErr(error);
+}
+
 export interface GroupSettingsInput {
   name: string;
   emoji: string | null;
@@ -232,15 +256,17 @@ export async function transferGroupOwnership(groupId: string, newOwnerId: string
 export async function createGroupWithOwner(
   name: string,
   emoji: string | null,
+  description: string | null,
   searchAreas: VerifiedSearchArea[] | VerifiedSearchArea | null,
   defaultRadiusKm: SearchRadiusKm = 1,
 ): Promise<string> {
   const areas = Array.isArray(searchAreas) ? searchAreas : searchAreas ? [searchAreas] : [];
   const { data, error } = await supabase.rpc(
-    "create_group_with_owner_v2" as never,
+    "create_group_with_owner_v3" as never,
     {
       _name: name,
       _emoji: emoji ?? undefined,
+      _description: description?.trim() || undefined,
       _search_areas: areas.map(searchAreaPayload),
       _default_radius_km: defaultRadiusKm,
     } as never,
