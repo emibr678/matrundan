@@ -52,7 +52,7 @@ jobs:
 
     steps:
       - name: Check out exact approved candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.expected_sha }}
           fetch-depth: 0
