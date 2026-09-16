@@ -82,6 +82,7 @@ export interface PlaceDiscoverySnapshot {
 }
 
 export function PlaceDiscovery({
+  initialQuery = "",
   addedResultIds,
   selectedResults,
   bulkBusy,
@@ -95,6 +96,7 @@ export function PlaceDiscovery({
   onMissingPlace,
   onClose,
 }: {
+  initialQuery?: string;
   addedResultIds: Set<string>;
   selectedResults: PlaceSuggestion[];
   bulkBusy: boolean;
@@ -120,7 +122,7 @@ export function PlaceDiscovery({
     () => new Set(selectedResults.map((result) => result.externalId)),
     [selectedResults],
   );
-  const [query, setQuery] = React.useState(snapshot?.query ?? "");
+  const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(
     snapshot?.selectedAreaIds ?? savedAreas.map((area) => area.id),
   );

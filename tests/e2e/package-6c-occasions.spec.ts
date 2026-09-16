@@ -17,7 +17,8 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await page.goto("/matstallen?demo=1");
 
   const leaderboard = page.getByTestId("occasion-leaderboard");
-  await leaderboard.getByRole("button", { name: "Visa", exact: true }).click();
+  await expect(leaderboard.getByRole("link", { name: /Ledare i topplistan:/ })).toBeVisible();
+  await leaderboard.getByRole("button", { name: "Visa topp 3", exact: true }).click();
   await expect(
     leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -96,12 +97,17 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   ).toHaveCount(0);
 
   await manualDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
-  const guide = page.getByRole("dialog", { name: "Så fungerar Passar för" });
-  await expect(guide).toContainText("inte objektiv kvalitet");
+  const guide = page.getByRole("dialog", { name: "Passar för" });
+  await expect(guide).toContainText(
+    "Olika ställen passar olika bra beroende på vad ni är ute efter.",
+  );
   await expect(guide).toContainText("pizzeria");
-  await expect(guide).toContainText("Valen är likvärdiga");
-  await expect(guide).toContainText("båda topplistorna");
-  await expect(guide).toContainText("lämna valet tomt");
+  await expect(guide).toContainText("finkrog");
+  await expect(guide).toContainText("riktigt bra");
+  await expect(guide).toContainText("vid olika tillfällen");
+  await expect(guide).not.toContainText("inte hur bra eller dyrt det är");
+  await expect(guide).not.toContainText("olika topplistor");
+  await expect(guide).not.toContainText("Välj en eller två kategorier");
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
   await guide.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guide).toBeHidden();

@@ -52,9 +52,11 @@ type AddPlaceView = "search" | "fallback";
 export function AddPlaceDialogContent({
   open,
   onOpenChange,
+  initialQuery = "",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialQuery?: string;
 }) {
   const { state, addPlace } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
@@ -340,6 +342,7 @@ export function AddPlaceDialogContent({
 
           {view === "search" ? (
             <PlaceDiscovery
+              initialQuery={initialQuery}
               addedResultIds={addedResultIds}
               selectedResults={selectedResults}
               bulkBusy={bulkBusy || sourceLinkBusy}

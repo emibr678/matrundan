@@ -323,7 +323,7 @@ test("#307 saknat Passar för löses före själva besöksregistreringen", async
 
   await relaxed.click();
   await gate.getByRole("button", { name: "Vad betyder alternativen?" }).click();
-  await expect(gate.getByText(/inte hur bra eller exklusivt det är/)).toBeVisible();
+  await expect(gate.getByText(/Olika ställen passar olika bra/)).toBeVisible();
   await stabilize(page);
   await expectNoHorizontalOverflow(page, gate);
   await capture(page, testInfo, "issue-307-passar-for-forst");
