@@ -275,10 +275,12 @@ för samma PR/SHA, applicerar endast saknade repomigrationer mot Supabase
 Cloudflare-previewens `/api/health`. Productiondatabas och production-Worker
 är inte åtkomliga från den vägen.
 
-GitHub-environmenten `staging` ska ha en separat
-`STAGING_SUPABASE_MIGRATIONS_TOKEN`, projektbegränsad till Matrundan Staging
-med endast **Migrations → Read-write**. Den befintliga read-only-tokenen för
-normal Worker-deploy ska inte breddas.
+GitHub-environmenten `staging` använder samma
+`STAGING_SUPABASE_ACCESS_TOKEN` för normal stagingkontroll och den separat
+godkända stagingdatabasvägen. Tokenen ska vara projektbegränsad till Matrundan
+Staging med **Migrations → Read-write**. Den normala Worker-deployen använder
+dock endast tokenen för läsning av migrationshistoriken; skrivning sker endast
+i `staging-db`-workflowet efter dess explicita DB-godkännande samt PR-/SHA-/CI-grindar.
 
 Agent Operations-dispatchern själv har `actions: write` enbart för att starta de
 tre allowlistade workflowen. Kommandon accepteras endast från repositoryägaren på

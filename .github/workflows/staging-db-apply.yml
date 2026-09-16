@@ -48,7 +48,7 @@ jobs:
     environment: staging
     env:
       GITHUB_API_TOKEN: ${{ github.token }}
-      STAGING_SUPABASE_MIGRATIONS_TOKEN: ${{ secrets.STAGING_SUPABASE_MIGRATIONS_TOKEN }}
+      STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
 
     steps:
       - name: Check out exact approved candidate
@@ -159,11 +159,11 @@ jobs:
           console.log('Verified explicit staging approval, exact open PR head and green CI.');
           NODE
 
-      - name: Validate staging migration credential
+      - name: Validate staging Management API credential
         run: |
           set -euo pipefail
-          if [[ -z "${STAGING_SUPABASE_MIGRATIONS_TOKEN:-}" ]]; then
-            echo "Missing STAGING_SUPABASE_MIGRATIONS_TOKEN in the GitHub staging environment." >&2
+          if [[ -z "${STAGING_SUPABASE_ACCESS_TOKEN:-}" ]]; then
+            echo "Missing STAGING_SUPABASE_ACCESS_TOKEN in the GitHub staging environment." >&2
             exit 1
           fi
 
@@ -175,7 +175,7 @@ jobs:
           import fs from 'node:fs';
           import path from 'node:path';
 
-          const token = process.env.STAGING_SUPABASE_MIGRATIONS_TOKEN;
+          const token = process.env.STAGING_SUPABASE_ACCESS_TOKEN;
           const projectId = process.env.STAGING_SUPABASE_PROJECT_ID;
           const targetSha = process.env.TARGET_SHA;
           const endpoint =
