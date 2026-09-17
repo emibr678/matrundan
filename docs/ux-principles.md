@@ -145,7 +145,7 @@ materiellt nytt beslut:
 4. lyft hit lärdomen först när den är återanvändbar eller flera observationer
    pekar på samma princip;
 5. låt Issue och PR behålla konkreta exempel och historik — här hör
-generaliseringen hemma.
+   generaliseringen hemma.
 
 ## Avgränsning
 
