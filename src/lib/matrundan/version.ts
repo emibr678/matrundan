@@ -282,7 +282,7 @@ const VERSION_1_36_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Nytt",
       items: [
-        "Hem visar en diskret signal för aktuella deltagarbesök där ditt eget omdöme saknas och länkar direkt till samma kanoniska besök.",
+        "Hem visar en diskret signal för aktuella deltagarbesök där ditt eget omdöme saknas och länkar direkt till samma gemensamma besök.",
         "Besök markerar samma aktuella besök med Ditt omdöme saknas, medan äldre obesvarade besök ligger kvar i historiken utan framträdande påminnelse.",
       ],
     },
