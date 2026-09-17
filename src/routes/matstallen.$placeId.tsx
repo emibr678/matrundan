@@ -227,7 +227,7 @@ function PlaceDetail() {
               <PlaceThumb place={place} size="detail" />
               <div className="min-w-0 self-center">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
-                  {CATEGORY_LABEL[place.category]}
+                  Typ av ställe · {CATEGORY_LABEL[place.category]}
                 </div>
                 <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
                   {place.name}
@@ -503,12 +503,15 @@ function PlaceDetail() {
         </div>
         <Card className="space-y-3 rounded-2xl border-border/70 p-4">
           {place.cuisines.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {place.cuisines.map((cuisine) => (
-                <Badge key={cuisine} variant="secondary" className="rounded-full">
-                  {cuisine}
-                </Badge>
-              ))}
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground">Kök och inriktning</div>
+              <div className="flex flex-wrap gap-1.5">
+                {place.cuisines.map((cuisine) => (
+                  <Badge key={cuisine} variant="secondary" className="rounded-full">
+                    {cuisine}
+                  </Badge>
+                ))}
+              </div>
             </div>
           ) : null}
           {occasions.length > 0 ? (
@@ -534,8 +537,11 @@ function PlaceDetail() {
           {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
           {(place.categoryOverride != null || place.cuisinesOverride != null) && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Kategori eller kök och inriktning har anpassats för den här gruppen. Matställets namn
-              och adress är oförändrade.
+              {place.categoryOverride != null && place.cuisinesOverride != null
+                ? `Typ av ställe och uppgifterna under Kök och inriktning är anpassade för ${state.group.name}.`
+                : place.categoryOverride != null
+                  ? `Typ av ställe är anpassad för ${state.group.name}.`
+                  : `Uppgifterna under Kök och inriktning är anpassade för ${state.group.name}.`}
             </p>
           )}
           <div className="text-xs text-muted-foreground">

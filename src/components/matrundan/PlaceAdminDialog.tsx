@@ -132,14 +132,14 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
           <DialogHeader>
             <DialogTitle>Ändra gruppens uppgifter om stället</DialogTitle>
             <DialogDescription>
-              Ändringarna gäller bara i {state.group.name}. Matställets kanoniska namn och adress
-              påverkas inte.
+              Ändringarna gäller bara i {state.group.name}. Namnet och adressen på själva stället
+              ändras inte.
             </DialogDescription>
           </DialogHeader>
 
           <div className="min-w-0 space-y-5">
             <div className="space-y-1.5">
-              <Label>Kategori i gruppen</Label>
+              <Label>Typ av ställe</Label>
               <Select
                 value={category}
                 onValueChange={(value) => setCategory(value as PlaceCategory | "inherit")}
@@ -149,7 +149,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="inherit">
-                    Grundkategori: {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
+                    Använd grundtypen: {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
                   </SelectItem>
                   {CATEGORIES.map((item) => (
                     <SelectItem key={item} value={item}>
@@ -158,6 +158,11 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {category === "inherit"
+                  ? "Gruppen använder samma typ som ställets grunduppgift."
+                  : `Den valda typen visas bara i ${state.group.name}.`}
+              </p>
             </div>
 
             <FoodTagMultiSelect
