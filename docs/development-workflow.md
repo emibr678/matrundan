@@ -65,6 +65,18 @@ En implementerande PR ska referera eller stänga sitt Issue. I mänsklig
 statusrapportering används **Issue #NNN — full titel** respektive
 **PR #NNN — full titel** när numren annars kan blandas ihop.
 
+### Materiella beslut i Issues
+
+När en produkt-/UX-diskussion materiellt ändrar scope, mental modell,
+informationshierarki, copyprincip, integritet eller huvudflöde ska relevant
+Issue-body uppdateras till aktuell sanning. Lägg dessutom en kort daterad
+beslutskommentar när varför, ett ersatt antagande eller ett viktigt fynd har
+framtida värde. Pixel- och spacingmikrobeslut behöver inte loggas.
+
+Om beslutet uppstår i chatten ska den varaktiga sanningen synkas till GitHub;
+chatthistoriken får inte vara enda permanenta källan. Återkommande UX- och
+copylärdomar promoveras enligt [ux-principles.md](./ux-principles.md).
+
 Roadmapen uppdateras när paket, prioritet, beslutad relativ ordning eller ett
 varaktigt produktbeslut ändras — inte för varje commit eller implementation.
 
@@ -375,6 +387,8 @@ beslut, inte en kopia av PR-mallen.
   och säkerhet.
 - `DEVELOPMENT.md` — miljösetup, tooling och exakta kommandon.
 - detta dokument — arbets- och leveransprocess.
+- `docs/ux-principles.md` — varaktiga produkt-UX-, interaktions- och
+  copyprinciper.
 - `docs/visual-review.md` — renderad UX och villkorad Lovable-granskning.
 - `CHANGELOG.md` + in-app-version — materialiserad användarsynlig releasehistorik;
   feature-PR:ers tillfälliga releaseunderlag hör hemma i PR-metadata fram till
