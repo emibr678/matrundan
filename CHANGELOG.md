@@ -14,6 +14,15 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.39.1] – 2026-09-17
+
+### Förbättrat
+
+- Matställen visar nu topplistans ledare direkt och skiljer tydligare på gruppens
+  lista och nya ställen.
+- En sökning utan träff kan fortsätta till tilläggsflödet utan att söktexten
+  behöver skrivas om.
+
 ## [1.39.0] – 2026-09-12
 
 ### Nytt

@@ -3,6 +3,21 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_39_1_CHANGELOG: ChangelogEntry = {
+  version: "1.39.1",
+  date: "2026-09-17",
+  summary: "Matställen skiljer tydligare på topplistan, gruppens lista och nya ställen.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Matställen visar nu topplistans ledare direkt och skiljer tydligare på gruppens lista och nya ställen.",
+        "En sökning utan träff kan fortsätta till tilläggsflödet utan att söktexten behöver skrivas om.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_39_0_CHANGELOG: ChangelogEntry = {
   version: "1.39.0",
   date: "2026-09-12",
@@ -368,6 +383,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_39_1_CHANGELOG,
   VERSION_1_39_0_CHANGELOG,
   VERSION_1_38_12_CHANGELOG,
   VERSION_1_38_11_CHANGELOG,
