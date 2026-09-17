@@ -1,9 +1,11 @@
 import * as React from "react";
 import {
   Archive,
+  Check,
   ChevronDown,
   Home,
   Info,
+  List,
   LogIn,
   LogOut,
   Mail,
@@ -26,9 +28,29 @@ import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { APP_NAME } from "@/lib/matrundan/version";
 import { toast } from "sonner";
+import { AllGroupsDialog } from "./AllGroupsDialog";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { EmailAuthDialog } from "./EmailAuthDialog";
+
+const QUICK_GROUP_LIMIT = 4;
+const RECENT_GROUPS_KEY_PREFIX = "matrundan.recentGroups.v1:";
+
+function recentGroupsStorageKey(userId: string) {
+  return `${RECENT_GROUPS_KEY_PREFIX}${userId}`;
+}
+
+function readRecentGroupIds(userId: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(recentGroupsStorageKey(userId)) ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 function GroupMenuItem({
   group,
@@ -40,24 +62,55 @@ function GroupMenuItem({
   onSelect: (groupId: string) => void;
 }) {
   const archived = group.lifecycleStatus === "archived";
+  const current = group.id === activeGroupId;
+
   return (
     <DropdownMenuItem
       onSelect={() => onSelect(group.id)}
-      className={group.id === activeGroupId ? "font-semibold" : undefined}
+      className={current ? "font-semibold" : undefined}
     >
-      <span className="mr-2">{group.emoji ?? "🍽️"}</span>
+      <span className="mr-2 shrink-0">{group.emoji ?? "🍽️"}</span>
       <span className="min-w-0 flex-1 truncate">{group.name}</span>
       {archived ? (
         <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
           <Archive className="h-3 w-3" /> arkiverad
         </span>
-      ) : group.role !== "member" ? (
-        <span className="ml-2 text-[10px] uppercase text-muted-foreground">
-          {group.role === "owner" ? "ägare" : "admin"}
-        </span>
+      ) : current ? (
+        <Check className="ml-2 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
       ) : null}
     </DropdownMenuItem>
   );
+}
+
+function buildQuickGroups(
+  groups: UserGroupSummary[],
+  activeGroupId: string | null,
+  recentGroupIds: string[],
+) {
+  const activeGroups = groups.filter((group) => group.lifecycleStatus === "active");
+  const currentGroup = groups.find((group) => group.id === activeGroupId) ?? null;
+
+  if (currentGroup?.lifecycleStatus === "active" && activeGroups.length <= QUICK_GROUP_LIMIT) {
+    return activeGroups;
+  }
+
+  const candidates = [
+    ...(currentGroup ? [currentGroup] : []),
+    ...recentGroupIds
+      .map((id) => activeGroups.find((group) => group.id === id))
+      .filter((group): group is UserGroupSummary => Boolean(group)),
+    ...activeGroups,
+  ];
+
+  const seen = new Set<string>();
+  return candidates
+    .filter((group) => {
+      if (group.lifecycleStatus === "archived" && group.id !== activeGroupId) return false;
+      if (seen.has(group.id)) return false;
+      seen.add(group.id);
+      return true;
+    })
+    .slice(0, QUICK_GROUP_LIMIT);
 }
 
 export function AuthMenu({
@@ -86,8 +139,32 @@ export function AuthMenu({
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [allGroupsOpen, setAllGroupsOpen] = React.useState(false);
   const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
+  const [recentGroupIds, setRecentGroupIds] = React.useState<string[]>([]);
   const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
+  const userId = user?.id ?? null;
+
+  React.useEffect(() => {
+    if (!userId) {
+      setRecentGroupIds([]);
+      return;
+    }
+    setRecentGroupIds(readRecentGroupIds(userId));
+  }, [userId]);
+
+  React.useEffect(() => {
+    if (!userId || !activeGroupId) return;
+    setRecentGroupIds((current) => {
+      const next = [activeGroupId, ...current.filter((id) => id !== activeGroupId)].slice(0, 8);
+      try {
+        window.localStorage.setItem(recentGroupsStorageKey(userId), JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, [activeGroupId, userId]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -213,9 +290,8 @@ export function AuthMenu({
     user.email ??
     "Inloggad";
   const displayEmail = user.email && user.email !== displayName ? user.email : null;
-  const activeGroups = userGroups.filter((group) => group.lifecycleStatus === "active");
-  const archivedGroups = userGroups.filter((group) => group.lifecycleStatus === "archived");
   const activeGroup = userGroups.find((group) => group.id === activeGroupId);
+  const quickGroups = buildQuickGroups(userGroups, activeGroupId, recentGroupIds);
   const useSuppliedGroup = exampleMode || mode === "demo" || !activeGroup;
   const groupName = useSuppliedGroup
     ? (suppliedGroupName ?? activeGroup?.name ?? "Grupp")
@@ -278,13 +354,13 @@ export function AuthMenu({
               Platsunderhåll
             </DropdownMenuItem>
           ) : null}
-          {activeGroups.length > 0 ? (
+          {quickGroups.length > 0 ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Aktiva grupper
+                Byt grupp
               </DropdownMenuLabel>
-              {activeGroups.map((group) => (
+              {quickGroups.map((group) => (
                 <GroupMenuItem
                   key={group.id}
                   group={group}
@@ -292,22 +368,10 @@ export function AuthMenu({
                   onSelect={selectGroup}
                 />
               ))}
-            </>
-          ) : null}
-          {archivedGroups.length > 0 ? (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Arkiverade grupper
-              </DropdownMenuLabel>
-              {archivedGroups.map((group) => (
-                <GroupMenuItem
-                  key={group.id}
-                  group={group}
-                  activeGroupId={activeGroupId}
-                  onSelect={selectGroup}
-                />
-              ))}
+              <DropdownMenuItem onSelect={() => setAllGroupsOpen(true)}>
+                <List className="mr-2 h-4 w-4" />
+                Alla grupper
+              </DropdownMenuItem>
             </>
           ) : null}
           <DropdownMenuSeparator />
@@ -333,6 +397,14 @@ export function AuthMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <AllGroupsDialog
+        open={allGroupsOpen}
+        onOpenChange={setAllGroupsOpen}
+        groups={userGroups}
+        activeGroupId={activeGroupId}
+        onSelect={selectGroup}
+        onCreate={() => setCreateOpen(true)}
+      />
       <ProfileDialog
         open={profileOpen}
         onOpenChange={setProfileOpen}
