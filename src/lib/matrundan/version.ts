@@ -282,7 +282,7 @@ const VERSION_1_36_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Nytt",
       items: [
-        "Hem visar en diskret signal för aktuella deltagarbesök där ditt eget omdöme saknas och länkar direkt till samma gemensamma besök.",
+        "Hem visar en diskret signal för aktuella deltagarbesök där ditt eget omdöme saknas och länkar direkt till samma kanoniska besök.",
         "Besök markerar samma aktuella besök med Ditt omdöme saknas, medan äldre obesvarade besök ligger kvar i historiken utan framträdande påminnelse.",
       ],
     },
@@ -319,7 +319,7 @@ const VERSION_1_35_0_CHANGELOG: ChangelogEntry = {
       items: [
         "Besöksdetaljen samlar gruppens sammanfattning och individuella deltagaromdömen i en gemensam hierarki och gör deltagarkorrigeringen mer kompakt i normalfallet.",
         "Ditt omdöme ligger tillsammans med övriga deltagares omdömen, med en enda tydlig kompletteringsknapp när du ännu inte har svarat och kompakt redigering när omdömet finns.",
-        "Flera omdömen visas kompakt med valfria detaljer, medan deltagarkorrigering är sekundär i normalfallet och tydligare när du markerar att du inte var med.",
+        "Flera omdömen visas kompakt med valfria detaljer, medan deltagarkorrigering är sekundär i normalfallet och tydligare när du markerat att du inte var med.",
       ],
     },
   ],
