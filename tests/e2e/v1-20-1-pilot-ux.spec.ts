@@ -150,7 +150,11 @@ async function installOwnerSession(page: Page) {
       return;
     }
 
-    if (rpc === "update_group_settings" || rpc === "replace_group_search_settings") {
+    if (
+      rpc === "update_group_identity_v1" ||
+      rpc === "update_group_settings" ||
+      rpc === "replace_group_search_settings"
+    ) {
       mutations.push({
         rpc,
         payload: route.request().postDataJSON() as Record<string, unknown>,
@@ -283,8 +287,9 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
 
   await basics.getByRole("button", { name: "Spara ändringar" }).click();
   await expect(page.getByText("Gruppuppgifterna är uppdaterade.", { exact: true })).toBeVisible();
-  expect(mutations.map(({ rpc }) => rpc)).toEqual(["update_group_settings"]);
+  expect(mutations.map(({ rpc }) => rpc)).toEqual(["update_group_identity_v1"]);
   expect(mutations[0]?.payload._name).toBe("Ändrat namn");
+  expect(mutations[0]?.payload._description).toBeUndefined();
   await basics.getByRole("button", { name: "Till inställningar" }).click();
 
   await menu.getByRole("button", { name: /^Sökområden/ }).click();
@@ -306,7 +311,7 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   await search.getByRole("button", { name: "Spara ändringar" }).click();
   await expect(page.getByText("Sökområdena är uppdaterade.", { exact: true })).toBeVisible();
   expect(mutations.map(({ rpc }) => rpc)).toEqual([
-    "update_group_settings",
+    "update_group_identity_v1",
     "replace_group_search_settings",
   ]);
   expect(mutations[1]?.payload._default_radius_km).toBe(2);

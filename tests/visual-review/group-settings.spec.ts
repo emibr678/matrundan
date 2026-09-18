@@ -61,6 +61,7 @@ async function installOwnerSession(page: Page) {
             id: groupId,
             name: "Fredagsgänget",
             emoji: "🍽️",
+            description: "Vi upptäcker nya middagsställen tillsammans på fredagar.",
             role: "owner",
             lifecycleStatus: "active",
           },
@@ -196,8 +197,18 @@ test("fånga gruppinställningarnas nya informationsarkitektur", async ({ page }
 
   await search.getByRole("button", { name: "Till inställningar" }).click();
   await menu.getByRole("button", { name: /^Gruppen/ }).click();
-  await expect(page.getByRole("dialog", { name: "Gruppen" }).getByLabel("Namn")).toHaveValue(
-    "Fredagsgänget",
+  const basics = page.getByRole("dialog", { name: "Gruppen" });
+  await expect(basics.getByLabel("Namn")).toHaveValue("Fredagsgänget");
+  await expect(basics.getByLabel("Kort beskrivning (valfritt)")).toHaveValue(
+    "Vi upptäcker nya middagsställen tillsammans på fredagar.",
   );
   await capture(page, testInfo, "gruppinstallningar-gruppen");
+
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }).click();
+  await page.getByRole("menuitem", { name: "Skapa ny grupp" }).click();
+  const createGroup = page.getByRole("dialog", { name: "Skapa ny grupp" });
+  await expect(createGroup.getByLabel("Kort beskrivning (valfritt)")).toBeVisible();
+  await expect(createGroup.getByText(/Samma personer kan ha flera grupper/)).toBeVisible();
+  await capture(page, testInfo, "skapa-grupp-med-beskrivning");
 });
