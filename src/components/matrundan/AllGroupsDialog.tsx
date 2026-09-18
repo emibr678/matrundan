@@ -9,6 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import type { UserGroupSummary } from "@/lib/matrundan/session";
 
+function memberPreview(group: UserGroupSummary): string | null {
+  const names = group.memberPreviewNames.slice(0, 2);
+  if (names.length === 0) return null;
+  const remaining = Math.max(0, group.otherMemberCount - names.length);
+  return `${names.join(", ")}${remaining > 0 ? ` +${remaining}` : ""}`;
+}
+
 function GroupRow({
   group,
   activeGroupId,
@@ -20,6 +27,7 @@ function GroupRow({
 }) {
   const current = group.id === activeGroupId;
   const archived = group.lifecycleStatus === "archived";
+  const secondaryText = group.description?.trim() || memberPreview(group);
 
   return (
     <button
@@ -46,9 +54,9 @@ function GroupRow({
             />
           ) : null}
         </span>
-        {group.description ? (
-          <span className="mt-1 block line-clamp-2 break-words text-sm leading-snug text-muted-foreground">
-            {group.description}
+        {secondaryText ? (
+          <span className="mt-1 block truncate text-sm leading-snug text-muted-foreground">
+            {secondaryText}
           </span>
         ) : null}
       </span>

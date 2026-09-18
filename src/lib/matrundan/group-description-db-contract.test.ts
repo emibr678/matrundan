@@ -33,9 +33,15 @@ describe("Issue #318 — kort privat gruppbeskrivning", () => {
     expect(migration).toContain("SET description = _normalized_description");
   });
 
-  test("beskrivningen exponeras bara i den befintliga medlemsscopade grupplistan", () => {
+  test("beskrivning och medlemsfallback exponeras bara i den medlemsscopade grupplistan", () => {
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.list_user_groups_v4b");
     expect(migration).toContain("'description', g.description");
+    expect(migration).toContain("'memberPreviewNames'");
+    expect(migration).toContain("'otherMemberCount'");
+    expect(migration).toContain("candidate.group_id = g.id");
+    expect(migration).toContain("candidate.status = 'active'");
+    expect(migration).toContain("candidate.user_id <> auth.uid()");
+    expect(migration).toContain("LIMIT 2");
     expect(migration).toContain("m.user_id = auth.uid()");
     expect(migration).toContain("m.status = 'active'");
     expect(migration).not.toContain("get_invitation_preview");

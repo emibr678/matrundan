@@ -104,8 +104,8 @@ REVOKE ALL ON FUNCTION public.create_group_with_owner_v3(text, text, text, jsonb
 GRANT EXECUTE ON FUNCTION public.create_group_with_owner_v3(text, text, text, jsonb, integer)
   TO authenticated;
 
--- Samma gruppscopade lista som tidigare, utökad med privat beskrivning.
--- Befintliga klienter ignorerar det extra JSON-fältet.
+-- Samma medlemsscopade lista som tidigare, utökad med privat beskrivning och en liten
+-- igenkänningspreview av andra aktiva medlemmar. Ingen data från andra grupper exponeras.
 CREATE OR REPLACE FUNCTION public.list_user_groups_v4b()
 RETURNS jsonb
 LANGUAGE sql
@@ -120,6 +120,30 @@ AS $$
         'name', g.name,
         'emoji', g.emoji,
         'description', g.description,
+        'memberPreviewNames', COALESCE((
+          SELECT jsonb_agg(preview.member_name ORDER BY lower(preview.member_name), preview.user_id)
+          FROM (
+            SELECT
+              candidate.user_id,
+              COALESCE(NULLIF(trim(profile.display_name), ''), 'Medlem') AS member_name
+            FROM public.memberships candidate
+            LEFT JOIN public.profiles profile ON profile.id = candidate.user_id
+            WHERE candidate.group_id = g.id
+              AND candidate.status = 'active'
+              AND candidate.user_id <> auth.uid()
+            ORDER BY
+              lower(COALESCE(NULLIF(trim(profile.display_name), ''), 'Medlem')),
+              candidate.user_id
+            LIMIT 2
+          ) preview
+        ), '[]'::jsonb),
+        'otherMemberCount', (
+          SELECT count(*)
+          FROM public.memberships candidate
+          WHERE candidate.group_id = g.id
+            AND candidate.status = 'active'
+            AND candidate.user_id <> auth.uid()
+        ),
         'role', m.role,
         'lifecycleStatus', g.lifecycle_status
       )

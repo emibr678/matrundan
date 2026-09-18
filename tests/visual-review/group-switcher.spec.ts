@@ -21,6 +21,8 @@ const groups = [
     name: "Enskede runt",
     emoji: "🍽️",
     description: "Utforska matställen nära där vi bor.",
+    memberPreviewNames: ["Lisa", "Oskar"],
+    otherMemberCount: 4,
     role: "owner",
     lifecycleStatus: "active",
   },
@@ -29,6 +31,8 @@ const groups = [
     name: "Stockholm skärgård",
     emoji: "🍣",
     description: "Ställen vi vill upptäcka och återvända till i skärgården.",
+    memberPreviewNames: ["Karin"],
+    otherMemberCount: 1,
     role: "owner",
     lifecycleStatus: "active",
   },
@@ -37,6 +41,8 @@ const groups = [
     name: "Första Testgruppen",
     emoji: "🍔",
     description: null,
+    memberPreviewNames: ["Karin", "Johan"],
+    otherMemberCount: 7,
     role: "owner",
     lifecycleStatus: "active",
   },
@@ -45,6 +51,8 @@ const groups = [
     name: "Andra Testgruppen",
     emoji: "🍝",
     description: null,
+    memberPreviewNames: ["Maja"],
+    otherMemberCount: 1,
     role: "admin",
     lifecycleStatus: "active",
   },
@@ -53,6 +61,8 @@ const groups = [
     name: "Storstockholm",
     emoji: "🥐",
     description: "Vår gemensamma samlingsgrupp för ställen runt hela Stockholm.",
+    memberPreviewNames: [],
+    otherMemberCount: 0,
     role: "member",
     lifecycleStatus: "active",
   },
@@ -61,6 +71,8 @@ const groups = [
     name: "Lunchgänget",
     emoji: "🥗",
     description: "Lunchställen nära jobbet.",
+    memberPreviewNames: [],
+    otherMemberCount: 0,
     role: "member",
     lifecycleStatus: "active",
   },
@@ -69,6 +81,8 @@ const groups = [
     name: "Sommar 2025",
     emoji: "🌮",
     description: "En äldre sommargrupp vi vill kunna återvända till.",
+    memberPreviewNames: [],
+    otherMemberCount: 0,
     role: "owner",
     lifecycleStatus: "archived",
   },
@@ -229,6 +243,9 @@ test("gruppbytaren skalar med recent-grupper och Alla grupper", async ({ page },
   await expect(dialog.getByText("Aktiva grupper", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Arkiverade grupper", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Utforska matställen nära där vi bor.")).toBeVisible();
+  await expect(dialog.getByText("Lisa, Oskar +2")).toHaveCount(0);
+  await expect(dialog.getByText("Karin, Johan +5")).toBeVisible();
+  await expect(dialog.getByText("Maja", { exact: true })).toBeVisible();
   await expect(
     dialog.getByText("Vår gemensamma samlingsgrupp för ställen runt hela Stockholm."),
   ).toBeVisible();

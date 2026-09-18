@@ -17,6 +17,8 @@ export interface UserGroupSummary {
   name: string;
   emoji: string | null;
   description: string | null;
+  memberPreviewNames: string[];
+  otherMemberCount: number;
   role: GroupRole;
   lifecycleStatus: GroupLifecycleStatus;
 }
@@ -147,6 +149,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         name: group.name,
         emoji: group.emoji,
         description: typeof group.description === "string" ? group.description : null,
+        memberPreviewNames: Array.isArray(group.memberPreviewNames)
+          ? group.memberPreviewNames
+              .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+              .map((name) => name.trim())
+              .slice(0, 2)
+          : [],
+        otherMemberCount:
+          typeof group.otherMemberCount === "number" && Number.isFinite(group.otherMemberCount)
+            ? Math.max(0, Math.trunc(group.otherMemberCount))
+            : 0,
         role: group.role,
         lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
       }))
