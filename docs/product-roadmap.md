@@ -178,8 +178,8 @@ Följande är den rekommenderade riktningen efter #309. De ligger fortsatt
    och den aktuella Matställen-hierarkin.
 
 Ingen `order:*` låses för detta block ännu. När #309 närmar sig leverans ska
- den faktiska relativa ordningen bedömas igen utifrån
-aktuell produktnytta och beroenden.
+ den faktiska relativa ordningen bedömas igen utifrån aktuell produktnytta och
+ beroenden.
 
 ### Senare mediautbyggnad
 
