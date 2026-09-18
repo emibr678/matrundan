@@ -662,6 +662,7 @@ export function PlaceDiscovery({
       onAdd={onBeginAdd}
       onLinkSource={onLinkSource}
       places={state.places}
+      showNearestAreaLabel={activeAreas.length > 1}
       disabled={interactionsDisabled}
     />
   );

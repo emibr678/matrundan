@@ -34,6 +34,7 @@ export function SearchResultSections({
   onAdd,
   onLinkSource,
   places,
+  showNearestAreaLabel,
   disabled,
 }: {
   available: PlaceSuggestion[];
@@ -49,6 +50,7 @@ export function SearchResultSections({
   onAdd: (result: PlaceSuggestion) => void;
   onLinkSource: (match: SourceMatchResult) => void;
   places: Place[];
+  showNearestAreaLabel: boolean;
   disabled: boolean;
 }) {
   const signalSuggestions = React.useMemo(() => {
@@ -123,6 +125,7 @@ export function SearchResultSections({
                 selected={selectedId === match.result.externalId}
                 bulkSelected={false}
                 bulkMode={false}
+                showNearestAreaLabel={showNearestAreaLabel}
                 interactionLabel={`Visa möjlig matchning för ${match.result.name}`}
                 onSelect={() => onSelect(match.result.externalId)}
                 footer={
@@ -164,6 +167,7 @@ export function SearchResultSections({
                 selected={!bulkMode && selectedId === result.externalId}
                 bulkSelected={bulkSelected}
                 bulkMode={bulkMode}
+                showNearestAreaLabel={showNearestAreaLabel}
                 interactionLabel={
                   bulkMode
                     ? `${bulkSelected ? "Avmarkera" : "Välj"} ${result.name} för masstillägg`
@@ -231,6 +235,7 @@ export function SearchResultSections({
                   selected={selectedId === result.externalId}
                   bulkSelected={false}
                   bulkMode={false}
+                  showNearestAreaLabel={showNearestAreaLabel}
                   onSelect={() => onSelect(result.externalId)}
                   footer={statusFooterFor(result, signal)}
                   action={
@@ -262,7 +267,6 @@ export function SearchResultSections({
 }
 
 function searchAreaContextFor(result: PlaceSuggestion): string {
-  if (result.distanceKm != null) return "";
   const label = result.nearestAreaLabel?.trim();
   if (!label) return "";
 
@@ -272,12 +276,31 @@ function searchAreaContextFor(result: PlaceSuggestion): string {
   return alreadyShown ? "" : ` · ${label}`;
 }
 
+export function resultLocationContextFor(
+  result: PlaceSuggestion,
+  showNearestAreaLabel: boolean,
+): string {
+  if (result.distanceKm == null) return searchAreaContextFor(result);
+
+  const distance = ` · ~${result.distanceKm} km`;
+  if (!showNearestAreaLabel) return distance;
+
+  const label = result.nearestAreaLabel?.trim();
+  if (!label) return distance;
+
+  const alreadyShown = [result.area, result.city].some(
+    (value) => value?.trim().localeCompare(label, "sv-SE", { sensitivity: "base" }) === 0,
+  );
+  return alreadyShown ? distance : `${distance} · närmast ${label}`;
+}
+
 function SuggestionRow({
   result,
   signal,
   selected,
   bulkSelected,
   bulkMode,
+  showNearestAreaLabel,
   interactionLabel,
   onSelect,
   action,
@@ -288,6 +311,7 @@ function SuggestionRow({
   selected: boolean;
   bulkSelected: boolean;
   bulkMode: boolean;
+  showNearestAreaLabel: boolean;
   interactionLabel?: string;
   onSelect: () => void;
   action: React.ReactNode;
@@ -320,11 +344,7 @@ function SuggestionRow({
           <span className="block break-words text-[11px] text-muted-foreground">
             {result.area ? `${result.area} · ` : ""}
             {result.city}
-            {result.distanceKm != null
-              ? ` · ~${result.distanceKm} km${
-                  result.nearestAreaLabel ? ` från ${result.nearestAreaLabel}` : ""
-                }`
-              : searchAreaContextFor(result)}
+            {resultLocationContextFor(result, showNearestAreaLabel)}
           </span>
           {result.address ? (
             <span className="block break-words text-[11px] text-muted-foreground">
