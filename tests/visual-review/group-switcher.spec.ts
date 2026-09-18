@@ -219,6 +219,7 @@ test("gruppbytaren skalar med recent-grupper och Alla grupper", async ({ page },
   await expect(menu.getByText("ÄGARE", { exact: true })).toHaveCount(0);
   await expect(menu.getByText("Sommar 2025", { exact: true })).toHaveCount(0);
   await expect(menu.getByText("Storstockholm", { exact: true })).toHaveCount(0);
+  await capture(page, testInfo, "gruppbytare-manga-grupper");
 
   await menu.getByRole("menuitem", { name: "Alla grupper" }).click();
 
@@ -231,6 +232,7 @@ test("gruppbytaren skalar med recent-grupper och Alla grupper", async ({ page },
     dialog.getByText("Vår gemensamma samlingsgrupp för ställen runt hela Stockholm."),
   ).toBeVisible();
   await expect(dialog.getByText("Sommar 2025", { exact: true })).toBeVisible();
+  await page.waitForTimeout(250);
   await capture(page, testInfo, "alla-grupper-mobil");
 
   await dialog.getByRole("button", { name: /Storstockholm/ }).click();
@@ -239,7 +241,7 @@ test("gruppbytaren skalar med recent-grupper och Alla grupper", async ({ page },
 });
 
 
-test("få grupper visas direkt utan ett onödigt Alla grupper-steg", async ({ page }) => {
+test("få grupper visas direkt utan ett onödigt Alla grupper-steg", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await installSession(page, groups.slice(0, 3));
   await page.goto("/gruppen", { waitUntil: "domcontentloaded" });
@@ -254,4 +256,5 @@ test("få grupper visas direkt utan ett onödigt Alla grupper-steg", async ({ pa
   await expect(menu.getByRole("menuitem", { name: /Första Testgruppen/ })).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: "Alla grupper" })).toHaveCount(0);
   await expect(menu.getByText("ÄGARE", { exact: true })).toHaveCount(0);
+  await capture(page, testInfo, "gruppbytare-fa-grupper");
 });

@@ -73,6 +73,7 @@ export function AllGroupsDialog({
   onSelect: (groupId: string) => void;
   onCreate: () => void;
 }) {
+  const titleRef = React.useRef<HTMLHeadingElement>(null);
   const activeGroups = React.useMemo(
     () => groups.filter((group) => group.lifecycleStatus === "active"),
     [groups],
@@ -94,9 +95,17 @@ export function AllGroupsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85dvh] w-[calc(100vw-2rem)] max-w-md overflow-hidden p-0">
+      <DialogContent
+        className="max-h-[85dvh] w-[calc(100vw-2rem)] max-w-md overflow-hidden p-0"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          titleRef.current?.focus();
+        }}
+      >
         <DialogHeader className="px-5 pb-2 pt-5 text-left">
-          <DialogTitle>Alla grupper</DialogTitle>
+          <DialogTitle ref={titleRef} tabIndex={-1} className="outline-none">
+            Alla grupper
+          </DialogTitle>
           <DialogDescription>Välj grupp att öppna.</DialogDescription>
         </DialogHeader>
 
