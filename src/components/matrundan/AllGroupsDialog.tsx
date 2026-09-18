@@ -1,11 +1,9 @@
 import * as React from "react";
-import { Archive, Check, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Archive, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -64,14 +62,12 @@ export function AllGroupsDialog({
   groups,
   activeGroupId,
   onSelect,
-  onCreate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   groups: UserGroupSummary[];
   activeGroupId: string | null;
   onSelect: (groupId: string) => void;
-  onCreate: () => void;
 }) {
   const titleRef = React.useRef<HTMLHeadingElement>(null);
   const activeGroups = React.useMemo(
@@ -88,10 +84,6 @@ export function AllGroupsDialog({
     onOpenChange(false);
   }
 
-  function create() {
-    onOpenChange(false);
-    onCreate();
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -151,12 +143,6 @@ export function AllGroupsDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="border-t border-border/70 px-5 py-4 sm:justify-start">
-          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={create}>
-            <Plus className="mr-2 h-4 w-4" />
-            Skapa ny grupp
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

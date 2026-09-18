@@ -408,7 +408,6 @@ export function AuthMenu({
         groups={userGroups}
         activeGroupId={activeGroupId}
         onSelect={selectGroup}
-        onCreate={() => setCreateOpen(true)}
       />
       <ProfileDialog
         open={profileOpen}
