@@ -84,7 +84,6 @@ export function AllGroupsDialog({
     onOpenChange(false);
   }
 
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -142,7 +141,6 @@ export function AllGroupsDialog({
             </section>
           ) : null}
         </div>
-
       </DialogContent>
     </Dialog>
   );
