@@ -97,10 +97,7 @@ export function AllGroupsDialog({
       <DialogContent className="max-h-[85dvh] w-[calc(100vw-2rem)] max-w-md overflow-hidden p-0">
         <DialogHeader className="px-5 pb-2 pt-5 text-left">
           <DialogTitle>Alla grupper</DialogTitle>
-          <DialogDescription>
-            Välj vilken gemensam matresa du vill öppna. Beskrivningen hjälper när grupper har
-            liknande namn eller samma personer.
-          </DialogDescription>
+          <DialogDescription>Välj grupp att öppna.</DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 space-y-5 overflow-y-auto px-5 pb-4">

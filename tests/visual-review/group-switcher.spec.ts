@@ -74,7 +74,10 @@ const groups = [
   },
 ] as const;
 
-async function installSession(page: Page) {
+async function installSession(
+  page: Page,
+  groupList: readonly (typeof groups)[number][] = groups,
+) {
   const now = new Date().toISOString();
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60;
 
@@ -130,7 +133,7 @@ async function installSession(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(groups),
+        body: JSON.stringify(groupList),
       });
       return;
     }
@@ -233,4 +236,22 @@ test("gruppbytaren skalar med recent-grupper och Alla grupper", async ({ page },
   await dialog.getByRole("button", { name: /Storstockholm/ }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByRole("button", { name: "Profil och grupp: Storstockholm" })).toBeVisible();
+});
+
+
+test("få grupper visas direkt utan ett onödigt Alla grupper-steg", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await installSession(page, groups.slice(0, 3));
+  await page.goto("/gruppen", { waitUntil: "domcontentloaded" });
+
+  const trigger = page.getByRole("button", { name: "Profil och grupp: Enskede runt" });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+
+  const menu = page.getByRole("menu");
+  await expect(menu.getByRole("menuitem", { name: /Enskede runt/ })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: /Stockholm skärgård/ })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: /Första Testgruppen/ })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "Alla grupper" })).toHaveCount(0);
+  await expect(menu.getByText("ÄGARE", { exact: true })).toHaveCount(0);
 });

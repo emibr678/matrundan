@@ -291,7 +291,10 @@ export function AuthMenu({
     "Inloggad";
   const displayEmail = user.email && user.email !== displayName ? user.email : null;
   const activeGroup = userGroups.find((group) => group.id === activeGroupId);
+  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
+  const hasArchivedGroups = userGroups.some((group) => group.lifecycleStatus === "archived");
   const quickGroups = buildQuickGroups(userGroups, activeGroupId, recentGroupIds);
+  const showAllGroups = activeGroupCount > QUICK_GROUP_LIMIT || hasArchivedGroups;
   const useSuppliedGroup = exampleMode || mode === "demo" || !activeGroup;
   const groupName = useSuppliedGroup
     ? (suppliedGroupName ?? activeGroup?.name ?? "Grupp")
@@ -368,10 +371,12 @@ export function AuthMenu({
                   onSelect={selectGroup}
                 />
               ))}
-              <DropdownMenuItem onSelect={() => setAllGroupsOpen(true)}>
-                <List className="mr-2 h-4 w-4" />
-                Alla grupper
-              </DropdownMenuItem>
+              {showAllGroups ? (
+                <DropdownMenuItem onSelect={() => setAllGroupsOpen(true)}>
+                  <List className="mr-2 h-4 w-4" />
+                  Alla grupper
+                </DropdownMenuItem>
+              ) : null}
             </>
           ) : null}
           <DropdownMenuSeparator />
