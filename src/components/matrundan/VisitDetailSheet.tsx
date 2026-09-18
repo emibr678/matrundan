@@ -378,7 +378,6 @@ export function VisitDetailSheet({
         </SheetContent>
       </Sheet>
 
-      {isLive && activeGroupId && !groupArchived ? (
       {visit && place ? (
         <EditVisitDialog
           visit={visit}
@@ -389,6 +388,7 @@ export function VisitDetailSheet({
         />
       ) : null}
 
+      {isLive && activeGroupId && !groupArchived ? (
         <>
           <ShareVisitDialog
             visitId={visit?.id ?? null}
