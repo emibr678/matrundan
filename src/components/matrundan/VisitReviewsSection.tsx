@@ -57,9 +57,7 @@ export function VisitReviewsSection({
     !groupArchived && !demoReadOnly && (mode === "live" ? Boolean(activeGroupId) : true);
   const canAddOwnReview =
     participationStatus === "participant" &&
-    (scored
-      ? !summary.ownReview || !summary.ownReview.ratingVisible || summary.ownReview.overall == null
-      : !summary.ownReview);
+    (scored ? !summary.ownReview || summary.ownReview.overall == null : !summary.ownReview);
   const visibleReviews = showAll
     ? summary.reviews
     : summary.reviews.slice(0, INITIAL_VISIBLE_REVIEWS);
