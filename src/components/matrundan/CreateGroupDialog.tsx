@@ -19,7 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createGroupWithOwner, type VerifiedSearchArea } from "@/lib/matrundan/live-admin";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  createGroupWithOwner,
+  GROUP_DESCRIPTION_MAX_LENGTH,
+  type VerifiedSearchArea,
+} from "@/lib/matrundan/live-admin";
 import { SEARCH_RADIUS_OPTIONS } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import type { SearchRadiusKm } from "@/lib/matrundan/types";
@@ -35,6 +40,7 @@ export function CreateGroupDialog({
 }) {
   const { refreshGroups, selectGroup } = useSession();
   const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
   const [emoji, setEmoji] = React.useState("🍽️");
   const [locationText, setLocationText] = React.useState("");
   const [verified, setVerified] = React.useState<VerifiedSearchArea | null>(null);
@@ -57,6 +63,7 @@ export function CreateGroupDialog({
       const gid = await createGroupWithOwner(
         name.trim(),
         emoji,
+        description.trim() || null,
         locMatchesVerified && verified ? [verified] : [],
         radius,
       );
@@ -65,6 +72,7 @@ export function CreateGroupDialog({
       toast.success("Gruppen är skapad!");
       onOpenChange(false);
       setName("");
+      setDescription("");
       setLocationText("");
       setVerified(null);
       setRadius(1);
@@ -81,7 +89,8 @@ export function CreateGroupDialog({
         <DialogHeader>
           <DialogTitle>Skapa ny grupp</DialogTitle>
           <DialogDescription>
-            Du blir automatiskt ägare. Du kan bjuda in fler och lägga till fler sökområden efteråt.
+            Varje grupp har sina egna ställen och besök. Du blir automatiskt ägare och kan bjuda in
+            fler efteråt.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
@@ -95,6 +104,22 @@ export function CreateGroupDialog({
               autoFocus
               required
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cg-description">Kort beskrivning (valfritt)</Label>
+            <Textarea
+              id="cg-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
+              rows={3}
+              placeholder="t.ex. Vi utforskar matställen nära där vi bor."
+              className="resize-none"
+            />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              En mening om vad ni vill upptäcka tillsammans. Samma personer kan ha flera grupper med
+              olika syften.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label>Emoji</Label>

@@ -467,6 +467,7 @@ export type Database = {
           created_at: string
           created_by: string
           default_search_radius_km: number
+          description: string | null
           emoji: string | null
           home_lat: number | null
           home_lng: number | null
@@ -485,6 +486,7 @@ export type Database = {
           created_at?: string
           created_by: string
           default_search_radius_km?: number
+          description?: string | null
           emoji?: string | null
           home_lat?: number | null
           home_lng?: number | null
@@ -503,6 +505,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           default_search_radius_km?: number
+          description?: string | null
           emoji?: string | null
           home_lat?: number | null
           home_lng?: number | null
@@ -2220,6 +2223,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_group_with_owner_v3: {
+        Args: {
+          _default_radius_km?: number
+          _description?: string
+          _emoji?: string
+          _name: string
+          _search_areas?: Json
+        }
+        Returns: string
+      }
       create_manual_place_fallback_v1: {
         Args: {
           _address?: string
@@ -3074,6 +3087,15 @@ export type Database = {
       }
       transfer_group_ownership: {
         Args: { _group_id: string; _new_owner_id: string }
+        Returns: undefined
+      }
+      update_group_identity_v1: {
+        Args: {
+          _description?: string
+          _emoji?: string
+          _group_id: string
+          _name: string
+        }
         Returns: undefined
       }
       update_group_place_metadata: {

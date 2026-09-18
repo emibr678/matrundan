@@ -5,9 +5,14 @@ import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/lib/matrundan/session";
 import { toast } from "sonner";
-import { createGroupWithOwner, type VerifiedSearchArea } from "@/lib/matrundan/live-admin";
+import {
+  createGroupWithOwner,
+  GROUP_DESCRIPTION_MAX_LENGTH,
+  type VerifiedSearchArea,
+} from "@/lib/matrundan/live-admin";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
 const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
@@ -15,6 +20,7 @@ const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", 
 export function OnboardingScreen() {
   const { refreshGroups, selectGroup, signOut } = useSession();
   const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
   const [emoji, setEmoji] = React.useState("🍽️");
   const [locationText, setLocationText] = React.useState("");
   const [verified, setVerified] = React.useState<VerifiedSearchArea | null>(null);
@@ -40,6 +46,7 @@ export function OnboardingScreen() {
       const groupId = await createGroupWithOwner(
         name.trim(),
         emoji,
+        description.trim() || null,
         locMatchesVerified ? verified : null,
       );
       await refreshGroups();
@@ -74,6 +81,22 @@ export function OnboardingScreen() {
               autoFocus
               required
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="group-description">Kort beskrivning (valfritt)</Label>
+            <Textarea
+              id="group-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
+              rows={3}
+              placeholder="t.ex. Vi utforskar matställen nära där vi bor."
+              className="resize-none"
+            />
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              En kort mening om gruppens gemensamma matresa. Den går att ändra senare.
+            </p>
           </div>
 
           <div className="space-y-1.5">

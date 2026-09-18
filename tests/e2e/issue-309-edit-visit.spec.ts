@@ -60,6 +60,6 @@ test("en annan deltagare får inte den kombinerade besökseditorn", async ({ pag
   await page.goto("/matstallen/p3?demo=1&visit=v2");
 
   const visitSheet = page.getByRole("dialog");
-  await expect(visitSheet.getByRole("heading", { name: "Lilla Levanten" })).toBeVisible();
+  await expect(visitSheet.getByRole("heading", { name: "Månskärans Taquería" })).toBeVisible();
   await expect(visitSheet.getByRole("button", { name: "Redigera besök" })).toHaveCount(0);
 });
