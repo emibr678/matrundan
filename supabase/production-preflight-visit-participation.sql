@@ -109,24 +109,24 @@ WITH checks(name, ok) AS (
     ('participation_rpc:set_own_visit_participation_v1',
       to_regprocedure('public.set_own_visit_participation_v1(uuid,uuid,boolean)') IS NOT NULL),
     ('visit_edit_rpc:update_visit_v1',
-      to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)') IS NOT NULL),
+      to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)') IS NOT NULL),
     ('visit_edit_rpc:update_own_review_v3',
       to_regprocedure('public.update_own_review_v3(uuid,uuid,numeric,smallint,smallint,smallint,smallint,text)') IS NOT NULL),
     ('visit_edit_rpc:creator-original-only',
       COALESCE(
-        position('created_by = _uid' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0
-        AND position('link_type = ''original''' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
+        position('created_by = _uid' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('link_type = ''original''' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
         false
       )),
     ('visit_edit_rpc:preserves-cross-group-participants',
       COALESCE(
-        position('public.memberships membership' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
+        position('public.memberships membership' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
         false
       )),
     ('visit_edit_rpc:linked-guest-guard',
       COALESCE(
-        position('visit_guest_member_proposals' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0
-        AND position('accepted' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
+        position('visit_guest_member_proposals' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('accepted' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
         false
       )),
     ('visit_edit_rpc:scoreless-review-preservation',
@@ -178,7 +178,7 @@ WITH checks(name, ok) AS (
     ('grant:authenticated-self-participation',
       has_function_privilege('authenticated', 'public.set_own_visit_participation_v1(uuid,uuid,boolean)', 'EXECUTE')),
     ('grant:authenticated-update-visit',
-      has_function_privilege('authenticated', 'public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
+      has_function_privilege('authenticated', 'public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('grant:authenticated-update-own-review-v3',
       has_function_privilege('authenticated', 'public.update_own_review_v3(uuid,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('isolation:no-anon-v5l',
@@ -197,7 +197,7 @@ WITH checks(name, ok) AS (
     ('isolation:no-anon-self-participation',
       NOT has_function_privilege('anon', 'public.set_own_visit_participation_v1(uuid,uuid,boolean)', 'EXECUTE')),
     ('isolation:no-anon-update-visit',
-      NOT has_function_privilege('anon', 'public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
+      NOT has_function_privilege('anon', 'public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('isolation:no-anon-update-own-review-v3',
       NOT has_function_privilege('anon', 'public.update_own_review_v3(uuid,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('isolation:no-authenticated-next-stop-tables',

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
+import { MapPin, Pencil, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -32,7 +32,11 @@ import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
 import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
-import { canDeleteOriginalVisit } from "@/lib/matrundan/visit-permissions";
+import {
+  canDeleteOriginalVisit,
+  canEditOriginalVisit,
+} from "@/lib/matrundan/visit-permissions";
+import { EditVisitDialog } from "./EditVisitDialog";
 
 function formatVisitDate(iso: string) {
   const calendarDate = /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(0, 10)}T12:00:00` : iso;
@@ -93,8 +97,13 @@ export function VisitDetailSheet({
     !!visit && canDeleteVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
+  const canEdit =
+    !!visit &&
+    !demoReadOnly &&
+    canEditOriginalVisit(visit, state.currentUserId, groupArchived);
 
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
   const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
@@ -326,7 +335,16 @@ export function VisitDetailSheet({
                   </Link>
                 </Button>
 
-                {canShare ? (
+                {canEdit ? (
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Redigera besök
+                  </Button>
+                ) : canShare ? (
                   <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}>
                     <Share2 className="h-4 w-4" />
                     Lägg till i annan grupp
@@ -361,6 +379,16 @@ export function VisitDetailSheet({
       </Sheet>
 
       {isLive && activeGroupId && !groupArchived ? (
+      {visit && place ? (
+        <EditVisitDialog
+          visit={visit}
+          place={place}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          onSaved={reload}
+        />
+      ) : null}
+
         <>
           <ShareVisitDialog
             visitId={visit?.id ?? null}

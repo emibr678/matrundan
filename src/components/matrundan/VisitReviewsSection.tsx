@@ -55,7 +55,13 @@ export function VisitReviewsSection({
   );
   const writable =
     !groupArchived && !demoReadOnly && (mode === "live" ? Boolean(activeGroupId) : true);
-  const canAddOwnReview = participationStatus === "participant" && !summary.ownReview;
+  const canAddOwnReview =
+    participationStatus === "participant" &&
+    (scored
+      ? !summary.ownReview ||
+        !summary.ownReview.ratingVisible ||
+        summary.ownReview.overall == null
+      : !summary.ownReview);
   const visibleReviews = showAll
     ? summary.reviews
     : summary.reviews.slice(0, INITIAL_VISIBLE_REVIEWS);
@@ -241,6 +247,7 @@ export function VisitReviewsSection({
                     groupArchived={groupArchived}
                     demoReadOnly={demoReadOnly}
                     savingVisibility={savingVisibility}
+                    scoreless={!scored}
                     onInteract={() => clearReviewHighlight(review.id)}
                     onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
                   />
@@ -360,6 +367,7 @@ function ReviewRow({
   groupArchived,
   demoReadOnly,
   savingVisibility,
+  scoreless,
   onInteract,
   onToggleVisibility,
 }: {
@@ -375,6 +383,7 @@ function ReviewRow({
   groupArchived: boolean;
   demoReadOnly: boolean;
   savingVisibility: boolean;
+  scoreless: boolean;
   onInteract: () => void;
   onToggleVisibility: (next: boolean) => void;
 }) {
@@ -392,11 +401,20 @@ function ReviewRow({
       ].filter((detail) => detail.value != null)
     : [];
   const longComment = Boolean(showComment && (comment?.length ?? 0) > 110);
-  const canEditOwn = own && !groupArchived && !demoReadOnly;
+  const canEditOwn =
+    own &&
+    !groupArchived &&
+    !demoReadOnly &&
+    (scoreless || review.overall != null || review.reviewModel != null);
   const canToggleComment = canEditOwn && live && Boolean(comment);
   const showFullComment = commentExpanded || focused;
   const editAction = canEditOwn ? (
-    <EditReviewDialog review={review} placeName={placeName} compact />
+    <EditReviewDialog
+      review={review}
+      placeName={placeName}
+      compact
+      scoreless={scoreless}
+    />
   ) : null;
 
   return (

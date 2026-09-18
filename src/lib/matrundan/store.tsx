@@ -1051,6 +1051,13 @@ export function StoreProvider({
             const scored = visitHasScore(visit);
             const reviews = (visit.visibleReviews ?? []).map((review) => {
               if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
+              if (!scored) {
+                return {
+                  ...review,
+                  comment: input.comment ?? null,
+                  ratingVisible: false,
+                };
+              }
               const derivedOverall = review.reviewModel
                 ? deriveReviewOverall(review.reviewModel, {
                     taste: input.taste ?? 0,
@@ -1061,13 +1068,13 @@ export function StoreProvider({
                 : null;
               return {
                 ...review,
-                overall: scored ? (derivedOverall ?? input.overall) : null,
-                taste: scored ? (input.taste ?? null) : null,
-                value: scored ? (input.value ?? null) : null,
-                service: scored ? (input.service ?? null) : null,
-                atmosphere: scored && review.reviewModel ? (input.atmosphere ?? null) : null,
+                overall: derivedOverall ?? input.overall,
+                taste: input.taste ?? null,
+                value: input.value ?? null,
+                service: input.service ?? null,
+                atmosphere: review.reviewModel ? (input.atmosphere ?? null) : null,
                 comment: input.comment ?? null,
-                ratingVisible: scored ? review.ratingVisible : false,
+                ratingVisible: review.ratingVisible,
               };
             });
             return aggregateVisit({ ...visit, visibleReviews: reviews });

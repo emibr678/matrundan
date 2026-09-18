@@ -24,13 +24,15 @@ export function EditReviewDialog({
   review,
   placeName,
   compact = false,
+  scoreless: scorelessOverride,
 }: {
   review: VisibleReview;
   placeName: string;
   compact?: boolean;
+  scoreless?: boolean;
 }) {
   const { updateOwnReview, submitting, state, demoReadOnly } = useStore();
-  const scoreless = review.overall == null && review.reviewModel == null;
+  const scoreless = scorelessOverride ?? (review.overall == null && review.reviewModel == null);
   const legacy = !scoreless && review.reviewModel == null;
   const [open, setOpen] = React.useState(false);
   const [showDetails, setShowDetails] = React.useState(

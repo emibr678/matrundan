@@ -115,6 +115,7 @@ CREATE OR REPLACE FUNCTION public.update_visit_v1(
   _participant_ids uuid[],
   _is_takeaway boolean DEFAULT false,
   _guests jsonb DEFAULT '[]'::jsonb,
+  _removed_guest_ids uuid[] DEFAULT '{}'::uuid[],
   _update_own_review boolean DEFAULT false,
   _review_id uuid DEFAULT NULL,
   _review_overall numeric DEFAULT NULL,
@@ -258,19 +259,33 @@ BEGIN
 
   IF EXISTS (
     SELECT 1
-    FROM public.visit_guests guest
-    WHERE guest.visit_id = _visit_id
-      AND NOT EXISTS (
-        SELECT 1 FROM jsonb_array_elements(COALESCE(_guests, '[]'::jsonb)) AS entry(item)
-        WHERE NULLIF(entry.item->>'id', '')::uuid = guest.id
-      )
-      AND EXISTS (
-        SELECT 1 FROM public.visit_guest_member_proposals proposal
-        WHERE proposal.guest_id = guest.id
-          AND proposal.status IN ('pending', 'deferred', 'accepted')
-      )
+    FROM unnest(COALESCE(_removed_guest_ids, '{}'::uuid[])) AS removed(guest_id)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.visit_guests guest
+      WHERE guest.id = removed.guest_id
+        AND guest.visit_id = _visit_id
+    )
+  ) THEN
+    RAISE EXCEPTION 'Listan över borttagna gäster innehåller en okänd gäst';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM unnest(COALESCE(_removed_guest_ids, '{}'::uuid[])) AS removed(guest_id)
+    JOIN public.visit_guest_member_proposals proposal
+      ON proposal.guest_id = removed.guest_id
+     AND proposal.status IN ('pending', 'deferred', 'accepted')
   ) THEN
     RAISE EXCEPTION 'En gäst med pågående eller bekräftad medlemskoppling kan inte tas bort här';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM unnest(COALESCE(_removed_guest_ids, '{}'::uuid[])) AS removed(guest_id)
+    JOIN jsonb_array_elements(COALESCE(_guests, '[]'::jsonb)) AS entry(item)
+      ON NULLIF(entry.item->>'id', '')::uuid = removed.guest_id
+  ) THEN
+    RAISE EXCEPTION 'Samma gäst kan inte både behållas och tas bort';
   END IF;
 
   IF _update_own_review THEN
@@ -323,10 +338,7 @@ BEGIN
 
   DELETE FROM public.visit_guests guest
   WHERE guest.visit_id = _visit_id
-    AND NOT EXISTS (
-      SELECT 1 FROM jsonb_array_elements(COALESCE(_guests, '[]'::jsonb)) AS entry(item)
-      WHERE NULLIF(entry.item->>'id', '')::uuid = guest.id
-    );
+    AND guest.id = ANY(COALESCE(_removed_guest_ids, '{}'::uuid[]));
 
   INSERT INTO public.visit_guests (visit_id, display_name, sort_order)
   SELECT _visit_id, desired.display_name, desired.sort_order
@@ -368,18 +380,18 @@ GRANT EXECUTE ON FUNCTION public.update_own_review_v3(
 ) TO authenticated;
 
 REVOKE ALL ON FUNCTION public.update_visit_v1(
-  uuid, uuid, date, text, uuid[], boolean, jsonb, boolean, uuid, numeric,
+  uuid, uuid, date, text, uuid[], boolean, jsonb, uuid[], boolean, uuid, numeric,
   smallint, smallint, smallint, smallint, text
 ) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.update_visit_v1(
-  uuid, uuid, date, text, uuid[], boolean, jsonb, boolean, uuid, numeric,
+  uuid, uuid, date, text, uuid[], boolean, jsonb, uuid[], boolean, uuid, numeric,
   smallint, smallint, smallint, smallint, text
 ) TO authenticated;
 
 DO $assertions$
 DECLARE
   _visit_definition text := pg_get_functiondef(
-    'public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'::regprocedure
+    'public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'::regprocedure
   );
   _review_definition text := pg_get_functiondef(
     'public.update_own_review_v3(uuid,uuid,numeric,smallint,smallint,smallint,smallint,text)'::regprocedure

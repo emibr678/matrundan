@@ -53,6 +53,8 @@ export interface VisitEditMutationInput {
   /** Grupprelevanta deltagare. Cross-group-identiteter bevaras server-side. */
   participantIds: string[];
   guests: VisitEditGuestInput[];
+  /** Endast privata gäster som användaren uttryckligen tog bort i editorn. */
+  removedGuestIds: string[];
   ownReview?: VisitEditOwnReviewInput | null;
 }
 
@@ -207,6 +209,7 @@ export async function liveUpdateVisit(
     _participant_ids: input.participantIds,
     _is_takeaway: input.meal === "dryck" ? false : input.isTakeaway,
     _guests: input.guests.map((guest) => ({ id: guest.id, name: guest.name })),
+    _removed_guest_ids: input.removedGuestIds,
     _update_own_review: Boolean(input.ownReview),
     _review_id: input.ownReview?.id ?? null,
     _review_overall: input.ownReview?.overall ?? null,

@@ -23,10 +23,12 @@ describe("Issue #309 – serverkontrakt för besöksredigering", () => {
     expect(migration).not.toContain("DELETE FROM public.reviews");
   });
 
-  test("gästredigering använder stabila id:n och blockerar öppna identitetskopplingar", () => {
+  test("gästredigering använder stabila id:n och explicit borttagning", () => {
     expect(migration).toContain("NULLIF(entry.item->>'id', '')::uuid");
+    expect(migration).toContain("_removed_guest_ids uuid[]");
     expect(migration).toContain("visit_guest_member_proposals");
     expect(migration).toContain("proposal.status IN ('pending', 'deferred', 'accepted')");
+    expect(migration).toContain("guest.id = ANY(COALESCE(_removed_guest_ids");
   });
 
   test("kontextkorrigering skapar ingen ny visit eller ny reviewmodell", () => {
