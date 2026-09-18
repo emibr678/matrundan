@@ -21,9 +21,13 @@ describe("stagingdatabas-workflowets kontrakt", () => {
     expect(workflow).toContain("run?.conclusion === 'success'");
   });
 
-  test("använder endast den staging-scopeade migrationsvägen", () => {
+  test("återanvänder den staging-scopeade access-tokenen för den godkända migrationsvägen", () => {
     expect(workflow).toContain("environment: staging");
-    expect(workflow).toContain("STAGING_SUPABASE_MIGRATIONS_TOKEN");
+    expect(workflow).toContain(
+      "STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}",
+    );
+    expect(workflow).toContain("const token = process.env.STAGING_SUPABASE_ACCESS_TOKEN");
+    expect(workflow).not.toContain("STAGING_SUPABASE_MIGRATIONS_TOKEN");
     expect(workflow).toContain("STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia");
     expect(workflow).toContain(
       "'https://api.supabase.com/v1/projects/' + projectId + '/database/migrations'",

@@ -2,6 +2,8 @@
 
 Det här dokumentet beskriver hur renderade GUI-ändringar granskas innan de rapporteras som färdiga eller mergas. Det kompletterar `docs/development-workflow.md` och ersätter inte kodgranskning, tester, CI eller användarens granskningsbeslut.
 
+Produktnära UX-, interaktions- och copyprinciper finns i [ux-principles.md](./ux-principles.md) och används som granskningsgrund för besluten som bedöms här.
+
 Målet är att uppenbara problem som dubletter, rörig hierarki, spacing, felplacerade knappar, trunkering och overflow ska upptäckas av agenten **före** användarens manuella granskning, utan att varje liten ändring blir en tung eller dyr testkörning.
 
 ## Grundprincip: proportionerlig granskning
