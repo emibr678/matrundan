@@ -198,8 +198,7 @@ export async function liveUpdateVisit(
   visitId: string,
   input: VisitEditMutationInput,
 ): Promise<void> {
-  const visitedOn =
-    input.visitedOn.length >= 10 ? input.visitedOn.slice(0, 10) : input.visitedOn;
+  const visitedOn = input.visitedOn.length >= 10 ? input.visitedOn.slice(0, 10) : input.visitedOn;
 
   await rpcClient.callVoid("update_visit_v1", {
     _group_id: groupId,

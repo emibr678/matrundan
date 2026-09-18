@@ -24,7 +24,6 @@ describe("behörighet för att radera originalbesök", () => {
   });
 });
 
-
 describe("behörighet för att redigera originalbesök", () => {
   test("bara registreraren får redigera den kanoniska händelsen", () => {
     expect(canEditOriginalVisit(originalVisit, "creator", false)).toBe(true);

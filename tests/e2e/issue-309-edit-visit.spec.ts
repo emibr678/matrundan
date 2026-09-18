@@ -20,9 +20,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px", async ({
-  page,
-}) => {
+test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemoStateBeforeNavigation(page);
   await page.goto("/matstallen/p2?demo=1&visit=v1");
@@ -37,9 +35,7 @@ test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px"
   await edit.getByLabel("Tillfälle").click();
   await page.getByRole("option", { name: "Lunch" }).click();
   await edit.getByRole("button", { name: /Johan/ }).click();
-  await edit
-    .getByLabel("Kommentar (frivilligt)")
-    .fill("Korrigerad minnesnotering från besöket.");
+  await edit.getByLabel("Kommentar (frivilligt)").fill("Korrigerad minnesnotering från besöket.");
   await edit.getByRole("button", { name: "Spara ändringar" }).click();
 
   await expect(visitSheet.getByText(/Lunch/).first()).toBeVisible();

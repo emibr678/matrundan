@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-const migration = await Bun.file(
-  "supabase/migrations/20260918064500_visit_edit_v1.sql",
-).text();
+const migration = await Bun.file("supabase/migrations/20260918064500_visit_edit_v1.sql").text();
 
 describe("Issue #309 – serverkontrakt för besöksredigering", () => {
   test("är creator-only och kräver originalgruppen", () => {

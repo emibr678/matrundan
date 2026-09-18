@@ -58,9 +58,7 @@ export function VisitReviewsSection({
   const canAddOwnReview =
     participationStatus === "participant" &&
     (scored
-      ? !summary.ownReview ||
-        !summary.ownReview.ratingVisible ||
-        summary.ownReview.overall == null
+      ? !summary.ownReview || !summary.ownReview.ratingVisible || summary.ownReview.overall == null
       : !summary.ownReview);
   const visibleReviews = showAll
     ? summary.reviews
@@ -409,12 +407,7 @@ function ReviewRow({
   const canToggleComment = canEditOwn && live && Boolean(comment);
   const showFullComment = commentExpanded || focused;
   const editAction = canEditOwn ? (
-    <EditReviewDialog
-      review={review}
-      placeName={placeName}
-      compact
-      scoreless={scoreless}
-    />
+    <EditReviewDialog review={review} placeName={placeName} compact scoreless={scoreless} />
   ) : null;
 
   return (

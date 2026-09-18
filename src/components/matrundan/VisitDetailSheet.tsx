@@ -32,10 +32,7 @@ import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
 import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
-import {
-  canDeleteOriginalVisit,
-  canEditOriginalVisit,
-} from "@/lib/matrundan/visit-permissions";
+import { canDeleteOriginalVisit, canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
 import { EditVisitDialog } from "./EditVisitDialog";
 
 function formatVisitDate(iso: string) {
@@ -98,9 +95,7 @@ export function VisitDetailSheet({
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
   const canEdit =
-    !!visit &&
-    !demoReadOnly &&
-    canEditOriginalVisit(visit, state.currentUserId, groupArchived);
+    !!visit && !demoReadOnly && canEditOriginalVisit(visit, state.currentUserId, groupArchived);
 
   const [shareOpen, setShareOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
@@ -336,11 +331,7 @@ export function VisitDetailSheet({
                 </Button>
 
                 {canEdit ? (
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => setEditOpen(true)}
-                  >
+                  <Button variant="secondary" className="w-full" onClick={() => setEditOpen(true)}>
                     <Pencil className="h-4 w-4" />
                     Redigera besök
                   </Button>

@@ -34,10 +34,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Place, Visit } from "@/lib/matrundan/types";
 import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
-import {
-  canAddOrReplaceVisitPhoto,
-  canDeleteVisitPhoto,
-} from "@/lib/matrundan/visit-photo";
+import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
 import { RatingInput } from "./Rating";
 import { ReviewScoreFields } from "./ReviewScoreFields";
@@ -56,9 +53,7 @@ function normalizeGuestName(value: string): string {
 function persistedGuestId(id: string): string | null {
   if (!id.startsWith("guest:")) return null;
   const value = id.slice("guest:".length);
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  )
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
     ? value
     : null;
 }
@@ -79,8 +74,7 @@ export function EditVisitDialog({
   const { state, mode, demoReadOnly, submitting, updateVisit } = useStore();
   const { activeGroupId } = useSession();
   const groupArchived = state.group.lifecycleStatus === "archived";
-  const canEdit =
-    !demoReadOnly && canEditOriginalVisit(visit, state.currentUserId, groupArchived);
+  const canEdit = !demoReadOnly && canEditOriginalVisit(visit, state.currentUserId, groupArchived);
 
   const memberCandidates = React.useMemo(() => {
     const currentIds = new Set(state.members.map((member) => member.id));
@@ -227,9 +221,7 @@ export function EditVisitDialog({
         if (cancelled) return;
         setShareTargets([]);
         setShareError(
-          error instanceof Error
-            ? error.message
-            : "Dina andra grupper kunde inte hämtas just nu.",
+          error instanceof Error ? error.message : "Dina andra grupper kunde inte hämtas just nu.",
         );
       })
       .finally(() => {
@@ -323,13 +315,11 @@ export function EditVisitDialog({
           ownReview && !scoreBoundaryChanged
             ? {
                 id: ownReview.id,
-                overall:
-                  scoredVisit && ownReview.reviewModel == null ? overall || null : null,
+                overall: scoredVisit && ownReview.reviewModel == null ? overall || null : null,
                 taste: scoredVisit ? taste || null : null,
                 value: scoredVisit ? value || null : null,
                 service: scoredVisit ? service || null : null,
-                atmosphere:
-                  scoredVisit && ownReview.reviewModel ? atmosphere || null : null,
+                atmosphere: scoredVisit && ownReview.reviewModel ? atmosphere || null : null,
                 comment: comment.trim() || null,
               }
             : null,
@@ -339,11 +329,7 @@ export function EditVisitDialog({
       const failed: string[] = [];
       for (const target of selectedTargets) {
         try {
-          await shareVisitToGroup(
-            visit.id,
-            target.groupId,
-            hasOwnComment ? shareComment : false,
-          );
+          await shareVisitToGroup(visit.id, target.groupId, hasOwnComment ? shareComment : false);
           sharedCount += 1;
         } catch {
           failed.push(target.name);
@@ -442,8 +428,8 @@ export function EditVisitDialog({
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium">Deltagare</legend>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Rätta vilka i gruppen som faktiskt var med. Omdömen från borttagna deltagare
-              bevaras historiskt men räknas inte så länge personen inte är deltagare.
+              Rätta vilka i gruppen som faktiskt var med. Omdömen från borttagna deltagare bevaras
+              historiskt men räknas inte så länge personen inte är deltagare.
             </p>
             <div className="flex flex-wrap gap-2">
               {memberCandidates.map((member) => {
@@ -477,8 +463,9 @@ export function EditVisitDialog({
 
             {(visit.externalParticipantCount ?? 0) > 0 ? (
               <p className="rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-                {visit.externalParticipantCount} {visit.externalParticipantCount === 1 ? "person" : "personer"} utanför
-                den här gruppen är kopplade till samma besök och bevaras automatiskt.
+                {visit.externalParticipantCount}{" "}
+                {visit.externalParticipantCount === 1 ? "person" : "personer"} utanför den här
+                gruppen är kopplade till samma besök och bevaras automatiskt.
               </p>
             ) : null}
 
@@ -555,24 +542,24 @@ export function EditVisitDialog({
 
             {!ownReview ? (
               <div className="rounded-2xl bg-secondary/40 p-4 text-sm text-muted-foreground">
-                Du har inget eget omdöme på besöket ännu. Det kan läggas till från
-                besöksdetaljen efter att ändringarna sparats.
+                Du har inget eget omdöme på besöket ännu. Det kan läggas till från besöksdetaljen
+                efter att ändringarna sparats.
               </div>
             ) : scoreBoundaryChanged ? (
               <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
                 <p className="text-sm font-medium">Omdömet bevaras</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Du ändrar mellan ett matbesök och Något att dricka. Ditt befintliga omdöme
-                  skrivs därför inte om automatiskt. Efter sparandet visas bara det som är
-                  relevant för den nya besökskontexten.
+                  Du ändrar mellan ett matbesök och Något att dricka. Ditt befintliga omdöme skrivs
+                  därför inte om automatiskt. Efter sparandet visas bara det som är relevant för den
+                  nya besökskontexten.
                 </p>
               </div>
             ) : (
               <div className="space-y-4 rounded-2xl border border-border/70 p-4">
                 {!scoredVisit ? (
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    Dryckesbesök påverkar inte ställets stjärnbetyg. Ett tidigare matbetyg
-                    bevaras historiskt och förblir dolt så länge besöket är scorelöst.
+                    Dryckesbesök påverkar inte ställets stjärnbetyg. Ett tidigare matbetyg bevaras
+                    historiskt och förblir dolt så länge besöket är scorelöst.
                   </p>
                 ) : ownReview.reviewModel ? (
                   <>
@@ -634,8 +621,8 @@ export function EditVisitDialog({
               <div>
                 <h3 className="text-sm font-medium">Lägg till i fler grupper</h3>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Befintliga gruppkopplingar ligger kvar. Välj bara nya grupper som besöket
-                  också ska läggas till i.
+                  Befintliga gruppkopplingar ligger kvar. Välj bara nya grupper som besöket också
+                  ska läggas till i.
                 </p>
               </div>
 
@@ -722,7 +709,13 @@ export function EditVisitDialog({
             type="button"
             className="w-full sm:w-auto"
             onClick={() => void save()}
-            disabled={isBusy || (ownReview?.reviewModel != null && !scoreBoundaryChanged && scoredVisit && !reviewComplete)}
+            disabled={
+              isBusy ||
+              (ownReview?.reviewModel != null &&
+                !scoreBoundaryChanged &&
+                scoredVisit &&
+                !reviewComplete)
+            }
           >
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara ändringar

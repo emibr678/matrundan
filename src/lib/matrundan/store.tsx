@@ -596,8 +596,7 @@ export function StoreProvider({
         const ownReviewInput = input.ownReview ?? null;
         const ownReview = ownReviewInput
           ? (target.visibleReviews ?? []).find(
-              (review) =>
-                review.id === ownReviewInput.id && review.userId === state.currentUserId,
+              (review) => review.id === ownReviewInput.id && review.userId === state.currentUserId,
             )
           : undefined;
 
@@ -680,9 +679,7 @@ export function StoreProvider({
                 value: newScored ? ownReviewInput.value : review.value,
                 service: newScored ? ownReviewInput.service : review.service,
                 atmosphere:
-                  newScored && review.reviewModel
-                    ? ownReviewInput.atmosphere
-                    : review.atmosphere,
+                  newScored && review.reviewModel ? ownReviewInput.atmosphere : review.atmosphere,
                 comment: ownReviewInput.comment,
                 ratingVisible: nextReview.ratingVisible,
               };
@@ -705,8 +702,7 @@ export function StoreProvider({
           );
           const preservedParticipants = (currentVisit.participants ?? []).filter(
             (participant) =>
-              participant.status !== "guest" &&
-              !currentEditableParticipantIds.has(participant.id),
+              participant.status !== "guest" && !currentEditableParticipantIds.has(participant.id),
           );
           const guestParticipants = input.guests.map((guest, index) => ({
             id: guest.id ? `guest:${guest.id}` : `guest-demo-${visitId}-${index}`,
