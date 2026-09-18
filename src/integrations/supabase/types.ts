@@ -3160,6 +3160,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_place_data_report_osm_status_v1: {
+        Args: {
+          _note_closed_at: string
+          _note_id: number
+          _note_status: string
+          _public_reference: string
+          _report_id: string
+        }
+        Returns: undefined
+      }
+      update_profile: {
+        Args: { _avatar_emoji?: string; _display_name: string }
+        Returns: undefined
+      }
       update_visit_v1: {
         Args: {
           _group_id: string
@@ -3179,20 +3193,6 @@ export type Database = {
           _visit_id: string
           _visited_on: string
         }
-        Returns: undefined
-      }
-      update_place_data_report_osm_status_v1: {
-        Args: {
-          _note_closed_at: string
-          _note_id: number
-          _note_status: string
-          _public_reference: string
-          _report_id: string
-        }
-        Returns: undefined
-      }
-      update_profile: {
-        Args: { _avatar_emoji?: string; _display_name: string }
         Returns: undefined
       }
       upsert_visit_photo: {
