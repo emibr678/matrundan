@@ -3147,6 +3147,40 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_own_review_v3: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _overall?: number
+          _review_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+        }
+        Returns: undefined
+      }
+      update_visit_v1: {
+        Args: {
+          _group_id: string
+          _guests?: Json
+          _is_takeaway?: boolean
+          _meal_type: string
+          _participant_ids: string[]
+          _removed_guest_ids?: string[]
+          _review_atmosphere?: number
+          _review_comment?: string
+          _review_id?: string
+          _review_overall?: number
+          _review_service?: number
+          _review_taste?: number
+          _review_value?: number
+          _update_own_review?: boolean
+          _visit_id: string
+          _visited_on: string
+        }
+        Returns: undefined
+      }
       update_place_data_report_osm_status_v1: {
         Args: {
           _note_closed_at: string
