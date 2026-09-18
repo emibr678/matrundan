@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canDeleteOriginalVisit } from "./visit-permissions";
+import { canDeleteOriginalVisit, canEditOriginalVisit } from "./visit-permissions";
 
 const originalVisit = { createdBy: "creator", linkType: "original" as const };
 
@@ -21,5 +21,21 @@ describe("behörighet för att radera originalbesök", () => {
       ),
     ).toBe(false);
     expect(canDeleteOriginalVisit(originalVisit, "creator", "ägare", true)).toBe(false);
+  });
+});
+
+
+describe("behörighet för att redigera originalbesök", () => {
+  test("bara registreraren får redigera den kanoniska händelsen", () => {
+    expect(canEditOriginalVisit(originalVisit, "creator", false)).toBe(true);
+    expect(canEditOriginalVisit(originalVisit, "owner", false)).toBe(false);
+    expect(canEditOriginalVisit(originalVisit, "admin", false)).toBe(false);
+  });
+
+  test("delade besök och arkiverade grupper nekas även för registreraren", () => {
+    expect(
+      canEditOriginalVisit({ createdBy: "creator", linkType: "shared" }, "creator", false),
+    ).toBe(false);
+    expect(canEditOriginalVisit(originalVisit, "creator", true)).toBe(false);
   });
 });

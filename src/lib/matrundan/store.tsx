@@ -33,6 +33,8 @@ import {
   liveDeleteOriginalVisit,
   liveSetNextPlace,
   liveToggleFavorite,
+  liveUpdateVisit,
+  type VisitEditMutationInput,
   type VisitMutationInput,
 } from "./live-mutations";
 import type {
@@ -45,7 +47,7 @@ import type {
   VisibleReview,
 } from "./types";
 import { APP_VERSION } from "./version";
-import { visitHasScore } from "./visit-context";
+import { visitHasScore, visitMealHasScore } from "./visit-context";
 import { canDeleteOriginalVisit } from "./visit-permissions";
 import {
   blobToDataUrl,
@@ -74,9 +76,8 @@ function avg(values: number[]): number | undefined {
 }
 
 function aggregateVisit(visit: Visit): Visit {
-  const reviews = (visit.visibleReviews ?? []).filter((review) =>
-    visit.participantIds.includes(review.userId),
-  );
+  const sourceReviews = visit.visibleReviews ?? [];
+  const reviews = sourceReviews.filter((review) => visit.participantIds.includes(review.userId));
   const rated = reviews.filter(
     (review): review is VisibleReview & { overall: number } =>
       review.ratingVisible && review.overall != null,
@@ -88,7 +89,7 @@ function aggregateVisit(visit: Visit): Visit {
   if (!rated.length) {
     return {
       ...visit,
-      visibleReviews: reviews,
+      visibleReviews: sourceReviews,
       overall: 0,
       taste: undefined,
       value: undefined,
@@ -100,7 +101,7 @@ function aggregateVisit(visit: Visit): Visit {
 
   return {
     ...visit,
-    visibleReviews: reviews,
+    visibleReviews: sourceReviews,
     overall: avg(rated.map((review) => review.overall)) ?? 0,
     taste: avg(
       rated.map((review) => review.taste).filter((value): value is number => value != null),
@@ -212,6 +213,7 @@ interface StoreContextValue {
   }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
   addVisit: (visit: VisitMutationInput) => Promise<Visit>;
+  updateVisit: (visitId: string, input: VisitEditMutationInput) => Promise<void>;
   saveVisitPhoto: (visitId: string, file: File, visitSnapshot?: Visit) => Promise<void>;
   deleteVisitPhoto: (visitId: string) => Promise<void>;
   deleteVisit: (visitId: string) => Promise<void>;
@@ -559,6 +561,185 @@ export function StoreProvider({
           );
         });
         return visit;
+      },
+
+      updateVisit: async (visitId, input) => {
+        if (mode === "live") {
+          await runLive((groupId) => liveUpdateVisit(groupId, visitId, input));
+          return;
+        }
+
+        assertDemoWritable(state, demoReadOnly);
+        const target = state.visits.find((item) => item.id === visitId);
+        if (!target) throw new Error("Besöket finns inte.");
+        if (target.linkType === "shared" || target.createdBy !== state.currentUserId) {
+          throw new Error("Bara den som registrerade originalbesöket kan redigera det.");
+        }
+        if (!input.participantIds.includes(state.currentUserId)) {
+          throw new Error("Den som registrerade besöket måste vara deltagare.");
+        }
+
+        const editableParticipantIds = new Set([
+          ...state.members.map((member) => member.id),
+          ...(target.participants ?? [])
+            .filter((participant) => participant.status === "left")
+            .map((participant) => participant.id),
+        ]);
+        if (input.participantIds.some((id) => !editableParticipantIds.has(id))) {
+          throw new Error("Deltagarlistan innehåller en person som inte hör till gruppen.");
+        }
+
+        const oldScored = visitHasScore(target);
+        const newScored = visitMealHasScore(input.meal);
+        const ownReviewInput = input.ownReview ?? null;
+        const ownReview = ownReviewInput
+          ? (target.visibleReviews ?? []).find(
+              (review) =>
+                review.id === ownReviewInput.id && review.userId === state.currentUserId,
+            )
+          : undefined;
+
+        if (ownReviewInput && !ownReview) {
+          throw new Error("Ditt omdöme hittades inte.");
+        }
+        if (ownReviewInput && oldScored !== newScored) {
+          throw new Error(
+            "Spara först ändringen av tillfälle. Omdömet bevaras historiskt när besöket byter mellan mat och Något att dricka.",
+          );
+        }
+        if (ownReviewInput && ownReview) {
+          if (!newScored && !ownReviewInput.comment?.trim()) {
+            throw new Error("Kommentaren kan inte vara tom.");
+          }
+          if (
+            newScored &&
+            ownReview.reviewModel &&
+            !reviewRatingsComplete(ownReview.reviewModel, {
+              taste: ownReviewInput.taste ?? 0,
+              value: ownReviewInput.value ?? 0,
+              service: ownReviewInput.service ?? 0,
+              atmosphere: ownReviewInput.atmosphere ?? 0,
+            })
+          ) {
+            throw new Error("Sätt alla relevanta betyg.");
+          }
+          if (
+            newScored &&
+            !ownReview.reviewModel &&
+            ownReview.overall != null &&
+            (ownReviewInput.overall == null ||
+              ownReviewInput.overall < 1 ||
+              ownReviewInput.overall > 5)
+          ) {
+            throw new Error("Helhetsbetyget måste vara 1–5.");
+          }
+        }
+
+        setState((current) => {
+          const currentVisit = current.visits.find((item) => item.id === visitId);
+          if (!currentVisit) throw new Error("Besöket finns inte.");
+
+          const currentEditableParticipantIds = new Set([
+            ...current.members.map((member) => member.id),
+            ...(currentVisit.participants ?? [])
+              .filter((participant) => participant.status === "left")
+              .map((participant) => participant.id),
+          ]);
+          const preservedParticipantIds = currentVisit.participantIds.filter(
+            (id) => !currentEditableParticipantIds.has(id),
+          );
+          const participantIds = [
+            ...new Set([...preservedParticipantIds, ...input.participantIds]),
+          ];
+
+          const visibleReviews = (currentVisit.visibleReviews ?? []).map((review) => {
+            let nextReview: VisibleReview = { ...review };
+
+            if (!newScored) {
+              nextReview = { ...nextReview, ratingVisible: false };
+            } else if (!visitHasScore(currentVisit) && review.overall != null) {
+              nextReview = { ...nextReview, ratingVisible: true };
+            }
+
+            if (
+              ownReviewInput &&
+              review.id === ownReviewInput.id &&
+              review.userId === current.currentUserId
+            ) {
+              const derivedOverall = review.reviewModel
+                ? deriveReviewOverall(review.reviewModel, {
+                    taste: ownReviewInput.taste ?? 0,
+                    value: ownReviewInput.value ?? 0,
+                    service: ownReviewInput.service ?? 0,
+                    atmosphere: ownReviewInput.atmosphere ?? 0,
+                  })
+                : null;
+
+              nextReview = {
+                ...nextReview,
+                overall: newScored
+                  ? (derivedOverall ?? ownReviewInput.overall ?? review.overall)
+                  : review.overall,
+                taste: newScored ? ownReviewInput.taste : review.taste,
+                value: newScored ? ownReviewInput.value : review.value,
+                service: newScored ? ownReviewInput.service : review.service,
+                atmosphere:
+                  newScored && review.reviewModel
+                    ? ownReviewInput.atmosphere
+                    : review.atmosphere,
+                comment: ownReviewInput.comment,
+                ratingVisible: newScored ? nextReview.ratingVisible : false,
+              };
+            }
+            return nextReview;
+          });
+
+          const memberParticipants = current.members
+            .filter((member) => input.participantIds.includes(member.id))
+            .map((member) => ({
+              id: member.id,
+              name: member.name,
+              avatar: member.avatar ?? null,
+              avatarImage: member.avatarImage ?? null,
+              status: "active" as const,
+            }));
+          const historicalParticipants = (currentVisit.participants ?? []).filter(
+            (participant) =>
+              participant.status === "left" && input.participantIds.includes(participant.id),
+          );
+          const preservedParticipants = (currentVisit.participants ?? []).filter(
+            (participant) =>
+              participant.status !== "guest" &&
+              !currentEditableParticipantIds.has(participant.id),
+          );
+          const guestParticipants = input.guests.map((guest, index) => ({
+            id: guest.id ? `guest:${guest.id}` : `guest-demo-${visitId}-${index}`,
+            name: guest.name,
+            avatar: "👤",
+            avatarImage: null,
+            status: "guest" as const,
+          }));
+
+          const nextVisit = aggregateVisit({
+            ...currentVisit,
+            date: `${input.visitedOn.slice(0, 10)}T00:00:00.000Z`,
+            meal: input.meal,
+            isTakeaway: newScored ? input.isTakeaway : false,
+            participantIds,
+            participants: [
+              ...memberParticipants,
+              ...historicalParticipants,
+              ...preservedParticipants,
+              ...guestParticipants,
+            ],
+            visibleReviews,
+          });
+
+          return {
+            ...current,
+            visits: current.visits.map((item) => (item.id === visitId ? nextVisit : item)),
+          };
+        });
       },
 
       saveVisitPhoto: async (visitId, file, visitSnapshot) => {

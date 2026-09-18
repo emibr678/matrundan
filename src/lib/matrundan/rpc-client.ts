@@ -18,6 +18,8 @@ export type RpcExecutor = (
 const DEFAULT_SERVER_ERROR = "Något gick fel mot servern. Försök igen.";
 const INVALID_SERVER_RESPONSE = "Servern svarade med ett oväntat format.";
 const RPC_UNAVAILABLE_MESSAGES: Partial<Record<string, string>> = {
+  update_visit_v1:
+    "Besöksredigering är tillfälligt otillgänglig. Ladda om appen och försök igen.",
   create_place_data_report_from_suggestion_v1:
     "Platsdatarapportering är tillfälligt otillgänglig. Ladda om appen och försök igen.",
   list_visit_guest_member_targets_v1:

@@ -59,6 +59,8 @@ const requiredFunctions = [
   "create_visit_with_review_v3",
   "save_own_review_for_visit_v1",
   "set_own_visit_participation_v1",
+  "update_visit_v1",
+  "update_own_review_v3",
   "get_visit_review_reactions_v1",
   "set_own_review_reaction_v1",
   "replace_group_search_settings",
