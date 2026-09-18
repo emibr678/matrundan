@@ -311,7 +311,7 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   await search.getByRole("button", { name: "Spara ändringar" }).click();
   await expect(page.getByText("Sökområdena är uppdaterade.", { exact: true })).toBeVisible();
   expect(mutations.map(({ rpc }) => rpc)).toEqual([
-    "update_group_settings",
+    "update_group_identity_v1",
     "replace_group_search_settings",
   ]);
   expect(mutations[1]?.payload._default_radius_km).toBe(2);
