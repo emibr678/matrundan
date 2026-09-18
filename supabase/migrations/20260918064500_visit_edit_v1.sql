@@ -90,12 +90,6 @@ BEGIN
     WHERE id = _review_id AND user_id = _uid;
   END IF;
 
-  IF _scoreless THEN
-    UPDATE public.review_group_visibility
-    SET rating_visible = false, updated_at = now()
-    WHERE review_id = _review_id;
-  END IF;
-
   IF NULLIF(trim(COALESCE(_previous_comment, '')), '') IS NULL AND _normalized_comment IS NOT NULL THEN
     UPDATE public.review_group_visibility
     SET comment_visible = true, updated_at = now()
@@ -350,18 +344,6 @@ BEGIN
     FROM jsonb_array_elements(COALESCE(_guests, '[]'::jsonb)) WITH ORDINALITY AS entry(item, ordinality)
   ) desired
   WHERE desired.guest_id IS NULL;
-
-  IF _new_scoreless THEN
-    UPDATE public.review_group_visibility visibility
-    SET rating_visible = false, updated_at = now()
-    FROM public.reviews review
-    WHERE visibility.review_id = review.id AND review.visit_id = _visit_id;
-  ELSIF _old_scoreless THEN
-    UPDATE public.review_group_visibility visibility
-    SET rating_visible = true, updated_at = now()
-    FROM public.reviews review
-    WHERE visibility.review_id = review.id AND review.visit_id = _visit_id AND review.overall IS NOT NULL;
-  END IF;
 
   IF _update_own_review THEN
     PERFORM public.update_own_review_v3(

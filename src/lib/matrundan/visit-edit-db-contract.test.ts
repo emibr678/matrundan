@@ -44,7 +44,7 @@ describe("Issue #309 – serverkontrakt för besöksredigering", () => {
       migration.indexOf("CREATE OR REPLACE FUNCTION public.update_visit_v1"),
     );
     expect(v3).toContain("SET comment = _normalized_comment");
-    expect(v3).toContain("rating_visible = false");
+    expect(v3).not.toContain("SET rating_visible = false");
     expect(v3).not.toContain("WHEN _scoreless THEN NULL");
   });
 });

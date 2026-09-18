@@ -391,7 +391,7 @@ function ReviewRow({
   const comment = review.comment?.trim();
   const showComment = Boolean(comment && (own || review.commentVisible));
   const reactableComment = Boolean(comment && review.commentVisible);
-  const hasRating = review.ratingVisible && review.overall != null;
+  const hasRating = !scoreless && review.ratingVisible && review.overall != null;
   const detailItems = hasRating
     ? [
         { label: "Smak", value: review.taste },

@@ -78,10 +78,12 @@ function avg(values: number[]): number | undefined {
 function aggregateVisit(visit: Visit): Visit {
   const sourceReviews = visit.visibleReviews ?? [];
   const reviews = sourceReviews.filter((review) => visit.participantIds.includes(review.userId));
-  const rated = reviews.filter(
-    (review): review is VisibleReview & { overall: number } =>
-      review.ratingVisible && review.overall != null,
-  );
+  const rated = visitHasScore(visit)
+    ? reviews.filter(
+        (review): review is VisibleReview & { overall: number } =>
+          review.ratingVisible && review.overall != null,
+      )
+    : [];
   const comment = reviews.find(
     (review) => review.commentVisible && Boolean(review.comment?.trim()),
   )?.comment;
@@ -655,12 +657,6 @@ export function StoreProvider({
           const visibleReviews = (currentVisit.visibleReviews ?? []).map((review) => {
             let nextReview: VisibleReview = { ...review };
 
-            if (!newScored) {
-              nextReview = { ...nextReview, ratingVisible: false };
-            } else if (!visitHasScore(currentVisit) && review.overall != null) {
-              nextReview = { ...nextReview, ratingVisible: true };
-            }
-
             if (
               ownReviewInput &&
               review.id === ownReviewInput.id &&
@@ -688,7 +684,7 @@ export function StoreProvider({
                     ? ownReviewInput.atmosphere
                     : review.atmosphere,
                 comment: ownReviewInput.comment,
-                ratingVisible: newScored ? nextReview.ratingVisible : false,
+                ratingVisible: nextReview.ratingVisible,
               };
             }
             return nextReview;
@@ -1055,7 +1051,6 @@ export function StoreProvider({
                 return {
                   ...review,
                   comment: input.comment ?? null,
-                  ratingVisible: false,
                 };
               }
               const derivedOverall = review.reviewModel

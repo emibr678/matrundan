@@ -35,6 +35,7 @@ import {
 import { isSearchRadiusKm } from "./search-areas";
 import { APP_VERSION } from "./version";
 import { createSignedVisitPhotoUrls } from "./visit-photo";
+import { visitMealHasScore } from "./visit-context";
 
 const ROLE_LABEL: Record<string, Role> = {
   owner: "ägare",
@@ -419,10 +420,12 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     }));
     // Aggregat räknas bara från synliga, faktiska scores. Scorelösa kommentarer
     // kan fortfarande bidra med besöksminnet men aldrig med ett numeriskt betyg.
-    const rated = visibleReviews.filter(
-      (review): review is VisibleReview & { overall: number } =>
-        review.ratingVisible && review.overall != null,
-    );
+    const rated = visitMealHasScore(v.meal)
+      ? visibleReviews.filter(
+          (review): review is VisibleReview & { overall: number } =>
+            review.ratingVisible && review.overall != null,
+        )
+      : [];
     const overall = rated.map((r) => r.overall);
     const taste = rated.map((r) => r.taste).filter((x): x is number => x != null);
     const value = rated.map((r) => r.value).filter((x): x is number => x != null);
