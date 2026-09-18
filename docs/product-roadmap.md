@@ -137,17 +137,20 @@ issues togs ur aktiva kön:
 - **#132 Gör saknad säker gatuadress handlingsbar i kontrollflödet** stängdes som
   absorberad av det bredare #133.
 
-### Nästa produktdiskussion
+### Genomförd gruppskalning
 
 **#318 Skala gruppbyte, igenkänning och grupphantering när användaren tillhör
-många grupper** är `priority:next` men fortfarande `status:inbox` eftersom den
-minsta sammanhängande lösningen ännu inte är låst.
+många grupper** är genomförd via PR #343.
 
-Frågan är redan verklig: samma personer kan ha flera grupper med olika syften,
-och appen måste skala utan grupphierarkier, implicit cross-group-historik eller
-tung workspace-administration. #318 ska först spika vad som faktiskt behövs för
-snabbt gruppbyte, igenkänning, kort gruppbeskrivning och eventuell `Alla grupper`-
-yta.
+Den beslutade modellen behåller direktväxling när grupperna är få och använder
+nuvarande + senast använda grupper samt **Alla grupper** när de blir fler.
+Grupper kan ha en kort privat beskrivning; i **Alla grupper** används annars
+andra medlemmars namn som igenkänningsfallback. Lösningen inför ingen
+grupphierarki, implicit cross-group-historik eller tung workspace-administration.
+
+Sökning, personlig pinning/döljning och ytterligare separation mellan konto- och
+gruppnavigation tas endast upp som nya avgränsade issues om verkligt användande
+visar behov.
 
 ### Nästa överenskomna kärnleverans
 
@@ -161,7 +164,7 @@ frysta reviewmodell.
 
 ### Närmaste efterföljande produktblock
 
-Följande är den rekommenderade riktningen efter #318/#309. De ligger fortsatt
+Följande är den rekommenderade riktningen efter #309. De ligger fortsatt
 `priority:later` tills närmare planering för att undvika falsk precision:
 
 1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
@@ -174,9 +177,9 @@ Följande är den rekommenderade riktningen efter #318/#309. De ligger fortsatt
    faktisk historik börja hjälpa gruppen välja nästa ställe, ovanpå #197, #307
    och den aktuella Matställen-hierarkin.
 
-Ingen `order:*` låses för detta block ännu. När #318 är produktspikad och #309
-närmar sig leverans ska den faktiska relativa ordningen bedömas igen utifrån
-aktuell produktnytta och beroenden.
+Ingen `order:*` låses för detta block ännu. När #309 närmar sig leverans ska
+ den faktiska relativa ordningen bedömas igen utifrån aktuell produktnytta och
+ beroenden.
 
 ### Senare mediautbyggnad
 
@@ -195,7 +198,7 @@ Grundnivån är genomförd genom #107, #108, #104 och #103. Återstående arbete
 polish och får inte tränga undan kärnflödet.
 
 - **#105 Utökat emoji- och symbolstöd för grupper och matställen** –
-  `status:agreed`, `priority:later`. Samordna gruppigenkänning med #318 när
+  `status:agreed`, `priority:later`. Följ #318:s beslut om gruppigenkänning när
   relevant.
 - **#135 Härled representativa matställessymboler från kök och inriktning** –
   `status:inbox`, `priority:later`. Revalidera först efter #199 eller när neutral
