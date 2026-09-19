@@ -193,8 +193,9 @@ polish och får inte tränga undan kärnflödet.
   `status:agreed`, `priority:later`. Följ #318:s beslut om gruppigenkänning när
   relevant.
 - **#135 Härled representativa matställessymboler från kök och inriktning** –
-  `status:inbox`, `priority:later`. Revalidera först efter #199 eller när neutral
-  platsidentitet visar sig vara ett konkret problem.
+  `status:inbox`, `priority:later`. #199 är genomförd och blockerar inte längre;
+  revalidera när neutral platsidentitet eller symbolval visar sig vara ett konkret
+  problem.
 
 ## Paket D – Personlig inspiration
 
