@@ -87,15 +87,30 @@ export function rankPlacesOverall(
   return rankRatedPlaces(places, ratingOf, limit);
 }
 
+export function rankPlacesForOccasions(
+  places: readonly Place[],
+  occasions: readonly Occasion[],
+  ratingOf: (placeId: string) => PlaceRating,
+  limit = 3,
+): RankedOccasionPlace[] {
+  const selected = OCCASION_VALUES.filter((occasion) => occasions.includes(occasion));
+  if (selected.length === 0) return rankRatedPlaces(places, ratingOf, limit);
+
+  return rankRatedPlaces(
+    places.filter((place) => {
+      const placeOccasions = normalizeOccasionClassification(place.occasions);
+      return selected.some((occasion) => placeOccasions.includes(occasion));
+    }),
+    ratingOf,
+    limit,
+  );
+}
+
 export function rankPlacesForOccasion(
   places: readonly Place[],
   occasion: Occasion,
   ratingOf: (placeId: string) => PlaceRating,
   limit = 3,
 ): RankedOccasionPlace[] {
-  return rankRatedPlaces(
-    places.filter((place) => normalizeOccasionClassification(place.occasions).includes(occasion)),
-    ratingOf,
-    limit,
-  );
+  return rankPlacesForOccasions(places, [occasion], ratingOf, limit);
 }

@@ -32,7 +32,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { rankPlacesForOccasion, rankPlacesOverall } from "@/lib/matrundan/occasions";
+import { rankPlacesForOccasions, rankPlacesOverall } from "@/lib/matrundan/occasions";
 import {
   RANKABLE_VISIT_MEALS,
   ratingForPlaceInVisitContext,
@@ -79,9 +79,6 @@ type Sort = "senaste" | "betyg" | "namn";
 type Filter = "alla" | "favoriter" | "nytt-for-gruppen" | "nytt-for-mig";
 type MissingField = "cuisines" | "occasions";
 type View = "lista" | "karta";
-type TopListFilter = Occasion | "alla";
-type TopVisitFilter = RankableVisitMeal | "alla";
-
 const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "alla", label: "Alla" },
   { key: "favoriter", label: "Favoriter" },
@@ -89,15 +86,19 @@ const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "nytt-for-gruppen", label: "Nytt för gruppen" },
 ];
 
-const TOP_LIST_FILTERS: { key: TopListFilter; label: string }[] = [
-  { key: "alla", label: "Alla" },
-  ...OCCASION_VALUES.map((key) => ({ key, label: OCCASION_LABEL[key] })),
-];
+const TOP_LIST_FILTERS = OCCASION_VALUES.map((key) => ({
+  key,
+  label: OCCASION_LABEL[key],
+}));
 
-const TOP_VISIT_FILTERS: { key: TopVisitFilter; label: string }[] = [
-  { key: "alla", label: "Alla tillfällen" },
-  ...RANKABLE_VISIT_MEALS.map((key) => ({ key, label: VISIT_MEAL_LABEL[key] })),
-];
+const TOP_VISIT_FILTERS = RANKABLE_VISIT_MEALS.map((key) => ({
+  key,
+  label: VISIT_MEAL_LABEL[key],
+}));
+
+function toggleFilterValue<T extends string>(values: readonly T[], value: T): T[] {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
 
 function PlacesIndex() {
   const { state, demoReadOnly, avgRating, isFavorite, statusOf } = useStore();
@@ -107,8 +108,8 @@ function PlacesIndex() {
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
   const [missingFields, setMissingFields] = React.useState<MissingField[]>([]);
-  const [topOccasion, setTopOccasion] = React.useState<TopListFilter>("alla");
-  const [topVisit, setTopVisit] = React.useState<TopVisitFilter>("alla");
+  const [topOccasions, setTopOccasions] = React.useState<Occasion[]>([]);
+  const [topVisits, setTopVisits] = React.useState<RankableVisitMeal[]>([]);
   const [topTakeawayOnly, setTopTakeawayOnly] = React.useState(false);
   const [topOpen, setTopOpen] = React.useState(false);
 
@@ -195,7 +196,7 @@ function PlacesIndex() {
   const overallLeaderboardRating = React.useCallback(
     (placeId: string) =>
       ratingForPlaceInVisitContext(state.visits, placeId, {
-        meal: "alla",
+        meals: [],
       }),
     [state.visits],
   );
@@ -206,17 +207,14 @@ function PlacesIndex() {
   const contextualRating = React.useCallback(
     (placeId: string) =>
       ratingForPlaceInVisitContext(state.visits, placeId, {
-        meal: topVisit,
+        meals: topVisits,
         takeawayOnly: topTakeawayOnly,
       }),
-    [state.visits, topTakeawayOnly, topVisit],
+    [state.visits, topTakeawayOnly, topVisits],
   );
   const topRated = React.useMemo(
-    () =>
-      topOccasion === "alla"
-        ? rankPlacesOverall(activePlaces, contextualRating)
-        : rankPlacesForOccasion(activePlaces, topOccasion, contextualRating),
-    [activePlaces, contextualRating, topOccasion],
+    () => rankPlacesForOccasions(activePlaces, topOccasions, contextualRating),
+    [activePlaces, contextualRating, topOccasions],
   );
   const topLeader = overallTopRated[0] ?? null;
 
@@ -326,25 +324,27 @@ function PlacesIndex() {
                     <span>Passar för</span>
                     <OccasionGuide compact />
                   </div>
-                  <div className="flex flex-wrap gap-2" role="group" aria-label="Välj Passar för">
+                  <div
+                    className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
+                    role="group"
+                    aria-label="Filtrera topplistan på Passar för. Inget val visar alla."
+                  >
                     {TOP_LIST_FILTERS.map((item) => {
-                      const active = topOccasion === item.key;
+                      const active = topOccasions.includes(item.key);
                       return (
                         <button
                           key={item.key}
                           type="button"
-                          onClick={() => setTopOccasion(item.key)}
-                          aria-pressed={active}
-                          aria-label={
-                            item.key === "alla"
-                              ? "Visa topplista för alla betyg"
-                              : `Visa topplista för ${item.label}`
+                          onClick={() =>
+                            setTopOccasions((current) => toggleFilterValue(current, item.key))
                           }
-                          className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          aria-pressed={active}
+                          aria-label={`Filtrera topplistan på ${item.label}`}
+                          className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Badge
                             variant={active ? "default" : "outline"}
-                            className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                            className="w-full cursor-pointer justify-center rounded-full px-1.5 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
                           >
                             {item.label}
                           </Badge>
@@ -357,48 +357,44 @@ function PlacesIndex() {
                 <div>
                   <div className="mb-2 text-sm font-medium text-foreground">Tillfälle</div>
                   <div
-                    className="flex flex-wrap gap-2"
+                    className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-2"
                     role="group"
-                    aria-label="Välj besökstillfälle för topplistan"
+                    aria-label="Filtrera topplistan på besökstillfälle. Inget val visar alla tillfällen."
                   >
                     {TOP_VISIT_FILTERS.map((item) => {
-                      const active = topVisit === item.key;
+                      const active = topVisits.includes(item.key);
                       return (
                         <button
                           key={item.key}
                           type="button"
-                          onClick={() => setTopVisit(item.key)}
-                          aria-pressed={active}
-                          aria-label={
-                            item.key === "alla"
-                              ? "Visa topplista för alla tillfällen"
-                              : `Visa topplista för ${item.label}`
+                          onClick={() =>
+                            setTopVisits((current) => toggleFilterValue(current, item.key))
                           }
-                          className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          aria-pressed={active}
+                          aria-label={`Filtrera topplistan på ${item.label}`}
+                          className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Badge
                             variant={active ? "default" : "outline"}
-                            className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                            className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
                           >
                             {item.label}
                           </Badge>
                         </button>
                       );
                     })}
-                  </div>
-                  <div className="mt-2">
                     <button
                       type="button"
                       onClick={() => setTopTakeawayOnly((current) => !current)}
                       aria-pressed={topTakeawayOnly}
-                      aria-label="Visa endast hämtmat i topplistan"
-                      className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label="Filtrera topplistan på hämtmat"
+                      className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Badge
                         variant={topTakeawayOnly ? "default" : "outline"}
-                        className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                        className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
                       >
-                        Endast hämtmat
+                        Hämtmat
                       </Badge>
                     </button>
                   </div>
@@ -435,7 +431,7 @@ function PlacesIndex() {
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
-                    {topOccasion === "alla" && topVisit === "alla" && !topTakeawayOnly
+                    {topOccasions.length === 0 && topVisits.length === 0 && !topTakeawayOnly
                       ? "Inga betyg ännu — de kommer när gänget har provat något."
                       : "Inga betyg matchar de valda filtren ännu."}
                   </div>

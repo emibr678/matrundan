@@ -12,7 +12,8 @@ export const RANKABLE_VISIT_MEALS = [
 export type RankableVisitMeal = (typeof RANKABLE_VISIT_MEALS)[number];
 
 export interface VisitRatingContext {
-  meal: RankableVisitMeal | "alla";
+  /** Tom lista betyder alla scorebara tillfällen, inklusive historisk legacy-kontext. */
+  meals?: readonly RankableVisitMeal[];
   takeawayOnly?: boolean;
 }
 
@@ -37,6 +38,7 @@ export function ratingForPlaceInVisitContext(
   context: VisitRatingContext,
 ): PlaceRating {
   const seenVisitIds = new Set<string>();
+  const selectedMeals = context.meals ?? [];
   const ratings: number[] = [];
   let visitCount = 0;
 
@@ -45,7 +47,12 @@ export function ratingForPlaceInVisitContext(
     if (visit.id) seenVisitIds.add(visit.id);
 
     if (visit.placeId !== placeId || !visitHasScore(visit)) continue;
-    if (context.meal !== "alla" && visit.meal !== context.meal) continue;
+    if (
+      selectedMeals.length > 0 &&
+      !selectedMeals.includes(visit.meal as RankableVisitMeal)
+    ) {
+      continue;
+    }
     if (context.takeawayOnly && !visit.isTakeaway) continue;
 
     const reviews = relevantVisibleReviews(visit);

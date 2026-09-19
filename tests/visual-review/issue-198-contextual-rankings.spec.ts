@@ -37,7 +37,7 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
 }
 
-test("fånga kontextfilter i topplistan", async ({ page }, testInfo) => {
+test("fånga kompakta flervalsfilter i topplistan", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await page.goto("/matstallen?demo=1", { waitUntil: "domcontentloaded" });
 
@@ -46,30 +46,25 @@ test("fånga kontextfilter i topplistan", async ({ page }, testInfo) => {
 
   await expect(leaderboard.getByText("Passar för", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Tillfälle", { exact: true })).toBeVisible();
-  await expect(
-    leaderboard.getByRole("button", { name: "Visa endast hämtmat i topplistan" }),
-  ).toBeVisible();
-  await expect(
-    leaderboard.getByText("Något att dricka saknar betyg och visas därför inte här.", {
-      exact: true,
-    }),
-  ).toHaveCount(0);
+  await expect(leaderboard.getByText("Alla", { exact: true })).toHaveCount(0);
+  await expect(leaderboard.getByText("Alla tillfällen", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-198-topplista-expanderad");
+  await capture(page, testInfo, "issue-198-topplista-ofiltrerad");
 
-  await leaderboard.getByRole("button", { name: "Visa topplista för Lunch" }).click();
-  await leaderboard.getByRole("button", { name: "Visa topplista för Snabbt och enkelt" }).click();
-  await expect(leaderboard.getByText("Solsidans Sopplunch", { exact: true })).toBeVisible();
+  await leaderboard
+    .getByRole("button", { name: "Filtrera topplistan på Snabbt och enkelt" })
+    .click();
+  await leaderboard.getByRole("button", { name: "Filtrera topplistan på Avslappnat" }).click();
+  await leaderboard.getByRole("button", { name: "Filtrera topplistan på Lunch" }).click();
+  await leaderboard.getByRole("button", { name: "Filtrera topplistan på Middag" }).click();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-198-lunch-snabbt");
+  await capture(page, testInfo, "issue-198-topplista-flerval");
 
-  await leaderboard.getByRole("button", { name: "Visa endast hämtmat i topplistan" }).click();
-  await expect(
-    leaderboard.getByText("Inga betyg matchar de valda filtren ännu.", { exact: true }),
-  ).toBeVisible();
+  await leaderboard.getByRole("button", { name: "Filtrera topplistan på hämtmat" }).click();
+  await expect(leaderboard.getByText("Månskärans Taquería", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-198-tomt-filterlage");
+  await capture(page, testInfo, "issue-198-topplista-hamtmat");
 });

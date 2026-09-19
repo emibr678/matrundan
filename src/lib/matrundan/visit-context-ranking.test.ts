@@ -46,17 +46,24 @@ describe("historikbaserat topplistebetyg", () => {
   test("håller lunch och middag separata men kan visa transparent totalsnitt", () => {
     const visits = [visit("v-lunch", "lunch", 5), visit("v-dinner", "middag", 3)];
 
-    expect(ratingForPlaceInVisitContext(visits, "p1", { meal: "lunch" })).toEqual({
+    expect(ratingForPlaceInVisitContext(visits, "p1", { meals: ["lunch"] })).toEqual({
       overall: 5,
       count: 1,
       visitCount: 1,
     });
-    expect(ratingForPlaceInVisitContext(visits, "p1", { meal: "middag" })).toEqual({
+    expect(ratingForPlaceInVisitContext(visits, "p1", { meals: ["middag"] })).toEqual({
       overall: 3,
       count: 1,
       visitCount: 1,
     });
-    expect(ratingForPlaceInVisitContext(visits, "p1", { meal: "alla" })).toEqual({
+    expect(ratingForPlaceInVisitContext(visits, "p1", { meals: [] })).toEqual({
+      overall: 4,
+      count: 2,
+      visitCount: 2,
+    });
+    expect(
+      ratingForPlaceInVisitContext(visits, "p1", { meals: ["lunch", "middag"] }),
+    ).toEqual({
       overall: 4,
       count: 2,
       visitCount: 2,
@@ -76,7 +83,7 @@ describe("historikbaserat topplistebetyg", () => {
       }),
     ];
 
-    expect(ratingForPlaceInVisitContext(visits, "p1", { meal: "lunch" })).toEqual({
+    expect(ratingForPlaceInVisitContext(visits, "p1", { meals: ["lunch"] })).toEqual({
       overall: 5,
       count: 1,
       visitCount: 1,
@@ -90,7 +97,7 @@ describe("historikbaserat topplistebetyg", () => {
       visibleReviews: [review("duplicate", "m1", 1)],
     };
 
-    expect(ratingForPlaceInVisitContext([canonical, duplicate], "p1", { meal: "fika" })).toEqual({
+    expect(ratingForPlaceInVisitContext([canonical, duplicate], "p1", { meals: ["fika"] })).toEqual({
       overall: 4,
       count: 1,
       visitCount: 1,
@@ -106,7 +113,7 @@ describe("historikbaserat topplistebetyg", () => {
 
     expect(
       ratingForPlaceInVisitContext(visits, "p1", {
-        meal: "lunch",
+        meals: ["lunch"],
         takeawayOnly: true,
       }),
     ).toEqual({
@@ -119,7 +126,7 @@ describe("historikbaserat topplistebetyg", () => {
   test("Något att dricka är ett besök men aldrig rankingunderlag", () => {
     const visits = [visit("drink", "dryck", 5)];
 
-    expect(ratingForPlaceInVisitContext(visits, "p1", { meal: "alla" })).toEqual({
+    expect(ratingForPlaceInVisitContext(visits, "p1", { meals: [] })).toEqual({
       overall: 0,
       count: 0,
       visitCount: 0,
