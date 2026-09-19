@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { rpcClient } from "./rpc-client";
-import type { Role, Visit, VisitPhoto } from "./types";
+import type { AppState, Role, Visit, VisitPhoto } from "./types";
 
 export const VISIT_PHOTO_BUCKET = "visit-photos";
 export const VISIT_PHOTO_MAX_INPUT_BYTES = 15 * 1024 * 1024;
@@ -41,6 +41,51 @@ export function representativeVisitPhoto(
   visit: Pick<Visit, "photos" | "photo">,
 ): VisitPhoto | null {
   return getVisitPhotos(visit)[0] ?? null;
+}
+
+export function applyPreparedVisitPhotoToDemoState(
+  state: AppState,
+  visitId: string,
+  prepared: PreparedVisitPhoto,
+  url: string,
+  updatedAt = new Date().toISOString(),
+): AppState {
+  const visit = state.visits.find((item) => item.id === visitId);
+  if (!visit) throw new Error("Besöket finns inte.");
+
+  const role = state.members.find((member) => member.id === state.currentUserId)?.role;
+  if (
+    !canAddOrReplaceVisitPhoto(
+      visit,
+      state.currentUserId,
+      role,
+      state.group.lifecycleStatus === "archived",
+    )
+  ) {
+    throw new Error("Endast faktiska deltagare kan lägga till en bild.");
+  }
+
+  const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
+  const nextPhoto: VisitPhoto = {
+    url,
+    uploadedBy: state.currentUserId,
+    mimeType: prepared.mimeType,
+    byteSize: prepared.byteSize,
+    width: prepared.width,
+    height: prepared.height,
+    createdAt: ownPhoto?.createdAt ?? updatedAt,
+    updatedAt,
+  };
+  const photos = [
+    ...getVisitPhotos(visit).filter((photo) => photo.uploadedBy !== state.currentUserId),
+    nextPhoto,
+  ].sort((a, b) => (a.createdAt ?? a.updatedAt).localeCompare(b.createdAt ?? b.updatedAt));
+  const photo = representativeVisitPhoto({ photos, photo: null });
+
+  return {
+    ...state,
+    visits: state.visits.map((item) => (item.id === visitId ? { ...item, photos, photo } : item)),
+  };
 }
 
 function canContributeVisitPhoto(
