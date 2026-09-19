@@ -754,7 +754,9 @@ export function StoreProvider({
       saveVisitPhoto: async (visitId, file, visitSnapshot) => {
         const visit = visitSnapshot ?? state.visits.find((item) => item.id === visitId);
         if (!visit) throw new Error("Besöket finns inte.");
-        const role = state.members.find((member) => member.id === state.currentUserId)?.role;
+        const role = state.members.find(
+          (member) => member.id === state.currentUserId,
+        )?.role;
         if (
           !canAddOrReplaceVisitPhoto(
             visit,
@@ -763,7 +765,7 @@ export function StoreProvider({
             state.group.lifecycleStatus === "archived",
           )
         ) {
-          throw new Error("Du kan inte ersätta ett foto som en annan deltagare har lagt till.");
+          throw new Error("Endast faktiska deltagare kan lägga till eller byta sin bild.");
         }
         const prepared = await prepareVisitPhoto(file);
         if (mode === "live") {
@@ -824,7 +826,9 @@ export function StoreProvider({
         const visit = state.visits.find((item) => item.id === visitId);
         if (!visit) throw new Error("Besöket finns inte.");
         const targetUploadedBy = uploadedBy ?? state.currentUserId;
-        const role = state.members.find((member) => member.id === state.currentUserId)?.role;
+        const role = state.members.find(
+          (member) => member.id === state.currentUserId,
+        )?.role;
         if (
           !canDeleteVisitPhoto(
             visit,
@@ -837,7 +841,9 @@ export function StoreProvider({
           throw new Error("Du saknar behörighet att ta bort den här bilden.");
         }
         if (mode === "live") {
-          await runLive((groupId) => liveDeleteVisitPhoto(groupId, visitId, targetUploadedBy));
+          await runLive((groupId) =>
+            liveDeleteVisitPhoto(groupId, visitId, targetUploadedBy),
+          );
           return;
         }
         assertDemoWritable(state, demoReadOnly);
