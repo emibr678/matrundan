@@ -237,8 +237,14 @@ Nya uppladdningar och ersättningar kräver att användaren:
 - bara skapar eller ersätter sin egen bildplats.
 
 Owner/admin får moderera och radera en deltagares bild men får inte därigenom
-ladda upp eller skriva över bilden som om den vore deras egen. Den som legitimt
-raderar hela originalbesöket måste fortsatt kunna städa samtliga mediaobjekt.
+ladda upp eller skriva över bilden som om den vore deras egen. **Den som bara
+registrerade besöket får ingen separat rätt att punktmoderera andra deltagares
+bilder.** Helbesöksradering är en annan operation: dess RPC samlar först
+Storage-sökvägarna och raderar därefter det kanoniska besöket; klienten städar
+sedan endast de nu orefererade Storage-objekten. Därmed kan registreraren fortsatt
+radera ett besök när produktregeln tillåter det utan att få en fristående
+"ta bort någon annans bild"-förmåga.
+
 Skrivreglerna verkställs både i RPC/Storage-policy och i klientens presentation;
 klientkontrollen är endast UX.
 
