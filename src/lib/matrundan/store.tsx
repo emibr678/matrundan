@@ -61,7 +61,6 @@ import {
   blobToDataUrl,
   canAddOrReplaceVisitPhoto,
   canDeleteVisitPhoto,
-  getOwnVisitPhoto,
   getVisitPhotos,
   liveDeleteVisitPhoto,
   liveSaveVisitPhoto,
