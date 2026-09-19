@@ -4,13 +4,14 @@ import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { VisibleReview } from "@/lib/matrundan/types";
+import type { ReviewModel, VisibleReview } from "@/lib/matrundan/types";
 import { RatingInput } from "./Rating";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 
 export function ReviewEditFields({
   review,
   scoreless,
+  activeModel,
   overall,
   taste,
   value,
@@ -28,6 +29,7 @@ export function ReviewEditFields({
 }: {
   review: VisibleReview;
   scoreless: boolean;
+  activeModel?: ReviewModel | null;
   overall: number;
   taste: number;
   value: number;
@@ -43,6 +45,7 @@ export function ReviewEditFields({
   idPrefix: string;
   disabled?: boolean;
 }) {
+  const model = activeModel === undefined ? review.reviewModel : activeModel;
   const legacy = !scoreless && review.reviewModel == null;
   const [showLegacyDetails, setShowLegacyDetails] = React.useState(false);
 
@@ -52,9 +55,9 @@ export function ReviewEditFields({
 
   return (
     <div className="space-y-4">
-      {!scoreless && review.reviewModel ? (
+      {!scoreless && model ? (
         <ReviewScoreFields
-          model={review.reviewModel}
+          model={model}
           taste={taste}
           service={service}
           value={value}
