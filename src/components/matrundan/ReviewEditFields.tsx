@@ -1,7 +1,11 @@
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { VisibleReview } from "@/lib/matrundan/types";
@@ -69,7 +73,12 @@ export function ReviewEditFields({
       {legacy ? (
         <>
           <div className="rounded-2xl bg-secondary/60 p-4">
-            <RatingInput value={overall} onChange={onOverallChange} label="Helhetsbetyg" size={32} />
+            <RatingInput
+              value={overall}
+              onChange={onOverallChange}
+              label="Helhetsbetyg"
+              size={32}
+            />
           </div>
 
           <Collapsible open={showLegacyDetails} onOpenChange={setShowLegacyDetails}>
