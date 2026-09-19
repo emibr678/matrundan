@@ -136,11 +136,20 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
   const photoGallery = page.getByRole("region", { name: "Bilder från besöket" });
   await expect(photoGallery).toBeVisible();
   await expect(photoGallery.getByText("1 / 2", { exact: true })).toBeVisible();
-  await expect(photoGallery.getByRole("button", { name: "Byt din bild" })).toBeVisible();
+
+  const robinPhoto = photoGallery.getByRole("group", { name: "Bild från Robin" });
+  await expect(robinPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(0);
   await expect(
-    photoGallery.getByRole("button", { name: "Fler bildalternativ för Robin" }),
+    robinPhoto.getByRole("button", { name: "Fler bildalternativ för Robin" }),
   ).toBeVisible();
-  await photoGallery.getByRole("button", { name: "Öppna bild från Robin" }).click();
+
+  const alexPhoto = photoGallery.getByRole("group", { name: "Bild från Alex, din bild" });
+  await expect(alexPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(1);
+  await expect(alexPhoto.getByRole("button", { name: "Fler alternativ för din bild" })).toHaveCount(
+    1,
+  );
+
+  await robinPhoto.getByRole("button", { name: "Öppna bild från Robin" }).click();
   const photoViewer = page.getByRole("dialog", { name: "Bilder från besöket" });
   await expect(photoViewer).toBeVisible();
   await expect(photoViewer.getByAltText("Bild från Robin")).toBeVisible();
