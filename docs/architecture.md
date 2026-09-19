@@ -396,6 +396,19 @@ att källgrupp eller annan privat gruppdata exponeras. Dubblettskyddet tar med
 Hämtmat-kontexten för scorebara matbesök så På plats och Hämtmat inte felaktigt
 behandlas som samma starka dubblett.
 
+En senare korrigering av `is_takeaway` är reversibel och får inte skriva om
+reviewns lagrade `review_model` eller dimensionsvärden. När ett befintligt
+modernt omdöme tillfälligt är aktivt i Hämtmat-kontext används i stället en
+**effektiv** tredimensionell modell för presentation och aggregat: Smak, Service
+och Prisvärdhet räknas om aritmetiskt och ett eventuellt sparat Atmosfärsvärde
+döljs men bevaras. Om Hämtmat tas bort igen återgår omdömet till sin lagrade
+modell och samma Atmosfärsvärde blir aktivt igen. Ett omdöme som skapades som
+Hämtmat får däremot aldrig ett fabricerat Atmosfärsvärde när markeringen senare
+tas bort; dess lagrade tredimensionella modell består tills en separat uttrycklig
+omvärdering eventuellt kompletterar den. Legacy-reviews utan `review_model`
+behåller sitt manuella helhetsbetyg eftersom deras historiska matematik inte kan
+återskapas säkert.
+
 Servern avvisar ett nytt besök där `auth.uid()` inte finns bland de validerade
 `visit_participants`.
 
