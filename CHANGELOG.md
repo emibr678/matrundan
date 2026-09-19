@@ -14,6 +14,19 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.39.1] – 2026-09-19
+
+### Förbättrat
+
+- Det är enklare att skilja på och växla mellan flera grupper med korta
+  gruppbeskrivningar, senaste grupper och en samlad vy för alla grupper.
+- Matställen visar nu topplistans ledare direkt och skiljer tydligare på gruppens
+  lista och nya ställen.
+- En sökning utan träff kan fortsätta till tilläggsflödet utan att söktexten
+  behöver skrivas om.
+- Sökträffar blandar inte längre ihop en vald utgångspunkt med matställets
+  faktiska plats.
+
 ## [1.39.0] – 2026-09-12
 
 ### Nytt
