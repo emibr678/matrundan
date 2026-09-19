@@ -897,12 +897,7 @@ export function StoreProvider({
         }
 
         if (mode === "live") {
-          await runLive(async (groupId) => {
-            for (const photo of getVisitPhotos(visit)) {
-              await liveDeleteVisitPhoto(groupId, visitId, photo.uploadedBy);
-            }
-            await liveDeleteOriginalVisit(groupId, visitId);
-          });
+          await runLive((groupId) => liveDeleteOriginalVisit(groupId, visitId));
           return;
         }
 
