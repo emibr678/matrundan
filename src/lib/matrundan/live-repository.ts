@@ -26,6 +26,11 @@ import type {
   Visit,
 } from "./types";
 import { normalizeOccasionClassification } from "./occasions";
+import {
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelIncludesAtmosphere,
+} from "./review-model";
 import { normalizeWebsiteUrl } from "./place-links";
 import {
   CURRENT_GROUP_STATE_RPC,
@@ -421,16 +426,29 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     // Aggregat räknas bara från synliga, faktiska scores. Scorelösa kommentarer
     // kan fortfarande bidra med besöksminnet men aldrig med ett numeriskt betyg.
     const rated = visitMealHasScore(v.meal)
-      ? visibleReviews.filter(
-          (review): review is VisibleReview & { overall: number } =>
-            review.ratingVisible && review.overall != null,
-        )
+      ? visibleReviews.flatMap((review) => {
+          const overall = effectiveReviewOverall(review, v.isTakeaway ?? false);
+          return review.ratingVisible && overall != null ? [{ review, overall }] : [];
+        })
       : [];
-    const overall = rated.map((r) => r.overall);
-    const taste = rated.map((r) => r.taste).filter((x): x is number => x != null);
-    const value = rated.map((r) => r.value).filter((x): x is number => x != null);
-    const service = rated.map((r) => r.service).filter((x): x is number => x != null);
-    const atmosphere = rated.map((r) => r.atmosphere).filter((x): x is number => x != null);
+    const overall = rated.map((item) => item.overall);
+    const taste = rated
+      .map((item) => item.review.taste)
+      .filter((x): x is number => x != null);
+    const value = rated
+      .map((item) => item.review.value)
+      .filter((x): x is number => x != null);
+    const service = rated
+      .map((item) => item.review.service)
+      .filter((x): x is number => x != null);
+    const atmosphere = rated
+      .filter(({ review }) =>
+        reviewModelIncludesAtmosphere(
+          effectiveReviewModel(review.reviewModel, v.isTakeaway ?? false),
+        ),
+      )
+      .map((item) => item.review.atmosphere)
+      .filter((x): x is number => x != null);
     const comment = visibleReviews.find((r) => r.commentVisible && r.comment?.trim())?.comment;
     const currentUserParticipationStatus =
       v.currentUserParticipationStatus === "declined"
