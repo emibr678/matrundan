@@ -159,12 +159,13 @@ visar behov.
 ### Senast genomförda kärnleveranser
 
 **#309 Redigera besöksuppgifter och deltagare i efterhand** är genomförd via
-PR #347 och **#198 Filtrera topplistor efter besökstillfälle och hämtmat** är
-genomförd via PR #354.
+PR #347, **#198 Filtrera topplistor efter besökstillfälle och hämtmat** via
+PR #354 och **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning
+och Passar för** via PR #346.
 
 Tillsammans gör de den kanoniska besökshistoriken både korrigerbar och direkt
-användbar när gruppen väljer nästa ställe: ändrad besökskontext slår igenom i
-den historikbaserade topplistan utan separat rankingdata.
+användbar när gruppen väljer nästa ställe, samtidigt som platsens olika
+metadata-dimensioner har ett begripligt användarspråk.
 
 ### Nästa produktblock – gemensamma besöksbilder
 
@@ -255,14 +256,8 @@ PR #354. Den befintliga `Passar för`-topplistan kan nu kombineras med verkliga
 besökstillfällen och Hämtmat, och det synliga betyget härleds från relevanta
 besök/reviews utan dold statistisk score.
 
-Kvarvarande närliggande leverans:
-
-- **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
-  för** – fokusera på kvarvarande informationsarkitektur. Den generella
-  `Passar för`-copyn från #331 är redan landad och ska inte göras om utan
-  konkret skäl.
-
-**#200** är stängt som överspelat. Saknat `Passar för` hanteras redan i relevant
+**#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
+för** är genomförd via PR #346. **#200** är stängt som överspelat. Saknat `Passar för` hanteras redan i relevant
 platscentrerad kontext inför scorebara besök; generell efterbesöks-prompt för
 metadata ska inte återinföras utan nytt konkret behov.
 
