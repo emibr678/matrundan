@@ -521,12 +521,15 @@ function PlaceDetail() {
         </div>
         <Card className="space-y-3 rounded-2xl border-border/70 p-4">
           {place.cuisines.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {place.cuisines.map((cuisine) => (
-                <Badge key={cuisine} variant="secondary" className="rounded-full">
-                  {cuisine}
-                </Badge>
-              ))}
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground">Kök och inriktning</div>
+              <div className="flex flex-wrap gap-1.5">
+                {place.cuisines.map((cuisine) => (
+                  <Badge key={cuisine} variant="secondary" className="rounded-full">
+                    {cuisine}
+                  </Badge>
+                ))}
+              </div>
             </div>
           ) : null}
           {occasions.length > 0 ? (
@@ -550,12 +553,6 @@ function PlaceDetail() {
             </div>
           ) : null}
           {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
-          {(place.categoryOverride != null || place.cuisinesOverride != null) && (
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Kategori eller kök och inriktning har anpassats för den här gruppen. Matställets namn
-              och adress är oförändrade.
-            </p>
-          )}
           <div className="text-xs text-muted-foreground">
             Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
           </div>

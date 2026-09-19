@@ -62,16 +62,14 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
   const baseCuisines = normalizeFoodTags(place.canonicalCuisines ?? place.cuisines);
   const [open, setOpen] = React.useState(false);
   const [confirmRemove, setConfirmRemove] = React.useState(false);
-  const [category, setCategory] = React.useState<PlaceCategory | "inherit">(
-    place.categoryOverride ?? "inherit",
-  );
+  const [category, setCategory] = React.useState<PlaceCategory>(place.category);
   const [cuisines, setCuisines] = React.useState<string[]>(place.cuisines);
   const [occasions, setOccasions] = React.useState<Occasion[]>(place.occasions);
   const [notes, setNotes] = React.useState(place.notes ?? "");
 
   React.useEffect(() => {
     if (!open) return;
-    setCategory(place.categoryOverride ?? "inherit");
+    setCategory(place.category);
     setCuisines(place.cuisines);
     setOccasions(place.occasions);
     setNotes(place.notes ?? "");
@@ -83,7 +81,8 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     try {
       const normalizedCuisines = normalizeFoodTags(cuisines);
       await updatePlaceMetadata(place.id, {
-        categoryOverride: category === "inherit" ? null : category,
+        categoryOverride:
+          category === (place.canonicalCategory ?? place.category) ? null : category,
         cuisinesOverride: sameFoodTags(normalizedCuisines, baseCuisines)
           ? null
           : normalizedCuisines,
@@ -131,26 +130,20 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
         <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Ändra gruppens uppgifter om stället</DialogTitle>
-            <DialogDescription>
-              Ändringarna gäller bara i {state.group.name}. Matställets kanoniska namn och adress
-              påverkas inte.
-            </DialogDescription>
+            <DialogDescription>Ändringarna gäller bara i {state.group.name}.</DialogDescription>
           </DialogHeader>
 
           <div className="min-w-0 space-y-5">
             <div className="space-y-1.5">
-              <Label>Kategori i gruppen</Label>
+              <Label>Typ av ställe</Label>
               <Select
                 value={category}
-                onValueChange={(value) => setCategory(value as PlaceCategory | "inherit")}
+                onValueChange={(value) => setCategory(value as PlaceCategory)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="inherit">
-                    Grundkategori: {CATEGORY_LABEL[place.canonicalCategory ?? place.category]}
-                  </SelectItem>
                   {CATEGORIES.map((item) => (
                     <SelectItem key={item} value={item}>
                       {CATEGORY_LABEL[item]}
@@ -166,7 +159,6 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
               onChange={setCuisines}
               disabled={submitting}
               label="Kök och inriktning"
-              description="Valen gäller bara för den här gruppen."
             />
 
             <OccasionPicker

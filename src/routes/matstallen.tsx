@@ -246,6 +246,7 @@ function PlacesIndex() {
     name: place.name,
     lat: place.lat,
     lng: place.lng,
+    category: place.category,
     eyebrow: CATEGORY_LABEL[place.category],
     description: [place.address, place.area, place.city].filter(Boolean).join(" · "),
     markerLabel: place.photo ?? "🍽️",
@@ -498,7 +499,7 @@ function PlacesIndex() {
               <SheetDescription>Samma urval används i både listan och kartan.</SheetDescription>
             </SheetHeader>
             <div className="space-y-5 py-4">
-              <FilterGroup label="Kategori">
+              <FilterGroup label="Typ av ställe">
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
