@@ -113,19 +113,13 @@ function aggregateVisit(visit: Visit): Visit {
     visibleReviews: sourceReviews,
     overall: avg(rated.map((item) => item.overall)) ?? 0,
     taste: avg(
-      rated
-        .map((item) => item.review.taste)
-        .filter((value): value is number => value != null),
+      rated.map((item) => item.review.taste).filter((value): value is number => value != null),
     ),
     value: avg(
-      rated
-        .map((item) => item.review.value)
-        .filter((value): value is number => value != null),
+      rated.map((item) => item.review.value).filter((value): value is number => value != null),
     ),
     service: avg(
-      rated
-        .map((item) => item.review.service)
-        .filter((value): value is number => value != null),
+      rated.map((item) => item.review.service).filter((value): value is number => value != null),
     ),
     atmosphere: avg(
       rated
@@ -635,15 +629,12 @@ export function StoreProvider({
           if (
             newScored &&
             ownReview.reviewModel &&
-            !reviewRatingsComplete(
-              effectiveReviewModel(ownReview.reviewModel, input.isTakeaway),
-              {
-                taste: ownReviewInput.taste ?? 0,
-                value: ownReviewInput.value ?? 0,
-                service: ownReviewInput.service ?? 0,
-                atmosphere: ownReviewInput.atmosphere ?? 0,
-              },
-            )
+            !reviewRatingsComplete(effectiveReviewModel(ownReview.reviewModel, input.isTakeaway), {
+              taste: ownReviewInput.taste ?? 0,
+              value: ownReviewInput.value ?? 0,
+              service: ownReviewInput.service ?? 0,
+              atmosphere: ownReviewInput.atmosphere ?? 0,
+            })
           ) {
             throw new Error("Sätt alla relevanta betyg.");
           }
@@ -1123,10 +1114,7 @@ export function StoreProvider({
           .filter((visit) => visit.placeId === placeId && visitHasScore(visit))
           .flatMap((visit) =>
             (visit.visibleReviews ?? []).flatMap((review) => {
-              if (
-                !visit.participantIds.includes(review.userId) ||
-                !review.ratingVisible
-              ) {
+              if (!visit.participantIds.includes(review.userId) || !review.ratingVisible) {
                 return [];
               }
               const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
