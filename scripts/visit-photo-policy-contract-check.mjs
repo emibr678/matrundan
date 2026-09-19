@@ -47,6 +47,15 @@ requirePattern(
   /can_delete_visit_photo\s*\([\s\S]*?_uploaded_by\s+uuid[\s\S]*?_user_id\s+uuid[\s\S]*?has_group_role[\s\S]*?owner[\s\S]*?admin/i,
   "Targeted delete måste bevara individuell ägare och separat owner/admin-moderation.",
 );
+
+const deleteGuard = migration.match(
+  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.can_delete_visit_photo[\s\S]*?\$function\$;/i,
+)?.[0];
+if (!deleteGuard) {
+  errors.push("Migrationen saknar can_delete_visit_photo.");
+} else if (/can_delete_original_visit/i.test(deleteGuard)) {
+  errors.push("Besöksregistreraren får inte ärva rätt att punktmoderera andra deltagares bilder.");
+}
 requirePattern(
   migration,
   /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.delete_visit_photo_v2/i,
@@ -69,8 +78,13 @@ requirePattern(
 );
 requirePattern(
   migration,
-  /CREATE\s+POLICY\s+"visit photos allowed delete"[\s\S]*?NOT\s+EXISTS[\s\S]*?has_group_role[\s\S]*?can_delete_original_visit/i,
-  "Storage-delete måste kunna städa en modererad eller besöksraderad fil efter att mediareferensen tagits bort.",
+  /CREATE\s+POLICY\s+"visit photos allowed delete"[\s\S]*?NOT\s+EXISTS[\s\S]*?visit_media[\s\S]*?has_group_role/i,
+  "Storage-delete måste bara städa orefererade media och stödja owner/admin-moderation.",
+);
+requirePattern(
+  migration,
+  /CREATE\s+FUNCTION\s+public\.delete_original_visit[\s\S]*?RETURNS\s+text\[\][\s\S]*?array_agg\(vm\.storage_path[\s\S]*?DELETE\s+FROM\s+public\.visits/i,
+  "Helbesöksradering måste samla Storage-sökvägar och radera besöket utan punktmoderation.",
 );
 requirePattern(
   migration,
@@ -91,8 +105,8 @@ for (const marker of [
   "visit-photo:authenticated-cannot-call-internal-delete-helper",
   "visit-photo:authenticated-can-call-targeted-delete",
   "visit-photo:upload-policy-uses-current-user-guard",
-  "visit-photo:delete-policy-uses-target-aware-path-guard",
-  "visit-photo:delete-policy-cleans-moderated-orphan",
+  "visit-photo:delete-policy-cleans-only-orphaned-media",
+  "visit-photo:whole-visit-delete-returns-storage-paths",
   "visit-photo:upsert-conflicts-per-uploader",
   "visit-photo:legacy-read-model-keeps-one-representative",
   "visit-photo:current-read-model-exposes-photo-array",
