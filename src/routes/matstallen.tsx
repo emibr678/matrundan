@@ -33,6 +33,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { rankPlacesForOccasion, rankPlacesOverall } from "@/lib/matrundan/occasions";
+import {
+  RANKABLE_VISIT_MEALS,
+  ratingForPlaceInVisitContext,
+  type RankableVisitMeal,
+} from "@/lib/matrundan/visit-context-ranking";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
@@ -42,6 +47,7 @@ import {
   type Occasion,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
+import { VISIT_MEAL_LABEL } from "@/lib/matrundan/visit-context";
 
 export const Route = createFileRoute("/matstallen")({
   head: () => ({
@@ -74,6 +80,7 @@ type Filter = "alla" | "favoriter" | "nytt-for-gruppen" | "nytt-for-mig";
 type MissingField = "cuisines" | "occasions";
 type View = "lista" | "karta";
 type TopListFilter = Occasion | "alla";
+type TopVisitFilter = RankableVisitMeal | "alla";
 
 const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "alla", label: "Alla" },
@@ -87,6 +94,11 @@ const TOP_LIST_FILTERS: { key: TopListFilter; label: string }[] = [
   ...OCCASION_VALUES.map((key) => ({ key, label: OCCASION_LABEL[key] })),
 ];
 
+const TOP_VISIT_FILTERS: { key: TopVisitFilter; label: string }[] = [
+  { key: "alla", label: "Alla" },
+  ...RANKABLE_VISIT_MEALS.map((key) => ({ key, label: VISIT_MEAL_LABEL[key] })),
+];
+
 function PlacesIndex() {
   const { state, demoReadOnly, avgRating, isFavorite, statusOf } = useStore();
   const { exampleMode } = useSession();
@@ -96,6 +108,8 @@ function PlacesIndex() {
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
   const [missingFields, setMissingFields] = React.useState<MissingField[]>([]);
   const [topOccasion, setTopOccasion] = React.useState<TopListFilter>("alla");
+  const [topVisit, setTopVisit] = React.useState<TopVisitFilter>("alla");
+  const [topTakeawayOnly, setTopTakeawayOnly] = React.useState(false);
   const [topOpen, setTopOpen] = React.useState(false);
 
   const [sort, setSort] = React.useState<Sort>("senaste");
@@ -182,12 +196,20 @@ function PlacesIndex() {
     () => rankPlacesOverall(activePlaces, avgRating),
     [activePlaces, avgRating],
   );
+  const contextualRating = React.useCallback(
+    (placeId: string) =>
+      ratingForPlaceInVisitContext(state.visits, placeId, {
+        meal: topVisit,
+        takeawayOnly: topTakeawayOnly,
+      }),
+    [state.visits, topTakeawayOnly, topVisit],
+  );
   const topRated = React.useMemo(
     () =>
       topOccasion === "alla"
-        ? overallTopRated
-        : rankPlacesForOccasion(activePlaces, topOccasion, avgRating),
-    [activePlaces, avgRating, overallTopRated, topOccasion],
+        ? rankPlacesOverall(activePlaces, contextualRating)
+        : rankPlacesForOccasion(activePlaces, topOccasion, contextualRating),
+    [activePlaces, contextualRating, topOccasion],
   );
   const topLeader = overallTopRated[0] ?? null;
 
@@ -291,37 +313,97 @@ function PlacesIndex() {
             </div>
 
             <CollapsibleContent className="pt-3">
-              <div className="mb-2 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
-                <span>Visa topplista för</span>
-                <OccasionGuide compact />
-              </div>
-              <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">
-                {TOP_LIST_FILTERS.map((item) => {
-                  const active = topOccasion === item.key;
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => setTopOccasion(item.key)}
-                      aria-pressed={active}
-                      aria-label={
-                        item.key === "alla"
-                          ? "Visa topplista för alla betyg"
-                          : `Visa topplista för ${item.label}`
-                      }
-                      className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              <div className="space-y-3">
+                <div>
+                  <div className="mb-2 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
+                    <span>Passar för</span>
+                    <OccasionGuide compact />
+                  </div>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Välj Passar för">
+                    {TOP_LIST_FILTERS.map((item) => {
+                      const active = topOccasion === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setTopOccasion(item.key)}
+                          aria-pressed={active}
+                          aria-label={
+                            item.key === "alla"
+                              ? "Visa topplista för alla betyg"
+                              : `Visa topplista för ${item.label}`
+                          }
+                          className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Badge
+                            variant={active ? "default" : "outline"}
+                            className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                          >
+                            {item.label}
+                          </Badge>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 text-sm font-medium text-foreground">Tillfälle</div>
+                  <div
+                    className="flex flex-wrap gap-2"
+                    role="group"
+                    aria-label="Välj besökstillfälle för topplistan"
+                  >
+                    {TOP_VISIT_FILTERS.map((item) => {
+                      const active = topVisit === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setTopVisit(item.key)}
+                          aria-pressed={active}
+                          aria-label={
+                            item.key === "alla"
+                              ? "Visa topplista för alla tillfällen"
+                              : `Visa topplista för ${item.label}`
+                          }
+                          className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Badge
+                            variant={active ? "default" : "outline"}
+                            className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                          >
+                            {item.label}
+                          </Badge>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    Något att dricka saknar stjärnbetyg och kan därför inte rangordnas här.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Hämtmat</span>
+                  <button
+                    type="button"
+                    onClick={() => setTopTakeawayOnly((current) => !current)}
+                    aria-pressed={topTakeawayOnly}
+                    aria-label="Visa endast hämtmat i topplistan"
+                    className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Badge
+                      variant={topTakeawayOnly ? "default" : "outline"}
+                      className="cursor-pointer rounded-full px-3 py-1 text-xs"
                     >
-                      <Badge
-                        variant={active ? "default" : "outline"}
-                        className="cursor-pointer rounded-full px-3 py-1 text-xs"
-                      >
-                        {item.label}
-                      </Badge>
-                    </button>
-                  );
-                })}
+                      Endast hämtmat
+                    </Badge>
+                  </button>
+                </div>
               </div>
 
+              <div className="mt-3">
               {topRated.length > 0 ? (
                 <div className="grid min-w-0 gap-2 md:grid-cols-3">
                   {topRated.map(({ place, rating, rank }) => (
@@ -340,7 +422,8 @@ function PlacesIndex() {
                         <div className="mt-0.5 flex items-center gap-2">
                           <RatingStars value={rating.overall} size={12} />
                           <span className="text-xs text-muted-foreground">
-                            {formatRating(rating.overall)} · {rating.count}{" "}
+                            {formatRating(rating.overall)} · {rating.visitCount ?? 0}{" "}
+                            {(rating.visitCount ?? 0) === 1 ? "besök" : "besök"} · {rating.count}{" "}
                             {rating.count === 1 ? "omdöme" : "omdömen"}
                           </span>
                         </div>
@@ -351,11 +434,12 @@ function PlacesIndex() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
-                  {topOccasion === "alla"
+                  {topOccasion === "alla" && topVisit === "alla" && !topTakeawayOnly
                     ? "Inga betyg ännu — de kommer när gänget har provat något."
-                    : `Inga betyg för ${OCCASION_LABEL[topOccasion].toLocaleLowerCase("sv")} ännu — de kommer när gänget har provat något.`}
+                    : "Inga betyg matchar de valda filtren ännu."}
                 </div>
               )}
+              </div>
             </CollapsibleContent>
           </section>
         </Collapsible>

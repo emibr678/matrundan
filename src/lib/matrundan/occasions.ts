@@ -3,6 +3,8 @@ import { OCCASION_VALUES, type Occasion, type Place } from "@/lib/matrundan/type
 export interface PlaceRating {
   overall: number;
   count: number;
+  /** Antal unika verkliga besök som faktiskt bidrar med minst ett synligt omdöme. */
+  visitCount?: number;
 }
 
 export interface RankedOccasionPlace {
@@ -61,6 +63,7 @@ function rankRatedPlaces(
     .sort(
       (a, b) =>
         b.rating.overall - a.rating.overall ||
+        (b.rating.visitCount ?? 0) - (a.rating.visitCount ?? 0) ||
         b.rating.count - a.rating.count ||
         a.place.name.localeCompare(b.place.name, "sv"),
     );

@@ -431,7 +431,7 @@ export function buildExampleState(nowInput: Date): AppState {
       id: visits.providerBistroFirst,
       placeId: places.providerBistro,
       date: timestamp(now, -47),
-      meal: "middag",
+      meal: "lunch",
       participantIds: [members.sam, members.robin, members.noor],
       overall: 4,
       taste: 4,
