@@ -643,9 +643,7 @@ export function EditVisitDialog({
                   review={ownReview}
                   scoreless={!scoredVisit}
                   activeModel={activeReviewModel}
-                  showModelNotice={
-                    !(activeReviewModel === "food_v1_takeaway" && !isTakeaway)
-                  }
+                  showModelNotice={!(activeReviewModel === "food_v1_takeaway" && !isTakeaway)}
                   overall={overall}
                   taste={taste}
                   value={value}
