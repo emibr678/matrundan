@@ -2,6 +2,16 @@ import * as React from "react";
 import { ImagePlus, Loader2, MoreHorizontal, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -115,6 +125,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
   const [busy, setBusy] = React.useState(false);
   const [viewerOpen, setViewerOpen] = React.useState(false);
   const [viewerIndex, setViewerIndex] = React.useState(0);
+  const [pendingDeletePhoto, setPendingDeletePhoto] = React.useState<VisitPhoto | null>(null);
 
   const photos = getVisitPhotos(visit);
   const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
@@ -247,50 +258,43 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                   />
                   <div className="mt-2 flex min-h-9 items-center justify-between gap-2 px-1">
                     <OwnerBadge {...owner} own={own} />
-                    <div className="flex shrink-0 items-center gap-1">
-                      {own && canContribute ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 px-2 text-xs text-muted-foreground"
-                          disabled={disabled}
-                          onClick={choosePhoto}
-                        >
-                          <ImagePlus className="h-3.5 w-3.5" />
-                          Byt bild
-                        </Button>
-                      ) : null}
-                      {canRemove ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-9 w-9 shrink-0 text-muted-foreground"
-                              disabled={disabled}
-                              aria-label={
-                                own
-                                  ? "Fler alternativ för din bild"
-                                  : `Fler bildalternativ för ${owner.name}`
-                              }
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                    {canRemove || (own && canContribute) ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 shrink-0 text-muted-foreground"
+                            disabled={disabled}
+                            aria-label={
+                              own
+                                ? "Fler alternativ för din bild"
+                                : `Fler bildalternativ för ${owner.name}`
+                            }
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {own && canContribute ? (
+                            <DropdownMenuItem onSelect={choosePhoto}>
+                              <ImagePlus className="h-4 w-4" />
+                              Byt bild
+                            </DropdownMenuItem>
+                          ) : null}
+                          {canRemove ? (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
-                              onSelect={() => void remove(photo)}
+                              onSelect={() => setPendingDeletePhoto(photo)}
                             >
                               <Trash2 className="h-4 w-4" />
                               {own ? "Ta bort din bild" : "Ta bort bild"}
                             </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : null}
-                    </div>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -370,6 +374,44 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
       <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
         Bilder delas inte vidare automatiskt.
       </p>
+
+      <AlertDialog
+        open={pendingDeletePhoto != null}
+        onOpenChange={(open) => {
+          if (!open && !busy) setPendingDeletePhoto(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingDeletePhoto?.uploadedBy === state.currentUserId
+                ? "Ta bort din bild?"
+                : "Ta bort deltagarens bild?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDeletePhoto?.uploadedBy === state.currentUserId
+                ? "Bilden försvinner från det här besöket för gruppen. Det går inte att ångra."
+                : "Bilden försvinner från det här besöket för gruppen. Använd bara moderation när bilden behöver tas bort."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy || !pendingDeletePhoto}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                const target = pendingDeletePhoto;
+                if (!target) return;
+                void remove(target).then(() => setPendingDeletePhoto(null));
+              }}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Ta bort bild
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
         <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-3xl overflow-y-auto p-4 sm:p-6">
