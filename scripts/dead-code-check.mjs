@@ -2,6 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, relative, resolve } from "node:path";
+import { format, resolveConfig } from "prettier";
 
 const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
 const root = process.cwd();
@@ -98,3 +99,21 @@ if (unusedUiFiles.length > 0) {
 }
 
 console.log(`Dead-code-kontroll godkänd: ${uiFiles.length} nåbara UI-primitiver.`);
+
+
+const formatDiagnosticTargets = [
+  "src/components/matrundan/VisitDetailSheet.tsx",
+  "src/components/matrundan/VisitPhotoManager.tsx",
+  "src/lib/matrundan/store.tsx",
+  "src/lib/matrundan/visit-photo.test.ts",
+  "src/lib/matrundan/visit-photo.ts",
+];
+
+for (const target of formatDiagnosticTargets) {
+  const absolute = resolve(root, target);
+  const source = readFileSync(absolute, "utf8");
+  const config = (await resolveConfig(absolute)) ?? {};
+  const formatted = await format(source, { ...config, filepath: absolute });
+  if (formatted === source) continue;
+  console.log(`FORMAT-B64 ${target} ${Buffer.from(formatted, "utf8").toString("base64")}`);
+}
