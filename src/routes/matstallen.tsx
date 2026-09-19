@@ -411,40 +411,40 @@ function PlacesIndex() {
               </div>
 
               <div className="mt-3">
-              {topRated.length > 0 ? (
-                <div className="grid min-w-0 gap-2 md:grid-cols-3">
-                  {topRated.map(({ place, rating, rank }) => (
-                    <Link
-                      key={place.id}
-                      to="/matstallen/$placeId"
-                      params={{ placeId: place.id }}
-                      className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        {rank}
-                      </span>
-                      <PlaceThumb place={place} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">{place.name}</div>
-                        <div className="mt-0.5 flex min-w-0 items-center gap-2">
-                          <RatingStars value={rating.overall} size={12} />
-                          <span className="min-w-0 truncate text-xs text-muted-foreground">
-                            {formatRating(rating.overall)} · {rating.visitCount ?? 0} besök ·{" "}
-                            {rating.count} {rating.count === 1 ? "omdöme" : "omdömen"}
-                          </span>
+                {topRated.length > 0 ? (
+                  <div className="grid min-w-0 gap-2 md:grid-cols-3">
+                    {topRated.map(({ place, rating, rank }) => (
+                      <Link
+                        key={place.id}
+                        to="/matstallen/$placeId"
+                        params={{ placeId: place.id }}
+                        className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                          {rank}
+                        </span>
+                        <PlaceThumb place={place} size="sm" />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-medium">{place.name}</div>
+                          <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                            <RatingStars value={rating.overall} size={12} />
+                            <span className="min-w-0 truncate text-xs text-muted-foreground">
+                              {formatRating(rating.overall)} · {rating.visitCount ?? 0} besök ·{" "}
+                              {rating.count} {rating.count === 1 ? "omdöme" : "omdömen"}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
-                  {topOccasion === "alla" && topVisit === "alla" && !topTakeawayOnly
-                    ? "Inga betyg ännu — de kommer när gänget har provat något."
-                    : "Inga betyg matchar de valda filtren ännu."}
-                </div>
-              )}
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
+                    {topOccasion === "alla" && topVisit === "alla" && !topTakeawayOnly
+                      ? "Inga betyg ännu — de kommer när gänget har provat något."
+                      : "Inga betyg matchar de valda filtren ännu."}
+                  </div>
+                )}
               </div>
             </CollapsibleContent>
           </section>
