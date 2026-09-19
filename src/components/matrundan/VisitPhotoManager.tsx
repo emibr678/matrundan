@@ -231,6 +231,8 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
               return (
                 <div
                   key={`${photo.uploadedBy}:${photo.storagePath ?? photo.updatedAt}`}
+                  role="group"
+                  aria-label={`Bild från ${owner.name}${own ? ", din bild" : ""}`}
                   className={photos.length > 1 ? "w-full shrink-0 snap-center" : "w-full"}
                 >
                   <GalleryImage
@@ -245,31 +247,50 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                   />
                   <div className="mt-2 flex min-h-9 items-center justify-between gap-2 px-1">
                     <OwnerBadge {...owner} own={own} />
-                    {canRemove && !own ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 shrink-0 text-muted-foreground"
-                            disabled={disabled}
-                            aria-label={`Fler bildalternativ för ${owner.name}`}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onSelect={() => void remove(photo)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Ta bort bild
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : null}
+                    <div className="flex shrink-0 items-center gap-1">
+                      {own && canContribute ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 px-2 text-xs text-muted-foreground"
+                          disabled={disabled}
+                          onClick={choosePhoto}
+                        >
+                          <ImagePlus className="h-3.5 w-3.5" />
+                          Byt bild
+                        </Button>
+                      ) : null}
+                      {canRemove ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 shrink-0 text-muted-foreground"
+                              disabled={disabled}
+                              aria-label={
+                                own
+                                  ? "Fler alternativ för din bild"
+                                  : `Fler bildalternativ för ${owner.name}`
+                              }
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => void remove(photo)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              {own ? "Ta bort din bild" : "Ta bort bild"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               );
@@ -331,8 +352,8 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
             </Button>
           </div>
         </div>
-      ) : canContribute ? (
-        <div className={photos.length > 0 ? "mt-3 flex flex-wrap gap-2" : "mt-1"}>
+      ) : canContribute && !ownPhoto ? (
+        <div className={photos.length > 0 ? "mt-3" : "mt-1"}>
           <Button
             type="button"
             variant={photos.length > 0 ? "outline" : "secondary"}
@@ -341,30 +362,13 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
             onClick={choosePhoto}
           >
             <ImagePlus className="h-4 w-4" />
-            {ownPhoto ? "Byt din bild" : "Lägg till din bild"}
+            Lägg till din bild
           </Button>
-          {ownPhoto ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 text-muted-foreground hover:text-destructive"
-              disabled={disabled}
-              onClick={() => void remove(ownPhoto)}
-            >
-              {disabled ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              Ta bort din bild
-            </Button>
-          ) : null}
         </div>
       ) : null}
 
       <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-        Varje deltagare kan lägga till en privat bild från besöket. Bilderna stannar i den här
-        gruppen och följer inte med om besöket delas vidare.
+        Bilder delas inte vidare automatiskt.
       </p>
 
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
