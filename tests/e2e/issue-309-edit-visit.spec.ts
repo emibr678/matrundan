@@ -31,10 +31,15 @@ test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px"
   const edit = page.getByRole("dialog", { name: "Redigera besök" });
   await expect(edit).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redigera besök");
+  await expect(edit.getByText("Atmosfär ingår.")).toBeVisible();
+  await expect(edit.getByText("Kommentar (frivilligt)")).toHaveCount(0);
 
   await edit.getByLabel("Tillfälle").click();
   await page.getByRole("option", { name: "Lunch" }).click();
   await edit.getByRole("button", { name: /Johan/ }).click();
+  await edit.getByRole("button", { name: "Ändra även omdömet" }).click();
+  await expect(edit.getByText("Atmosfär", { exact: true })).toBeVisible();
+  await expect(edit.getByText("Räknas automatiskt")).toBeVisible();
   await edit.getByLabel("Kommentar (frivilligt)").fill("Korrigerad minnesnotering från besöket.");
   await edit.getByRole("button", { name: "Spara ändringar" }).click();
 

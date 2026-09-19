@@ -29,7 +29,8 @@ import {
   shareVisitToGroup,
   type VisitShareTarget,
 } from "@/lib/matrundan/live-sharing";
-import { reviewRatingsComplete } from "@/lib/matrundan/review-model";
+import { reviewModelIncludesAtmosphere, reviewRatingsComplete } from "@/lib/matrundan/review-model";
+import { formatRating } from "@/lib/matrundan/version";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Place, Visit } from "@/lib/matrundan/types";
@@ -114,6 +115,7 @@ export function EditVisitDialog({
   const [service, setService] = React.useState(ownReview?.service ?? 0);
   const [atmosphere, setAtmosphere] = React.useState(ownReview?.atmosphere ?? 0);
   const [comment, setComment] = React.useState(ownReview?.comment ?? "");
+  const [reviewEditing, setReviewEditing] = React.useState(false);
   const [shareTargets, setShareTargets] = React.useState<VisitShareTarget[]>([]);
   const [shareLoading, setShareLoading] = React.useState(false);
   const [shareError, setShareError] = React.useState<string | null>(null);
@@ -183,6 +185,7 @@ export function EditVisitDialog({
     setService(ownReview?.service ?? 0);
     setAtmosphere(ownReview?.atmosphere ?? 0);
     setComment(ownReview?.comment ?? "");
+    setReviewEditing(false);
     setShareGroupIds([]);
     setShareComment(false);
   }, [
@@ -266,12 +269,22 @@ export function EditVisitDialog({
     closeGuestInput();
   }
 
+  function resetReviewDraft() {
+    setOverall(ownReview?.overall ?? 0);
+    setTaste(ownReview?.taste ?? 0);
+    setValue(ownReview?.value ?? 0);
+    setService(ownReview?.service ?? 0);
+    setAtmosphere(ownReview?.atmosphere ?? 0);
+    setComment(ownReview?.comment ?? "");
+    setReviewEditing(false);
+  }
+
   function validate(): boolean {
     if (!participants.includes(state.currentUserId)) {
       toast.error("Den som registrerade besöket måste vara deltagare.");
       return false;
     }
-    if (!ownReview || scoreBoundaryChanged) return true;
+    if (!reviewEditing || !ownReview || scoreBoundaryChanged) return true;
 
     if (!scoredVisit && !comment.trim()) {
       toast.error("Kommentaren kan inte vara tom.");
@@ -312,7 +325,7 @@ export function EditVisitDialog({
         guests: guests.map((guest) => ({ id: guest.persistedId, name: guest.name })),
         removedGuestIds,
         ownReview:
-          ownReview && !scoreBoundaryChanged
+          reviewEditing && ownReview && !scoreBoundaryChanged
             ? {
                 id: ownReview.id,
                 overall: scoredVisit && ownReview.reviewModel == null ? overall || null : null,
@@ -536,7 +549,7 @@ export function EditVisitDialog({
             <div>
               <h3 className="text-sm font-medium">Ditt omdöme</h3>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Andra deltagares omdömen kan bara ändras av dem själva.
+                Ändra det bara om även din egen upplevelse blev fel.
               </p>
             </div>
 
@@ -550,16 +563,47 @@ export function EditVisitDialog({
                 <p className="text-sm font-medium">Omdömet bevaras</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   Du ändrar mellan ett matbesök och Något att dricka. Ditt befintliga omdöme skrivs
-                  därför inte om automatiskt. Efter sparandet visas bara det som är relevant för den
-                  nya besökskontexten.
+                  inte om. Spara besöket först och ändra omdömet separat efteråt om det behövs.
                 </p>
+              </div>
+            ) : !reviewEditing ? (
+              <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
+                <p className="text-sm font-medium">
+                  {scoredVisit && ownReview.overall != null
+                    ? `${formatRating(ownReview.overall)} / 5`
+                    : "Kommentar sparad"}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {ownReview.reviewModel
+                    ? reviewModelIncludesAtmosphere(ownReview.reviewModel)
+                      ? "Smak, service, prisvärdhet och Atmosfär ingår."
+                      : "Smak, service och prisvärdhet ingår."
+                    : legacyReview
+                      ? "Äldre omdöme med manuellt helhetsbetyg."
+                      : "Dryckesbesöket har inget stjärnbetyg."}
+                </p>
+                {ownReview.comment?.trim() ? (
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                    {ownReview.comment}
+                  </p>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 min-h-11 w-full"
+                  onClick={() => setReviewEditing(true)}
+                  disabled={isBusy}
+                >
+                  Ändra även omdömet
+                </Button>
               </div>
             ) : (
               <div className="space-y-4 rounded-2xl border border-border/70 p-4">
                 {!scoredVisit ? (
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    Dryckesbesök påverkar inte ställets stjärnbetyg. Ett tidigare matbetyg bevaras
-                    historiskt och förblir dolt så länge besöket är scorelöst.
+                    Dryckesbesök påverkar inte ställets stjärnbetyg. Ändringen här gäller bara din
+                    kommentar.
                   </p>
                 ) : ownReview.reviewModel ? (
                   <>
@@ -575,8 +619,7 @@ export function EditVisitDialog({
                       onAtmosphereChange={setAtmosphere}
                     />
                     <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      Omdömet behåller samma bedömningsdelar som när det skapades även om
-                      besökskontexten rättas.
+                      Bedömningsdelarna är desamma som när omdömet skapades.
                     </p>
                   </>
                 ) : legacyReview ? (
@@ -606,6 +649,16 @@ export function EditVisitDialog({
                     disabled={isBusy}
                   />
                 </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-11 w-full"
+                  onClick={resetReviewDraft}
+                  disabled={isBusy}
+                >
+                  Behåll omdömet som det är
+                </Button>
               </div>
             )}
           </section>
