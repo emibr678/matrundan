@@ -44,25 +44,6 @@ function withBoundarySearchScenario(state: AppState): AppState {
   };
 }
 
-function withPlaceMetadataScenarios(state: AppState): AppState {
-  const { places } = EXAMPLE_IDS;
-  return {
-    ...state,
-    places: state.places.map((place) =>
-      place.id === places.repeatCafe
-        ? {
-            ...place,
-            // Ett explicit #199-fall: grunduppgiften säger Restaurang medan
-            // gruppen har korrigerat Typ av ställe till Café.
-            canonicalCategory: "restaurang",
-            categoryOverride: "café",
-            category: "café",
-          }
-        : place,
-    ),
-  };
-}
-
 function withVisitParticipationScenarios(state: AppState): AppState {
   const { members, places, visits } = EXAMPLE_IDS;
   return {
@@ -311,9 +292,7 @@ function withVisitParticipationScenarios(state: AppState): AppState {
 }
 
 export function buildExampleState(now = new Date()) {
-  return withVisitParticipationScenarios(
-    withPlaceMetadataScenarios(withBoundarySearchScenario(buildBaseExampleState(now))),
-  );
+  return withVisitParticipationScenarios(withBoundarySearchScenario(buildBaseExampleState(now)));
 }
 
 export const EXAMPLE_STATE = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
