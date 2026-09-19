@@ -15,7 +15,14 @@ import { toast } from "sonner";
 import { DEMO_STATE } from "./demo-data";
 import { normalizeFoodTags } from "./food-tags";
 import { normalizeOccasionClassification } from "./occasions";
-import { deriveReviewOverall, reviewModelForContext, reviewRatingsComplete } from "./review-model";
+import {
+  deriveReviewOverall,
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelForContext,
+  reviewModelIncludesAtmosphere,
+  reviewRatingsComplete,
+} from "./review-model";
 import {
   archiveGroup as liveArchiveGroup,
   archiveGroupPlace as liveArchiveGroupPlace,
@@ -79,10 +86,10 @@ function aggregateVisit(visit: Visit): Visit {
   const sourceReviews = visit.visibleReviews ?? [];
   const reviews = sourceReviews.filter((review) => visit.participantIds.includes(review.userId));
   const rated = visitHasScore(visit)
-    ? reviews.filter(
-        (review): review is VisibleReview & { overall: number } =>
-          review.ratingVisible && review.overall != null,
-      )
+    ? reviews.flatMap((review) => {
+        const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
+        return review.ratingVisible && overall != null ? [{ review, overall }] : [];
+      })
     : [];
   const comment = reviews.find(
     (review) => review.commentVisible && Boolean(review.comment?.trim()),
@@ -104,18 +111,31 @@ function aggregateVisit(visit: Visit): Visit {
   return {
     ...visit,
     visibleReviews: sourceReviews,
-    overall: avg(rated.map((review) => review.overall)) ?? 0,
+    overall: avg(rated.map((item) => item.overall)) ?? 0,
     taste: avg(
-      rated.map((review) => review.taste).filter((value): value is number => value != null),
+      rated
+        .map((item) => item.review.taste)
+        .filter((value): value is number => value != null),
     ),
     value: avg(
-      rated.map((review) => review.value).filter((value): value is number => value != null),
+      rated
+        .map((item) => item.review.value)
+        .filter((value): value is number => value != null),
     ),
     service: avg(
-      rated.map((review) => review.service).filter((value): value is number => value != null),
+      rated
+        .map((item) => item.review.service)
+        .filter((value): value is number => value != null),
     ),
     atmosphere: avg(
-      rated.map((review) => review.atmosphere).filter((value): value is number => value != null),
+      rated
+        .filter(({ review }) =>
+          reviewModelIncludesAtmosphere(
+            effectiveReviewModel(review.reviewModel, visit.isTakeaway === true),
+          ),
+        )
+        .map((item) => item.review.atmosphere)
+        .filter((value): value is number => value != null),
     ),
     comment: comment ?? undefined,
   };
@@ -615,12 +635,15 @@ export function StoreProvider({
           if (
             newScored &&
             ownReview.reviewModel &&
-            !reviewRatingsComplete(ownReview.reviewModel, {
-              taste: ownReviewInput.taste ?? 0,
-              value: ownReviewInput.value ?? 0,
-              service: ownReviewInput.service ?? 0,
-              atmosphere: ownReviewInput.atmosphere ?? 0,
-            })
+            !reviewRatingsComplete(
+              effectiveReviewModel(ownReview.reviewModel, input.isTakeaway),
+              {
+                taste: ownReviewInput.taste ?? 0,
+                value: ownReviewInput.value ?? 0,
+                service: ownReviewInput.service ?? 0,
+                atmosphere: ownReviewInput.atmosphere ?? 0,
+              },
+            )
           ) {
             throw new Error("Sätt alla relevanta betyg.");
           }
@@ -1026,12 +1049,15 @@ export function StoreProvider({
 
         if (target.review.reviewModel) {
           if (
-            !reviewRatingsComplete(target.review.reviewModel, {
-              taste: input.taste ?? 0,
-              value: input.value ?? 0,
-              service: input.service ?? 0,
-              atmosphere: input.atmosphere ?? 0,
-            })
+            !reviewRatingsComplete(
+              effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
+              {
+                taste: input.taste ?? 0,
+                value: input.value ?? 0,
+                service: input.service ?? 0,
+                atmosphere: input.atmosphere ?? 0,
+              },
+            )
           ) {
             throw new Error("Sätt alla relevanta betyg.");
           }
@@ -1093,19 +1119,23 @@ export function StoreProvider({
           .filter((visit) => visit.placeId === placeId)
           .sort((a, b) => (a.date < b.date ? 1 : -1)),
       avgRating: (placeId) => {
-        const reviews = state.visits
+        const ratings = state.visits
           .filter((visit) => visit.placeId === placeId && visitHasScore(visit))
           .flatMap((visit) =>
-            (visit.visibleReviews ?? []).filter(
-              (review): review is VisibleReview & { overall: number } =>
-                visit.participantIds.includes(review.userId) &&
-                review.ratingVisible &&
-                review.overall != null,
-            ),
+            (visit.visibleReviews ?? []).flatMap((review) => {
+              if (
+                !visit.participantIds.includes(review.userId) ||
+                !review.ratingVisible
+              ) {
+                return [];
+              }
+              const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
+              return overall != null ? [overall] : [];
+            }),
           );
-        if (!reviews.length) return { overall: 0, count: 0 };
-        const sum = reviews.reduce((total, review) => total + review.overall, 0);
-        return { overall: sum / reviews.length, count: reviews.length };
+        if (!ratings.length) return { overall: 0, count: 0 };
+        const sum = ratings.reduce((total, overall) => total + overall, 0);
+        return { overall: sum / ratings.length, count: ratings.length };
       },
       isFavorite: (placeId) =>
         state.favorites.some(
