@@ -432,15 +432,9 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
         })
       : [];
     const overall = rated.map((item) => item.overall);
-    const taste = rated
-      .map((item) => item.review.taste)
-      .filter((x): x is number => x != null);
-    const value = rated
-      .map((item) => item.review.value)
-      .filter((x): x is number => x != null);
-    const service = rated
-      .map((item) => item.review.service)
-      .filter((x): x is number => x != null);
+    const taste = rated.map((item) => item.review.taste).filter((x): x is number => x != null);
+    const value = rated.map((item) => item.review.value).filter((x): x is number => x != null);
+    const service = rated.map((item) => item.review.service).filter((x): x is number => x != null);
     const atmosphere = rated
       .filter(({ review }) =>
         reviewModelIncludesAtmosphere(
