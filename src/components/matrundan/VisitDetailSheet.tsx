@@ -85,8 +85,11 @@ export function VisitDetailSheet({
     (visit.linkedBy === state.currentUserId ||
       activeGroupRole === "owner" ||
       activeGroupRole === "admin");
-  const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
-  const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
+  const canShare =
+    !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
+  const currentRole = state.members.find(
+    (member) => member.id === state.currentUserId,
+  )?.role;
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
   const canEdit =
