@@ -57,6 +57,7 @@ import { APP_VERSION } from "./version";
 import { visitHasScore, visitMealHasScore } from "./visit-context";
 import { canDeleteOriginalVisit } from "./visit-permissions";
 import {
+  applyPreparedVisitPhotoToDemoState,
   blobToDataUrl,
   canAddOrReplaceVisitPhoto,
   canDeleteVisitPhoto,
@@ -784,50 +785,9 @@ export function StoreProvider({
         }
         assertDemoWritable(state, demoReadOnly);
         const url = await blobToDataUrl(prepared.blob);
-        const updatedAt = new Date().toISOString();
-        setState((current) => {
-          const currentVisit = current.visits.find((item) => item.id === visitId);
-          if (!currentVisit) throw new Error("Besöket finns inte.");
-          const currentRole = current.members.find(
-            (member) => member.id === current.currentUserId,
-          )?.role;
-          if (
-            !canAddOrReplaceVisitPhoto(
-              currentVisit,
-              current.currentUserId,
-              currentRole,
-              current.group.lifecycleStatus === "archived",
-            )
-          ) {
-            throw new Error("Endast faktiska deltagare kan lägga till en bild.");
-          }
-
-          const ownPhoto = getOwnVisitPhoto(currentVisit, current.currentUserId);
-          const nextPhoto = {
-            url,
-            uploadedBy: current.currentUserId,
-            mimeType: prepared.mimeType,
-            byteSize: prepared.byteSize,
-            width: prepared.width,
-            height: prepared.height,
-            createdAt: ownPhoto?.createdAt ?? updatedAt,
-            updatedAt,
-          };
-          const photos = [
-            ...getVisitPhotos(currentVisit).filter(
-              (photo) => photo.uploadedBy !== current.currentUserId,
-            ),
-            nextPhoto,
-          ].sort((a, b) => (a.createdAt ?? a.updatedAt).localeCompare(b.createdAt ?? b.updatedAt));
-          const photo = representativeVisitPhoto({ photos, photo: null });
-
-          return {
-            ...current,
-            visits: current.visits.map((item) =>
-              item.id === visitId ? { ...item, photos, photo } : item,
-            ),
-          };
-        });
+        setState((current) =>
+          applyPreparedVisitPhotoToDemoState(current, visitId, prepared, url),
+        );
       },
 
       deleteVisitPhoto: async (visitId, uploadedBy) => {
