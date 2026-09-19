@@ -20,8 +20,10 @@ import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/re
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion } from "@/lib/matrundan/types";
+import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { OccasionPicker } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
+import { VisitPhotoField } from "./VisitPhotoField";
 
 export function DemoAddVisitReviewDialog({
   visitId,
@@ -38,8 +40,10 @@ export function DemoAddVisitReviewDialog({
   placeOccasions?: Occasion[];
   disabled?: boolean;
 }) {
-  const { state } = useStore();
+  const { state, saveVisitPhoto } = useStore();
   const { exampleMode } = useSession();
+  const visit = state.visits.find((item) => item.id === visitId);
+  const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [taste, setTaste] = React.useState(0);
@@ -48,6 +52,7 @@ export function DemoAddVisitReviewDialog({
   const [atmosphere, setAtmosphere] = React.useState(0);
   const [reviewOccasions, setReviewOccasions] = React.useState<Occasion[]>([]);
   const [comment, setComment] = React.useState("");
+  const [photoFile, setPhotoFile] = React.useState<File | null>(null);
 
   React.useEffect(() => {
     if (open) return;
@@ -57,6 +62,7 @@ export function DemoAddVisitReviewDialog({
     setAtmosphere(0);
     setReviewOccasions([]);
     setComment("");
+    setPhotoFile(null);
   }, [open]);
 
   const placeNeedsOccasionClassification = !scoreless && placeOccasions.length === 0;
@@ -69,7 +75,7 @@ export function DemoAddVisitReviewDialog({
       });
   const complete = reviewRatingsComplete(model, { taste, service, value, atmosphere });
 
-  function save() {
+  async function save() {
     if (scoreless) {
       if (!comment.trim()) {
         toast.error("Skriv en kommentar först.");
@@ -96,7 +102,30 @@ export function DemoAddVisitReviewDialog({
             : undefined,
       });
       persistDemoState(nextState, exampleMode);
-      toast.success(scoreless ? "Din kommentar är tillagd." : "Ditt omdöme är tillagt.");
+
+      if (photoFile && visit) {
+        try {
+          await saveVisitPhoto(visitId, photoFile, visit);
+        } catch {
+          toast.warning(
+            scoreless
+              ? "Kommentaren sparades, men bilden kunde inte sparas."
+              : "Omdömet sparades, men bilden kunde inte sparas.",
+          );
+          setOpen(false);
+          return;
+        }
+      }
+
+      toast.success(
+        photoFile
+          ? scoreless
+            ? "Din kommentar och bild är tillagda."
+            : "Ditt omdöme och din bild är tillagda."
+          : scoreless
+            ? "Din kommentar är tillagd."
+            : "Ditt omdöme är tillagt.",
+      );
       setOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
@@ -163,6 +192,16 @@ export function DemoAddVisitReviewDialog({
               placeholder="En liten minnesnotering…"
             />
           </div>
+
+          {visit ? (
+            <VisitPhotoField
+              file={photoFile}
+              onFileChange={setPhotoFile}
+              existingUrl={ownPhoto?.url}
+              disabled={saving}
+              compact
+            />
+          ) : null}
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
@@ -173,7 +212,7 @@ export function DemoAddVisitReviewDialog({
             disabled={
               saving || (scoreless ? !comment.trim() : !classificationComplete || !complete)
             }
-            onClick={save}
+            onClick={() => void save()}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {scoreless ? "Spara kommentar" : "Spara omdöme"}
