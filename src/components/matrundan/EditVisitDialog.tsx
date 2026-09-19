@@ -154,8 +154,7 @@ export function EditVisitDialog({
           ? (taste || null) !== (ownReview.taste ?? null) ||
             (value || null) !== (ownReview.value ?? null) ||
             (service || null) !== (ownReview.service ?? null) ||
-            (activeModelHasAtmosphere &&
-              (atmosphere || null) !== (ownReview.atmosphere ?? null))
+            (activeModelHasAtmosphere && (atmosphere || null) !== (ownReview.atmosphere ?? null))
           : (overall || null) !== (ownReview.overall ?? null) ||
             (taste || null) !== (ownReview.taste ?? null) ||
             (value || null) !== (ownReview.value ?? null) ||
