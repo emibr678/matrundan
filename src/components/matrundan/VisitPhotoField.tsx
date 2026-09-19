@@ -62,7 +62,9 @@ export function VisitPhotoField({
                 {file ? "Ny bild vald" : "Din nuvarande bild"}
               </p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                {file ? "Sparas tillsammans med dina övriga ändringar." : "Du kan välja en annan bild."}
+                {file
+                  ? "Sparas tillsammans med dina övriga ändringar."
+                  : "Du kan välja en annan bild."}
               </p>
             </div>
             <Button
