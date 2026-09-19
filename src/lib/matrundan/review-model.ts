@@ -52,16 +52,16 @@ export function effectiveReviewModel(
 
 export function effectiveReviewOverall(
   review: {
-    overall: number | null;
-    taste: number | null;
-    value: number | null;
-    service: number | null;
+    overall?: number | null;
+    taste?: number | null;
+    value?: number | null;
+    service?: number | null;
     atmosphere?: number | null;
     reviewModel?: ReviewModel | null;
   },
   isTakeaway: boolean,
 ): number | null {
-  if (!review.reviewModel) return review.overall;
+  if (!review.reviewModel) return review.overall ?? null;
   return deriveReviewOverall(effectiveReviewModel(review.reviewModel, isTakeaway), {
     taste: review.taste ?? 0,
     value: review.value ?? 0,
