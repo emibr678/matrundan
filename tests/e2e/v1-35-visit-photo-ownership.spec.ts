@@ -2,19 +2,23 @@ import { expect, test } from "@playwright/test";
 
 test.use({ viewport: { width: 360, height: 800 } });
 
-test("en annan deltagares besöksfoto visas utan möjlighet att ersätta det", async ({ page }) => {
+test("deltagarnas bilder behåller eget ägarskap i samma besök", async ({ page }) => {
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await page.goto("/matstallen/p2?visit=v1");
 
   const visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByRole("heading", { name: "Kardemummaköket" })).toBeVisible();
-  await expect(visitDialog.getByAltText("Foto från besöket")).toBeVisible();
+
+  const gallery = visitDialog.getByRole("region", { name: "Bilder från besöket" });
+  await expect(gallery).toBeVisible();
+  await expect(gallery.getByAltText("Bild från Robin")).toBeVisible();
+  await expect(gallery.getByText("Robin", { exact: true })).toBeVisible();
+  await expect(gallery.getByRole("button", { name: "Byt din bild" })).toBeVisible();
+  await expect(gallery.getByRole("button", { name: "Ta bort din bild" })).toBeVisible();
   await expect(
-    visitDialog.getByText("Fotot kan bara bytas av personen som lade upp det.", { exact: false }),
+    gallery.getByRole("button", { name: "Fler bildalternativ för Robin" }),
   ).toBeVisible();
-  await expect(visitDialog.getByRole("button", { name: "Välj foto" })).toHaveCount(0);
-  await expect(visitDialog.getByRole("button", { name: "Ta bort foto" })).toBeVisible();
 
   const overflow = await visitDialog.evaluate((element) => ({
     scrollWidth: element.scrollWidth,

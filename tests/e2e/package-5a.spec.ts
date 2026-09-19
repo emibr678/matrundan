@@ -133,8 +133,19 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
   await expect(page.getByRole("heading", { name: "Kardemummaköket" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Besök (2)" })).toBeVisible();
   await page.getByRole("button", { name: /Öppna besök av Alex/ }).click();
-  await expect(page.getByRole("heading", { name: "Foto från besöket" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ta bort foto" })).toBeVisible();
+  const photoGallery = page.getByRole("region", { name: "Bilder från besöket" });
+  await expect(photoGallery).toBeVisible();
+  await expect(photoGallery.getByText("1 / 2", { exact: true })).toBeVisible();
+  await expect(photoGallery.getByRole("button", { name: "Byt din bild" })).toBeVisible();
+  await expect(
+    photoGallery.getByRole("button", { name: "Fler bildalternativ för Robin" }),
+  ).toBeVisible();
+  await photoGallery.getByRole("button", { name: "Öppna bild från Robin" }).click();
+  const photoViewer = page.getByRole("dialog", { name: "Bilder från besöket" });
+  await expect(photoViewer).toBeVisible();
+  await expect(photoViewer.getByAltText("Bild från Robin")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expectNoHorizontalOverflow(page, "Flerbildsgalleri i exempelbesöket");
 
   await page.goto("/matstallen/p3?visit=v2");
   await expect(page.getByText("Aya", { exact: true })).toBeVisible();

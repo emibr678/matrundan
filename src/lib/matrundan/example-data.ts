@@ -59,7 +59,7 @@ function withVisitParticipationScenarios(state: AppState): AppState {
         : place,
     ),
     visits: state.visits.map((visit) => {
-      if (visit.id === visits.repeatCafeLatest && visit.photo) {
+      if (visit.id === visits.repeatCafeLatest) {
         return {
           ...visit,
           currentUserParticipationStatus: "participant",
@@ -94,9 +94,8 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               commentVisible: true,
             },
           ],
-          // Robin har lagt upp bilden. Alex är inloggad owner och ska därför
-          // kunna se och moderera den, men inte ersätta den som sin egen.
-          photo: { ...visit.photo, uploadedBy: members.robin },
+          // Besöket har en bild från Robin och en från Alex. Alex är inloggad
+          // owner men äger bara sin egen bild; Robins kan endast modereras.
         };
       }
 

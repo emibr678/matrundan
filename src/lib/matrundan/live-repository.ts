@@ -84,6 +84,16 @@ type VisitRow = {
     status: "active" | "left" | "guest";
   }[];
   reviews: ReviewRow[];
+  photos?: {
+    storagePath: string;
+    uploadedBy: string;
+    mimeType: string;
+    byteSize: number;
+    width: number;
+    height: number;
+    createdAt?: string;
+    updatedAt: string;
+  }[];
   photo: {
     storagePath: string;
     uploadedBy: string;
@@ -91,6 +101,7 @@ type VisitRow = {
     byteSize: number;
     width: number;
     height: number;
+    createdAt?: string;
     updatedAt: string;
   } | null;
 };
@@ -405,7 +416,10 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
   });
 
   const signedPhotoUrls = await createSignedVisitPhotoUrls(
-    p.visits.flatMap((visit) => (visit.photo?.storagePath ? [visit.photo.storagePath] : [])),
+    p.visits.flatMap((visit) => {
+      const photos = visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [];
+      return photos.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : []));
+    }),
   );
 
   const visits: Visit[] = p.visits.map((v) => {
@@ -450,6 +464,13 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
         : participantIds.includes(p.currentUserId)
           ? ("participant" as const)
           : ("none" as const);
+    const rawPhotos = v.photos?.length ? v.photos : v.photo ? [v.photo] : [];
+    const photos = rawPhotos.map((photo) => ({
+      ...photo,
+      createdAt: photo.createdAt ?? photo.updatedAt,
+      url: signedPhotoUrls.get(photo.storagePath),
+    }));
+
     return {
       id: v.id,
       placeId: v.placeId,
@@ -465,12 +486,8 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       atmosphere: avg(atmosphere),
       comment: comment ?? undefined,
       createdBy: v.createdBy,
-      photo: v.photo
-        ? {
-            ...v.photo,
-            url: signedPhotoUrls.get(v.photo.storagePath),
-          }
-        : null,
+      photos,
+      photo: photos[0] ?? null,
       linkType: v.linkType,
       linkedBy: v.linkedBy,
       linkedAt: v.linkedAt,

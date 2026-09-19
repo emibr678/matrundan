@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 const root = process.cwd();
 const migrationPath = resolve(
   root,
-  "supabase/migrations/20260815082500_visit_photo_ownership_guard_v1.sql",
+  "supabase/migrations/20260919164000_visit_photo_gallery_v1.sql",
 );
 const preflightPath = resolve(root, "supabase/production-preflight-visit-photo.sql");
 const migration = readFileSync(migrationPath, "utf8");
@@ -19,131 +19,85 @@ function requirePattern(source, pattern, message) {
 
 requirePattern(
   migration,
-  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.can_manage_visit_photo\s*\([\s\S]*?_user_id\s+uuid[\s\S]*?\)[\s\S]*?vm\.uploaded_by\s*=\s*_user_id/i,
-  "Fotoägarskapsmigrationen måste hindra ersättning när uploaded_by är en annan användare.",
+  /DROP\s+CONSTRAINT\s+IF\s+EXISTS\s+visit_media_visit_group_unique/i,
+  "Flerfotomigrationen måste ta bort den gamla singelfotonyckeln.",
 );
 requirePattern(
   migration,
-  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.can_delete_visit_photo\s*\([\s\S]*?_user_id\s+uuid[\s\S]*?vm\.uploaded_by\s*=\s*_user_id[\s\S]*?has_group_role[\s\S]*?owner[\s\S]*?admin/i,
-  "Fotoägarskapsmigrationen måste separera radering och tillåta uppladdare samt owner/admin.",
+  /UNIQUE\s*\(\s*visit_id\s*,\s*group_id\s*,\s*uploaded_by\s*\)/i,
+  "Flerfotomigrationen måste tillåta högst en bild per deltagare och besök.",
 );
 requirePattern(
   migration,
-  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.can_manage_own_visit_photo\s*\(\s*_group_id\s+uuid\s*,\s*_visit_id\s+uuid\s*\)[\s\S]*?auth\.uid\(\)/i,
-  "Migrationen saknar current-user-wrappern för fotoersättning.",
-);
-requirePattern(
-  migration,
-  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.can_delete_own_visit_photo\s*\(\s*_group_id\s+uuid\s*,\s*_visit_id\s+uuid\s*\)[\s\S]*?auth\.uid\(\)/i,
-  "Migrationen saknar current-user-wrappern för fotoradering.",
-);
-requirePattern(
-  migration,
-  /REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.can_manage_visit_photo\s*\(uuid\s*,\s*uuid\s*,\s*uuid\)[\s\S]*?authenticated/i,
-  "Den interna manage-hjälparen måste vara spärrad för authenticated.",
-);
-requirePattern(
-  migration,
-  /REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.can_delete_visit_photo\s*\(uuid\s*,\s*uuid\s*,\s*uuid\)[\s\S]*?authenticated/i,
-  "Den interna delete-hjälparen måste vara spärrad för authenticated.",
-);
-requirePattern(
-  migration,
-  /GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.can_manage_own_visit_photo\s*\(uuid\s*,\s*uuid\)\s+TO\s+authenticated\s*,\s*service_role/i,
-  "Authenticated måste kunna köra self-wrappern för fotoersättning.",
-);
-requirePattern(
-  migration,
-  /GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.can_delete_own_visit_photo\s*\(uuid\s*,\s*uuid\)\s+TO\s+authenticated\s*,\s*service_role/i,
-  "Authenticated måste kunna köra self-wrappern för fotoradering.",
+  /can_manage_visit_photo[\s\S]*?visit_participants[\s\S]*?vp\.user_id\s*=\s*_user_id/i,
+  "Foto-uppladdning måste kräva faktisk deltagarstatus server-side.",
 );
 
-const uploadPolicy = migration.match(
-  /CREATE\s+POLICY\s+"visit photos allowed upload"[\s\S]*?;\s*(?=\n\n|DROP\s+POLICY|CREATE\s+OR\s+REPLACE|COMMIT)/i,
+const manageFunction = migration.match(
+  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.can_manage_visit_photo[\s\S]*?\$function\$;/i,
 )?.[0];
-const deletePolicy = migration.match(
-  /CREATE\s+POLICY\s+"visit photos allowed delete"[\s\S]*?;\s*(?=\n\n|CREATE\s+OR\s+REPLACE|COMMIT)/i,
-)?.[0];
-
-if (!uploadPolicy) {
-  errors.push("Migrationen saknar upload-policyn för visit-photos.");
-} else {
-  requirePattern(
-    uploadPolicy,
-    /can_manage_own_visit_photo\s*\(/i,
-    "Upload-policyn måste använda den ägarskapsmedvetna current-user-wrappern.",
-  );
+if (!manageFunction) {
+  errors.push("Migrationen saknar can_manage_visit_photo.");
+} else if (/has_group_role/i.test(manageFunction)) {
+  errors.push("Owner/admin får inte få uppladdningsrätt utan faktisk deltagarstatus.");
 }
 
-if (!deletePolicy) {
-  errors.push("Migrationen saknar delete-policyn för visit-photos.");
-} else {
-  requirePattern(
-    deletePolicy,
-    /can_delete_own_visit_photo\s*\(/i,
-    "Delete-policyn måste använda den separata current-user-delete-wrappern.",
-  );
-  requirePattern(
-    deletePolicy,
-    /can_delete_original_visit\s*\(/i,
-    "Delete-policyn måste bevara städning vid tillåten originalbesöksradering.",
-  );
-  requirePattern(
-    deletePolicy,
-    /owner\s*=\s*auth\.uid\(\)[\s\S]*?NOT\s+EXISTS[\s\S]*?visit_media/i,
-    "Delete-policyn måste låta användaren städa en egen orefererad race-/feluppladdning.",
-  );
-}
-
-const upsertFunction = migration.match(
-  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.upsert_visit_photo[\s\S]*?\$function\$;/i,
-)?.[0];
-if (!upsertFunction) {
-  errors.push("Migrationen saknar upsert_visit_photo.");
-} else {
-  requirePattern(
-    upsertFunction,
-    /pg_advisory_xact_lock/i,
-    "upsert_visit_photo måste serialisera samtidiga första uppladdningar.",
-  );
-  requirePattern(
-    upsertFunction,
-    /_previous_uploader\s+IS\s+NOT\s+NULL\s+AND\s+_previous_uploader\s*<>\s*_uid/i,
-    "upsert_visit_photo måste avvisa en annan uppladdare före ersättning.",
-  );
-  requirePattern(
-    upsertFunction,
-    /owner\s*=\s*_uid/i,
-    "upsert_visit_photo måste verifiera att den nya Storage-filen ägs av current user.",
-  );
-  requirePattern(
-    upsertFunction,
-    /WHERE\s+public\.visit_media\.uploaded_by\s*=\s*EXCLUDED\.uploaded_by/i,
-    "Conflict-update får bara ersätta foto för samma uploader.",
-  );
-  const conflictAssignments = upsertFunction.match(
-    /ON\s+CONFLICT[\s\S]*?DO\s+UPDATE\s+SET([\s\S]*?)WHERE\s+public\.visit_media\.uploaded_by/i,
-  )?.[1];
-  if (!conflictAssignments) {
-    errors.push("Fotoersättningens conflict-update kunde inte avgränsas.");
-  } else if (/\buploaded_by\s*=/i.test(conflictAssignments)) {
-    errors.push("Fotoersättning får inte byta uploaded_by på det befintliga mediaobjektet.");
-  }
-}
+requirePattern(
+  migration,
+  /can_delete_visit_photo\s*\([\s\S]*?_uploaded_by\s+uuid[\s\S]*?_user_id\s+uuid[\s\S]*?has_group_role[\s\S]*?owner[\s\S]*?admin/i,
+  "Targeted delete måste bevara individuell ägare och separat owner/admin-moderation.",
+);
+requirePattern(
+  migration,
+  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.delete_visit_photo_v2/i,
+  "Migrationen saknar målbildsmedveten delete-RPC.",
+);
+requirePattern(
+  migration,
+  /ON\s+CONFLICT\s*\(\s*visit_id\s*,\s*group_id\s*,\s*uploaded_by\s*\)/i,
+  "Foto-upsert måste konflikthanteras per deltagarplats.",
+);
+requirePattern(
+  migration,
+  /pg_advisory_xact_lock/i,
+  "Foto-upsert/delete måste serialisera deltagarens bildplats.",
+);
+requirePattern(
+  migration,
+  /storage\.objects[\s\S]*?owner\s*=\s*_uid/i,
+  "Foto-upsert måste verifiera att den nya Storage-filen ägs av current user.",
+);
+requirePattern(
+  migration,
+  /CREATE\s+POLICY\s+"visit photos allowed delete"[\s\S]*?NOT\s+EXISTS[\s\S]*?has_group_role[\s\S]*?can_delete_original_visit/i,
+  "Storage-delete måste kunna städa en modererad eller besöksraderad fil efter att mediareferensen tagits bort.",
+);
+requirePattern(
+  migration,
+  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.get_group_app_state_v5c[\s\S]*?ORDER\s+BY\s+vm\.created_at\s*,\s*vm\.id[\s\S]*?LIMIT\s+1/i,
+  "Legacy-readmodellen måste fortsätta välja exakt en stabil representativ bild.",
+);
+requirePattern(
+  migration,
+  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.get_group_app_state_v5m[\s\S]*?'\{photos\}'[\s\S]*?public\.visit_media/i,
+  "Aktuell read-model måste exponera gruppens deltagarbilder som photos[].",
+);
 
 for (const marker of [
-  "visit-photo:authenticated-can-call-current-user-guard",
-  "visit-photo:authenticated-can-call-current-user-delete-guard",
-  "visit-photo:authenticated-cannot-call-internal-user-helper",
+  "visit-photo:one-active-photo-per-participant",
+  "visit-photo:actual-participant-required-for-upload",
+  "visit-photo:targeted-delete-supports-owner-admin-moderation",
+  "visit-photo:authenticated-cannot-call-internal-manage-helper",
   "visit-photo:authenticated-cannot-call-internal-delete-helper",
+  "visit-photo:authenticated-can-call-targeted-delete",
   "visit-photo:upload-policy-uses-current-user-guard",
-  "visit-photo:delete-policy-uses-current-user-delete-guard",
-  "visit-photo:upsert-preserves-uploader-ownership",
-  "visit-photo:upsert-serializes-concurrent-first-photo",
+  "visit-photo:delete-policy-uses-target-aware-path-guard",
+  "visit-photo:delete-policy-cleans-moderated-orphan",
+  "visit-photo:upsert-conflicts-per-uploader",
+  "visit-photo:legacy-read-model-keeps-one-representative",
+  "visit-photo:current-read-model-exposes-photo-array",
 ]) {
-  if (!preflight.includes(marker)) {
-    errors.push(`Besöksfoto-preflight saknar ${marker}.`);
-  }
+  if (!preflight.includes(marker)) errors.push(`Besöksfoto-preflight saknar ${marker}.`);
 }
 
 if (errors.length > 0) {
@@ -151,4 +105,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log("Besöksfotots ägarskap, Storage-policy och RPC-kontrakt är säkert kopplade.");
+console.log("Besöksbildernas deltagarägarskap, galleri-read-model och Storage-policy hänger ihop.");

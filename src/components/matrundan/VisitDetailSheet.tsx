@@ -31,7 +31,6 @@ import { VisitGuestParticipationPrompt } from "./VisitGuestParticipationPrompt";
 import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
-import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { canDeleteOriginalVisit, canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
 import { EditVisitDialog } from "./EditVisitDialog";
 
@@ -88,10 +87,6 @@ export function VisitDetailSheet({
       activeGroupRole === "admin");
   const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
-  const canReplacePhoto =
-    !!visit && canAddOrReplaceVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
-  const canRemovePhoto =
-    !!visit && canDeleteVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
   const canEdit =
@@ -314,11 +309,7 @@ export function VisitDetailSheet({
                   />
                 ) : null}
 
-                <VisitPhotoManager
-                  visit={visit}
-                  canReplace={canReplacePhoto}
-                  canDelete={canRemovePhoto}
-                />
+                <VisitPhotoManager visit={visit} />
 
                 <Button asChild variant="outline" className="w-full">
                   <Link
@@ -420,8 +411,9 @@ export function VisitDetailSheet({
           <AlertDialogHeader>
             <AlertDialogTitle>Radera besöket på {place?.name ?? "matstället"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Besöket, fotot och alla omdömen tas bort. Gruppens progression räknas om. Om besöket
-              har lagts till i andra grupper försvinner det även där. Det går inte att ångra.
+              Besöket, bilderna och alla omdömen tas bort. Gruppens progression räknas om. Om
+              besöket har lagts till i andra grupper försvinner det även där. Det går inte att
+              ångra.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

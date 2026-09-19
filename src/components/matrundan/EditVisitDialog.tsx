@@ -39,7 +39,6 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Place, Visit } from "@/lib/matrundan/types";
 import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
-import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
 import { RatingStars } from "./Rating";
 import { ReviewEditFields } from "./ReviewEditFields";
@@ -159,19 +158,6 @@ export function EditVisitDialog({
             (taste || null) !== (ownReview.taste ?? null) ||
             (value || null) !== (ownReview.value ?? null) ||
             (service || null) !== (ownReview.service ?? null)))),
-  );
-  const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
-  const canReplacePhoto = canAddOrReplaceVisitPhoto(
-    visit,
-    state.currentUserId,
-    currentRole,
-    groupArchived,
-  );
-  const canRemovePhoto = canDeleteVisitPhoto(
-    visit,
-    state.currentUserId,
-    currentRole,
-    groupArchived,
   );
 
   const otherShareTargets = shareTargets.filter((target) => target.groupId !== activeGroupId);
@@ -673,11 +659,7 @@ export function EditVisitDialog({
             )}
           </section>
 
-          <VisitPhotoManager
-            visit={visit}
-            canReplace={canReplacePhoto}
-            canDelete={canRemovePhoto}
-          />
+          <VisitPhotoManager visit={visit} />
 
           {mode === "live" ? (
             <section className="space-y-3">
