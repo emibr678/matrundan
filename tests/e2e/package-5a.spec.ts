@@ -144,10 +144,11 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
   ).toBeVisible();
 
   const alexPhoto = photoGallery.getByRole("group", { name: "Bild från Alex, din bild" });
-  await expect(alexPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(1);
-  await expect(alexPhoto.getByRole("button", { name: "Fler alternativ för din bild" })).toHaveCount(
-    1,
-  );
+  await expect(alexPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(0);
+  await alexPhoto.getByRole("button", { name: "Fler alternativ för din bild" }).click();
+  await expect(page.getByRole("menuitem", { name: "Byt bild" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Ta bort din bild" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await robinPhoto.getByRole("button", { name: "Öppna bild från Robin" }).click();
   const photoViewer = page.getByRole("dialog", { name: "Bilder från besöket" });
