@@ -88,7 +88,7 @@ export function EditReviewDialog({
             : storedModelHasAtmosphere
               ? activeModelHasAtmosphere
                 ? atmosphere || null
-                : review.atmosphere
+                : (review.atmosphere ?? null)
               : null,
         comment: comment.trim() || null,
       });
@@ -133,6 +133,7 @@ export function EditReviewDialog({
           review={review}
           scoreless={scoreless}
           activeModel={activeModel}
+          showModelNotice={!(activeModel === "food_v1_takeaway" && !isTakeaway)}
           overall={overall}
           taste={taste}
           value={value}
