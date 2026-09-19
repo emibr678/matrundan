@@ -20,7 +20,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("besöksredigering lämnar omdömet orört tills användaren väljer att ändra det", async ({\n  page,\n}) => {
+test("besöksredigering lämnar omdömet orört tills användaren väljer att ändra det", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemoStateBeforeNavigation(page);
   await page.goto("/matstallen/p2?demo=1&visit=v1");
