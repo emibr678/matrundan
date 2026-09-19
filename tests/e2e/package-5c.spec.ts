@@ -60,6 +60,10 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
 
   await page.getByRole("button", { name: "Fler alternativ för din bild" }).click();
   await page.getByRole("menuitem", { name: "Ta bort din bild" }).click();
+  const confirmDelete = page.getByRole("alertdialog");
+  await expect(confirmDelete.getByRole("heading", { name: "Ta bort din bild?" })).toBeVisible();
+  await expect(confirmDelete.getByText(/Det går inte att ångra/)).toBeVisible();
+  await confirmDelete.getByRole("button", { name: "Ta bort bild" }).click();
   await expect(page.getByAltText(/Bild från/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Lägg till din bild" })).toBeVisible();
 });
