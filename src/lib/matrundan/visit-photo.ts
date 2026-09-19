@@ -21,9 +21,7 @@ function isGroupAdmin(role: Role | null | undefined) {
   return role === "ägare" || role === "admin";
 }
 
-export function getVisitPhotos(
-  visit: Pick<Visit, "photos" | "photo">,
-): VisitPhoto[] {
+export function getVisitPhotos(visit: Pick<Visit, "photos" | "photo">): VisitPhoto[] {
   const photos = visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [];
   return [...photos].sort((a, b) => {
     const aCreated = a.createdAt ?? a.updatedAt;
@@ -72,7 +70,9 @@ export function canDeleteVisitPhoto(
   groupArchived: boolean,
 ) {
   if (groupArchived || visit.linkType === "shared") return false;
-  const targetExists = getVisitPhotos(visit).some((photo) => photo.uploadedBy === targetUploadedBy);
+  const targetExists = getVisitPhotos(visit).some(
+    (photo) => photo.uploadedBy === targetUploadedBy,
+  );
   if (!targetExists) return false;
   return targetUploadedBy === currentUserId || isGroupAdmin(role);
 }
