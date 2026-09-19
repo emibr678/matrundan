@@ -50,6 +50,47 @@ test("besöksredigering lämnar omdömet orört tills användaren väljer att ä
   await expectNoHorizontalOverflow(page, "Metadataredigerat besök");
 });
 
+test("Hämtmat döljer Atmosfär reversibelt och räknar om helhetsbetyget", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemoStateBeforeNavigation(page);
+  await page.goto("/matstallen/p2?demo=1&visit=v1");
+
+  const visitSheet = page.getByRole("dialog");
+  await expect(visitSheet.getByText("4,5 / 5", { exact: true }).first()).toBeVisible();
+
+  await visitSheet.getByRole("button", { name: "Redigera besök" }).click();
+  const edit = page.getByRole("dialog", { name: "Redigera besök" });
+  await edit.getByRole("button", { name: "Redigera omdöme" }).click();
+  await expect(edit.getByText("Atmosfär", { exact: true })).toBeVisible();
+  await expect(edit.getByText("4,5 / 5", { exact: true })).toBeVisible();
+
+  const takeaway = edit.getByRole("switch", { name: "Hämtmat" });
+  await takeaway.click();
+  await expect(takeaway).toBeChecked();
+  await expect(edit.getByText("Atmosfär", { exact: true })).toHaveCount(0);
+  await expect(edit.getByText("Atmosfär ingår inte vid Hämtmat.")).toBeVisible();
+  await expect(edit.getByText("4,67 / 5", { exact: true })).toBeVisible();
+
+  await edit.getByRole("button", { name: "Spara ändringar" }).click();
+  await expect(visitSheet.getByText(/Hämtmat/).first()).toBeVisible();
+  await expect(visitSheet.getByText("4,67 / 5", { exact: true }).first()).toBeVisible();
+  await expect(visitSheet.getByText("Atmosfär", { exact: true })).toHaveCount(0);
+
+  await visitSheet.getByRole("button", { name: "Redigera besök" }).click();
+  const restore = page.getByRole("dialog", { name: "Redigera besök" });
+  const restoreTakeaway = restore.getByRole("switch", { name: "Hämtmat" });
+  await expect(restoreTakeaway).toBeChecked();
+  await restoreTakeaway.click();
+  await expect(restoreTakeaway).not.toBeChecked();
+  await expect(restore.getByText("4,5 / 5", { exact: true })).toBeVisible();
+  await restore.getByRole("button", { name: "Redigera omdöme" }).click();
+  await expect(restore.getByText("Atmosfär", { exact: true })).toBeVisible();
+  await restore.getByRole("button", { name: "Spara ändringar" }).click();
+
+  await expect(visitSheet.getByText("4,5 / 5", { exact: true }).first()).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Reversibel Hämtmat-korrigering");
+});
+
 test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemoStateBeforeNavigation(page);
