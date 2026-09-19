@@ -20,7 +20,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("platsmetadata använder enkla begrepp och återgår tyst till ställets typ", async ({ page }) => {
+test("platsmetadata använder enkla begrepp och återgår tyst till ställets typ", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemoStateBeforeNavigation(page);
   await page.goto("/matstallen/p2?demo=1");
@@ -53,7 +55,9 @@ test("platsmetadata använder enkla begrepp och återgår tyst till ställets ty
   const savedCategoryOverride = await page.evaluate(() => {
     const raw = window.localStorage.getItem("matrundan.state.v1");
     if (!raw) return undefined;
-    const state = JSON.parse(raw) as { places?: Array<{ id: string; categoryOverride?: string | null }> };
+    const state = JSON.parse(raw) as {
+      places?: Array<{ id: string; categoryOverride?: string | null }>;
+    };
     return state.places?.find((place) => place.id === "p2")?.categoryOverride;
   });
   expect(savedCategoryOverride).toBeNull();
