@@ -61,9 +61,7 @@ describe("historikbaserat topplistebetyg", () => {
       count: 2,
       visitCount: 2,
     });
-    expect(
-      ratingForPlaceInVisitContext(visits, "p1", { meals: ["lunch", "middag"] }),
-    ).toEqual({
+    expect(ratingForPlaceInVisitContext(visits, "p1", { meals: ["lunch", "middag"] })).toEqual({
       overall: 4,
       count: 2,
       visitCount: 2,
@@ -97,11 +95,13 @@ describe("historikbaserat topplistebetyg", () => {
       visibleReviews: [review("duplicate", "m1", 1)],
     };
 
-    expect(ratingForPlaceInVisitContext([canonical, duplicate], "p1", { meals: ["fika"] })).toEqual({
-      overall: 4,
-      count: 1,
-      visitCount: 1,
-    });
+    expect(ratingForPlaceInVisitContext([canonical, duplicate], "p1", { meals: ["fika"] })).toEqual(
+      {
+        overall: 4,
+        count: 1,
+        visitCount: 1,
+      },
+    );
   });
 
   test("hämtmat kan kombineras med ett tillfälle", () => {

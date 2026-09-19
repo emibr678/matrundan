@@ -31,7 +31,9 @@ test("topplistan kombinerar flervalsfilter för Passar för, tillfälle och häm
   await expect(leaderboard.getByText("Tillfälle", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Alla", { exact: true })).toHaveCount(0);
   await expect(leaderboard.getByText("Alla tillfällen", { exact: true })).toHaveCount(0);
-  await expect(leaderboard.getByRole("button", { name: "Filtrera topplistan på hämtmat" })).toBeVisible();
+  await expect(
+    leaderboard.getByRole("button", { name: "Filtrera topplistan på hämtmat" }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Ofiltrerad topplista");
 
   const lunch = leaderboard.getByRole("button", { name: "Filtrera topplistan på Lunch" });

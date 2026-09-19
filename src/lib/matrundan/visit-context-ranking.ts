@@ -47,10 +47,7 @@ export function ratingForPlaceInVisitContext(
     if (visit.id) seenVisitIds.add(visit.id);
 
     if (visit.placeId !== placeId || !visitHasScore(visit)) continue;
-    if (
-      selectedMeals.length > 0 &&
-      !selectedMeals.includes(visit.meal as RankableVisitMeal)
-    ) {
+    if (selectedMeals.length > 0 && !selectedMeals.includes(visit.meal as RankableVisitMeal)) {
       continue;
     }
     if (context.takeawayOnly && !visit.isTakeaway) continue;
