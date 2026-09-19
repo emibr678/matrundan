@@ -59,6 +59,19 @@ test("fånga redigera besök och kontextkorrigering", async ({ page }, testInfo)
   await stabilize(page);
   await capture(page, testInfo, "issue-309-omdome-med-atmosfar");
 
+  const takeaway = editDialog.getByRole("switch", { name: "Hämtmat" });
+  await takeaway.click();
+  await expect(editDialog.getByText("Atmosfär", { exact: true })).toHaveCount(0);
+  await expect(editDialog.getByText("Atmosfär ingår inte vid Hämtmat.")).toBeVisible();
+  await expect(editDialog.getByText("4,67 / 5", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-309-hamtmat-utan-atmosfar");
+
+  await takeaway.click();
+  await expect(editDialog.getByText("Atmosfär", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("4,5 / 5", { exact: true })).toBeVisible();
+
   await editDialog.getByLabel("Tillfälle").click();
   await page.getByRole("option", { name: "Något att dricka" }).click();
   await expect(editDialog.getByText("Omdömet bevaras")).toBeVisible();
