@@ -18,7 +18,9 @@ import {
 } from "@/lib/matrundan/review-model";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisibleReview } from "@/lib/matrundan/types";
+import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { ReviewEditFields } from "./ReviewEditFields";
+import { VisitPhotoField } from "./VisitPhotoField";
 
 export function EditReviewDialog({
   review,
@@ -33,7 +35,11 @@ export function EditReviewDialog({
   scoreless?: boolean;
   isTakeaway?: boolean;
 }) {
-  const { updateOwnReview, submitting, state, demoReadOnly } = useStore();
+  const { updateOwnReview, saveVisitPhoto, submitting, state, demoReadOnly } = useStore();
+  const visit = state.visits.find((item) =>
+    (item.visibleReviews ?? []).some((candidate) => candidate.id === review.id),
+  );
+  const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
   const scoreless = scorelessOverride ?? (review.overall == null && review.reviewModel == null);
   const legacy = !scoreless && review.reviewModel == null;
   const activeModel = effectiveReviewModel(review.reviewModel, isTakeaway);
@@ -46,6 +52,7 @@ export function EditReviewDialog({
   const [service, setService] = React.useState(review.service ?? 0);
   const [atmosphere, setAtmosphere] = React.useState(review.atmosphere ?? 0);
   const [comment, setComment] = React.useState(review.comment ?? "");
+  const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const archived = state.group.lifecycleStatus === "archived";
   const complete = activeModel
     ? reviewRatingsComplete(activeModel, { taste, service, value, atmosphere })
@@ -59,6 +66,7 @@ export function EditReviewDialog({
     setService(review.service ?? 0);
     setAtmosphere(review.atmosphere ?? 0);
     setComment(review.comment ?? "");
+    setPhotoFile(null);
   }, [open, review]);
 
   async function save() {
@@ -92,7 +100,30 @@ export function EditReviewDialog({
               : null,
         comment: comment.trim() || null,
       });
-      toast.success(scoreless ? "Din kommentar är uppdaterad." : "Ditt omdöme är uppdaterat.");
+
+      if (photoFile && visit) {
+        try {
+          await saveVisitPhoto(visit.id, photoFile, visit);
+        } catch {
+          toast.warning(
+            scoreless
+              ? "Kommentaren sparades, men bilden kunde inte sparas."
+              : "Omdömet sparades, men bilden kunde inte sparas.",
+          );
+          setOpen(false);
+          return;
+        }
+      }
+
+      toast.success(
+        photoFile
+          ? scoreless
+            ? "Din kommentar och bild är uppdaterade."
+            : "Ditt omdöme och din bild är uppdaterade."
+          : scoreless
+            ? "Din kommentar är uppdaterad."
+            : "Ditt omdöme är uppdaterat.",
+      );
       setOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera.");
@@ -129,26 +160,38 @@ export function EditReviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ReviewEditFields
-          review={review}
-          scoreless={scoreless}
-          activeModel={activeModel}
-          showModelNotice={!(activeModel === "food_v1_takeaway" && !isTakeaway)}
-          overall={overall}
-          taste={taste}
-          value={value}
-          service={service}
-          atmosphere={atmosphere}
-          comment={comment}
-          onOverallChange={setOverall}
-          onTasteChange={setTaste}
-          onValueChange={setValue}
-          onServiceChange={setService}
-          onAtmosphereChange={setAtmosphere}
-          onCommentChange={setComment}
-          idPrefix={`edit-review-${review.id}`}
-          disabled={submitting}
-        />
+        <div className="space-y-4">
+          <ReviewEditFields
+            review={review}
+            scoreless={scoreless}
+            activeModel={activeModel}
+            showModelNotice={!(activeModel === "food_v1_takeaway" && !isTakeaway)}
+            overall={overall}
+            taste={taste}
+            value={value}
+            service={service}
+            atmosphere={atmosphere}
+            comment={comment}
+            onOverallChange={setOverall}
+            onTasteChange={setTaste}
+            onValueChange={setValue}
+            onServiceChange={setService}
+            onAtmosphereChange={setAtmosphere}
+            onCommentChange={setComment}
+            idPrefix={`edit-review-${review.id}`}
+            disabled={submitting}
+          />
+
+          {visit ? (
+            <VisitPhotoField
+              file={photoFile}
+              onFileChange={setPhotoFile}
+              existingUrl={ownPhoto?.url}
+              disabled={submitting}
+              compact
+            />
+          ) : null}
+        </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
           <Button variant="ghost" disabled={submitting} onClick={() => setOpen(false)}>
