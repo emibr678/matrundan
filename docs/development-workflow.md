@@ -61,9 +61,22 @@ GitHub Issues + labels är den operativa backloggen. Detaljerade definitioner av
 `status:*`, `priority:*` och `order:*` finns i roadmapen och ska inte dupliceras
 här. `status:ready` betyder att aktuell plan och implementation är godkända.
 
+När implementation uttryckligen godkänns ska relevant Issue sättas till
+`status:ready` i samma arbetsmoment, före eller samtidigt som
+implementationsbranch/PR skapas. Om PR:n redan finns när godkännandet ges ska
+statusen synkas innan implementationen fortsätter. En normal implementerande PR
+ska alltså inte lämna sitt Issue i `status:inbox` eller `status:agreed`.
+
 En implementerande PR ska referera eller stänga sitt Issue. I mänsklig
 statusrapportering används **Issue #NNN — full titel** respektive
 **PR #NNN — full titel** när numren annars kan blandas ihop.
+
+Issue-titeln ska normalt beskriva användarutfallet eller det konkreta
+underhållsresultatet så att värdet går att förstå direkt i backloggen. Interna
+fasnamn, historiska versionsetiketter och implementationsteknik hör normalt i
+Issue-bodyn när utfallet kan uttryckas tydligare. Tekniska termer är fortsatt
+rimliga när de faktiskt är själva maintenanceutfallet. När scopet ändras
+materiellt ska även titeln bedömas och vid behov uppdateras.
 
 ### Materiella beslut i Issues
 
@@ -296,8 +309,17 @@ kan merge däremot automatiskt uppdatera staging; det räknas fortfarande som
 verifieringsmiljö och inte publicering.
 
 Efter merge, bekräfta att rätt Issue stängdes och att stängda issues inte ligger
-kvar med operativa `status:ready`/`order:*`-etiketter. Kontrollera roadmapen bara
-när den faktiska produktordningen eller paketstatusen påverkas.
+kvar med operativa `status:ready`/`order:*`-etiketter. För en PR som använder
+`Refs #NNN` i stället för `Closes #NNN` krävs dessutom en uttrycklig
+**completion sweep** av det refererade Issue: om inget konkret levererbart scope
+återstår ska det stängas; om bara ett smalare restarbete återstår ska det brytas
+ut till ett tydligt uppföljningsissue och den färdiga parenten stängas. Ett öppet
+parent-Issue ska inte användas som historiskt arkiv. Om stängning medvetet skjuts
+upp ska Issue-kommentaren ange exakt vilket levererbart arbete och vilken nästa
+grind som återstår.
+
+Kontrollera roadmapen när den faktiska produktordningen, paketstatusen eller en
+roadmap-refererad Issue-titel påverkas.
 
 ## 8. Databasdriftsättning och publicering
 
