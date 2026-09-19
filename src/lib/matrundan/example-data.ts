@@ -213,13 +213,8 @@ function withVisitParticipationScenarios(state: AppState): AppState {
       if (visit.id === visits.providerBistroFirst) {
         return {
           ...visit,
-          overall: 5,
-          taste: 5,
-          value: 5,
-          service: 5,
-          // Samma kanoniska lunchbesök innehåller både ett synligt omdöme och
-          // en review som är dold i gruppkontexten. Kontexttopplistan får bara
-          // använda Sams synliga betyg.
+          // Ett explicit nolläge: ett kanoniskt omdöme finns men är inte synligt
+          // i gruppen. Demo-normaliseringen fabricerar då inget registreraromdöme.
           visibleReviews: [
             {
               id: "review-v4-robin-hidden",
@@ -231,17 +226,6 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               comment: "Dold fixturetext som inte ska visas i gruppen.",
               ratingVisible: false,
               commentVisible: false,
-            },
-            {
-              id: "review-v4-sam",
-              userId: members.sam,
-              overall: 5,
-              taste: 5,
-              value: 5,
-              service: 5,
-              comment: "En ovanligt bra lunch som gör bistron värd en omväg mitt på dagen.",
-              ratingVisible: true,
-              commentVisible: true,
             },
           ],
         };

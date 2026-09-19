@@ -95,7 +95,7 @@ const TOP_LIST_FILTERS: { key: TopListFilter; label: string }[] = [
 ];
 
 const TOP_VISIT_FILTERS: { key: TopVisitFilter; label: string }[] = [
-  { key: "alla", label: "Alla" },
+  { key: "alla", label: "Alla tillfällen" },
   ...RANKABLE_VISIT_MEALS.map((key) => ({ key, label: VISIT_MEAL_LABEL[key] })),
 ];
 
@@ -192,9 +192,16 @@ function PlacesIndex() {
     );
   }, [filtered, selectedPlaceId]);
 
+  const overallLeaderboardRating = React.useCallback(
+    (placeId: string) =>
+      ratingForPlaceInVisitContext(state.visits, placeId, {
+        meal: "alla",
+      }),
+    [state.visits],
+  );
   const overallTopRated = React.useMemo(
-    () => rankPlacesOverall(activePlaces, avgRating),
-    [activePlaces, avgRating],
+    () => rankPlacesOverall(activePlaces, overallLeaderboardRating),
+    [activePlaces, overallLeaderboardRating],
   );
   const contextualRating = React.useCallback(
     (placeId: string) =>
@@ -380,7 +387,7 @@ function PlacesIndex() {
                     })}
                   </div>
                   <p className="mt-1.5 text-xs text-muted-foreground">
-                    Något att dricka saknar stjärnbetyg och kan därför inte rangordnas här.
+                    Något att dricka saknar betyg och visas därför inte här.
                   </p>
                 </div>
 
@@ -419,12 +426,11 @@ function PlacesIndex() {
                       <PlaceThumb place={place} size="sm" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium">{place.name}</div>
-                        <div className="mt-0.5 flex items-center gap-2">
+                        <div className="mt-0.5 flex min-w-0 items-center gap-2">
                           <RatingStars value={rating.overall} size={12} />
-                          <span className="text-xs text-muted-foreground">
-                            {formatRating(rating.overall)} · {rating.visitCount ?? 0}{" "}
-                            {(rating.visitCount ?? 0) === 1 ? "besök" : "besök"} · {rating.count}{" "}
-                            {rating.count === 1 ? "omdöme" : "omdömen"}
+                          <span className="min-w-0 truncate text-xs text-muted-foreground">
+                            {formatRating(rating.overall)} · {rating.visitCount ?? 0} besök ·{" "}
+                            {rating.count} {rating.count === 1 ? "omdöme" : "omdömen"}
                           </span>
                         </div>
                       </div>
