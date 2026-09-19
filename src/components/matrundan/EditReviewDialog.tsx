@@ -11,7 +11,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { reviewRatingsComplete } from "@/lib/matrundan/review-model";
+import {
+  effectiveReviewModel,
+  reviewModelIncludesAtmosphere,
+  reviewRatingsComplete,
+} from "@/lib/matrundan/review-model";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisibleReview } from "@/lib/matrundan/types";
 import { ReviewEditFields } from "./ReviewEditFields";
@@ -21,15 +25,20 @@ export function EditReviewDialog({
   placeName,
   compact = false,
   scoreless: scorelessOverride,
+  isTakeaway = false,
 }: {
   review: VisibleReview;
   placeName: string;
   compact?: boolean;
   scoreless?: boolean;
+  isTakeaway?: boolean;
 }) {
   const { updateOwnReview, submitting, state, demoReadOnly } = useStore();
   const scoreless = scorelessOverride ?? (review.overall == null && review.reviewModel == null);
   const legacy = !scoreless && review.reviewModel == null;
+  const activeModel = effectiveReviewModel(review.reviewModel, isTakeaway);
+  const storedModelHasAtmosphere = reviewModelIncludesAtmosphere(review.reviewModel);
+  const activeModelHasAtmosphere = reviewModelIncludesAtmosphere(activeModel);
   const [open, setOpen] = React.useState(false);
   const [overall, setOverall] = React.useState(review.overall ?? 0);
   const [taste, setTaste] = React.useState(review.taste ?? 0);
@@ -38,8 +47,8 @@ export function EditReviewDialog({
   const [atmosphere, setAtmosphere] = React.useState(review.atmosphere ?? 0);
   const [comment, setComment] = React.useState(review.comment ?? "");
   const archived = state.group.lifecycleStatus === "archived";
-  const complete = review.reviewModel
-    ? reviewRatingsComplete(review.reviewModel, { taste, service, value, atmosphere })
+  const complete = activeModel
+    ? reviewRatingsComplete(activeModel, { taste, service, value, atmosphere })
     : true;
 
   React.useEffect(() => {
@@ -73,7 +82,14 @@ export function EditReviewDialog({
         taste: scoreless ? null : taste || null,
         value: scoreless ? null : value || null,
         service: scoreless ? null : service || null,
-        atmosphere: scoreless || legacy ? null : atmosphere || null,
+        atmosphere:
+          scoreless || legacy
+            ? null
+            : storedModelHasAtmosphere
+              ? activeModelHasAtmosphere
+                ? atmosphere || null
+                : review.atmosphere
+              : null,
         comment: comment.trim() || null,
       });
       toast.success(scoreless ? "Din kommentar är uppdaterad." : "Ditt omdöme är uppdaterat.");
@@ -109,13 +125,14 @@ export function EditReviewDialog({
               ? `${placeName}. Dryckesbesöket påverkar inte ställets betyg.`
               : legacy
                 ? `${placeName}. Det här är ett äldre omdöme och behåller sitt manuella helhetsbetyg.`
-                : `${placeName}. Helhetsbetyget räknas om från samma delar som när omdömet skapades.`}
+                : `${placeName}. Helhetsbetyget räknas automatiskt från de delar som gäller för besöket.`}
           </DialogDescription>
         </DialogHeader>
 
         <ReviewEditFields
           review={review}
           scoreless={scoreless}
+          activeModel={activeModel}
           overall={overall}
           taste={taste}
           value={value}
