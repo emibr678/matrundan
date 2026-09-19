@@ -95,7 +95,12 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(modelNotice).toContain("förväntad");
     expect(modelNotice).toContain("Avslappnat eller Något extra");
 
-    for (const source of [visitDialogCore, addReviewDialog, demoAddReviewDialog, reviewEditFields]) {
+    for (const source of [
+      visitDialogCore,
+      addReviewDialog,
+      demoAddReviewDialog,
+      reviewEditFields,
+    ]) {
       expect(source).toContain("<ReviewScoreFields");
       expect(source).not.toContain("Atmosfär ingår inte vid Hämtmat.");
       expect(source).not.toContain("Atmosfär ingår inte för Snabbt och enkelt.");

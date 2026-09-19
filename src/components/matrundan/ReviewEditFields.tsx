@@ -1,11 +1,7 @@
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { VisibleReview } from "@/lib/matrundan/types";

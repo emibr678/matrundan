@@ -135,19 +135,19 @@ export function EditVisitDialog({
   const normalizedReviewComment = comment.trim() || null;
   const reviewChanged = Boolean(
     reviewEditing &&
-      ownReview &&
-      !scoreBoundaryChanged &&
-      (normalizedReviewComment !== (ownReview.comment?.trim() || null) ||
-        (scoredVisit &&
-          (ownReview.reviewModel
-            ? (taste || null) !== (ownReview.taste ?? null) ||
-              (value || null) !== (ownReview.value ?? null) ||
-              (service || null) !== (ownReview.service ?? null) ||
-              (atmosphere || null) !== (ownReview.atmosphere ?? null)
-            : (overall || null) !== (ownReview.overall ?? null) ||
-              (taste || null) !== (ownReview.taste ?? null) ||
-              (value || null) !== (ownReview.value ?? null) ||
-              (service || null) !== (ownReview.service ?? null)))),
+    ownReview &&
+    !scoreBoundaryChanged &&
+    (normalizedReviewComment !== (ownReview.comment?.trim() || null) ||
+      (scoredVisit &&
+        (ownReview.reviewModel
+          ? (taste || null) !== (ownReview.taste ?? null) ||
+            (value || null) !== (ownReview.value ?? null) ||
+            (service || null) !== (ownReview.service ?? null) ||
+            (atmosphere || null) !== (ownReview.atmosphere ?? null)
+          : (overall || null) !== (ownReview.overall ?? null) ||
+            (taste || null) !== (ownReview.taste ?? null) ||
+            (value || null) !== (ownReview.value ?? null) ||
+            (service || null) !== (ownReview.service ?? null)))),
   );
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const canReplacePhoto = canAddOrReplaceVisitPhoto(
