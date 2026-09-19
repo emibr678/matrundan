@@ -386,27 +386,22 @@ function PlacesIndex() {
                       );
                     })}
                   </div>
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    Något att dricka saknar betyg och visas därför inte här.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">Hämtmat</span>
-                  <button
-                    type="button"
-                    onClick={() => setTopTakeawayOnly((current) => !current)}
-                    aria-pressed={topTakeawayOnly}
-                    aria-label="Visa endast hämtmat i topplistan"
-                    className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Badge
-                      variant={topTakeawayOnly ? "default" : "outline"}
-                      className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setTopTakeawayOnly((current) => !current)}
+                      aria-pressed={topTakeawayOnly}
+                      aria-label="Visa endast hämtmat i topplistan"
+                      className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      Endast hämtmat
-                    </Badge>
-                  </button>
+                      <Badge
+                        variant={topTakeawayOnly ? "default" : "outline"}
+                        className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                      >
+                        Endast hämtmat
+                      </Badge>
+                    </button>
+                  </div>
                 </div>
               </div>
 
