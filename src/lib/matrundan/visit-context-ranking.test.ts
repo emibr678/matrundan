@@ -123,6 +123,39 @@ describe("historikbaserat topplistebetyg", () => {
     });
   });
 
+  test("använder aktiv Hämtmat-modell efter en kontextkorrigering", () => {
+    const visits = [
+      visit("takeaway-modern", "lunch", 3.75, {
+        isTakeaway: true,
+        visibleReviews: [
+          {
+            id: "modern",
+            userId: "m1",
+            overall: 3.75,
+            taste: 5,
+            value: 4,
+            service: 5,
+            atmosphere: 1,
+            reviewModel: "food_v1_atmosphere",
+            ratingVisible: true,
+            commentVisible: true,
+          },
+        ],
+      }),
+    ];
+
+    expect(
+      ratingForPlaceInVisitContext(visits, "p1", {
+        meals: ["lunch"],
+        takeawayOnly: true,
+      }),
+    ).toEqual({
+      overall: 4.67,
+      count: 1,
+      visitCount: 1,
+    });
+  });
+
   test("Något att dricka är ett besök men aldrig rankingunderlag", () => {
     const visits = [visit("drink", "dryck", 5)];
 
