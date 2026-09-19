@@ -14,6 +14,24 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.40.0] – 2026-09-19
+
+### Nytt
+
+- Den som registrerade ett besök kan nu korrigera datum, tillfälle, Hämtmat och
+  faktiska deltagare i efterhand utan att skapa ett nytt besök.
+- Topplistan kan filtreras på verkliga besökstillfällen som Lunch, Middag och
+  Fika och kombineras med Passar för och Hämtmat. Det visade betyget bygger bara
+  på relevanta besök och visar hur många besök och omdömen som ligger bakom.
+
+### Förbättrat
+
+- När ett besök rättas behålls befintliga omdömen, gäster och delningar på samma
+  gemensamma besök.
+- Platsmetadata använder tydligare begrepp: Typ av ställe, Kök och inriktning
+  samt Passar för. Interna begrepp om grundtyp och gruppoverride hålls under
+  huven.
+
 ## [1.39.1] – 2026-09-19
 
 ### Förbättrat
