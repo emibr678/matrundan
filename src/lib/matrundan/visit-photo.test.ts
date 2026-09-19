@@ -39,48 +39,133 @@ const originalVisit = {
 
 describe("behörighet för besöksbilder", () => {
   test("varje faktisk deltagare får lägga till eller ersätta sin egen bild", () => {
-    expect(canAddOrReplaceVisitPhoto(originalVisit, "member-1", "medlem", false)).toBe(true);
-    expect(canAddOrReplaceVisitPhoto(originalVisit, "member-2", "medlem", false)).toBe(true);
+    expect(
+      canAddOrReplaceVisitPhoto(
+        originalVisit,
+        "member-1",
+        "medlem",
+        false,
+      ),
+    ).toBe(true);
+    expect(
+      canAddOrReplaceVisitPhoto(
+        originalVisit,
+        "member-2",
+        "medlem",
+        false,
+      ),
+    ).toBe(true);
   });
 
   test("owner eller admin utan faktisk närvaro får inte bidra med en bild", () => {
-    expect(canAddOrReplaceVisitPhoto(originalVisit, "admin-1", "admin", false)).toBe(false);
-    expect(canAddOrReplaceVisitPhoto(originalVisit, "owner-1", "ägare", false)).toBe(false);
+    expect(
+      canAddOrReplaceVisitPhoto(
+        originalVisit,
+        "admin-1",
+        "admin",
+        false,
+      ),
+    ).toBe(false);
+    expect(
+      canAddOrReplaceVisitPhoto(
+        originalVisit,
+        "owner-1",
+        "ägare",
+        false,
+      ),
+    ).toBe(false);
   });
 
   test("uppladdaren får ta bort sin bild och owner/admin får moderera andras", () => {
     expect(
-      canDeleteVisitPhoto(originalVisit, "member-1", "member-1", "medlem", false),
+      canDeleteVisitPhoto(
+        originalVisit,
+        "member-1",
+        "member-1",
+        "medlem",
+        false,
+      ),
     ).toBe(true);
     expect(
-      canDeleteVisitPhoto(originalVisit, "member-1", "admin-1", "admin", false),
+      canDeleteVisitPhoto(
+        originalVisit,
+        "member-1",
+        "admin-1",
+        "admin",
+        false,
+      ),
     ).toBe(true);
     expect(
-      canDeleteVisitPhoto(originalVisit, "member-1", "owner-1", "ägare", false),
+      canDeleteVisitPhoto(
+        originalVisit,
+        "member-1",
+        "owner-1",
+        "ägare",
+        false,
+      ),
     ).toBe(true);
   });
 
   test("annan vanlig deltagare får inte ta bort någon annans bild", () => {
     expect(
-      canDeleteVisitPhoto(originalVisit, "member-1", "member-2", "medlem", false),
+      canDeleteVisitPhoto(
+        originalVisit,
+        "member-1",
+        "member-2",
+        "medlem",
+        false,
+      ),
     ).toBe(false);
   });
 
   test("en saknad målbild kan inte modereras", () => {
     expect(
-      canDeleteVisitPhoto(originalVisit, "member-2", "admin-1", "admin", false),
+      canDeleteVisitPhoto(
+        originalVisit,
+        "member-2",
+        "admin-1",
+        "admin",
+        false,
+      ),
     ).toBe(false);
   });
 
   test("delat besök och arkiverad grupp är skrivskyddade", () => {
     const sharedVisit = { ...originalVisit, linkType: "shared" as const };
-    expect(canAddOrReplaceVisitPhoto(sharedVisit, "member-1", "ägare", false)).toBe(false);
+
     expect(
-      canDeleteVisitPhoto(sharedVisit, "member-1", "member-1", "ägare", false),
+      canAddOrReplaceVisitPhoto(
+        sharedVisit,
+        "member-1",
+        "ägare",
+        false,
+      ),
     ).toBe(false);
-    expect(canAddOrReplaceVisitPhoto(originalVisit, "member-1", "ägare", true)).toBe(false);
     expect(
-      canDeleteVisitPhoto(originalVisit, "member-1", "member-1", "ägare", true),
+      canDeleteVisitPhoto(
+        sharedVisit,
+        "member-1",
+        "member-1",
+        "ägare",
+        false,
+      ),
+    ).toBe(false);
+    expect(
+      canAddOrReplaceVisitPhoto(
+        originalVisit,
+        "member-1",
+        "ägare",
+        true,
+      ),
+    ).toBe(false);
+    expect(
+      canDeleteVisitPhoto(
+        originalVisit,
+        "member-1",
+        "member-1",
+        "ägare",
+        true,
+      ),
     ).toBe(false);
   });
 
@@ -90,6 +175,7 @@ describe("behörighet för besöksbilder", () => {
       photos: [photoByMemberTwo, photoByMemberOne],
       photo: photoByMemberTwo,
     };
+
     expect(getVisitPhotos(visit).map((photo) => photo.uploadedBy)).toEqual([
       "member-1",
       "member-2",
@@ -104,13 +190,35 @@ describe("behörighet för besöksbilder", () => {
       participantIds: ["member-1"],
       photo: photoByMemberOne,
     };
+
     expect(getVisitPhotos(legacy)).toEqual([photoByMemberOne]);
     expect(representativeVisitPhoto(legacy)).toEqual(photoByMemberOne);
   });
 
   test("kompatibilitetshjälparen betyder att minst en tillåten fotoåtgärd finns", () => {
-    expect(canManageVisitPhoto(originalVisit, "member-2", "medlem", false)).toBe(true);
-    expect(canManageVisitPhoto(originalVisit, "admin-1", "admin", false)).toBe(true);
-    expect(canManageVisitPhoto(originalVisit, "member-3", "medlem", false)).toBe(false);
+    expect(
+      canManageVisitPhoto(
+        originalVisit,
+        "member-2",
+        "medlem",
+        false,
+      ),
+    ).toBe(true);
+    expect(
+      canManageVisitPhoto(
+        originalVisit,
+        "admin-1",
+        "admin",
+        false,
+      ),
+    ).toBe(true);
+    expect(
+      canManageVisitPhoto(
+        originalVisit,
+        "member-3",
+        "medlem",
+        false,
+      ),
+    ).toBe(false);
   });
 });
