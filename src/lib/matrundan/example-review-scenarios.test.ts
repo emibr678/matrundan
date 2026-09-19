@@ -51,12 +51,8 @@ describe("exempelgruppens omdömesscenarier", () => {
 
   test("Rundans Bistro har separat synligt underlag för lunch och middag", () => {
     const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
-    const lunch = state.visits.find(
-      (item) => item.id === EXAMPLE_IDS.visits.providerBistroLunch,
-    );
-    const dinner = state.visits.find(
-      (item) => item.id === EXAMPLE_IDS.visits.providerBistroReturn,
-    );
+    const lunch = state.visits.find((item) => item.id === EXAMPLE_IDS.visits.providerBistroLunch);
+    const dinner = state.visits.find((item) => item.id === EXAMPLE_IDS.visits.providerBistroReturn);
 
     expect(lunch?.meal).toBe("lunch");
     expect(lunch?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(1);

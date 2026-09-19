@@ -16,9 +16,7 @@ export interface VisitRatingContext {
   takeawayOnly?: boolean;
 }
 
-function relevantVisibleReviews(
-  visit: Visit,
-): Array<VisibleReview & { overall: number }> {
+function relevantVisibleReviews(visit: Visit): Array<VisibleReview & { overall: number }> {
   return (visit.visibleReviews ?? []).filter(
     (review): review is VisibleReview & { overall: number } =>
       visit.participantIds.includes(review.userId) &&

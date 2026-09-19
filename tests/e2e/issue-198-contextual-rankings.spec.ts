@@ -29,10 +29,9 @@ test("topplistan kombinerar Passar för, tillfälle och hämtmat", async ({ page
   await expect(leaderboard.getByText("Tillfälle", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Hämtmat", { exact: true })).toBeVisible();
   await expect(
-    leaderboard.getByText(
-      "Något att dricka saknar betyg och visas därför inte här.",
-      { exact: true },
-    ),
+    leaderboard.getByText("Något att dricka saknar betyg och visas därför inte här.", {
+      exact: true,
+    }),
   ).toBeVisible();
 
   await leaderboard.getByRole("button", { name: "Visa topplista för Lunch" }).click();
