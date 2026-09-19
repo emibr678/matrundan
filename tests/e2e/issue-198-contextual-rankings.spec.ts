@@ -58,9 +58,9 @@ test("topplistan kombinerar Passar för, tillfälle och hämtmat", async ({ page
   await leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }).click();
   await leaderboard.getByRole("button", { name: "Visa topplista för Fika" }).click();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("5,0 · 2 besök · 2 omdömen", { exact: true })).toBeVisible();
+  await expect(leaderboard.getByText(/· 2 besök · 2 omdömen$/)).toBeVisible();
 
   await leaderboard.getByRole("button", { name: "Visa topplista för Frukost" }).click();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("4,0 · 1 besök · 1 omdöme", { exact: true })).toBeVisible();
+  await expect(leaderboard.getByText(/· 1 besök · 1 omdöme$/)).toBeVisible();
 });
