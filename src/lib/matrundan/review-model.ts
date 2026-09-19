@@ -31,6 +31,45 @@ export function reviewModelIncludesAtmosphere(model: ReviewModel | null | undefi
   return model === "food_v1_atmosphere";
 }
 
+/**
+ * Reviewmodellen lagras historiskt på reviewn, men Hämtmat är ett korrigerbart
+ * faktum på besöket. När ett befintligt matomdöme i efterhand markeras som
+ * Hämtmat blir därför den aktiva modellen tredimensionell utan att den lagrade
+ * modellen eller Atmosfärsvärdet skrivs om.
+ *
+ * Om Hämtmat senare tas bort återgår reviewn till sin lagrade modell. En review
+ * som skapades som Hämtmat får däremot inte Atmosfär fabricerad när markeringen
+ * tas bort; dess lagrade food_v1_takeaway-modell ligger kvar tills en framtida
+ * uttrycklig omvärdering kompletterar modellen.
+ */
+export function effectiveReviewModel(
+  storedModel: ReviewModel | null | undefined,
+  isTakeaway: boolean,
+): ReviewModel | null {
+  if (!storedModel) return null;
+  return isTakeaway ? "food_v1_takeaway" : storedModel;
+}
+
+export function effectiveReviewOverall(
+  review: {
+    overall: number | null;
+    taste: number | null;
+    value: number | null;
+    service: number | null;
+    atmosphere?: number | null;
+    reviewModel?: ReviewModel | null;
+  },
+  isTakeaway: boolean,
+): number | null {
+  if (!review.reviewModel) return review.overall;
+  return deriveReviewOverall(effectiveReviewModel(review.reviewModel, isTakeaway), {
+    taste: review.taste ?? 0,
+    value: review.value ?? 0,
+    service: review.service ?? 0,
+    atmosphere: review.atmosphere ?? 0,
+  });
+}
+
 export function reviewModelExplanation(model: ReviewModel): string | null {
   if (model === "food_v1_takeaway") {
     return "Atmosfär ingår inte vid Hämtmat.";

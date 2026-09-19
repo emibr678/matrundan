@@ -1,94 +1,95 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  deriveReviewOverall,
-  reviewModelExplanation,
-  reviewModelForContext,
+  effectiveReviewModel,
+  effectiveReviewOverall,
   reviewModelIncludesAtmosphere,
-  reviewRatingsComplete,
 } from "./review-model";
 
-describe("reviewModelForContext", () => {
-  test("Hämtmat använder tre dimensioner oavsett Passar för", () => {
-    expect(reviewModelForContext({ isTakeaway: true, occasions: ["avslappnat", "middag"] })).toBe(
+const fourDimensionalReview = {
+  overall: 3.5,
+  taste: 5,
+  service: 4,
+  value: 2,
+  atmosphere: 3,
+  reviewModel: "food_v1_atmosphere" as const,
+};
+
+describe("aktiv reviewmodell efter korrigerad besökskontext", () => {
+  test("Hämtmat döljer Atmosfär och räknar om utan att förlora det sparade värdet", () => {
+    expect(effectiveReviewModel(fourDimensionalReview.reviewModel, false)).toBe(
+      "food_v1_atmosphere",
+    );
+    expect(effectiveReviewOverall(fourDimensionalReview, false)).toBe(3.5);
+
+    expect(effectiveReviewModel(fourDimensionalReview.reviewModel, true)).toBe(
       "food_v1_takeaway",
     );
+    expect(effectiveReviewOverall(fourDimensionalReview, true)).toBe(3.67);
+    expect(fourDimensionalReview.atmosphere).toBe(3);
+
+    expect(effectiveReviewOverall(fourDimensionalReview, false)).toBe(3.5);
   });
 
-  test("endast Snabbt och enkelt använder tre dimensioner", () => {
-    expect(reviewModelForContext({ isTakeaway: false, occasions: ["snabbt"] })).toBe(
-      "food_v1_quick",
+  test("tre dimensioner ger samma matematik för Snabbt och enkelt och Hämtmat", () => {
+    const quick = {
+      overall: 4.33,
+      taste: 5,
+      service: 4,
+      value: 4,
+      atmosphere: null,
+      reviewModel: "food_v1_quick" as const,
+    };
+
+    expect(effectiveReviewOverall(quick, false)).toBe(4.33);
+    expect(effectiveReviewModel(quick.reviewModel, true)).toBe("food_v1_takeaway");
+    expect(effectiveReviewOverall(quick, true)).toBe(4.33);
+  });
+
+  test("en review skapad som Hämtmat får inte Atmosfär fabricerad när markeringen tas bort", () => {
+    const takeaway = {
+      overall: 4,
+      taste: 5,
+      service: 4,
+      value: 3,
+      atmosphere: null,
+      reviewModel: "food_v1_takeaway" as const,
+    };
+
+    expect(effectiveReviewModel(takeaway.reviewModel, false)).toBe("food_v1_takeaway");
+    expect(effectiveReviewOverall(takeaway, false)).toBe(4);
+    expect(reviewModelIncludesAtmosphere(effectiveReviewModel(takeaway.reviewModel, false))).toBe(
+      false,
     );
   });
 
-  test("Avslappnat kräver Atmosfär", () => {
-    expect(reviewModelForContext({ isTakeaway: false, occasions: ["avslappnat"] })).toBe(
-      "food_v1_atmosphere",
-    );
+  test("legacyomdömen behåller sitt manuella helhetsbetyg", () => {
+    const legacy = {
+      overall: 4,
+      taste: 5,
+      service: 3,
+      value: 2,
+      atmosphere: null,
+      reviewModel: null,
+    };
+
+    expect(effectiveReviewOverall(legacy, false)).toBe(4);
+    expect(effectiveReviewOverall(legacy, true)).toBe(4);
   });
 
-  test("Något extra kräver Atmosfär även ihop med Snabbt och enkelt", () => {
-    expect(reviewModelForContext({ isTakeaway: false, occasions: ["snabbt", "middag"] })).toBe(
-      "food_v1_atmosphere",
-    );
-  });
-
-  test("saknat Passar för lämnar modellen olöst för På plats", () => {
-    expect(reviewModelForContext({ isTakeaway: false, occasions: [] })).toBeNull();
-  });
-});
-
-describe("deriveReviewOverall", () => {
-  test("tre dimensioner ger enkelt aritmetiskt medelvärde", () => {
+  test("ofullständiga moderna dimensioner ger inget fabricerat helhetsbetyg", () => {
     expect(
-      deriveReviewOverall("food_v1_quick", {
-        taste: 5,
-        service: 4,
-        value: 4,
-        atmosphere: null,
-      }),
-    ).toBe(4.33);
-  });
-
-  test("fyra dimensioner inkluderar Atmosfär utan viktning", () => {
-    expect(
-      deriveReviewOverall("food_v1_atmosphere", {
-        taste: 5,
-        service: 4,
-        value: 4,
-        atmosphere: 2,
-      }),
-    ).toBe(3.75);
-  });
-
-  test("ofullständiga relevanta dimensioner ger inget helhetsbetyg", () => {
-    expect(
-      deriveReviewOverall("food_v1_atmosphere", {
-        taste: 5,
-        service: 4,
-        value: 4,
-        atmosphere: 0,
-      }),
+      effectiveReviewOverall(
+        {
+          overall: 4,
+          taste: 5,
+          service: null,
+          value: 4,
+          atmosphere: 3,
+          reviewModel: "food_v1_atmosphere",
+        },
+        true,
+      ),
     ).toBeNull();
-  });
-
-  test("en tredimensionell modell kräver inte Atmosfär", () => {
-    expect(
-      reviewRatingsComplete("food_v1_quick", {
-        taste: 5,
-        service: 4,
-        value: 4,
-        atmosphere: 0,
-      }),
-    ).toBe(true);
-    expect(reviewModelIncludesAtmosphere("food_v1_quick")).toBe(false);
-  });
-});
-
-describe("reviewModelExplanation", () => {
-  test("förklarar varför Atmosfär inte ingår när det kan vara oväntat", () => {
-    expect(reviewModelExplanation("food_v1_takeaway")).toMatch(/Hämtmat/);
-    expect(reviewModelExplanation("food_v1_quick")).toMatch(/Snabbt och enkelt/);
-    expect(reviewModelExplanation("food_v1_atmosphere")).toBeNull();
   });
 });
