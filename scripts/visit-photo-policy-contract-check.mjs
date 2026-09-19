@@ -69,6 +69,11 @@ requirePattern(
 );
 requirePattern(
   migration,
+  /CREATE\s+POLICY\s+"visit photos allowed delete"[\s\S]*?NOT\s+EXISTS[\s\S]*?has_group_role[\s\S]*?can_delete_original_visit/i,
+  "Storage-delete måste kunna städa en modererad eller besöksraderad fil efter att mediareferensen tagits bort.",
+);
+requirePattern(
+  migration,
   /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.get_group_app_state_v5c[\s\S]*?ORDER\s+BY\s+vm\.created_at\s*,\s*vm\.id[\s\S]*?LIMIT\s+1/i,
   "Legacy-readmodellen måste fortsätta välja exakt en stabil representativ bild.",
 );
@@ -87,6 +92,7 @@ for (const marker of [
   "visit-photo:authenticated-can-call-targeted-delete",
   "visit-photo:upload-policy-uses-current-user-guard",
   "visit-photo:delete-policy-uses-target-aware-path-guard",
+  "visit-photo:delete-policy-cleans-moderated-orphan",
   "visit-photo:upsert-conflicts-per-uploader",
   "visit-photo:legacy-read-model-keeps-one-representative",
   "visit-photo:current-read-model-exposes-photo-array",
