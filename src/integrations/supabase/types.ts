@@ -2471,7 +2471,7 @@ export type Database = {
       }
       delete_original_visit: {
         Args: { _group_id: string; _visit_id: string }
-        Returns: undefined
+        Returns: string[]
       }
       delete_visit_photo: {
         Args: { _group_id: string; _visit_id: string }
