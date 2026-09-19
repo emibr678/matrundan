@@ -54,8 +54,18 @@ describe("behörighet för besöksbilder", () => {
     expect(canDeleteVisitPhoto(originalVisit, "member-1", "owner-1", "ägare", false)).toBe(true);
   });
 
-  test("annan vanlig deltagare får inte ta bort någon annans bild", () => {
+  test("annan vanlig deltagare eller registrerare får inte ta bort någon annans bild", () => {
     expect(canDeleteVisitPhoto(originalVisit, "member-1", "member-2", "medlem", false)).toBe(false);
+    const visitRegisteredByAnotherMember = { ...originalVisit, createdBy: "registrar-1" };
+    expect(
+      canDeleteVisitPhoto(
+        visitRegisteredByAnotherMember,
+        "member-1",
+        "registrar-1",
+        "medlem",
+        false,
+      ),
+    ).toBe(false);
   });
 
   test("en saknad målbild kan inte modereras", () => {
