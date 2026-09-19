@@ -1989,7 +1989,7 @@ export type Database = {
           {
             foreignKeyName: "visit_media_visit_group_fk"
             columns: ["visit_id", "group_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "visit_group_links"
             referencedColumns: ["visit_id", "group_id"]
           },
