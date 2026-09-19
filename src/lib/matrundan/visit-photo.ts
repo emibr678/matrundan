@@ -21,12 +21,21 @@ function isGroupAdmin(role: Role | null | undefined) {
   return role === "ägare" || role === "admin";
 }
 
-export function getVisitPhotos(visit: Pick<Visit, "photos" | "photo">): VisitPhoto[] {
-  const photos = visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [];
+export function getVisitPhotos(
+  visit: Pick<Visit, "photos" | "photo">,
+): VisitPhoto[] {
+  const photos = visit.photos?.length
+    ? visit.photos
+    : visit.photo
+      ? [visit.photo]
+      : [];
   return [...photos].sort((a, b) => {
     const aCreated = a.createdAt ?? a.updatedAt;
     const bCreated = b.createdAt ?? b.updatedAt;
-    return aCreated.localeCompare(bCreated) || a.uploadedBy.localeCompare(b.uploadedBy);
+    return (
+      aCreated.localeCompare(bCreated) ||
+      a.uploadedBy.localeCompare(b.uploadedBy)
+    );
   });
 }
 
@@ -34,7 +43,9 @@ export function getOwnVisitPhoto(
   visit: Pick<Visit, "photos" | "photo">,
   currentUserId: string,
 ): VisitPhoto | undefined {
-  return getVisitPhotos(visit).find((photo) => photo.uploadedBy === currentUserId);
+  return getVisitPhotos(visit).find(
+    (photo) => photo.uploadedBy === currentUserId,
+  );
 }
 
 export function representativeVisitPhoto(
@@ -87,7 +98,13 @@ export function canManageVisitPhoto(
   return (
     canAddOrReplaceVisitPhoto(visit, currentUserId, role, groupArchived) ||
     getVisitPhotos(visit).some((photo) =>
-      canDeleteVisitPhoto(visit, photo.uploadedBy, currentUserId, role, groupArchived),
+      canDeleteVisitPhoto(
+        visit,
+        photo.uploadedBy,
+        currentUserId,
+        role,
+        groupArchived,
+      ),
     )
   );
 }
@@ -111,14 +128,19 @@ function loadImage(file: File): Promise<HTMLImageElement> {
 function canvasBlob(canvas: HTMLCanvasElement, quality: number) {
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("Bilden kunde inte komprimeras."))),
+      (blob) =>
+        blob
+          ? resolve(blob)
+          : reject(new Error("Bilden kunde inte komprimeras.")),
       "image/jpeg",
       quality,
     );
   });
 }
 
-export async function prepareVisitPhoto(file: File): Promise<PreparedVisitPhoto> {
+export async function prepareVisitPhoto(
+  file: File,
+): Promise<PreparedVisitPhoto> {
   if (!file.type.startsWith("image/")) {
     throw new Error("Välj en bildfil.");
   }
@@ -144,7 +166,8 @@ export async function prepareVisitPhoto(file: File): Promise<PreparedVisitPhoto>
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext("2d");
-    if (!context) throw new Error("Bilden kunde inte bearbetas i den här webbläsaren.");
+    if (!context)
+      throw new Error("Bilden kunde inte bearbetas i den här webbläsaren.");
     context.drawImage(image, 0, 0, width, height);
 
     for (const quality of [0.86, 0.76, 0.66, 0.56]) {
@@ -166,7 +189,9 @@ export async function prepareVisitPhoto(file: File): Promise<PreparedVisitPhoto>
   }
 
   if (!lastBlob || lastBlob.size > VISIT_PHOTO_MAX_STORED_BYTES) {
-    throw new Error("Bilden kunde inte komprimeras tillräckligt. Välj en mindre bild.");
+    throw new Error(
+      "Bilden kunde inte komprimeras tillräckligt. Välj en mindre bild.",
+    );
   }
   return {
     blob: lastBlob,
@@ -181,7 +206,8 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Bilden kunde inte sparas i exempelgruppen."));
+    reader.onerror = () =>
+      reject(new Error("Bilden kunde inte sparas i exempelgruppen."));
     reader.readAsDataURL(blob);
   });
 }
@@ -197,7 +223,9 @@ function uniquePhotoPath(groupId: string, visitId: string) {
 const OPTIONAL_PATH = z.string().nullable();
 
 async function removeStoragePath(path: string) {
-  const { error } = await supabase.storage.from(VISIT_PHOTO_BUCKET).remove([path]);
+  const { error } = await supabase.storage
+    .from(VISIT_PHOTO_BUCKET)
+    .remove([path]);
   if (error) console.error("[Matrundan] Kunde inte städa besöksfoto:", error);
 }
 
@@ -214,7 +242,8 @@ export async function liveSaveVisitPhoto(
       contentType: photo.mimeType,
       upsert: false,
     });
-  if (uploadError) throw new Error(uploadError.message || "Kunde inte ladda upp fotot.");
+  if (uploadError)
+    throw new Error(uploadError.message || "Kunde inte ladda upp fotot.");
 
   try {
     const previousPath = await rpcClient.call(
@@ -231,7 +260,8 @@ export async function liveSaveVisitPhoto(
       OPTIONAL_PATH,
       "Servern kunde inte koppla fotot till besöket.",
     );
-    if (previousPath && previousPath !== storagePath) await removeStoragePath(previousPath);
+    if (previousPath && previousPath !== storagePath)
+      await removeStoragePath(previousPath);
   } catch (error) {
     await removeStoragePath(storagePath);
     throw error;
