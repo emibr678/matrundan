@@ -549,7 +549,7 @@ export function EditVisitDialog({
             <div>
               <h3 className="text-sm font-medium">Ditt omdöme</h3>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Ändra det bara om även din egen upplevelse blev fel.
+                Lämnas som det är om du inte väljer att ändra det.
               </p>
             </div>
 
