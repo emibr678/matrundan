@@ -69,11 +69,11 @@ test("Hämtmat döljer Atmosfär reversibelt och räknar om helhetsbetyget", asy
   await expect(takeaway).toBeChecked();
   await expect(edit.getByText("Atmosfär", { exact: true })).toHaveCount(0);
   await expect(edit.getByText("Atmosfär ingår inte vid Hämtmat.")).toBeVisible();
-  await expect(edit.getByText("4,67 / 5", { exact: true })).toBeVisible();
+  await expect(edit.getByText("4,7 / 5", { exact: true })).toBeVisible();
 
   await edit.getByRole("button", { name: "Spara ändringar" }).click();
   await expect(visitSheet.getByText(/Hämtmat/).first()).toBeVisible();
-  await expect(visitSheet.getByText("4,67 / 5", { exact: true }).first()).toBeVisible();
+  await expect(visitSheet.getByText("4,7 / 5", { exact: true }).first()).toBeVisible();
   await expect(visitSheet.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
   await visitSheet.getByRole("button", { name: "Redigera besök" }).click();

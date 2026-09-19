@@ -63,7 +63,7 @@ test("fånga redigera besök och kontextkorrigering", async ({ page }, testInfo)
   await takeaway.click();
   await expect(editDialog.getByText("Atmosfär", { exact: true })).toHaveCount(0);
   await expect(editDialog.getByText("Atmosfär ingår inte vid Hämtmat.")).toBeVisible();
-  await expect(editDialog.getByText("4,67 / 5", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("4,7 / 5", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-309-hamtmat-utan-atmosfar");
