@@ -20,6 +20,34 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
+test("besöksredigering lämnar omdömet orört tills användaren väljer att ändra det", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemoStateBeforeNavigation(page);
+  await page.goto("/matstallen/p2?demo=1&visit=v1");
+
+  const visitSheet = page.getByRole("dialog");
+  await expect(visitSheet.getByText("4,5 / 5", { exact: true }).first()).toBeVisible();
+  await expect(
+    visitSheet.getByText("Kardemummabullen vann hela eftermiddagen.").first(),
+  ).toBeVisible();
+
+  await visitSheet.getByRole("button", { name: "Redigera besök" }).click();
+  const edit = page.getByRole("dialog", { name: "Redigera besök" });
+  await expect(edit.getByRole("button", { name: "Ändra även omdömet" })).toBeVisible();
+  await expect(edit.getByText("Kommentar (frivilligt)")).toHaveCount(0);
+
+  await edit.getByLabel("Tillfälle").click();
+  await page.getByRole("option", { name: "Lunch" }).click();
+  await edit.getByRole("button", { name: "Spara ändringar" }).click();
+
+  await expect(visitSheet.getByText(/Lunch/).first()).toBeVisible();
+  await expect(visitSheet.getByText("4,5 / 5", { exact: true }).first()).toBeVisible();
+  await expect(
+    visitSheet.getByText("Kardemummabullen vann hela eftermiddagen.").first(),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Metadataredigerat besök");
+});
+
 test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemoStateBeforeNavigation(page);
@@ -31,7 +59,7 @@ test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px"
   const edit = page.getByRole("dialog", { name: "Redigera besök" });
   await expect(edit).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redigera besök");
-  await expect(edit.getByText("Atmosfär ingår.")).toBeVisible();
+  await expect(edit.getByText(/atmosfär ingår/i)).toBeVisible();
   await expect(edit.getByText("Kommentar (frivilligt)")).toHaveCount(0);
 
   await edit.getByLabel("Tillfälle").click();

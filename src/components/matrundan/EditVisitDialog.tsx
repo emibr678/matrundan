@@ -576,7 +576,7 @@ export function EditVisitDialog({
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   {ownReview.reviewModel
                     ? reviewModelIncludesAtmosphere(ownReview.reviewModel)
-                      ? "Smak, service, prisvärdhet och Atmosfär ingår."
+                      ? "Smak, service, prisvärdhet och atmosfär ingår."
                       : "Smak, service och prisvärdhet ingår."
                     : legacyReview
                       ? "Äldre omdöme med manuellt helhetsbetyg."
