@@ -129,6 +129,9 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
 
   const photos = getVisitPhotos(visit);
   const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
+  const pendingDeleteOwner = pendingDeletePhoto
+    ? photoOwner(visit, pendingDeletePhoto, memberById).name
+    : "deltagaren";
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const groupArchived = state.group.lifecycleStatus === "archived";
   const canContribute = canAddOrReplaceVisitPhoto(
@@ -386,12 +389,12 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
             <AlertDialogTitle>
               {pendingDeletePhoto?.uploadedBy === state.currentUserId
                 ? "Ta bort din bild?"
-                : "Ta bort deltagarens bild?"}
+                : `Ta bort ${pendingDeleteOwner}s bild?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingDeletePhoto?.uploadedBy === state.currentUserId
                 ? "Bilden försvinner från det här besöket för gruppen. Det går inte att ångra."
-                : "Bilden försvinner från det här besöket för gruppen. Använd bara moderation när bilden behöver tas bort."}
+                : `${pendingDeleteOwner}s bild försvinner från det här besöket för gruppen. Använd bara moderation när bilden behöver tas bort.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
