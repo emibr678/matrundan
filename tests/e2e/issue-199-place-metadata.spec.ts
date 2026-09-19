@@ -53,8 +53,6 @@ test("platsmetadata skiljer typ, kök och Passar för och kan återgå till grun
   await page.getByRole("button", { name: "Öppna filter och sortering" }).click();
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
   await expect(filterSheet.getByText("Typ av ställe", { exact: true })).toBeVisible();
-  await expect(
-    filterSheet.getByRole("button", { name: "Vad betyder Passar för?" }),
-  ).toBeVisible();
+  await expect(filterSheet.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Filter för platsmetadata");
 });
