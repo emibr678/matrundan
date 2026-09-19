@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2, UserPlus, X } from "lucide-react";
+import { Loader2, Pencil, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import {
   listVisitShareTargets,
   shareVisitToGroup,
   type VisitShareTarget,
 } from "@/lib/matrundan/live-sharing";
-import { reviewModelIncludesAtmosphere, reviewRatingsComplete } from "@/lib/matrundan/review-model";
+import { reviewRatingsComplete } from "@/lib/matrundan/review-model";
 import { formatRating } from "@/lib/matrundan/version";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -37,8 +36,8 @@ import type { Place, Visit } from "@/lib/matrundan/types";
 import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
 import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
-import { RatingInput } from "./Rating";
-import { ReviewScoreFields } from "./ReviewScoreFields";
+import { RatingStars } from "./Rating";
+import { ReviewEditFields } from "./ReviewEditFields";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 
 interface DraftGuest {
@@ -133,6 +132,23 @@ export function EditVisitDialog({
   const reviewComplete = ownReview?.reviewModel
     ? reviewRatingsComplete(ownReview.reviewModel, { taste, value, service, atmosphere })
     : true;
+  const normalizedReviewComment = comment.trim() || null;
+  const reviewChanged = Boolean(
+    reviewEditing &&
+      ownReview &&
+      !scoreBoundaryChanged &&
+      (normalizedReviewComment !== (ownReview.comment?.trim() || null) ||
+        (scoredVisit &&
+          (ownReview.reviewModel
+            ? (taste || null) !== (ownReview.taste ?? null) ||
+              (value || null) !== (ownReview.value ?? null) ||
+              (service || null) !== (ownReview.service ?? null) ||
+              (atmosphere || null) !== (ownReview.atmosphere ?? null)
+            : (overall || null) !== (ownReview.overall ?? null) ||
+              (taste || null) !== (ownReview.taste ?? null) ||
+              (value || null) !== (ownReview.value ?? null) ||
+              (service || null) !== (ownReview.service ?? null)))),
+  );
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const canReplacePhoto = canAddOrReplaceVisitPhoto(
     visit,
@@ -284,7 +300,7 @@ export function EditVisitDialog({
       toast.error("Den som registrerade besöket måste vara deltagare.");
       return false;
     }
-    if (!reviewEditing || !ownReview || scoreBoundaryChanged) return true;
+    if (!reviewChanged || !ownReview || scoreBoundaryChanged) return true;
 
     if (!scoredVisit && !comment.trim()) {
       toast.error("Kommentaren kan inte vara tom.");
@@ -325,7 +341,7 @@ export function EditVisitDialog({
         guests: guests.map((guest) => ({ id: guest.persistedId, name: guest.name })),
         removedGuestIds,
         ownReview:
-          reviewEditing && ownReview && !scoreBoundaryChanged
+          reviewChanged && ownReview && !scoreBoundaryChanged
             ? {
                 id: ownReview.id,
                 overall: scoredVisit && ownReview.reviewModel == null ? overall || null : null,
@@ -333,7 +349,7 @@ export function EditVisitDialog({
                 value: scoredVisit ? value || null : null,
                 service: scoredVisit ? service || null : null,
                 atmosphere: scoredVisit && ownReview.reviewModel ? atmosphere || null : null,
-                comment: comment.trim() || null,
+                comment: normalizedReviewComment,
               }
             : null,
       });
@@ -545,21 +561,21 @@ export function EditVisitDialog({
             )}
           </fieldset>
 
-          <section className="space-y-3">
+          <section className="space-y-2.5">
             <div>
               <h3 className="text-sm font-medium">Ditt omdöme</h3>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Lämnas som det är om du inte väljer att ändra det.
+                Ändras bara om du väljer Redigera.
               </p>
             </div>
 
             {!ownReview ? (
-              <div className="rounded-2xl bg-secondary/40 p-4 text-sm text-muted-foreground">
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 Du har inget eget omdöme på besöket ännu. Det kan läggas till från besöksdetaljen
                 efter att ändringarna sparats.
-              </div>
+              </p>
             ) : scoreBoundaryChanged ? (
-              <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
+              <div className="rounded-xl bg-secondary/40 px-3 py-2.5">
                 <p className="text-sm font-medium">Omdömet bevaras</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   Du ändrar mellan ett matbesök och Något att dricka. Ditt befintliga omdöme skrivs
@@ -567,97 +583,73 @@ export function EditVisitDialog({
                 </p>
               </div>
             ) : !reviewEditing ? (
-              <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
-                <p className="text-sm font-medium">
-                  {scoredVisit && ownReview.overall != null
-                    ? `${formatRating(ownReview.overall)} / 5`
-                    : "Kommentar sparad"}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {ownReview.reviewModel
-                    ? reviewModelIncludesAtmosphere(ownReview.reviewModel)
-                      ? "Smak, service, prisvärdhet och atmosfär ingår."
-                      : "Smak, service och prisvärdhet ingår."
-                    : legacyReview
-                      ? "Äldre omdöme med manuellt helhetsbetyg."
-                      : "Dryckesbesöket har inget stjärnbetyg."}
-                </p>
-                {ownReview.comment?.trim() ? (
-                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                    {ownReview.comment}
-                  </p>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 min-h-11 w-full"
-                  onClick={() => setReviewEditing(true)}
-                  disabled={isBusy}
-                >
-                  Ändra även omdömet
-                </Button>
+              <div className="border-t border-border/60 pt-3">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    {scoredVisit && ownReview.overall != null ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <RatingStars value={ownReview.overall} size={15} />
+                        <span className="text-sm font-medium">
+                          {formatRating(ownReview.overall)} / 5
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium">Kommentar</p>
+                    )}
+                    {ownReview.comment?.trim() ? (
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                        {ownReview.comment}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">Ingen kommentar.</p>
+                    )}
+                    {legacyReview ? (
+                      <p className="mt-1 text-[11px] text-muted-foreground">Äldre omdöme</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Redigera omdöme"
+                    className="min-h-10 shrink-0 gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                    onClick={() => setReviewEditing(true)}
+                    disabled={isBusy}
+                  >
+                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                    Redigera
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="space-y-4 rounded-2xl border border-border/70 p-4">
-                {!scoredVisit ? (
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    Dryckesbesök påverkar inte ställets stjärnbetyg. Ändringen här gäller bara din
-                    kommentar.
-                  </p>
-                ) : ownReview.reviewModel ? (
-                  <>
-                    <ReviewScoreFields
-                      model={ownReview.reviewModel}
-                      taste={taste}
-                      service={service}
-                      value={value}
-                      atmosphere={atmosphere}
-                      onTasteChange={setTaste}
-                      onServiceChange={setService}
-                      onValueChange={setValue}
-                      onAtmosphereChange={setAtmosphere}
-                    />
-                    <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      Bedömningsdelarna är desamma som när omdömet skapades.
-                    </p>
-                  </>
-                ) : legacyReview ? (
-                  <div className="space-y-3">
-                    <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" />
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <RatingInput value={taste} onChange={setTaste} label="Smak" />
-                      <RatingInput value={service} onChange={setService} label="Service" />
-                      <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
-                    </div>
-                    <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      Det här är ett äldre omdöme och behåller sitt manuella helhetsbetyg.
-                    </p>
-                  </div>
-                ) : null}
-
-                <div className="space-y-1.5">
-                  <Label htmlFor={`edit-visit-comment-${visit.id}`}>
-                    {scoredVisit ? "Kommentar (frivilligt)" : "Kommentar"}
-                  </Label>
-                  <Textarea
-                    id={`edit-visit-comment-${visit.id}`}
-                    value={comment}
-                    onChange={(event) => setComment(event.target.value)}
-                    rows={3}
-                    placeholder="En liten minnesnotering…"
-                    disabled={isBusy}
-                  />
-                </div>
-
+              <div className="space-y-3 border-t border-border/60 pt-3">
+                <ReviewEditFields
+                  review={ownReview}
+                  scoreless={!scoredVisit}
+                  overall={overall}
+                  taste={taste}
+                  value={value}
+                  service={service}
+                  atmosphere={atmosphere}
+                  comment={comment}
+                  onOverallChange={setOverall}
+                  onTasteChange={setTaste}
+                  onValueChange={setValue}
+                  onServiceChange={setService}
+                  onAtmosphereChange={setAtmosphere}
+                  onCommentChange={setComment}
+                  idPrefix={`edit-visit-review-${visit.id}`}
+                  disabled={isBusy}
+                />
                 <Button
                   type="button"
                   variant="ghost"
-                  className="min-h-11 w-full"
+                  size="sm"
+                  className="min-h-10 w-auto px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
                   onClick={resetReviewDraft}
                   disabled={isBusy}
                 >
-                  Behåll omdömet som det är
+                  {reviewChanged ? "Ångra omdömesändringar" : "Stäng omdömesredigering"}
                 </Button>
               </div>
             )}
@@ -764,7 +756,8 @@ export function EditVisitDialog({
             onClick={() => void save()}
             disabled={
               isBusy ||
-              (ownReview?.reviewModel != null &&
+              (reviewChanged &&
+                ownReview?.reviewModel != null &&
                 !scoreBoundaryChanged &&
                 scoredVisit &&
                 !reviewComplete)

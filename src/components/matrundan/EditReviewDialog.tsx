@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronDown, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,14 +11,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { RatingInput } from "./Rating";
-import { ReviewScoreFields } from "./ReviewScoreFields";
 import { reviewRatingsComplete } from "@/lib/matrundan/review-model";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisibleReview } from "@/lib/matrundan/types";
+import { ReviewEditFields } from "./ReviewEditFields";
 
 export function EditReviewDialog({
   review,
@@ -35,9 +31,6 @@ export function EditReviewDialog({
   const scoreless = scorelessOverride ?? (review.overall == null && review.reviewModel == null);
   const legacy = !scoreless && review.reviewModel == null;
   const [open, setOpen] = React.useState(false);
-  const [showDetails, setShowDetails] = React.useState(
-    review.taste != null || review.value != null || review.service != null,
-  );
   const [overall, setOverall] = React.useState(review.overall ?? 0);
   const [taste, setTaste] = React.useState(review.taste ?? 0);
   const [value, setValue] = React.useState(review.value ?? 0);
@@ -57,7 +50,6 @@ export function EditReviewDialog({
     setService(review.service ?? 0);
     setAtmosphere(review.atmosphere ?? 0);
     setComment(review.comment ?? "");
-    setShowDetails(review.taste != null || review.value != null || review.service != null);
   }, [open, review]);
 
   async function save() {
@@ -121,61 +113,24 @@ export function EditReviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {!scoreless && review.reviewModel ? (
-            <ReviewScoreFields
-              model={review.reviewModel}
-              taste={taste}
-              service={service}
-              value={value}
-              atmosphere={atmosphere}
-              onTasteChange={setTaste}
-              onServiceChange={setService}
-              onValueChange={setValue}
-              onAtmosphereChange={setAtmosphere}
-            />
-          ) : null}
-
-          {legacy ? (
-            <>
-              <div className="rounded-2xl bg-secondary/60 p-4">
-                <RatingInput value={overall} onChange={setOverall} label="Helhetsbetyg" size={32} />
-              </div>
-
-              <Collapsible open={showDetails} onOpenChange={setShowDetails}>
-                <CollapsibleTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex min-h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
-                  >
-                    <span>Äldre detaljbetyg (frivilligt)</span>
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-3 pt-3">
-                  <RatingInput value={taste} onChange={setTaste} label="Smak" />
-                  <RatingInput value={service} onChange={setService} label="Service" />
-                  <RatingInput value={value} onChange={setValue} label="Prisvärdhet" />
-                </CollapsibleContent>
-              </Collapsible>
-            </>
-          ) : null}
-
-          <div className="space-y-1.5">
-            <Label htmlFor={`edit-review-comment-${review.id}`}>
-              {scoreless ? "Kommentar" : "Kommentar (frivilligt)"}
-            </Label>
-            <Textarea
-              id={`edit-review-comment-${review.id}`}
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              rows={3}
-              placeholder="En liten minnesnotering…"
-            />
-          </div>
-        </div>
+        <ReviewEditFields
+          review={review}
+          scoreless={scoreless}
+          overall={overall}
+          taste={taste}
+          value={value}
+          service={service}
+          atmosphere={atmosphere}
+          comment={comment}
+          onOverallChange={setOverall}
+          onTasteChange={setTaste}
+          onValueChange={setValue}
+          onServiceChange={setService}
+          onAtmosphereChange={setAtmosphere}
+          onCommentChange={setComment}
+          idPrefix={`edit-review-${review.id}`}
+          disabled={submitting}
+        />
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
           <Button variant="ghost" disabled={submitting} onClick={() => setOpen(false)}>

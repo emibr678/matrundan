@@ -47,12 +47,12 @@ test("fånga redigera besök och kontextkorrigering", async ({ page }, testInfo)
   const editDialog = page.getByRole("dialog", { name: "Redigera besök" });
   await expect(editDialog).toBeVisible();
   await expect(editDialog.getByText("Kvarterets Kardemumma")).toBeVisible();
-  await expect(editDialog.getByText(/atmosfär ingår/i)).toBeVisible();
+  await expect(editDialog.getByText("4,5 / 5", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-309-redigera-besok");
 
-  await editDialog.getByRole("button", { name: "Ändra även omdömet" }).click();
+  await editDialog.getByRole("button", { name: "Redigera omdöme" }).click();
   await expect(editDialog.getByText("Atmosfär", { exact: true })).toBeVisible();
   await expect(editDialog.getByText("Räknas automatiskt")).toBeVisible();
   await expectNoHorizontalOverflow(page);

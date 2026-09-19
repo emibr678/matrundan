@@ -35,6 +35,14 @@ const editDialog = readFileSync(
   resolve(root, "src/components/matrundan/EditReviewDialog.tsx"),
   "utf8",
 );
+const editVisitDialog = readFileSync(
+  resolve(root, "src/components/matrundan/EditVisitDialog.tsx"),
+  "utf8",
+);
+const reviewEditFields = readFileSync(
+  resolve(root, "src/components/matrundan/ReviewEditFields.tsx"),
+  "utf8",
+);
 
 describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   test("saknat Passar för löses som platsmetadata före registreringsdialogen", () => {
@@ -87,7 +95,7 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(modelNotice).toContain("förväntad");
     expect(modelNotice).toContain("Avslappnat eller Något extra");
 
-    for (const source of [visitDialogCore, addReviewDialog, demoAddReviewDialog, editDialog]) {
+    for (const source of [visitDialogCore, addReviewDialog, demoAddReviewDialog, reviewEditFields]) {
       expect(source).toContain("<ReviewScoreFields");
       expect(source).not.toContain("Atmosfär ingår inte vid Hämtmat.");
       expect(source).not.toContain("Atmosfär ingår inte för Snabbt och enkelt.");
@@ -96,7 +104,14 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
 
   test("legacy-review behåller explicit äldre redigeringsmodell", () => {
     expect(editDialog).toContain("Det här är ett äldre omdöme");
-    expect(editDialog).toContain("Äldre detaljbetyg (frivilligt)");
-    expect(editDialog).toContain("review.reviewModel");
+    expect(reviewEditFields).toContain("Äldre detaljbetyg (frivilligt)");
+    expect(reviewEditFields).toContain("review.reviewModel");
+  });
+
+  test("samma omdömesfält återanvänds i separat och kombinerad redigering", () => {
+    expect(editDialog).toContain("<ReviewEditFields");
+    expect(editVisitDialog).toContain("<ReviewEditFields");
+    expect(editVisitDialog).not.toContain("<ReviewScoreFields");
+    expect(editVisitDialog).not.toContain("<RatingInput");
   });
 });
