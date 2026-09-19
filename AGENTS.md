@@ -25,6 +25,7 @@ not every document by default.
   Issue #207.
 - `docs/development-workflow.md` — planning, implementation, verification,
   Lovable, merge, database deployment and publication.
+- `docs/ux-principles.md` — durable product UX, interaction and copy principles.
 - `docs/visual-review.md` — rendered GUI/UX review and opt-in Lovable rules.
 - `DEVELOPMENT.md` — environment setup and canonical commands.
 - `CHANGELOG.md` and `src/lib/matrundan/version.ts` — releases.

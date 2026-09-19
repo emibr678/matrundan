@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   normalizeOccasionClassification,
   rankPlacesForOccasion,
+  rankPlacesForOccasions,
   rankPlacesOverall,
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
@@ -89,6 +90,29 @@ describe("sammanhangskategorier", () => {
       ["p3", 2],
     ]);
     expect(quick.map(({ place: item, rank }) => [item.id, rank])).toEqual([["p2", 1]]);
+  });
+
+  test("flera Passar för-val är OR medan inget val betyder alla", () => {
+    const places = [
+      place("Bara snabbt", ["snabbt"], "p1"),
+      place("Bara avslappnat", ["avslappnat"], "p2"),
+      place("Något extra", ["middag"], "p3"),
+    ];
+    const ratings: Record<string, { overall: number; count: number }> = {
+      p1: { overall: 4.2, count: 1 },
+      p2: { overall: 4.8, count: 1 },
+      p3: { overall: 5, count: 1 },
+    };
+
+    expect(
+      rankPlacesForOccasions(places, ["snabbt", "avslappnat"], (id) => ratings[id]).map(
+        ({ place: item }) => item.id,
+      ),
+    ).toEqual(["p2", "p1"]);
+
+    expect(
+      rankPlacesForOccasions(places, [], (id) => ratings[id]).map(({ place: item }) => item.id),
+    ).toEqual(["p3", "p2", "p1"]);
   });
 });
 

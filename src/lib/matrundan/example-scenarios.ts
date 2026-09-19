@@ -37,6 +37,7 @@ export const EXAMPLE_IDS = {
     limitedInfo: "v7",
     providerBistroReturn: "v8",
     sharedVisit: "v9",
+    providerBistroLunch: "v10",
   },
   nextStopProposal: "proposal-example-1",
 } as const;
@@ -489,6 +490,29 @@ export function buildExampleState(nowInput: Date): AppState {
       service: 4,
       comment: "Återbesöket bekräftade att bistron fungerar för en större middag.",
       createdBy: members.alex,
+    }),
+    exampleVisit({
+      id: visits.providerBistroLunch,
+      placeId: places.providerBistro,
+      date: timestamp(now, -35),
+      meal: "lunch",
+      participantIds: [members.sam, members.robin],
+      overall: 5,
+      taste: 5,
+      value: 5,
+      service: 5,
+      createdBy: members.sam,
+      visibleReviews: [
+        review(
+          "review-v10-sam",
+          members.sam,
+          5,
+          "En ovanligt bra lunch som gör bistron värd en omväg mitt på dagen.",
+          5,
+          5,
+          5,
+        ),
+      ],
     }),
     exampleVisit({
       id: visits.sharedVisit,

@@ -32,7 +32,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { rankPlacesForOccasion, rankPlacesOverall } from "@/lib/matrundan/occasions";
+import { rankPlacesForOccasions, rankPlacesOverall } from "@/lib/matrundan/occasions";
+import {
+  RANKABLE_VISIT_MEALS,
+  ratingForPlaceInVisitContext,
+  type RankableVisitMeal,
+} from "@/lib/matrundan/visit-context-ranking";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
@@ -42,6 +47,7 @@ import {
   type Occasion,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
+import { VISIT_MEAL_LABEL } from "@/lib/matrundan/visit-context";
 
 export const Route = createFileRoute("/matstallen")({
   head: () => ({
@@ -73,8 +79,6 @@ type Sort = "senaste" | "betyg" | "namn";
 type Filter = "alla" | "favoriter" | "nytt-for-gruppen" | "nytt-for-mig";
 type MissingField = "cuisines" | "occasions";
 type View = "lista" | "karta";
-type TopListFilter = Occasion | "alla";
-
 const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "alla", label: "Alla" },
   { key: "favoriter", label: "Favoriter" },
@@ -82,10 +86,19 @@ const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "nytt-for-gruppen", label: "Nytt för gruppen" },
 ];
 
-const TOP_LIST_FILTERS: { key: TopListFilter; label: string }[] = [
-  { key: "alla", label: "Alla" },
-  ...OCCASION_VALUES.map((key) => ({ key, label: OCCASION_LABEL[key] })),
-];
+const TOP_LIST_FILTERS = OCCASION_VALUES.map((key) => ({
+  key,
+  label: OCCASION_LABEL[key],
+}));
+
+const TOP_VISIT_FILTERS = RANKABLE_VISIT_MEALS.map((key) => ({
+  key,
+  label: VISIT_MEAL_LABEL[key],
+}));
+
+function toggleFilterValue<T extends string>(values: readonly T[], value: T): T[] {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
 
 function PlacesIndex() {
   const { state, demoReadOnly, avgRating, isFavorite, statusOf } = useStore();
@@ -95,7 +108,9 @@ function PlacesIndex() {
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
   const [missingFields, setMissingFields] = React.useState<MissingField[]>([]);
-  const [topOccasion, setTopOccasion] = React.useState<TopListFilter>("alla");
+  const [topOccasions, setTopOccasions] = React.useState<Occasion[]>([]);
+  const [topVisits, setTopVisits] = React.useState<RankableVisitMeal[]>([]);
+  const [topTakeawayOnly, setTopTakeawayOnly] = React.useState(false);
   const [topOpen, setTopOpen] = React.useState(false);
 
   const [sort, setSort] = React.useState<Sort>("senaste");
@@ -178,16 +193,28 @@ function PlacesIndex() {
     );
   }, [filtered, selectedPlaceId]);
 
+  const overallLeaderboardRating = React.useCallback(
+    (placeId: string) =>
+      ratingForPlaceInVisitContext(state.visits, placeId, {
+        meals: [],
+      }),
+    [state.visits],
+  );
   const overallTopRated = React.useMemo(
-    () => rankPlacesOverall(activePlaces, avgRating),
-    [activePlaces, avgRating],
+    () => rankPlacesOverall(activePlaces, overallLeaderboardRating),
+    [activePlaces, overallLeaderboardRating],
+  );
+  const contextualRating = React.useCallback(
+    (placeId: string) =>
+      ratingForPlaceInVisitContext(state.visits, placeId, {
+        meals: topVisits,
+        takeawayOnly: topTakeawayOnly,
+      }),
+    [state.visits, topTakeawayOnly, topVisits],
   );
   const topRated = React.useMemo(
-    () =>
-      topOccasion === "alla"
-        ? overallTopRated
-        : rankPlacesForOccasion(activePlaces, topOccasion, avgRating),
-    [activePlaces, avgRating, overallTopRated, topOccasion],
+    () => rankPlacesForOccasions(activePlaces, topOccasions, contextualRating),
+    [activePlaces, contextualRating, topOccasions],
   );
   const topLeader = overallTopRated[0] ?? null;
 
@@ -291,72 +318,128 @@ function PlacesIndex() {
               </CollapsibleTrigger>
             </div>
 
-            <CollapsibleContent className="pt-3">
-              <div className="mb-2 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
-                <span>Visa topplista för</span>
-                <OccasionGuide compact />
-              </div>
-              <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">
-                {TOP_LIST_FILTERS.map((item) => {
-                  const active = topOccasion === item.key;
-                  return (
+            <CollapsibleContent className="pt-1.5">
+              <div className="space-y-1.5">
+                <div>
+                  <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
+                    <span>Passar för</span>
+                    <span className="-my-1.5 inline-flex">
+                      <OccasionGuide compact />
+                    </span>
+                  </div>
+                  <div
+                    className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
+                    role="group"
+                    aria-label="Filtrera topplistan på Passar för. Inget val visar alla."
+                  >
+                    {TOP_LIST_FILTERS.map((item) => {
+                      const active = topOccasions.includes(item.key);
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() =>
+                            setTopOccasions((current) => toggleFilterValue(current, item.key))
+                          }
+                          aria-pressed={active}
+                          aria-label={`Filtrera topplistan på ${item.label}`}
+                          className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Badge
+                            variant={active ? "default" : "outline"}
+                            className="w-full cursor-pointer justify-center rounded-full px-1.5 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
+                          >
+                            {item.label}
+                          </Badge>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-0.5 text-sm font-medium text-foreground">Tillfälle</div>
+                  <div
+                    className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-2"
+                    role="group"
+                    aria-label="Filtrera topplistan på besökstillfälle. Inget val visar alla tillfällen."
+                  >
+                    {TOP_VISIT_FILTERS.map((item) => {
+                      const active = topVisits.includes(item.key);
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() =>
+                            setTopVisits((current) => toggleFilterValue(current, item.key))
+                          }
+                          aria-pressed={active}
+                          aria-label={`Filtrera topplistan på ${item.label}`}
+                          className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Badge
+                            variant={active ? "default" : "outline"}
+                            className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
+                          >
+                            {item.label}
+                          </Badge>
+                        </button>
+                      );
+                    })}
                     <button
-                      key={item.key}
                       type="button"
-                      onClick={() => setTopOccasion(item.key)}
-                      aria-pressed={active}
-                      aria-label={
-                        item.key === "alla"
-                          ? "Visa topplista för alla betyg"
-                          : `Visa topplista för ${item.label}`
-                      }
-                      className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => setTopTakeawayOnly((current) => !current)}
+                      aria-pressed={topTakeawayOnly}
+                      aria-label="Filtrera topplistan på hämtmat"
+                      className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Badge
-                        variant={active ? "default" : "outline"}
-                        className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                        variant={topTakeawayOnly ? "default" : "outline"}
+                        className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
                       >
-                        {item.label}
+                        Hämtmat
                       </Badge>
                     </button>
-                  );
-                })}
+                  </div>
+                </div>
               </div>
 
-              {topRated.length > 0 ? (
-                <div className="grid min-w-0 gap-2 md:grid-cols-3">
-                  {topRated.map(({ place, rating, rank }) => (
-                    <Link
-                      key={place.id}
-                      to="/matstallen/$placeId"
-                      params={{ placeId: place.id }}
-                      className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        {rank}
-                      </span>
-                      <PlaceThumb place={place} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">{place.name}</div>
-                        <div className="mt-0.5 flex items-center gap-2">
-                          <RatingStars value={rating.overall} size={12} />
-                          <span className="text-xs text-muted-foreground">
-                            {formatRating(rating.overall)} · {rating.count}{" "}
-                            {rating.count === 1 ? "omdöme" : "omdömen"}
-                          </span>
+              <div className="mt-3">
+                {topRated.length > 0 ? (
+                  <div className="grid min-w-0 gap-2 md:grid-cols-3">
+                    {topRated.map(({ place, rating, rank }) => (
+                      <Link
+                        key={place.id}
+                        to="/matstallen/$placeId"
+                        params={{ placeId: place.id }}
+                        className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                          {rank}
+                        </span>
+                        <PlaceThumb place={place} size="sm" />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-medium">{place.name}</div>
+                          <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                            <RatingStars value={rating.overall} size={12} />
+                            <span className="min-w-0 truncate text-xs text-muted-foreground">
+                              {formatRating(rating.overall)} · {rating.visitCount ?? 0} besök ·{" "}
+                              {rating.count} {rating.count === 1 ? "omdöme" : "omdömen"}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
-                  {topOccasion === "alla"
-                    ? "Inga betyg ännu — de kommer när gänget har provat något."
-                    : `Inga betyg för ${OCCASION_LABEL[topOccasion].toLocaleLowerCase("sv")} ännu — de kommer när gänget har provat något.`}
-                </div>
-              )}
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
+                    {topOccasions.length === 0 && topVisits.length === 0 && !topTakeawayOnly
+                      ? "Inga betyg ännu — de kommer när gänget har provat något."
+                      : "Inga betyg matchar de valda filtren ännu."}
+                  </div>
+                )}
+              </div>
             </CollapsibleContent>
           </section>
         </Collapsible>

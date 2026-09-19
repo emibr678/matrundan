@@ -36,6 +36,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
+import {
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelIncludesAtmosphere,
+} from "@/lib/matrundan/review-model";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
@@ -114,18 +119,31 @@ function PlaceDetail() {
   const nextPendingReviewVisit = pendingReviewVisits[0] ?? null;
   const detail = React.useMemo(() => {
     const ratedReviews = visits.flatMap((visit) =>
-      (visit.visibleReviews ?? []).filter(
-        (review) =>
-          visit.participantIds.includes(review.userId) &&
+      (visit.visibleReviews ?? []).flatMap((review) => {
+        const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
+        return visit.participantIds.includes(review.userId) &&
           review.ratingVisible &&
-          review.overall != null,
-      ),
+          overall != null
+          ? [{ review, visit }]
+          : [];
+      }),
     );
     const avg = (values: number[]) =>
       values.length ? values.reduce((sum, item) => sum + item, 0) / values.length : 0;
     const dimension = (key: "taste" | "value" | "service" | "atmosphere") =>
       avg(
-        ratedReviews.map((review) => review[key]).filter((value): value is number => value != null),
+        ratedReviews.flatMap(({ review, visit }) => {
+          if (
+            key === "atmosphere" &&
+            !reviewModelIncludesAtmosphere(
+              effectiveReviewModel(review.reviewModel, visit.isTakeaway === true),
+            )
+          ) {
+            return [];
+          }
+          const value = review[key];
+          return value != null ? [value] : [];
+        }),
       );
     return {
       taste: dimension("taste"),

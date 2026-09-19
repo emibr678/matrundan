@@ -126,6 +126,10 @@ Under augusti–september 2026 har flera tidigare beroenden försvunnit:
   helhetsbetyg.
 - #331 / PR #334 har tydliggjort Matställen-vyn, `Passar för`-topplistan och
   gruppens ställen.
+- #309 / PR #347 har gjort datum, besökskontext och faktiska deltagare
+  korrigerbara på samma kanoniska besök.
+- #198 / PR #354 har gjort topplistan filtrerbar på verkliga besökstillfällen,
+  `Passar för` och Hämtmat med gruppens relevanta historik som betygsunderlag.
 
 Backloggen revaliderades därför 2026-09-16 mot aktuell `main`. Två tidigare
 issues togs ur aktiva kön:
@@ -137,46 +141,45 @@ issues togs ur aktiva kön:
 - **#132 Gör saknad säker gatuadress handlingsbar i kontrollflödet** stängdes som
   absorberad av det bredare #133.
 
-### Nästa produktdiskussion
+### Genomförd gruppskalning
 
 **#318 Skala gruppbyte, igenkänning och grupphantering när användaren tillhör
-många grupper** är `priority:next` men fortfarande `status:inbox` eftersom den
-minsta sammanhängande lösningen ännu inte är låst.
+många grupper** är genomförd via PR #343.
 
-Frågan är redan verklig: samma personer kan ha flera grupper med olika syften,
-och appen måste skala utan grupphierarkier, implicit cross-group-historik eller
-tung workspace-administration. #318 ska först spika vad som faktiskt behövs för
-snabbt gruppbyte, igenkänning, kort gruppbeskrivning och eventuell `Alla grupper`-
-yta.
+Den beslutade modellen behåller direktväxling när grupperna är få och använder
+nuvarande + senast använda grupper samt **Alla grupper** när de blir fler.
+Grupper kan ha en kort privat beskrivning; i **Alla grupper** används annars
+andra medlemmars namn som igenkänningsfallback. Lösningen inför ingen
+grupphierarki, implicit cross-group-historik eller tung workspace-administration.
 
-### Nästa överenskomna kärnleverans
+Sökning, personlig pinning/döljning och ytterligare separation mellan konto- och
+gruppnavigation tas endast upp som nya avgränsade issues om verkligt användande
+visar behov.
 
-**#309 Redigera besöksuppgifter och deltagare i efterhand** är
-`status:agreed` + `priority:next`.
+### Senast genomförda kärnleveranser
 
-Att kunna rätta datum, besökskontext och faktiska deltagare på samma kanoniska
-besök är mer grundläggande än att bygga ytterligare statistik eller media ovanpå
-historiken. Funktionen ska följa #169:s deltagarinvarianter och #307:s historiskt
-frysta reviewmodell.
+**#309 Redigera besöksuppgifter och deltagare i efterhand** är genomförd via
+PR #347 och **#198 Filtrera topplistor efter besökstillfälle och hämtmat** är
+genomförd via PR #354.
 
-### Närmaste efterföljande produktblock
+Tillsammans gör de den kanoniska besökshistoriken både korrigerbar och direkt
+användbar när gruppen väljer nästa ställe: ändrad besökskontext slår igenom i
+den historikbaserade topplistan utan separat rankingdata.
 
-Följande är den rekommenderade riktningen efter #318/#309. De ligger fortsatt
-`priority:later` tills närmare planering för att undvika falsk precision:
+### Närmaste kvarvarande produktblock
 
-1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
-   besök** – återanvänd samma kanoniska plats mellan användarens grupper utan att
-   kopiera privat gruppdata. Målgruppsväljaren ska följa #318:s beslut.
-2. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
-   för** – slutför den kvarvarande informationsarkitekturen; gör inte om den
-   `Passar för`-copy som redan förbättrats genom #331.
-3. **#198 Härled filtrering och topplistor från verkliga besökstillfällen** – låt
-   faktisk historik börja hjälpa gruppen välja nästa ställe, ovanpå #197, #307
-   och den aktuella Matställen-hierarkin.
+Två tidigare överenskomna leveranser ligger kvar utan ny låst inbördes ordning:
 
-Ingen `order:*` låses för detta block ännu. När #318 är produktspikad och #309
-närmar sig leverans ska den faktiska relativa ordningen bedömas igen utifrån
-aktuell produktnytta och beroenden.
+- **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
+  besök** – återanvänd samma kanoniska plats mellan användarens grupper utan att
+  kopiera privat gruppdata. Målgruppsväljaren ska följa #318:s beslut.
+- **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
+  för** – slutför den kvarvarande informationsarkitekturen; gör inte om den
+  `Passar för`-copy som redan förbättrats genom #331.
+
+Ingen ny `order:*` eller `priority:next` låses här. Nästa relativa steg ska
+väljas utifrån aktuell produktnytta och de öppna PR-/beroendeförhållandena i
+stället för att roadmapen skapar falsk precision.
 
 ### Senare mediautbyggnad
 
@@ -195,7 +198,7 @@ Grundnivån är genomförd genom #107, #108, #104 och #103. Återstående arbete
 polish och får inte tränga undan kärnflödet.
 
 - **#105 Utökat emoji- och symbolstöd för grupper och matställen** –
-  `status:agreed`, `priority:later`. Samordna gruppigenkänning med #318 när
+  `status:agreed`, `priority:later`. Följ #318:s beslut om gruppigenkänning när
   relevant.
 - **#135 Härled representativa matställessymboler från kök och inriktning** –
   `status:inbox`, `priority:later`. Revalidera först efter #199 eller när neutral
@@ -224,15 +227,13 @@ Parenten bär bland annat invariants för faktisk närvaro, ett identifierat
 deltagande per `(visit, user)`, ett aktivt eget omdöme per `(visit, user)` och
 cross-group-minimering.
 
-Genomförda delar omfattar #203, #204, #101, #213, #214, #197 och #307.
+Genomförda delar omfattar #203, #204, #101, #213, #214, #197, #307 och #309.
 
 Kvarvarande närliggande leveranser:
 
-1. **#309 Redigera besöksuppgifter och deltagare i efterhand** –
-   `priority:next`; närmaste överenskomna kärnfeature.
-2. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
+1. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
    `priority:later`; avgränsad cross-group-mediaåtkomst.
-3. **#338 Stöd flera deltagares foton på samma kanoniska besök** –
+2. **#338 Stöd flera deltagares foton på samma kanoniska besök** –
    `status:inbox`, `priority:later`; separat framtida flerfotomålbild.
 
 Alla funktioner i paketet ska vara förankrade i verkliga kanoniska besök och får
@@ -256,18 +257,17 @@ av vilka andra grupper som använder samma plats.
 
 ## Paket G – Gruppens platskunskap och historikbaserad vägledning
 
-**Prioritet:** senare, men #199/#198 ingår i närmaste produktblock efter
-#318/#309/#157.
+**#198 Filtrera topplistor efter besökstillfälle och hämtmat** är genomförd via
+PR #354. Den befintliga `Passar för`-topplistan kan nu kombineras med verkliga
+besökstillfällen och Hämtmat, och det synliga betyget härleds från relevanta
+besök/reviews utan dold statistisk score.
 
-1. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
-   för** – fokusera på kvarvarande informationsarkitektur. Den generella
-   `Passar för`-copyn från #331 är redan landad och ska inte göras om utan
-   konkret skäl.
-2. **#198 Härled filtrering och topplistor från verkliga besökstillfällen** –
-   komplettera dagens karaktärsbaserade `Passar för`-topplistor med
-   historikbaserade signaler från verkliga besök. Synliga betyg ska vara direkt
-   begripliga från #307:s reviewvärden och evidensmängd får påverka när en signal
-   visas, inte förvränga stjärnbetyget.
+Kvarvarande närliggande leverans:
+
+- **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
+  för** – fokusera på kvarvarande informationsarkitektur. Den generella
+  `Passar för`-copyn från #331 är redan landad och ska inte göras om utan
+  konkret skäl.
 
 **#200** är stängt som överspelat. Saknat `Passar för` hanteras redan i relevant
 platscentrerad kontext inför scorebara besök; generell efterbesöks-prompt för

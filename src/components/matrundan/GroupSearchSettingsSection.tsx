@@ -13,9 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  GROUP_DESCRIPTION_MAX_LENGTH,
   replaceGroupSearchSettings,
-  updateGroupSettings,
+  updateGroupIdentity,
   type VerifiedSearchArea,
 } from "@/lib/matrundan/live-admin";
 import {
@@ -67,16 +69,23 @@ export function GroupBasicsSettingsSection({
   initialEmoji: string;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const { refreshGroups, userGroups } = useSession();
+  const initialDescription = userGroups.find((group) => group.id === groupId)?.description ?? "";
   const [name, setName] = React.useState(initialName);
   const [emoji, setEmoji] = React.useState(initialEmoji);
+  const [description, setDescription] = React.useState(initialDescription);
   const [busy, setBusy] = React.useState(false);
   const [saved, setSaved] = React.useState(() => ({
     name: initialName.trim(),
     emoji: initialEmoji,
+    description: initialDescription.trim(),
   }));
-  const { refreshGroups } = useSession();
 
-  const dirty = name.trim() !== saved.name || emoji !== saved.emoji;
+  const normalizedDescription = description.trim();
+  const dirty =
+    name.trim() !== saved.name ||
+    emoji !== saved.emoji ||
+    normalizedDescription !== saved.description;
 
   React.useEffect(() => {
     onDirtyChange?.(dirty);
@@ -89,17 +98,22 @@ export function GroupBasicsSettingsSection({
       toast.error("Gruppnamnet måste vara minst två tecken.");
       return;
     }
+    if (normalizedDescription.length > GROUP_DESCRIPTION_MAX_LENGTH) {
+      toast.error(`Gruppbeskrivningen får vara högst ${GROUP_DESCRIPTION_MAX_LENGTH} tecken.`);
+      return;
+    }
 
     setBusy(true);
     try {
-      await updateGroupSettings(groupId, {
+      await updateGroupIdentity(groupId, {
         name: normalizedName,
         emoji,
-        homeLocation: null,
+        description: normalizedDescription || null,
       });
       await refreshGroups();
       setName(normalizedName);
-      setSaved({ name: normalizedName, emoji });
+      setDescription(normalizedDescription);
+      setSaved({ name: normalizedName, emoji, description: normalizedDescription });
       window.dispatchEvent(new CustomEvent("matrundan:reload"));
       toast.success("Gruppuppgifterna är uppdaterade.");
     } catch (error) {
@@ -114,6 +128,22 @@ export function GroupBasicsSettingsSection({
       <div className="space-y-1.5">
         <Label htmlFor="gs-name">Namn</Label>
         <Input id="gs-name" value={name} onChange={(event) => setName(event.target.value)} />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="gs-description">Kort beskrivning (valfritt)</Label>
+        <Textarea
+          id="gs-description"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
+          rows={3}
+          placeholder="t.ex. Vi utforskar matställen nära där vi bor."
+          className="resize-none"
+        />
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          En kort mening om gruppens gemensamma matresa. {description.length} av{" "}
+          {GROUP_DESCRIPTION_MAX_LENGTH} tecken.
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="gs-emoji">Emoji</Label>

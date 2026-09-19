@@ -1,5 +1,14 @@
 import type { Role, Visit } from "./types";
 
+export function canEditOriginalVisit(
+  visit: Pick<Visit, "createdBy" | "linkType">,
+  currentUserId: string,
+  groupArchived: boolean,
+) {
+  if (groupArchived || visit.linkType === "shared") return false;
+  return visit.createdBy === currentUserId;
+}
+
 export function canDeleteOriginalVisit(
   visit: Pick<Visit, "createdBy" | "linkType">,
   currentUserId: string,

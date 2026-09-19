@@ -467,6 +467,7 @@ export type Database = {
           created_at: string
           created_by: string
           default_search_radius_km: number
+          description: string | null
           emoji: string | null
           home_lat: number | null
           home_lng: number | null
@@ -485,6 +486,7 @@ export type Database = {
           created_at?: string
           created_by: string
           default_search_radius_km?: number
+          description?: string | null
           emoji?: string | null
           home_lat?: number | null
           home_lng?: number | null
@@ -503,6 +505,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           default_search_radius_km?: number
+          description?: string | null
           emoji?: string | null
           home_lat?: number | null
           home_lng?: number | null
@@ -2220,6 +2223,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_group_with_owner_v3: {
+        Args: {
+          _default_radius_km?: number
+          _description?: string
+          _emoji?: string
+          _name: string
+          _search_areas?: Json
+        }
+        Returns: string
+      }
       create_manual_place_fallback_v1: {
         Args: {
           _address?: string
@@ -3076,6 +3089,15 @@ export type Database = {
         Args: { _group_id: string; _new_owner_id: string }
         Returns: undefined
       }
+      update_group_identity_v1: {
+        Args: {
+          _description?: string
+          _emoji?: string
+          _group_id: string
+          _name: string
+        }
+        Returns: undefined
+      }
       update_group_place_metadata: {
         Args: {
           _category_override?: string
@@ -3147,6 +3169,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_own_review_v3: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _overall?: number
+          _review_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+        }
+        Returns: undefined
+      }
       update_place_data_report_osm_status_v1: {
         Args: {
           _note_closed_at: string
@@ -3159,6 +3194,27 @@ export type Database = {
       }
       update_profile: {
         Args: { _avatar_emoji?: string; _display_name: string }
+        Returns: undefined
+      }
+      update_visit_v1: {
+        Args: {
+          _group_id: string
+          _guests?: Json
+          _is_takeaway?: boolean
+          _meal_type: string
+          _participant_ids: string[]
+          _removed_guest_ids?: string[]
+          _review_atmosphere?: number
+          _review_comment?: string
+          _review_id?: string
+          _review_overall?: number
+          _review_service?: number
+          _review_taste?: number
+          _review_value?: number
+          _update_own_review?: boolean
+          _visit_id: string
+          _visited_on: string
+        }
         Returns: undefined
       }
       upsert_visit_photo: {
