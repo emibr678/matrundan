@@ -136,7 +136,10 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
           <div className="min-w-0 space-y-5">
             <div className="space-y-1.5">
               <Label>Typ av ställe</Label>
-              <Select value={category} onValueChange={(value) => setCategory(value as PlaceCategory)}>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value as PlaceCategory)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
