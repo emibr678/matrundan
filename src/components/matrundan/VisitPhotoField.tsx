@@ -58,9 +58,7 @@ export function VisitPhotoField({
               className="h-16 w-20 shrink-0 rounded-lg object-cover"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">
-                {file ? "Ny bild vald" : "Din nuvarande bild"}
-              </p>
+              <p className="text-sm font-medium">{file ? "Ny bild vald" : "Din nuvarande bild"}</p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
                 {file
                   ? "Sparas tillsammans med dina övriga ändringar."
