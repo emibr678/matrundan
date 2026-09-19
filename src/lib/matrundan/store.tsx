@@ -784,9 +784,7 @@ export function StoreProvider({
         }
         assertDemoWritable(state, demoReadOnly);
         const url = await blobToDataUrl(prepared.blob);
-        setState((current) =>
-          applyPreparedVisitPhotoToDemoState(current, visitId, prepared, url),
-        );
+        setState((current) => applyPreparedVisitPhotoToDemoState(current, visitId, prepared, url));
       },
 
       deleteVisitPhoto: async (visitId, uploadedBy) => {
