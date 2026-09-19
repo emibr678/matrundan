@@ -2155,8 +2155,17 @@ export type Database = {
         Args: { _group_id: string; _visit_id: string }
         Returns: boolean
       }
+      can_delete_own_visit_photo_path: {
+        Args: { _storage_path: string }
+        Returns: boolean
+      }
       can_delete_visit_photo: {
-        Args: { _group_id: string; _user_id: string; _visit_id: string }
+        Args: {
+          _group_id: string
+          _uploaded_by: string
+          _user_id: string
+          _visit_id: string
+        }
         Returns: boolean
       }
       can_manage_own_visit_photo: {
@@ -2466,6 +2475,10 @@ export type Database = {
       }
       delete_visit_photo: {
         Args: { _group_id: string; _visit_id: string }
+        Returns: string
+      }
+      delete_visit_photo_v2: {
+        Args: { _group_id: string; _uploaded_by: string; _visit_id: string }
         Returns: string
       }
       derive_review_overall_v1: {
