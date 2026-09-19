@@ -55,7 +55,7 @@ export async function updateOwnReview(
   reviewId: string,
   input: ReviewEditInput,
 ): Promise<void> {
-  await rpcClient.callVoid("update_own_review_v2", {
+  await rpcClient.callVoid("update_own_review_v3", {
     _group_id: groupId,
     _review_id: reviewId,
     _overall: input.overall,

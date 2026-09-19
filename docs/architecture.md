@@ -396,8 +396,38 @@ att källgrupp eller annan privat gruppdata exponeras. Dubblettskyddet tar med
 Hämtmat-kontexten för scorebara matbesök så På plats och Hämtmat inte felaktigt
 behandlas som samma starka dubblett.
 
+En senare korrigering av `is_takeaway` är reversibel och får inte skriva om
+reviewns lagrade `review_model` eller dimensionsvärden. När ett befintligt
+modernt omdöme tillfälligt är aktivt i Hämtmat-kontext används i stället en
+**effektiv** tredimensionell modell för presentation och aggregat: Smak, Service
+och Prisvärdhet räknas om aritmetiskt och ett eventuellt sparat Atmosfärsvärde
+döljs men bevaras. Om Hämtmat tas bort igen återgår omdömet till sin lagrade
+modell och samma Atmosfärsvärde blir aktivt igen. Ett omdöme som skapades som
+Hämtmat får däremot aldrig ett fabricerat Atmosfärsvärde när markeringen senare
+tas bort; dess lagrade tredimensionella modell består tills en separat uttrycklig
+omvärdering eventuellt kompletterar den. Legacy-reviews utan `review_model`
+behåller sitt manuella helhetsbetyg eftersom deras historiska matematik inte kan
+återskapas säkert.
+
 Servern avvisar ett nytt besök där `auth.uid()` inte finns bland de validerade
 `visit_participants`.
+
+`update_visit_v1` är den serverstyrda korrigeringsytan för ett redan kanoniskt
+besök. Endast den autentiserade registreraren får använda den, från besökets
+originalgrupp där registreraren fortfarande har aktivt medlemskap. Datum,
+besökskontext och deltagare som hör till originalgruppen kan korrigeras utan att
+ett nytt `visits.id` skapas. Identifierade deltagare som endast hör till en
+annan länkad grupp bevaras server-side och får inte försvinna för att klienten i
+originalgruppen saknar rätt att se deras identitet.
+
+Privata gäster uppdateras genom stabila `visit_guests.id`, aldrig genom
+namnmatchning. En gäst med en pågående eller accepterad #214-koppling får inte
+tas bort genom besöksredigeringen. Reviewrader raderas inte när deltagande
+korrigeras; gruppens read-modell filtrerar aktiva omdömen mot aktuell faktisk
+närvaro. En korrigering av `meal_type` eller `is_takeaway` får inte heller
+skriva om en redan fryst `review_model`. `update_own_review_v3` bevarar därför
+historiska ratingfält när besöket är scorelöst och ändrar då bara användarens
+kommentar; vid scorebara besök följer den samma frysta reviewmodell som v2.
 
 Registreringshandlingen i sig ger ingen extra progression. Registreraren får
 samma progression som andra därför att hen är faktisk deltagare, inte därför att
@@ -412,7 +442,7 @@ legitimt synligt i den aktuella gruppen. För scorebara reviews väljer servern
 samma nya reviewmodell och härleder overall från de relevanta dimensionerna. För
 `dryck` tillåts i stället en scorelös kommentar med null i alla ratingfält och
 `rating_visible = false`; en tom kommentar skapar inte ett meningslöst
-reviewobjekt. `update_own_review_v2` behåller en ny reviews frysta modell vid
+reviewobjekt. `update_own_review_v3` behåller en ny reviews frysta modell vid
 normal redigering, medan legacy-reviews fortsätter följa sin tidigare manuella
 modell. `reviews` behåller invarianten högst en kanonisk review per
 `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt i

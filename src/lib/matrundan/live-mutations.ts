@@ -30,6 +30,34 @@ export type VisitMutationInput = Omit<Visit, "id"> & {
   reviewOccasions?: Occasion[];
 };
 
+export interface VisitEditGuestInput {
+  /** UUID för en redan registrerad privat gäst. Null betyder ny gäst. */
+  id: string | null;
+  name: string;
+}
+
+export interface VisitEditOwnReviewInput {
+  id: string;
+  overall: number | null;
+  taste: number | null;
+  value: number | null;
+  service: number | null;
+  atmosphere: number | null;
+  comment: string | null;
+}
+
+export interface VisitEditMutationInput {
+  visitedOn: string;
+  meal: Visit["meal"];
+  isTakeaway: boolean;
+  /** Grupprelevanta deltagare. Cross-group-identiteter bevaras server-side. */
+  participantIds: string[];
+  guests: VisitEditGuestInput[];
+  /** Endast privata gäster som användaren uttryckligen tog bort i editorn. */
+  removedGuestIds: string[];
+  ownReview?: VisitEditOwnReviewInput | null;
+}
+
 /**
  * Notiser köas av databasen. Vi puffar på utskicket direkt efter en händelse
  * så mottagaren normalt får den inom någon sekund; det schemalagda jobbet är
@@ -163,6 +191,33 @@ export async function liveCreateVisitWithReview(
   );
   scheduleNotificationFlush();
   return visitId;
+}
+
+export async function liveUpdateVisit(
+  groupId: string,
+  visitId: string,
+  input: VisitEditMutationInput,
+): Promise<void> {
+  const visitedOn = input.visitedOn.length >= 10 ? input.visitedOn.slice(0, 10) : input.visitedOn;
+
+  await rpcClient.callVoid("update_visit_v1", {
+    _group_id: groupId,
+    _visit_id: visitId,
+    _visited_on: visitedOn,
+    _meal_type: input.meal,
+    _participant_ids: input.participantIds,
+    _is_takeaway: input.meal === "dryck" ? false : input.isTakeaway,
+    _guests: input.guests.map((guest) => ({ id: guest.id, name: guest.name })),
+    _removed_guest_ids: input.removedGuestIds,
+    _update_own_review: Boolean(input.ownReview),
+    _review_id: input.ownReview?.id ?? null,
+    _review_overall: input.ownReview?.overall ?? null,
+    _review_taste: input.ownReview?.taste ?? null,
+    _review_value: input.ownReview?.value ?? null,
+    _review_service: input.ownReview?.service ?? null,
+    _review_atmosphere: input.ownReview?.atmosphere ?? null,
+    _review_comment: input.ownReview?.comment ?? null,
+  });
 }
 
 export async function liveDeleteOriginalVisit(groupId: string, visitId: string): Promise<void> {

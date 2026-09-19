@@ -108,6 +108,32 @@ WITH checks(name, ok) AS (
       )),
     ('participation_rpc:set_own_visit_participation_v1',
       to_regprocedure('public.set_own_visit_participation_v1(uuid,uuid,boolean)') IS NOT NULL),
+    ('visit_edit_rpc:update_visit_v1',
+      to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)') IS NOT NULL),
+    ('visit_edit_rpc:update_own_review_v3',
+      to_regprocedure('public.update_own_review_v3(uuid,uuid,numeric,smallint,smallint,smallint,smallint,text)') IS NOT NULL),
+    ('visit_edit_rpc:creator-original-only',
+      COALESCE(
+        position('created_by = _uid' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('link_type = ''original''' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
+        false
+      )),
+    ('visit_edit_rpc:preserves-cross-group-participants',
+      COALESCE(
+        position('public.memberships membership' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
+        false
+      )),
+    ('visit_edit_rpc:linked-guest-guard',
+      COALESCE(
+        position('visit_guest_member_proposals' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0
+        AND position('accepted' IN pg_get_functiondef(to_regprocedure('public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
+        false
+      )),
+    ('visit_edit_rpc:scoreless-review-preservation',
+      COALESCE(
+        position('SET comment = _normalized_comment' IN pg_get_functiondef(to_regprocedure('public.update_own_review_v3(uuid,uuid,numeric,smallint,smallint,smallint,smallint,text)'))) > 0,
+        false
+      )),
     ('participation_rpc:registrar-cannot-decline',
       COALESCE(
         position('created_by = _uid' IN pg_get_functiondef(to_regprocedure('public.set_own_visit_participation_v1(uuid,uuid,boolean)'))) > 0
@@ -151,6 +177,10 @@ WITH checks(name, ok) AS (
       has_function_privilege('authenticated', 'public.save_own_review_for_visit_v1(uuid,uuid,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('grant:authenticated-self-participation',
       has_function_privilege('authenticated', 'public.set_own_visit_participation_v1(uuid,uuid,boolean)', 'EXECUTE')),
+    ('grant:authenticated-update-visit',
+      has_function_privilege('authenticated', 'public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
+    ('grant:authenticated-update-own-review-v3',
+      has_function_privilege('authenticated', 'public.update_own_review_v3(uuid,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('isolation:no-anon-v5l',
       NOT has_function_privilege('anon', 'public.get_group_app_state_v5l(uuid)', 'EXECUTE')),
     ('isolation:no-anon-v5k',
@@ -166,6 +196,10 @@ WITH checks(name, ok) AS (
       NOT has_function_privilege('anon', 'public.save_own_review_for_visit_v1(uuid,uuid,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('isolation:no-anon-self-participation',
       NOT has_function_privilege('anon', 'public.set_own_visit_participation_v1(uuid,uuid,boolean)', 'EXECUTE')),
+    ('isolation:no-anon-update-visit',
+      NOT has_function_privilege('anon', 'public.update_visit_v1(uuid,uuid,date,text,uuid[],boolean,jsonb,uuid[],boolean,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
+    ('isolation:no-anon-update-own-review-v3',
+      NOT has_function_privilege('anon', 'public.update_own_review_v3(uuid,uuid,numeric,smallint,smallint,smallint,smallint,text)', 'EXECUTE')),
     ('isolation:no-authenticated-next-stop-tables',
       NOT has_table_privilege('authenticated', 'public.next_stop_plans', 'SELECT')
       AND NOT has_table_privilege('authenticated', 'public.next_stop_place_proposals', 'SELECT')

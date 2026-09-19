@@ -1,0 +1,81 @@
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
+
+async function stabilize(page: Page) {
+  await page.addStyleTag({
+    content: `
+      *, *::before, *::after {
+        animation-delay: 0s !important;
+        animation-duration: 0s !important;
+        caret-color: transparent !important;
+        scroll-behavior: auto !important;
+        transition-delay: 0s !important;
+        transition-duration: 0s !important;
+      }
+    `,
+  });
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
+}
+
+async function capture(page: Page, testInfo: TestInfo, name: string) {
+  const outputDirectory = path.join("visual-review", testInfo.project.name);
+  await mkdir(outputDirectory, { recursive: true });
+  await page.screenshot({ path: path.join(outputDirectory, `${name}.png`), fullPage: true });
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const widths = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+}
+
+test("fånga redigera besök och kontextkorrigering", async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await page.goto("/matstallen/p2?demo=1&visit=v1", { waitUntil: "domcontentloaded" });
+
+  const visitDialog = page.getByRole("dialog").first();
+  await visitDialog.getByRole("button", { name: "Redigera besök" }).click();
+
+  const editDialog = page.getByRole("dialog", { name: "Redigera besök" });
+  await expect(editDialog).toBeVisible();
+  await expect(editDialog.getByText("Kvarterets Kardemumma")).toBeVisible();
+  await expect(editDialog.getByText("4,5 / 5", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-309-redigera-besok");
+
+  await editDialog.getByRole("button", { name: "Redigera omdöme" }).click();
+  await expect(editDialog.getByText("Atmosfär", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("Räknas automatiskt")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-309-omdome-med-atmosfar");
+
+  const takeaway = editDialog.getByRole("switch", { name: "Hämtmat" });
+  await takeaway.click();
+  await expect(editDialog.getByText("Atmosfär", { exact: true })).toHaveCount(0);
+  await expect(editDialog.getByText("Atmosfär ingår inte vid Hämtmat.")).toBeVisible();
+  await expect(editDialog.getByText("4,7 / 5", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-309-hamtmat-utan-atmosfar");
+
+  await takeaway.click();
+  await expect(editDialog.getByText("Atmosfär", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("4,5 / 5", { exact: true })).toBeVisible();
+
+  await editDialog.getByLabel("Tillfälle").click();
+  await page.getByRole("option", { name: "Något att dricka" }).click();
+  await expect(editDialog.getByText("Omdömet bevaras")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-309-scoreless-korrigering");
+});
