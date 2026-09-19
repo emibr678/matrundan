@@ -17,9 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveOwnReviewForVisit } from "@/lib/matrundan/live-visit-participation";
 import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
+import { useStore } from "@/lib/matrundan/store";
 import type { Occasion } from "@/lib/matrundan/types";
+import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { OccasionPicker } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
+import { VisitPhotoField } from "./VisitPhotoField";
 
 export function AddVisitReviewDialog({
   visitId,
@@ -39,6 +42,9 @@ export function AddVisitReviewDialog({
   onSaved?: () => void | Promise<void>;
 }) {
   const { activeGroupId } = useSession();
+  const { state, saveVisitPhoto } = useStore();
+  const visit = state.visits.find((item) => item.id === visitId);
+  const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [taste, setTaste] = React.useState(0);
@@ -47,6 +53,7 @@ export function AddVisitReviewDialog({
   const [atmosphere, setAtmosphere] = React.useState(0);
   const [reviewOccasions, setReviewOccasions] = React.useState<Occasion[]>([]);
   const [comment, setComment] = React.useState("");
+  const [photoFile, setPhotoFile] = React.useState<File | null>(null);
 
   React.useEffect(() => {
     if (open) return;
@@ -56,6 +63,7 @@ export function AddVisitReviewDialog({
     setAtmosphere(0);
     setReviewOccasions([]);
     setComment("");
+    setPhotoFile(null);
   }, [open]);
 
   const placeNeedsOccasionClassification = !scoreless && placeOccasions.length === 0;
@@ -99,7 +107,31 @@ export function AddVisitReviewDialog({
             ? reviewOccasions
             : undefined,
       });
-      toast.success(scoreless ? "Din kommentar är tillagd." : "Ditt omdöme är tillagt.");
+
+      if (photoFile && visit) {
+        try {
+          await saveVisitPhoto(visitId, photoFile, visit);
+        } catch (photoError) {
+          toast.warning(
+            scoreless
+              ? "Kommentaren sparades, men bilden kunde inte sparas."
+              : "Omdömet sparades, men bilden kunde inte sparas.",
+          );
+          setOpen(false);
+          await onSaved?.();
+          return;
+        }
+      }
+
+      toast.success(
+        photoFile
+          ? scoreless
+            ? "Din kommentar och bild är tillagda."
+            : "Ditt omdöme och din bild är tillagda."
+          : scoreless
+            ? "Din kommentar är tillagd."
+            : "Ditt omdöme är tillagt.",
+      );
       setOpen(false);
       await onSaved?.();
     } catch (error) {
@@ -167,6 +199,16 @@ export function AddVisitReviewDialog({
               placeholder="En liten minnesnotering…"
             />
           </div>
+
+          {visit ? (
+            <VisitPhotoField
+              file={photoFile}
+              onFileChange={setPhotoFile}
+              existingUrl={ownPhoto?.url}
+              disabled={saving}
+              compact
+            />
+          ) : null}
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
