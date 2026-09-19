@@ -322,7 +322,9 @@ function PlacesIndex() {
                 <div>
                   <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
                     <span>Passar för</span>
-                    <span className="-my-1.5 inline-flex"><OccasionGuide compact /></span>
+                    <span className="-my-1.5 inline-flex">
+                      <OccasionGuide compact />
+                    </span>
                   </div>
                   <div
                     className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
