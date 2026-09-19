@@ -20,7 +20,12 @@ import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/re
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion } from "@/lib/matrundan/types";
-import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
+import {
+  applyPreparedVisitPhotoToDemoState,
+  blobToDataUrl,
+  getOwnVisitPhoto,
+  prepareVisitPhoto,
+} from "@/lib/matrundan/visit-photo";
 import { OccasionPicker } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 import { VisitPhotoField } from "./VisitPhotoField";
@@ -40,7 +45,7 @@ export function DemoAddVisitReviewDialog({
   placeOccasions?: Occasion[];
   disabled?: boolean;
 }) {
-  const { state, saveVisitPhoto } = useStore();
+  const { state } = useStore();
   const { exampleMode } = useSession();
   const visit = state.visits.find((item) => item.id === visitId);
   const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
@@ -90,7 +95,7 @@ export function DemoAddVisitReviewDialog({
     }
     setSaving(true);
     try {
-      const nextState = saveOwnDemoReviewForVisit(state, visitId, {
+      let nextState = saveOwnDemoReviewForVisit(state, visitId, {
         taste: scoreless ? null : taste,
         value: scoreless ? null : value,
         service: scoreless ? null : service,
@@ -101,12 +106,14 @@ export function DemoAddVisitReviewDialog({
             ? reviewOccasions
             : undefined,
       });
-      persistDemoState(nextState, exampleMode);
 
       if (photoFile && visit) {
         try {
-          await saveVisitPhoto(visitId, photoFile, visit);
+          const prepared = await prepareVisitPhoto(photoFile);
+          const url = await blobToDataUrl(prepared.blob);
+          nextState = applyPreparedVisitPhotoToDemoState(nextState, visitId, prepared, url);
         } catch {
+          persistDemoState(nextState, exampleMode);
           toast.warning(
             scoreless
               ? "Kommentaren sparades, men bilden kunde inte sparas."
@@ -117,6 +124,7 @@ export function DemoAddVisitReviewDialog({
         }
       }
 
+      persistDemoState(nextState, exampleMode);
       toast.success(
         photoFile
           ? scoreless
