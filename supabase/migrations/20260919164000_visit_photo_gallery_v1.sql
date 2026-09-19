@@ -178,15 +178,31 @@ CREATE POLICY "visit photos allowed delete"
     AND (
       public.can_delete_own_visit_photo_path(name)
       OR (
-        owner = auth.uid()
-        AND NOT EXISTS (
+        NOT EXISTS (
           SELECT 1
           FROM public.visit_media vm
           WHERE vm.storage_path = name
         )
-        AND public.can_manage_own_visit_photo(
-          public.visit_photo_path_group(name),
-          public.visit_photo_path_visit(name)
+        AND public.has_membership(public.visit_photo_path_group(name), auth.uid())
+        AND EXISTS (
+          SELECT 1
+          FROM public.visit_group_links vgl
+          WHERE vgl.group_id = public.visit_photo_path_group(name)
+            AND vgl.visit_id = public.visit_photo_path_visit(name)
+            AND vgl.link_type = 'original'
+        )
+        AND (
+          owner = auth.uid()
+          OR public.has_group_role(
+            public.visit_photo_path_group(name),
+            auth.uid(),
+            ARRAY['owner','admin']
+          )
+          OR public.can_delete_original_visit(
+            public.visit_photo_path_group(name),
+            public.visit_photo_path_visit(name),
+            auth.uid()
+          )
         )
       )
     )
