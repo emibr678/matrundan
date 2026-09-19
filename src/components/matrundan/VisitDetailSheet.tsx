@@ -411,7 +411,7 @@ export function VisitDetailSheet({
           <AlertDialogHeader>
             <AlertDialogTitle>Radera besöket på {place?.name ?? "matstället"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Besöket, fotot och alla omdömen tas bort. Gruppens progression räknas om. Om besöket
+              Besöket, bilderna och alla omdömen tas bort. Gruppens progression räknas om. Om besöket
               har lagts till i andra grupper försvinner det även där. Det går inte att ångra.
             </AlertDialogDescription>
           </AlertDialogHeader>
