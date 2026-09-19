@@ -12,6 +12,7 @@ import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
+import { effectiveReviewOverall } from "@/lib/matrundan/review-model";
 import type { VisibleReview } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -102,6 +103,10 @@ export function Home() {
         Boolean(review.comment?.trim()),
     );
   }, [lastVisit, state.currentUserId]);
+  const lastVisitReviewOverall =
+    lastVisitReview && lastVisit
+      ? effectiveReviewOverall(lastVisitReview, lastVisit.isTakeaway === true)
+      : null;
   const lastVisitReviewAuthor = lastVisitReview
     ? (lastVisit?.participants?.find((participant) => participant.id === lastVisitReview.userId)
         ?.name ?? memberById(lastVisitReview.userId)?.name)
@@ -180,14 +185,14 @@ export function Home() {
                 })}
                 {lastVisitParticipantSummary ? ` · ${lastVisitParticipantSummary}` : ""}
               </p>
-              {lastVisitReview ? (
+              {lastVisitReview && lastVisitReviewOverall != null ? (
                 <div className="mt-3 border-t border-border/60 pt-3">
                   <div className="flex min-w-0 items-center justify-between gap-2 text-xs">
                     <span className="min-w-0 truncate font-medium text-foreground">
                       {lastVisitReviewAuthor ?? "Deltagare"}
                     </span>
                     <span className="shrink-0 text-muted-foreground">
-                      {formatRating(lastVisitReview.overall)} / 5
+                      {formatRating(lastVisitReviewOverall)} / 5
                     </span>
                   </div>
                   <p className="mt-1 line-clamp-2 text-sm [overflow-wrap:anywhere]">
