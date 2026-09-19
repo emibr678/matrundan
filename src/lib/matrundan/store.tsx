@@ -77,9 +77,7 @@ function demoStorage(kind: DemoPersistence): Storage | null {
 }
 
 function nameOf(state: AppState, memberId: string) {
-  return (
-    state.members.find((member) => member.id === memberId)?.name ?? "Någon"
-  );
+  return state.members.find((member) => member.id === memberId)?.name ?? "Någon";
 }
 
 function avg(values: number[]): number | undefined {
@@ -89,18 +87,11 @@ function avg(values: number[]): number | undefined {
 
 function aggregateVisit(visit: Visit): Visit {
   const sourceReviews = visit.visibleReviews ?? [];
-  const reviews = sourceReviews.filter((review) =>
-    visit.participantIds.includes(review.userId),
-  );
+  const reviews = sourceReviews.filter((review) => visit.participantIds.includes(review.userId));
   const rated = visitHasScore(visit)
     ? reviews.flatMap((review) => {
-        const overall = effectiveReviewOverall(
-          review,
-          visit.isTakeaway === true,
-        );
-        return review.ratingVisible && overall != null
-          ? [{ review, overall }]
-          : [];
+        const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
+        return review.ratingVisible && overall != null ? [{ review, overall }] : [];
       })
     : [];
   const comment = reviews.find(
@@ -125,19 +116,13 @@ function aggregateVisit(visit: Visit): Visit {
     visibleReviews: sourceReviews,
     overall: avg(rated.map((item) => item.overall)) ?? 0,
     taste: avg(
-      rated
-        .map((item) => item.review.taste)
-        .filter((value): value is number => value != null),
+      rated.map((item) => item.review.taste).filter((value): value is number => value != null),
     ),
     value: avg(
-      rated
-        .map((item) => item.review.value)
-        .filter((value): value is number => value != null),
+      rated.map((item) => item.review.value).filter((value): value is number => value != null),
     ),
     service: avg(
-      rated
-        .map((item) => item.review.service)
-        .filter((value): value is number => value != null),
+      rated.map((item) => item.review.service).filter((value): value is number => value != null),
     ),
     atmosphere: avg(
       rated
@@ -154,13 +139,9 @@ function aggregateVisit(visit: Visit): Visit {
 }
 
 function normalizePlace(place: Place): Place {
-  const canonicalCuisines = normalizeFoodTags(
-    place.canonicalCuisines ?? place.cuisines,
-  );
+  const canonicalCuisines = normalizeFoodTags(place.canonicalCuisines ?? place.cuisines);
   const cuisinesOverride =
-    place.cuisinesOverride == null
-      ? null
-      : normalizeFoodTags(place.cuisinesOverride);
+    place.cuisinesOverride == null ? null : normalizeFoodTags(place.cuisinesOverride);
   return {
     ...place,
     canonicalCategory: place.canonicalCategory ?? place.category,
@@ -251,15 +232,8 @@ interface StoreContextValue {
   }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
   addVisit: (visit: VisitMutationInput) => Promise<Visit>;
-  updateVisit: (
-    visitId: string,
-    input: VisitEditMutationInput,
-  ) => Promise<void>;
-  saveVisitPhoto: (
-    visitId: string,
-    file: File,
-    visitSnapshot?: Visit,
-  ) => Promise<void>;
+  updateVisit: (visitId: string, input: VisitEditMutationInput) => Promise<void>;
+  saveVisitPhoto: (visitId: string, file: File, visitSnapshot?: Visit) => Promise<void>;
   deleteVisitPhoto: (visitId: string, uploadedBy?: string) => Promise<void>;
   deleteVisit: (visitId: string) => Promise<void>;
   setNext: (placeId: string | null) => Promise<void>;
@@ -267,10 +241,7 @@ interface StoreContextValue {
   reactivateGroup: () => Promise<void>;
   archivePlace: (placeId: string) => Promise<void>;
   restorePlace: (placeId: string) => Promise<void>;
-  updatePlaceMetadata: (
-    placeId: string,
-    input: GroupPlaceMetadataInput,
-  ) => Promise<void>;
+  updatePlaceMetadata: (placeId: string, input: GroupPlaceMetadataInput) => Promise<void>;
   updateOwnReview: (reviewId: string, input: ReviewEditInput) => Promise<void>;
   resetDemo: () => void;
   getPlace: (id: string) => Place | undefined;
@@ -279,9 +250,7 @@ interface StoreContextValue {
   avgRating: (placeId: string) => { overall: number; count: number };
   isFavorite: (placeId: string) => boolean;
   hasVisited: (placeId: string, memberId?: string) => boolean;
-  statusOf: (
-    placeId: string,
-  ) => "nytt-for-mig" | "nytt-for-gruppen" | "alla-provat" | "delvis";
+  statusOf: (placeId: string) => "nytt-for-mig" | "nytt-for-gruppen" | "alla-provat" | "delvis";
   visitedCounts: (placeId: string) => { visited: number; total: number };
   proposerOfNext: () => string | undefined;
   categoryCounts: () => Record<PlaceCategory, number>;
@@ -316,9 +285,7 @@ export function StoreProvider({
   const [state, setState] = React.useState<AppState>(() =>
     mode === "demo" ? baseDemoState : (initialState ?? DEMO_STATE),
   );
-  const [hydrated, setHydrated] = React.useState(
-    mode === "live" || demoReadOnly,
-  );
+  const [hydrated, setHydrated] = React.useState(mode === "live" || demoReadOnly);
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -333,9 +300,7 @@ export function StoreProvider({
     if (mode !== "demo" || demoReadOnly) return;
     try {
       const raw = demoStorage(demoPersistence)?.getItem(demoStorageKey);
-      setState(
-        raw ? normalizeDemoState(JSON.parse(raw) as AppState) : baseDemoState,
-      );
+      setState(raw ? normalizeDemoState(JSON.parse(raw) as AppState) : baseDemoState);
     } catch {
       setState(baseDemoState);
     }
@@ -345,10 +310,7 @@ export function StoreProvider({
   React.useEffect(() => {
     if (!hydrated || mode !== "demo" || demoReadOnly) return;
     try {
-      demoStorage(demoPersistence)?.setItem(
-        demoStorageKey,
-        JSON.stringify(state),
-      );
+      demoStorage(demoPersistence)?.setItem(demoStorageKey, JSON.stringify(state));
     } catch {
       /* ignore */
     }
@@ -363,21 +325,18 @@ export function StoreProvider({
     activeGroupIdRef.current = activeGroupId;
   }, [activeGroupId]);
 
-  const runLive = React.useCallback(
-    async <T,>(operation: (groupId: string) => Promise<T>) => {
-      const groupId = activeGroupIdRef.current;
-      if (!groupId) throw new Error("Ingen aktiv grupp.");
-      setSubmitting(true);
-      try {
-        const result = await operation(groupId);
-        await Promise.resolve(onLiveMutationRef.current?.());
-        return result;
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [],
-  );
+  const runLive = React.useCallback(async <T,>(operation: (groupId: string) => Promise<T>) => {
+    const groupId = activeGroupIdRef.current;
+    if (!groupId) throw new Error("Ingen aktiv grupp.");
+    setSubmitting(true);
+    try {
+      const result = await operation(groupId);
+      await Promise.resolve(onLiveMutationRef.current?.());
+      return result;
+    } finally {
+      setSubmitting(false);
+    }
+  }, []);
 
   const value = React.useMemo<StoreContextValue>(() => {
     const pushActivity = (current: AppState, activity: Activity): AppState => ({
@@ -398,9 +357,7 @@ export function StoreProvider({
           occasions: normalizeOccasionClassification(input.occasions ?? []),
         };
         if (mode === "live") {
-          const id = await runLive((groupId) =>
-            liveCreatePlace(groupId, normalizedInput),
-          );
+          const id = await runLive((groupId) => liveCreatePlace(groupId, normalizedInput));
           return {
             ...normalizedInput,
             id,
@@ -417,9 +374,7 @@ export function StoreProvider({
               normalizedInput.address.trim().toLocaleLowerCase("sv"),
         );
         if (existing?.collectionStatus === "active") {
-          throw new Error(
-            "Ett ställe med samma namn och adress finns redan i gruppen.",
-          );
+          throw new Error("Ett ställe med samma namn och adress finns redan i gruppen.");
         }
         if (existing) {
           const restored: Place = {
@@ -430,9 +385,7 @@ export function StoreProvider({
           };
           setState((current) => ({
             ...current,
-            places: current.places.map((place) =>
-              place.id === existing.id ? restored : place,
-            ),
+            places: current.places.map((place) => (place.id === existing.id ? restored : place)),
           }));
           return restored;
         }
@@ -468,9 +421,7 @@ export function StoreProvider({
 
       addProviderPlace: async ({ provider, providerPlaceId, place, raw }) => {
         if (mode !== "live") {
-          throw new Error(
-            "Extern platssök är bara tillgänglig i live-läge (inloggad).",
-          );
+          throw new Error("Extern platssök är bara tillgänglig i live-läge (inloggad).");
         }
         const normalizedPlace = {
           ...place,
@@ -508,64 +459,43 @@ export function StoreProvider({
           return;
         }
         assertDemoWritable(state, demoReadOnly);
-        if (
-          state.places.find((place) => place.id === placeId)
-            ?.collectionStatus === "archived"
-        ) {
-          throw new Error(
-            "Lägg tillbaka matstället innan du ändrar favoriten.",
-          );
+        if (state.places.find((place) => place.id === placeId)?.collectionStatus === "archived") {
+          throw new Error("Lägg tillbaka matstället innan du ändrar favoriten.");
         }
         setState((current) => {
           const exists = current.favorites.find(
             (favorite) =>
-              favorite.memberId === current.currentUserId &&
-              favorite.placeId === placeId,
+              favorite.memberId === current.currentUserId && favorite.placeId === placeId,
           );
           return {
             ...current,
             favorites: exists
               ? current.favorites.filter(
                   (favorite) =>
-                    !(
-                      favorite.memberId === current.currentUserId &&
-                      favorite.placeId === placeId
-                    ),
+                    !(favorite.memberId === current.currentUserId && favorite.placeId === placeId),
                 )
-              : [
-                  ...current.favorites,
-                  { memberId: current.currentUserId, placeId },
-                ],
+              : [...current.favorites, { memberId: current.currentUserId, placeId }],
           };
         });
       },
 
       addVisit: async (visitInput) => {
         if (mode === "live") {
-          const id = await runLive((groupId) =>
-            liveCreateVisitWithReview(groupId, visitInput),
-          );
+          const id = await runLive((groupId) => liveCreateVisitWithReview(groupId, visitInput));
           return { ...visitInput, id } as Visit;
         }
         assertDemoWritable(state, demoReadOnly);
-        const currentPlace = state.places.find(
-          (place) => place.id === visitInput.placeId,
-        );
+        const currentPlace = state.places.find((place) => place.id === visitInput.placeId);
         if (currentPlace?.collectionStatus === "archived") {
-          throw new Error(
-            "Lägg tillbaka matstället innan ett nytt besök registreras.",
-          );
+          throw new Error("Lägg tillbaka matstället innan ett nytt besök registreras.");
         }
         const timestamp = Date.now();
         const scored = visitHasScore(visitInput);
         const hasNewDimensions =
           scored &&
-          [
-            visitInput.taste,
-            visitInput.value,
-            visitInput.service,
-            visitInput.atmosphere,
-          ].some((rating) => rating != null && rating > 0);
+          [visitInput.taste, visitInput.value, visitInput.service, visitInput.atmosphere].some(
+            (rating) => rating != null && rating > 0,
+          );
         const normalizedReviewOccasions = normalizeOccasionClassification(
           visitInput.reviewOccasions ?? [],
         );
@@ -590,20 +520,11 @@ export function StoreProvider({
             }))
         ) {
           throw new Error(
-            reviewModel
-              ? "Sätt alla relevanta betyg."
-              : "Välj vad stället passar för först.",
+            reviewModel ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.",
           );
         }
-        if (
-          scored &&
-          !hasNewDimensions &&
-          !visitInput.overall &&
-          visitInput.comment?.trim()
-        ) {
-          throw new Error(
-            "Sätt alla relevanta betyg innan kommentaren sparas med omdömet.",
-          );
+        if (scored && !hasNewDimensions && !visitInput.overall && visitInput.comment?.trim()) {
+          throw new Error("Sätt alla relevanta betyg innan kommentaren sparas med omdömet.");
         }
 
         const derivedOverall = reviewModel
@@ -614,12 +535,9 @@ export function StoreProvider({
               atmosphere: visitInput.atmosphere ?? 0,
             })
           : null;
-        const legacyReview =
-          scored && !hasNewDimensions && visitInput.overall > 0;
+        const legacyReview = scored && !hasNewDimensions && visitInput.overall > 0;
         const review: VisibleReview | null =
-          hasNewDimensions ||
-          legacyReview ||
-          (!scored && Boolean(visitInput.comment?.trim()))
+          hasNewDimensions || legacyReview || (!scored && Boolean(visitInput.comment?.trim()))
             ? {
                 id: `demo-review-${timestamp}`,
                 userId: state.currentUserId,
@@ -627,10 +545,7 @@ export function StoreProvider({
                 taste: scored ? (visitInput.taste ?? null) : null,
                 value: scored ? (visitInput.value ?? null) : null,
                 service: scored ? (visitInput.service ?? null) : null,
-                atmosphere:
-                  scored && reviewModel
-                    ? (visitInput.atmosphere ?? null)
-                    : null,
+                atmosphere: scored && reviewModel ? (visitInput.atmosphere ?? null) : null,
                 reviewModel,
                 comment: visitInput.comment ?? null,
                 ratingVisible: scored,
@@ -644,17 +559,11 @@ export function StoreProvider({
           visibleReviews: review ? [review] : [],
         });
         setState((current) => {
-          const place = current.places.find(
-            (item) => item.id === visit.placeId,
-          );
+          const place = current.places.find((item) => item.id === visit.placeId);
           const nextPlaces =
-            hasNewDimensions &&
-            place?.occasions.length === 0 &&
-            reviewOccasions.length > 0
+            hasNewDimensions && place?.occasions.length === 0 && reviewOccasions.length > 0
               ? current.places.map((item) =>
-                  item.id === visit.placeId
-                    ? { ...item, occasions: reviewOccasions }
-                    : item,
+                  item.id === visit.placeId ? { ...item, occasions: reviewOccasions } : item,
                 )
               : current.places;
           return pushActivity(
@@ -662,10 +571,7 @@ export function StoreProvider({
               ...current,
               places: nextPlaces,
               visits: [visit, ...current.visits],
-              nextPlaceId:
-                current.nextPlaceId === visit.placeId
-                  ? null
-                  : current.nextPlaceId,
+              nextPlaceId: current.nextPlaceId === visit.placeId ? null : current.nextPlaceId,
             },
             {
               id: `a-${timestamp}`,
@@ -697,13 +603,8 @@ export function StoreProvider({
         assertDemoWritable(state, demoReadOnly);
         const target = state.visits.find((item) => item.id === visitId);
         if (!target) throw new Error("Besöket finns inte.");
-        if (
-          target.linkType === "shared" ||
-          target.createdBy !== state.currentUserId
-        ) {
-          throw new Error(
-            "Bara den som registrerade originalbesöket kan redigera det.",
-          );
+        if (target.linkType === "shared" || target.createdBy !== state.currentUserId) {
+          throw new Error("Bara den som registrerade originalbesöket kan redigera det.");
         }
         if (!input.participantIds.includes(state.currentUserId)) {
           throw new Error("Den som registrerade besöket måste vara deltagare.");
@@ -715,12 +616,8 @@ export function StoreProvider({
             .filter((participant) => participant.status === "left")
             .map((participant) => participant.id),
         ]);
-        if (
-          input.participantIds.some((id) => !editableParticipantIds.has(id))
-        ) {
-          throw new Error(
-            "Deltagarlistan innehåller en person som inte hör till gruppen.",
-          );
+        if (input.participantIds.some((id) => !editableParticipantIds.has(id))) {
+          throw new Error("Deltagarlistan innehåller en person som inte hör till gruppen.");
         }
 
         const oldScored = visitHasScore(target);
@@ -728,9 +625,7 @@ export function StoreProvider({
         const ownReviewInput = input.ownReview ?? null;
         const ownReview = ownReviewInput
           ? (target.visibleReviews ?? []).find(
-              (review) =>
-                review.id === ownReviewInput.id &&
-                review.userId === state.currentUserId,
+              (review) => review.id === ownReviewInput.id && review.userId === state.currentUserId,
             )
           : undefined;
 
@@ -749,15 +644,12 @@ export function StoreProvider({
           if (
             newScored &&
             ownReview.reviewModel &&
-            !reviewRatingsComplete(
-              effectiveReviewModel(ownReview.reviewModel, input.isTakeaway),
-              {
-                taste: ownReviewInput.taste ?? 0,
-                value: ownReviewInput.value ?? 0,
-                service: ownReviewInput.service ?? 0,
-                atmosphere: ownReviewInput.atmosphere ?? 0,
-              },
-            )
+            !reviewRatingsComplete(effectiveReviewModel(ownReview.reviewModel, input.isTakeaway), {
+              taste: ownReviewInput.taste ?? 0,
+              value: ownReviewInput.value ?? 0,
+              service: ownReviewInput.service ?? 0,
+              atmosphere: ownReviewInput.atmosphere ?? 0,
+            })
           ) {
             throw new Error("Sätt alla relevanta betyg.");
           }
@@ -774,9 +666,7 @@ export function StoreProvider({
         }
 
         setState((current) => {
-          const currentVisit = current.visits.find(
-            (item) => item.id === visitId,
-          );
+          const currentVisit = current.visits.find((item) => item.id === visitId);
           if (!currentVisit) throw new Error("Besöket finns inte.");
 
           const currentEditableParticipantIds = new Set([
@@ -792,45 +682,39 @@ export function StoreProvider({
             ...new Set([...preservedParticipantIds, ...input.participantIds]),
           ];
 
-          const visibleReviews = (currentVisit.visibleReviews ?? []).map(
-            (review) => {
-              let nextReview: VisibleReview = { ...review };
+          const visibleReviews = (currentVisit.visibleReviews ?? []).map((review) => {
+            let nextReview: VisibleReview = { ...review };
 
-              if (
-                ownReviewInput &&
-                review.id === ownReviewInput.id &&
-                review.userId === current.currentUserId
-              ) {
-                const derivedOverall = review.reviewModel
-                  ? deriveReviewOverall(review.reviewModel, {
-                      taste: ownReviewInput.taste ?? 0,
-                      value: ownReviewInput.value ?? 0,
-                      service: ownReviewInput.service ?? 0,
-                      atmosphere: ownReviewInput.atmosphere ?? 0,
-                    })
-                  : null;
+            if (
+              ownReviewInput &&
+              review.id === ownReviewInput.id &&
+              review.userId === current.currentUserId
+            ) {
+              const derivedOverall = review.reviewModel
+                ? deriveReviewOverall(review.reviewModel, {
+                    taste: ownReviewInput.taste ?? 0,
+                    value: ownReviewInput.value ?? 0,
+                    service: ownReviewInput.service ?? 0,
+                    atmosphere: ownReviewInput.atmosphere ?? 0,
+                  })
+                : null;
 
-                nextReview = {
-                  ...nextReview,
-                  overall: newScored
-                    ? (derivedOverall ??
-                      ownReviewInput.overall ??
-                      review.overall)
-                    : review.overall,
-                  taste: newScored ? ownReviewInput.taste : review.taste,
-                  value: newScored ? ownReviewInput.value : review.value,
-                  service: newScored ? ownReviewInput.service : review.service,
-                  atmosphere:
-                    newScored && review.reviewModel
-                      ? ownReviewInput.atmosphere
-                      : review.atmosphere,
-                  comment: ownReviewInput.comment,
-                  ratingVisible: nextReview.ratingVisible,
-                };
-              }
-              return nextReview;
-            },
-          );
+              nextReview = {
+                ...nextReview,
+                overall: newScored
+                  ? (derivedOverall ?? ownReviewInput.overall ?? review.overall)
+                  : review.overall,
+                taste: newScored ? ownReviewInput.taste : review.taste,
+                value: newScored ? ownReviewInput.value : review.value,
+                service: newScored ? ownReviewInput.service : review.service,
+                atmosphere:
+                  newScored && review.reviewModel ? ownReviewInput.atmosphere : review.atmosphere,
+                comment: ownReviewInput.comment,
+                ratingVisible: nextReview.ratingVisible,
+              };
+            }
+            return nextReview;
+          });
 
           const memberParticipants = current.members
             .filter((member) => input.participantIds.includes(member.id))
@@ -841,24 +725,16 @@ export function StoreProvider({
               avatarImage: member.avatarImage ?? null,
               status: "active" as const,
             }));
-          const historicalParticipants = (
-            currentVisit.participants ?? []
-          ).filter(
+          const historicalParticipants = (currentVisit.participants ?? []).filter(
             (participant) =>
-              participant.status === "left" &&
-              input.participantIds.includes(participant.id),
+              participant.status === "left" && input.participantIds.includes(participant.id),
           );
-          const preservedParticipants = (
-            currentVisit.participants ?? []
-          ).filter(
+          const preservedParticipants = (currentVisit.participants ?? []).filter(
             (participant) =>
-              participant.status !== "guest" &&
-              !currentEditableParticipantIds.has(participant.id),
+              participant.status !== "guest" && !currentEditableParticipantIds.has(participant.id),
           );
           const guestParticipants = input.guests.map((guest, index) => ({
-            id: guest.id
-              ? `guest:${guest.id}`
-              : `guest-demo-${visitId}-${index}`,
+            id: guest.id ? `guest:${guest.id}` : `guest-demo-${visitId}-${index}`,
             name: guest.name,
             avatar: "👤",
             avatarImage: null,
@@ -882,20 +758,15 @@ export function StoreProvider({
 
           return {
             ...current,
-            visits: current.visits.map((item) =>
-              item.id === visitId ? nextVisit : item,
-            ),
+            visits: current.visits.map((item) => (item.id === visitId ? nextVisit : item)),
           };
         });
       },
 
       saveVisitPhoto: async (visitId, file, visitSnapshot) => {
-        const visit =
-          visitSnapshot ?? state.visits.find((item) => item.id === visitId);
+        const visit = visitSnapshot ?? state.visits.find((item) => item.id === visitId);
         if (!visit) throw new Error("Besöket finns inte.");
-        const role = state.members.find(
-          (member) => member.id === state.currentUserId,
-        )?.role;
+        const role = state.members.find((member) => member.id === state.currentUserId)?.role;
         if (
           !canAddOrReplaceVisitPhoto(
             visit,
@@ -904,24 +775,18 @@ export function StoreProvider({
             state.group.lifecycleStatus === "archived",
           )
         ) {
-          throw new Error(
-            "Endast faktiska deltagare kan lägga till eller byta sin bild.",
-          );
+          throw new Error("Endast faktiska deltagare kan lägga till eller byta sin bild.");
         }
         const prepared = await prepareVisitPhoto(file);
         if (mode === "live") {
-          await runLive((groupId) =>
-            liveSaveVisitPhoto(groupId, visitId, prepared),
-          );
+          await runLive((groupId) => liveSaveVisitPhoto(groupId, visitId, prepared));
           return;
         }
         assertDemoWritable(state, demoReadOnly);
         const url = await blobToDataUrl(prepared.blob);
         const updatedAt = new Date().toISOString();
         setState((current) => {
-          const currentVisit = current.visits.find(
-            (item) => item.id === visitId,
-          );
+          const currentVisit = current.visits.find((item) => item.id === visitId);
           if (!currentVisit) throw new Error("Besöket finns inte.");
           const currentRole = current.members.find(
             (member) => member.id === current.currentUserId,
@@ -934,15 +799,10 @@ export function StoreProvider({
               current.group.lifecycleStatus === "archived",
             )
           ) {
-            throw new Error(
-              "Endast faktiska deltagare kan lägga till en bild.",
-            );
+            throw new Error("Endast faktiska deltagare kan lägga till en bild.");
           }
 
-          const ownPhoto = getOwnVisitPhoto(
-            currentVisit,
-            current.currentUserId,
-          );
+          const ownPhoto = getOwnVisitPhoto(currentVisit, current.currentUserId);
           const nextPhoto = {
             url,
             uploadedBy: current.currentUserId,
@@ -958,11 +818,7 @@ export function StoreProvider({
               (photo) => photo.uploadedBy !== current.currentUserId,
             ),
             nextPhoto,
-          ].sort((a, b) =>
-            (a.createdAt ?? a.updatedAt).localeCompare(
-              b.createdAt ?? b.updatedAt,
-            ),
-          );
+          ].sort((a, b) => (a.createdAt ?? a.updatedAt).localeCompare(b.createdAt ?? b.updatedAt));
           const photo = representativeVisitPhoto({ photos, photo: null });
 
           return {
@@ -978,9 +834,7 @@ export function StoreProvider({
         const visit = state.visits.find((item) => item.id === visitId);
         if (!visit) throw new Error("Besöket finns inte.");
         const targetUploadedBy = uploadedBy ?? state.currentUserId;
-        const role = state.members.find(
-          (member) => member.id === state.currentUserId,
-        )?.role;
+        const role = state.members.find((member) => member.id === state.currentUserId)?.role;
         if (
           !canDeleteVisitPhoto(
             visit,
@@ -993,16 +847,12 @@ export function StoreProvider({
           throw new Error("Du saknar behörighet att ta bort den här bilden.");
         }
         if (mode === "live") {
-          await runLive((groupId) =>
-            liveDeleteVisitPhoto(groupId, visitId, targetUploadedBy),
-          );
+          await runLive((groupId) => liveDeleteVisitPhoto(groupId, visitId, targetUploadedBy));
           return;
         }
         assertDemoWritable(state, demoReadOnly);
         setState((current) => {
-          const currentVisit = current.visits.find(
-            (item) => item.id === visitId,
-          );
+          const currentVisit = current.visits.find((item) => item.id === visitId);
           if (!currentVisit) throw new Error("Besöket finns inte.");
           const currentRole = current.members.find(
             (member) => member.id === current.currentUserId,
@@ -1034,9 +884,7 @@ export function StoreProvider({
       deleteVisit: async (visitId) => {
         const visit = state.visits.find((item) => item.id === visitId);
         if (!visit) throw new Error("Besöket finns inte.");
-        const role = state.members.find(
-          (member) => member.id === state.currentUserId,
-        )?.role;
+        const role = state.members.find((member) => member.id === state.currentUserId)?.role;
         if (
           !canDeleteOriginalVisit(
             visit,
@@ -1065,9 +913,7 @@ export function StoreProvider({
           activity: current.activity.filter(
             (item) =>
               item.visitId !== visitId &&
-              !(
-                item.target?.kind === "visit" && item.target.visitId === visitId
-              ),
+              !(item.target?.kind === "visit" && item.target.visitId === visitId),
           ),
         }));
       },
@@ -1080,12 +926,9 @@ export function StoreProvider({
         assertDemoWritable(state, demoReadOnly);
         if (
           placeId &&
-          state.places.find((place) => place.id === placeId)
-            ?.collectionStatus === "archived"
+          state.places.find((place) => place.id === placeId)?.collectionStatus === "archived"
         ) {
-          throw new Error(
-            "Lägg tillbaka matstället innan det väljs som nästa stopp.",
-          );
+          throw new Error("Lägg tillbaka matstället innan det väljs som nästa stopp.");
         }
         setState((current) => {
           if (!placeId) return { ...current, nextPlaceId: null };
@@ -1160,8 +1003,7 @@ export function StoreProvider({
                 }
               : place,
           ),
-          nextPlaceId:
-            current.nextPlaceId === placeId ? null : current.nextPlaceId,
+          nextPlaceId: current.nextPlaceId === placeId ? null : current.nextPlaceId,
         }));
       },
 
@@ -1190,9 +1032,7 @@ export function StoreProvider({
         const normalizedInput: GroupPlaceMetadataInput = {
           ...input,
           cuisinesOverride:
-            input.cuisinesOverride == null
-              ? null
-              : normalizeFoodTags(input.cuisinesOverride),
+            input.cuisinesOverride == null ? null : normalizeFoodTags(input.cuisinesOverride),
           occasions: normalizeOccasionClassification(input.occasions),
         };
         if (mode === "live") {
@@ -1207,9 +1047,7 @@ export function StoreProvider({
           places: current.places.map((place) => {
             if (place.id !== placeId) return place;
             const canonicalCategory = place.canonicalCategory ?? place.category;
-            const canonicalCuisines = normalizeFoodTags(
-              place.canonicalCuisines ?? place.cuisines,
-            );
+            const canonicalCuisines = normalizeFoodTags(place.canonicalCuisines ?? place.cuisines);
             return {
               ...place,
               canonicalCategory,
@@ -1227,29 +1065,19 @@ export function StoreProvider({
 
       updateOwnReview: async (reviewId, input) => {
         if (mode === "live") {
-          await runLive((groupId) =>
-            liveUpdateOwnReview(groupId, reviewId, input),
-          );
+          await runLive((groupId) => liveUpdateOwnReview(groupId, reviewId, input));
           return;
         }
         assertDemoWritable(state, demoReadOnly);
         const target = state.visits
-          .flatMap((visit) =>
-            (visit.visibleReviews ?? []).map((review) => ({ visit, review })),
-          )
-          .find(
-            ({ review }) =>
-              review.id === reviewId && review.userId === state.currentUserId,
-          );
+          .flatMap((visit) => (visit.visibleReviews ?? []).map((review) => ({ visit, review })))
+          .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
         if (!target) throw new Error("Ditt omdöme hittades inte.");
 
         if (target.review.reviewModel) {
           if (
             !reviewRatingsComplete(
-              effectiveReviewModel(
-                target.review.reviewModel,
-                target.visit.isTakeaway === true,
-              ),
+              effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
               {
                 taste: input.taste ?? 0,
                 value: input.value ?? 0,
@@ -1267,11 +1095,7 @@ export function StoreProvider({
           visits: current.visits.map((visit) => {
             const scored = visitHasScore(visit);
             const reviews = (visit.visibleReviews ?? []).map((review) => {
-              if (
-                review.id !== reviewId ||
-                review.userId !== current.currentUserId
-              )
-                return review;
+              if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
               if (!scored) {
                 return {
                   ...review,
@@ -1292,9 +1116,7 @@ export function StoreProvider({
                 taste: input.taste ?? null,
                 value: input.value ?? null,
                 service: input.service ?? null,
-                atmosphere: review.reviewModel
-                  ? (input.atmosphere ?? null)
-                  : null,
+                atmosphere: review.reviewModel ? (input.atmosphere ?? null) : null,
                 comment: input.comment ?? null,
                 ratingVisible: review.ratingVisible,
               };
@@ -1328,16 +1150,10 @@ export function StoreProvider({
           .filter((visit) => visit.placeId === placeId && visitHasScore(visit))
           .flatMap((visit) =>
             (visit.visibleReviews ?? []).flatMap((review) => {
-              if (
-                !visit.participantIds.includes(review.userId) ||
-                !review.ratingVisible
-              ) {
+              if (!visit.participantIds.includes(review.userId) || !review.ratingVisible) {
                 return [];
               }
-              const overall = effectiveReviewOverall(
-                review,
-                visit.isTakeaway === true,
-              );
+              const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
               return overall != null ? [overall] : [];
             }),
           );
@@ -1347,24 +1163,19 @@ export function StoreProvider({
       },
       isFavorite: (placeId) =>
         state.favorites.some(
-          (favorite) =>
-            favorite.memberId === state.currentUserId &&
-            favorite.placeId === placeId,
+          (favorite) => favorite.memberId === state.currentUserId && favorite.placeId === placeId,
         ),
       hasVisited: (placeId, memberId) => {
         const userId = memberId ?? state.currentUserId;
         return state.visits.some(
-          (visit) =>
-            visit.placeId === placeId && visit.participantIds.includes(userId),
+          (visit) => visit.placeId === placeId && visit.participantIds.includes(userId),
         );
       },
       statusOf: (placeId) => {
         const memberIds = state.members.map((member) => member.id);
         const visited = memberIds.filter((memberId) =>
           state.visits.some(
-            (visit) =>
-              visit.placeId === placeId &&
-              visit.participantIds.includes(memberId),
+            (visit) => visit.placeId === placeId && visit.participantIds.includes(memberId),
           ),
         );
         if (visited.length === 0) return "nytt-for-gruppen";
@@ -1376,9 +1187,7 @@ export function StoreProvider({
         const memberIds = state.members.map((member) => member.id);
         const visited = memberIds.filter((memberId) =>
           state.visits.some(
-            (visit) =>
-              visit.placeId === placeId &&
-              visit.participantIds.includes(memberId),
+            (visit) => visit.placeId === placeId && visit.participantIds.includes(memberId),
           ),
         );
         return { visited: visited.length, total: memberIds.length };
@@ -1386,8 +1195,7 @@ export function StoreProvider({
       proposerOfNext: () => {
         if (!state.nextPlaceId) return undefined;
         return state.activity.find(
-          (item) =>
-            item.kind === "next-picked" && item.placeId === state.nextPlaceId,
+          (item) => item.kind === "next-picked" && item.placeId === state.nextPlaceId,
         )?.memberId;
       },
       categoryCounts: () => {
@@ -1412,9 +1220,7 @@ export function StoreProvider({
         };
         state.places
           .filter((place) => place.collectionStatus !== "archived")
-          .forEach((place) =>
-            place.occasions.forEach((occasion) => (counts[occasion] += 1)),
-          );
+          .forEach((place) => place.occasions.forEach((occasion) => (counts[occasion] += 1)));
         return counts;
       },
     };
@@ -1429,24 +1235,19 @@ export function StoreProvider({
     baseDemoState,
   ]);
 
-  return (
-    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
-  );
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 
 export function useStore() {
   const context = React.useContext(StoreContext);
-  if (!context)
-    throw new Error("useStore måste användas inuti <StoreProvider>");
+  if (!context) throw new Error("useStore måste användas inuti <StoreProvider>");
   return context;
 }
 
 export function formatDate(iso: string) {
   const date = new Date(iso);
   const now = new Date();
-  const days = Math.round(
-    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const days = Math.round((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   if (days <= 0) return "idag";
   if (days === 1) return "igår";
   if (days < 7) return `${days} dgr sedan`;
@@ -1459,8 +1260,6 @@ export function formatDate(iso: string) {
 }
 
 export function googleMapsUrl(place: Place) {
-  const query = encodeURIComponent(
-    `${place.name} ${place.address} ${place.city}`,
-  );
+  const query = encodeURIComponent(`${place.name} ${place.address} ${place.city}`);
   return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
