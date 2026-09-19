@@ -355,8 +355,8 @@ export function buildExampleState(nowInput: Date): AppState {
           byteSize: 5240,
           width: 1200,
           height: 800,
-          createdAt: timestamp(now, -6, -20),
-          updatedAt: timestamp(now, -6, -20),
+          createdAt: timestamp(now, -6),
+          updatedAt: timestamp(now, -6),
         },
         {
           url: "/demo-visit-photo-2.svg",
@@ -365,8 +365,8 @@ export function buildExampleState(nowInput: Date): AppState {
           byteSize: 4380,
           width: 1200,
           height: 800,
-          createdAt: timestamp(now, -6, -10),
-          updatedAt: timestamp(now, -6, -10),
+          createdAt: timestamp(now, -5),
+          updatedAt: timestamp(now, -5),
         },
       ],
       photo: {
@@ -376,8 +376,8 @@ export function buildExampleState(nowInput: Date): AppState {
         byteSize: 5240,
         width: 1200,
         height: 800,
-        createdAt: timestamp(now, -6, -20),
-        updatedAt: timestamp(now, -6, -20),
+        createdAt: timestamp(now, -6),
+        updatedAt: timestamp(now, -6),
       },
     }),
     exampleVisit({
