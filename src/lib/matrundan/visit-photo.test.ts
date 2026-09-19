@@ -40,39 +40,19 @@ const originalVisit = {
 describe("behörighet för besöksbilder", () => {
   test("varje faktisk deltagare får lägga till eller ersätta sin egen bild", () => {
     expect(
-      canAddOrReplaceVisitPhoto(
-        originalVisit,
-        "member-1",
-        "medlem",
-        false,
-      ),
+      canAddOrReplaceVisitPhoto(originalVisit, "member-1", "medlem", false),
     ).toBe(true);
     expect(
-      canAddOrReplaceVisitPhoto(
-        originalVisit,
-        "member-2",
-        "medlem",
-        false,
-      ),
+      canAddOrReplaceVisitPhoto(originalVisit, "member-2", "medlem", false),
     ).toBe(true);
   });
 
   test("owner eller admin utan faktisk närvaro får inte bidra med en bild", () => {
     expect(
-      canAddOrReplaceVisitPhoto(
-        originalVisit,
-        "admin-1",
-        "admin",
-        false,
-      ),
+      canAddOrReplaceVisitPhoto(originalVisit, "admin-1", "admin", false),
     ).toBe(false);
     expect(
-      canAddOrReplaceVisitPhoto(
-        originalVisit,
-        "owner-1",
-        "ägare",
-        false,
-      ),
+      canAddOrReplaceVisitPhoto(originalVisit, "owner-1", "ägare", false),
     ).toBe(false);
   });
 
@@ -87,22 +67,10 @@ describe("behörighet för besöksbilder", () => {
       ),
     ).toBe(true);
     expect(
-      canDeleteVisitPhoto(
-        originalVisit,
-        "member-1",
-        "admin-1",
-        "admin",
-        false,
-      ),
+      canDeleteVisitPhoto(originalVisit, "member-1", "admin-1", "admin", false),
     ).toBe(true);
     expect(
-      canDeleteVisitPhoto(
-        originalVisit,
-        "member-1",
-        "owner-1",
-        "ägare",
-        false,
-      ),
+      canDeleteVisitPhoto(originalVisit, "member-1", "owner-1", "ägare", false),
     ).toBe(true);
   });
 
@@ -120,13 +88,7 @@ describe("behörighet för besöksbilder", () => {
 
   test("en saknad målbild kan inte modereras", () => {
     expect(
-      canDeleteVisitPhoto(
-        originalVisit,
-        "member-2",
-        "admin-1",
-        "admin",
-        false,
-      ),
+      canDeleteVisitPhoto(originalVisit, "member-2", "admin-1", "admin", false),
     ).toBe(false);
   });
 
@@ -134,38 +96,16 @@ describe("behörighet för besöksbilder", () => {
     const sharedVisit = { ...originalVisit, linkType: "shared" as const };
 
     expect(
-      canAddOrReplaceVisitPhoto(
-        sharedVisit,
-        "member-1",
-        "ägare",
-        false,
-      ),
+      canAddOrReplaceVisitPhoto(sharedVisit, "member-1", "ägare", false),
     ).toBe(false);
     expect(
-      canDeleteVisitPhoto(
-        sharedVisit,
-        "member-1",
-        "member-1",
-        "ägare",
-        false,
-      ),
+      canDeleteVisitPhoto(sharedVisit, "member-1", "member-1", "ägare", false),
     ).toBe(false);
     expect(
-      canAddOrReplaceVisitPhoto(
-        originalVisit,
-        "member-1",
-        "ägare",
-        true,
-      ),
+      canAddOrReplaceVisitPhoto(originalVisit, "member-1", "ägare", true),
     ).toBe(false);
     expect(
-      canDeleteVisitPhoto(
-        originalVisit,
-        "member-1",
-        "member-1",
-        "ägare",
-        true,
-      ),
+      canDeleteVisitPhoto(originalVisit, "member-1", "member-1", "ägare", true),
     ).toBe(false);
   });
 
@@ -197,28 +137,13 @@ describe("behörighet för besöksbilder", () => {
 
   test("kompatibilitetshjälparen betyder att minst en tillåten fotoåtgärd finns", () => {
     expect(
-      canManageVisitPhoto(
-        originalVisit,
-        "member-2",
-        "medlem",
-        false,
-      ),
+      canManageVisitPhoto(originalVisit, "member-2", "medlem", false),
     ).toBe(true);
+    expect(canManageVisitPhoto(originalVisit, "admin-1", "admin", false)).toBe(
+      true,
+    );
     expect(
-      canManageVisitPhoto(
-        originalVisit,
-        "admin-1",
-        "admin",
-        false,
-      ),
-    ).toBe(true);
-    expect(
-      canManageVisitPhoto(
-        originalVisit,
-        "member-3",
-        "medlem",
-        false,
-      ),
+      canManageVisitPhoto(originalVisit, "member-3", "medlem", false),
     ).toBe(false);
   });
 });
