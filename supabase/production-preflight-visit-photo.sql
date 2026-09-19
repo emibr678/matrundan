@@ -25,7 +25,11 @@ WITH function_defs AS (
     COALESCE(
       pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5m(uuid)')),
       ''
-    ) AS v5m_def
+    ) AS v5m_def,
+    COALESCE(
+      pg_get_functiondef(to_regprocedure('public.delete_original_visit(uuid,uuid)')),
+      ''
+    ) AS delete_visit_def
 ),
 checks(name, ok) AS (
   VALUES
@@ -74,6 +78,7 @@ checks(name, ok) AS (
             AND position('has_group_role' IN delete_def) > 0
             AND position('owner' IN delete_def) > 0
             AND position('admin' IN delete_def) > 0
+            AND position('can_delete_original_visit' IN delete_def) = 0
           FROM function_defs
         ),
         false
@@ -149,10 +154,13 @@ checks(name, ok) AS (
       )
     ),
     (
-      'visit-photo:delete-policy-uses-target-aware-path-guard',
+      'visit-photo:delete-policy-cleans-only-orphaned-media',
       COALESCE(
         (
-          SELECT position('can_delete_own_visit_photo_path' IN qual) > 0
+          SELECT position('not exists' IN lower(qual)) > 0
+            AND position('visit_media' IN qual) > 0
+            AND position('has_group_role' IN qual) > 0
+            AND position('can_delete_original_visit' IN qual) = 0
           FROM pg_policies
           WHERE schemaname = 'storage'
             AND tablename = 'objects'
@@ -163,17 +171,13 @@ checks(name, ok) AS (
       )
     ),
     (
-      'visit-photo:delete-policy-cleans-moderated-orphan',
+      'visit-photo:whole-visit-delete-returns-storage-paths',
       COALESCE(
         (
-          SELECT position('has_group_role' IN qual) > 0
-            AND position('can_delete_original_visit' IN qual) > 0
-            AND position('not exists' IN lower(qual)) > 0
-          FROM pg_policies
-          WHERE schemaname = 'storage'
-            AND tablename = 'objects'
-            AND policyname = 'visit photos allowed delete'
-            AND cmd = 'DELETE'
+          SELECT position('array_agg' IN lower(delete_visit_def)) > 0
+            AND position('visit_media' IN delete_visit_def) > 0
+            AND position('delete from public.visits' IN lower(delete_visit_def)) > 0
+          FROM function_defs
         ),
         false
       )
