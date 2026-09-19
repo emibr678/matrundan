@@ -1,7 +1,14 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, Pencil, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
+import {
+  MapPin,
+  Pencil,
+  Share2,
+  Trash2,
+  UserRoundCheck,
+  Users2,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -31,11 +38,16 @@ import { VisitGuestParticipationPrompt } from "./VisitGuestParticipationPrompt";
 import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
-import { canDeleteOriginalVisit, canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
+import {
+  canDeleteOriginalVisit,
+  canEditOriginalVisit,
+} from "@/lib/matrundan/visit-permissions";
 import { EditVisitDialog } from "./EditVisitDialog";
 
 function formatVisitDate(iso: string) {
-  const calendarDate = /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(0, 10)}T12:00:00` : iso;
+  const calendarDate = /^\d{4}-\d{2}-\d{2}/.test(iso)
+    ? `${iso.slice(0, 10)}T12:00:00`
+    : iso;
   return new Date(calendarDate).toLocaleDateString("sv-SE", {
     day: "numeric",
     month: "long",
@@ -57,7 +69,8 @@ export function VisitDetailSheet({
   const { state, getPlace, memberById, deleteVisit, demoReadOnly } = useStore();
   const { mode, activeGroupId, activeGroupRole, userGroups } = useSession();
   const visit = React.useMemo(
-    () => (visitId ? state.visits.find((item) => item.id === visitId) : undefined),
+    () =>
+      visitId ? state.visits.find((item) => item.id === visitId) : undefined,
     [visitId, state.visits],
   );
   const place = visit ? getPlace(visit.placeId) : undefined;
@@ -66,17 +79,27 @@ export function VisitDetailSheet({
   const isLive = mode === "live" && !!activeGroupId;
   const isDemo = mode === "demo";
   const groupArchived = state.group.lifecycleStatus === "archived";
-  const participantFallback = !!visit && visit.participantIds.includes(state.currentUserId);
+  const participantFallback =
+    !!visit && visit.participantIds.includes(state.currentUserId);
   const participationStatus =
-    visit?.currentUserParticipationStatus ?? (participantFallback ? "participant" : "none");
+    visit?.currentUserParticipationStatus ??
+    (participantFallback ? "participant" : "none");
   const isParticipant = participationStatus === "participant";
   const isShared = visit?.linkType === "shared";
-  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
+  const activeGroupCount = userGroups.filter(
+    (group) => group.lifecycleStatus === "active",
+  ).length;
   const hasPrivateGuests =
-    visit?.participants?.some((participant) => participant.status === "guest") ?? false;
+    visit?.participants?.some(
+      (participant) => participant.status === "guest",
+    ) ?? false;
   const hasExternalParticipants = (visit?.externalParticipantCount ?? 0) > 0;
   const canLinkGuest =
-    !groupArchived && isLive && !isShared && hasPrivateGuests && activeGroupCount >= 2;
+    !groupArchived &&
+    isLive &&
+    !isShared &&
+    hasPrivateGuests &&
+    activeGroupCount >= 2;
   const canUnlink =
     !groupArchived &&
     isLive &&
@@ -86,14 +109,26 @@ export function VisitDetailSheet({
       activeGroupRole === "owner" ||
       activeGroupRole === "admin");
   const canShare =
-    !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
+    !groupArchived &&
+    isLive &&
+    !!visit &&
+    isParticipant &&
+    activeGroupCount >= 2;
   const currentRole = state.members.find(
     (member) => member.id === state.currentUserId,
   )?.role;
   const canDelete =
-    !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
+    !!visit &&
+    canDeleteOriginalVisit(
+      visit,
+      state.currentUserId,
+      currentRole,
+      groupArchived,
+    );
   const canEdit =
-    !!visit && !demoReadOnly && canEditOriginalVisit(visit, state.currentUserId, groupArchived);
+    !!visit &&
+    !demoReadOnly &&
+    canEditOriginalVisit(visit, state.currentUserId, groupArchived);
 
   const [shareOpen, setShareOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
@@ -119,7 +154,9 @@ export function VisitDetailSheet({
       onOpenChange(false);
       await reload();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte ta bort.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte ta bort.",
+      );
     } finally {
       setUnlinking(false);
     }
@@ -134,7 +171,9 @@ export function VisitDetailSheet({
       setConfirmDelete(false);
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte radera besöket.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte radera besöket.",
+      );
     } finally {
       setDeleting(false);
     }
@@ -143,7 +182,10 @@ export function VisitDetailSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md">
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto p-0 sm:max-w-md"
+        >
           {visit && place ? (
             <div className="flex flex-col">
               <SheetHeader className="space-y-0 border-b border-border/60 bg-gradient-to-br from-sage/40 to-secondary p-5 text-left">
@@ -197,7 +239,9 @@ export function VisitDetailSheet({
                     {author?.avatar ?? "🙂"}
                   </span>
                   <span className="min-w-0">
-                    <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
+                    <span className="font-medium text-foreground">
+                      {author?.name ?? "Någon"}
+                    </span>{" "}
                     registrerade besöket
                   </span>
                 </div>
@@ -230,14 +274,18 @@ export function VisitDetailSheet({
                               : undefined
                         }
                       >
-                        <span className="mr-1">{participant.avatar ?? "🙂"}</span>
+                        <span className="mr-1">
+                          {participant.avatar ?? "🙂"}
+                        </span>
                         <span className="truncate">{participant.name}</span>
                         {participant.status === "left" ? (
                           <span className="ml-1 text-[10px] text-muted-foreground">
                             · Tidigare medlem
                           </span>
                         ) : participant.status === "guest" ? (
-                          <span className="ml-1 text-[10px] text-muted-foreground">· Gäst</span>
+                          <span className="ml-1 text-[10px] text-muted-foreground">
+                            · Gäst
+                          </span>
                         ) : null}
                       </Badge>
                     ))}
@@ -247,15 +295,16 @@ export function VisitDetailSheet({
                         className="rounded-full border-border/70 bg-muted px-2.5 py-1 text-xs font-normal text-muted-foreground"
                         title="Personer utanför den här gruppen visas anonymt."
                       >
-                        <Users2 className="mr-1 h-3 w-3" />+{visit.externalParticipantCount} utanför
-                        gruppen
+                        <Users2 className="mr-1 h-3 w-3" />+
+                        {visit.externalParticipantCount} utanför gruppen
                       </Badge>
                     ) : null}
                   </div>
                   {hasPrivateGuests ? (
                     <div className="mt-1.5 space-y-1.5">
                       <p className="text-[11px] text-muted-foreground">
-                        Gäster hör bara till besöket och räknas inte som gruppmedlemmar.
+                        Gäster hör bara till besöket och räknas inte som
+                        gruppmedlemmar.
                       </p>
                       {canLinkGuest ? (
                         <Button
@@ -273,13 +322,19 @@ export function VisitDetailSheet({
                   ) : null}
                 </section>
 
-                {(isLive && activeGroupId) || (isDemo && isShared && !isParticipant) ? (
+                {(isLive && activeGroupId) ||
+                (isDemo && isShared && !isParticipant) ? (
                   <VisitGuestParticipationPrompt
                     visitId={visit.id}
                     groupId={isLive ? activeGroupId : null}
                     groupArchived={groupArchived}
                     onChanged={reload}
-                    demoPending={isDemo && isShared && !isParticipant && hasExternalParticipants}
+                    demoPending={
+                      isDemo &&
+                      isShared &&
+                      !isParticipant &&
+                      hasExternalParticipants
+                    }
                   />
                 ) : null}
 
@@ -325,12 +380,20 @@ export function VisitDetailSheet({
                 </Button>
 
                 {canEdit ? (
-                  <Button variant="secondary" className="w-full" onClick={() => setEditOpen(true)}>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => setEditOpen(true)}
+                  >
                     <Pencil className="h-4 w-4" />
                     Redigera besök
                   </Button>
                 ) : canShare ? (
-                  <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => setShareOpen(true)}
+                  >
                     <Share2 className="h-4 w-4" />
                     Lägg till i annan grupp
                   </Button>
@@ -396,8 +459,8 @@ export function VisitDetailSheet({
           <AlertDialogHeader>
             <AlertDialogTitle>Ta bort besöket från gruppen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Besöket försvinner från denna grupps historik. Originalbesöket och matstället ligger
-              kvar där de skapades.
+              Besöket försvinner från denna grupps historik. Originalbesöket och
+              matstället ligger kvar där de skapades.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -412,10 +475,13 @@ export function VisitDetailSheet({
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Radera besöket på {place?.name ?? "matstället"}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Radera besöket på {place?.name ?? "matstället"}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Besöket, bilderna och alla omdömen tas bort. Gruppens progression räknas om. Om besöket
-              har lagts till i andra grupper försvinner det även där. Det går inte att ångra.
+              Besöket, bilderna och alla omdömen tas bort. Gruppens progression
+              räknas om. Om besöket har lagts till i andra grupper försvinner
+              det även där. Det går inte att ångra.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
