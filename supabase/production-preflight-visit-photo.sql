@@ -163,6 +163,22 @@ checks(name, ok) AS (
       )
     ),
     (
+      'visit-photo:delete-policy-cleans-moderated-orphan',
+      COALESCE(
+        (
+          SELECT position('has_group_role' IN qual) > 0
+            AND position('can_delete_original_visit' IN qual) > 0
+            AND position('not exists' IN lower(qual)) > 0
+          FROM pg_policies
+          WHERE schemaname = 'storage'
+            AND tablename = 'objects'
+            AND policyname = 'visit photos allowed delete'
+            AND cmd = 'DELETE'
+        ),
+        false
+      )
+    ),
+    (
       'visit-photo:upsert-conflicts-per-uploader',
       COALESCE(
         (
