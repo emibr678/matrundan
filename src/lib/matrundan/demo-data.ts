@@ -48,6 +48,8 @@ export const DEMO_STATE: AppState = {
     {
       id: "p2",
       name: "Kvarterets Kardemumma",
+      canonicalCategory: "restaurang",
+      categoryOverride: "café",
       category: "café",
       cuisines: ["kaffe", "surdeg", "bakverk"],
       occasions: ["snabbt", "avslappnat"],
