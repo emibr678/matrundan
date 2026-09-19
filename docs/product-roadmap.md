@@ -162,10 +162,22 @@ besök är mer grundläggande än att bygga ytterligare statistik eller media ov
 historiken. Funktionen ska följa #169:s deltagarinvarianter och #307:s historiskt
 frysta reviewmodell.
 
+### Nästa efter #309
+
+**#198 Härled filtrering och topplistor från verkliga besökstillfällen** är nu
+beslutad som nästa produktleverans efter #309 och har flyttats till
+`priority:next`.
+
+#197 och #307 ger den stabila besöks- och reviewgrunden, och #331/PR #334 ger en
+tillräckligt tydlig Matställen-/topplistehierarki för att #198 inte längre
+behöver invänta #199. Första leveransen ska hålla `Passar för` och
+besökstillfälle separata och börja med den minsta historikbaserade vägledning
+som hjälper gruppen välja nästa ställe, inklusive kontextuell filtrering som
+Lunch/Middag där underlaget är relevant.
+
 ### Närmaste efterföljande produktblock
 
-Följande är den rekommenderade riktningen efter #309. De ligger fortsatt
-`priority:later` tills närmare planering för att undvika falsk precision:
+Efter #198 ligger fortsatt:
 
 1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
    besök** – återanvänd samma kanoniska plats mellan användarens grupper utan att
@@ -173,13 +185,9 @@ Följande är den rekommenderade riktningen efter #309. De ligger fortsatt
 2. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
    för** – slutför den kvarvarande informationsarkitekturen; gör inte om den
    `Passar för`-copy som redan förbättrats genom #331.
-3. **#198 Härled filtrering och topplistor från verkliga besökstillfällen** – låt
-   faktisk historik börja hjälpa gruppen välja nästa ställe, ovanpå #197, #307
-   och den aktuella Matställen-hierarkin.
 
-Ingen `order:*` låses för detta block ännu. När #309 närmar sig leverans ska
- den faktiska relativa ordningen bedömas igen utifrån aktuell produktnytta och
- beroenden.
+Ingen fullständig `order:*`-sekvens låses för det efterföljande blocket ännu;
+det beslutade relativa steget är #309 → #198.
 
 ### Senare mediautbyggnad
 
@@ -259,18 +267,19 @@ av vilka andra grupper som använder samma plats.
 
 ## Paket G – Gruppens platskunskap och historikbaserad vägledning
 
-**Prioritet:** senare, men #199/#198 ingår i närmaste produktblock efter
-#318/#309/#157.
+**Prioritet:** #198 är `priority:next` och beslutad som direkt nästa steg efter
+#309. #199 ligger kvar senare.
 
-1. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
-   för** – fokusera på kvarvarande informationsarkitektur. Den generella
-   `Passar för`-copyn från #331 är redan landad och ska inte göras om utan
-   konkret skäl.
-2. **#198 Härled filtrering och topplistor från verkliga besökstillfällen** –
+1. **#198 Härled filtrering och topplistor från verkliga besökstillfällen** –
    komplettera dagens karaktärsbaserade `Passar för`-topplistor med
    historikbaserade signaler från verkliga besök. Synliga betyg ska vara direkt
    begripliga från #307:s reviewvärden och evidensmängd får påverka när en signal
-   visas, inte förvränga stjärnbetyget.
+   visas, inte förvränga stjärnbetyget. Besökstillfälle får användas som
+   kontextfilter utan att blandas ihop med `Passar för`.
+2. **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
+   för** – fokusera på kvarvarande informationsarkitektur. Den generella
+   `Passar för`-copyn från #331 är redan landad och ska inte göras om utan
+   konkret skäl.
 
 **#200** är stängt som överspelat. Saknat `Passar för` hanteras redan i relevant
 platscentrerad kontext inför scorebara besök; generell efterbesöks-prompt för
