@@ -49,6 +49,17 @@ describe("exempelgruppens omdömesscenarier", () => {
     expect(visit?.visibleReviews?.every((review) => !review.ratingVisible)).toBe(true);
   });
 
+  test("Rundans Bistro har separat synligt underlag för lunch och middag", () => {
+    const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
+    const lunch = state.visits.find((item) => item.id === EXAMPLE_IDS.visits.providerBistroLunch);
+    const dinner = state.visits.find((item) => item.id === EXAMPLE_IDS.visits.providerBistroReturn);
+
+    expect(lunch?.meal).toBe("lunch");
+    expect(lunch?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(1);
+    expect(dinner?.meal).toBe("middag");
+    expect(dinner?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(1);
+  });
+
   test("självkorrigerad deltagare lämnar registreraren kvar på besöket", () => {
     const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
     const visit = state.visits.find((item) => item.id === EXAMPLE_IDS.visits.archivedHistory);

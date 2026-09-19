@@ -19,16 +19,21 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   const leaderboard = page.getByTestId("occasion-leaderboard");
   await expect(leaderboard.getByRole("link", { name: /Ledare i topplistan:/ })).toBeVisible();
   await leaderboard.getByRole("button", { name: "Visa topp 3", exact: true }).click();
-  await expect(
-    leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(leaderboard.getByText("Alla", { exact: true })).toHaveCount(0);
+  await expect(leaderboard.getByText("Alla tillfällen", { exact: true })).toHaveCount(0);
   await expect(leaderboard.getByText("Månskärans Taquería", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
-  await leaderboard.getByRole("button", { name: /Avslappnat/ }).click();
-  await expect(
-    leaderboard.getByRole("button", { name: "Visa topplista för Avslappnat" }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await leaderboard.getByRole("button", { name: /Snabbt och enkelt/ }).click();
+
+  const relaxed = leaderboard.getByRole("button", {
+    name: "Filtrera topplistan på Avslappnat",
+  });
+  const quick = leaderboard.getByRole("button", {
+    name: "Filtrera topplistan på Snabbt och enkelt",
+  });
+  await relaxed.click();
+  await expect(relaxed).toHaveAttribute("aria-pressed", "true");
+  await quick.click();
+  await expect(quick).toHaveAttribute("aria-pressed", "true");
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Topplista per val");
 
