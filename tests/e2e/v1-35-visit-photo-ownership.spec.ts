@@ -21,10 +21,11 @@ test("deltagarnas bilder behåller eget ägarskap i samma besök", async ({ page
   ).toBeVisible();
 
   const alexPhoto = gallery.getByRole("group", { name: "Bild från Alex, din bild" });
-  await expect(alexPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(1);
-  await expect(alexPhoto.getByRole("button", { name: "Fler alternativ för din bild" })).toHaveCount(
-    1,
-  );
+  await expect(alexPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(0);
+  await alexPhoto.getByRole("button", { name: "Fler alternativ för din bild" }).click();
+  await expect(page.getByRole("menuitem", { name: "Byt bild" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Ta bort din bild" })).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(gallery.getByText("Bilder delas inte vidare automatiskt.")).toBeVisible();
 
   const overflow = await visitDialog.evaluate((element) => ({
