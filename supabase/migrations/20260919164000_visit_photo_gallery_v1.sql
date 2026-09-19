@@ -83,7 +83,6 @@ AS $function$
     AND (
       _uploaded_by = _user_id
       OR public.has_group_role(_group_id, _user_id, ARRAY['owner','admin'])
-      OR public.can_delete_original_visit(_group_id, _visit_id, _user_id)
     );
 $function$;
 
@@ -175,16 +174,16 @@ CREATE POLICY "visit photos allowed delete"
   ON storage.objects FOR DELETE TO authenticated
   USING (
     bucket_id = 'visit-photos'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.visit_media vm
+      WHERE vm.storage_path = name
+    )
+    AND public.has_membership(public.visit_photo_path_group(name), auth.uid())
+    AND public.group_is_active(public.visit_photo_path_group(name))
     AND (
-      public.can_delete_own_visit_photo_path(name)
-      OR (
-        NOT EXISTS (
-          SELECT 1
-          FROM public.visit_media vm
-          WHERE vm.storage_path = name
-        )
-        AND public.has_membership(public.visit_photo_path_group(name), auth.uid())
-        AND EXISTS (
+      (
+        EXISTS (
           SELECT 1
           FROM public.visit_group_links vgl
           WHERE vgl.group_id = public.visit_photo_path_group(name)
@@ -198,12 +197,12 @@ CREATE POLICY "visit photos allowed delete"
             auth.uid(),
             ARRAY['owner','admin']
           )
-          OR public.can_delete_original_visit(
-            public.visit_photo_path_group(name),
-            public.visit_photo_path_visit(name),
-            auth.uid()
-          )
         )
+      )
+      OR NOT EXISTS (
+        SELECT 1
+        FROM public.visits v
+        WHERE v.id = public.visit_photo_path_visit(name)
       )
     )
   );
@@ -363,6 +362,49 @@ GRANT EXECUTE ON FUNCTION public.delete_visit_photo(uuid, uuid)
   TO authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_visit_photo_v2(uuid, uuid, uuid)
   TO authenticated;
+
+-- Hela originalbesöket får fortsatt raderas av registreraren/owner/admin, men
+-- det ger inte längre rätt att punktmoderera någon annans bild. RPC:n samlar
+-- först lagringssökvägarna, raderar sedan det kanoniska besöket och låter
+-- klienten städa de nu orefererade Storage-objekten.
+DROP FUNCTION IF EXISTS public.delete_original_visit(uuid, uuid);
+
+CREATE FUNCTION public.delete_original_visit(
+  _group_id uuid,
+  _visit_id uuid
+)
+RETURNS text[]
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _uid uuid := auth.uid();
+  _storage_paths text[];
+BEGIN
+  IF _uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
+  IF NOT public.can_delete_original_visit(_group_id, _visit_id, _uid) THEN
+    RAISE EXCEPTION 'Endast registreraren, ägare eller admin kan radera besöket';
+  END IF;
+
+  PERFORM 1 FROM public.visits WHERE id = _visit_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Besöket finns inte längre'; END IF;
+
+  SELECT COALESCE(array_agg(vm.storage_path ORDER BY vm.created_at, vm.id), ARRAY[]::text[])
+  INTO _storage_paths
+  FROM public.visit_media vm
+  WHERE vm.visit_id = _visit_id
+    AND vm.group_id = _group_id;
+
+  DELETE FROM public.activity WHERE visit_id = _visit_id;
+  DELETE FROM public.visits WHERE id = _visit_id;
+
+  RETURN _storage_paths;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.delete_original_visit(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.delete_original_visit(uuid, uuid) TO authenticated;
 
 -- Äldre read-modeler behåller ett enda representativt foto så att en klient som
 -- ännu inte känner till photos[] fortsätter fungera efter migrationen.
