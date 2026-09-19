@@ -473,9 +473,7 @@ function ReviewRow({
         {hasRating ? (
           <div className="flex shrink-0 flex-col items-end gap-1">
             <RatingStars value={activeOverall as number} size={13} />
-            <span className="text-xs font-medium">
-              {formatRating(activeOverall as number)} / 5
-            </span>
+            <span className="text-xs font-medium">{formatRating(activeOverall as number)} / 5</span>
             <span className="sr-only">
               {name} gav {formatRating(activeOverall as number)} av 5
             </span>
