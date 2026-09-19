@@ -1,5 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+const PNG_1PX = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAD0lEQVR4nGP4z8DAwMAAAAYAAeIhvDMAAAAASUVORK5CYII=",
+  "base64",
+);
+
 async function expectNoHorizontalOverflow(page: Page, context: string) {
   const overflow = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
@@ -62,14 +67,34 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
     await reviewDialog.getByRole("button", { name: `${dimension}: 5 av 5` }).click();
   }
   await reviewDialog.getByLabel("Kommentar (frivilligt)").fill("Mitt eget minne från kvällen.");
+  await expect(reviewDialog.getByRole("button", { name: "Lägg till bild" })).toBeVisible();
+  await reviewDialog.getByLabel("Välj bild från besöket").setInputFiles({
+    name: "taco-minne.png",
+    mimeType: "image/png",
+    buffer: PNG_1PX,
+  });
+  await expect(reviewDialog.getByText("Ny bild vald", { exact: true })).toBeVisible();
+  await expectNoLocatorOverflow(reviewDialog, "Ditt omdöme med bildfält");
   await reviewDialog.getByRole("button", { name: "Spara omdöme" }).click();
 
-  await expect(page.getByText("Ditt omdöme är tillagt.")).toBeVisible();
+  await expect(page.getByText("Ditt omdöme och din bild är tillagda.")).toBeVisible();
   await expect(
     reviewSection.getByText("4 av 4 deltagare i gruppen har lämnat omdöme"),
   ).toBeVisible();
   await expect(reviewSection.getByRole("button", { name: "Lägg till ditt omdöme" })).toHaveCount(0);
   await expect(reviewSection.getByText("Mitt eget minne från kvällen.")).toBeVisible();
-  await expect(reviewSection.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
+  const editReviewButton = reviewSection.getByRole("button", { name: "Redigera omdöme" });
+  await expect(editReviewButton).toBeVisible();
+
+  await expect(visitDialog.getByRole("heading", { name: "Bild från besöket" })).toBeVisible();
+  await expect(visitDialog.getByAltText("Bild från Alex")).toBeVisible();
+
+  await editReviewButton.click();
+  const editReviewDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
+  await expect(editReviewDialog.getByAltText("Din bild från besöket")).toBeVisible();
+  await expect(editReviewDialog.getByText("Din nuvarande bild", { exact: true })).toBeVisible();
+  await expectNoLocatorOverflow(editReviewDialog, "Redigera omdöme med befintlig bild");
+  await editReviewDialog.getByRole("button", { name: "Avbryt" }).click();
+
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");
 });
