@@ -35,30 +35,32 @@ test("topplistan kombinerar Passar för, tillfälle och hämtmat", async ({ page
   ).toBeVisible();
 
   await leaderboard.getByRole("button", { name: "Visa topplista för Lunch" }).click();
-  await expect(leaderboard.getByText("Rundans Bistro", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("Falafelfredag", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("Kardemummaköket", { exact: true })).toHaveCount(0);
+  await expect(leaderboard.getByText("Solsidans Sopplunch", { exact: true })).toBeVisible();
+  await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toHaveCount(0);
   await expect(leaderboard).toContainText("1 besök");
   await expectNoHorizontalOverflow(page, "Lunchfilter");
 
   await leaderboard.getByRole("button", { name: "Visa topplista för Snabbt och enkelt" }).click();
-  await expect(leaderboard.getByText("Falafelfredag", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("Rundans Bistro", { exact: true })).toHaveCount(0);
+  await expect(leaderboard.getByText("Solsidans Sopplunch", { exact: true })).toBeVisible();
 
   await leaderboard.getByRole("button", { name: "Visa endast hämtmat i topplistan" }).click();
-  await expect(leaderboard.getByText("Falafelfredag", { exact: true })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Lunch + Snabbt och enkelt + hämtmat");
-
-  await leaderboard.getByRole("button", { name: "Visa topplista för Middag" }).click();
   await expect(
     leaderboard.getByText("Inga betyg matchar de valda filtren ännu.", { exact: true }),
   ).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Tom kombination");
+  await expectNoHorizontalOverflow(page, "Lunch + Snabbt och enkelt + hämtmat");
 
-  await leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }).click();
+  await leaderboard.getByRole("button", { name: "Visa topplista för Middag" }).click();
+  await leaderboard.getByRole("button", { name: "Visa topplista för Avslappnat" }).click();
+  await expect(leaderboard.getByText("Månskärans Taquería", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Middag + Avslappnat + hämtmat");
+
   await leaderboard.getByRole("button", { name: "Visa endast hämtmat i topplistan" }).click();
-  await leaderboard.getByRole("button", { name: "Visa topplista för alla tillfällen" }).click();
+  await leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }).click();
   await leaderboard.getByRole("button", { name: "Visa topplista för Fika" }).click();
-  await expect(leaderboard.getByText("Kardemummaköket", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("Rundans Bistro", { exact: true })).toHaveCount(0);
+  await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
+  await expect(leaderboard.getByText("5,0 · 2 besök · 2 omdömen", { exact: true })).toBeVisible();
+
+  await leaderboard.getByRole("button", { name: "Visa topplista för Frukost" }).click();
+  await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
+  await expect(leaderboard.getByText("4,0 · 1 besök · 1 omdöme", { exact: true })).toBeVisible();
 });
