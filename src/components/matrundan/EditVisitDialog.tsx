@@ -28,7 +28,12 @@ import {
   shareVisitToGroup,
   type VisitShareTarget,
 } from "@/lib/matrundan/live-sharing";
-import { reviewRatingsComplete } from "@/lib/matrundan/review-model";
+import {
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelIncludesAtmosphere,
+  reviewRatingsComplete,
+} from "@/lib/matrundan/review-model";
 import { formatRating } from "@/lib/matrundan/version";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
@@ -129,8 +134,14 @@ export function EditVisitDialog({
   const legacyReview = Boolean(
     ownReview && scoredVisit && ownReview.reviewModel == null && ownReview.overall != null,
   );
-  const reviewComplete = ownReview?.reviewModel
-    ? reviewRatingsComplete(ownReview.reviewModel, { taste, value, service, atmosphere })
+  const activeReviewModel = ownReview
+    ? effectiveReviewModel(ownReview.reviewModel, isTakeaway)
+    : null;
+  const activeOwnOverall = ownReview ? effectiveReviewOverall(ownReview, isTakeaway) : null;
+  const activeModelHasAtmosphere = reviewModelIncludesAtmosphere(activeReviewModel);
+  const storedModelHasAtmosphere = reviewModelIncludesAtmosphere(ownReview?.reviewModel);
+  const reviewComplete = activeReviewModel
+    ? reviewRatingsComplete(activeReviewModel, { taste, value, service, atmosphere })
     : true;
   const normalizedReviewComment = comment.trim() || null;
   const reviewChanged = Boolean(
@@ -143,7 +154,8 @@ export function EditVisitDialog({
           ? (taste || null) !== (ownReview.taste ?? null) ||
             (value || null) !== (ownReview.value ?? null) ||
             (service || null) !== (ownReview.service ?? null) ||
-            (atmosphere || null) !== (ownReview.atmosphere ?? null)
+            (activeModelHasAtmosphere &&
+              (atmosphere || null) !== (ownReview.atmosphere ?? null))
           : (overall || null) !== (ownReview.overall ?? null) ||
             (taste || null) !== (ownReview.taste ?? null) ||
             (value || null) !== (ownReview.value ?? null) ||
@@ -348,7 +360,12 @@ export function EditVisitDialog({
                 taste: scoredVisit ? taste || null : null,
                 value: scoredVisit ? value || null : null,
                 service: scoredVisit ? service || null : null,
-                atmosphere: scoredVisit && ownReview.reviewModel ? atmosphere || null : null,
+                atmosphere:
+                  scoredVisit && storedModelHasAtmosphere
+                    ? activeModelHasAtmosphere
+                      ? atmosphere || null
+                      : ownReview.atmosphere
+                    : null,
                 comment: normalizedReviewComment,
               }
             : null,
@@ -586,11 +603,11 @@ export function EditVisitDialog({
               <div className="border-t border-border/60 pt-3">
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="min-w-0">
-                    {scoredVisit && ownReview.overall != null ? (
+                    {scoredVisit && activeOwnOverall != null ? (
                       <div className="flex flex-wrap items-center gap-2">
-                        <RatingStars value={ownReview.overall} size={15} />
+                        <RatingStars value={activeOwnOverall} size={15} />
                         <span className="text-sm font-medium">
-                          {formatRating(ownReview.overall)} / 5
+                          {formatRating(activeOwnOverall)} / 5
                         </span>
                       </div>
                     ) : (
@@ -626,6 +643,7 @@ export function EditVisitDialog({
                 <ReviewEditFields
                   review={ownReview}
                   scoreless={!scoredVisit}
+                  activeModel={activeReviewModel}
                   overall={overall}
                   taste={taste}
                   value={value}
