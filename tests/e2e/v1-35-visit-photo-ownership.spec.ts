@@ -12,13 +12,20 @@ test("deltagarnas bilder behåller eget ägarskap i samma besök", async ({ page
 
   const gallery = visitDialog.getByRole("region", { name: "Bilder från besöket" });
   await expect(gallery).toBeVisible();
-  await expect(gallery.getByAltText("Bild från Robin")).toBeVisible();
-  await expect(gallery.getByText("Robin", { exact: true })).toBeVisible();
-  await expect(gallery.getByRole("button", { name: "Byt din bild" })).toBeVisible();
-  await expect(gallery.getByRole("button", { name: "Ta bort din bild" })).toBeVisible();
+  const robinPhoto = gallery.getByRole("group", { name: "Bild från Robin" });
+  await expect(robinPhoto.getByAltText("Bild från Robin")).toBeVisible();
+  await expect(robinPhoto.getByText("Robin", { exact: true })).toBeVisible();
+  await expect(robinPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(0);
   await expect(
-    gallery.getByRole("button", { name: "Fler bildalternativ för Robin" }),
+    robinPhoto.getByRole("button", { name: "Fler bildalternativ för Robin" }),
   ).toBeVisible();
+
+  const alexPhoto = gallery.getByRole("group", { name: "Bild från Alex, din bild" });
+  await expect(alexPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(1);
+  await expect(alexPhoto.getByRole("button", { name: "Fler alternativ för din bild" })).toHaveCount(
+    1,
+  );
+  await expect(gallery.getByText("Bilder delas inte vidare automatiskt.")).toBeVisible();
 
   const overflow = await visitDialog.evaluate((element) => ({
     scrollWidth: element.scrollWidth,
