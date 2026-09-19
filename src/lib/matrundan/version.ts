@@ -3,6 +3,23 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_39_1_CHANGELOG: ChangelogEntry = {
+  version: "1.39.1",
+  date: "2026-09-19",
+  summary: "Gruppbyte och Matställen är tydligare i vardagen.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Det är enklare att skilja på och växla mellan flera grupper med korta gruppbeskrivningar, senaste grupper och en samlad vy för alla grupper.",
+        "Matställen visar nu topplistans ledare direkt och skiljer tydligare på gruppens lista och nya ställen.",
+        "En sökning utan träff kan fortsätta till tilläggsflödet utan att söktexten behöver skrivas om.",
+        "Sökträffar blandar inte längre ihop en vald utgångspunkt med matställets faktiska plats.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_39_0_CHANGELOG: ChangelogEntry = {
   version: "1.39.0",
   date: "2026-09-12",
@@ -368,6 +385,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_39_1_CHANGELOG,
   VERSION_1_39_0_CHANGELOG,
   VERSION_1_38_12_CHANGELOG,
   VERSION_1_38_11_CHANGELOG,
