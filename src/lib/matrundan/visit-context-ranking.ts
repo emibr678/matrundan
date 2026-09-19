@@ -1,5 +1,6 @@
 import type { PlaceRating } from "./occasions";
-import type { Visit, VisitMeal, VisibleReview } from "./types";
+import { effectiveReviewOverall } from "./review-model";
+import type { Visit, VisitMeal } from "./types";
 import { visitHasScore } from "./visit-context";
 
 export const RANKABLE_VISIT_MEALS = [
@@ -17,13 +18,12 @@ export interface VisitRatingContext {
   takeawayOnly?: boolean;
 }
 
-function relevantVisibleReviews(visit: Visit): Array<VisibleReview & { overall: number }> {
-  return (visit.visibleReviews ?? []).filter(
-    (review): review is VisibleReview & { overall: number } =>
-      visit.participantIds.includes(review.userId) &&
-      review.ratingVisible &&
-      review.overall != null,
-  );
+function relevantVisibleRatings(visit: Visit): number[] {
+  return (visit.visibleReviews ?? []).flatMap((review) => {
+    if (!visit.participantIds.includes(review.userId) || !review.ratingVisible) return [];
+    const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
+    return overall == null ? [] : [overall];
+  });
 }
 
 /**
@@ -52,11 +52,11 @@ export function ratingForPlaceInVisitContext(
     }
     if (context.takeawayOnly && !visit.isTakeaway) continue;
 
-    const reviews = relevantVisibleReviews(visit);
-    if (!reviews.length) continue;
+    const visitRatings = relevantVisibleRatings(visit);
+    if (!visitRatings.length) continue;
 
     visitCount += 1;
-    ratings.push(...reviews.map((review) => review.overall));
+    ratings.push(...visitRatings);
   }
 
   if (!ratings.length) return { overall: 0, count: 0, visitCount: 0 };
