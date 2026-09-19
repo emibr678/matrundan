@@ -245,7 +245,7 @@ function PlaceDetail() {
               <PlaceThumb place={place} size="detail" />
               <div className="min-w-0 self-center">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
-                  Typ av ställe · {CATEGORY_LABEL[place.category]}
+                  {CATEGORY_LABEL[place.category]}
                 </div>
                 <h1 className="font-display text-2xl font-semibold leading-tight md:text-3xl">
                   {place.name}
@@ -553,15 +553,6 @@ function PlaceDetail() {
             </div>
           ) : null}
           {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
-          {(place.categoryOverride != null || place.cuisinesOverride != null) && (
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {place.categoryOverride != null && place.cuisinesOverride != null
-                ? `Typ av ställe och uppgifterna under Kök och inriktning är anpassade för ${state.group.name}.`
-                : place.categoryOverride != null
-                  ? `Typ av ställe är anpassad för ${state.group.name}.`
-                  : `Uppgifterna under Kök och inriktning är anpassade för ${state.group.name}.`}
-            </p>
-          )}
           <div className="text-xs text-muted-foreground">
             Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
           </div>
