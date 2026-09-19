@@ -91,7 +91,7 @@ test("registreraren kan radera ett originalbesök med tydlig konsekvens", async 
   await visitSheet.getByRole("button", { name: "Radera besöket" }).click();
 
   const confirm = page.getByRole("alertdialog");
-  await expect(confirm.getByText(/fotot och alla omdömen tas bort/)).toBeVisible();
+  await expect(confirm.getByText(/bilderna och alla omdömen tas bort/)).toBeVisible();
   await expect(confirm.getByText(/försvinner det även där/)).toBeVisible();
   await expectNoHorizontalOverflow(page, "Bekräfta radering av besök");
   await confirm.getByRole("button", { name: "Radera besöket" }).click();
