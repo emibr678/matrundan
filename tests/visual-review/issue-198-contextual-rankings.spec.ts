@@ -46,7 +46,14 @@ test("fånga kontextfilter i topplistan", async ({ page }, testInfo) => {
 
   await expect(leaderboard.getByText("Passar för", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Tillfälle", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("Hämtmat", { exact: true })).toBeVisible();
+  await expect(
+    leaderboard.getByRole("button", { name: "Visa endast hämtmat i topplistan" }),
+  ).toBeVisible();
+  await expect(
+    leaderboard.getByText("Något att dricka saknar betyg och visas därför inte här.", {
+      exact: true,
+    }),
+  ).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-198-topplista-expanderad");
