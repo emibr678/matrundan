@@ -363,7 +363,7 @@ export function EditVisitDialog({
                   scoredVisit && storedModelHasAtmosphere
                     ? activeModelHasAtmosphere
                       ? atmosphere || null
-                      : ownReview.atmosphere
+                      : (ownReview.atmosphere ?? null)
                     : null,
                 comment: normalizedReviewComment,
               }
@@ -643,6 +643,9 @@ export function EditVisitDialog({
                   review={ownReview}
                   scoreless={!scoredVisit}
                   activeModel={activeReviewModel}
+                  showModelNotice={
+                    !(activeReviewModel === "food_v1_takeaway" && !isTakeaway)
+                  }
                   overall={overall}
                   taste={taste}
                   value={value}
