@@ -12,6 +12,7 @@ export function ReviewEditFields({
   review,
   scoreless,
   activeModel,
+  showModelNotice = true,
   overall,
   taste,
   value,
@@ -30,6 +31,7 @@ export function ReviewEditFields({
   review: VisibleReview;
   scoreless: boolean;
   activeModel?: ReviewModel | null;
+  showModelNotice?: boolean;
   overall: number;
   taste: number;
   value: number;
@@ -66,6 +68,7 @@ export function ReviewEditFields({
           onServiceChange={onServiceChange}
           onValueChange={onValueChange}
           onAtmosphereChange={onAtmosphereChange}
+          showModelNotice={showModelNotice}
         />
       ) : null}
 
