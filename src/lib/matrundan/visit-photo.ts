@@ -194,9 +194,15 @@ function uniquePhotoPath(groupId: string, visitId: string) {
 
 const OPTIONAL_PATH = z.string().nullable();
 
-async function removeStoragePath(path: string) {
-  const { error } = await supabase.storage.from(VISIT_PHOTO_BUCKET).remove([path]);
+export async function removeVisitPhotoStoragePaths(paths: string[]) {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (unique.length === 0) return;
+  const { error } = await supabase.storage.from(VISIT_PHOTO_BUCKET).remove(unique);
   if (error) console.error("[Matrundan] Kunde inte städa besöksfoto:", error);
+}
+
+async function removeStoragePath(path: string) {
+  await removeVisitPhotoStoragePaths([path]);
 }
 
 export async function liveSaveVisitPhoto(
