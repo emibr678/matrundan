@@ -159,38 +159,30 @@ visar behov.
 ### Senast genomförda kärnleveranser
 
 **#309 Redigera besöksuppgifter och deltagare i efterhand** är genomförd via
-PR #347 och **#198 Filtrera topplistor efter besökstillfälle och hämtmat** är
-genomförd via PR #354.
+PR #347, **#198 Filtrera topplistor efter besökstillfälle och hämtmat** via
+PR #354 och **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning
+och Passar för** via PR #346.
 
 Tillsammans gör de den kanoniska besökshistoriken både korrigerbar och direkt
-användbar när gruppen väljer nästa ställe: ändrad besökskontext slår igenom i
-den historikbaserade topplistan utan separat rankingdata.
+användbar när gruppen väljer nästa ställe, samtidigt som platsens olika
+metadata-dimensioner har ett begripligt användarspråk.
 
-### Närmaste kvarvarande produktblock
+### Nästa produktblock – gemensamma besöksbilder
 
-Två tidigare överenskomna leveranser ligger kvar utan ny låst inbördes ordning:
+Efter #309, #198 och #199 är **Paket E:s besöksbilder nästa beslutade
+produktblock**. De två leveranserna planeras tillsammans men genomförs separat:
 
-- **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
-  besök** – återanvänd samma kanoniska plats mellan användarens grupper utan att
-  kopiera privat gruppdata. Målgruppsväljaren ska följa #318:s beslut.
-- **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
-  för** – slutför den kvarvarande informationsarkitekturen; gör inte om den
-  `Passar för`-copy som redan förbättrats genom #331.
+1. **#338 Stöd flera deltagares foton på samma kanoniska besök** –
+   `status:ready`, `priority:next`. Högst en aktiv bild per faktisk deltagare,
+   individuellt ägarskap och ett kompakt gemensamt galleri på besöket.
+2. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
+   `status:agreed`, `priority:next`. Bygger därefter uttrycklig, serverstyrd
+   cross-group-synlighet ovanpå samma mediaobjekt och ägarskap.
 
-Ingen ny `order:*` eller `priority:next` låses här. Nästa relativa steg ska
-väljas utifrån aktuell produktnytta och de öppna PR-/beroendeförhållandena i
-stället för att roadmapen skapar falsk precision.
-
-### Senare mediautbyggnad
-
-**#179 Dela besöksfoto uttryckligen tillsammans med delat besök** är fortsatt
-relevant men ligger `priority:later` utan `order:*`. Issuet är nu avgränsat till
-uttrycklig, serverstyrd fotoåtkomst per målgrupp.
-
-Den tidigare inbakade flerfotomålbilden har brutits ut till **#338 Stöd flera
-deltagares foton på samma kanoniska besök** (`status:inbox`, `priority:later`).
-Det gör att säker cross-group-fotodelning inte behöver bära ett helt framtida
-galleri i samma leverans.
+Ingen `order:*`-label behövs för att uttrycka mer precision än så: #338
+levereras först och #179 följer inom samma produktblock. **#157 Lägg ett
+befintligt matställe i en annan av mina grupper utan att dela besök** är fortsatt
+relevant men återgår till den senare produktkön efter detta block.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -201,8 +193,9 @@ polish och får inte tränga undan kärnflödet.
   `status:agreed`, `priority:later`. Följ #318:s beslut om gruppigenkänning när
   relevant.
 - **#135 Härled representativa matställessymboler från kök och inriktning** –
-  `status:inbox`, `priority:later`. Revalidera först efter #199 eller när neutral
-  platsidentitet visar sig vara ett konkret problem.
+  `status:inbox`, `priority:later`. #199 är genomförd och blockerar inte längre;
+  revalidera när neutral platsidentitet eller symbolval visar sig vara ett konkret
+  problem.
 
 ## Paket D – Personlig inspiration
 
@@ -229,12 +222,14 @@ cross-group-minimering.
 
 Genomförda delar omfattar #203, #204, #101, #213, #214, #197, #307 och #309.
 
-Kvarvarande närliggande leveranser:
+Kvarvarande närliggande leveranser, i beslutad arbetsföljd:
 
-1. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
-   `priority:later`; avgränsad cross-group-mediaåtkomst.
-2. **#338 Stöd flera deltagares foton på samma kanoniska besök** –
-   `status:inbox`, `priority:later`; separat framtida flerfotomålbild.
+1. **#338 Stöd flera deltagares foton på samma kanoniska besök** –
+   `status:ready`, `priority:next`; en privat deltagarbild var och kompakt
+   gemensamt besöksgalleri.
+2. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
+   `status:agreed`, `priority:next`; avgränsad cross-group-mediaåtkomst som
+   byggs efter #338.
 
 Alla funktioner i paketet ska vara förankrade i verkliga kanoniska besök och får
 inte skapa global feed, offentlig social graf eller progression för social
@@ -262,14 +257,8 @@ PR #354. Den befintliga `Passar för`-topplistan kan nu kombineras med verkliga
 besökstillfällen och Hämtmat, och det synliga betyget härleds från relevanta
 besök/reviews utan dold statistisk score.
 
-Kvarvarande närliggande leverans:
-
-- **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
-  för** – fokusera på kvarvarande informationsarkitektur. Den generella
-  `Passar för`-copyn från #331 är redan landad och ska inte göras om utan
-  konkret skäl.
-
-**#200** är stängt som överspelat. Saknat `Passar för` hanteras redan i relevant
+**#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
+för** är genomförd via PR #346. **#200** är stängt som överspelat. Saknat `Passar för` hanteras redan i relevant
 platscentrerad kontext inför scorebara besök; generell efterbesöks-prompt för
 metadata ska inte återinföras utan nytt konkret behov.
 
