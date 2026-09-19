@@ -317,12 +317,12 @@ function PlacesIndex() {
               </CollapsibleTrigger>
             </div>
 
-            <CollapsibleContent className="pt-3">
-              <div className="space-y-3">
+            <CollapsibleContent className="pt-1.5">
+              <div className="space-y-1.5">
                 <div>
-                  <div className="mb-2 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
+                  <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
                     <span>Passar för</span>
-                    <OccasionGuide compact />
+                    <span className="-my-1.5 inline-flex"><OccasionGuide compact /></span>
                   </div>
                   <div
                     className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
@@ -355,7 +355,7 @@ function PlacesIndex() {
                 </div>
 
                 <div>
-                  <div className="mb-2 text-sm font-medium text-foreground">Tillfälle</div>
+                  <div className="mb-0.5 text-sm font-medium text-foreground">Tillfälle</div>
                   <div
                     className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-2"
                     role="group"
