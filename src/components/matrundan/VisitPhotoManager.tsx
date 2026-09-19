@@ -1,5 +1,12 @@
 import * as React from "react";
-import { ImagePlus, Loader2, MoreHorizontal, Save, Trash2, X } from "lucide-react";
+import {
+  ImagePlus,
+  Loader2,
+  MoreHorizontal,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -30,7 +37,9 @@ function photoOwner(
   photo: VisitPhoto,
   memberById: ReturnType<typeof useStore>["memberById"],
 ) {
-  const participant = visit.participants?.find((item) => item.id === photo.uploadedBy);
+  const participant = visit.participants?.find(
+    (item) => item.id === photo.uploadedBy,
+  );
   const member = memberById(photo.uploadedBy);
   return {
     name: participant?.name ?? member?.name ?? "Deltagare",
@@ -53,7 +62,11 @@ function OwnerBadge({
   return (
     <div className="flex min-w-0 items-center gap-2">
       {avatarImage ? (
-        <img src={avatarImage} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+        <img
+          src={avatarImage}
+          alt=""
+          className="h-7 w-7 shrink-0 rounded-full object-cover"
+        />
       ) : (
         <span
           className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-sm"
@@ -64,7 +77,9 @@ function OwnerBadge({
       )}
       <span className="min-w-0 truncate text-xs font-medium">
         {name}
-        {own ? <span className="font-normal text-muted-foreground"> · Din bild</span> : null}
+        {own ? (
+          <span className="font-normal text-muted-foreground"> · Din bild</span>
+        ) : null}
       </span>
     </div>
   );
@@ -91,7 +106,11 @@ function GalleryImage({
       aria-label={`Öppna ${alt.slice(0, 1).toLocaleLowerCase("sv-SE")}${alt.slice(1)}`}
     >
       {photo.url ? (
-        <img src={photo.url} alt={alt} className="aspect-[4/3] w-full object-cover" />
+        <img
+          src={photo.url}
+          alt={alt}
+          className="aspect-[4/3] w-full object-cover"
+        />
       ) : (
         <div className="grid aspect-[4/3] w-full place-items-center px-4 text-center text-sm text-muted-foreground">
           Bilden kunde inte visas.
@@ -107,7 +126,8 @@ function GalleryImage({
 }
 
 export function VisitPhotoManager({ visit }: { visit: Visit }) {
-  const { state, memberById, saveVisitPhoto, deleteVisitPhoto, submitting } = useStore();
+  const { state, memberById, saveVisitPhoto, deleteVisitPhoto, submitting } =
+    useStore();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const viewerRef = React.useRef<HTMLDivElement>(null);
   const [file, setFile] = React.useState<File | null>(null);
@@ -118,7 +138,9 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
 
   const photos = getVisitPhotos(visit);
   const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
-  const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
+  const currentRole = state.members.find(
+    (member) => member.id === state.currentUserId,
+  )?.role;
   const groupArchived = state.group.lifecycleStatus === "archived";
   const canContribute = canAddOrReplaceVisitPhoto(
     visit,
@@ -142,9 +164,14 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
     if (!viewerOpen) return;
     const frame = window.requestAnimationFrame(() => {
       const container = viewerRef.current;
-      const target = container?.children.item(viewerIndex) as HTMLElement | null;
+      const target = container?.children.item(
+        viewerIndex,
+      ) as HTMLElement | null;
       if (!container || !target) return;
-      container.scrollTo({ left: target.offsetLeft - container.offsetLeft, behavior: "auto" });
+      container.scrollTo({
+        left: target.offsetLeft - container.offsetLeft,
+        behavior: "auto",
+      });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [viewerIndex, viewerOpen]);
@@ -166,9 +193,13 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
     try {
       await saveVisitPhoto(visit.id, file, visit);
       clearSelection();
-      toast.success(ownPhoto ? "Din bild är uppdaterad." : "Din bild är sparad.");
+      toast.success(
+        ownPhoto ? "Din bild är uppdaterad." : "Din bild är sparad.",
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte spara bilden.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte spara bilden.",
+      );
     } finally {
       setBusy(false);
     }
@@ -189,9 +220,15 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
     try {
       await deleteVisitPhoto(visit.id, photo.uploadedBy);
       if (photo.uploadedBy === state.currentUserId) clearSelection();
-      toast.success(photo.uploadedBy === state.currentUserId ? "Din bild är borttagen." : "Bilden är borttagen.");
+      toast.success(
+        photo.uploadedBy === state.currentUserId
+          ? "Din bild är borttagen."
+          : "Bilden är borttagen.",
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte ta bort bilden.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte ta bort bilden.",
+      );
     } finally {
       setBusy(false);
     }
@@ -211,7 +248,11 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                 ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1"
                 : "block"
             }
-            aria-label={photos.length > 1 ? "Bilder från besöket, svep för fler" : undefined}
+            aria-label={
+              photos.length > 1
+                ? "Bilder från besöket, svep för fler"
+                : undefined
+            }
           >
             {photos.map((photo, index) => {
               const owner = photoOwner(visit, photo, memberById);
@@ -226,7 +267,9 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
               return (
                 <div
                   key={`${photo.uploadedBy}:${photo.storagePath ?? photo.updatedAt}`}
-                  className={photos.length > 1 ? "w-full shrink-0 snap-center" : "w-full"}
+                  className={
+                    photos.length > 1 ? "w-full shrink-0 snap-center" : "w-full"
+                  }
                 >
                   <GalleryImage
                     photo={photo}
@@ -271,7 +314,9 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
             })}
           </div>
           {photos.length > 1 ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">Svep mellan deltagarnas bilder.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Svep mellan deltagarnas bilder.
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -280,7 +325,9 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
         ref={inputRef}
         type="file"
         accept="image/*"
-        aria-label={ownPhoto ? "Välj en ny bild från besöket" : "Välj bild från besöket"}
+        aria-label={
+          ownPhoto ? "Välj en ny bild från besöket" : "Välj bild från besöket"
+        }
         className="sr-only"
         disabled={disabled || !canContribute}
         onChange={(event) => {
@@ -309,18 +356,33 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
               <X className="h-4 w-4" />
               Avbryt
             </Button>
-            <Button type="button" className="min-h-11" disabled={disabled} onClick={() => void save()}>
-              {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            <Button
+              type="button"
+              className="min-h-11"
+              disabled={disabled}
+              onClick={() => void save()}
+            >
+              {disabled ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               {ownPhoto ? "Spara ny bild" : "Spara bild"}
             </Button>
           </div>
         </div>
       ) : canContribute ? (
-        <div className={photos.length > 0 ? "mt-3 flex flex-wrap gap-2" : "mt-1"}>
+        <div
+          className={photos.length > 0 ? "mt-3 flex flex-wrap gap-2" : "mt-1"}
+        >
           <Button
             type="button"
             variant={photos.length > 0 ? "outline" : "secondary"}
-            className={photos.length > 0 ? "min-h-11" : "min-h-24 w-full border border-dashed"}
+            className={
+              photos.length > 0
+                ? "min-h-11"
+                : "min-h-24 w-full border border-dashed"
+            }
             disabled={disabled}
             onClick={choosePhoto}
           >
@@ -335,7 +397,11 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
               disabled={disabled}
               onClick={() => void remove(ownPhoto)}
             >
-              {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {disabled ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
               Ta bort din bild
             </Button>
           ) : null}
@@ -343,8 +409,8 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
       ) : null}
 
       <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-        Varje deltagare kan lägga till en privat bild från besöket. Bilderna stannar i den här
-        gruppen och följer inte med om besöket delas vidare.
+        Varje deltagare kan lägga till en privat bild från besöket. Bilderna
+        stannar i den här gruppen och följer inte med om besöket delas vidare.
       </p>
 
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
@@ -352,10 +418,15 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
           <DialogHeader>
             <DialogTitle>Bilder från besöket</DialogTitle>
             <DialogDescription>
-              {photos.length > 1 ? "Svep mellan deltagarnas bilder." : "Bild från det gemensamma besöket."}
+              {photos.length > 1
+                ? "Svep mellan deltagarnas bilder."
+                : "Bild från det gemensamma besöket."}
             </DialogDescription>
           </DialogHeader>
-          <div ref={viewerRef} className="flex snap-x snap-mandatory gap-3 overflow-x-auto">
+          <div
+            ref={viewerRef}
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto"
+          >
             {photos.map((photo, index) => {
               const owner = photoOwner(visit, photo, memberById);
               return (
