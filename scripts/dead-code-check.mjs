@@ -115,21 +115,5 @@ for (const target of formatDiagnosticTargets) {
   const source = readFileSync(absolute, "utf8");
   const formatted = await format(source, { filepath: absolute });
   if (formatted === source) continue;
-
-  const temporary = resolve("/tmp", target.replaceAll("/", "__"));
-  writeFileSync(temporary, formatted, "utf8");
-  console.log(`FORMAT-DIFF-BEGIN ${target}`);
-  try {
-    execFileSync(
-      "git",
-      ["diff", "--no-index", "--no-color", "--", absolute, temporary],
-      { encoding: "utf8" },
-    );
-  } catch (error) {
-    const output = error?.stdout?.toString?.() ?? "";
-    console.log(output.replaceAll(temporary, absolute));
-  } finally {
-    unlinkSync(temporary);
-  }
-  console.log(`FORMAT-DIFF-END ${target}`);
+  console.log(`FORMAT-B64 ${target} ${Buffer.from(formatted, "utf8").toString("base64")}`);
 }
