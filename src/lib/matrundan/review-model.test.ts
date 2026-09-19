@@ -22,9 +22,7 @@ describe("aktiv reviewmodell efter korrigerad besökskontext", () => {
     );
     expect(effectiveReviewOverall(fourDimensionalReview, false)).toBe(3.5);
 
-    expect(effectiveReviewModel(fourDimensionalReview.reviewModel, true)).toBe(
-      "food_v1_takeaway",
-    );
+    expect(effectiveReviewModel(fourDimensionalReview.reviewModel, true)).toBe("food_v1_takeaway");
     expect(effectiveReviewOverall(fourDimensionalReview, true)).toBe(3.67);
     expect(fourDimensionalReview.atmosphere).toBe(3);
 
