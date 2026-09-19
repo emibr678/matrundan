@@ -6,6 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
+import {
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelIncludesAtmosphere,
+} from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit, VisibleReview } from "@/lib/matrundan/types";
@@ -244,6 +249,7 @@ export function VisitReviewsSection({
                     demoReadOnly={demoReadOnly}
                     savingVisibility={savingVisibility}
                     scoreless={!scored}
+                    isTakeaway={visit.isTakeaway === true}
                     onInteract={() => clearReviewHighlight(review.id)}
                     onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
                   />
@@ -364,6 +370,7 @@ function ReviewRow({
   demoReadOnly,
   savingVisibility,
   scoreless,
+  isTakeaway,
   onInteract,
   onToggleVisibility,
 }: {
@@ -380,6 +387,7 @@ function ReviewRow({
   demoReadOnly: boolean;
   savingVisibility: boolean;
   scoreless: boolean;
+  isTakeaway: boolean;
   onInteract: () => void;
   onToggleVisibility: (next: boolean) => void;
 }) {
@@ -387,13 +395,17 @@ function ReviewRow({
   const comment = review.comment?.trim();
   const showComment = Boolean(comment && (own || review.commentVisible));
   const reactableComment = Boolean(comment && review.commentVisible);
-  const hasRating = !scoreless && review.ratingVisible && review.overall != null;
+  const activeModel = effectiveReviewModel(review.reviewModel, isTakeaway);
+  const activeOverall = effectiveReviewOverall(review, isTakeaway);
+  const hasRating = !scoreless && review.ratingVisible && activeOverall != null;
   const detailItems = hasRating
     ? [
         { label: "Smak", value: review.taste },
         { label: "Service", value: review.service },
         { label: "Prisvärt", value: review.value },
-        ...(review.atmosphere != null ? [{ label: "Atmosfär", value: review.atmosphere }] : []),
+        ...(reviewModelIncludesAtmosphere(activeModel) && review.atmosphere != null
+          ? [{ label: "Atmosfär", value: review.atmosphere }]
+          : []),
       ].filter((detail) => detail.value != null)
     : [];
   const longComment = Boolean(showComment && (comment?.length ?? 0) > 110);
@@ -405,7 +417,13 @@ function ReviewRow({
   const canToggleComment = canEditOwn && live && Boolean(comment);
   const showFullComment = commentExpanded || focused;
   const editAction = canEditOwn ? (
-    <EditReviewDialog review={review} placeName={placeName} compact scoreless={scoreless} />
+    <EditReviewDialog
+      review={review}
+      placeName={placeName}
+      compact
+      scoreless={scoreless}
+      isTakeaway={isTakeaway}
+    />
   ) : null;
 
   return (
@@ -454,12 +472,12 @@ function ReviewRow({
         </div>
         {hasRating ? (
           <div className="flex shrink-0 flex-col items-end gap-1">
-            <RatingStars value={review.overall as number} size={13} />
+            <RatingStars value={activeOverall as number} size={13} />
             <span className="text-xs font-medium">
-              {formatRating(review.overall as number)} / 5
+              {formatRating(activeOverall as number)} / 5
             </span>
             <span className="sr-only">
-              {name} gav {formatRating(review.overall as number)} av 5
+              {name} gav {formatRating(activeOverall as number)} av 5
             </span>
           </div>
         ) : null}
