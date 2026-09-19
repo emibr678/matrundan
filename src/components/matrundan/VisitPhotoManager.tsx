@@ -1,8 +1,14 @@
 import * as React from "react";
-import { ImagePlus, Loader2, Save, Trash2, X } from "lucide-react";
+import { ImagePlus, Loader2, MoreHorizontal, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -82,7 +88,7 @@ function GalleryImage({
       type="button"
       onClick={onOpen}
       className="relative block w-full overflow-hidden rounded-2xl border border-border/70 bg-muted text-left focus:outline-none focus:ring-2 focus:ring-ring"
-      aria-label={`Öppna ${alt.toLocaleLowerCase("sv-SE")}`}
+      aria-label={`Öppna ${alt.slice(0, 1).toLocaleLowerCase("sv-SE")}${alt.slice(1)}`}
     >
       {photo.url ? (
         <img src={photo.url} alt={alt} className="aspect-[4/3] w-full object-cover" />
@@ -103,10 +109,12 @@ function GalleryImage({
 export function VisitPhotoManager({ visit }: { visit: Visit }) {
   const { state, memberById, saveVisitPhoto, deleteVisitPhoto, submitting } = useStore();
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const viewerRef = React.useRef<HTMLDivElement>(null);
   const [file, setFile] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [viewerOpen, setViewerOpen] = React.useState(false);
+  const [viewerIndex, setViewerIndex] = React.useState(0);
 
   const photos = getVisitPhotos(visit);
   const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
@@ -129,6 +137,17 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
     setPreviewUrl(next);
     return () => URL.revokeObjectURL(next);
   }, [file]);
+
+  React.useEffect(() => {
+    if (!viewerOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      const container = viewerRef.current;
+      const target = container?.children.item(viewerIndex) as HTMLElement | null;
+      if (!container || !target) return;
+      container.scrollTo({ left: target.offsetLeft - container.offsetLeft, behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [viewerIndex, viewerOpen]);
 
   if (photos.length === 0 && !canContribute) return null;
 
@@ -214,23 +233,37 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                     alt={`Bild från ${owner.name}`}
                     count={photos.length}
                     index={index}
-                    onOpen={() => setViewerOpen(true)}
+                    onOpen={() => {
+                      setViewerIndex(index);
+                      setViewerOpen(true);
+                    }}
                   />
                   <div className="mt-2 flex min-h-9 items-center justify-between gap-2 px-1">
                     <OwnerBadge {...owner} own={own} />
                     {canRemove && !own ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 shrink-0 px-2 text-xs text-muted-foreground hover:text-destructive"
-                        disabled={disabled}
-                        onClick={() => void remove(photo)}
-                        aria-label={`Ta bort bilden från ${owner.name}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Ta bort
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 shrink-0 text-muted-foreground"
+                            disabled={disabled}
+                            aria-label={`Fler bildalternativ för ${owner.name}`}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => void remove(photo)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Ta bort bild
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     ) : null}
                   </div>
                 </div>
@@ -322,7 +355,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
               {photos.length > 1 ? "Svep mellan deltagarnas bilder." : "Bild från det gemensamma besöket."}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto">
+          <div ref={viewerRef} className="flex snap-x snap-mandatory gap-3 overflow-x-auto">
             {photos.map((photo, index) => {
               const owner = photoOwner(visit, photo, memberById);
               return (
