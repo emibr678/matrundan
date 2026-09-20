@@ -162,7 +162,7 @@ export function VisitReviewsSection({
             <p className="mt-0.5 text-xs text-muted-foreground">
               {scored
                 ? visitReviewProgressLabel(summary.reviewCount, summary.participantCount)
-                : "Något att dricka · påverkar inte ställets betyg"}
+                : "Ett glas · påverkar inte ställets betyg"}
             </p>
           </div>
         </div>
