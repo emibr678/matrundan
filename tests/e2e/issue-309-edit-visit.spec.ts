@@ -33,7 +33,8 @@ test("besöksredigering lämnar omdömet orört tills användaren väljer att ä
     visitSheet.getByText("Kardemummabullen vann hela eftermiddagen.").first(),
   ).toBeVisible();
 
-  await visitSheet.getByRole("button", { name: "Redigera besök" }).click();
+  await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();
+  await page.getByRole("menuitem", { name: "Redigera besök" }).click();
   const edit = page.getByRole("dialog", { name: "Redigera besök" });
   await expect(edit.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
   await expect(edit.getByText("Kommentar (frivilligt)")).toHaveCount(0);
@@ -58,7 +59,8 @@ test("Hämtmat döljer Atmosfär reversibelt och räknar om helhetsbetyget", asy
   const visitSheet = page.getByRole("dialog");
   await expect(visitSheet.getByText("4,5 / 5", { exact: true }).first()).toBeVisible();
 
-  await visitSheet.getByRole("button", { name: "Redigera besök" }).click();
+  await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();
+  await page.getByRole("menuitem", { name: "Redigera besök" }).click();
   const edit = page.getByRole("dialog", { name: "Redigera besök" });
   await edit.getByRole("button", { name: "Redigera omdöme" }).click();
   await expect(edit.getByText("Atmosfär", { exact: true })).toBeVisible();
@@ -76,7 +78,8 @@ test("Hämtmat döljer Atmosfär reversibelt och räknar om helhetsbetyget", asy
   await expect(visitSheet.getByText("4,7 / 5", { exact: true }).first()).toBeVisible();
   await expect(visitSheet.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
-  await visitSheet.getByRole("button", { name: "Redigera besök" }).click();
+  await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();
+  await page.getByRole("menuitem", { name: "Redigera besök" }).click();
   const restore = page.getByRole("dialog", { name: "Redigera besök" });
   const restoreTakeaway = restore.getByRole("switch", { name: "Hämtmat" });
   await expect(restoreTakeaway).toBeChecked();
@@ -97,7 +100,8 @@ test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px"
   await page.goto("/matstallen/p2?demo=1&visit=v1");
 
   const visitSheet = page.getByRole("dialog");
-  await visitSheet.getByRole("button", { name: "Redigera besök" }).click();
+  await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();
+  await page.getByRole("menuitem", { name: "Redigera besök" }).click();
 
   const edit = page.getByRole("dialog", { name: "Redigera besök" });
   await expect(edit).toBeVisible();
@@ -120,7 +124,8 @@ test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px"
     visitSheet.getByText("Korrigerad minnesnotering från besöket.").first(),
   ).toBeVisible();
 
-  await visitSheet.getByRole("button", { name: "Redigera besök" }).click();
+  await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();
+  await page.getByRole("menuitem", { name: "Redigera besök" }).click();
   const contextEdit = page.getByRole("dialog", { name: "Redigera besök" });
   await contextEdit.getByLabel("Tillfälle").click();
   await page.getByRole("option", { name: "Något att dricka" }).click();
@@ -137,5 +142,5 @@ test("en annan deltagare får inte den kombinerade besökseditorn", async ({ pag
 
   const visitSheet = page.getByRole("dialog");
   await expect(visitSheet.getByRole("heading", { name: "Månskärans Taquería" })).toBeVisible();
-  await expect(visitSheet.getByRole("button", { name: "Redigera besök" })).toHaveCount(0);
+  await expect(visitSheet.getByRole("button", { name: "Besöksalternativ" })).toHaveCount(0);
 });
