@@ -1,7 +1,15 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, MoreHorizontal, Pencil, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
+import {
+  MapPin,
+  MoreHorizontal,
+  Pencil,
+  Share2,
+  Trash2,
+  UserRoundCheck,
+  Users2,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -375,7 +383,6 @@ export function VisitDetailSheet({
                     Till stället
                   </Link>
                 </Button>
-
               </div>
             </div>
           ) : null}
