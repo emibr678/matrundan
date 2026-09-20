@@ -131,9 +131,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
   const photos = getVisitPhotos(visit);
   const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
   const galleryPhotos: VisitPhoto[] = photos.map((photo) =>
-    photo.uploadedBy === state.currentUserId && previewUrl
-      ? { ...photo, url: previewUrl }
-      : photo,
+    photo.uploadedBy === state.currentUserId && previewUrl ? { ...photo, url: previewUrl } : photo,
   );
   if (previewUrl && !ownPhoto) {
     galleryPhotos.push({
@@ -395,7 +393,6 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
           </Button>
         </div>
       ) : null}
-
 
       <AlertDialog
         open={pendingDeletePhoto != null}
