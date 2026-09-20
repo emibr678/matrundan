@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2, Pencil, UserPlus, X } from "lucide-react";
+import { Loader2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -28,21 +28,11 @@ import {
   shareVisitToGroup,
   type VisitShareTarget,
 } from "@/lib/matrundan/live-sharing";
-import {
-  effectiveReviewModel,
-  effectiveReviewOverall,
-  reviewModelIncludesAtmosphere,
-  reviewRatingsComplete,
-} from "@/lib/matrundan/review-model";
-import { formatRating } from "@/lib/matrundan/version";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Place, Visit } from "@/lib/matrundan/types";
 import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
 import { canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
-import { RatingStars } from "./Rating";
-import { ReviewEditFields } from "./ReviewEditFields";
-import { VisitPhotoManager } from "./VisitPhotoManager";
 
 interface DraftGuest {
   key: string;
@@ -112,13 +102,6 @@ export function EditVisitDialog({
   const [guests, setGuests] = React.useState<DraftGuest[]>([]);
   const [guestInputOpen, setGuestInputOpen] = React.useState(false);
   const [guestName, setGuestName] = React.useState("");
-  const [overall, setOverall] = React.useState(ownReview?.overall ?? 0);
-  const [taste, setTaste] = React.useState(ownReview?.taste ?? 0);
-  const [value, setValue] = React.useState(ownReview?.value ?? 0);
-  const [service, setService] = React.useState(ownReview?.service ?? 0);
-  const [atmosphere, setAtmosphere] = React.useState(ownReview?.atmosphere ?? 0);
-  const [comment, setComment] = React.useState(ownReview?.comment ?? "");
-  const [reviewEditing, setReviewEditing] = React.useState(false);
   const [shareTargets, setShareTargets] = React.useState<VisitShareTarget[]>([]);
   const [shareLoading, setShareLoading] = React.useState(false);
   const [shareError, setShareError] = React.useState<string | null>(null);
@@ -130,41 +113,11 @@ export function EditVisitDialog({
   const originalScored = visitMealHasScore(visit.meal);
   const scoreBoundaryChanged = scoredVisit !== originalScored;
   const isBusy = busy || submitting;
-  const legacyReview = Boolean(
-    ownReview && scoredVisit && ownReview.reviewModel == null && ownReview.overall != null,
-  );
-  const activeReviewModel = ownReview
-    ? effectiveReviewModel(ownReview.reviewModel, isTakeaway)
-    : null;
-  const activeOwnOverall = ownReview ? effectiveReviewOverall(ownReview, isTakeaway) : null;
-  const activeModelHasAtmosphere = reviewModelIncludesAtmosphere(activeReviewModel);
-  const storedModelHasAtmosphere = reviewModelIncludesAtmosphere(ownReview?.reviewModel);
-  const reviewComplete = activeReviewModel
-    ? reviewRatingsComplete(activeReviewModel, { taste, value, service, atmosphere })
-    : true;
-  const normalizedReviewComment = comment.trim() || null;
-  const reviewChanged = Boolean(
-    reviewEditing &&
-    ownReview &&
-    !scoreBoundaryChanged &&
-    (normalizedReviewComment !== (ownReview.comment?.trim() || null) ||
-      (scoredVisit &&
-        (ownReview.reviewModel
-          ? (taste || null) !== (ownReview.taste ?? null) ||
-            (value || null) !== (ownReview.value ?? null) ||
-            (service || null) !== (ownReview.service ?? null) ||
-            (activeModelHasAtmosphere && (atmosphere || null) !== (ownReview.atmosphere ?? null))
-          : (overall || null) !== (ownReview.overall ?? null) ||
-            (taste || null) !== (ownReview.taste ?? null) ||
-            (value || null) !== (ownReview.value ?? null) ||
-            (service || null) !== (ownReview.service ?? null)))),
-  );
-
   const otherShareTargets = shareTargets.filter((target) => target.groupId !== activeGroupId);
   const selectedTargets = otherShareTargets.filter(
     (target) => !target.alreadyLinked && shareGroupIds.includes(target.groupId),
   );
-  const hasOwnComment = Boolean(comment.trim() || ownReview?.comment?.trim());
+  const hasOwnComment = Boolean(ownReview?.comment?.trim());
 
   React.useEffect(() => {
     if (!open) return;
@@ -192,13 +145,6 @@ export function EditVisitDialog({
     );
     setGuestInputOpen(false);
     setGuestName("");
-    setOverall(ownReview?.overall ?? 0);
-    setTaste(ownReview?.taste ?? 0);
-    setValue(ownReview?.value ?? 0);
-    setService(ownReview?.service ?? 0);
-    setAtmosphere(ownReview?.atmosphere ?? 0);
-    setComment(ownReview?.comment ?? "");
-    setReviewEditing(false);
     setShareGroupIds([]);
     setShareComment(false);
   }, [
@@ -282,33 +228,9 @@ export function EditVisitDialog({
     closeGuestInput();
   }
 
-  function resetReviewDraft() {
-    setOverall(ownReview?.overall ?? 0);
-    setTaste(ownReview?.taste ?? 0);
-    setValue(ownReview?.value ?? 0);
-    setService(ownReview?.service ?? 0);
-    setAtmosphere(ownReview?.atmosphere ?? 0);
-    setComment(ownReview?.comment ?? "");
-    setReviewEditing(false);
-  }
-
   function validate(): boolean {
     if (!participants.includes(state.currentUserId)) {
       toast.error("Den som registrerade besöket måste vara deltagare.");
-      return false;
-    }
-    if (!reviewChanged || !ownReview || scoreBoundaryChanged) return true;
-
-    if (!scoredVisit && !comment.trim()) {
-      toast.error("Kommentaren kan inte vara tom.");
-      return false;
-    }
-    if (scoredVisit && ownReview.reviewModel && !reviewComplete) {
-      toast.error("Sätt alla relevanta betyg.");
-      return false;
-    }
-    if (scoredVisit && legacyReview && (overall < 1 || overall > 5)) {
-      toast.error("Helhetsbetyget måste vara 1–5.");
       return false;
     }
     return true;
@@ -337,23 +259,6 @@ export function EditVisitDialog({
         participantIds: participants,
         guests: guests.map((guest) => ({ id: guest.persistedId, name: guest.name })),
         removedGuestIds,
-        ownReview:
-          reviewChanged && ownReview && !scoreBoundaryChanged
-            ? {
-                id: ownReview.id,
-                overall: scoredVisit && ownReview.reviewModel == null ? overall || null : null,
-                taste: scoredVisit ? taste || null : null,
-                value: scoredVisit ? value || null : null,
-                service: scoredVisit ? service || null : null,
-                atmosphere:
-                  scoredVisit && storedModelHasAtmosphere
-                    ? activeModelHasAtmosphere
-                      ? atmosphere || null
-                      : (ownReview.atmosphere ?? null)
-                    : null,
-                comment: normalizedReviewComment,
-              }
-            : null,
       });
 
       let sharedCount = 0;
@@ -453,6 +358,16 @@ export function EditVisitDialog({
                 onCheckedChange={setIsTakeaway}
                 disabled={isBusy}
               />
+            </div>
+          ) : null}
+
+          {scoreBoundaryChanged && ownReview ? (
+            <div className="rounded-xl bg-secondary/40 px-3 py-2.5">
+              <p className="text-sm font-medium">Omdömet bevaras</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Du ändrar mellan ett matbesök och Något att dricka. Ditt befintliga omdöme skrivs
+                inte om och kan redigeras separat från besöksdetaljen efter att du har sparat.
+              </p>
             </div>
           ) : null}
 
@@ -563,104 +478,6 @@ export function EditVisitDialog({
             )}
           </fieldset>
 
-          <section className="space-y-2.5">
-            <div>
-              <h3 className="text-sm font-medium">Ditt omdöme</h3>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                Ändras bara om du väljer Redigera.
-              </p>
-            </div>
-
-            {!ownReview ? (
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Du har inget eget omdöme på besöket ännu. Det kan läggas till från besöksdetaljen
-                efter att ändringarna sparats.
-              </p>
-            ) : scoreBoundaryChanged ? (
-              <div className="rounded-xl bg-secondary/40 px-3 py-2.5">
-                <p className="text-sm font-medium">Omdömet bevaras</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Du ändrar mellan ett matbesök och Något att dricka. Ditt befintliga omdöme skrivs
-                  inte om. Spara besöket först och ändra omdömet separat efteråt om det behövs.
-                </p>
-              </div>
-            ) : !reviewEditing ? (
-              <div className="border-t border-border/60 pt-3">
-                <div className="flex min-w-0 items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    {scoredVisit && activeOwnOverall != null ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <RatingStars value={activeOwnOverall} size={15} />
-                        <span className="text-sm font-medium">
-                          {formatRating(activeOwnOverall)} / 5
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="text-sm font-medium">Kommentar</p>
-                    )}
-                    {ownReview.comment?.trim() ? (
-                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                        {ownReview.comment}
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs text-muted-foreground">Ingen kommentar.</p>
-                    )}
-                    {legacyReview ? (
-                      <p className="mt-1 text-[11px] text-muted-foreground">Äldre omdöme</p>
-                    ) : null}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label="Redigera omdöme"
-                    className="min-h-10 shrink-0 gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-                    onClick={() => setReviewEditing(true)}
-                    disabled={isBusy}
-                  >
-                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                    Redigera
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3 border-t border-border/60 pt-3">
-                <ReviewEditFields
-                  review={ownReview}
-                  scoreless={!scoredVisit}
-                  activeModel={activeReviewModel}
-                  showModelNotice={!(activeReviewModel === "food_v1_takeaway" && !isTakeaway)}
-                  overall={overall}
-                  taste={taste}
-                  value={value}
-                  service={service}
-                  atmosphere={atmosphere}
-                  comment={comment}
-                  onOverallChange={setOverall}
-                  onTasteChange={setTaste}
-                  onValueChange={setValue}
-                  onServiceChange={setService}
-                  onAtmosphereChange={setAtmosphere}
-                  onCommentChange={setComment}
-                  idPrefix={`edit-visit-review-${visit.id}`}
-                  disabled={isBusy}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="min-h-10 w-auto px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-                  onClick={resetReviewDraft}
-                  disabled={isBusy}
-                >
-                  {reviewChanged ? "Ångra omdömesändringar" : "Stäng omdömesredigering"}
-                </Button>
-              </div>
-            )}
-          </section>
-
-          <VisitPhotoManager visit={visit} />
-
           {mode === "live" ? (
             <section className="space-y-3">
               <div>
@@ -754,14 +571,7 @@ export function EditVisitDialog({
             type="button"
             className="w-full sm:w-auto"
             onClick={() => void save()}
-            disabled={
-              isBusy ||
-              (reviewChanged &&
-                ownReview?.reviewModel != null &&
-                !scoreBoundaryChanged &&
-                scoredVisit &&
-                !reviewComplete)
-            }
+            disabled={isBusy}
           >
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Spara ändringar

@@ -113,10 +113,17 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(reviewEditFields).toContain("review.reviewModel");
   });
 
-  test("samma omdömesfält återanvänds i separat och kombinerad redigering", () => {
+  test("omdöme och besöksbild redigeras separat från den gemensamma besökshändelsen", () => {
     expect(editDialog).toContain("<ReviewEditFields");
-    expect(editVisitDialog).toContain("<ReviewEditFields");
+    expect(editVisitDialog).not.toContain("<ReviewEditFields");
+    expect(editVisitDialog).not.toContain("<VisitPhotoManager");
     expect(editVisitDialog).not.toContain("<ReviewScoreFields");
     expect(editVisitDialog).not.toContain("<RatingInput");
+    expect(editVisitDialog).toContain("Omdömet bevaras");
+  });
+
+  test("omdömesdialogerna visar bildvalet utan teknisk komprimeringscopy", () => {
+    expect(addReviewDialog).toContain("showHelpText={false}");
+    expect(demoAddReviewDialog).toContain("showHelpText={false}");
   });
 });

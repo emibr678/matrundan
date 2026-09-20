@@ -20,9 +20,7 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   ).toBeLessThanOrEqual(metrics.bodyClientWidth);
 }
 
-test("besöksredigering lämnar omdömet orört tills användaren väljer att ändra det", async ({
-  page,
-}) => {
+test("besöksredigering är avgränsad till den gemensamma besökshändelsen", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemoStateBeforeNavigation(page);
   await page.goto("/matstallen/p2?demo=1&visit=v1");
@@ -36,7 +34,10 @@ test("besöksredigering lämnar omdömet orört tills användaren väljer att ä
   await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();
   await page.getByRole("menuitem", { name: "Redigera besök" }).click();
   const edit = page.getByRole("dialog", { name: "Redigera besök" });
-  await expect(edit.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
+  await expect(edit.getByText("Ditt omdöme", { exact: true })).toHaveCount(0);
+  await expect(edit.getByRole("button", { name: "Redigera omdöme" })).toHaveCount(0);
+  await expect(edit.getByText("Bild från besöket", { exact: true })).toHaveCount(0);
+  await expect(edit.getByText("Bilder från besöket", { exact: true })).toHaveCount(0);
   await expect(edit.getByText("Kommentar (frivilligt)")).toHaveCount(0);
 
   await edit.getByLabel("Tillfälle").click();
@@ -62,16 +63,9 @@ test("Hämtmat döljer Atmosfär reversibelt och räknar om helhetsbetyget", asy
   await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();
   await page.getByRole("menuitem", { name: "Redigera besök" }).click();
   const edit = page.getByRole("dialog", { name: "Redigera besök" });
-  await edit.getByRole("button", { name: "Redigera omdöme" }).click();
-  await expect(edit.getByText("Atmosfär", { exact: true })).toBeVisible();
-  await expect(edit.getByText("4,5 / 5", { exact: true })).toBeVisible();
-
   const takeaway = edit.getByRole("switch", { name: "Hämtmat" });
   await takeaway.click();
   await expect(takeaway).toBeChecked();
-  await expect(edit.getByText("Atmosfär", { exact: true })).toHaveCount(0);
-  await expect(edit.getByText("Atmosfär ingår inte vid Hämtmat.")).toBeVisible();
-  await expect(edit.getByText("4,7 / 5", { exact: true })).toBeVisible();
 
   await edit.getByRole("button", { name: "Spara ändringar" }).click();
   await expect(visitSheet.getByText(/Hämtmat/).first()).toBeVisible();
@@ -85,16 +79,13 @@ test("Hämtmat döljer Atmosfär reversibelt och räknar om helhetsbetyget", asy
   await expect(restoreTakeaway).toBeChecked();
   await restoreTakeaway.click();
   await expect(restoreTakeaway).not.toBeChecked();
-  await expect(restore.getByText("4,5 / 5", { exact: true })).toBeVisible();
-  await restore.getByRole("button", { name: "Redigera omdöme" }).click();
-  await expect(restore.getByText("Atmosfär", { exact: true })).toBeVisible();
   await restore.getByRole("button", { name: "Spara ändringar" }).click();
 
   await expect(visitSheet.getByText("4,5 / 5", { exact: true }).first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Reversibel Hämtmat-korrigering");
 });
 
-test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px", async ({ page }) => {
+test("registreraren kan korrigera besök och deltagare på 360 px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemoStateBeforeNavigation(page);
   await page.goto("/matstallen/p2?demo=1&visit=v1");
@@ -106,22 +97,19 @@ test("registreraren kan korrigera besök, deltagare och eget omdöme på 360 px"
   const edit = page.getByRole("dialog", { name: "Redigera besök" });
   await expect(edit).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redigera besök");
-  await expect(edit.getByText("4,5 / 5", { exact: true })).toBeVisible();
+  await expect(edit.getByText("Ditt omdöme", { exact: true })).toHaveCount(0);
+  await expect(edit.getByText("Bild från besöket", { exact: true })).toHaveCount(0);
   await expect(edit.getByText("Kommentar (frivilligt)")).toHaveCount(0);
 
   await edit.getByLabel("Tillfälle").click();
   await page.getByRole("option", { name: "Lunch" }).click();
   await edit.getByRole("button", { name: /Johan/ }).click();
-  await edit.getByRole("button", { name: "Redigera omdöme" }).click();
-  await expect(edit.getByText("Atmosfär", { exact: true })).toBeVisible();
-  await expect(edit.getByText("Räknas automatiskt")).toBeVisible();
-  await edit.getByLabel("Kommentar (frivilligt)").fill("Korrigerad minnesnotering från besöket.");
   await edit.getByRole("button", { name: "Spara ändringar" }).click();
 
   await expect(visitSheet.getByText(/Lunch/).first()).toBeVisible();
   await expect(visitSheet.getByText(/Johan/).first()).toBeVisible();
   await expect(
-    visitSheet.getByText("Korrigerad minnesnotering från besöket.").first(),
+    visitSheet.getByText("Kardemummabullen vann hela eftermiddagen.").first(),
   ).toBeVisible();
 
   await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();

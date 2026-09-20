@@ -207,6 +207,7 @@ export function DemoAddVisitReviewDialog({
               onFileChange={setPhotoFile}
               existingUrl={ownPhoto?.url}
               disabled={saving}
+              showHelpText={false}
               compact
             />
           ) : null}

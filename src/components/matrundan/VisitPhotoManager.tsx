@@ -383,8 +383,8 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
         <div className={photos.length > 0 ? "mt-3" : "mt-1"}>
           <Button
             type="button"
-            variant={photos.length > 0 ? "outline" : "secondary"}
-            className={photos.length > 0 ? "min-h-11" : "min-h-24 w-full border border-dashed"}
+            variant="outline"
+            className="min-h-11"
             disabled={disabled}
             onClick={choosePhoto}
           >
