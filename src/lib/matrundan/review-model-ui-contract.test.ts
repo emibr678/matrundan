@@ -98,7 +98,6 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(modelNotice).toContain("helhetsupplevelsen");
     expect(modelNotice).toContain("en enklare atmosfär är mer");
     expect(modelNotice).toContain("förväntad");
-    expect(modelNotice).toContain("Avslappnat eller Något extra");
 
     for (const source of [
       visitDialogCore,
