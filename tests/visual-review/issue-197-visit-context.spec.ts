@@ -302,7 +302,7 @@ test("#197 historik skiljer Hämtmat, scorelöst Ett glas och legacy Kväll utan
   await page.goto("/besok", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByText(/Middag · Hämtmat/)).toBeVisible();
-  await expect(page.getByText(/Ett glas/)).toBeVisible();
+  await expect(page.getByText(/· Ett glas$/)).toBeVisible();
   await expect(page.getByText(/Kväll/)).toBeVisible();
   await expect(page.getByText(/På plats/)).toHaveCount(0);
   await expect(page.getByText("0 av 5", { exact: true })).toHaveCount(0);
