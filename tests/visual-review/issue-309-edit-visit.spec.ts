@@ -42,7 +42,8 @@ test("fånga redigera besök och kontextkorrigering", async ({ page }, testInfo)
   await page.goto("/matstallen/p2?demo=1&visit=v1", { waitUntil: "domcontentloaded" });
 
   const visitDialog = page.getByRole("dialog").first();
-  await visitDialog.getByRole("button", { name: "Redigera besök" }).click();
+  await visitDialog.getByRole("button", { name: "Besöksalternativ" }).click();
+  await page.getByRole("menuitem", { name: "Redigera besök" }).click();
 
   const editDialog = page.getByRole("dialog", { name: "Redigera besök" });
   await expect(editDialog).toBeVisible();
