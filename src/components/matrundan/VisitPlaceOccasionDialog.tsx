@@ -78,8 +78,6 @@ export function VisitPlaceOccasionDialog({
             {OCCASION_VALUES.map((occasion) => {
               const active = selected.includes(occasion);
               const atLimit = selected.length >= 2;
-              const displayLabel =
-                occasion === "snabbt" ? "Snabbt & enkelt" : OCCASION_LABEL[occasion];
               return (
                 <button
                   key={occasion}
@@ -94,7 +92,7 @@ export function VisitPlaceOccasionDialog({
                       : "border-border/70 bg-background hover:bg-secondary/60"
                   }`}
                 >
-                  <span className="block whitespace-nowrap">{displayLabel}</span>
+                  <span className="block whitespace-nowrap">{OCCASION_LABEL[occasion]}</span>
                 </button>
               );
             })}
