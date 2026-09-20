@@ -142,5 +142,6 @@ test("en annan deltagare får inte den kombinerade besökseditorn", async ({ pag
 
   const visitSheet = page.getByRole("dialog");
   await expect(visitSheet.getByRole("heading", { name: "Månskärans Taquería" })).toBeVisible();
-  await expect(visitSheet.getByRole("button", { name: "Besöksalternativ" })).toHaveCount(0);
+  await visitSheet.getByRole("button", { name: "Besöksalternativ" }).click();
+  await expect(page.getByRole("menuitem", { name: "Redigera besök" })).toHaveCount(0);
 });
