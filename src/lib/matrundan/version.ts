@@ -56,7 +56,7 @@ const VERSION_1_39_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Förbättrat",
       items: [
-        "Hämtmat och ställen som endast passar för Snabbt och enkelt bedöms utan Atmosfär, medan decimalbetyg visas med motsvarande delvis fyllda stjärnor.",
+        "Hämtmat och ställen som endast passar för Snabbt & enkelt bedöms utan Atmosfär, medan decimalbetyg visas med motsvarande delvis fyllda stjärnor.",
         "Äldre omdömen behåller sin tidigare betygsmodell och verkliga besök kan fortfarande sparas även om Passar för behöver kompletteras innan ett nytt omdöme lämnas.",
       ],
     },
