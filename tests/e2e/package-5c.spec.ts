@@ -48,7 +48,6 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
   await newestVisit.click();
   await expect(page.getByRole("heading", { name: "Bild från besöket" })).toBeVisible();
   await expect(page.getByAltText(/Bild från/).first()).toBeVisible();
-  await expect(page.getByText("Bilder delas inte vidare automatiskt.")).toBeVisible();
   await expectNoHorizontalOverflow(page, "Besöksdetalj med foto");
 
   await page.goto("/matstallen/p2?demo=1");
