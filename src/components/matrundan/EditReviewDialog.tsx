@@ -35,7 +35,14 @@ export function EditReviewDialog({
   scoreless?: boolean;
   isTakeaway?: boolean;
 }) {
-  const { updateOwnReview, saveVisitPhoto, submitting, state, demoReadOnly } = useStore();
+  const {
+    updateOwnReview,
+    saveVisitPhoto,
+    deleteVisitPhoto,
+    submitting,
+    state,
+    demoReadOnly,
+  } = useStore();
   const visit = state.visits.find((item) =>
     (item.visibleReviews ?? []).some((candidate) => candidate.id === review.id),
   );
@@ -53,6 +60,7 @@ export function EditReviewDialog({
   const [atmosphere, setAtmosphere] = React.useState(review.atmosphere ?? 0);
   const [comment, setComment] = React.useState(review.comment ?? "");
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = React.useState(false);
   const archived = state.group.lifecycleStatus === "archived";
   const complete = activeModel
     ? reviewRatingsComplete(activeModel, { taste, service, value, atmosphere })
@@ -67,6 +75,7 @@ export function EditReviewDialog({
     setAtmosphere(review.atmosphere ?? 0);
     setComment(review.comment ?? "");
     setPhotoFile(null);
+    setRemovePhoto(false);
   }, [open, review]);
 
   async function save() {
@@ -101,7 +110,7 @@ export function EditReviewDialog({
         comment: comment.trim() || null,
       });
 
-      if (photoFile && visit) {
+      if (visit && photoFile) {
         try {
           await saveVisitPhoto(visit.id, photoFile, visit);
         } catch {
@@ -113,6 +122,18 @@ export function EditReviewDialog({
           setOpen(false);
           return;
         }
+      } else if (visit && removePhoto && ownPhoto) {
+        try {
+          await deleteVisitPhoto(visit.id, ownPhoto.uploadedBy);
+        } catch {
+          toast.warning(
+            scoreless
+              ? "Kommentaren sparades, men bilden kunde inte tas bort."
+              : "Omdömet sparades, men bilden kunde inte tas bort.",
+          );
+          setOpen(false);
+          return;
+        }
       }
 
       toast.success(
@@ -120,9 +141,13 @@ export function EditReviewDialog({
           ? scoreless
             ? "Din kommentar och bild är uppdaterade."
             : "Ditt omdöme och din bild är uppdaterade."
-          : scoreless
-            ? "Din kommentar är uppdaterad."
-            : "Ditt omdöme är uppdaterat.",
+          : removePhoto
+            ? scoreless
+              ? "Din kommentar är uppdaterad och bilden borttagen."
+              : "Ditt omdöme är uppdaterat och bilden borttagen."
+            : scoreless
+              ? "Din kommentar är uppdaterad."
+              : "Ditt omdöme är uppdaterat.",
       );
       setOpen(false);
     } catch (error) {
@@ -185,10 +210,19 @@ export function EditReviewDialog({
           {visit ? (
             <VisitPhotoField
               file={photoFile}
-              onFileChange={setPhotoFile}
+              onFileChange={(file) => {
+                setPhotoFile(file);
+                if (file) setRemovePhoto(false);
+              }}
               existingUrl={ownPhoto?.url}
               disabled={submitting}
               showHelpText={false}
+              allowRemoveExisting={!!ownPhoto}
+              removeExisting={removePhoto}
+              onRemoveExistingChange={(remove) => {
+                setRemovePhoto(remove);
+                if (remove) setPhotoFile(null);
+              }}
               compact
             />
           ) : null}
