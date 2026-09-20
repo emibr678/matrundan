@@ -119,6 +119,7 @@ function GalleryImage({
 export function VisitPhotoManager({ visit }: { visit: Visit }) {
   const { state, memberById, saveVisitPhoto, deleteVisitPhoto, submitting } = useStore();
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const galleryRef = React.useRef<HTMLDivElement>(null);
   const viewerRef = React.useRef<HTMLDivElement>(null);
   const [file, setFile] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
@@ -129,6 +130,22 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
 
   const photos = getVisitPhotos(visit);
   const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
+  const galleryPhotos: VisitPhoto[] = photos.map((photo) =>
+    photo.uploadedBy === state.currentUserId && previewUrl
+      ? { ...photo, url: previewUrl }
+      : photo,
+  );
+  if (previewUrl && !ownPhoto) {
+    galleryPhotos.push({
+      url: previewUrl,
+      uploadedBy: state.currentUserId,
+      mimeType: file?.type || "image/jpeg",
+      byteSize: file?.size ?? 0,
+      width: 0,
+      height: 0,
+      updatedAt: "preview",
+    });
+  }
   const pendingDeleteOwner = pendingDeletePhoto
     ? photoOwner(visit, pendingDeletePhoto, memberById).name
     : "deltagaren";
@@ -151,6 +168,20 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
     setPreviewUrl(next);
     return () => URL.revokeObjectURL(next);
   }, [file]);
+
+  React.useEffect(() => {
+    if (!previewUrl || ownPhoto) return;
+    const frame = window.requestAnimationFrame(() => {
+      const container = galleryRef.current;
+      const target = container?.lastElementChild as HTMLElement | null;
+      if (!container || !target) return;
+      container.scrollTo({
+        left: target.offsetLeft - container.offsetLeft,
+        behavior: "smooth",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [ownPhoto, previewUrl]);
 
   React.useEffect(() => {
     if (!viewerOpen) return;
@@ -224,17 +255,21 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
         {photos.length === 1 ? "Bild från besöket" : "Bilder från besöket"}
       </h3>
 
-      {photos.length > 0 ? (
+      {galleryPhotos.length > 0 ? (
         <div className="min-w-0">
           <div
+            ref={galleryRef}
             className={
-              photos.length > 1 ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1" : "block"
+              galleryPhotos.length > 1
+                ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1"
+                : "block"
             }
-            aria-label={photos.length > 1 ? "Bilder från besöket, svep för fler" : undefined}
+            aria-label={galleryPhotos.length > 1 ? "Bilder från besöket" : undefined}
           >
-            {photos.map((photo, index) => {
+            {galleryPhotos.map((photo, index) => {
               const owner = photoOwner(visit, photo, memberById);
               const own = photo.uploadedBy === state.currentUserId;
+              const isEditingOwnPhoto = own && !!file && !!previewUrl;
               const canRemove = canDeleteVisitPhoto(
                 visit,
                 photo.uploadedBy,
@@ -247,12 +282,12 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                   key={`${photo.uploadedBy}:${photo.storagePath ?? photo.updatedAt}`}
                   role="group"
                   aria-label={`Bild från ${owner.name}${own ? ", din bild" : ""}`}
-                  className={photos.length > 1 ? "w-full shrink-0 snap-center" : "w-full"}
+                  className={galleryPhotos.length > 1 ? "w-full shrink-0 snap-center" : "w-full"}
                 >
                   <GalleryImage
                     photo={photo}
                     alt={`Bild från ${owner.name}`}
-                    count={photos.length}
+                    count={galleryPhotos.length}
                     index={index}
                     onOpen={() => {
                       setViewerIndex(index);
@@ -261,7 +296,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                   />
                   <div className="mt-2 flex min-h-9 items-center justify-between gap-2 px-1">
                     <OwnerBadge {...owner} own={own} />
-                    {canRemove || (own && canContribute) ? (
+                    {!isEditingOwnPhoto && (canRemove || (own && canContribute)) ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -299,15 +334,37 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                       </DropdownMenu>
                     ) : null}
                   </div>
+                  {isEditingOwnPhoto ? (
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="min-h-11 flex-1"
+                        disabled={disabled}
+                        onClick={clearSelection}
+                      >
+                        <X className="h-4 w-4" />
+                        Avbryt
+                      </Button>
+                      <Button
+                        type="button"
+                        className="min-h-11 flex-1"
+                        disabled={disabled}
+                        onClick={() => void save()}
+                      >
+                        {disabled ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+                        {ownPhoto ? "Spara ny bild" : "Spara bild"}
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
           </div>
-          {photos.length > 1 ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Svep mellan deltagarnas bilder.
-            </p>
-          ) : null}
         </div>
       ) : null}
 
@@ -324,42 +381,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
         }}
       />
 
-      {file && previewUrl ? (
-        <div className={photos.length > 0 ? "mt-3 space-y-2" : "space-y-2"}>
-          <div className="overflow-hidden rounded-2xl border border-primary/20 bg-muted">
-            <img
-              src={previewUrl}
-              alt="Förhandsvisning av din valda bild"
-              className="aspect-[4/3] w-full object-cover"
-            />
-          </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11"
-              disabled={disabled}
-              onClick={clearSelection}
-            >
-              <X className="h-4 w-4" />
-              Avbryt
-            </Button>
-            <Button
-              type="button"
-              className="min-h-11"
-              disabled={disabled}
-              onClick={() => void save()}
-            >
-              {disabled ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {ownPhoto ? "Spara ny bild" : "Spara bild"}
-            </Button>
-          </div>
-        </div>
-      ) : canContribute && !ownPhoto ? (
+      {canContribute && !ownPhoto && !file ? (
         <div className={photos.length > 0 ? "mt-3" : "mt-1"}>
           <Button
             type="button"
@@ -374,9 +396,6 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
         </div>
       ) : null}
 
-      <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-        Bilder delas inte vidare automatiskt.
-      </p>
 
       <AlertDialog
         open={pendingDeletePhoto != null}
