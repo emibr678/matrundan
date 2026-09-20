@@ -73,7 +73,7 @@ test("fånga redigera besök och kontextkorrigering", async ({ page }, testInfo)
   await expect(editDialog.getByText("4,5 / 5", { exact: true })).toBeVisible();
 
   await editDialog.getByLabel("Tillfälle").click();
-  await page.getByRole("option", { name: "Något att dricka" }).click();
+  await page.getByRole("option", { name: "Ett glas" }).click();
   await expect(editDialog.getByText("Omdömet bevaras")).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
