@@ -26,7 +26,7 @@ test("deltagarnas bilder behåller eget ägarskap i samma besök", async ({ page
   await expect(page.getByRole("menuitem", { name: "Byt bild" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Ta bort din bild" })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(gallery.getByText("Bilder delas inte vidare automatiskt.")).toBeVisible();
+  await expect(gallery.getByText(/Svep mellan deltagarnas bilder/)).toHaveCount(0);
 
   const overflow = await visitDialog.evaluate((element) => ({
     scrollWidth: element.scrollWidth,
