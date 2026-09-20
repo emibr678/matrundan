@@ -155,7 +155,10 @@ export function VisitDetailSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md">
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto p-0 sm:max-w-md [&>button]:z-20"
+        >
           {visit && place ? (
             <div className="flex flex-col">
               <SheetHeader className="relative space-y-0 border-b border-border/60 bg-gradient-to-br from-sage/40 to-secondary p-5 pr-24 text-left">
