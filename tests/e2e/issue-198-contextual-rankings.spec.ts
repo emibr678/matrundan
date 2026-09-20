@@ -49,7 +49,7 @@ test("topplistan kombinerar flervalsfilter för Passar för, tillfälle och häm
   await expect(leaderboard.getByText("Månskärans Taquería", { exact: true })).toBeVisible();
 
   const quick = leaderboard.getByRole("button", {
-    name: "Filtrera topplistan på Snabbt och enkelt",
+    name: "Filtrera topplistan på Snabbt & enkelt",
   });
   const relaxed = leaderboard.getByRole("button", {
     name: "Filtrera topplistan på Avslappnat",
