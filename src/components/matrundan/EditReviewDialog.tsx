@@ -136,19 +136,21 @@ export function EditReviewDialog({
         }
       }
 
-      toast.success(
-        photoFile
-          ? scoreless
-            ? "Din kommentar och bild är uppdaterade."
-            : "Ditt omdöme och din bild är uppdaterade."
-          : removePhoto
-            ? scoreless
-              ? "Din kommentar är uppdaterad och bilden borttagen."
-              : "Ditt omdöme är uppdaterat och bilden borttagen."
-            : scoreless
-              ? "Din kommentar är uppdaterad."
-              : "Ditt omdöme är uppdaterat.",
-      );
+      let successMessage = scoreless
+        ? "Din kommentar är uppdaterad."
+        : "Ditt omdöme är uppdaterat.";
+
+      if (photoFile) {
+        successMessage = scoreless
+          ? "Din kommentar och bild är uppdaterade."
+          : "Ditt omdöme och din bild är uppdaterade.";
+      } else if (removePhoto) {
+        successMessage = scoreless
+          ? "Din kommentar är uppdaterad och bilden borttagen."
+          : "Ditt omdöme är uppdaterat och bilden borttagen.";
+      }
+
+      toast.success(successMessage);
       setOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera.");
