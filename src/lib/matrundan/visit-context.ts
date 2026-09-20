@@ -14,7 +14,7 @@ export const VISIT_MEAL_LABEL: Record<VisitMeal, string> = {
   lunch: "Lunch",
   fika: "Fika",
   middag: "Middag",
-  dryck: "Något att dricka",
+  dryck: "Ett glas",
   kväll: "Kväll",
 };
 
@@ -23,7 +23,7 @@ export function visitMealLabel(meal: VisitMeal | string): string {
 }
 
 /**
- * `Något att dricka` är ett fullvärdigt besök men inte underlag för ställets
+ * `Ett glas` är ett fullvärdigt besök men inte underlag för ställets
  * matbetyg. Legacy-`kväll` behåller sin historiska scoresemantik.
  */
 export function visitMealHasScore(meal: VisitMeal | string): boolean {
