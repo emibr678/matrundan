@@ -53,7 +53,7 @@ test("fånga kompakta flervalsfilter i topplistan", async ({ page }, testInfo) =
   await capture(page, testInfo, "issue-198-topplista-ofiltrerad");
 
   await leaderboard
-    .getByRole("button", { name: "Filtrera topplistan på Snabbt och enkelt" })
+    .getByRole("button", { name: "Filtrera topplistan på Snabbt & enkelt" })
     .click();
   await leaderboard.getByRole("button", { name: "Filtrera topplistan på Avslappnat" }).click();
   await leaderboard.getByRole("button", { name: "Filtrera topplistan på Lunch" }).click();
