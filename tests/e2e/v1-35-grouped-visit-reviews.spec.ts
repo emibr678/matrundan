@@ -90,11 +90,28 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await expect(visitDialog.getByAltText("Bild från Alex")).toBeVisible();
 
   await editReviewButton.click();
-  const editReviewDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
+  let editReviewDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
   await expect(editReviewDialog.getByAltText("Din bild från besöket")).toBeVisible();
   await expect(editReviewDialog.getByText("Din nuvarande bild", { exact: true })).toBeVisible();
   await expectNoLocatorOverflow(editReviewDialog, "Redigera omdöme med befintlig bild");
+
+  await editReviewDialog.getByRole("button", { name: "Ta bort bild" }).click();
+  await expect(
+    editReviewDialog.getByText("Bilden tas bort när du sparar", { exact: true }),
+  ).toBeVisible();
+  await expect(editReviewDialog.getByRole("button", { name: "Ångra" })).toBeVisible();
   await editReviewDialog.getByRole("button", { name: "Avbryt" }).click();
+
+  await expect(visitDialog.getByAltText("Bild från Alex")).toBeVisible();
+
+  await editReviewButton.click();
+  editReviewDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
+  await editReviewDialog.getByRole("button", { name: "Ta bort bild" }).click();
+  await editReviewDialog.getByRole("button", { name: "Spara omdöme" }).click();
+
+  await expect(page.getByText("Ditt omdöme är uppdaterat och bilden borttagen.")).toBeVisible();
+  await expect(visitDialog.getByAltText("Bild från Alex")).toHaveCount(0);
+  await expect(visitDialog.getByRole("button", { name: "Lägg till din bild" })).toBeVisible();
 
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");
 });
