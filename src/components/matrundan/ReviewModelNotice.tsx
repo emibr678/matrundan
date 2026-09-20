@@ -57,8 +57,8 @@ export function ReviewModelNotice({ model }: { model: ReviewModel }) {
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   Om stället också passar för{" "}
                   <strong className="font-semibold">{OCCASION_LABEL.avslappnat}</strong> eller{" "}
-                  <strong className="font-semibold">{OCCASION_LABEL.middag}</strong> räknas
-                  Atmosfär med.
+                  <strong className="font-semibold">{OCCASION_LABEL.middag}</strong> räknas Atmosfär
+                  med.
                 </p>
               </>
             )}
