@@ -11,6 +11,9 @@ export function VisitPhotoField({
   showLabel = true,
   showHelpText = true,
   compact = false,
+  allowRemoveExisting = false,
+  removeExisting = false,
+  onRemoveExistingChange,
 }: {
   file: File | null;
   onFileChange: (file: File | null) => void;
@@ -19,6 +22,9 @@ export function VisitPhotoField({
   showLabel?: boolean;
   showHelpText?: boolean;
   compact?: boolean;
+  allowRemoveExisting?: boolean;
+  removeExisting?: boolean;
+  onRemoveExistingChange?: (remove: boolean) => void;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const inputId = React.useId();
@@ -34,7 +40,7 @@ export function VisitPhotoField({
     return () => URL.revokeObjectURL(nextUrl);
   }, [file]);
 
-  const shownUrl = previewUrl ?? existingUrl;
+  const shownUrl = previewUrl ?? (removeExisting ? undefined : existingUrl);
 
   if (compact) {
     return (
@@ -50,8 +56,28 @@ export function VisitPhotoField({
           </div>
         ) : null}
 
-        {shownUrl ? (
-          <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-muted/20 p-2">
+        {removeExisting && existingUrl && !file ? (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/20 p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Bilden tas bort när du sparar</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                Omdömet påverkas inte.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 shrink-0 px-2 text-xs"
+              disabled={disabled}
+              onClick={() => onRemoveExistingChange?.(false)}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Ångra
+            </Button>
+          </div>
+        ) : shownUrl ? (
+          <div className="relative flex items-center gap-3 rounded-xl border border-border/70 bg-muted/20 p-2">
             <img
               src={shownUrl}
               alt={file ? "Förhandsvisning av vald bild" : "Din bild från besöket"}
@@ -76,6 +102,19 @@ export function VisitPhotoField({
               <RotateCcw className="h-3.5 w-3.5" />
               Byt
             </Button>
+            {allowRemoveExisting && existingUrl && !file ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute -right-2 -top-2 h-8 w-8 rounded-full border border-border bg-background shadow-sm"
+                disabled={disabled}
+                aria-label="Ta bort bild"
+                onClick={() => onRemoveExistingChange?.(true)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         ) : (
           <Button
@@ -99,7 +138,9 @@ export function VisitPhotoField({
           className="sr-only"
           disabled={disabled}
           onChange={(event) => {
-            onFileChange(event.target.files?.[0] ?? null);
+            const nextFile = event.target.files?.[0] ?? null;
+            if (nextFile) onRemoveExistingChange?.(false);
+            onFileChange(nextFile);
             event.currentTarget.value = "";
           }}
         />
