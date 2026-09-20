@@ -35,14 +35,8 @@ export function EditReviewDialog({
   scoreless?: boolean;
   isTakeaway?: boolean;
 }) {
-  const {
-    updateOwnReview,
-    saveVisitPhoto,
-    deleteVisitPhoto,
-    submitting,
-    state,
-    demoReadOnly,
-  } = useStore();
+  const { updateOwnReview, saveVisitPhoto, deleteVisitPhoto, submitting, state, demoReadOnly } =
+    useStore();
   const visit = state.visits.find((item) =>
     (item.visibleReviews ?? []).some((candidate) => candidate.id === review.id),
   );
