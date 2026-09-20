@@ -156,7 +156,7 @@ describe("historikbaserat topplistebetyg", () => {
     });
   });
 
-  test("Något att dricka är ett besök men aldrig rankingunderlag", () => {
+  test("Ett glas är ett besök men aldrig rankingunderlag", () => {
     const visits = [visit("drink", "dryck", 5)];
 
     expect(ratingForPlaceInVisitContext(visits, "p1", { meals: [] })).toEqual({

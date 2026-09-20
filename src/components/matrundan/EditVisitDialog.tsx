@@ -594,8 +594,8 @@ export function EditVisitDialog({
               <div className="rounded-xl bg-secondary/40 px-3 py-2.5">
                 <p className="text-sm font-medium">Omdömet bevaras</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Du ändrar mellan ett matbesök och Något att dricka. Ditt befintliga omdöme skrivs
-                  inte om. Spara besöket först och ändra omdömet separat efteråt om det behövs.
+                  Du ändrar mellan ett matbesök och Ett glas. Ditt befintliga omdöme skrivs inte om.
+                  Spara besöket först och ändra omdömet separat efteråt om det behövs.
                 </p>
               </div>
             ) : !reviewEditing ? (

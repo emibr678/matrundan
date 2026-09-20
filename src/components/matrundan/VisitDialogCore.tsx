@@ -656,10 +656,9 @@ export function VisitDialog({
               </div>
             ) : (
               <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
-                <p className="text-sm font-medium">Inget stjärnbetyg för dryckesbesök</p>
+                <p className="text-sm font-medium">Besök utan betyg</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Besöket räknas i gruppens historik och progression, men påverkar inte matställets
-                  betyg. Lägg gärna till en kommentar eller ett foto som minne.
+                  För besök där ni främst tar något att dricka. Besöket sparas utan betyg.
                 </p>
               </div>
             )}
