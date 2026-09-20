@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, Pencil, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
+import { MapPin, MoreHorizontal, Pencil, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -11,6 +11,13 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -143,7 +150,7 @@ export function VisitDetailSheet({
         <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md">
           {visit && place ? (
             <div className="flex flex-col">
-              <SheetHeader className="space-y-0 border-b border-border/60 bg-gradient-to-br from-sage/40 to-secondary p-5 text-left">
+              <SheetHeader className="relative space-y-0 border-b border-border/60 bg-gradient-to-br from-sage/40 to-secondary p-5 pr-24 text-left">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                     Besök
@@ -183,6 +190,54 @@ export function VisitDetailSheet({
                 <SheetDescription className="mt-1 text-xs">
                   {formatVisitDate(visit.date)} · {formatVisitContext(visit)}
                 </SheetDescription>
+
+                {canEdit || canShare || canUnlink || canDelete ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-12 top-3 h-9 w-9 rounded-full text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                        aria-label="Besöksalternativ"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {canEdit ? (
+                        <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                          <Pencil className="h-4 w-4" />
+                          Redigera besök
+                        </DropdownMenuItem>
+                      ) : canShare ? (
+                        <DropdownMenuItem onSelect={() => setShareOpen(true)}>
+                          <Share2 className="h-4 w-4" />
+                          Lägg till i annan grupp
+                        </DropdownMenuItem>
+                      ) : null}
+                      {canUnlink || canDelete ? <DropdownMenuSeparator /> : null}
+                      {canUnlink ? (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setConfirmUnlink(true)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Ta bort från gruppen
+                        </DropdownMenuItem>
+                      ) : null}
+                      {canDelete ? (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setConfirmDelete(true)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Radera besöket
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
               </SheetHeader>
 
               <div className="space-y-4 p-5">
@@ -321,39 +376,6 @@ export function VisitDetailSheet({
                   </Link>
                 </Button>
 
-                {canEdit ? (
-                  <Button variant="secondary" className="w-full" onClick={() => setEditOpen(true)}>
-                    <Pencil className="h-4 w-4" />
-                    Redigera besök
-                  </Button>
-                ) : canShare ? (
-                  <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}>
-                    <Share2 className="h-4 w-4" />
-                    Lägg till i annan grupp
-                  </Button>
-                ) : null}
-
-                {canUnlink ? (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-center text-destructive"
-                    onClick={() => setConfirmUnlink(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Ta bort från gruppen
-                  </Button>
-                ) : null}
-
-                {canDelete ? (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-center text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => setConfirmDelete(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Radera besöket
-                  </Button>
-                ) : null}
               </div>
             </div>
           ) : null}
