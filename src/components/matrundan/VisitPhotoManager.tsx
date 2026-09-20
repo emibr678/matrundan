@@ -252,7 +252,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
   return (
     <section aria-labelledby={`visit-photos-${visit.id}`} className="min-w-0">
       <h3 id={`visit-photos-${visit.id}`} className="mb-2 text-sm font-medium">
-        {photos.length === 1 ? "Bild från besöket" : "Bilder från besöket"}
+        {galleryPhotos.length === 1 ? "Bild från besöket" : "Bilder från besöket"}
       </h3>
 
       {galleryPhotos.length > 0 ? (
@@ -440,13 +440,13 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
           <DialogHeader>
             <DialogTitle>Bilder från besöket</DialogTitle>
             <DialogDescription>
-              {photos.length > 1
-                ? "Svep mellan deltagarnas bilder."
+              {galleryPhotos.length > 1
+                ? "Flera deltagare har lagt till bilder."
                 : "Bild från det gemensamma besöket."}
             </DialogDescription>
           </DialogHeader>
           <div ref={viewerRef} className="flex snap-x snap-mandatory gap-3 overflow-x-auto">
-            {photos.map((photo, index) => {
+            {galleryPhotos.map((photo, index) => {
               const owner = photoOwner(visit, photo, memberById);
               return (
                 <div
@@ -468,9 +468,9 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-2 px-1">
                     <OwnerBadge {...owner} own={photo.uploadedBy === state.currentUserId} />
-                    {photos.length > 1 ? (
+                    {galleryPhotos.length > 1 ? (
                       <span className="shrink-0 text-xs text-muted-foreground">
-                        {index + 1} / {photos.length}
+                        {index + 1} / {galleryPhotos.length}
                       </span>
                     ) : null}
                   </div>
