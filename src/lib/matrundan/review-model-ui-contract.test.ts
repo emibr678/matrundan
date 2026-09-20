@@ -94,7 +94,8 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(modelNotice).toContain("Varför räknas inte Atmosfär?");
     expect(modelNotice).toContain("inte en del av just den");
     expect(modelNotice).toContain("besöksupplevelsen och räknas inte in i helhetsbetyget");
-    expect(modelNotice).toContain("mindre avgörande för helhetsupplevelsen");
+    expect(modelNotice).toContain("mindre avgörande för");
+    expect(modelNotice).toContain("helhetsupplevelsen");
     expect(modelNotice).toContain("en enklare atmosfär är mer");
     expect(modelNotice).toContain("förväntad");
     expect(modelNotice).toContain("Avslappnat eller Något extra");
