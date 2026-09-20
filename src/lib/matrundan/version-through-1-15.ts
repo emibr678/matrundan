@@ -262,7 +262,7 @@ const VERSION_1_7_0_CHANGELOG: ChangelogEntry = {
     {
       kind: "Förbättrat",
       items: [
-        "Passar för använder Snabbt & enkelt, Avslappnat och Något extra.",
+        "Passar för använder Snabbt och enkelt, Avslappnat och Något extra.",
         "Ett ställe kan ha ett primärt och ett frivilligt sekundärt val, men valet kan lämnas tomt tills gruppen har upplevt stället.",
         "Tidigare Passar för-val nollställs eftersom de gamla kategorierna inte kan översättas säkert.",
       ],
