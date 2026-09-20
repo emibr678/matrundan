@@ -150,7 +150,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await expect(leaderboard.getByText("Alla", { exact: true })).toHaveCount(0);
   await expect(leaderboard.getByText("Alla tillfällen", { exact: true })).toHaveCount(0);
   await expect(
-    leaderboard.getByRole("button", { name: "Filtrera topplistan på Snabbt och enkelt" }),
+    leaderboard.getByRole("button", { name: "Filtrera topplistan på Snabbt & enkelt" }),
   ).toHaveAttribute("aria-pressed", "false");
   await expectNoHorizontalOverflow(page, "Matställen");
 
