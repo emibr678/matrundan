@@ -188,6 +188,7 @@ export function EditReviewDialog({
               onFileChange={setPhotoFile}
               existingUrl={ownPhoto?.url}
               disabled={submitting}
+              showHelpText={false}
               compact
             />
           ) : null}
