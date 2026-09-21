@@ -3,6 +3,16 @@ import { Loader2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -30,6 +40,7 @@ import {
 } from "@/lib/matrundan/live-sharing";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
+import { reviewModelIncludesAtmosphere } from "@/lib/matrundan/review-model";
 import type { Place, Visit } from "@/lib/matrundan/types";
 import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
 import { canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
@@ -108,6 +119,7 @@ export function EditVisitDialog({
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [confirmTakeaway, setConfirmTakeaway] = React.useState(false);
 
   const scoredVisit = visitMealHasScore(meal);
   const originalScored = visitMealHasScore(visit.meal);
@@ -118,6 +130,15 @@ export function EditVisitDialog({
     (target) => !target.alreadyLinked && shareGroupIds.includes(target.groupId),
   );
   const hasOwnComment = Boolean(ownReview?.comment?.trim());
+  const takeawayChangesRatings =
+    visit.isTakeaway !== true &&
+    isTakeaway &&
+    (visit.visibleReviews ?? []).some(
+      (review) =>
+        review.ratingVisible &&
+        review.atmosphere != null &&
+        reviewModelIncludesAtmosphere(review.reviewModel),
+    );
 
   React.useEffect(() => {
     if (!open) return;
@@ -147,6 +168,7 @@ export function EditVisitDialog({
     setGuestName("");
     setShareGroupIds([]);
     setShareComment(false);
+    setConfirmTakeaway(false);
   }, [
     memberCandidates,
     mode,
@@ -293,6 +315,15 @@ export function EditVisitDialog({
     } finally {
       setBusy(false);
     }
+  }
+
+  function requestSave() {
+    if (!canEdit || isBusy || !validate()) return;
+    if (takeawayChangesRatings) {
+      setConfirmTakeaway(true);
+      return;
+    }
+    void save();
   }
 
   if (!canEdit) return null;
@@ -570,7 +601,7 @@ export function EditVisitDialog({
           <Button
             type="button"
             className="w-full sm:w-auto"
-            onClick={() => void save()}
+            onClick={requestSave}
             disabled={isBusy}
           >
             {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -578,6 +609,23 @@ export function EditVisitDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <AlertDialog open={confirmTakeaway} onOpenChange={setConfirmTakeaway}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Markera besöket som hämtmat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Atmosfär döljs medan besöket är markerat som hämtmat och räknas inte med i
+              helhetsbetygen. Omdömena finns kvar, men helhetsbetygen kan ändras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBusy}>Gå tillbaka</AlertDialogCancel>
+            <AlertDialogAction disabled={isBusy} onClick={() => void save()}>
+              Spara som hämtmat
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

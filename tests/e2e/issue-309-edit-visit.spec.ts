@@ -68,6 +68,16 @@ test("Hämtmat döljer Atmosfär reversibelt och räknar om helhetsbetyget", asy
   await expect(takeaway).toBeChecked();
 
   await edit.getByRole("button", { name: "Spara ändringar" }).click();
+  const takeawayConfirmation = page.getByRole("alertdialog", {
+    name: "Markera besöket som hämtmat?",
+  });
+  await expect(takeawayConfirmation).toContainText(
+    "Atmosfär döljs medan besöket är markerat som hämtmat och räknas inte med i helhetsbetygen.",
+  );
+  await expect(takeawayConfirmation).toContainText(
+    "Omdömena finns kvar, men helhetsbetygen kan ändras.",
+  );
+  await takeawayConfirmation.getByRole("button", { name: "Spara som hämtmat" }).click();
   await expect(visitSheet.getByText(/Hämtmat/).first()).toBeVisible();
   await expect(visitSheet.getByText("4,7 / 5", { exact: true }).first()).toBeVisible();
   await expect(visitSheet.getByText("Atmosfär", { exact: true })).toHaveCount(0);
