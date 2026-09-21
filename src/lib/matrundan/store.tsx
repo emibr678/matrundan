@@ -140,32 +140,6 @@ function aggregateVisit(visit: Visit): Visit {
   };
 }
 
-function normalizeHistoricalDemoReview(review: VisibleReview, scored: boolean): VisibleReview {
-  if (
-    !scored ||
-    review.overall == null ||
-    review.reviewModel != null ||
-    review.atmosphere != null
-  ) {
-    return review;
-  }
-
-  const reviewModel = "food_v0_3d" as const;
-  const overall = deriveReviewOverall(reviewModel, {
-    taste: review.taste ?? 0,
-    value: review.value ?? 0,
-    service: review.service ?? 0,
-  });
-  if (overall == null) return review;
-
-  return {
-    ...review,
-    overall,
-    atmosphere: null,
-    reviewModel,
-  };
-}
-
 function normalizePlace(place: Place): Place {
   const canonicalCuisines = normalizeFoodTags(place.canonicalCuisines ?? place.cuisines);
   const cuisinesOverride =
@@ -217,13 +191,12 @@ function normalizeDemoState(input: AppState): AppState {
             commentVisible: true,
           }
         : null;
-    const reviews: VisibleReview[] = (
+    const reviews: VisibleReview[] =
       visit.visibleReviews && visit.visibleReviews.length > 0
         ? visit.visibleReviews
         : fallbackReview
           ? [fallbackReview]
-          : []
-    ).map((review) => normalizeHistoricalDemoReview(review, scored));
+          : [];
     return aggregateVisit({ ...visit, visibleReviews: reviews });
   });
   return {
