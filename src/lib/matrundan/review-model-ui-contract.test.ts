@@ -56,7 +56,8 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
       "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället.",
     );
     expect(visitPlaceOccasionDialog).toContain("sparas för gruppen.");
-    expect(visitPlaceOccasionDialog).toContain('occasion === "snabbt" ? "Snabbt & enkelt"');
+    expect(visitPlaceOccasionDialog).toContain("OCCASION_LABEL[occasion]");
+    expect(visitPlaceOccasionDialog).not.toContain('occasion === "snabbt"');
     expect(visitPlaceOccasionDialog).toContain("whitespace-nowrap");
     expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
     expect(visitPlaceOccasionDialog).toContain("Vad betyder alternativen?");
@@ -84,16 +85,19 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(scoreFields).toContain("showEmpty");
   });
 
-  test("Hämtmat och Snabbt och enkelt använder samma Varför-mönster", () => {
+  test("Hämtmat och Snabbt & enkelt använder samma Varför-mönster", () => {
     expect(modelNotice).toContain("Varför ingår inte Atmosfär vid Hämtmat?");
-    expect(modelNotice).toContain("Varför ingår inte Atmosfär för Snabbt och enkelt?");
+    expect(modelNotice).toContain("OCCASION_LABEL.snabbt");
+    expect(modelNotice).toContain("OCCASION_LABEL.avslappnat");
+    expect(modelNotice).toContain("OCCASION_LABEL.middag");
+    expect(modelNotice).toContain("<strong");
     expect(modelNotice).toContain("Varför räknas inte Atmosfär?");
     expect(modelNotice).toContain("inte en del av just den");
     expect(modelNotice).toContain("besöksupplevelsen och räknas inte in i helhetsbetyget");
-    expect(modelNotice).toContain("mindre avgörande för helhetsupplevelsen");
+    expect(modelNotice).toContain("mindre avgörande för");
+    expect(modelNotice).toContain("helhetsupplevelsen");
     expect(modelNotice).toContain("en enklare atmosfär är mer");
     expect(modelNotice).toContain("förväntad");
-    expect(modelNotice).toContain("Avslappnat eller Något extra");
 
     for (const source of [
       visitDialogCore,
@@ -103,7 +107,7 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     ]) {
       expect(source).toContain("<ReviewScoreFields");
       expect(source).not.toContain("Atmosfär ingår inte vid Hämtmat.");
-      expect(source).not.toContain("Atmosfär ingår inte för Snabbt och enkelt.");
+      expect(source).not.toContain("Atmosfär ingår inte för Snabbt & enkelt.");
     }
   });
 

@@ -1,4 +1,5 @@
 import { normalizeOccasionClassification } from "./occasions";
+import { OCCASION_LABEL } from "./types";
 import type { Occasion, ReviewModel } from "./types";
 
 export type { ReviewModel } from "./types";
@@ -75,7 +76,7 @@ export function reviewModelExplanation(model: ReviewModel): string | null {
     return "Atmosfär ingår inte vid Hämtmat.";
   }
   if (model === "food_v1_quick") {
-    return "Atmosfär ingår inte för Snabbt och enkelt.";
+    return `Atmosfär ingår inte för ${OCCASION_LABEL.snabbt}.`;
   }
   return null;
 }

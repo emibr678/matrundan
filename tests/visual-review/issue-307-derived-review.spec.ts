@@ -230,14 +230,14 @@ test("#307 På plats visar Atmosfär och härlett helhetsbetyg", async ({ page }
   await capture(page, testInfo, "issue-307-pa-plats-atmosfar");
 });
 
-test("#307 Snabbt och enkelt förklarar varför Atmosfär inte räknas", async ({
+test("#307 Snabbt & enkelt förklarar varför Atmosfär inte räknas", async ({
   page,
 }, testInfo) => {
   const dialog = await openVisitDialog(page, ["snabbt"]);
 
-  await expect(dialog.getByText("Atmosfär ingår inte för Snabbt och enkelt.")).toBeVisible();
+  await expect(dialog.getByText("Atmosfär ingår inte för Snabbt & enkelt.")).toBeVisible();
   await dialog
-    .getByRole("button", { name: "Varför ingår inte Atmosfär för Snabbt och enkelt?" })
+    .getByRole("button", { name: "Varför ingår inte Atmosfär för Snabbt & enkelt?" })
     .click();
   await expect(page.getByText("Varför räknas inte Atmosfär?", { exact: true })).toBeVisible();
   await expect(page.getByText(/mindre avgörande för helhetsupplevelsen/)).toBeVisible();
@@ -312,7 +312,7 @@ test("#307 saknat Passar för löses före själva besöksregistreringen", async
   await expect(gate.getByText(/saknar Passar för/)).toHaveCount(0);
   await expect(gate.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
-  const quick = gate.getByRole("button", { name: "Passar för: Snabbt och enkelt" });
+  const quick = gate.getByRole("button", { name: "Passar för: Snabbt & enkelt" });
   const relaxed = gate.getByRole("button", { name: "Passar för: Avslappnat" });
   const extra = gate.getByRole("button", { name: "Passar för: Något extra" });
   await expect(quick.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
