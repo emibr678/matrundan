@@ -1,0 +1,155 @@
+name: Staging DB readiness
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: staging-db-readiness-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
+  TARGET_SHA: ${{ github.event.pull_request.head.sha }}
+  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
+jobs:
+  readiness:
+    name: Verify staging database is merge-ready
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: staging
+    env:
+      STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Guard exact candidate and append-only migration history
+        run: |
+          set -euo pipefail
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid PR head or base SHA." >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$TARGET_SHA" ]]; then
+            echo "Checked out commit does not match the PR head SHA." >&2
+            exit 1
+          fi
+
+          while IFS=$'\t' read -r status path extra; do
+            [[ -z "$status" ]] && continue
+            if [[ "$status" != "A" ]]; then
+              echo "Existing migrations are append-only; found $status for $path${extra:+ -> $extra}." >&2
+              exit 1
+            fi
+          done < <(
+            git diff --name-status --diff-filter=ACDMRTUXB               "$BASE_SHA" "$TARGET_SHA" -- supabase/migrations
+          )
+
+      - name: Validate read-only staging credential
+        run: |
+          set -euo pipefail
+          if [[ -z "${STAGING_SUPABASE_ACCESS_TOKEN:-}" ]]; then
+            echo "Missing STAGING_SUPABASE_ACCESS_TOKEN in the GitHub staging environment." >&2
+            exit 1
+          fi
+
+      - name: Verify every repo migration exists in Supabase Staging
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const token = process.env.STAGING_SUPABASE_ACCESS_TOKEN;
+          const projectId = process.env.STAGING_SUPABASE_PROJECT_ID;
+          const endpoint =
+            'https://api.supabase.com/v1/projects/' + projectId + '/database/migrations';
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              accept: 'application/json',
+              authorization: 'Bearer ' + token,
+            },
+            signal: AbortSignal.timeout(15_000),
+          });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || !Array.isArray(payload)) {
+            console.error(
+              'Could not read Supabase Staging migration history (HTTP ' +
+                response.status +
+                ').',
+            );
+            process.exit(1);
+          }
+
+          const remote = new Set(
+            payload
+              .map((row) => row?.name)
+              .filter((value) => typeof value === 'string' && value.length > 0),
+          );
+          const local = fs
+            .readdirSync('supabase/migrations')
+            .filter((name) => name.endsWith('.sql'))
+            .sort()
+            .map((name) => ({
+              name,
+              stem: path.basename(name, '.sql'),
+            }));
+
+          function candidatesFor(stem) {
+            const suffix = stem.replace(/^\d+_/, '');
+            return new Set([
+              stem,
+              stem.replaceAll('-', '_'),
+              suffix,
+              suffix.replaceAll('-', '_'),
+            ]);
+          }
+
+          const missing = local.filter(
+            ({ stem }) =>
+              ![...candidatesFor(stem)].some((candidate) => remote.has(candidate)),
+          );
+          if (missing.length > 0) {
+            console.error(
+              'Supabase Staging is not merge-ready; missing repo migration(s):',
+            );
+            for (const migration of missing) console.error('- ' + migration.name);
+            console.error(
+              'Apply missing migrations only through the separately approved Staging database apply flow, then rerun this check.',
+            );
+            process.exit(1);
+          }
+
+          console.log(
+            'Supabase Staging is merge-ready for ' +
+              process.env.TARGET_SHA +
+              ': all ' +
+              local.length +
+              ' repo migrations are represented.',
+          );
+          NODE

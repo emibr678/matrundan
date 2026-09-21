@@ -21,7 +21,7 @@ on:
         type: string
 
 permissions:
-  actions: read
+  actions: write
   contents: read
   pull-requests: write
 
@@ -403,4 +403,99 @@ jobs:
             console.error('Could not surface the verified staging preview on the PR.');
             process.exit(1);
           }
+          NODE
+
+      - name: Rerun staging DB readiness for exact PR head
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const repository = process.env.GITHUB_REPOSITORY;
+          const targetSha = process.env.TARGET_SHA;
+          const prNumber = Number(process.env.PR_NUMBER);
+          const headers = {
+            accept: 'application/vnd.github+json',
+            authorization: 'Bearer ' + process.env.GITHUB_API_TOKEN,
+            'x-github-api-version': '2022-11-28',
+          };
+
+          const listResponse = await fetch(
+            'https://api.github.com/repos/' +
+              repository +
+              '/actions/runs?head_sha=' +
+              targetSha +
+              '&event=pull_request&per_page=100',
+            { headers, signal: AbortSignal.timeout(10_000) },
+          );
+          const payload = await listResponse.json().catch(() => null);
+          if (!listResponse.ok) {
+            console.error(
+              'Could not read staging DB readiness runs (HTTP ' +
+                listResponse.status +
+                ').',
+            );
+            process.exit(1);
+          }
+
+          const readiness = (payload?.workflow_runs ?? [])
+            .filter(
+              (run) =>
+                run?.name === 'Staging DB readiness' &&
+                (run?.pull_requests ?? []).some(
+                  (candidate) => candidate?.number === prNumber,
+                ),
+            )
+            .sort((a, b) =>
+              String(b?.created_at ?? '').localeCompare(
+                String(a?.created_at ?? ''),
+              ),
+            )[0];
+
+          if (!readiness) {
+            console.error(
+              'No Staging DB readiness run exists for the exact PR head SHA.',
+            );
+            process.exit(1);
+          }
+          if (readiness.status !== 'completed') {
+            console.error(
+              'Staging DB readiness is still running for the exact PR head SHA.',
+            );
+            process.exit(1);
+          }
+          if (readiness.conclusion === 'success') {
+            console.log('Staging DB readiness is already green for this PR head.');
+            process.exit(0);
+          }
+          if (readiness.conclusion !== 'failure') {
+            console.error(
+              'Staging DB readiness has unexpected conclusion: ' +
+                String(readiness.conclusion),
+            );
+            process.exit(1);
+          }
+
+          const rerunResponse = await fetch(
+            'https://api.github.com/repos/' +
+              repository +
+              '/actions/runs/' +
+              readiness.id +
+              '/rerun-failed-jobs',
+            {
+              method: 'POST',
+              headers,
+              signal: AbortSignal.timeout(10_000),
+            },
+          );
+          if (!rerunResponse.ok) {
+            console.error(
+              'Could not rerun Staging DB readiness (HTTP ' +
+                rerunResponse.status +
+                ').',
+            );
+            process.exit(1);
+          }
+
+          console.log(
+            'Queued Staging DB readiness rerun for exact PR head ' + targetSha + '.',
+          );
           NODE

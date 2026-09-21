@@ -168,6 +168,19 @@ miljömodellen i `docs/platform-migration-plan.md`:
   andra produktionshemligheter;
 - `main` är staging-Workerns produktionsbranch i Cloudflare och en merge kan
   därför uppdatera den stabila `staging.matrundan.workers.dev`;
+- PR-checken **Staging DB readiness** läser Supabase Stagings migrationshistorik
+  och verifierar att samtliga repo-migrationer för exakt PR-head redan finns där;
+  den gör inga databasskrivningar;
+- migrationshistoriken är append-only relativt `main`: en PR får lägga till nya
+  migrationsfiler men ska inte ändra, byta namn på eller radera redan mergade
+  migrationer;
+- om readiness är röd på grund av en saknad migration krävs separat uttryckligt
+  godkännande för **Staging database apply**. Det flödet applicerar godkända
+  saknade migrationer och triggar därefter om readiness för exakt PR-head;
+- en migrationsbärande PR är inte mergeklar förrän både ordinarie CI och
+  **Staging DB readiness** är gröna. Post-merge-kontrollen i stagingdeployen
+  behålls som defense-in-depth; en saknad stagingmigration efter merge är ett
+  processfel som ska stoppas, inte ett normalt mellanläge;
 - den stagingdeploymenten är verifieringsmiljö, inte Matrundans publicerade
   produktion;
 - Worker `app` och Wrangler-miljön `prod` får inte auto-promoveras enbart för att
