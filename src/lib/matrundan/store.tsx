@@ -30,8 +30,10 @@ import {
   restoreGroupPlace as liveRestoreGroupPlace,
   updateGroupPlaceMetadata as liveUpdateGroupPlaceMetadata,
   updateOwnReview as liveUpdateOwnReview,
+  upgradeOwnReviewModel as liveUpgradeOwnReviewModel,
   type GroupPlaceMetadataInput,
   type ReviewEditInput,
+  type ReviewModelUpgradeInput,
 } from "./live-admin-4b";
 import {
   liveCreateOrLinkProviderPlace,
@@ -243,6 +245,7 @@ interface StoreContextValue {
   restorePlace: (placeId: string) => Promise<void>;
   updatePlaceMetadata: (placeId: string, input: GroupPlaceMetadataInput) => Promise<void>;
   updateOwnReview: (reviewId: string, input: ReviewEditInput) => Promise<void>;
+  upgradeOwnReviewModel: (reviewId: string, input: ReviewModelUpgradeInput) => Promise<void>;
   resetDemo: () => void;
   getPlace: (id: string) => Place | undefined;
   memberById: (id: string) => AppState["members"][number] | undefined;
@@ -1071,6 +1074,58 @@ export function StoreProvider({
                 atmosphere: review.reviewModel ? (input.atmosphere ?? null) : null,
                 comment: input.comment ?? null,
                 ratingVisible: review.ratingVisible,
+              };
+            });
+            return aggregateVisit({ ...visit, visibleReviews: reviews });
+          }),
+        }));
+      },
+
+      upgradeOwnReviewModel: async (reviewId, input) => {
+        if (mode === "live") {
+          await runLive((groupId) =>
+            liveUpgradeOwnReviewModel(groupId, reviewId, input),
+          );
+          return;
+        }
+        assertDemoWritable(state, demoReadOnly);
+        const target = state.visits
+          .flatMap((visit) => (visit.visibleReviews ?? []).map((review) => ({ visit, review })))
+          .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
+        if (!target) throw new Error("Ditt omdöme hittades inte.");
+        if (target.review.reviewModel !== "food_v0_3d") {
+          throw new Error("Omdömet kan inte kompletteras från den här betygsmodellen.");
+        }
+        const place = state.places.find((item) => item.id === target.visit.placeId);
+        const targetModel = place
+          ? reviewModelForContext({
+              isTakeaway: target.visit.isTakeaway === true,
+              occasions: place.occasions,
+            })
+          : null;
+        if (targetModel !== "food_v1_atmosphere") {
+          throw new Error("Atmosfär ingår inte i den aktuella betygsmodellen.");
+        }
+        if (!reviewRatingsComplete(targetModel, input)) {
+          throw new Error("Sätt alla relevanta betyg.");
+        }
+
+        setState((current) => ({
+          ...current,
+          visits: current.visits.map((visit) => {
+            const reviews = (visit.visibleReviews ?? []).map((review) => {
+              if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
+              return {
+                ...review,
+                reviewModel: targetModel,
+                overall:
+                  deriveReviewOverall(targetModel, input) ??
+                  review.overall,
+                taste: input.taste,
+                value: input.value,
+                service: input.service,
+                atmosphere: input.atmosphere,
+                comment: input.comment,
               };
             });
             return aggregateVisit({ ...visit, visibleReviews: reviews });

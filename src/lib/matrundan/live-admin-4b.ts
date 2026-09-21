@@ -66,3 +66,27 @@ export async function updateOwnReview(
     _comment: input.comment ?? null,
   });
 }
+
+export interface ReviewModelUpgradeInput {
+  taste: number;
+  value: number;
+  service: number;
+  atmosphere: number;
+  comment: string | null;
+}
+
+export async function upgradeOwnReviewModel(
+  groupId: string,
+  reviewId: string,
+  input: ReviewModelUpgradeInput,
+): Promise<void> {
+  await rpcClient.callVoid("upgrade_own_review_model_v1", {
+    _group_id: groupId,
+    _review_id: reviewId,
+    _taste: input.taste,
+    _value: input.value,
+    _service: input.service,
+    _atmosphere: input.atmosphere,
+    _comment: input.comment,
+  });
+}

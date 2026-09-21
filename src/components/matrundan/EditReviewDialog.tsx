@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   effectiveReviewModel,
+  reviewModelForContext,
   reviewModelIncludesAtmosphere,
   reviewRatingsComplete,
 } from "@/lib/matrundan/review-model";
@@ -35,19 +36,32 @@ export function EditReviewDialog({
   scoreless?: boolean;
   isTakeaway?: boolean;
 }) {
-  const { updateOwnReview, saveVisitPhoto, deleteVisitPhoto, submitting, state, demoReadOnly } =
-    useStore();
+  const {
+    updateOwnReview,
+    upgradeOwnReviewModel,
+    saveVisitPhoto,
+    deleteVisitPhoto,
+    submitting,
+    state,
+    demoReadOnly,
+  } = useStore();
   const visit = state.visits.find((item) =>
     (item.visibleReviews ?? []).some((candidate) => candidate.id === review.id),
   );
   const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
   const scoreless = scorelessOverride ?? (review.overall == null && review.reviewModel == null);
-  const legacy = !scoreless && review.reviewModel == null;
   const activeModel = effectiveReviewModel(review.reviewModel, isTakeaway);
   const storedModelHasAtmosphere = reviewModelIncludesAtmosphere(review.reviewModel);
-  const activeModelHasAtmosphere = reviewModelIncludesAtmosphere(activeModel);
+  const place = visit ? state.places.find((item) => item.id === visit.placeId) : undefined;
+  const currentContextModel = place
+    ? reviewModelForContext({ isTakeaway, occasions: place.occasions })
+    : null;
+  const canCompleteAtmosphere =
+    review.reviewModel === "food_v0_3d" && currentContextModel === "food_v1_atmosphere";
   const [open, setOpen] = React.useState(false);
-  const [overall, setOverall] = React.useState(review.overall ?? 0);
+  const [completingAtmosphere, setCompletingAtmosphere] = React.useState(false);
+  const displayModel = completingAtmosphere ? "food_v1_atmosphere" : activeModel;
+  const activeModelHasAtmosphere = reviewModelIncludesAtmosphere(displayModel);
   const [taste, setTaste] = React.useState(review.taste ?? 0);
   const [value, setValue] = React.useState(review.value ?? 0);
   const [service, setService] = React.useState(review.service ?? 0);
@@ -56,13 +70,13 @@ export function EditReviewDialog({
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = React.useState(false);
   const archived = state.group.lifecycleStatus === "archived";
-  const complete = activeModel
-    ? reviewRatingsComplete(activeModel, { taste, service, value, atmosphere })
-    : true;
+  const complete = displayModel
+    ? reviewRatingsComplete(displayModel, { taste, service, value, atmosphere })
+    : scoreless;
 
   React.useEffect(() => {
     if (!open) return;
-    setOverall(review.overall ?? 0);
+    setCompletingAtmosphere(false);
     setTaste(review.taste ?? 0);
     setValue(review.value ?? 0);
     setService(review.service ?? 0);
@@ -78,31 +92,39 @@ export function EditReviewDialog({
         toast.error("Kommentaren kan inte vara tom.");
         return;
       }
-    } else if (legacy) {
-      if (overall < 1 || overall > 5) {
-        toast.error("Helhetsbetyget måste vara 1–5.");
-        return;
-      }
+    } else if (!displayModel) {
+      toast.error("Omdömets betygsmodell saknas.");
+      return;
     } else if (!complete) {
       toast.error("Sätt alla relevanta betyg.");
       return;
     }
     try {
-      await updateOwnReview(review.id, {
-        overall: scoreless || review.reviewModel ? null : overall,
+      const reviewInput = {
+        overall: null,
         taste: scoreless ? null : taste || null,
         value: scoreless ? null : value || null,
         service: scoreless ? null : service || null,
         atmosphere:
-          scoreless || legacy
+          scoreless || (!completingAtmosphere && !storedModelHasAtmosphere)
             ? null
-            : storedModelHasAtmosphere
-              ? activeModelHasAtmosphere
-                ? atmosphere || null
-                : (review.atmosphere ?? null)
-              : null,
+            : activeModelHasAtmosphere
+              ? atmosphere || null
+              : (review.atmosphere ?? null),
         comment: comment.trim() || null,
-      });
+      };
+
+      if (completingAtmosphere) {
+        await upgradeOwnReviewModel(review.id, {
+          taste,
+          value,
+          service,
+          atmosphere,
+          comment: reviewInput.comment,
+        });
+      } else {
+        await updateOwnReview(review.id, reviewInput);
+      }
 
       if (visit && photoFile) {
         try {
@@ -175,8 +197,8 @@ export function EditReviewDialog({
           <DialogDescription>
             {scoreless
               ? `${placeName}. Dryckesbesöket påverkar inte ställets betyg.`
-              : legacy
-                ? `${placeName}. Det här är ett äldre omdöme och behåller sitt manuella helhetsbetyg.`
+              : review.reviewModel === "food_v0_3d"
+                ? `${placeName}. Helhetsbetyget räknas automatiskt från Smak, Service och Prisvärdhet.`
                 : `${placeName}. Helhetsbetyget räknas automatiskt från de delar som gäller för besöket.`}
           </DialogDescription>
         </DialogHeader>
@@ -185,15 +207,13 @@ export function EditReviewDialog({
           <ReviewEditFields
             review={review}
             scoreless={scoreless}
-            activeModel={activeModel}
-            showModelNotice={!(activeModel === "food_v1_takeaway" && !isTakeaway)}
-            overall={overall}
+            activeModel={displayModel}
+            showModelNotice={!(displayModel === "food_v1_takeaway" && !isTakeaway)}
             taste={taste}
             value={value}
             service={service}
             atmosphere={atmosphere}
             comment={comment}
-            onOverallChange={setOverall}
             onTasteChange={setTaste}
             onValueChange={setValue}
             onServiceChange={setService}
@@ -202,6 +222,38 @@ export function EditReviewDialog({
             idPrefix={`edit-review-${review.id}`}
             disabled={submitting}
           />
+
+          {canCompleteAtmosphere && !completingAtmosphere ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-11 w-full justify-start px-3 text-sm text-primary"
+              disabled={submitting}
+              onClick={() => setCompletingAtmosphere(true)}
+            >
+              Komplettera med Atmosfär
+            </Button>
+          ) : null}
+
+          {canCompleteAtmosphere && completingAtmosphere ? (
+            <div className="rounded-xl bg-secondary/50 px-3 py-2.5 text-sm">
+              <p className="text-muted-foreground">
+                När du sparar räknas helhetsbetyget om med Atmosfär. Fram till dess ändras inget.
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                className="mt-1 min-h-10 w-auto px-0 text-xs text-muted-foreground"
+                disabled={submitting}
+                onClick={() => {
+                  setCompletingAtmosphere(false);
+                  setAtmosphere(review.atmosphere ?? 0);
+                }}
+              >
+                Avbryt komplettering
+              </Button>
+            </div>
+          ) : null}
 
           {visit ? (
             <VisitPhotoField
@@ -229,7 +281,7 @@ export function EditReviewDialog({
             Avbryt
           </Button>
           <Button
-            disabled={submitting || (scoreless ? !comment.trim() : !complete)}
+            disabled={submitting || (scoreless ? !comment.trim() : !displayModel || !complete)}
             onClick={() => void save()}
           >
             {submitting ? "Sparar…" : scoreless ? "Spara kommentar" : "Spara omdöme"}

@@ -126,10 +126,9 @@ function withVisitParticipationScenarios(state: AppState): AppState {
           participantIds: [...new Set([...visit.participantIds, members.noor])],
           participants,
           currentUserParticipationStatus: "participant",
-          // Sam, Kim och Noor ger 4, 4 respektive 5. Aggregatet hålls i synk
-          // med de tre synliga omdömena så exempelgruppen aldrig visar ett
-          // betyg som inte går att förstå från underlaget.
-          overall: 13 / 3,
+          // Den historiska tredimensionella modellen ger 3,67, 4,00 och 4,67.
+          // Aggregatet är snittet av reviewernas egna härledda helhetsbetyg.
+          overall: (3.67 + 4 + 4.67) / 3,
           taste: 13 / 3,
           value: 4,
           service: 4,
@@ -144,6 +143,8 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               taste: 4,
               value: 4,
               service: 4,
+              atmosphere: null,
+              reviewModel: "food_v0_3d",
               comment: "Bra kväll för ett gemensamt stopp och lätt att dela maten.",
               ratingVisible: true,
               commentVisible: true,
@@ -151,15 +152,39 @@ function withVisitParticipationScenarios(state: AppState): AppState {
             {
               id: "review-v2-noor",
               userId: members.noor,
-              overall: 5,
+              overall: 4.67,
               taste: 5,
               value: 4,
               service: 5,
+              atmosphere: null,
+              reviewModel: "food_v0_3d",
               // Kommentaren finns kanoniskt men är dold i den här gruppkontexten.
               // Exempelvyn ska därför visa Noors betyg, aldrig den här texten.
               comment: "Den här dolda kommentaren får inte visas i exempelgruppen.",
               ratingVisible: true,
               commentVisible: false,
+            },
+          ],
+        };
+      }
+
+      if (visit.id === visits.repeatCafeEarlier) {
+        return {
+          ...visit,
+          currentUserParticipationStatus: "participant",
+          visibleReviews: [
+            {
+              id: "review-v6-alex",
+              userId: members.alex,
+              overall: 4,
+              taste: 5,
+              value: 3,
+              service: 4,
+              atmosphere: null,
+              reviewModel: "food_v0_3d",
+              comment: "Återbesöket gjorde Kardemummaköket till ett av gruppens fikafavoriter.",
+              ratingVisible: true,
+              commentVisible: true,
             },
           ],
         };
@@ -229,6 +254,8 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               taste: 4,
               value: 4,
               service: 4,
+              atmosphere: null,
+              reviewModel: "food_v0_3d",
               comment: "Dold fixturetext som inte ska visas i gruppen.",
               ratingVisible: false,
               commentVisible: false,
@@ -265,14 +292,17 @@ function withVisitParticipationScenarios(state: AppState): AppState {
           currentUserParticipationStatus: "declined",
           // Sam registrerade och deltog. Alex är den separata deltagare som senare
           // självkorrigerat sin närvaro; registreraren ligger kvar som deltagare.
+          overall: 4.33,
           visibleReviews: [
             {
               id: "review-v5-sam",
               userId: visit.createdBy,
-              overall: 5,
+              overall: 4.33,
               taste: 5,
               value: 4,
               service: 4,
+              atmosphere: null,
+              reviewModel: "food_v0_3d",
               comment: "Tidigt, varmt bröd och nästan ingen kö.",
               ratingVisible: true,
               commentVisible: true,
@@ -280,10 +310,12 @@ function withVisitParticipationScenarios(state: AppState): AppState {
             {
               id: "review-v5-kim",
               userId: members.kim,
-              overall: 5,
+              overall: 4.33,
               taste: 5,
               value: 4,
               service: 4,
+              atmosphere: null,
+              reviewModel: "food_v0_3d",
               comment: "Bra frukoststopp för gänget.",
               ratingVisible: true,
               commentVisible: true,

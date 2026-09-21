@@ -401,13 +401,21 @@ val får fortfarande komplettera gruppens platsmetadata. Senare ändringar av
 `Passar för` eller besökskontext skriver aldrig om en befintlig reviews frysta
 modell eller historiska score.
 
-Befintliga reviews från före den härledda modellen har `review_model IS NULL` och
-behåller sitt manuella helhetsbetyg 1–5 samt sina tidigare frivilliga
-detaljbetyg. Migrationen backfillar varken `review_model`, Atmosfär eller nya
-värden på legacy-reviews. `dryck` (**Ett glas**) är fortsatt ett
-fullvärdigt men scorelöst besök: inga numeriska reviewfält får sättas och
-besöket påverkar inte matställets betyg, men deltagande, progression, återbesök,
-kommentar och foto fungerar enligt samma kanoniska besöksmodell.
+Reviews från före den härledda modellen har migrerats en gång till den explicita,
+historiskt låsta modellen `food_v0_3d`. Den kräver Smak, Service och
+Prisvärdhet, förbjuder fabricerad Atmosfär och härleder helhetsbetyget som deras
+aritmetiska medelvärde. Backfillen accepterar endast den verifierade legacyformen
+och stoppar transaktionen vid oväntad data; den är inte ett mönster för framtida
+automatiska modellbyten.
+
+Ett `food_v0_3d`-omdöme är komplett enligt sin egen modell. Vanlig redigering
+behåller modellen. Endast reviewägaren kan genom en separat, uttrycklig handling
+komplettera med Atmosfär när den aktuella fyrdimensionella modellen är relevant;
+modellbytet sker atomärt först när alla fyra dimensioner sparas. `dryck`
+(**Ett glas**) är fortsatt ett fullvärdigt men scorelöst besök: inga numeriska
+reviewfält får sättas och besöket påverkar inte matställets betyg, men
+deltagande, progression, återbesök, kommentar och foto fungerar enligt samma
+kanoniska besöksmodell.
 
 `visits.is_takeaway` är en kanonisk egenskap på besöket. `false` är implicit På
 plats och `true` betyder Hämtmat; den är inte ett `Passar för`-värde och ändrar
@@ -426,9 +434,8 @@ döljs men bevaras. Om Hämtmat tas bort igen återgår omdömet till sin lagrad
 modell och samma Atmosfärsvärde blir aktivt igen. Ett omdöme som skapades som
 Hämtmat får däremot aldrig ett fabricerat Atmosfärsvärde när markeringen senare
 tas bort; dess lagrade tredimensionella modell består tills en separat uttrycklig
-omvärdering eventuellt kompletterar den. Legacy-reviews utan `review_model`
-behåller sitt manuella helhetsbetyg eftersom deras historiska matematik inte kan
-återskapas säkert.
+omvärdering eventuellt kompletterar den. Historiska `food_v0_3d`-reviews fortsätter använda samma tre dimensioner;
+Hämtmat-korrigering ändrar därför varken deras modell eller matematik.
 
 Servern avvisar ett nytt besök där `auth.uid()` inte finns bland de validerade
 `visit_participants`.
@@ -463,9 +470,10 @@ legitimt synligt i den aktuella gruppen. För scorebara reviews väljer servern
 samma nya reviewmodell och härleder overall från de relevanta dimensionerna. För
 `dryck` tillåts i stället en scorelös kommentar med null i alla ratingfält och
 `rating_visible = false`; en tom kommentar skapar inte ett meningslöst
-reviewobjekt. `update_own_review_v3` behåller en ny reviews frysta modell vid
-normal redigering, medan legacy-reviews fortsätter följa sin tidigare manuella
-modell. `reviews` behåller invarianten högst en kanonisk review per
+reviewobjekt. `update_own_review_v3` behåller varje reviews frysta modell vid normal
+redigering. `upgrade_own_review_model_v1` är den separata ägarstyrda vägen från
+`food_v0_3d` till `food_v1_atmosphere`; kommentar- eller metadataredigering
+kan aldrig utlösa samma övergång. `reviews` behåller invarianten högst en kanonisk review per
 `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt i
 `review_group_visibility` och löses inte genom reviewkopior.
 

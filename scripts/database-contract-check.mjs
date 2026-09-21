@@ -61,6 +61,7 @@ const requiredFunctions = [
   "set_own_visit_participation_v1",
   "update_visit_v1",
   "update_own_review_v3",
+  "upgrade_own_review_model_v1",
   "get_visit_review_reactions_v1",
   "set_own_review_reaction_v1",
   "replace_group_search_settings",

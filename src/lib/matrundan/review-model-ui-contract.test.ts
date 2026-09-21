@@ -121,10 +121,14 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(occasionPicker).toContain("Tidigare omdömen ändras inte");
   });
 
-  test("legacy-review behåller explicit äldre redigeringsmodell", () => {
-    expect(editDialog).toContain("Det här är ett äldre omdöme");
-    expect(reviewEditFields).toContain("Äldre detaljbetyg (frivilligt)");
-    expect(reviewEditFields).toContain("review.reviewModel");
+  test("historisk 3D-review använder ordinarie härlett flöde och explicit komplettering", () => {
+    expect(editDialog).toContain('review.reviewModel === "food_v0_3d"');
+    expect(editDialog).toContain("Komplettera med Atmosfär");
+    expect(editDialog).toContain("Fram till dess ändras inget");
+    expect(editDialog).toContain("upgradeOwnReviewModel");
+    expect(editDialog).toContain("Avbryt komplettering");
+    expect(reviewEditFields).not.toContain("Äldre detaljbetyg (frivilligt)");
+    expect(reviewEditFields).not.toContain('label="Helhetsbetyg"');
   });
 
   test("omdöme och besöksbild redigeras separat från den gemensamma besökshändelsen", () => {

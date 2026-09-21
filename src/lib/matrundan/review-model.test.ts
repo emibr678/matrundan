@@ -61,18 +61,19 @@ describe("aktiv reviewmodell efter korrigerad besökskontext", () => {
     );
   });
 
-  test("legacyomdömen behåller sitt manuella helhetsbetyg", () => {
-    const legacy = {
+  test("historiska 3D-omdömen härleds stabilt från sina tre dimensioner", () => {
+    const historical = {
       overall: 4,
-      taste: 5,
-      service: 3,
-      value: 2,
+      taste: 4,
+      service: 5,
+      value: 5,
       atmosphere: null,
-      reviewModel: null,
+      reviewModel: "food_v0_3d" as const,
     };
 
-    expect(effectiveReviewOverall(legacy, false)).toBe(4);
-    expect(effectiveReviewOverall(legacy, true)).toBe(4);
+    expect(effectiveReviewOverall(historical, false)).toBe(4.67);
+    expect(effectiveReviewOverall(historical, true)).toBe(4.67);
+    expect(reviewModelIncludesAtmosphere(historical.reviewModel)).toBe(false);
   });
 
   test("ofullständiga moderna dimensioner ger inget fabricerat helhetsbetyg", () => {

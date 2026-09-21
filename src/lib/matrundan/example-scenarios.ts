@@ -1,3 +1,4 @@
+import { deriveReviewOverall } from "./review-model";
 import type { AppState, Place, Visit, VisitParticipant, VisibleReview } from "./types";
 import { APP_VERSION } from "./version";
 
@@ -123,15 +124,18 @@ function activeParticipant(id: string, name: string, avatar: string): VisitParti
   return { id, name, avatar, avatarImage: null, status: "active" };
 }
 
-function review(
+function historicalReview(
   id: string,
   userId: string,
-  overall: number,
   comment: string,
-  taste = overall,
-  value = overall,
-  service = overall,
+  taste: number,
+  value: number,
+  service: number,
 ): VisibleReview {
+  const reviewModel = "food_v0_3d" as const;
+  const overall = deriveReviewOverall(reviewModel, { taste, value, service });
+  if (overall == null) throw new Error("Exempelgruppens historiska omdöme är ofullständigt.");
+
   return {
     id,
     userId,
@@ -139,6 +143,8 @@ function review(
     taste,
     value,
     service,
+    atmosphere: null,
+    reviewModel,
     comment,
     ratingVisible: true,
     commentVisible: true,
@@ -405,16 +411,22 @@ export function buildExampleState(nowInput: Date): AppState {
       comment: "Tacos runt bordet och lagom stökig fredagskänsla.",
       createdBy: members.sam,
       visibleReviews: [
-        review(
+        historicalReview(
           "review-v2-alex",
           members.alex,
-          5,
           "Smakerna satt och det var lätt att dela runt bordet.",
           5,
           4,
           5,
         ),
-        review("review-v2-sam", members.sam, 4, "Bra tempo och generösa portioner.", 4, 4, 3),
+        historicalReview(
+          "review-v2-sam",
+          members.sam,
+          "Bra tempo och generösa portioner.",
+          4,
+          4,
+          3,
+        ),
       ],
     }),
     exampleVisit({
@@ -526,10 +538,9 @@ export function buildExampleState(nowInput: Date): AppState {
       service: 5,
       createdBy: members.sam,
       visibleReviews: [
-        review(
+        historicalReview(
           "review-v10-sam",
           members.sam,
-          5,
           "En ovanligt bra lunch som gör bistron värd en omväg mitt på dagen.",
           5,
           5,
@@ -556,7 +567,14 @@ export function buildExampleState(nowInput: Date): AppState {
       linkType: "shared",
       countsForProgression: false,
       visibleReviews: [
-        review("review-v9-sam", members.sam, 4, "Trevligt kvartersställe och enkelt att mötas."),
+        historicalReview(
+          "review-v9-sam",
+          members.sam,
+          "Trevligt kvartersställe och enkelt att mötas.",
+          4,
+          4,
+          4,
+        ),
       ],
     }),
   ];

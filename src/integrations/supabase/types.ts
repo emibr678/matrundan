@@ -3157,6 +3157,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      upgrade_own_review_model_v1: {
+        Args: {
+          _atmosphere: number
+          _comment?: string
+          _group_id: string
+          _review_id: string
+          _service: number
+          _taste: number
+          _value: number
+        }
+        Returns: undefined
+      }
       update_own_review: {
         Args: {
           _comment?: string
