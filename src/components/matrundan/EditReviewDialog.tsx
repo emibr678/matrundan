@@ -221,39 +221,19 @@ export function EditReviewDialog({
             onCommentChange={setComment}
             idPrefix={`edit-review-${review.id}`}
             disabled={submitting}
+            atmosphereCompletion={
+              canCompleteAtmosphere
+                ? {
+                    active: completingAtmosphere,
+                    onStart: () => setCompletingAtmosphere(true),
+                    onCancel: () => {
+                      setCompletingAtmosphere(false);
+                      setAtmosphere(review.atmosphere ?? 0);
+                    },
+                  }
+                : undefined
+            }
           />
-
-          {canCompleteAtmosphere && !completingAtmosphere ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 w-full justify-start px-3 text-sm text-primary"
-              disabled={submitting}
-              onClick={() => setCompletingAtmosphere(true)}
-            >
-              Komplettera med Atmosfär
-            </Button>
-          ) : null}
-
-          {canCompleteAtmosphere && completingAtmosphere ? (
-            <div className="rounded-xl bg-secondary/50 px-3 py-2.5 text-sm">
-              <p className="text-muted-foreground">
-                När du sparar räknas helhetsbetyget om med Atmosfär. Fram till dess ändras inget.
-              </p>
-              <Button
-                type="button"
-                variant="ghost"
-                className="mt-1 min-h-10 w-auto px-0 text-xs text-muted-foreground"
-                disabled={submitting}
-                onClick={() => {
-                  setCompletingAtmosphere(false);
-                  setAtmosphere(review.atmosphere ?? 0);
-                }}
-              >
-                Avbryt komplettering
-              </Button>
-            </div>
-          ) : null}
 
           {visit ? (
             <VisitPhotoField

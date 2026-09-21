@@ -20,6 +20,7 @@ export function ReviewEditFields({
   onCommentChange,
   idPrefix,
   disabled = false,
+  atmosphereCompletion,
 }: {
   review: VisibleReview;
   scoreless: boolean;
@@ -37,6 +38,11 @@ export function ReviewEditFields({
   onCommentChange: (value: string) => void;
   idPrefix: string;
   disabled?: boolean;
+  atmosphereCompletion?: {
+    active: boolean;
+    onStart: () => void;
+    onCancel: () => void;
+  };
 }) {
   const model = activeModel === undefined ? review.reviewModel : activeModel;
 
@@ -54,6 +60,8 @@ export function ReviewEditFields({
           onValueChange={onValueChange}
           onAtmosphereChange={onAtmosphereChange}
           showModelNotice={showModelNotice}
+          atmosphereCompletion={atmosphereCompletion}
+          disabled={disabled}
         />
       ) : null}
 
