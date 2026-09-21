@@ -65,9 +65,14 @@ function withVisitParticipationScenarios(state: AppState): AppState {
           currentUserParticipationStatus: "participant",
           // Nya besök följer #169-invarianten: registreraren är faktisk deltagare
           // och har redan lämnat sitt eget omdöme i registreringsflödet.
-          // Alex omdöme är samtidigt ett fryst quick-only #307-exempel så
-          // exempelgruppen kan visa varför Atmosfär saknas utan att äldre
-          // pending-scenarier för samma ställe skrivs över.
+          // Det framträdande återbesöket använder den aktuella fyrdimensionella
+          // modellen eftersom stället även passar för Avslappnat. Äldre
+          // specialfall ska inte vara det första användaren möter i exempelgruppen.
+          overall: 4.75,
+          taste: 5,
+          value: 4.5,
+          service: 5,
+          atmosphere: 4.5,
           visibleReviews: [
             {
               id: "review-v1-alex",
@@ -76,8 +81,8 @@ function withVisitParticipationScenarios(state: AppState): AppState {
               taste: 5,
               value: 5,
               service: 5,
-              atmosphere: null,
-              reviewModel: "food_v1_quick",
+              atmosphere: 5,
+              reviewModel: "food_v1_atmosphere",
               comment: "En lugn fredagsfika och en riktigt bra kardemummabulle.",
               ratingVisible: true,
               commentVisible: true,
@@ -85,10 +90,12 @@ function withVisitParticipationScenarios(state: AppState): AppState {
             {
               id: "review-v1-robin",
               userId: members.robin,
-              overall: 5,
+              overall: 4.5,
               taste: 5,
               value: 4,
               service: 5,
+              atmosphere: 4,
+              reviewModel: "food_v1_atmosphere",
               comment: "Kardemummabullen var värd omvägen – fortfarande varm när vi fick den.",
               ratingVisible: true,
               commentVisible: true,

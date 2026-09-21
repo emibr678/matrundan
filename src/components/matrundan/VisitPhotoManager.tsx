@@ -410,7 +410,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
             <AlertDialogDescription>
               {pendingDeletePhoto?.uploadedBy === state.currentUserId
                 ? "Bilden försvinner från det här besöket för gruppen. Det går inte att ångra."
-                : `${pendingDeleteOwner}s bild försvinner från det här besöket för gruppen. Använd bara moderation när bilden behöver tas bort.`}
+                : `Du tar bort en bild som ${pendingDeleteOwner} har lagt till. Bilden försvinner från besöket för hela gruppen och det går inte att ångra.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

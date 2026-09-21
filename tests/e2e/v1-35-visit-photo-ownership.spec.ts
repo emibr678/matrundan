@@ -19,6 +19,16 @@ test("deltagarnas bilder behåller eget ägarskap i samma besök", async ({ page
   await expect(
     robinPhoto.getByRole("button", { name: "Fler bildalternativ för Robin" }),
   ).toBeVisible();
+  await robinPhoto.getByRole("button", { name: "Fler bildalternativ för Robin" }).click();
+  await page.getByRole("menuitem", { name: "Ta bort bild" }).click();
+  const deleteRobinPhoto = page.getByRole("alertdialog");
+  await expect(
+    deleteRobinPhoto.getByRole("heading", { name: "Ta bort Robins bild?" }),
+  ).toBeVisible();
+  await expect(deleteRobinPhoto).toContainText(
+    "Du tar bort en bild som Robin har lagt till. Bilden försvinner från besöket för hela gruppen och det går inte att ångra.",
+  );
+  await deleteRobinPhoto.getByRole("button", { name: "Avbryt" }).click();
 
   const alexPhoto = gallery.getByRole("group", { name: "Bild från Alex, din bild" });
   await expect(alexPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(0);
