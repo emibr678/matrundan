@@ -322,7 +322,7 @@ export const CATEGORY_LABEL: Record<PlaceCategory, string> = {
 };
 
 export const OCCASION_LABEL: Record<Occasion, string> = {
-  snabbt: "Snabbt och enkelt",
+  snabbt: "Snabbt & enkelt",
   avslappnat: "Avslappnat",
   middag: "Något extra",
 };

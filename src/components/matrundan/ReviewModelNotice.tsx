@@ -2,16 +2,26 @@ import { CircleHelp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { reviewModelExplanation, type ReviewModel } from "@/lib/matrundan/review-model";
+import { OCCASION_LABEL } from "@/lib/matrundan/types";
 
 export function ReviewModelNotice({ model }: { model: ReviewModel }) {
   const explanation = reviewModelExplanation(model);
   if (!explanation) return null;
 
   const takeaway = model === "food_v1_takeaway";
+  const quickLabel = OCCASION_LABEL.snabbt;
 
   return (
     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-relaxed text-muted-foreground">
-      <span>{explanation}</span>
+      <span>
+        {takeaway ? (
+          explanation
+        ) : (
+          <>
+            Atmosfär ingår inte för <strong className="font-semibold">{quickLabel}</strong>.
+          </>
+        )}
+      </span>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -22,7 +32,7 @@ export function ReviewModelNotice({ model }: { model: ReviewModel }) {
             aria-label={
               takeaway
                 ? "Varför ingår inte Atmosfär vid Hämtmat?"
-                : "Varför ingår inte Atmosfär för Snabbt och enkelt?"
+                : `Varför ingår inte Atmosfär för ${quickLabel}?`
             }
           >
             <CircleHelp className="h-3.5 w-3.5" />
@@ -40,12 +50,15 @@ export function ReviewModelNotice({ model }: { model: ReviewModel }) {
             ) : (
               <>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  För Snabbt och enkelt väger vi inte in Atmosfär. På sådana ställen är miljön
-                  oftast mindre avgörande för helhetsupplevelsen, och en enklare atmosfär är mer
-                  förväntad.
+                  För <strong className="font-semibold">{quickLabel}</strong> väger vi inte in
+                  Atmosfär. På sådana ställen är miljön oftast mindre avgörande för
+                  helhetsupplevelsen, och en enklare atmosfär är mer förväntad.
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Om stället också passar för Avslappnat eller Något extra räknas Atmosfär med.
+                  Om stället också passar för{" "}
+                  <strong className="font-semibold">{OCCASION_LABEL.avslappnat}</strong> eller{" "}
+                  <strong className="font-semibold">{OCCASION_LABEL.middag}</strong> räknas Atmosfär
+                  med.
                 </p>
               </>
             )}

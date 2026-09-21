@@ -3,6 +3,28 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_40_0_CHANGELOG: ChangelogEntry = {
+  version: "1.40.0",
+  date: "2026-09-19",
+  summary: "Besök går att rätta och topplistor speglar verkliga besök tydligare.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Den som registrerade ett besök kan nu korrigera datum, tillfälle, Hämtmat och faktiska deltagare i efterhand utan att skapa ett nytt besök.",
+        "Topplistan kan filtreras på verkliga besökstillfällen som Lunch, Middag och Fika och kombineras med Passar för och Hämtmat. Det visade betyget bygger bara på relevanta besök och visar hur många besök och omdömen som ligger bakom.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "När ett besök rättas behålls befintliga omdömen, gäster och delningar på samma gemensamma besök.",
+        "Platsmetadata använder tydligare begrepp: Typ av ställe, Kök och inriktning samt Passar för. Interna begrepp om grundtyp och gruppoverride hålls under huven.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_39_1_CHANGELOG: ChangelogEntry = {
   version: "1.39.1",
   date: "2026-09-19",
@@ -385,6 +407,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_40_0_CHANGELOG,
   VERSION_1_39_1_CHANGELOG,
   VERSION_1_39_0_CHANGELOG,
   VERSION_1_38_12_CHANGELOG,

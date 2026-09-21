@@ -264,7 +264,6 @@ uttryckligen tillsammans med delat besök** ansvarar separat för framtida,
 uttrycklig och serverstyrd gruppsynlighet utan att exponera ursprungsgrupp,
 medlemskap, privata kommentarer eller Storage-sökvägar.
 
-
 ## RLS och RPC-mönster
 
 ### Direkt RLS
@@ -393,9 +392,9 @@ medelvärdet av de dimensioner som ingår i modellen och lagras som decimal.
 Klienten får därför inte skicka ett manuellt overall för en review med ny modell.
 
 Hämtmat väljer alltid takeaway-modellen. För besök på plats avgör gruppens hela
-`Passar för`-mängd om Atmosfär ingår: endast **Snabbt och enkelt** ger quick-
+`Passar för`-mängd om Atmosfär ingår: endast **Snabbt & enkelt** ger quick-
 modellen, medan **Avslappnat** och/eller **Något extra** ger atmosphere-modellen,
-även i kombination med Snabbt. Saknas `Passar för` får den metadata som behövs
+även i kombination med **Snabbt & enkelt**. Saknas `Passar för` får den metadata som behövs
 för ett nytt på-plats-omdöme sparas på gruppens platsrelation; ett
 Hämtmat-omdöme förblir entydigt även utan sådan klassificering men ett frivilligt
 val får fortfarande komplettera gruppens platsmetadata. Senare ändringar av
@@ -405,7 +404,7 @@ modell eller historiska score.
 Befintliga reviews från före den härledda modellen har `review_model IS NULL` och
 behåller sitt manuella helhetsbetyg 1–5 samt sina tidigare frivilliga
 detaljbetyg. Migrationen backfillar varken `review_model`, Atmosfär eller nya
-värden på legacy-reviews. `dryck` (**Något att dricka**) är fortsatt ett
+värden på legacy-reviews. `dryck` (**Ett glas**) är fortsatt ett
 fullvärdigt men scorelöst besök: inga numeriska reviewfält får sättas och
 besöket påverkar inte matställets betyg, men deltagande, progression, återbesök,
 kommentar och foto fungerar enligt samma kanoniska besöksmodell.

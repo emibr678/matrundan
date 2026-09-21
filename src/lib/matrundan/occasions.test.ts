@@ -13,7 +13,7 @@ describe("sammanhangskategorier", () => {
   test("har tre tydliga och unika benämningar", () => {
     expect(OCCASION_VALUES).toEqual(["snabbt", "avslappnat", "middag"]);
     expect(OCCASION_VALUES.map((occasion) => OCCASION_LABEL[occasion])).toEqual([
-      "Snabbt och enkelt",
+      "Snabbt & enkelt",
       "Avslappnat",
       "Något extra",
     ]);

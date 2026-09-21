@@ -634,7 +634,7 @@ export function StoreProvider({
         }
         if (ownReviewInput && oldScored !== newScored) {
           throw new Error(
-            "Spara först ändringen av tillfälle. Omdömet bevaras historiskt när besöket byter mellan mat och Något att dricka.",
+            "Spara först ändringen av tillfälle. Omdömet bevaras historiskt när besöket byter mellan mat och Ett glas.",
           );
         }
         if (ownReviewInput && ownReview) {

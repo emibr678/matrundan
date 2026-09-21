@@ -28,7 +28,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
     name: "Filtrera topplistan på Avslappnat",
   });
   const quick = leaderboard.getByRole("button", {
-    name: "Filtrera topplistan på Snabbt och enkelt",
+    name: "Filtrera topplistan på Snabbt & enkelt",
   });
   await relaxed.click();
   await expect(relaxed).toHaveAttribute("aria-pressed", "true");
@@ -42,7 +42,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(filterSheet.getByText("Passar för", { exact: true }).first()).toBeVisible();
   await expect(filterSheet.getByText("Avslappnat", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Något extra", { exact: true })).toBeVisible();
-  await expect(filterSheet.getByText("Snabbt och enkelt", { exact: true })).toBeVisible();
+  await expect(filterSheet.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Saknar uppgifter", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Trevlig middag", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Kategorifilter");
@@ -126,7 +126,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
     exact: true,
   });
   const quickButton = manualDialog.getByRole("button", {
-    name: "Passar för: Snabbt och enkelt",
+    name: "Passar för: Snabbt & enkelt",
     exact: true,
   });
 

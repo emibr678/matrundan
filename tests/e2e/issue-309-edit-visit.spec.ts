@@ -126,11 +126,11 @@ test("registreraren kan korrigera besök och deltagare på 360 px", async ({ pag
   await page.getByRole("menuitem", { name: "Redigera besök" }).click();
   const contextEdit = page.getByRole("dialog", { name: "Redigera besök" });
   await contextEdit.getByLabel("Tillfälle").click();
-  await page.getByRole("option", { name: "Något att dricka" }).click();
+  await page.getByRole("option", { name: "Ett glas" }).click();
   await expect(contextEdit.getByText("Omdömet bevaras")).toBeVisible();
   await contextEdit.getByRole("button", { name: "Spara ändringar" }).click();
 
-  await expect(visitSheet.getByText(/Något att dricka/).first()).toBeVisible();
+  await expect(visitSheet.getByText(/Ett glas/).first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Korrigerat dryckesbesök");
 });
 

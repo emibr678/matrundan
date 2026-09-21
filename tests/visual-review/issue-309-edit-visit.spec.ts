@@ -48,33 +48,30 @@ test("fånga redigera besök och kontextkorrigering", async ({ page }, testInfo)
   const editDialog = page.getByRole("dialog", { name: "Redigera besök" });
   await expect(editDialog).toBeVisible();
   await expect(editDialog.getByText("Kvarterets Kardemumma")).toBeVisible();
-  await expect(editDialog.getByText("4,5 / 5", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("Ditt omdöme", { exact: true })).toHaveCount(0);
+  await expect(editDialog.getByRole("button", { name: "Redigera omdöme" })).toHaveCount(0);
+  await expect(editDialog.getByText("Bild från besöket", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-309-redigera-besok");
 
-  await editDialog.getByRole("button", { name: "Redigera omdöme" }).click();
-  await expect(editDialog.getByText("Atmosfär", { exact: true })).toBeVisible();
-  await expect(editDialog.getByText("Räknas automatiskt")).toBeVisible();
-  await expectNoHorizontalOverflow(page);
-  await stabilize(page);
-  await capture(page, testInfo, "issue-309-omdome-med-atmosfar");
-
   const takeaway = editDialog.getByRole("switch", { name: "Hämtmat" });
   await takeaway.click();
-  await expect(editDialog.getByText("Atmosfär", { exact: true })).toHaveCount(0);
-  await expect(editDialog.getByText("Atmosfär ingår inte vid Hämtmat.")).toBeVisible();
-  await expect(editDialog.getByText("4,7 / 5", { exact: true })).toBeVisible();
+  await editDialog.getByRole("button", { name: "Spara ändringar" }).click();
+  const takeawayConfirmation = page.getByRole("alertdialog", { name: "Spara som hämtmat?" });
+  await expect(takeawayConfirmation).toContainText(
+    "Atmosfär döljs och räknas inte med vid hämtmat.",
+  );
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-309-hamtmat-utan-atmosfar");
+  await capture(page, testInfo, "issue-309-hamtmat-bekraftelse");
 
+  await takeawayConfirmation.getByRole("button", { name: "Gå tillbaka" }).click();
+  await expect(takeaway).toBeChecked();
   await takeaway.click();
-  await expect(editDialog.getByText("Atmosfär", { exact: true })).toBeVisible();
-  await expect(editDialog.getByText("4,5 / 5", { exact: true })).toBeVisible();
 
   await editDialog.getByLabel("Tillfälle").click();
-  await page.getByRole("option", { name: "Något att dricka" }).click();
+  await page.getByRole("option", { name: "Ett glas" }).click();
   await expect(editDialog.getByText("Omdömet bevaras")).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);

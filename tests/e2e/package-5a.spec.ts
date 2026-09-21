@@ -93,11 +93,11 @@ test("exempelgruppen använder samma #307-logik som registreringsflödet", async
   await page.goto("/matstallen/p8");
   await page.getByRole("button", { name: "Registrera besök" }).click();
   let dialog = page.getByRole("dialog", { name: "Registrera besök" });
-  await expect(dialog.getByText("Atmosfär ingår inte för Snabbt och enkelt.")).toBeVisible();
+  await expect(dialog.getByText("Atmosfär ingår inte för Snabbt & enkelt.")).toBeVisible();
   await expect(
-    dialog.getByRole("button", { name: "Varför ingår inte Atmosfär för Snabbt och enkelt?" }),
+    dialog.getByRole("button", { name: "Varför ingår inte Atmosfär för Snabbt & enkelt?" }),
   ).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Snabbt och enkelt i exempelgruppen");
+  await expectNoHorizontalOverflow(page, "Snabbt & enkelt i exempelgruppen");
 
   await page.goto("/matstallen/p7");
   await page.getByRole("button", { name: "Registrera besök" }).click();

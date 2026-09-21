@@ -264,7 +264,7 @@ async function mockBackend(page: Page) {
   });
 }
 
-test("#197 registrering visar scorelöst Något att dricka utan Hämtmat", async ({
+test("#197 registrering visar scorelöst Ett glas utan Hämtmat", async ({
   page,
 }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
@@ -277,12 +277,13 @@ test("#197 registrering visar scorelöst Något att dricka utan Hämtmat", async
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" })).toBeVisible();
   await dialog.getByRole("combobox").click();
-  await expect(page.getByRole("option", { name: "Något att dricka" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Ett glas" })).toBeVisible();
   await expect(page.getByRole("option", { name: "Kväll" })).toHaveCount(0);
-  await page.getByRole("option", { name: "Något att dricka" }).click();
+  await page.getByRole("option", { name: "Ett glas" }).click();
 
   await expect(dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" })).toHaveCount(0);
-  await expect(dialog.getByText("Inget stjärnbetyg för dryckesbesök")).toBeVisible();
+  await expect(dialog.getByText("Besök utan betyg")).toBeVisible();
+  await expect(dialog.getByText("För besök där ni främst tar något att dricka. Besöket sparas utan betyg.")).toBeVisible();
   await expect(dialog.getByText("Helhetsbetyg")).toHaveCount(0);
   await expect(dialog.getByText(/Detaljbetyg/)).toHaveCount(0);
   await expect(dialog.getByLabel("Kommentar (frivilligt)")).toBeVisible();
@@ -292,7 +293,7 @@ test("#197 registrering visar scorelöst Något att dricka utan Hämtmat", async
   await capture(page, testInfo, "issue-197-registrera-dryck-scorelost");
 });
 
-test("#197 historik skiljer Hämtmat, scorelös dryck och legacy Kväll utan På plats-brus", async ({
+test("#197 historik skiljer Hämtmat, scorelöst Ett glas och legacy Kväll utan På plats-brus", async ({
   page,
 }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
@@ -301,7 +302,7 @@ test("#197 historik skiljer Hämtmat, scorelös dryck och legacy Kväll utan På
   await page.goto("/besok", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByText(/Middag · Hämtmat/)).toBeVisible();
-  await expect(page.getByText(/Något att dricka/)).toBeVisible();
+  await expect(page.getByText(/· Ett glas$/)).toBeVisible();
   await expect(page.getByText(/Kväll/)).toBeVisible();
   await expect(page.getByText(/På plats/)).toHaveCount(0);
   await expect(page.getByText("0 av 5", { exact: true })).toHaveCount(0);

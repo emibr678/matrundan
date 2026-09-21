@@ -29,7 +29,7 @@ describe("aktiv reviewmodell efter korrigerad besökskontext", () => {
     expect(effectiveReviewOverall(fourDimensionalReview, false)).toBe(3.5);
   });
 
-  test("tre dimensioner ger samma matematik för Snabbt och enkelt och Hämtmat", () => {
+  test("tre dimensioner ger samma matematik för Snabbt & enkelt och Hämtmat", () => {
     const quick = {
       overall: 4.33,
       taste: 5,
