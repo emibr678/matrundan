@@ -141,7 +141,14 @@ function aggregateVisit(visit: Visit): Visit {
 }
 
 function normalizeHistoricalDemoReview(review: VisibleReview, scored: boolean): VisibleReview {
-  if (!scored || review.reviewModel != null || review.atmosphere != null) return review;
+  if (
+    !scored ||
+    review.overall == null ||
+    review.reviewModel != null ||
+    review.atmosphere != null
+  ) {
+    return review;
+  }
 
   const reviewModel = "food_v0_3d" as const;
   const overall = deriveReviewOverall(reviewModel, {

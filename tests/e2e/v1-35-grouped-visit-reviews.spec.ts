@@ -126,6 +126,7 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   page,
 }) => {
   await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await page.goto("/matstallen/p1?visit=v10");
 
   const visitDialog = page.getByRole("dialog").first();
