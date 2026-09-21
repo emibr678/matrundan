@@ -63,8 +63,6 @@ describe("Issue #365 — stabil historisk reviewmodell", () => {
     expect(productionPreflight).toContain("historical-review:no-scoreable-null-model");
     expect(productionPreflight).toContain("historical-review:stable-3d-score");
     expect(productionPreflight).toContain("historical-review:no-anon-upgrade-grant");
-    expect(aggregatePreflight).toContain(
-      "\\ir production-preflight-historical-reviews.sql",
-    );
+    expect(aggregatePreflight).toContain("\\ir production-preflight-historical-reviews.sql");
   });
 });

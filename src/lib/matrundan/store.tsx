@@ -1083,9 +1083,7 @@ export function StoreProvider({
 
       upgradeOwnReviewModel: async (reviewId, input) => {
         if (mode === "live") {
-          await runLive((groupId) =>
-            liveUpgradeOwnReviewModel(groupId, reviewId, input),
-          );
+          await runLive((groupId) => liveUpgradeOwnReviewModel(groupId, reviewId, input));
           return;
         }
         assertDemoWritable(state, demoReadOnly);
@@ -1118,9 +1116,7 @@ export function StoreProvider({
               return {
                 ...review,
                 reviewModel: targetModel,
-                overall:
-                  deriveReviewOverall(targetModel, input) ??
-                  review.overall,
+                overall: deriveReviewOverall(targetModel, input) ?? review.overall,
                 taste: input.taste,
                 value: input.value,
                 service: input.service,

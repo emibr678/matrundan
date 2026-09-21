@@ -122,7 +122,6 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");
 });
 
-
 test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sparning", async ({
   page,
 }) => {
