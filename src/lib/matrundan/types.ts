@@ -4,10 +4,7 @@ export type PlaceCategory = "restaurang" | "café" | "bageri" | "snabbmat" | "pu
 
 export type Occasion = "snabbt" | "avslappnat" | "middag";
 export type ReviewModel =
-  | "food_v0_3d"
-  | "food_v1_takeaway"
-  | "food_v1_quick"
-  | "food_v1_atmosphere";
+  "food_v0_3d" | "food_v1_takeaway" | "food_v1_quick" | "food_v1_atmosphere";
 
 export type Role = "ägare" | "admin" | "medlem";
 export type GroupLifecycleStatus = "active" | "archived";

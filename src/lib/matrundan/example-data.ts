@@ -168,25 +168,30 @@ function withVisitParticipationScenarios(state: AppState): AppState {
         };
       }
 
-      if (visit.id === visits.repeatCafeEarlier) {
+      if (visit.id === visits.providerBistroLunch) {
+        const historicalAlexReview = {
+          id: "review-v10-alex",
+          userId: members.alex,
+          overall: 4.67,
+          taste: 4,
+          value: 5,
+          service: 5,
+          atmosphere: null,
+          reviewModel: "food_v0_3d" as const,
+          comment: "Lunchen var värd en omväg och servicen höll samma höga nivå.",
+          ratingVisible: true,
+          commentVisible: true,
+        };
+
         return {
           ...visit,
+          participantIds: [...new Set([...visit.participantIds, members.alex])],
           currentUserParticipationStatus: "participant",
-          visibleReviews: [
-            {
-              id: "review-v6-alex",
-              userId: members.alex,
-              overall: 4,
-              taste: 5,
-              value: 3,
-              service: 4,
-              atmosphere: null,
-              reviewModel: "food_v0_3d",
-              comment: "Återbesöket gjorde Kardemummaköket till ett av gruppens fikafavoriter.",
-              ratingVisible: true,
-              commentVisible: true,
-            },
-          ],
+          overall: (5 + historicalAlexReview.overall) / 2,
+          taste: 4.5,
+          value: 5,
+          service: 5,
+          visibleReviews: [...(visit.visibleReviews ?? []), historicalAlexReview],
         };
       }
 

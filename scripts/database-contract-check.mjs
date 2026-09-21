@@ -23,6 +23,10 @@ const preflightReviewReactionsPath = resolve(
   root,
   "supabase/production-preflight-review-reactions.sql",
 );
+const preflightHistoricalReviewsPath = resolve(
+  root,
+  "supabase/production-preflight-historical-reviews.sql",
+);
 const errors = [];
 
 function git(args, allowFailure = false) {
@@ -208,13 +212,17 @@ if (!existsSync(preflightVisitParticipationPath)) {
 if (!existsSync(preflightReviewReactionsPath)) {
   errors.push("supabase/production-preflight-review-reactions.sql saknas.");
 }
+if (!existsSync(preflightHistoricalReviewsPath)) {
+  errors.push("supabase/production-preflight-historical-reviews.sql saknas.");
+}
 if (
   existsSync(preflightPath) &&
   existsSync(preflightReadModelPath) &&
   existsSync(preflightLocationPath) &&
   existsSync(preflightBoundaryPath) &&
   existsSync(preflightVisitParticipationPath) &&
-  existsSync(preflightReviewReactionsPath)
+  existsSync(preflightReviewReactionsPath) &&
+  existsSync(preflightHistoricalReviewsPath)
 ) {
   const preflight = `${readFileSync(preflightPath, "utf8")}\n${readFileSync(
     preflightReadModelPath,
@@ -225,7 +233,7 @@ if (
   )}\n${readFileSync(preflightVisitParticipationPath, "utf8")}\n${readFileSync(
     preflightReviewReactionsPath,
     "utf8",
-  )}`;
+  )}\n${readFileSync(preflightHistoricalReviewsPath, "utf8")}`;
   for (const name of requiredFunctions) {
     if (!preflight.includes(name)) {
       errors.push(`Produktions-preflight saknar ${name}.`);

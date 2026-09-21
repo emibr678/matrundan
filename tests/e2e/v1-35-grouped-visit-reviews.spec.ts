@@ -126,13 +126,13 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   page,
 }) => {
   await page.goto("/exempel");
-  await page.goto("/matstallen/p2?visit=v6");
+  await page.goto("/matstallen/p1?visit=v10");
 
   const visitDialog = page.getByRole("dialog").first();
   const reviewSection = visitDialog.getByLabel("Gängets omdömen");
-  const historicalReview = reviewSection.locator('[data-review-id="review-v6-alex"]');
+  const historicalReview = reviewSection.locator('[data-review-id="review-v10-alex"]');
 
-  await expect(historicalReview.getByText("4 / 5", { exact: true })).toBeVisible();
+  await expect(historicalReview.getByText("4,7 / 5", { exact: true })).toBeVisible();
   await expect(historicalReview.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
   await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
@@ -140,7 +140,7 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
 
   await expect(editDialog.getByText("Äldre detaljbetyg (frivilligt)")).toHaveCount(0);
   await expect(editDialog.getByRole("button", { name: /Atmosfär:/ })).toHaveCount(0);
-  await expect(editDialog.getByText("4 / 5", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("4,7 / 5", { exact: true })).toBeVisible();
   await expect(editDialog.getByRole("button", { name: "Komplettera med Atmosfär" })).toBeVisible();
   await expectNoLocatorOverflow(editDialog, "historiskt 3D-omdöme");
 
@@ -148,11 +148,11 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   await expect(editDialog.getByRole("button", { name: "Atmosfär: 3 av 5" })).toBeVisible();
   await expect(editDialog.getByText(/Fram till dess ändras inget/)).toBeVisible();
   await editDialog.getByRole("button", { name: "Atmosfär: 3 av 5" }).click();
-  await expect(editDialog.getByText("3,8 / 5", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("4,3 / 5", { exact: true })).toBeVisible();
 
   await editDialog.getByRole("button", { name: "Avbryt komplettering" }).click();
   await expect(editDialog.getByRole("button", { name: /Atmosfär:/ })).toHaveCount(0);
-  await expect(editDialog.getByText("4 / 5", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("4,7 / 5", { exact: true })).toBeVisible();
 
   await editDialog.getByRole("button", { name: "Komplettera med Atmosfär" }).click();
   await editDialog.getByRole("button", { name: "Atmosfär: 3 av 5" }).click();
@@ -161,7 +161,7 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
 
   await expect(page.getByText("Ditt omdöme är uppdaterat.")).toBeVisible();
-  await expect(historicalReview.getByText("3,8 / 5", { exact: true })).toBeVisible();
+  await expect(historicalReview.getByText("4,3 / 5", { exact: true })).toBeVisible();
   await expect(historicalReview.getByText("Atmosfär", { exact: true })).toBeVisible();
 
   await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();

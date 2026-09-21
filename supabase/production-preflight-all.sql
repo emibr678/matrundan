@@ -14,5 +14,7 @@
 \ir production-preflight-place-location.sql
 \ir production-preflight-review-reactions.sql
 \ir production-preflight-search-boundaries.sql
+\ir production-preflight-visit-duplicates.sql
+\ir production-preflight-visit-guest-member.sql
 \ir production-preflight-visit-participation.sql
 \ir production-preflight-visit-photo.sql
