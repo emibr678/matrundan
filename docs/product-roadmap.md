@@ -169,7 +169,7 @@ användbar när gruppen väljer nästa ställe, samtidigt som platsens olika
 metadata-dimensioner har ett begripligt användarspråk och flera faktiska
 deltagare kan bidra med varsin privat bild till samma besök.
 
-### Nästa produktsteg – reviewhistorik före delad besöksbild
+### Nästa produktsteg – reviewhistorik och omdömes-UX före delad besöksbild
 
 Efter genomförda #338 fortsätter **Paket E** i följande beslutade ordning:
 
@@ -177,8 +177,13 @@ Efter genomförda #338 fortsätter **Paket E** i följande beslutade ordning:
    `status:agreed`, `priority:next`, `order:020`. En avgränsad
    review-/historikstädning som räknar om dagens legacybetyg från befintliga
    detaljbetyg och etablerar en hållbar modell för framtida betygsversioner.
-2. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
-   `status:agreed`, `priority:next`, `order:030`. Bygger därefter
+2. **#373 Renodla omdömeshierarkin och modernisera reaktioner i besöksvyn** –
+   `status:agreed`, `priority:next`, `order:030`. Följer direkt efter
+   #365 så att den centrala besöksvyn kan utgå från stabila tre- och
+   fyrdimensionella reviewmodeller när omdömeshierarkin och reaktionerna
+   renodlas.
+3. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
+   `status:agreed`, `priority:next`, `order:040`. Bygger därefter
    uttrycklig, serverstyrd cross-group-synlighet ovanpå #338:s mediaobjekt och
    ägarskap.
 
@@ -229,9 +234,12 @@ Kvarvarande närliggande leveranser, i beslutad arbetsföljd:
 1. **#365 Gör historiska omdömen stabila och frivilligt kompletteringsbara över betygsmodeller** –
    `status:agreed`, `priority:next`, `order:020`; städar dagens få
    legacyomdömen och gör reviewmodellen hållbar över framtida modellversioner.
-2. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
-   `status:agreed`, `priority:next`, `order:030`; avgränsad
-   cross-group-mediaåtkomst som byggs efter #365 ovanpå #338:s genomförda
+2. **#373 Renodla omdömeshierarkin och modernisera reaktioner i besöksvyn** –
+   `status:agreed`, `priority:next`, `order:030`; renodlar presentationen
+   och reaktionerna när reviewmodellerna från #365 är stabila.
+3. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
+   `status:agreed`, `priority:next`, `order:040`; avgränsad
+   cross-group-mediaåtkomst som byggs därefter ovanpå #338:s genomförda
    mediaobjekt och ägarskap.
 
 Alla funktioner i paketet ska vara förankrade i verkliga kanoniska besök och får
