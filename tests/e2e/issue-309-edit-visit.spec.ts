@@ -69,10 +69,10 @@ test("Hämtmat döljer Atmosfär reversibelt och räknar om helhetsbetyget", asy
 
   await edit.getByRole("button", { name: "Spara ändringar" }).click();
   const takeawayConfirmation = page.getByRole("alertdialog", {
-    name: "Markera besöket som hämtmat?",
+    name: "Spara som hämtmat?",
   });
   await expect(takeawayConfirmation).toContainText(
-    "Atmosfär döljs medan besöket är markerat som hämtmat och räknas inte med i helhetsbetygen.",
+    "Atmosfär döljs och räknas inte med vid hämtmat.",
   );
   await expect(takeawayConfirmation).toContainText(
     "Omdömena finns kvar, men helhetsbetygen kan ändras.",

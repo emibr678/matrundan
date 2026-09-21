@@ -612,10 +612,10 @@ export function EditVisitDialog({
       <AlertDialog open={confirmTakeaway} onOpenChange={setConfirmTakeaway}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Markera besöket som hämtmat?</AlertDialogTitle>
+            <AlertDialogTitle>Spara som hämtmat?</AlertDialogTitle>
             <AlertDialogDescription>
-              Atmosfär döljs medan besöket är markerat som hämtmat och räknas inte med i
-              helhetsbetygen. Omdömena finns kvar, men helhetsbetygen kan ändras.
+              Atmosfär döljs och räknas inte med vid hämtmat. Omdömena finns kvar, men
+              helhetsbetygen kan ändras.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
