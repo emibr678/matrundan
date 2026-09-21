@@ -160,31 +160,30 @@ visar behov.
 
 **#309 Redigera besöksuppgifter och deltagare i efterhand** är genomförd via
 PR #347, **#198 Filtrera topplistor efter besökstillfälle och hämtmat** via
-PR #354 och **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning
-och Passar för** via PR #346.
+PR #354, **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning
+och Passar för** via PR #346 och **#338 Stöd flera deltagares foton på samma
+kanoniska besök** via PR #360.
 
 Tillsammans gör de den kanoniska besökshistoriken både korrigerbar och direkt
 användbar när gruppen väljer nästa ställe, samtidigt som platsens olika
-metadata-dimensioner har ett begripligt användarspråk.
+metadata-dimensioner har ett begripligt användarspråk och flera faktiska
+deltagare kan bidra med varsin privat bild till samma besök.
 
-### Nästa produktsteg – besöksbilder och reviewhistorik
+### Nästa produktsteg – reviewhistorik före delad besöksbild
 
-Efter #309, #198 och #199 fortsätter **Paket E** i följande beslutade ordning:
+Efter genomförda #338 fortsätter **Paket E** i följande beslutade ordning:
 
-1. **#338 Stöd flera deltagares foton på samma kanoniska besök** –
-   `status:ready`, `priority:next`, `order:010`. Slutför den pågående
-   flerfotomodellen och dess UX.
-2. **#365 Gör historiska omdömen stabila och frivilligt kompletteringsbara över betygsmodeller** –
+1. **#365 Gör historiska omdömen stabila och frivilligt kompletteringsbara över betygsmodeller** –
    `status:agreed`, `priority:next`, `order:020`. En avgränsad
    review-/historikstädning som räknar om dagens legacybetyg från befintliga
    detaljbetyg och etablerar en hållbar modell för framtida betygsversioner.
-3. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
+2. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
    `status:agreed`, `priority:next`, `order:030`. Bygger därefter
    uttrycklig, serverstyrd cross-group-synlighet ovanpå #338:s mediaobjekt och
    ägarskap.
 
 **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
-besök** är fortsatt relevant men ligger senare än dessa tre leveranser.
+besök** är fortsatt relevant men ligger senare än dessa två leveranser.
 
 ## Paket A – Grundplatta och konsekvens
 
@@ -222,19 +221,18 @@ Parenten bär bland annat invariants för faktisk närvaro, ett identifierat
 deltagande per `(visit, user)`, ett aktivt eget omdöme per `(visit, user)` och
 cross-group-minimering.
 
-Genomförda delar omfattar #203, #204, #101, #213, #214, #197, #307 och #309.
+Genomförda delar omfattar #203, #204, #101, #213, #214, #197, #307, #309
+och #338.
 
 Kvarvarande närliggande leveranser, i beslutad arbetsföljd:
 
-1. **#338 Stöd flera deltagares foton på samma kanoniska besök** –
-   `status:ready`, `priority:next`, `order:010`; en privat deltagarbild var
-   och kompakt gemensamt besöksgalleri.
-2. **#365 Gör historiska omdömen stabila och frivilligt kompletteringsbara över betygsmodeller** –
+1. **#365 Gör historiska omdömen stabila och frivilligt kompletteringsbara över betygsmodeller** –
    `status:agreed`, `priority:next`, `order:020`; städar dagens få
    legacyomdömen och gör reviewmodellen hållbar över framtida modellversioner.
-3. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
+2. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
    `status:agreed`, `priority:next`, `order:030`; avgränsad
-   cross-group-mediaåtkomst som byggs efter #338 och #365.
+   cross-group-mediaåtkomst som byggs efter #365 ovanpå #338:s genomförda
+   mediaobjekt och ägarskap.
 
 Alla funktioner i paketet ska vara förankrade i verkliga kanoniska besök och får
 inte skapa global feed, offentlig social graf eller progression för social
