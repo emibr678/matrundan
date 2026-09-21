@@ -46,8 +46,8 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
   const newestVisit = page.getByRole("button", { name: /Öppna besök av/ }).first();
   await expect(newestVisit).toBeVisible();
   await newestVisit.click();
-  await expect(page.getByAltText("Foto från besöket").first()).toBeVisible();
-  await expect(page.getByText(/Fotot är privat för den här gruppen/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bild från besöket" })).toBeVisible();
+  await expect(page.getByAltText(/Bild från/).first()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Besöksdetalj med foto");
 
   await page.goto("/matstallen/p2?demo=1");
@@ -55,11 +55,14 @@ test("ett besöksfoto sparas privat i demosessionen och kan tas bort", async ({ 
     .getByRole("button", { name: /Öppna besök av/ })
     .first()
     .click();
-  await expect(page.getByAltText("Foto från besöket").first()).toBeVisible();
+  await expect(page.getByAltText(/Bild från/).first()).toBeVisible();
 
-  await page.getByRole("button", { name: "Ta bort foto" }).click();
-  await expect(page.getByAltText("Foto från besöket")).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: /Lägg till ett minne från besöket/ }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "Fler alternativ för din bild" }).click();
+  await page.getByRole("menuitem", { name: "Ta bort din bild" }).click();
+  const confirmDelete = page.getByRole("alertdialog");
+  await expect(confirmDelete.getByRole("heading", { name: "Ta bort din bild?" })).toBeVisible();
+  await expect(confirmDelete.getByText(/Det går inte att ångra/)).toBeVisible();
+  await confirmDelete.getByRole("button", { name: "Ta bort bild" }).click();
+  await expect(page.getByAltText(/Bild från/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Lägg till din bild" })).toBeVisible();
 });

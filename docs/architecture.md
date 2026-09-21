@@ -224,25 +224,45 @@ Produktionsvakten för `visit-photos` är:
 Klienten får komprimera och validera för UX, men Storage-reglerna är den
 säkerhetsmässiga sanningen.
 
-Så länge dagens singelfotomodell används är `visit_media.uploaded_by` också en
-serverstyrd skrivgräns. En faktisk deltagare eller owner/admin får lägga den
-första bilden på ett originalbesök, men ett befintligt foto får endast ersättas
-av samma uppladdare. Owner/admin får radera ett foto som modereringsåtgärd och
-den som legitimt raderar hela originalbesöket måste fortsatt kunna städa dess
-media, men ingen av dessa rättigheter innebär rätt att skriva över en annan
-persons bild som sin egen.
+Ett kanoniskt besök kan bära flera privata mediaobjekt i sin **ursprungsgrupp**,
+men högst **en aktiv bild per faktisk identifierad deltagare**. Den databasmässiga
+unikheten är därför `(visit_id, group_id, uploaded_by)`. Varje mediaobjekt har
+stabilt individuellt ägarskap genom `visit_media.uploaded_by`.
 
-Regeln ska verkställas både i RPC/Storage-policy och i klientens presentation.
-Klientkontrollen är bara UX; databasen måste serialisera samtidiga första
-uppladdningar så två deltagare inte får ett last-write-wins-resultat. En
-misslyckad eller konkurrerande uppladdning får samtidigt kunna städa just sin
-egen orefererade Storage-fil utan rätt att radera någon annans media.
+Nya uppladdningar och ersättningar kräver att användaren:
 
-Den långsiktiga målbilden i #179 är flera privata, komprimerade bilder per samma
-kanoniska besök, med stabilt individuellt ägarskap per mediaobjekt och explicit
-gruppsynlighet vid cross-group-delning. En framtida karusell/galleri får därför
-inte byggas genom att försvaga `uploaded_by` eller kopiera media mellan grupper
-utan serverstyrd åtkomst.
+- är aktiv medlem i gruppen;
+- är faktisk deltagare på det kanoniska besöket;
+- arbetar i besökets ursprungsgrupp;
+- bara skapar eller ersätter sin egen bildplats.
+
+Owner/admin får moderera och radera en deltagares bild men får inte därigenom
+ladda upp eller skriva över bilden som om den vore deras egen. **Den som bara
+registrerade besöket får ingen separat rätt att punktmoderera andra deltagares
+bilder.** Helbesöksradering är en annan operation: dess RPC samlar först
+Storage-sökvägarna och raderar därefter det kanoniska besöket; klienten städar
+sedan endast de nu orefererade Storage-objekten. Därmed kan registreraren fortsatt
+radera ett besök när produktregeln tillåter det utan att få en fristående
+"ta bort någon annans bild"-förmåga.
+
+Skrivreglerna verkställs både i RPC/Storage-policy och i klientens presentation;
+klientkontrollen är endast UX.
+
+Upsert serialiseras per grupp, besök och uppladdare så samtidiga skrivningar till
+samma deltagares bildplats inte blir last-write-wins mellan två rader. En
+misslyckad uppladdning får kunna städa just sin egen orefererade Storage-fil utan
+rätt att radera någon annans media.
+
+Den aktuella grupp-read-modellen exponerar `photos[]` endast från den aktiva
+gruppens auktoriserade besökskontext. Ett äldre kompatibilitetsfält `photo`
+behålls som en enda stabil representativ bild, den äldsta kvarvarande bilden,
+så historikminiatyrer och äldre klienter inte behöver tolka ett galleri.
+
+Cross-group-synlighet ingår inte i flerfotomodellen. Ett foto blir aldrig synligt
+i en ny grupp bara för att det kanoniska besöket delas. **#179 Dela besöksfoto
+uttryckligen tillsammans med delat besök** ansvarar separat för framtida,
+uttrycklig och serverstyrd gruppsynlighet utan att exponera ursprungsgrupp,
+medlemskap, privata kommentarer eller Storage-sökvägar.
 
 ## RLS och RPC-mönster
 
@@ -273,7 +293,8 @@ saknas under en säker rullning. Andra auth-, nätverks- eller datafel får inte
 döljas genom fallback.
 
 v5m bygger additivt på v5l och kompletterar redan auktoriserade reviewobjekt med
-`atmosphere` och `reviewModel` utan att bredda gruppens läsrättigheter. v5l
+`atmosphere` och `reviewModel` samt besöken med den aktiva gruppens privata
+`photos[]`, utan att bredda gruppens läsrättigheter. v5l
 kompletterar i sin tur redan auktoriserade besök med den kanoniska
 `isTakeaway`-kontexten ovanpå v5k. v5k lägger till den privata `nextStop`-
 projektionen ovanpå v5j. v5j bevarar deltagarsemantiken genom v5i-wrappern över
@@ -371,9 +392,9 @@ medelvärdet av de dimensioner som ingår i modellen och lagras som decimal.
 Klienten får därför inte skicka ett manuellt overall för en review med ny modell.
 
 Hämtmat väljer alltid takeaway-modellen. För besök på plats avgör gruppens hela
-`Passar för`-mängd om Atmosfär ingår: endast **Snabbt och enkelt** ger quick-
+`Passar för`-mängd om Atmosfär ingår: endast **Snabbt & enkelt** ger quick-
 modellen, medan **Avslappnat** och/eller **Något extra** ger atmosphere-modellen,
-även i kombination med Snabbt. Saknas `Passar för` får den metadata som behövs
+även i kombination med **Snabbt & enkelt**. Saknas `Passar för` får den metadata som behövs
 för ett nytt på-plats-omdöme sparas på gruppens platsrelation; ett
 Hämtmat-omdöme förblir entydigt även utan sådan klassificering men ett frivilligt
 val får fortfarande komplettera gruppens platsmetadata. Senare ändringar av
@@ -383,7 +404,7 @@ modell eller historiska score.
 Befintliga reviews från före den härledda modellen har `review_model IS NULL` och
 behåller sitt manuella helhetsbetyg 1–5 samt sina tidigare frivilliga
 detaljbetyg. Migrationen backfillar varken `review_model`, Atmosfär eller nya
-värden på legacy-reviews. `dryck` (**Något att dricka**) är fortsatt ett
+värden på legacy-reviews. `dryck` (**Ett glas**) är fortsatt ett
 fullvärdigt men scorelöst besök: inga numeriska reviewfält får sättas och
 besöket påverkar inte matställets betyg, men deltagande, progression, återbesök,
 kommentar och foto fungerar enligt samma kanoniska besöksmodell.

@@ -119,6 +119,8 @@ export interface VisitPhoto {
   byteSize: number;
   width: number;
   height: number;
+  /** Stabil sorteringspunkt för galleriet. Legacydata kan sakna värdet. */
+  createdAt?: string;
   updatedAt: string;
 }
 
@@ -142,7 +144,12 @@ export interface Visit {
   atmosphere?: number;
   comment?: string;
   createdBy: string;
-  /** Privat foto för just den aktiva gruppens koppling till besöket. */
+  /** Privata deltagarbilder för just den aktiva gruppens koppling till besöket. */
+  photos?: VisitPhoto[];
+  /**
+   * Bakåtkompatibel representativ bild. Nya ytor ska använda photos när de
+   * behöver hela besöksminnet.
+   */
   photo?: VisitPhoto | null;
   /** original = besöket registrerades i denna grupp; shared = tillagt från annan grupp. */
   linkType?: "original" | "shared";

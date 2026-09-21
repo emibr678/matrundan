@@ -15,6 +15,10 @@ const visitPlaceOccasionDialog = readFileSync(
   resolve(root, "src/components/matrundan/VisitPlaceOccasionDialog.tsx"),
   "utf8",
 );
+const occasionPicker = readFileSync(
+  resolve(root, "src/components/matrundan/OccasionPicker.tsx"),
+  "utf8",
+);
 const addReviewDialog = readFileSync(
   resolve(root, "src/components/matrundan/AddVisitReviewDialog.tsx"),
   "utf8",
@@ -111,16 +115,29 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     }
   });
 
+  test("Passar för-hjälpen förklarar nya omdömen utan att hota historiken", () => {
+    expect(occasionPicker).toContain("OCCASION_LABEL.snabbt");
+    expect(occasionPicker).toContain("ingår inte Atmosfär i nya omdömen");
+    expect(occasionPicker).toContain("Tidigare omdömen ändras inte");
+  });
+
   test("legacy-review behåller explicit äldre redigeringsmodell", () => {
     expect(editDialog).toContain("Det här är ett äldre omdöme");
     expect(reviewEditFields).toContain("Äldre detaljbetyg (frivilligt)");
     expect(reviewEditFields).toContain("review.reviewModel");
   });
 
-  test("samma omdömesfält återanvänds i separat och kombinerad redigering", () => {
+  test("omdöme och besöksbild redigeras separat från den gemensamma besökshändelsen", () => {
     expect(editDialog).toContain("<ReviewEditFields");
-    expect(editVisitDialog).toContain("<ReviewEditFields");
+    expect(editVisitDialog).not.toContain("<ReviewEditFields");
+    expect(editVisitDialog).not.toContain("<VisitPhotoManager");
     expect(editVisitDialog).not.toContain("<ReviewScoreFields");
     expect(editVisitDialog).not.toContain("<RatingInput");
+    expect(editVisitDialog).toContain("Omdömet bevaras");
+  });
+
+  test("omdömesdialogerna visar bildvalet utan teknisk komprimeringscopy", () => {
+    expect(addReviewDialog).toContain("showHelpText={false}");
+    expect(demoAddReviewDialog).toContain("showHelpText={false}");
   });
 });

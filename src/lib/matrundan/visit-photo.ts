@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { rpcClient } from "./rpc-client";
-import type { Role, Visit } from "./types";
+import type { AppState, Role, Visit, VisitPhoto } from "./types";
 
 export const VISIT_PHOTO_BUCKET = "visit-photos";
 export const VISIT_PHOTO_MAX_INPUT_BYTES = 15 * 1024 * 1024;
@@ -21,50 +21,117 @@ function isGroupAdmin(role: Role | null | undefined) {
   return role === "ägare" || role === "admin";
 }
 
+export function getVisitPhotos(visit: Pick<Visit, "photos" | "photo">): VisitPhoto[] {
+  const photos = visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [];
+  return [...photos].sort((a, b) => {
+    const aCreated = a.createdAt ?? a.updatedAt;
+    const bCreated = b.createdAt ?? b.updatedAt;
+    return aCreated.localeCompare(bCreated) || a.uploadedBy.localeCompare(b.uploadedBy);
+  });
+}
+
+export function getOwnVisitPhoto(
+  visit: Pick<Visit, "photos" | "photo">,
+  currentUserId: string,
+): VisitPhoto | undefined {
+  return getVisitPhotos(visit).find((photo) => photo.uploadedBy === currentUserId);
+}
+
+export function representativeVisitPhoto(
+  visit: Pick<Visit, "photos" | "photo">,
+): VisitPhoto | null {
+  return getVisitPhotos(visit)[0] ?? null;
+}
+
+export function applyPreparedVisitPhotoToDemoState(
+  state: AppState,
+  visitId: string,
+  prepared: PreparedVisitPhoto,
+  url: string,
+  updatedAt = new Date().toISOString(),
+): AppState {
+  const visit = state.visits.find((item) => item.id === visitId);
+  if (!visit) throw new Error("Besöket finns inte.");
+
+  const role = state.members.find((member) => member.id === state.currentUserId)?.role;
+  if (
+    !canAddOrReplaceVisitPhoto(
+      visit,
+      state.currentUserId,
+      role,
+      state.group.lifecycleStatus === "archived",
+    )
+  ) {
+    throw new Error("Endast faktiska deltagare kan lägga till en bild.");
+  }
+
+  const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
+  const nextPhoto: VisitPhoto = {
+    url,
+    uploadedBy: state.currentUserId,
+    mimeType: prepared.mimeType,
+    byteSize: prepared.byteSize,
+    width: prepared.width,
+    height: prepared.height,
+    createdAt: ownPhoto?.createdAt ?? updatedAt,
+    updatedAt,
+  };
+  const photos = [
+    ...getVisitPhotos(visit).filter((photo) => photo.uploadedBy !== state.currentUserId),
+    nextPhoto,
+  ].sort((a, b) => (a.createdAt ?? a.updatedAt).localeCompare(b.createdAt ?? b.updatedAt));
+  const photo = representativeVisitPhoto({ photos, photo: null });
+
+  return {
+    ...state,
+    visits: state.visits.map((item) => (item.id === visitId ? { ...item, photos, photo } : item)),
+  };
+}
+
 function canContributeVisitPhoto(
   visit: Pick<Visit, "linkType" | "participantIds">,
+  currentUserId: string,
+  _role: Role | null | undefined,
+  groupArchived: boolean,
+) {
+  if (groupArchived || visit.linkType === "shared") return false;
+  return visit.participantIds.includes(currentUserId);
+}
+
+export function canAddOrReplaceVisitPhoto(
+  visit: Pick<Visit, "linkType" | "participantIds" | "photos" | "photo">,
+  currentUserId: string,
+  role: Role | null | undefined,
+  groupArchived: boolean,
+) {
+  return canContributeVisitPhoto(visit, currentUserId, role, groupArchived);
+}
+
+export function canDeleteVisitPhoto(
+  visit: Pick<Visit, "linkType" | "photos" | "photo">,
+  targetUploadedBy: string,
   currentUserId: string,
   role: Role | null | undefined,
   groupArchived: boolean,
 ) {
   if (groupArchived || visit.linkType === "shared") return false;
-  return visit.participantIds.includes(currentUserId) || isGroupAdmin(role);
+  const targetExists = getVisitPhotos(visit).some((photo) => photo.uploadedBy === targetUploadedBy);
+  if (!targetExists) return false;
+  return targetUploadedBy === currentUserId || isGroupAdmin(role);
 }
 
-export function canAddOrReplaceVisitPhoto(
-  visit: Pick<Visit, "linkType" | "participantIds" | "photo">,
-  currentUserId: string,
-  role: Role | null | undefined,
-  groupArchived: boolean,
-) {
-  if (!canContributeVisitPhoto(visit, currentUserId, role, groupArchived)) return false;
-  return !visit.photo || visit.photo.uploadedBy === currentUserId;
-}
-
-export function canDeleteVisitPhoto(
-  visit: Pick<Visit, "linkType" | "photo">,
-  currentUserId: string,
-  role: Role | null | undefined,
-  groupArchived: boolean,
-) {
-  if (groupArchived || visit.linkType === "shared" || !visit.photo) return false;
-  return visit.photo.uploadedBy === currentUserId || isGroupAdmin(role);
-}
-
-/**
- * Samlad klientindikator för äldre anrop. Skrivningar ska använda de mer precisa
- * canAddOrReplaceVisitPhoto/canDeleteVisitPhoto så att en annan deltagares foto
- * aldrig blir ersättningsbart bara för att användaren deltog i besöket.
- */
+/** Samlad klientindikator för äldre anrop och generella affordances. */
 export function canManageVisitPhoto(
-  visit: Pick<Visit, "linkType" | "participantIds" | "photo">,
+  visit: Pick<Visit, "linkType" | "participantIds" | "photos" | "photo">,
   currentUserId: string,
   role: Role | null | undefined,
   groupArchived: boolean,
 ) {
   return (
     canAddOrReplaceVisitPhoto(visit, currentUserId, role, groupArchived) ||
-    canDeleteVisitPhoto(visit, currentUserId, role, groupArchived)
+    getVisitPhotos(visit).some((photo) =>
+      canDeleteVisitPhoto(visit, photo.uploadedBy, currentUserId, role, groupArchived),
+    )
   );
 }
 
@@ -172,9 +239,15 @@ function uniquePhotoPath(groupId: string, visitId: string) {
 
 const OPTIONAL_PATH = z.string().nullable();
 
-async function removeStoragePath(path: string) {
-  const { error } = await supabase.storage.from(VISIT_PHOTO_BUCKET).remove([path]);
+export async function removeVisitPhotoStoragePaths(paths: string[]) {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (unique.length === 0) return;
+  const { error } = await supabase.storage.from(VISIT_PHOTO_BUCKET).remove(unique);
   if (error) console.error("[Matrundan] Kunde inte städa besöksfoto:", error);
+}
+
+async function removeStoragePath(path: string) {
+  await removeVisitPhotoStoragePaths([path]);
 }
 
 export async function liveSaveVisitPhoto(
@@ -214,10 +287,14 @@ export async function liveSaveVisitPhoto(
   }
 }
 
-export async function liveDeleteVisitPhoto(groupId: string, visitId: string): Promise<void> {
+export async function liveDeleteVisitPhoto(
+  groupId: string,
+  visitId: string,
+  uploadedBy: string,
+): Promise<void> {
   const previousPath = await rpcClient.call(
-    "delete_visit_photo",
-    { _group_id: groupId, _visit_id: visitId },
+    "delete_visit_photo_v2",
+    { _group_id: groupId, _visit_id: visitId, _uploaded_by: uploadedBy },
     OPTIONAL_PATH,
     "Servern kunde inte ta bort fotot från besöket.",
   );

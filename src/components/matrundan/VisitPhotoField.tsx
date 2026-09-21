@@ -10,6 +10,10 @@ export function VisitPhotoField({
   disabled = false,
   showLabel = true,
   showHelpText = true,
+  compact = false,
+  allowRemoveExisting = false,
+  removeExisting = false,
+  onRemoveExistingChange,
 }: {
   file: File | null;
   onFileChange: (file: File | null) => void;
@@ -17,6 +21,10 @@ export function VisitPhotoField({
   disabled?: boolean;
   showLabel?: boolean;
   showHelpText?: boolean;
+  compact?: boolean;
+  allowRemoveExisting?: boolean;
+  removeExisting?: boolean;
+  onRemoveExistingChange?: (remove: boolean) => void;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const inputId = React.useId();
@@ -27,12 +35,131 @@ export function VisitPhotoField({
       setPreviewUrl(null);
       return;
     }
-    const next = URL.createObjectURL(file);
-    setPreviewUrl(next);
-    return () => URL.revokeObjectURL(next);
+    const nextUrl = URL.createObjectURL(file);
+    setPreviewUrl(nextUrl);
+    return () => URL.revokeObjectURL(nextUrl);
   }, [file]);
 
-  const shownUrl = previewUrl ?? existingUrl;
+  const shownUrl = previewUrl ?? (removeExisting ? undefined : existingUrl);
+
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        {showLabel || showHelpText ? (
+          <div>
+            {showLabel ? <Label htmlFor={inputId}>Bild från besöket (frivilligt)</Label> : null}
+            {showHelpText ? (
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                Lägg till eller byt din bild från besöket. Bilden komprimeras innan den sparas.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {removeExisting && existingUrl && !file ? (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/20 p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Bilden tas bort när du sparar</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                Omdömet påverkas inte.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 shrink-0 px-2 text-xs"
+              disabled={disabled}
+              onClick={() => onRemoveExistingChange?.(false)}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Ångra
+            </Button>
+          </div>
+        ) : shownUrl ? (
+          <div className="relative flex items-center gap-3 rounded-xl border border-border/70 bg-muted/20 p-2">
+            <img
+              src={shownUrl}
+              alt={file ? "Förhandsvisning av vald bild" : "Din bild från besöket"}
+              className="h-16 w-20 shrink-0 rounded-lg object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{file ? "Ny bild vald" : "Din nuvarande bild"}</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                {file
+                  ? "Sparas tillsammans med dina övriga ändringar."
+                  : "Du kan välja en annan bild."}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 shrink-0 px-2 text-xs"
+              disabled={disabled}
+              onClick={() => inputRef.current?.click()}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Byt
+            </Button>
+            {allowRemoveExisting && existingUrl && !file ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute -right-2 -top-2 h-8 w-8 rounded-full border border-border bg-background shadow-sm"
+                disabled={disabled}
+                aria-label="Ta bort bild"
+                onClick={() => onRemoveExistingChange?.(true)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-full border-dashed"
+            disabled={disabled}
+            onClick={() => inputRef.current?.click()}
+          >
+            <ImagePlus className="h-4 w-4" />
+            Lägg till bild
+          </Button>
+        )}
+
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="file"
+          accept="image/*"
+          aria-label="Välj bild från besöket"
+          className="sr-only"
+          disabled={disabled}
+          onChange={(event) => {
+            const nextFile = event.target.files?.[0] ?? null;
+            if (nextFile) onRemoveExistingChange?.(false);
+            onFileChange(nextFile);
+            event.currentTarget.value = "";
+          }}
+        />
+
+        {file ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-10 px-2 text-xs text-muted-foreground"
+            disabled={disabled}
+            onClick={() => onFileChange(null)}
+          >
+            <X className="h-3.5 w-3.5" />
+            Ångra bildbyte
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

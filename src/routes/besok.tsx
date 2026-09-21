@@ -13,6 +13,7 @@ import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-r
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { formatVisitContext } from "@/lib/matrundan/visit-context";
+import { getVisitPhotos } from "@/lib/matrundan/visit-photo";
 import { formatRating } from "@/lib/matrundan/version";
 
 const VISIT_SEARCH_DEFAULTS = { visit: "" };
@@ -100,6 +101,7 @@ function VisitHistory() {
             const place = getPlace(visit.placeId);
             if (!place) return null;
             const ownReviewPending = pendingVisitIds.has(visit.id);
+            const photoCount = getVisitPhotos(visit).length;
             const participants =
               visit.participants && visit.participants.length > 0
                 ? visit.participants
@@ -125,11 +127,18 @@ function VisitHistory() {
                 <Card className="overflow-hidden rounded-2xl border-border/70 p-0 transition-colors hover:bg-accent/35">
                   <div className="flex min-w-0 gap-3 p-3 sm:p-4">
                     {visit.photo?.url ? (
-                      <img
-                        src={visit.photo.url}
-                        alt=""
-                        className="h-20 w-24 shrink-0 rounded-xl border border-border/70 object-cover"
-                      />
+                      <div className="relative h-20 w-24 shrink-0">
+                        <img
+                          src={visit.photo.url}
+                          alt=""
+                          className="h-full w-full rounded-xl border border-border/70 object-cover"
+                        />
+                        {photoCount > 1 ? (
+                          <span className="absolute bottom-1 right-1 rounded-full bg-background/90 px-1.5 py-0.5 text-[10px] font-medium shadow-sm">
+                            +{photoCount - 1}
+                          </span>
+                        ) : null}
+                      </div>
                     ) : (
                       <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-secondary text-3xl">
                         {place.photo ?? "🍽️"}

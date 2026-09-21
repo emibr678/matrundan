@@ -57,12 +57,15 @@ import { APP_VERSION } from "./version";
 import { visitHasScore, visitMealHasScore } from "./visit-context";
 import { canDeleteOriginalVisit } from "./visit-permissions";
 import {
+  applyPreparedVisitPhotoToDemoState,
   blobToDataUrl,
   canAddOrReplaceVisitPhoto,
   canDeleteVisitPhoto,
+  getVisitPhotos,
   liveDeleteVisitPhoto,
   liveSaveVisitPhoto,
   prepareVisitPhoto,
+  representativeVisitPhoto,
 } from "./visit-photo";
 
 const STORAGE_KEY = "matrundan.state.v1";
@@ -231,7 +234,7 @@ interface StoreContextValue {
   addVisit: (visit: VisitMutationInput) => Promise<Visit>;
   updateVisit: (visitId: string, input: VisitEditMutationInput) => Promise<void>;
   saveVisitPhoto: (visitId: string, file: File, visitSnapshot?: Visit) => Promise<void>;
-  deleteVisitPhoto: (visitId: string) => Promise<void>;
+  deleteVisitPhoto: (visitId: string, uploadedBy?: string) => Promise<void>;
   deleteVisit: (visitId: string) => Promise<void>;
   setNext: (placeId: string | null) => Promise<void>;
   archiveGroup: () => Promise<void>;
@@ -355,7 +358,11 @@ export function StoreProvider({
         };
         if (mode === "live") {
           const id = await runLive((groupId) => liveCreatePlace(groupId, normalizedInput));
-          return { ...normalizedInput, id, addedAt: new Date().toISOString() } as Place;
+          return {
+            ...normalizedInput,
+            id,
+            addedAt: new Date().toISOString(),
+          } as Place;
         }
 
         assertDemoWritable(state, demoReadOnly);
@@ -439,7 +446,11 @@ export function StoreProvider({
             raw,
           }),
         );
-        return { ...normalizedPlace, id, addedAt: new Date().toISOString() } as Place;
+        return {
+          ...normalizedPlace,
+          id,
+          addedAt: new Date().toISOString(),
+        } as Place;
       },
 
       toggleFavorite: async (placeId) => {
@@ -572,7 +583,11 @@ export function StoreProvider({
               text: `${nameOf(current, current.currentUserId)} registrerade ett besök på ${
                 place?.name ?? "ett ställe"
               }`,
-              target: { kind: "visit", placeId: visit.placeId, visitId: visit.id },
+              target: {
+                kind: "visit",
+                placeId: visit.placeId,
+                visitId: visit.id,
+              },
             },
           );
         });
@@ -760,7 +775,7 @@ export function StoreProvider({
             state.group.lifecycleStatus === "archived",
           )
         ) {
-          throw new Error("Du kan inte ersätta ett foto som en annan deltagare har lagt till.");
+          throw new Error("Endast faktiska deltagare kan lägga till eller byta sin bild.");
         }
         const prepared = await prepareVisitPhoto(file);
         if (mode === "live") {
@@ -769,61 +784,27 @@ export function StoreProvider({
         }
         assertDemoWritable(state, demoReadOnly);
         const url = await blobToDataUrl(prepared.blob);
-        const updatedAt = new Date().toISOString();
-        setState((current) => {
-          const currentVisit = current.visits.find((item) => item.id === visitId);
-          if (!currentVisit) throw new Error("Besöket finns inte.");
-          const currentRole = current.members.find(
-            (member) => member.id === current.currentUserId,
-          )?.role;
-          if (
-            !canAddOrReplaceVisitPhoto(
-              currentVisit,
-              current.currentUserId,
-              currentRole,
-              current.group.lifecycleStatus === "archived",
-            )
-          ) {
-            throw new Error("En annan deltagare har redan lagt till ett foto.");
-          }
-          return {
-            ...current,
-            visits: current.visits.map((item) =>
-              item.id === visitId
-                ? {
-                    ...item,
-                    photo: {
-                      url,
-                      uploadedBy: current.currentUserId,
-                      mimeType: prepared.mimeType,
-                      byteSize: prepared.byteSize,
-                      width: prepared.width,
-                      height: prepared.height,
-                      updatedAt,
-                    },
-                  }
-                : item,
-            ),
-          };
-        });
+        setState((current) => applyPreparedVisitPhotoToDemoState(current, visitId, prepared, url));
       },
 
-      deleteVisitPhoto: async (visitId) => {
+      deleteVisitPhoto: async (visitId, uploadedBy) => {
         const visit = state.visits.find((item) => item.id === visitId);
         if (!visit) throw new Error("Besöket finns inte.");
+        const targetUploadedBy = uploadedBy ?? state.currentUserId;
         const role = state.members.find((member) => member.id === state.currentUserId)?.role;
         if (
           !canDeleteVisitPhoto(
             visit,
+            targetUploadedBy,
             state.currentUserId,
             role,
             state.group.lifecycleStatus === "archived",
           )
         ) {
-          throw new Error("Du saknar behörighet att ta bort fotot för det här besöket.");
+          throw new Error("Du saknar behörighet att ta bort den här bilden.");
         }
         if (mode === "live") {
-          await runLive((groupId) => liveDeleteVisitPhoto(groupId, visitId));
+          await runLive((groupId) => liveDeleteVisitPhoto(groupId, visitId, targetUploadedBy));
           return;
         }
         assertDemoWritable(state, demoReadOnly);
@@ -836,17 +817,22 @@ export function StoreProvider({
           if (
             !canDeleteVisitPhoto(
               currentVisit,
+              targetUploadedBy,
               current.currentUserId,
               currentRole,
               current.group.lifecycleStatus === "archived",
             )
           ) {
-            throw new Error("Du saknar behörighet att ta bort fotot för det här besöket.");
+            throw new Error("Du saknar behörighet att ta bort den här bilden.");
           }
+          const photos = getVisitPhotos(currentVisit).filter(
+            (photo) => photo.uploadedBy !== targetUploadedBy,
+          );
+          const photo = representativeVisitPhoto({ photos, photo: null });
           return {
             ...current,
             visits: current.visits.map((item) =>
-              item.id === visitId ? { ...item, photo: null } : item,
+              item.id === visitId ? { ...item, photos, photo } : item,
             ),
           };
         });
@@ -868,10 +854,7 @@ export function StoreProvider({
         }
 
         if (mode === "live") {
-          await runLive(async (groupId) => {
-            if (visit.photo) await liveDeleteVisitPhoto(groupId, visitId);
-            await liveDeleteOriginalVisit(groupId, visitId);
-          });
+          await runLive((groupId) => liveDeleteOriginalVisit(groupId, visitId));
           return;
         }
 
@@ -986,7 +969,12 @@ export function StoreProvider({
           ...current,
           places: current.places.map((place) =>
             place.id === placeId
-              ? { ...place, collectionStatus: "active", archivedAt: null, archivedBy: null }
+              ? {
+                  ...place,
+                  collectionStatus: "active",
+                  archivedAt: null,
+                  archivedBy: null,
+                }
               : place,
           ),
         }));
@@ -1177,7 +1165,11 @@ export function StoreProvider({
         return counts;
       },
       occasionCounts: () => {
-        const counts: Record<Occasion, number> = { snabbt: 0, avslappnat: 0, middag: 0 };
+        const counts: Record<Occasion, number> = {
+          snabbt: 0,
+          avslappnat: 0,
+          middag: 0,
+        };
         state.places
           .filter((place) => place.collectionStatus !== "archived")
           .forEach((place) => place.occasions.forEach((occasion) => (counts[occasion] += 1)));

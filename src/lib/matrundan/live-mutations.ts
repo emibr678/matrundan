@@ -14,6 +14,7 @@ import type { Occasion, Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 import { flushNotificationOutbox } from "./notifications.functions";
 import { visitMealHasScore } from "./visit-context";
+import { removeVisitPhotoStoragePaths } from "./visit-photo";
 
 /**
  * Interna mutationshintar för det manuella tilläggsflödet. De lagras aldrig på
@@ -221,10 +222,16 @@ export async function liveUpdateVisit(
 }
 
 export async function liveDeleteOriginalVisit(groupId: string, visitId: string): Promise<void> {
-  await rpcClient.callVoid("delete_original_visit", {
-    _group_id: groupId,
-    _visit_id: visitId,
-  });
+  const storagePaths = await rpcClient.call(
+    "delete_original_visit",
+    {
+      _group_id: groupId,
+      _visit_id: visitId,
+    },
+    z.array(z.string()),
+    "Kunde inte radera besöket.",
+  );
+  await removeVisitPhotoStoragePaths(storagePaths);
 }
 
 export async function liveToggleFavorite(groupId: string, placeId: string): Promise<boolean> {

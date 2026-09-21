@@ -46,6 +46,7 @@ import { formatDate, useStore } from "@/lib/matrundan/store";
 import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatVisitContext } from "@/lib/matrundan/visit-context";
+import { getVisitPhotos } from "@/lib/matrundan/visit-photo";
 import { formatRating } from "@/lib/matrundan/version";
 
 const PLACE_SEARCH_DEFAULTS = { visit: "" };
@@ -426,6 +427,7 @@ function PlaceDetail() {
             {visits.map((visit) => {
               const author = memberById(visit.createdBy);
               const pendingReview = canCompleteReview && pendingReviewVisitIds.has(visit.id);
+              const photoCount = getVisitPhotos(visit).length;
               const visibleParticipants =
                 visit.participants && visit.participants.length > 0
                   ? visit.participants
@@ -456,11 +458,18 @@ function PlaceDetail() {
                 >
                   <div className="flex items-start gap-3">
                     {visit.photo?.url ? (
-                      <img
-                        src={visit.photo.url}
-                        alt=""
-                        className="h-16 w-20 shrink-0 rounded-xl border border-border/70 object-cover"
-                      />
+                      <div className="relative h-16 w-20 shrink-0">
+                        <img
+                          src={visit.photo.url}
+                          alt=""
+                          className="h-full w-full rounded-xl border border-border/70 object-cover"
+                        />
+                        {photoCount > 1 ? (
+                          <span className="absolute bottom-1 right-1 rounded-full bg-background/90 px-1.5 py-0.5 text-[10px] font-medium shadow-sm">
+                            +{photoCount - 1}
+                          </span>
+                        ) : null}
+                      </div>
                     ) : (
                       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
                         {author?.avatar ?? "🙂"}
