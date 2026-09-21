@@ -3,14 +3,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
-const readiness = readFileSync(
-  resolve(root, ".github/workflows/staging-db-readiness.yml"),
-  "utf8",
-);
-const stagingApply = readFileSync(
-  resolve(root, ".github/workflows/staging-db-apply.yml"),
-  "utf8",
-);
+const readiness = readFileSync(resolve(root, ".github/workflows/staging-db-readiness.yml"), "utf8");
+const stagingApply = readFileSync(resolve(root, ".github/workflows/staging-db-apply.yml"), "utf8");
 const stagingDeploy = readFileSync(
   resolve(root, ".github/workflows/cloudflare-staging-deploy.yml"),
   "utf8",
