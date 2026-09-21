@@ -84,6 +84,18 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   ).toBeVisible();
   await expect(reviewSection.getByRole("button", { name: "Lägg till ditt omdöme" })).toHaveCount(0);
   await expect(reviewSection.getByText("Mitt eget minne från kvällen.")).toBeVisible();
+  const ownReview = reviewSection
+    .locator("[data-review-id]")
+    .filter({ hasText: "Mitt eget minne från kvällen." });
+  const ownDetails = ownReview.locator("[data-review-details]");
+  await expect(ownDetails.locator(":scope > div")).toHaveCount(4);
+  const ownDetailTops = await ownDetails.locator(":scope > div").evaluateAll((items) =>
+    items.map((item) => Math.round(item.getBoundingClientRect().top)),
+  );
+  expect(new Set(ownDetailTops).size).toBe(1);
+  await expect(
+    ownReview.getByRole("button", { name: "Lägg till reaktion på Alexs omdöme" }),
+  ).toHaveCount(0);
   const editReviewButton = reviewSection.getByRole("button", { name: "Redigera omdöme" });
   await expect(editReviewButton).toBeVisible();
   await expect(reviewSection.getByText("Redigera omdöme", { exact: true })).toBeVisible();
@@ -133,7 +145,7 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   const reviewSection = visitDialog.getByLabel("Gängets omdömen");
   const historicalReview = reviewSection.locator('[data-review-id="review-v10-alex"]');
 
-  await expect(historicalReview.getByText("4,7 / 5", { exact: true })).toBeVisible();
+  await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,7");
   await expect(historicalReview.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
   await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
@@ -168,7 +180,7 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
 
   await expect(page.getByText("Ditt omdöme är uppdaterat.")).toBeVisible();
-  await expect(historicalReview.getByText("4,3 / 5", { exact: true })).toBeVisible();
+  await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,3");
   await expect(historicalReview.getByText("Atmosfär", { exact: true })).toBeVisible();
 
   await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
