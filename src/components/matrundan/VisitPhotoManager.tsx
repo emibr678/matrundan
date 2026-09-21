@@ -383,8 +383,8 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
         <div className={photos.length > 0 ? "mt-3" : "mt-1"}>
           <Button
             type="button"
-            variant={photos.length > 0 ? "outline" : "secondary"}
-            className={photos.length > 0 ? "min-h-11" : "min-h-24 w-full border border-dashed"}
+            variant="outline"
+            className="min-h-11"
             disabled={disabled}
             onClick={choosePhoto}
           >
@@ -410,7 +410,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
             <AlertDialogDescription>
               {pendingDeletePhoto?.uploadedBy === state.currentUserId
                 ? "Bilden försvinner från det här besöket för gruppen. Det går inte att ångra."
-                : `${pendingDeleteOwner}s bild försvinner från det här besöket för gruppen. Använd bara moderation när bilden behöver tas bort.`}
+                : `Du tar bort en bild som ${pendingDeleteOwner} har lagt till. Bilden försvinner från besöket för hela gruppen och det går inte att ångra.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

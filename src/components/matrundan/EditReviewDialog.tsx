@@ -166,7 +166,7 @@ export function EditReviewDialog({
           }
         >
           <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-          {compact ? "Redigera" : scoreless ? "Redigera kommentar" : "Redigera omdöme"}
+          {scoreless ? "Redigera kommentar" : "Redigera omdöme"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

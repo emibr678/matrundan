@@ -53,6 +53,10 @@ export function OccasionGuideContent({ showHeading = true }: { showHeading?: boo
           Olika ställen passar olika bra beroende på vad ni är ute efter. En pizzeria och en finkrog
           kan båda vara riktigt bra – fast vid olika tillfällen.
         </p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Om bara <strong className="font-medium text-foreground">{OCCASION_LABEL.snabbt}</strong>{" "}
+          är valt ingår inte Atmosfär i nya omdömen. Tidigare omdömen ändras inte.
+        </p>
       </div>
       <div className="space-y-2.5">
         {OCCASION_VALUES.map((occasion) => (

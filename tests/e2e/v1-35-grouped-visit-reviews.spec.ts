@@ -63,6 +63,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   const reviewDialog = page.getByRole("dialog").last();
   await expect(reviewDialog.getByRole("heading", { name: "Ditt omdöme" })).toBeVisible();
   await expect(reviewDialog.getByText(/Helhetsbetyget räknas automatiskt/)).toBeVisible();
+  await expect(reviewDialog.getByText(/komprimeras/i)).toHaveCount(0);
   for (const dimension of ["Smak", "Service", "Prisvärdhet", "Atmosfär"]) {
     await reviewDialog.getByRole("button", { name: `${dimension}: 5 av 5` }).click();
   }
@@ -85,6 +86,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await expect(reviewSection.getByText("Mitt eget minne från kvällen.")).toBeVisible();
   const editReviewButton = reviewSection.getByRole("button", { name: "Redigera omdöme" });
   await expect(editReviewButton).toBeVisible();
+  await expect(reviewSection.getByText("Redigera omdöme", { exact: true })).toBeVisible();
 
   await expect(visitDialog.getByRole("heading", { name: "Bild från besöket" })).toBeVisible();
   await expect(visitDialog.getByAltText("Bild från Alex")).toBeVisible();
@@ -111,7 +113,11 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
 
   await expect(page.getByText("Ditt omdöme är uppdaterat och bilden borttagen.")).toBeVisible();
   await expect(visitDialog.getByAltText("Bild från Alex")).toHaveCount(0);
-  await expect(visitDialog.getByRole("button", { name: "Lägg till din bild" })).toBeVisible();
+  const addPhotoButton = visitDialog.getByRole("button", { name: "Lägg till din bild" });
+  await expect(addPhotoButton).toBeVisible();
+  await expect(addPhotoButton).toHaveClass(/min-h-11/);
+  await expect(addPhotoButton).not.toHaveClass(/min-h-24/);
+  await expect(addPhotoButton).not.toHaveClass(/border-dashed/);
 
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");
 });
