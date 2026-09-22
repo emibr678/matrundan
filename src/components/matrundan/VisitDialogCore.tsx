@@ -185,6 +185,15 @@ export function VisitDialog({
     };
   }, [activeGroupId, open, mode, placeId]);
 
+  React.useEffect(() => {
+    setSharePhotoGroupIds((current) => {
+      const next = photoFile ? current.filter((id) => shareGroupIds.includes(id)) : [];
+      return next.length === current.length && next.every((id, index) => id === current[index])
+        ? current
+        : next;
+    });
+  }, [photoFile, shareGroupIds]);
+
   if (!place) return null;
   const currentPlace = place;
   const placeNeedsOccasionClassification = scoredVisit && currentPlace.occasions.length === 0;
@@ -222,15 +231,6 @@ export function VisitDialog({
     setSharePhotoGroupIds((cur) =>
       cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
     );
-
-  React.useEffect(() => {
-    setSharePhotoGroupIds((current) => {
-      const next = photoFile ? current.filter((id) => shareGroupIds.includes(id)) : [];
-      return next.length === current.length && next.every((id, index) => id === current[index])
-        ? current
-        : next;
-    });
-  }, [photoFile, shareGroupIds]);
 
   function closeGuestInput() {
     setGuestInputOpen(false);
@@ -317,7 +317,7 @@ export function VisitDialog({
           groupId,
           hasComment ? shareComment : false,
           allowStrongDuplicate,
-          photoError == null && sharePhotoGroupIds.includes(groupId),
+          photoFile != null && photoError == null && sharePhotoGroupIds.includes(groupId),
         );
         sharedCount += 1;
       } catch {
