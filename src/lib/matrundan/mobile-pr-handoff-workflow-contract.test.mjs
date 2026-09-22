@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
   buildReceipt,
   extractCommitPreviewUrl,
+  extractWorkersPreviewUrl,
   isUiFile,
 } from "../../../scripts/mobile-pr-handoff.mjs";
 
@@ -17,6 +18,7 @@ describe("det mobila PR-kvittots workflow-kontrakt", () => {
     expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'");
     expect(workflow).toContain("github.event.workflow_run.event == 'pull_request'");
     expect(workflow).toContain("actions: read");
+    expect(workflow).toContain("checks: read");
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain("pull-requests: write");
     expect(workflow).not.toContain("issues: write");
@@ -43,9 +45,20 @@ describe("det mobila PR-kvittots workflow-kontrakt", () => {
     const branchUrl = "https://feature-staging.matrundan.workers.dev";
     const comment = `<a href='${commitUrl}'>Commit Preview URL</a><a href='${branchUrl}'>Branch Preview URL</a>`;
 
+    const workersSummary = `Build ID: example
+Preview URL: ${commitUrl}
+Preview Alias URL: ${branchUrl}
+`;
+
     expect(extractCommitPreviewUrl(comment)).toBe(commitUrl);
     expect(extractCommitPreviewUrl(`[Commit Preview URL](${commitUrl})`)).toBe(commitUrl);
     expect(extractCommitPreviewUrl("https://attacker.example/preview")).toBeNull();
+    expect(extractWorkersPreviewUrl(workersSummary)).toBe(commitUrl);
+    expect(extractWorkersPreviewUrl("Preview URL: https://attacker.example/preview")).toBeNull();
+    expect(script).toContain('"/check-runs?per_page=100"');
+    expect(script).toContain("check?.head_sha === targetSha");
+    expect(script).toContain('check?.name === "Workers Builds: staging"');
+    expect(script).toContain('check?.app?.slug === "cloudflare-workers-and-pages"');
     expect(script).toContain('previewUrl + "/api/health"');
     expect(script).toContain('payload?.status === "ok"');
     expect(script).toContain("payload?.release === targetSha");

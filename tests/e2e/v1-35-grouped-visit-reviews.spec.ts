@@ -235,11 +235,17 @@ test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras
   await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
 
   const editDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
+  await expect(editDialog.getByText("Rundans Bistro", { exact: true })).toBeVisible();
+  await expect(
+    editDialog.getByText("Det här är ett äldre omdöme där bara helhetsbetyget sparades.", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(
     editDialog.getByText(
       "Det äldre helhetsbetyget behålls som sparat eftersom detaljbetyg saknas.",
     ),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(editDialog.getByRole("group", { name: "Detaljbetyg" })).toHaveCount(0);
   await expect(editDialog.getByRole("button", { name: "Lägg till Atmosfär" })).toHaveCount(0);
   await expect(editDialog.getByText("4,0 / 5", { exact: true })).toBeVisible();
