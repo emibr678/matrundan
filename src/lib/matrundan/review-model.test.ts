@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  canUpgradeReviewModelWithAtmosphere,
   effectiveReviewModel,
   effectiveReviewOverall,
   reviewModelIncludesAtmosphere,
@@ -59,6 +60,19 @@ describe("aktiv reviewmodell efter korrigerad besökskontext", () => {
     expect(reviewModelIncludesAtmosphere(effectiveReviewModel(takeaway.reviewModel, false))).toBe(
       false,
     );
+  });
+
+  test("alla tredimensionella modeller kan kompletteras först när dagens modell har Atmosfär", () => {
+    for (const storedModel of ["food_v0_3d", "food_v1_quick", "food_v1_takeaway"] as const) {
+      expect(canUpgradeReviewModelWithAtmosphere(storedModel, "food_v1_atmosphere")).toBe(true);
+      expect(canUpgradeReviewModelWithAtmosphere(storedModel, "food_v1_quick")).toBe(false);
+      expect(canUpgradeReviewModelWithAtmosphere(storedModel, "food_v1_takeaway")).toBe(false);
+    }
+
+    expect(canUpgradeReviewModelWithAtmosphere("food_v1_atmosphere", "food_v1_atmosphere")).toBe(
+      false,
+    );
+    expect(canUpgradeReviewModelWithAtmosphere(null, "food_v1_atmosphere")).toBe(false);
   });
 
   test("historiska 3D-omdömen härleds stabilt från sina tre dimensioner", () => {

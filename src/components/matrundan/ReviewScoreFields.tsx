@@ -19,7 +19,7 @@ export function ReviewScoreFields({
   onValueChange,
   onAtmosphereChange,
   showModelNotice = true,
-  atmosphereCompletion,
+  modelUpgrade,
   disabled = false,
 }: {
   model: ReviewModel;
@@ -32,7 +32,7 @@ export function ReviewScoreFields({
   onValueChange: (value: number) => void;
   onAtmosphereChange: (value: number) => void;
   showModelNotice?: boolean;
-  atmosphereCompletion?: {
+  modelUpgrade?: {
     active: boolean;
     onStart: () => void;
     onCancel: () => void;
@@ -54,7 +54,7 @@ export function ReviewScoreFields({
         {reviewModelIncludesAtmosphere(model) ? (
           <>
             <RatingInput value={atmosphere} onChange={onAtmosphereChange} label="Atmosfär" />
-            {atmosphereCompletion?.active ? (
+            {modelUpgrade?.active ? (
               <div className="rounded-xl bg-secondary/50 px-3 py-2.5 text-sm">
                 <p className="text-muted-foreground">
                   När du sparar läggs Atmosfär till i omdömet och helhetsbetyget räknas om.
@@ -64,14 +64,14 @@ export function ReviewScoreFields({
                   variant="ghost"
                   className="mt-1 min-h-10 w-auto px-0 text-xs text-muted-foreground"
                   disabled={disabled}
-                  onClick={atmosphereCompletion.onCancel}
+                  onClick={modelUpgrade.onCancel}
                 >
                   Ångra
                 </Button>
               </div>
             ) : null}
           </>
-        ) : atmosphereCompletion ? (
+        ) : modelUpgrade ? (
           <div className="border-t border-border/60 pt-3">
             <div className="text-sm font-semibold">Atmosfär</div>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -82,7 +82,7 @@ export function ReviewScoreFields({
               variant="ghost"
               className="mt-1 min-h-10 w-auto justify-start px-0 text-sm text-primary"
               disabled={disabled}
-              onClick={atmosphereCompletion.onStart}
+              onClick={modelUpgrade.onStart}
             >
               Lägg till Atmosfär
             </Button>

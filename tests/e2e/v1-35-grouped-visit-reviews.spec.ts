@@ -167,6 +167,24 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   await expectNoHorizontalOverflow(page, "frivillig Atmosfär-komplettering på 360 px");
   await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
 
+  const upgradeConfirmation = page.getByRole("alertdialog", { name: "Lägga till Atmosfär?" });
+  await expect(upgradeConfirmation).toBeVisible();
+  await expect(
+    upgradeConfirmation.getByText(
+      "När du sparar blir Atmosfär en permanent del av omdömet och helhetsbetyget räknas om. Du kan ändra betyget senare, men inte ta bort Atmosfär igen.",
+    ),
+  ).toBeVisible();
+  await expectNoLocatorOverflow(upgradeConfirmation, "bekräfta modelluppgradering");
+  await upgradeConfirmation.getByRole("button", { name: "Avbryt" }).click();
+  await expect(editDialog).toBeVisible();
+  await expect(historicalReview.getByText("4,7 / 5", { exact: true })).toBeVisible();
+
+  await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Lägga till Atmosfär?" })
+    .getByRole("button", { name: "Lägg till och spara" })
+    .click();
+
   await expect(page.getByText("Ditt omdöme är uppdaterat.")).toBeVisible();
   await expect(historicalReview.getByText("4,3 / 5", { exact: true })).toBeVisible();
   await expect(historicalReview.getByText("Atmosfär", { exact: true })).toBeVisible();
