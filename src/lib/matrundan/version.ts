@@ -3,6 +3,36 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_41_0_CHANGELOG: ChangelogEntry = {
+  version: "1.41.0",
+  date: "2026-09-22",
+  summary: "Besök samlar fler gemensamma minnen och omdömen är tydligare över tid.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Flera faktiska deltagare kan bidra med varsin privat bild till samma gemensamma besök.",
+        "Ägare till äldre kompletta tredelade omdömen kan frivilligt lägga till Atmosfär när den senare blir relevant, efter en tydlig bekräftelse.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Gemensam besöksdata, personliga omdömen och personliga bilder har tydligare separata redigeringsvägar, och Atmosfärens beteende för Hämtmat och Snabbt & enkelt förklaras där konsekvensen är relevant.",
+        "Historiska omdömen behåller den betygsmodell de skapades med; äldre omdömen med bara helhetsbetyg bevaras utan fabricerade detaljbetyg.",
+        "Gruppens samlade betyg och deltagarnas omdömen har fått en tydligare mobilhierarki, och reaktioner väljs i en liten förankrad meny nära kommentaren.",
+        "Passar för använder nu Snabbt & enkelt konsekvent, medan dryckesbesök visas som Ett glas med tydligare förklaring om att besöket sparas utan betyg.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Texten för äldre omdömen med endast helhetsbetyg visas inte längre dubbelt i redigeringsdialogen.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_40_0_CHANGELOG: ChangelogEntry = {
   version: "1.40.0",
   date: "2026-09-19",
@@ -407,6 +437,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_41_0_CHANGELOG,
   VERSION_1_40_0_CHANGELOG,
   VERSION_1_39_1_CHANGELOG,
   VERSION_1_39_0_CHANGELOG,
