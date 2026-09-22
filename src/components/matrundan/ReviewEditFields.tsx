@@ -20,7 +20,7 @@ export function ReviewEditFields({
   onCommentChange,
   idPrefix,
   disabled = false,
-  atmosphereCompletion,
+  modelUpgrade,
 }: {
   review: VisibleReview;
   scoreless: boolean;
@@ -38,7 +38,7 @@ export function ReviewEditFields({
   onCommentChange: (value: string) => void;
   idPrefix: string;
   disabled?: boolean;
-  atmosphereCompletion?: {
+  modelUpgrade?: {
     active: boolean;
     onStart: () => void;
     onCancel: () => void;
@@ -60,7 +60,7 @@ export function ReviewEditFields({
           onValueChange={onValueChange}
           onAtmosphereChange={onAtmosphereChange}
           showModelNotice={showModelNotice}
-          atmosphereCompletion={atmosphereCompletion}
+          modelUpgrade={modelUpgrade}
           disabled={disabled}
         />
       ) : null}

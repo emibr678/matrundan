@@ -140,12 +140,14 @@ export function ReviewReactionBar({
   emphasized = false,
   canReact = true,
   trailingAction,
+  content,
 }: {
   reviewId: string;
   authorName: string;
   emphasized?: boolean;
   canReact?: boolean;
   trailingAction?: React.ReactNode;
+  content?: React.ReactNode;
 }) {
   const context = React.useContext(ReactionContext);
   if (!context) {
@@ -160,92 +162,115 @@ export function ReviewReactionBar({
   const allowReaction = context.writable && canReact;
 
   if (!reactionReady) {
-    if (!trailingAction) return null;
+    if (!content && !trailingAction) return null;
     return (
-      <div className="mt-2 flex justify-end" data-review-reactions={reviewId}>
+      <div
+        className={content ? "min-w-0" : "mt-2 flex justify-end"}
+        data-review-reactions={reviewId}
+      >
+        {content}
         {trailingAction}
       </div>
     );
   }
-  if (buckets.length === 0 && !allowReaction && !trailingAction) return null;
+  if (buckets.length === 0 && !allowReaction && !trailingAction && !content) return null;
+
+  const reactionChips = buckets.map((bucket) => (
+    <ReactionCountChip
+      key={bucket.reaction}
+      bucket={bucket}
+      currentUserId={context.currentUserId}
+      selected={reactionState?.myReaction === bucket.reaction}
+      saving={saving}
+      onRemove={() => void context.saveReaction(reviewId, null)}
+    />
+  ));
+
+  const reactionPicker = allowReaction ? (
+    <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-secondary/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
+            pickerOpen || emphasized ? "bg-primary/10 text-primary" : ""
+          }`}
+          disabled={saving}
+          aria-label={`Lägg till reaktion på ${authorName}s omdöme`}
+          aria-expanded={pickerOpen}
+          data-emphasized={emphasized ? "true" : undefined}
+        >
+          <SmilePlus className="h-[18px] w-[18px]" aria-hidden="true" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        collisionPadding={12}
+        className="w-auto max-w-[calc(100vw-1.5rem)] rounded-full p-1"
+        role="group"
+        aria-label="Välj reaktion"
+        data-reaction-picker="popover"
+      >
+        <div className="flex items-center gap-0.5">
+          {REVIEW_REACTION_OPTIONS.map((option) => {
+            const selected = reactionState?.myReaction === option.key;
+            return (
+              <button
+                key={option.key}
+                type="button"
+                className={`grid h-10 w-10 place-items-center rounded-full text-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+                  selected ? "bg-primary/12 ring-1 ring-primary/25" : "hover:bg-secondary/60"
+                }`}
+                aria-label={`${option.label}${
+                  selected ? ", vald – tryck igen för att ta bort" : ""
+                }`}
+                aria-pressed={selected}
+                disabled={saving}
+                onClick={() => {
+                  setPickerOpen(false);
+                  void context.saveReaction(reviewId, selected ? null : option.key);
+                }}
+              >
+                <span aria-hidden="true">{option.emoji}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  ) : null;
 
   return (
-    <div className="mt-1 min-w-0" data-review-reactions={reviewId}>
-      <div
-        className="flex min-w-0 items-center justify-between gap-2"
-        data-review-action-row={reviewId}
-      >
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-          {buckets.map((bucket) => (
-            <ReactionCountChip
-              key={bucket.reaction}
-              bucket={bucket}
-              currentUserId={context.currentUserId}
-              selected={reactionState?.myReaction === bucket.reaction}
-              saving={saving}
-              onRemove={() => void context.saveReaction(reviewId, null)}
-            />
-          ))}
+    <div className={content ? "min-w-0" : "mt-1 min-w-0"} data-review-reactions={reviewId}>
+      {content ? (
+        <>
+          <div className="flex min-w-0 items-end gap-1" data-review-action-row={reviewId}>
+            <div className="min-w-0 flex-1">{content}</div>
+            {reactionPicker}
+          </div>
 
-          {allowReaction ? (
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-secondary/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
-                    pickerOpen || emphasized ? "bg-primary/10 text-primary" : ""
-                  }`}
-                  disabled={saving}
-                  aria-label={`Lägg till reaktion på ${authorName}s omdöme`}
-                  aria-expanded={pickerOpen}
-                  data-emphasized={emphasized ? "true" : undefined}
-                >
-                  <SmilePlus className="h-[18px] w-[18px]" aria-hidden="true" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="start"
-                sideOffset={4}
-                collisionPadding={12}
-                className="w-auto max-w-[calc(100vw-1.5rem)] rounded-full p-1"
-                role="group"
-                aria-label="Välj reaktion"
-                data-reaction-picker="popover"
-              >
-                <div className="flex items-center gap-0.5">
-                  {REVIEW_REACTION_OPTIONS.map((option) => {
-                    const selected = reactionState?.myReaction === option.key;
-                    return (
-                      <button
-                        key={option.key}
-                        type="button"
-                        className={`grid h-10 w-10 place-items-center rounded-full text-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
-                          selected
-                            ? "bg-primary/12 ring-1 ring-primary/25"
-                            : "hover:bg-secondary/60"
-                        }`}
-                        aria-label={`${option.label}${
-                          selected ? ", vald – tryck igen för att ta bort" : ""
-                        }`}
-                        aria-pressed={selected}
-                        disabled={saving}
-                        onClick={() => {
-                          setPickerOpen(false);
-                          void context.saveReaction(reviewId, selected ? null : option.key);
-                        }}
-                      >
-                        <span aria-hidden="true">{option.emoji}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
+          {buckets.length > 0 || trailingAction ? (
+            <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                {reactionChips}
+              </div>
+              {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
+            </div>
           ) : null}
-        </div>
+        </>
+      ) : (
+        <div
+          className="flex min-w-0 items-center justify-between gap-2"
+          data-review-action-row={reviewId}
+        >
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+            {reactionChips}
+            {reactionPicker}
+          </div>
 
-        {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
-      </div>
+          {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
+        </div>
+      )}
     </div>
   );
 }

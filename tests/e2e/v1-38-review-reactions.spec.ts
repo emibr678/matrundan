@@ -31,8 +31,9 @@ test("Reaktionsväljaren är förankrad, fokusstyrd och flyttar inte nästa omd�
   const dialog = page.getByRole("dialog").first();
   const samReview = dialog.locator('[data-review-id="review-v2-sam"]');
   const reactionBar = samReview.locator('[data-review-reactions="review-v2-sam"]');
+  const samComment = samReview.getByText("Bra tempo och generösa portioner.");
   await expect(samReview).toBeVisible();
-  await expect(samReview.getByText("Bra tempo och generösa portioner.")).toBeVisible();
+  await expect(samComment).toBeVisible();
 
   const heartChip = samReview.getByRole("button", {
     name: /Hjärta: 1 reaktion/,
@@ -57,8 +58,14 @@ test("Reaktionsväljaren är förankrad, fokusstyrd och flyttar inte nästa omd�
   await expect(samReview.getByText("Service", { exact: true })).toBeVisible();
 
   const groupRating = dialog.locator("[data-group-rating]");
+  const groupSummary = dialog.locator("[data-group-summary]");
   await expect(dialog.getByText("Gruppens betyg", { exact: true })).toBeVisible();
   await expect(groupRating.locator('[aria-hidden="true"] > span')).toHaveCount(5);
+  const [groupBackground, reviewBackground] = await Promise.all([
+    groupSummary.evaluate((element) => getComputedStyle(element).backgroundColor),
+    samReview.evaluate((element) => getComputedStyle(element).backgroundColor),
+  ]);
+  expect(groupBackground).not.toBe(reviewBackground);
 
   const compactRating = samReview.locator("[data-review-rating]");
   await expect(compactRating.locator("svg")).toHaveCount(1);
@@ -79,6 +86,11 @@ test("Reaktionsväljaren är förankrad, fokusstyrd och flyttar inte nästa omd�
   expect(triggerBox).not.toBeNull();
   expect(triggerBox!.width).toBeGreaterThanOrEqual(44);
   expect(triggerBox!.height).toBeGreaterThanOrEqual(44);
+  const commentBox = await samComment.boundingBox();
+  expect(commentBox).not.toBeNull();
+  expect(
+    Math.abs(triggerBox!.y + triggerBox!.height - (commentBox!.y + commentBox!.height)),
+  ).toBeLessThanOrEqual(2);
 
   const nextReview = dialog.locator('[data-review-id="review-v2-kim"]');
   const nextReviewYBefore = (await nextReview.boundingBox())?.y;

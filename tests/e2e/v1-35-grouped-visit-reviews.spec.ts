@@ -151,8 +151,10 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
   await page.goto("/matstallen/p1?visit=v10");
 
-  const visitDialog = page.getByRole("dialog").first();
-  const reviewSection = visitDialog.getByLabel("Gängets omdömen");
+  const visitDialog = page.getByRole("dialog").filter({
+    has: page.getByRole("heading", { name: "Rundans Bistro" }),
+  });
+  const reviewSection = page.locator('section[aria-labelledby="visit-reviews-v10"]');
   const historicalReview = reviewSection.locator('[data-review-id="review-v10-alex"]');
 
   await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,7");
@@ -188,6 +190,24 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   await expectNoLocatorOverflow(editDialog, "frivillig Atmosfär-komplettering");
   await expectNoHorizontalOverflow(page, "frivillig Atmosfär-komplettering på 360 px");
   await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
+
+  const upgradeConfirmation = page.getByRole("alertdialog", { name: "Lägga till Atmosfär?" });
+  await expect(upgradeConfirmation).toBeVisible();
+  await expect(
+    upgradeConfirmation.getByText(
+      "När du sparar blir Atmosfär en permanent del av omdömet och helhetsbetyget räknas om. Du kan ändra betyget senare, men inte ta bort Atmosfär igen.",
+    ),
+  ).toBeVisible();
+  await expectNoLocatorOverflow(upgradeConfirmation, "bekräfta modelluppgradering");
+  await upgradeConfirmation.getByRole("button", { name: "Avbryt" }).click();
+  await expect(editDialog).toBeVisible();
+  await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,7");
+
+  await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Lägga till Atmosfär?" })
+    .getByRole("button", { name: "Lägg till och spara" })
+    .click();
 
   await expect(page.getByText("Ditt omdöme är uppdaterat.")).toBeVisible();
   await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,3");

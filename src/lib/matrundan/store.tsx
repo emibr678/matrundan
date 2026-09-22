@@ -16,6 +16,7 @@ import { DEMO_STATE } from "./demo-data";
 import { normalizeFoodTags } from "./food-tags";
 import { normalizeOccasionClassification } from "./occasions";
 import {
+  canUpgradeReviewModelWithAtmosphere,
   deriveReviewOverall,
   effectiveReviewModel,
   effectiveReviewOverall,
@@ -1091,9 +1092,6 @@ export function StoreProvider({
           .flatMap((visit) => (visit.visibleReviews ?? []).map((review) => ({ visit, review })))
           .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
         if (!target) throw new Error("Ditt omdöme hittades inte.");
-        if (target.review.reviewModel !== "food_v0_3d") {
-          throw new Error("Omdömet kan inte kompletteras från den här betygsmodellen.");
-        }
         const place = state.places.find((item) => item.id === target.visit.placeId);
         const targetModel = place
           ? reviewModelForContext({
@@ -1101,7 +1099,7 @@ export function StoreProvider({
               occasions: place.occasions,
             })
           : null;
-        if (targetModel !== "food_v1_atmosphere") {
+        if (!canUpgradeReviewModelWithAtmosphere(target.review.reviewModel, targetModel)) {
           throw new Error("Atmosfär ingår inte i den aktuella betygsmodellen.");
         }
         if (!reviewRatingsComplete(targetModel, input)) {

@@ -33,6 +33,25 @@ export function reviewModelIncludesAtmosphere(model: ReviewModel | null | undefi
 }
 
 /**
+ * Modellbyten sker aldrig automatiskt. En befintlig tredimensionell review får
+ * bara kompletteras när dagens kontext uttryckligen använder Atmosfär.
+ *
+ * Det täcker både historiska reviews och senare rättelser av Passar för eller
+ * Hämtmat, utan att skriva om reviews vars ursprungliga modell fortfarande är
+ * relevant.
+ */
+export function canUpgradeReviewModelWithAtmosphere(
+  storedModel: ReviewModel | null | undefined,
+  currentModel: ReviewModel | null | undefined,
+): boolean {
+  return (
+    storedModel != null &&
+    !reviewModelIncludesAtmosphere(storedModel) &&
+    currentModel === "food_v1_atmosphere"
+  );
+}
+
+/**
  * Reviewmodellen lagras historiskt på reviewn, men Hämtmat är ett korrigerbart
  * faktum på besöket. När ett befintligt matomdöme i efterhand markeras som
  * Hämtmat blir därför den aktiva modellen tredimensionell utan att den lagrade

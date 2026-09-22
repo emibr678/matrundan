@@ -1,6 +1,16 @@
 import * as React from "react";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  canUpgradeReviewModelWithAtmosphere,
   effectiveReviewModel,
   reviewModelForContext,
   reviewModelIncludesAtmosphere,
@@ -56,10 +67,13 @@ export function EditReviewDialog({
   const currentContextModel = place
     ? reviewModelForContext({ isTakeaway, occasions: place.occasions })
     : null;
-  const canCompleteAtmosphere =
-    review.reviewModel === "food_v0_3d" && currentContextModel === "food_v1_atmosphere";
+  const canCompleteAtmosphere = canUpgradeReviewModelWithAtmosphere(
+    review.reviewModel,
+    currentContextModel,
+  );
   const [open, setOpen] = React.useState(false);
   const [completingAtmosphere, setCompletingAtmosphere] = React.useState(false);
+  const [confirmUpgradeOpen, setConfirmUpgradeOpen] = React.useState(false);
   const displayModel = completingAtmosphere ? "food_v1_atmosphere" : activeModel;
   const activeModelHasAtmosphere = reviewModelIncludesAtmosphere(displayModel);
   const [taste, setTaste] = React.useState(review.taste ?? 0);
@@ -77,6 +91,7 @@ export function EditReviewDialog({
   React.useEffect(() => {
     if (!open) return;
     setCompletingAtmosphere(false);
+    setConfirmUpgradeOpen(false);
     setTaste(review.taste ?? 0);
     setValue(review.value ?? 0);
     setService(review.service ?? 0);
@@ -86,7 +101,7 @@ export function EditReviewDialog({
     setRemovePhoto(false);
   }, [open, review]);
 
-  async function save() {
+  async function save(upgradeConfirmed = false) {
     if (scoreless) {
       if (!comment.trim()) {
         toast.error("Kommentaren kan inte vara tom.");
@@ -99,6 +114,12 @@ export function EditReviewDialog({
       toast.error("Sätt alla relevanta betyg.");
       return;
     }
+
+    if (completingAtmosphere && !upgradeConfirmed) {
+      setConfirmUpgradeOpen(true);
+      return;
+    }
+
     try {
       const reviewInput = {
         overall: null,
@@ -221,7 +242,7 @@ export function EditReviewDialog({
             onCommentChange={setComment}
             idPrefix={`edit-review-${review.id}`}
             disabled={submitting}
-            atmosphereCompletion={
+            modelUpgrade={
               canCompleteAtmosphere
                 ? {
                     active: completingAtmosphere,
@@ -268,6 +289,29 @@ export function EditReviewDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog
+        open={confirmUpgradeOpen}
+        onOpenChange={(nextOpen) => {
+          if (!submitting) setConfirmUpgradeOpen(nextOpen);
+        }}
+      >
+        <AlertDialogContent className="w-[calc(100vw-1rem)] max-w-md rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Lägga till Atmosfär?</AlertDialogTitle>
+            <AlertDialogDescription>
+              När du sparar blir Atmosfär en permanent del av omdömet och helhetsbetyget räknas om.
+              Du kan ändra betyget senare, men inte ta bort Atmosfär igen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel disabled={submitting}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction disabled={submitting} onClick={() => void save(true)}>
+              {submitting ? "Sparar…" : "Lägg till och spara"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

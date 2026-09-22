@@ -408,10 +408,12 @@ aritmetiska medelvärde. Backfillen accepterar endast den verifierade legacyform
 och stoppar transaktionen vid oväntad data; den är inte ett mönster för framtida
 automatiska modellbyten.
 
-Ett `food_v0_3d`-omdöme är komplett enligt sin egen modell. Vanlig redigering
-behåller modellen. Endast reviewägaren kan genom en separat, uttrycklig handling
-komplettera med Atmosfär när den aktuella fyrdimensionella modellen är relevant;
-modellbytet sker atomärt först när alla fyra dimensioner sparas. `dryck`
+Ett tredimensionellt omdöme är komplett enligt sin egen modell. Vanlig redigering
+behåller modellen. Endast reviewägaren kan genom en separat, uttrycklig och
+bekräftad handling komplettera med Atmosfär när den aktuella fyrdimensionella
+modellen är relevant. Det gäller `food_v0_3d`, `food_v1_quick` och, efter en
+korrigerad Hämtmat-markering, `food_v1_takeaway`; modellbytet sker atomärt först
+när alla fyra dimensioner sparas. `dryck`
 (**Ett glas**) är fortsatt ett fullvärdigt men scorelöst besök: inga numeriska
 reviewfält får sättas och besöket påverkar inte matställets betyg, men
 deltagande, progression, återbesök, kommentar och foto fungerar enligt samma
@@ -472,8 +474,9 @@ samma nya reviewmodell och härleder overall från de relevanta dimensionerna. F
 `rating_visible = false`; en tom kommentar skapar inte ett meningslöst
 reviewobjekt. `update_own_review_v3` behåller varje reviews frysta modell vid normal
 redigering. `upgrade_own_review_model_v1` är den separata ägarstyrda vägen från
-`food_v0_3d` till `food_v1_atmosphere`; kommentar- eller metadataredigering
-kan aldrig utlösa samma övergång. `reviews` behåller invarianten högst en kanonisk review per
+en tredimensionell modell (`food_v0_3d`, `food_v1_quick` eller
+`food_v1_takeaway`) till `food_v1_atmosphere`; kommentar-, besöks- eller
+metadataredigering kan aldrig utlösa samma övergång. `reviews` behåller invarianten högst en kanonisk review per
 `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt i
 `review_group_visibility` och löses inte genom reviewkopior.
 

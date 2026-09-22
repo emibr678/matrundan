@@ -121,16 +121,19 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(occasionPicker).toContain("Tidigare omdömen ändras inte");
   });
 
-  test("historisk 3D-review använder ordinarie härlett flöde och explicit komplettering", () => {
-    expect(editDialog).toContain('review.reviewModel === "food_v0_3d"');
+  test("3D-reviews använder ordinarie härlett flöde och explicit modelluppgradering", () => {
+    expect(editDialog).toContain("canUpgradeReviewModelWithAtmosphere");
     expect(editDialog).toContain("upgradeOwnReviewModel");
-    expect(editDialog).toContain("atmosphereCompletion={");
+    expect(editDialog).toContain("modelUpgrade={");
     expect(scoreFields).toContain("Ingick inte i betyget när omdömet skapades.");
     expect(scoreFields).toContain("Lägg till Atmosfär");
     expect(scoreFields).toContain(
       "När du sparar läggs Atmosfär till i omdömet och helhetsbetyget räknas om.",
     );
     expect(scoreFields).toContain("Ångra");
+    expect(editDialog).toContain("Lägga till Atmosfär?");
+    expect(editDialog).toContain("Lägg till och spara");
+    expect(editDialog).toContain("inte ta bort Atmosfär igen");
     expect(reviewEditFields).not.toContain("Äldre detaljbetyg (frivilligt)");
     expect(reviewEditFields).not.toContain('label="Helhetsbetyg"');
   });

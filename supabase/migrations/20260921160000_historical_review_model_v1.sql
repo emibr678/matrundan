@@ -123,7 +123,7 @@ BEGIN
      AND OLD.review_model IS NOT NULL
      AND NEW.review_model IS DISTINCT FROM OLD.review_model
      AND NOT (
-       OLD.review_model = 'food_v0_3d'
+       OLD.review_model IN ('food_v0_3d', 'food_v1_quick', 'food_v1_takeaway')
        AND NEW.review_model = 'food_v1_atmosphere'
      ) THEN
     RAISE EXCEPTION 'Reviewmodellen är historiskt låst';
@@ -360,7 +360,8 @@ BEGIN
   IF _meal_type = 'dryck' THEN
     RAISE EXCEPTION 'Något att dricka ska inte ha stjärnbetyg';
   END IF;
-  IF _stored_model IS DISTINCT FROM 'food_v0_3d' THEN
+  IF _stored_model IS NULL
+     OR _stored_model NOT IN ('food_v0_3d', 'food_v1_quick', 'food_v1_takeaway') THEN
     RAISE EXCEPTION 'Omdömet kan inte kompletteras från den här betygsmodellen';
   END IF;
 
@@ -393,7 +394,7 @@ BEGIN
       updated_at = now()
   WHERE id = _review_id
     AND user_id = _uid
-    AND review_model = 'food_v0_3d';
+    AND review_model = _stored_model;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Omdömet ändrades innan kompletteringen kunde sparas';

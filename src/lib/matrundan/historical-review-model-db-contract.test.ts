@@ -42,7 +42,9 @@ describe("Issue #365 — stabil historisk reviewmodell", () => {
 
   test("3D-matematiken är låst medan endast uttrycklig Atmosfär-uppgradering tillåts", () => {
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.derive_review_overall_v1");
-    expect(migration).toContain("OLD.review_model = 'food_v0_3d'");
+    expect(migration).toContain(
+      "OLD.review_model IN ('food_v0_3d', 'food_v1_quick', 'food_v1_takeaway')",
+    );
     expect(migration).toContain("NEW.review_model = 'food_v1_atmosphere'");
     expect(migration).toContain("Reviewmodellen är historiskt låst");
     expect(migration).toContain("Omdömets betygsmodell saknas");
@@ -53,8 +55,11 @@ describe("Issue #365 — stabil historisk reviewmodell", () => {
     expect(migration).toContain("_author_id <> _uid");
     expect(migration).toContain("public.visit_group_links");
     expect(migration).toContain("public.visit_participants");
-    expect(migration).toContain("_stored_model IS DISTINCT FROM 'food_v0_3d'");
+    expect(migration).toContain(
+      "_stored_model NOT IN ('food_v0_3d', 'food_v1_quick', 'food_v1_takeaway')",
+    );
     expect(migration).toContain("_target_model <> 'food_v1_atmosphere'");
+    expect(migration).toContain("review_model = _stored_model");
     expect(migration).toContain("FOR UPDATE OF review_row");
     expect(migration).toContain("TO authenticated");
   });

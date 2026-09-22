@@ -168,11 +168,14 @@ export function VisitReviewsSection({
         </div>
 
         <Card className="overflow-hidden rounded-2xl border-border/70">
-          <div className="space-y-3 bg-secondary/[0.16] p-3">
+          <div
+            className="space-y-3 border-b border-primary/15 bg-secondary/50 p-4"
+            data-group-summary
+          >
             {scored ? (
               visit.overall > 0 ? (
                 <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground">Gruppens betyg</p>
+                  <p className="text-xs font-semibold text-foreground/75">Gruppens betyg</p>
                   <div className="mt-1 flex items-center gap-2" data-group-rating>
                     <RatingStars value={visit.overall} size={18} />
                     <span className="font-display text-xl font-semibold">
@@ -217,7 +220,7 @@ export function VisitReviewsSection({
           </div>
 
           {canAddOwnReview || visibleReviews.length > 0 ? (
-            <div className="divide-y divide-border/60 border-t border-border/60">
+            <div className="divide-y divide-border/60">
               {canAddOwnReview ? (
                 <OwnReviewPrompt
                   visit={visit}
@@ -426,6 +429,31 @@ function ReviewRow({
       isTakeaway={isTakeaway}
     />
   ) : null;
+  const commentContent = showComment ? (
+    <div className="min-w-0">
+      <p
+        className={`text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] ${
+          showFullComment ? "" : "line-clamp-3"
+        }`}
+      >
+        {comment}
+      </p>
+      {longComment && !focused ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className="mt-0.5 min-h-10 w-auto px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+          aria-expanded={commentExpanded}
+          onClick={() => setCommentExpanded((expanded) => !expanded)}
+        >
+          {commentExpanded ? "Visa mindre" : "Visa mer"}
+        </Button>
+      ) : null}
+      {own && comment && !review.commentVisible ? (
+        <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <div
@@ -458,18 +486,6 @@ function ReviewRow({
               </Badge>
             ) : null}
           </div>
-          {showComment ? (
-            <p
-              className={`mt-1 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] ${
-                showFullComment ? "" : "line-clamp-3"
-              }`}
-            >
-              {comment}
-            </p>
-          ) : null}
-          {own && comment && !review.commentVisible ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
-          ) : null}
         </div>
         {hasRating ? (
           <div className="shrink-0 pt-0.5" data-review-rating>
@@ -484,21 +500,18 @@ function ReviewRow({
         ) : null}
       </div>
 
-      {longComment && !focused ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className="ml-10 mt-0.5 min-h-10 w-auto px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-          aria-expanded={commentExpanded}
-          onClick={() => setCommentExpanded((expanded) => !expanded)}
-        >
-          {commentExpanded ? "Visa mindre" : "Visa mer"}
-        </Button>
-      ) : null}
-
-      {reactableComment ? (
-        <div className="ml-10">
-          <ReviewReactionBar reviewId={review.id} authorName={name} canReact={!own} />
+      {commentContent ? (
+        <div className="ml-10 mt-1">
+          {reactableComment ? (
+            <ReviewReactionBar
+              reviewId={review.id}
+              authorName={name}
+              canReact={!own}
+              content={commentContent}
+            />
+          ) : (
+            commentContent
+          )}
         </div>
       ) : null}
 
