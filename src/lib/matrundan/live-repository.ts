@@ -39,7 +39,7 @@ import {
 } from "./read-model-version";
 import { isSearchRadiusKm } from "./search-areas";
 import { APP_VERSION } from "./version";
-import { createSignedVisitPhotoUrls } from "./visit-photo";
+import { createDeliveredVisitPhotoUrls, createSignedVisitPhotoUrls } from "./visit-photo";
 import { visitMealHasScore } from "./visit-context";
 
 const ROLE_LABEL: Record<string, Role> = {
@@ -85,7 +85,8 @@ type VisitRow = {
   }[];
   reviews: ReviewRow[];
   photos?: {
-    storagePath: string;
+    storagePath?: string;
+    deliveryToken?: string;
     uploadedBy: string;
     mimeType: string;
     byteSize: number;
@@ -95,7 +96,8 @@ type VisitRow = {
     updatedAt: string;
   }[];
   photo: {
-    storagePath: string;
+    storagePath?: string;
+    deliveryToken?: string;
     uploadedBy: string;
     mimeType: string;
     byteSize: number;
@@ -415,12 +417,17 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     };
   });
 
-  const signedPhotoUrls = await createSignedVisitPhotoUrls(
-    p.visits.flatMap((visit) => {
-      const photos = visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [];
-      return photos.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : []));
-    }),
+  const rawPhotoRows = p.visits.flatMap((visit) =>
+    visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [],
   );
+  const [signedPhotoUrls, deliveredPhotoUrls] = await Promise.all([
+    createSignedVisitPhotoUrls(
+      rawPhotoRows.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : [])),
+    ),
+    createDeliveredVisitPhotoUrls(
+      rawPhotoRows.flatMap((photo) => (photo.deliveryToken ? [photo.deliveryToken] : [])),
+    ),
+  ]);
 
   const visits: Visit[] = p.visits.map((v) => {
     const participantIds = v.participantIds ?? [];
@@ -468,7 +475,11 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     const photos = rawPhotos.map((photo) => ({
       ...photo,
       createdAt: photo.createdAt ?? photo.updatedAt,
-      url: signedPhotoUrls.get(photo.storagePath),
+      url: photo.storagePath
+        ? signedPhotoUrls.get(photo.storagePath)
+        : photo.deliveryToken
+          ? deliveredPhotoUrls.get(photo.deliveryToken)
+          : undefined,
     }));
 
     return {
