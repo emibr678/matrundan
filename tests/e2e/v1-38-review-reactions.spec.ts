@@ -58,7 +58,7 @@ test("Reaktionsväljaren är förankrad, fokusstyrd och flyttar inte nästa omd�
 
   const groupRating = dialog.locator("[data-group-rating]");
   await expect(dialog.getByText("Gruppens betyg", { exact: true })).toBeVisible();
-  await expect(groupRating.locator("svg")).toHaveCount(5);
+  await expect(groupRating.locator('[aria-hidden="true"] > span')).toHaveCount(5);
 
   const compactRating = samReview.locator("[data-review-rating]");
   await expect(compactRating.locator("svg")).toHaveCount(1);
@@ -138,7 +138,7 @@ test("Reaktionsväljaren är förankrad, fokusstyrd och flyttar inte nästa omd�
   await expect(updatedSamReview.getByRole("button", { name: /Roligt: 1 reaktion/ })).toBeVisible();
 
   await updatedSamReview.getByRole("button", { name: "Lägg till reaktion på Sams omdöme" }).click();
-  await updatedSamReview
+  await page
     .getByRole("group", { name: "Välj reaktion" })
     .getByRole("button", { name: /^Roligt, vald/ })
     .click();
