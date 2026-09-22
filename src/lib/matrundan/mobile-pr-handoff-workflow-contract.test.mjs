@@ -54,11 +54,9 @@ Preview Alias URL: ${branchUrl}
     expect(extractCommitPreviewUrl(`[Commit Preview URL](${commitUrl})`)).toBe(commitUrl);
     expect(extractCommitPreviewUrl("https://attacker.example/preview")).toBeNull();
     expect(extractWorkersPreviewUrl(workersSummary)).toBe(commitUrl);
-    expect(
-      extractWorkersPreviewUrl("Preview URL: https://attacker.example/preview"),
-    ).toBeNull();
+    expect(extractWorkersPreviewUrl("Preview URL: https://attacker.example/preview")).toBeNull();
     expect(script).toContain('"/check-runs?per_page=100"');
-    expect(script).toContain('check?.head_sha === targetSha');
+    expect(script).toContain("check?.head_sha === targetSha");
     expect(script).toContain('check?.name === "Workers Builds: staging"');
     expect(script).toContain('check?.app?.slug === "cloudflare-workers-and-pages"');
     expect(script).toContain('previewUrl + "/api/health"');
