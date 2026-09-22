@@ -3,7 +3,11 @@ import { SmilePlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { persistDemoState } from "@/lib/matrundan/demo-state";
 import {
   loadVisitReviewReactions,
@@ -27,12 +31,17 @@ interface ReactionContextValue {
   writable: boolean;
   loading: boolean;
   savingReviewId: string | null;
-  saveReaction: (reviewId: string, reaction: ReviewReactionKey | null) => Promise<void>;
+  saveReaction: (
+    reviewId: string,
+    reaction: ReviewReactionKey | null,
+  ) => Promise<void>;
 }
 
 const ReactionContext = React.createContext<ReactionContextValue | null>(null);
 
-function toReactionMap(states: ReviewReactionState[]): Map<string, ReviewReactionState> {
+function toReactionMap(
+  states: ReviewReactionState[],
+): Map<string, ReviewReactionState> {
   return new Map(states.map((state) => [state.reviewId, state]));
 }
 
@@ -49,13 +58,22 @@ export function VisitReviewReactionsProvider({
 }) {
   const { state } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [byReview, setByReview] = React.useState<Map<string, ReviewReactionState>>(() =>
-    mode === "demo" ? toReactionMap(getDemoReviewReactionStates(state, visit.id)) : new Map(),
+  const [byReview, setByReview] = React.useState<
+    Map<string, ReviewReactionState>
+  >(() =>
+    mode === "demo"
+      ? toReactionMap(getDemoReviewReactionStates(state, visit.id))
+      : new Map(),
   );
   const [loading, setLoading] = React.useState(mode === "live");
   const [error, setError] = React.useState<string | null>(null);
-  const [savingReviewId, setSavingReviewId] = React.useState<string | null>(null);
-  const writable = !groupArchived && !demoReadOnly && (mode === "demo" || Boolean(activeGroupId));
+  const [savingReviewId, setSavingReviewId] = React.useState<string | null>(
+    null,
+  );
+  const writable =
+    !groupArchived &&
+    !demoReadOnly &&
+    (mode === "demo" || Boolean(activeGroupId));
 
   const loadLive = React.useCallback(async () => {
     if (mode !== "live" || !activeGroupId) return;
@@ -65,7 +83,11 @@ export function VisitReviewReactionsProvider({
       const reactions = await loadVisitReviewReactions(activeGroupId, visit.id);
       setByReview(toReactionMap(reactions));
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Kunde inte läsa reaktionerna.");
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Kunde inte läsa reaktionerna.",
+      );
     } finally {
       setLoading(false);
     }
@@ -88,17 +110,34 @@ export function VisitReviewReactionsProvider({
       try {
         if (mode === "live") {
           if (!activeGroupId) throw new Error("Ingen aktiv grupp.");
-          await setOwnReviewReaction(activeGroupId, visit.id, reviewId, reaction);
-          const reactions = await loadVisitReviewReactions(activeGroupId, visit.id);
+          await setOwnReviewReaction(
+            activeGroupId,
+            visit.id,
+            reviewId,
+            reaction,
+          );
+          const reactions = await loadVisitReviewReactions(
+            activeGroupId,
+            visit.id,
+          );
           setByReview(toReactionMap(reactions));
         } else {
-          const nextState = setOwnDemoReviewReaction(state, visit.id, reviewId, reaction);
-          setByReview(toReactionMap(getDemoReviewReactionStates(nextState, visit.id)));
+          const nextState = setOwnDemoReviewReaction(
+            state,
+            visit.id,
+            reviewId,
+            reaction,
+          );
+          setByReview(
+            toReactionMap(getDemoReviewReactionStates(nextState, visit.id)),
+          );
           persistDemoState(nextState, exampleMode, { preserveView: true });
         }
       } catch (saveError) {
         toast.error(
-          saveError instanceof Error ? saveError.message : "Kunde inte spara reaktionen.",
+          saveError instanceof Error
+            ? saveError.message
+            : "Kunde inte spara reaktionen.",
         );
       } finally {
         setSavingReviewId(null);
@@ -116,7 +155,14 @@ export function VisitReviewReactionsProvider({
       savingReviewId,
       saveReaction,
     }),
-    [byReview, loading, saveReaction, savingReviewId, state.currentUserId, writable],
+    [
+      byReview,
+      loading,
+      saveReaction,
+      savingReviewId,
+      state.currentUserId,
+      writable,
+    ],
   );
 
   return (
@@ -125,7 +171,13 @@ export function VisitReviewReactionsProvider({
       {error ? (
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="min-w-0 [overflow-wrap:anywhere]">{error}</span>
-          <Button type="button" variant="ghost" size="sm" className="min-h-11" onClick={loadLive}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            onClick={loadLive}
+          >
             Försök igen
           </Button>
         </div>
@@ -149,11 +201,15 @@ export function ReviewReactionBar({
 }) {
   const context = React.useContext(ReactionContext);
   if (!context) {
-    throw new Error("ReviewReactionBar måste användas inuti VisitReviewReactionsProvider.");
+    throw new Error(
+      "ReviewReactionBar måste användas inuti VisitReviewReactionsProvider.",
+    );
   }
 
   const reactionState = context.byReview.get(reviewId);
-  const buckets = (reactionState?.reactions ?? []).filter((bucket) => bucket.count > 0);
+  const buckets = (reactionState?.reactions ?? []).filter(
+    (bucket) => bucket.count > 0,
+  );
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const saving = context.savingReviewId === reviewId;
   const reactionReady = !context.loading || Boolean(reactionState);
@@ -220,7 +276,9 @@ export function ReviewReactionBar({
                         key={option.key}
                         type="button"
                         className={`grid h-10 w-10 place-items-center rounded-full text-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
-                          selected ? "bg-primary/12 ring-1 ring-primary/25" : "hover:bg-secondary/60"
+                          selected
+                            ? "bg-primary/12 ring-1 ring-primary/25"
+                            : "hover:bg-secondary/60"
                         }`}
                         aria-label={`${option.label}${
                           selected ? ", vald – tryck igen för att ta bort" : ""
@@ -229,7 +287,10 @@ export function ReviewReactionBar({
                         disabled={saving}
                         onClick={() => {
                           setPickerOpen(false);
-                          void context.saveReaction(reviewId, selected ? null : option.key);
+                          void context.saveReaction(
+                            reviewId,
+                            selected ? null : option.key,
+                          );
                         }}
                       >
                         <span aria-hidden="true">{option.emoji}</span>
@@ -242,7 +303,9 @@ export function ReviewReactionBar({
           ) : null}
         </div>
 
-        {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
+        {trailingAction ? (
+          <div className="shrink-0">{trailingAction}</div>
+        ) : null}
       </div>
     </div>
   );
@@ -261,7 +324,9 @@ function ReactionCountChip({
   saving: boolean;
   onRemove: () => void;
 }) {
-  const option = REVIEW_REACTION_OPTIONS.find((item) => item.key === bucket.reaction);
+  const option = REVIEW_REACTION_OPTIONS.find(
+    (item) => item.key === bucket.reaction,
+  );
   const firstReactor = bucket.reactors[0];
   if (!option || bucket.count <= 0 || !firstReactor) return null;
 
@@ -285,10 +350,15 @@ function ReactionCountChip({
             {option.emoji}
           </span>
           <span className="min-w-0 truncate">{firstReactor.name}</span>
-          {additionalCount > 0 ? <span className="shrink-0">+{additionalCount}</span> : null}
+          {additionalCount > 0 ? (
+            <span className="shrink-0">+{additionalCount}</span>
+          ) : null}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 max-w-[calc(100vw-2rem)] rounded-2xl p-3">
+      <PopoverContent
+        align="start"
+        className="w-64 max-w-[calc(100vw-2rem)] rounded-2xl p-3"
+      >
         <div className="text-sm font-medium">
           {option.emoji} {option.label}
         </div>
@@ -296,7 +366,10 @@ function ReactionCountChip({
           {bucket.reactors.map((person) => {
             const ownReaction = selected && person.userId === currentUserId;
             return (
-              <div key={person.userId} className="flex min-w-0 items-center justify-between gap-2">
+              <div
+                key={person.userId}
+                className="flex min-w-0 items-center justify-between gap-2"
+              >
                 <div className="flex min-w-0 items-center gap-2">
                   {person.avatarImage ? (
                     <img
@@ -316,11 +389,16 @@ function ReactionCountChip({
                     <div className="truncate font-medium">
                       {person.name}
                       {ownReaction ? (
-                        <span className="font-normal text-muted-foreground"> (Du)</span>
+                        <span className="font-normal text-muted-foreground">
+                          {" "}
+                          (Du)
+                        </span>
                       ) : null}
                     </div>
                     {person.status === "left" ? (
-                      <div className="text-[11px] text-muted-foreground">Tidigare medlem</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Tidigare medlem
+                      </div>
                     ) : null}
                   </div>
                 </div>

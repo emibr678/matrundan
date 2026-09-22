@@ -16,12 +16,18 @@ import { useStore } from "@/lib/matrundan/store";
 import type { Visit, VisibleReview } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 import { visitHasScore } from "@/lib/matrundan/visit-context";
-import { getVisitReviewSummary, visitReviewProgressLabel } from "@/lib/matrundan/visit-reviews";
+import {
+  getVisitReviewSummary,
+  visitReviewProgressLabel,
+} from "@/lib/matrundan/visit-reviews";
 import { AddVisitReviewDialog } from "./AddVisitReviewDialog";
 import { DemoAddVisitReviewDialog } from "./DemoAddVisitReviewDialog";
 import { EditReviewDialog } from "./EditReviewDialog";
 import { RatingStars } from "./Rating";
-import { ReviewReactionBar, VisitReviewReactionsProvider } from "./ReviewReactions";
+import {
+  ReviewReactionBar,
+  VisitReviewReactionsProvider,
+} from "./ReviewReactions";
 
 const INITIAL_VISIBLE_REVIEWS = 4;
 const FOCUS_HIGHLIGHT_MS = 7000;
@@ -45,7 +51,9 @@ export function VisitReviewsSection({
   const { mode, activeGroupId } = useSession();
   const [showAll, setShowAll] = React.useState(false);
   const [savingVisibility, setSavingVisibility] = React.useState(false);
-  const [highlightedReviewId, setHighlightedReviewId] = React.useState<string | null>(null);
+  const [highlightedReviewId, setHighlightedReviewId] = React.useState<
+    string | null
+  >(null);
   const handledFocusKeyRef = React.useRef<string | null>(null);
   const focusHighlightTimeoutRef = React.useRef<number | null>(null);
   const currentUserId = state.currentUserId;
@@ -53,20 +61,28 @@ export function VisitReviewsSection({
   const scored = visitHasScore(visit);
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const participationStatus =
-    visit.currentUserParticipationStatus ?? (fallbackParticipant ? "participant" : "none");
+    visit.currentUserParticipationStatus ??
+    (fallbackParticipant ? "participant" : "none");
   const summary = React.useMemo(
     () => getVisitReviewSummary(visit, currentUserId),
     [visit, currentUserId],
   );
   const writable =
-    !groupArchived && !demoReadOnly && (mode === "live" ? Boolean(activeGroupId) : true);
+    !groupArchived &&
+    !demoReadOnly &&
+    (mode === "live" ? Boolean(activeGroupId) : true);
   const canAddOwnReview =
     participationStatus === "participant" &&
-    (scored ? !summary.ownReview || summary.ownReview.overall == null : !summary.ownReview);
+    (scored
+      ? !summary.ownReview || summary.ownReview.overall == null
+      : !summary.ownReview);
   const visibleReviews = showAll
     ? summary.reviews
     : summary.reviews.slice(0, INITIAL_VISIBLE_REVIEWS);
-  const hiddenReviewCount = Math.max(0, summary.reviews.length - visibleReviews.length);
+  const hiddenReviewCount = Math.max(
+    0,
+    summary.reviews.length - visibleReviews.length,
+  );
   const focusedReviewIndex = focusReviewId
     ? summary.reviews.findIndex((review) => review.id === focusReviewId)
     : -1;
@@ -108,7 +124,9 @@ export function VisitReviewsSection({
         window.clearTimeout(focusHighlightTimeoutRef.current);
       }
       focusHighlightTimeoutRef.current = window.setTimeout(() => {
-        setHighlightedReviewId((current) => (current === focusReviewId ? null : current));
+        setHighlightedReviewId((current) =>
+          current === focusReviewId ? null : current,
+        );
         focusHighlightTimeoutRef.current = null;
       }, FOCUS_HIGHLIGHT_MS);
     });
@@ -124,13 +142,23 @@ export function VisitReviewsSection({
     setHighlightedReviewId(null);
   }
 
-  async function toggleOwnCommentVisibility(review: VisibleReview, next: boolean) {
+  async function toggleOwnCommentVisibility(
+    review: VisibleReview,
+    next: boolean,
+  ) {
     if (!activeGroupId || groupArchived) return;
     setSavingVisibility(true);
     try {
-      await setReviewGroupVisibility(review.id, activeGroupId, review.ratingVisible, next);
+      await setReviewGroupVisibility(
+        review.id,
+        activeGroupId,
+        review.ratingVisible,
+        next,
+      );
       toast.success(
-        next ? "Din kommentar är synlig i gruppen." : "Din kommentar är dold i gruppen.",
+        next
+          ? "Din kommentar är synlig i gruppen."
+          : "Din kommentar är dold i gruppen.",
       );
       await onChanged();
     } catch (error) {
@@ -144,7 +172,9 @@ export function VisitReviewsSection({
     { label: "Smak", value: visit.taste },
     { label: "Service", value: visit.service },
     { label: "Prisvärt", value: visit.value },
-    ...(visit.atmosphere != null ? [{ label: "Atmosfär", value: visit.atmosphere }] : []),
+    ...(visit.atmosphere != null
+      ? [{ label: "Atmosfär", value: visit.atmosphere }]
+      : []),
   ];
 
   return (
@@ -153,15 +183,24 @@ export function VisitReviewsSection({
       groupArchived={groupArchived}
       demoReadOnly={demoReadOnly}
     >
-      <section aria-labelledby={`visit-reviews-${visit.id}`} className="space-y-2">
+      <section
+        aria-labelledby={`visit-reviews-${visit.id}`}
+        className="space-y-2"
+      >
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h3 id={`visit-reviews-${visit.id}`} className="text-sm font-medium">
+            <h3
+              id={`visit-reviews-${visit.id}`}
+              className="text-sm font-medium"
+            >
               {scored ? "Gängets omdömen" : "Gängets kommentarer"}
             </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {scored
-                ? visitReviewProgressLabel(summary.reviewCount, summary.participantCount)
+                ? visitReviewProgressLabel(
+                    summary.reviewCount,
+                    summary.participantCount,
+                  )
                 : "Ett glas · påverkar inte ställets betyg"}
             </p>
           </div>
@@ -172,8 +211,13 @@ export function VisitReviewsSection({
             {scored ? (
               visit.overall > 0 ? (
                 <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground">Gruppens betyg</p>
-                  <div className="mt-1 flex items-center gap-2" data-group-rating>
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    Gruppens betyg
+                  </p>
+                  <div
+                    className="mt-1 flex items-center gap-2"
+                    data-group-rating
+                  >
                     <RatingStars value={visit.overall} size={18} />
                     <span className="font-display text-xl font-semibold">
                       {formatRating(visit.overall)} / 5
@@ -189,7 +233,10 @@ export function VisitReviewsSection({
             ) : (
               <div className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MessageCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>Det här besöket är scorelöst. Kommentarer sparas som minnen utan stjärnbetyg.</p>
+                <p>
+                  Det här besöket är scorelöst. Kommentarer sparas som minnen
+                  utan stjärnbetyg.
+                </p>
               </div>
             )}
 
@@ -200,7 +247,11 @@ export function VisitReviewsSection({
                 }`}
               >
                 {summaryDetails.map((detail) => (
-                  <SummaryDetail key={detail.label} label={detail.label} value={detail.value} />
+                  <SummaryDetail
+                    key={detail.label}
+                    label={detail.label}
+                    value={detail.value}
+                  />
                 ))}
               </div>
             ) : null}
@@ -209,7 +260,9 @@ export function VisitReviewsSection({
               <div className="flex items-start gap-2 border-t border-border/60 pt-3 text-xs leading-relaxed text-muted-foreground">
                 <MessageCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <div className="min-w-0">
-                  <span className="font-medium text-foreground">Minnesnotering från besöket: </span>
+                  <span className="font-medium text-foreground">
+                    Minnesnotering från besöket:{" "}
+                  </span>
                   <span>{summary.legacyComment}</span>
                 </div>
               </div>
@@ -232,7 +285,9 @@ export function VisitReviewsSection({
               ) : null}
 
               {visibleReviews.map((review) => {
-                const participant = visit.participants?.find((item) => item.id === review.userId);
+                const participant = visit.participants?.find(
+                  (item) => item.id === review.userId,
+                );
                 const member = memberById(review.userId);
                 return (
                   <ReviewRow
@@ -240,7 +295,9 @@ export function VisitReviewsSection({
                     review={review}
                     name={participant?.name ?? member?.name ?? "Deltagare"}
                     avatar={participant?.avatar ?? member?.avatar ?? "🙂"}
-                    avatarImage={participant?.avatarImage ?? member?.avatarImage ?? null}
+                    avatarImage={
+                      participant?.avatarImage ?? member?.avatarImage ?? null
+                    }
                     own={review.userId === currentUserId}
                     focused={review.id === focusReviewId}
                     highlighted={review.id === highlightedReviewId}
@@ -252,7 +309,9 @@ export function VisitReviewsSection({
                     scoreless={!scored}
                     isTakeaway={visit.isTakeaway === true}
                     onInteract={() => clearReviewHighlight(review.id)}
-                    onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
+                    onToggleVisibility={(next) =>
+                      void toggleOwnCommentVisibility(review, next)
+                    }
                   />
                 );
               })}
@@ -267,7 +326,8 @@ export function VisitReviewsSection({
                 className="min-h-11 text-sm text-primary"
                 onClick={() => setShowAll(true)}
               >
-                Visa alla {summary.reviewCount} {scored ? "omdömen" : "kommentarer"}
+                Visa alla {summary.reviewCount}{" "}
+                {scored ? "omdömen" : "kommentarer"}
               </Button>
             </div>
           ) : showAll && summary.reviews.length > INITIAL_VISIBLE_REVIEWS ? (
@@ -300,14 +360,18 @@ function OwnReviewPrompt({
 }: {
   visit: Visit;
   placeName: string;
-  placeOccasions: Visit extends never ? never : import("@/lib/matrundan/types").Occasion[];
+  placeOccasions: Visit extends never
+    ? never
+    : import("@/lib/matrundan/types").Occasion[];
   currentUserId: string;
   writable: boolean;
   mode: "demo" | "live";
   scoreless: boolean;
   onChanged: () => void | Promise<void>;
 }) {
-  const participant = visit.participants?.find((item) => item.id === currentUserId);
+  const participant = visit.participants?.find(
+    (item) => item.id === currentUserId,
+  );
   const { memberById } = useStore();
   const member = memberById(currentUserId);
   const avatar = participant?.avatar ?? member?.avatar ?? "🙂";
@@ -316,11 +380,20 @@ function OwnReviewPrompt({
   return (
     <div className="bg-primary/[0.04] p-3">
       <div className="flex min-w-0 items-center gap-2.5">
-        <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name="Du" />
+        <ParticipantAvatar
+          avatar={avatar}
+          avatarImage={avatarImage}
+          name="Du"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="text-sm font-medium">{scoreless ? "Din kommentar" : "Ditt omdöme"}</p>
-            <Badge variant="outline" className="rounded-full px-1.5 py-0 text-[10px] text-primary">
+            <p className="text-sm font-medium">
+              {scoreless ? "Din kommentar" : "Ditt omdöme"}
+            </p>
+            <Badge
+              variant="outline"
+              className="rounded-full px-1.5 py-0 text-[10px] text-primary"
+            >
               Du
             </Badge>
           </div>
@@ -404,7 +477,8 @@ function ReviewRow({
         { label: "Smak", value: review.taste },
         { label: "Service", value: review.service },
         { label: "Prisvärt", value: review.value },
-        ...(reviewModelIncludesAtmosphere(activeModel) && review.atmosphere != null
+        ...(reviewModelIncludesAtmosphere(activeModel) &&
+        review.atmosphere != null
           ? [{ label: "Atmosfär", value: review.atmosphere }]
           : []),
       ].filter((detail) => detail.value != null)
@@ -445,7 +519,11 @@ function ReviewRow({
       }
     >
       <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
-        <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
+        <ParticipantAvatar
+          avatar={avatar}
+          avatarImage={avatarImage}
+          name={name}
+        />
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             <p className="max-w-full truncate text-sm font-medium">{name}</p>
@@ -468,7 +546,9 @@ function ReviewRow({
             </p>
           ) : null}
           {own && comment && !review.commentVisible ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Kommentaren är dold i gruppen.
+            </p>
           ) : null}
         </div>
         {hasRating ? (
@@ -501,7 +581,11 @@ function ReviewRow({
 
       {reactableComment ? (
         <div className="ml-10">
-          <ReviewReactionBar reviewId={review.id} authorName={name} canReact={!own} />
+          <ReviewReactionBar
+            reviewId={review.id}
+            authorName={name}
+            canReact={!own}
+          />
         </div>
       ) : null}
 
@@ -513,12 +597,18 @@ function ReviewRow({
           data-review-details
         >
           {detailItems.map((detail) => (
-            <ReviewDetail key={detail.label} label={detail.label} value={detail.value} />
+            <ReviewDetail
+              key={detail.label}
+              label={detail.label}
+              value={detail.value}
+            />
           ))}
         </div>
       ) : null}
 
-      {editAction ? <div className="mt-2 flex justify-end">{editAction}</div> : null}
+      {editAction ? (
+        <div className="mt-2 flex justify-end">{editAction}</div>
+      ) : null}
 
       {canToggleComment ? (
         <div className="mt-1 flex justify-end">
@@ -552,7 +642,12 @@ function ParticipantAvatar({
   name: string;
 }) {
   return avatarImage ? (
-    <img src={avatarImage} alt="" className="h-8 w-8 rounded-full object-cover" title={name} />
+    <img
+      src={avatarImage}
+      alt=""
+      className="h-8 w-8 rounded-full object-cover"
+      title={name}
+    />
   ) : (
     <div
       className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-base"
@@ -564,10 +659,18 @@ function ParticipantAvatar({
   );
 }
 
-function SummaryDetail({ label, value }: { label: string; value?: number | null }) {
+function SummaryDetail({
+  label,
+  value,
+}: {
+  label: string;
+  value?: number | null;
+}) {
   return (
     <div className="min-w-0">
-      <div className="truncate text-[10px] font-medium text-muted-foreground">{label}</div>
+      <div className="truncate text-[10px] font-medium text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-0.5 text-sm font-semibold">
         {value != null ? formatRating(value) : "–"}
       </div>
@@ -575,11 +678,19 @@ function SummaryDetail({ label, value }: { label: string; value?: number | null 
   );
 }
 
-function ReviewDetail({ label, value }: { label: string; value?: number | null }) {
+function ReviewDetail({
+  label,
+  value,
+}: {
+  label: string;
+  value?: number | null;
+}) {
   return (
     <div className="min-w-0">
       <div className="truncate text-[10px] text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-xs font-medium">{value != null ? formatRating(value) : "–"}</div>
+      <div className="mt-0.5 text-xs font-medium">
+        {value != null ? formatRating(value) : "–"}
+      </div>
     </div>
   );
 }
