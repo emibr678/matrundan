@@ -130,9 +130,7 @@ export function EditReviewDialog({
         value: scoreless || historicalOverallOnly ? null : value || null,
         service: scoreless || historicalOverallOnly ? null : service || null,
         atmosphere:
-          scoreless ||
-          historicalOverallOnly ||
-          (!completingAtmosphere && !storedModelHasAtmosphere)
+          scoreless || historicalOverallOnly || (!completingAtmosphere && !storedModelHasAtmosphere)
             ? null
             : activeModelHasAtmosphere
               ? atmosphere || null
