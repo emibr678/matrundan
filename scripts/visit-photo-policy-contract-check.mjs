@@ -8,8 +8,13 @@ const migrationPath = resolve(
   root,
   "supabase/migrations/20260919164000_visit_photo_gallery_v1.sql",
 );
+const crossGroupMigrationPath = resolve(
+  root,
+  "supabase/migrations/20260922193000_visit_photo_cross_group_visibility_v1.sql",
+);
 const preflightPath = resolve(root, "supabase/production-preflight-visit-photo.sql");
 const migration = readFileSync(migrationPath, "utf8");
+const crossGroupMigration = readFileSync(crossGroupMigrationPath, "utf8");
 const preflight = readFileSync(preflightPath, "utf8");
 const errors = [];
 
@@ -94,7 +99,27 @@ requirePattern(
 requirePattern(
   migration,
   /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.get_group_app_state_v5m[\s\S]*?'\{photos\}'[\s\S]*?public\.visit_media/i,
-  "Aktuell read-model måste exponera gruppens deltagarbilder som photos[].",
+  "Flerfotomigrationen måste etablera gruppens deltagarbilder som photos[].",
+);
+requirePattern(
+  crossGroupMigration,
+  /CREATE\s+TABLE\s+public\.visit_media_group_visibility[\s\S]*?FOREIGN\s+KEY\s*\(media_id,\s*visit_id\)[\s\S]*?ON\s+DELETE\s+CASCADE[\s\S]*?FOREIGN\s+KEY\s*\(visit_id,\s*group_id\)[\s\S]*?ON\s+DELETE\s+CASCADE/i,
+  "Cross-group-synligheten måste kaskadera med både mediaobjekt och besökslänk.",
+);
+requirePattern(
+  crossGroupMigration,
+  /grant_own_visit_photo_visibility_v1[\s\S]*?uploaded_by\s*=\s*_uid[\s\S]*?visit_participants[\s\S]*?has_membership/i,
+  "Endast bildägaren, som faktisk deltagare och målgruppsmedlem, får dela sin bild.",
+);
+requirePattern(
+  crossGroupMigration,
+  /resolve_visit_photo_delivery_v1[\s\S]*?REVOKE\s+ALL[\s\S]*?authenticated[\s\S]*?GRANT\s+EXECUTE[\s\S]*?service_role/i,
+  "Rå Storage-upplösning måste vara server-only.",
+);
+requirePattern(
+  crossGroupMigration,
+  /get_group_app_state_v5n[\s\S]*?deliveryToken[\s\S]*?visit_media_group_visibility/i,
+  "Aktuell read-model måste exponera cross-group-media via opaque delivery-token.",
 );
 
 for (const marker of [
@@ -109,7 +134,13 @@ for (const marker of [
   "visit-photo:whole-visit-delete-returns-storage-paths",
   "visit-photo:upsert-conflicts-per-uploader",
   "visit-photo:legacy-read-model-keeps-one-representative",
-  "visit-photo:current-read-model-exposes-photo-array",
+  "visit-photo:gallery-migration-exposed-photo-array",
+  "visit-photo:cross-group-visibility-table",
+  "visit-photo:cross-group-table-no-authenticated-read",
+  "visit-photo:cross-group-grant-owner-only",
+  "visit-photo:delivery-resolver-service-only",
+  "visit-photo:current-read-model-uses-opaque-cross-group-token",
+  "visit-photo:visibility-cascades-with-media-and-visit-link",
 ]) {
   if (!preflight.includes(marker)) errors.push(`Besöksfoto-preflight saknar ${marker}.`);
 }
@@ -119,4 +150,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log("Besöksbildernas deltagarägarskap, galleri-read-model och Storage-policy hänger ihop.");
+console.log("Besöksbildernas ägarskap, cross-group-synlighet och serverleverans hänger ihop.");

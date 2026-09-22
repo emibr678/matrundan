@@ -27,6 +27,14 @@ WITH function_defs AS (
       ''
     ) AS v5m_def,
     COALESCE(
+      pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5n(uuid)')),
+      ''
+    ) AS v5n_def,
+    COALESCE(
+      pg_get_functiondef(to_regprocedure('public.grant_own_visit_photo_visibility_v1(uuid,uuid)')),
+      ''
+    ) AS grant_visibility_def,
+    COALESCE(
       pg_get_functiondef(to_regprocedure('public.delete_original_visit(uuid,uuid)')),
       ''
     ) AS delete_visit_def
@@ -225,7 +233,7 @@ checks(name, ok) AS (
       )
     ),
     (
-      'visit-photo:current-read-model-exposes-photo-array',
+      'visit-photo:gallery-migration-exposed-photo-array',
       COALESCE(
         (
           SELECT position('''photos''' IN lower(v5m_def)) > 0
@@ -233,6 +241,69 @@ checks(name, ok) AS (
           FROM function_defs
         ),
         false
+      )
+    ),
+    (
+      'visit-photo:cross-group-visibility-table',
+      to_regclass('public.visit_media_group_visibility') IS NOT NULL
+    ),
+    (
+      'visit-photo:cross-group-table-no-authenticated-read',
+      COALESCE(
+        NOT has_table_privilege('authenticated', 'public.visit_media_group_visibility', 'SELECT'),
+        false
+      )
+    ),
+    (
+      'visit-photo:cross-group-grant-owner-only',
+      COALESCE(
+        (
+          SELECT position('uploaded_by = _uid' IN grant_visibility_def) > 0
+            AND position('visit_participants' IN grant_visibility_def) > 0
+            AND position('has_membership' IN grant_visibility_def) > 0
+          FROM function_defs
+        ),
+        false
+      )
+    ),
+    (
+      'visit-photo:delivery-resolver-service-only',
+      COALESCE(
+        has_function_privilege(
+          'service_role',
+          to_regprocedure('public.resolve_visit_photo_delivery_v1(uuid,uuid)'),
+          'EXECUTE'
+        )
+        AND NOT has_function_privilege(
+          'authenticated',
+          to_regprocedure('public.resolve_visit_photo_delivery_v1(uuid,uuid)'),
+          'EXECUTE'
+        ),
+        false
+      )
+    ),
+    (
+      'visit-photo:current-read-model-uses-opaque-cross-group-token',
+      COALESCE(
+        (
+          SELECT position('deliveryToken' IN v5n_def) > 0
+            AND position('visit_media_group_visibility' IN v5n_def) > 0
+          FROM function_defs
+        ),
+        false
+      )
+    ),
+    (
+      'visit-photo:visibility-cascades-with-media-and-visit-link',
+      (
+        SELECT count(*) = 2
+        FROM pg_constraint constraint_row
+        JOIN pg_class table_row ON table_row.oid = constraint_row.conrelid
+        JOIN pg_namespace namespace_row ON namespace_row.oid = table_row.relnamespace
+        WHERE namespace_row.nspname = 'public'
+          AND table_row.relname = 'visit_media_group_visibility'
+          AND constraint_row.contype = 'f'
+          AND lower(pg_get_constraintdef(constraint_row.oid)) LIKE '%on delete cascade%'
       )
     )
 )
