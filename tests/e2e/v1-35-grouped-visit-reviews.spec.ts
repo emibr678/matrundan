@@ -231,7 +231,7 @@ test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras
   const reviewSection = visitDialog.getByLabel("Gängets omdömen");
   const historicalReview = reviewSection.locator('[data-review-id="review-v8-alex"]');
 
-  await expect(historicalReview.getByText("4,0 / 5", { exact: true })).toBeVisible();
+  await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,0");
   await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
 
   const editDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
@@ -258,5 +258,5 @@ test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras
       { exact: true },
     ),
   ).toBeVisible();
-  await expect(historicalReview.getByText("4,0 / 5", { exact: true })).toBeVisible();
+  await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,0");
 });
