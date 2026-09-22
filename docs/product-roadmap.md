@@ -1,361 +1,179 @@
-# Produktroadmap och backlog
+# Produktinriktning och backlogmodell
 
-Det här dokumentet är den kanoniska översikten över Matrundans beslutade
-produktinriktning, prioriterade paket och aktiva feature-issues.
+Det här dokumentet är Matrundans kanoniska översikt över långsiktig
+produktinriktning och hur den operativa backloggen ska tolkas.
 
-Roadmapen ska göra det möjligt att fortsätta arbetet i en ny chatt eller
-arbetsmiljö utan att tidigare produktdiskussioner behöver återberättas.
-GitHub Issues innehåller det detaljerade scopet för varje funktion. Aktuell kod,
-databas och arkitekturdokumentation är fortfarande källan till sanningen för hur
-produkten faktiskt är implementerad.
+Det är medvetet **inte** en lista över aktuella Issues, deras status eller exakt
+arbetsordning. Den levande kön finns i GitHub Issues och labels. GitHub Project
+är en människovänlig vy av samma data.
 
 ## Produktprincip
 
 Matrundan är en privat, gruppcentrerad app för vänner och familjer som vill
 upptäcka, välja, besöka och minnas matställen tillsammans.
 
-En roadmapfunktion ska i första hand hjälpa gruppen att:
+Kärnflödet är:
 
-1. hitta och samla intressanta matställen;
-2. bestämma nästa gemensamma stopp;
-3. dokumentera verkliga besök och faktiska deltagare;
-4. förstå och fortsätta sin gemensamma mathistorik.
+1. samla ställen gruppen är nyfiken på;
+2. bestäm nästa gemensamma stopp;
+3. registrera verkliga besök och faktiska deltagare;
+4. bygg en privat gemensam historik;
+5. använd historiken som inspiration till nästa gemensamma upplevelse.
 
 Sökning, kartor, statistik, rekommendationer, personalisering och gamification är
 stöd för den gemensamma matresan. De får inte göra Matrundan till en offentlig
-restaurangkatalog, individuell matdagbok, social feed eller global ranking.
+restaurangkatalog, individuell matdagbok, social feed, global ranking eller
+generisk karttjänst.
 
-## Källor och ansvar
+## Strategiska teman
 
-- **Det här dokumentet** beskriver paket, prioritering och varaktiga
-  produktbeslut.
-- **GitHub Issues och deras labels** är den operativa backloggen: de beskriver
-  användarbehov, överenskommet scope, status, prioritet och beslutad relativ
-  arbetsordning för en konkret funktion.
-- **GitHub Project** är den människovänliga översikten över samma issues och
-  labels. Projektet får även innehålla buggar, maintenance och andra issues som
-  inte hör hemma i produktroadmapen, men ska inte skapa en parallell
-  prioriteringssanning.
-- **`docs/architecture.md`** beskriver varaktiga arkitektur- och
-  säkerhetsbeslut.
-- **`docs/development-workflow.md`** beskriver planering, godkännande,
-  implementation, verifiering, merge och publicering.
-- **Kod och migrationer på `main`** visar vad som faktiskt är implementerat.
+De här temana beskriver riktningen utan att skapa fasta paket eller en parallell
+Issue-hierarki.
 
-En chatt är aldrig den enda källan till ett produktbeslut. När en diskussion är
-klar ska slutsatserna föras in i relevant issue och vid behov i roadmapen.
+### Upptäcka och samla
 
-## Backlogflöde
+Det ska vara enkelt för gruppen att hitta, förstå och spara verkliga matställen.
+Sökning, geografi och platsmetadata ska hjälpa valet utan att bli en offentlig
+katalog.
 
-### Statusetiketter
+### Välja nästa gemensamma stopp
+
+Gruppen ska kunna gå från sparade idéer och tidigare erfarenheter till ett
+konkret nästa stopp. Planering och historikbaserad vägledning ska vara tydliga
+stöd, inte automatiska beslut åt gruppen.
+
+### Besöka och minnas tillsammans
+
+Verkliga kanoniska besök, faktiska deltagare, omdömen, bilder och gemensam
+historik är produktens minne. Data ska kunna korrigeras utan att historiken
+förlorar sin betydelse.
+
+### Grupper, återanvändning och privat delning
+
+Gruppen är den primära produkt- och integritetsgränsen. Kanoniska platser och
+besök får återanvändas eller delas säkert mellan grupper, men privata kommentarer,
+medlemskap, ursprungsgrupp och annan gruppintern data får inte följa med
+implicit.
+
+### Personligt stöd utan individuell huvudprodukt
+
+Favoriter, personlig igenkänning, avatarer och liknande får hjälpa användaren i
+den gemensamma matresan. De får inte flytta tyngdpunkten från gruppen till en
+individuell matdagbok, offentlig profil eller global progression.
+
+### Tillförlitlig platsdata och hållbar plattform
+
+Platsidentitet, datakvalitet, integritet, testbarhet och en portabel driftmodell
+är förutsättningar för produktens tillit. Maintenance får löpa parallellt när det
+skyddar leveransförmåga eller data, men ska inte skapa en separat produktagenda.
+
+## Operativ backlog: GitHub är källan
+
+GitHub Issues + labels är den enda operativa källan för:
+
+- konkret scope och aktuella icke-mål;
+- status för beslut och implementation;
+- prioriteringshorisont;
+- exakt relativ arbetsordning när en sådan faktiskt är beslutad.
+
+GitHub Project får visualisera och filtrera samma information men ska inte vara
+en separat sanningskälla.
+
+Roadmapen ska därför inte innehålla:
+
+- en aktuell lista över öppna eller stängda Issues;
+- kopior av `status:*`, `priority:*` eller `order:*`;
+- genomförandelistor med PR-nummer;
+- löpande merge-, release- eller leveransstatus.
+
+## Labelmodell
+
+Håll modellen liten. Lägg inte till kategorier som `area:*`, `ux` eller `backend`
+bara för att klassificera allt. Nya labeldimensioner införs först när de löser ett
+konkret återkommande problem med att hitta, prioritera eller styra arbete.
+
+### Status
 
 - `status:inbox` – ny idé som ännu inte har produktbedömts.
 - `status:agreed` – produktinriktning och huvudscope är överenskomna.
 - `status:ready` – aktuell implementationsplan finns och implementationen är
   uttryckligen godkänd.
-- `status:blocked` – arbetet kan inte fortsätta innan ett beskrivet hinder är
-  löst.
 
-En PR visar normalt att arbetet pågår. När en PR mergas kan dess issue stängas.
-Merge innebär inte att databas, Lovable-preview eller publik app är driftsatt.
-Ett stängt issue är den kanoniska signalen för att arbetet är genomfört; en
-separat `status:done`-etikett behövs därför inte.
+En öppen PR visar normalt att arbete pågår. Ett stängt Issue är den kanoniska
+signalen för att leveransen är genomförd; en separat `status:done` behövs inte.
 
-### Prioritetsetiketter
+### Prioritet
 
-- `priority:now` – grundplatta eller närmast prioriterade arbete.
-- `priority:next` – nästa större produktsteg när pågående paket är klart.
-- `priority:later` – överenskommen riktning som väntar på tidigare beroenden.
+- `priority:now` – arbete som är aktivt eller behöver hanteras i närtid.
+- `priority:next` – nästa produktsteg efter det aktiva arbetet.
+- `priority:later` – överenskommen eller möjlig riktning som väntar.
 
-Prioritet beskriver **horisont**, inte en fullständig sortering. När en exakt
-relativ arbetsordning är beslutad används `order:*`.
+Prioritet beskriver horisont, inte exakt sortering.
 
-### Ordningsetiketter
+### Ordning
 
-- `order:010`, `order:020`, `order:030` och så vidare anger den beslutade
-  relativa ordningen i den operativa arbetskön.
-- Ett öppet issue får ha högst en `order:*`-label.
-- Endast arbete som faktiskt har en beslutad plats i kön ska få `order:*`.
-  Avsaknad av `order:*` betyder **inte exakt sekvenserad**, inte bortglömd.
-- Inbox och större delen av `priority:later` ska normalt lämnas oordnade tills
-  deras inbördes plats faktiskt spelar roll. Undvik falsk precision.
-- Tiosteg används för att göra det möjligt att infoga nytt arbete mellan två
-  befintliga steg utan att rutinmässigt numrera om hela kön.
-- Ett parent-/epic-issue som spänner över flera leveranser ska normalt inte ha en
-  egen `order:*`; de konkreta levererbara delarna rangordnas i stället.
-- För issues som ingår i roadmapen får `order:*` och roadmapens relativa ordning
-  inte motsäga varandra.
+`order:*` används bara när en konkret relativ arbetsordning verkligen är
+beslutad, exempelvis `order:010`, `order:020` och `order:030`.
 
-### Typetiketter
+- Ett öppet Issue får ha högst en `order:*`-label.
+- Avsaknad av `order:*` betyder att arbetet inte är exakt sekvenserat.
+- Använd tiosteg så att nytt arbete kan infogas utan massomnumrering.
+- Parent-/epic-Issues ska normalt inte få egen ordning när konkreta leveranser
+  kan rangordnas i stället.
+- Stängda Issues ska inte ligga kvar som operativa köposter.
+
+### Typ
 
 - `type:feature`
 - `type:bug`
 - `type:maintenance`
 
-### Från idé till release
+Typ beskriver arbetets natur och ersätter inte status eller prioritet.
 
-1. Registrera idén som ett issue med `status:inbox`.
-2. Produktbedöm idén mot den gemensamma matresan.
+## Från idé till leverans
+
+1. Registrera idén som ett Issue med `status:inbox`.
+2. Produktbedöm den mot Matrundans kärnflöde och principer.
 3. Dokumentera överenskommet scope och icke-mål och sätt `status:agreed`.
-4. Ge `order:*` först när den relativa platsen i den aktiva kön faktiskt är
-   beslutad.
-5. Inspektera aktuell kod, databas och dokumentation när funktionen närmar sig
-   implementation.
-6. Lägg en konkret implementationsplan i issuen.
-7. Invänta uttryckligt implementationsgodkännande och sätt därefter
-   `status:ready`.
-8. Implementera i avgränsad branch/PR och verifiera enligt utvecklingsflödet.
-9. Merge, databasdriftsättning och publicering kräver sina respektive separata
-   godkännanden.
+4. Sätt `priority:*` efter faktisk horisont.
+5. Lägg till `order:*` endast när exakt relativ ordning behöver beslutas.
+6. När arbetet närmar sig implementation: inspektera aktuell kod, datamodell,
+   dokumentation och relevanta öppna PR:er.
+7. Dokumentera en konkret implementationsplan i Issuet.
+8. Efter uttryckligt implementationsgodkännande: sätt `status:ready` och arbeta i
+   en avgränsad branch/PR.
+9. Merge, databasdriftsättning och publicering följer sina separata
+   godkännandegrindar.
 
-Redan överenskomna produktbeslut ska inte diskuteras om från början i en ny
-chatt. De får omprövas när aktuell kod, nya fakta eller ett tydligt
-produktproblem visar att beslutet behöver ändras.
+Detaljerat leveransflöde finns i
+[development-workflow.md](./development-workflow.md).
 
-## Aktuell produktstatus och närmaste horisont
+## Exempelgruppen som kontrakt
 
-Under augusti–september 2026 har flera tidigare beroenden försvunnit:
+Exempelgruppen ska fortsätta visa produktens viktiga huvudflöden utan att växa
+till produktionslik volym. Större produktändringar ska därför uttryckligen bedöma
+om exempeldata eller scenariokontrakt behöver uppdateras.
 
-- Paket B – Sök och geografi är genomfört.
-- Nästa stopp v2 är genomfört.
-- Paket E:s grund för kanoniska besök, faktisk deltagarstatus, flera deltagares
-  omdömen, dubblettskydd och gäst→medlem-bekräftelse är genomförd.
-- #197 har stabiliserat besökskontext med `Något att dricka` och separat
-  `Hämtmat`.
-- #307 har etablerat den historiskt frysta reviewmodellen och transparent härlett
-  helhetsbetyg.
-- #331 / PR #334 har tydliggjort Matställen-vyn, `Passar för`-topplistan och
-  gruppens ställen.
-- #309 / PR #347 har gjort datum, besökskontext och faktiska deltagare
-  korrigerbara på samma kanoniska besök.
-- #198 / PR #354 har gjort topplistan filtrerbar på verkliga besökstillfällen,
-  `Passar för` och Hämtmat med gruppens relevanta historik som betygsunderlag.
+Demo och autentiserat live-läge ska vara begripliga parallellt och får inte
+använda olika produktlogik för samma domänregel.
 
-Backloggen revaliderades därför 2026-09-16 mot aktuell `main`. Två tidigare
-issues togs ur aktiva kön:
+## När det här dokumentet ska ändras
 
-- **#200 Uppmuntra faktiska deltagare att komplettera saknad platsmetadata efter
-  besök** stängdes som överspelad i sin föreslagna form. #307 löser redan saknat
-  `Passar för` där det behövs inför ett scorebart besök; generell
-  efterbesöks-nagging ska inte införas.
-- **#132 Gör saknad säker gatuadress handlingsbar i kontrollflödet** stängdes som
-  absorberad av det bredare #133.
+Uppdatera roadmapen när:
 
-### Genomförd gruppskalning
+- produktvisionen eller kärnflödet ändras;
+- ett strategiskt tema tillkommer, tas bort eller ändras materiellt;
+- backlog-/labelmodellen ändras;
+- ett varaktigt tvärgående produktbeslut behöver synas i den strategiska
+  riktningen.
 
-**#318 Skala gruppbyte, igenkänning och grupphantering när användaren tillhör
-många grupper** är genomförd via PR #343.
+Uppdatera **inte** roadmapen enbart för att:
 
-Den beslutade modellen behåller direktväxling när grupperna är få och använder
-nuvarande + senast använda grupper samt **Alla grupper** när de blir fler.
-Grupper kan ha en kort privat beskrivning; i **Alla grupper** används annars
-andra medlemmars namn som igenkänningsfallback. Lösningen inför ingen
-grupphierarki, implicit cross-group-historik eller tung workspace-administration.
+- ett Issue skapas, omprioriteras, får nytt `order:*` eller stängs;
+- en PR öppnas eller mergas;
+- en funktion blir klar;
+- en release publiceras;
+- maintenance genomförs utan att produktstrategin ändras.
 
-Sökning, personlig pinning/döljning och ytterligare separation mellan konto- och
-gruppnavigation tas endast upp som nya avgränsade issues om verkligt användande
-visar behov.
-
-### Senast genomförda kärnleveranser
-
-**#309 Redigera besöksuppgifter och deltagare i efterhand** är genomförd via
-PR #347, **#198 Filtrera topplistor efter besökstillfälle och hämtmat** via
-PR #354, **#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning
-och Passar för** via PR #346 och **#338 Stöd flera deltagares foton på samma
-kanoniska besök** via PR #360.
-
-Tillsammans gör de den kanoniska besökshistoriken både korrigerbar och direkt
-användbar när gruppen väljer nästa ställe, samtidigt som platsens olika
-metadata-dimensioner har ett begripligt användarspråk och flera faktiska
-deltagare kan bidra med varsin privat bild till samma besök.
-
-### Nästa produktsteg – reviewhistorik och omdömes-UX före delad besöksbild
-
-Efter genomförda #338 fortsätter **Paket E** i följande beslutade ordning:
-
-1. **#365 Gör historiska omdömen stabila och frivilligt kompletteringsbara över betygsmodeller** –
-   `status:agreed`, `priority:next`, `order:020`. En avgränsad
-   review-/historikstädning som räknar om dagens legacybetyg från befintliga
-   detaljbetyg och etablerar en hållbar modell för framtida betygsversioner.
-2. **#373 Renodla omdömeshierarkin och modernisera reaktioner i besöksvyn** –
-   `status:agreed`, `priority:next`, `order:030`. Följer direkt efter
-   #365 så att den centrala besöksvyn kan utgå från stabila tre- och
-   fyrdimensionella reviewmodeller när omdömeshierarkin och reaktionerna
-   renodlas.
-3. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
-   `status:agreed`, `priority:next`, `order:040`. Bygger därefter
-   uttrycklig, serverstyrd cross-group-synlighet ovanpå #338:s mediaobjekt och
-   ägarskap.
-
-**#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
-besök** är fortsatt relevant men ligger senare än dessa två leveranser.
-
-## Paket A – Grundplatta och konsekvens
-
-Grundnivån är genomförd genom #107, #108, #104 och #103. Återstående arbete är
-polish och får inte tränga undan kärnflödet.
-
-- **#105 Utökat emoji- och symbolstöd för grupper och matställen** –
-  `status:agreed`, `priority:later`. Följ #318:s beslut om gruppigenkänning när
-  relevant.
-- **#135 Härled representativa matställessymboler från kök och inriktning** –
-  `status:inbox`, `priority:later`. #199 är genomförd och blockerar inte längre;
-  revalidera när neutral platsidentitet eller symbolval visar sig vara ett konkret
-  problem.
-
-## Paket D – Personlig inspiration
-
-**Prioritet:** senare, efter gruppskalning och de närmaste kärnleveranserna.
-
-1. **#109 Personlig yta med Min matresa och Mina favoriter** – fortsatt giltig,
-   men ska inte själv designa `Mina grupper` eller gruppnavigation. Den delen
-   följer #318. Första framtida leverans bör sannolikt börja med personlig yta +
-   Mina favoriter före full statistik.
-2. **#102 Genererade personliga avatarer** – varm personlig polish med lokal
-   eller integritetssäker seedad avatar; ingen offentlig profil eller avancerad
-   avatarbyggare.
-
-Personliga funktioner får inte skapa global progression, offentlig profil eller
-en individuell matdagbok som konkurrerar med gruppens gemensamma matresa.
-
-## Paket E – Gemensamma besöksminnen
-
-**#169 Bekräfta deltagande och komplettera gemensamma besök** ligger kvar som
-parent och varaktigt produkt-/integritetskontrakt, inte som egen leverans i kön.
-Parenten bär bland annat invariants för faktisk närvaro, ett identifierat
-deltagande per `(visit, user)`, ett aktivt eget omdöme per `(visit, user)` och
-cross-group-minimering.
-
-Genomförda delar omfattar #203, #204, #101, #213, #214, #197, #307, #309
-och #338.
-
-Kvarvarande närliggande leveranser, i beslutad arbetsföljd:
-
-1. **#365 Gör historiska omdömen stabila och frivilligt kompletteringsbara över betygsmodeller** –
-   `status:agreed`, `priority:next`, `order:020`; städar dagens få
-   legacyomdömen och gör reviewmodellen hållbar över framtida modellversioner.
-2. **#373 Renodla omdömeshierarkin och modernisera reaktioner i besöksvyn** –
-   `status:agreed`, `priority:next`, `order:030`; renodlar presentationen
-   och reaktionerna när reviewmodellerna från #365 är stabila.
-3. **#179 Dela besöksfoto uttryckligen tillsammans med delat besök** –
-   `status:agreed`, `priority:next`, `order:040`; avgränsad
-   cross-group-mediaåtkomst som byggs därefter ovanpå #338:s genomförda
-   mediaobjekt och ägarskap.
-
-Alla funktioner i paketet ska vara förankrade i verkliga kanoniska besök och får
-inte skapa global feed, offentlig social graf eller progression för social
-aktivitet.
-
-## Paket F – Kanonisk platsidentitet och återanvändning
-
-**Prioritet:** senare.
-
-1. **#157 Lägg ett befintligt matställe i en annan av mina grupper utan att dela
-   besök** – närmaste produktvärdet i paketet. #156 är redan genomfört och
-   blockerar inte längre. Gruppväljaren ska återanvända #318:s mönster.
-2. **#158 Stöd platsalias och säker sammanföring av kanoniska
-   matställesdubletter** – fortsatt relevant men tungt historiskt
-   datakvalitetsarbete. Flytta fram först när faktiska dubbletter motiverar
-   migrations- och integritetsrisken.
-
-Paketet ska stärka kanonisk identitet utan offentlig platskatalog eller läckage
-av vilka andra grupper som använder samma plats.
-
-## Paket G – Gruppens platskunskap och historikbaserad vägledning
-
-**#198 Filtrera topplistor efter besökstillfälle och hämtmat** är genomförd via
-PR #354. Den befintliga `Passar för`-topplistan kan nu kombineras med verkliga
-besökstillfällen och Hämtmat, och det synliga betyget härleds från relevanta
-besök/reviews utan dold statistisk score.
-
-**#199 Tydliggör platsmetadata: Typ av ställe, Kök och inriktning och Passar
-för** är genomförd via PR #346. **#200** är stängt som överspelat. Saknat `Passar för` hanteras redan i relevant
-platscentrerad kontext inför scorebara besök; generell efterbesöks-prompt för
-metadata ska inte återinföras utan nytt konkret behov.
-
-Datan får vara rikare än UI:t. Härledda signaler ska bara visas där de hjälper
-gruppen välja nästa ställe och får inte skapa ett separat statistiksystem.
-
-## Platsrättning och datakvalitet i användarflödet
-
-**#133 Samla rättning och komplettering av platsuppgifter i ett begripligt
-flöde** ligger fortsatt `priority:later` som den bredare framtida produktfrågan
-för adress, webbplats och öppettider.
-
-**#132** är stängt som absorberat av #133. Saknad säker adress ska alltså lösas i
-det sammanhållna flödet i stället för genom en separat specialväg.
-
-## Parallellt maintenance- och kvalitetsspår
-
-Maintenance konkurrerar inte automatiskt med produktroadmapen. Små blockerande
-eller tillitskritiska korrigeringar får göras mellan produktsteg; större DX- och
-refaktoriseringsarbete prioriteras först när det ger konkret utvecklingsnytta.
-
-- **#207 Frikoppla drift från Lovable Cloud och etablera portabel plattform** har
-  genomfört kärnmigrationen och är fortsatt separat plattformsspår för sista
-  legacy-avvecklingen.
-- **#127 DX2B: Konsolidera Playwright-fixtures och minska sköra layouttester** och
-  **#128 DX2C: Inför ändringsfragment och separat release-PR** ligger kvar som
-  oordnad maintenance-inbox.
-- **#296 Slutför public-repo polish och kosmetisk kodhygien** är kosmetisk
-  maintenance och ska inte tränga undan produktkön.
-- **#143 Utred föräldralöst objekt i besöksfoto-bucketen** är ett separat
-  driftfynd; ingen destruktiv åtgärd får göras utan uttryckligt godkännande.
-
-## Genomförda paket
-
-Roadmapen ska inte återge full releasehistorik. Den finns i stängda issues,
-mergade PR:er, `CHANGELOG.md` och vid behov `docs/architecture.md`.
-
-- ✅ **Paket B – Sök och geografi** – genomfört genom #147, #148, #156, #155,
-  #163 och #149; sista steget mergades via PR #180.
-- ✅ **Paket C – Nästa stopp v2** – genomfört genom #106 via PR #223.
-- ✅ **Paket A:s grundnivå** – #107, #108, #104 och #103 är genomförda;
-  kvarvarande #105/#135 är senare polish.
-
-## Exempelgruppen som permanent kontrakt
-
-Exempelgruppen ska hållas aktuell med produktens bredd utan att växa till
-produktionslik volym. Varje större feature-issue och PR ska besvara:
-
-> Behöver exempelgruppen eller dess scenariokontrakt uppdateras för att visa och
-> verifiera den här funktionen?
-
-Ett nej ska motiveras när ändringen påverkar ett användarflöde men exempeldata
-inte uppdateras.
-
-## Löpande prioritering
-
-Nya idéer läggs först i inboxen. De ska inte automatiskt bredda ett pågående
-paket. När nästa arbete väljs bedöms:
-
-1. om idén stärker den gemensamma matresan;
-2. om den löser ett viktigare problem än nuvarande prioritering;
-3. vilka beroenden och integritetsrisker som finns;
-4. om den hör till ett befintligt paket eller ett nytt framtida paket;
-5. om roadmapen behöver uppdateras.
-
-När ett paket avslutas ska nästa paket inte automatiskt flyttas till
-`priority:now`. Om prioriteringen ändras ska roadmap och berörda issues hållas
-synkade utan att skapa artificiell `order:*`-precision.
-
-GitHub Project används som den operativa, människovänliga översikten över öppna
-issues. Vyer och sortering ska i första hand bygga på issue-state och labels
-(`status:*`, `priority:*`, `type:*`, `order:*`). Project-only metadata får inte
-vara den enda källan till status, prioritet eller ordning.
-
-## När roadmapen uppdateras
-
-Uppdatera dokumentet när:
-
-- ett paket eller en prioritering ändras;
-- den relativa `order:*`-ordningen mellan roadmap-issues ändras;
-- ett varaktigt produktbeslut tillkommer eller tas bort;
-- ett övergripande feature-issue delas upp eller ersätts;
-- en funktion är genomförd och påverkar den kvarvarande produktkön;
-- en backloggrevision visar att tidigare beroenden eller scope inte längre är
-  aktuella.
-
-Roadmapen ska normalt **inte** uppdateras för varje commit, liten buggrättning
-eller teknisk implementationdetalj som redan hör hemma i kod, PR eller
-arkitekturdokumentation.
+Det gör att roadmapen kan vara stabil över tid medan GitHub alltid visar den
+aktuella arbetskön.

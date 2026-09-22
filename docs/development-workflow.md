@@ -1,8 +1,9 @@
 # Utvecklings- och leveransflöde
 
 Det här dokumentet äger Matrundans arbets- och leveransprocess. Miljösetup och
-exakta kommandon finns i [DEVELOPMENT.md](../DEVELOPMENT.md), produktordning i
-[product-roadmap.md](./product-roadmap.md), arkitekturregler i
+exakta kommandon finns i [DEVELOPMENT.md](../DEVELOPMENT.md), strategisk produktriktning och backlogmodell i
+[product-roadmap.md](./product-roadmap.md), aktuell arbetsordning i GitHub Issues,
+arkitekturregler i
 [architecture.md](./architecture.md) och renderad UX-granskning i
 [visual-review.md](./visual-review.md).
 
@@ -90,8 +91,10 @@ Om beslutet uppstår i chatten ska den varaktiga sanningen synkas till GitHub;
 chatthistoriken får inte vara enda permanenta källan. Återkommande UX- och
 copylärdomar promoveras enligt [ux-principles.md](./ux-principles.md).
 
-Roadmapen uppdateras när paket, prioritet, beslutad relativ ordning eller ett
-varaktigt produktbeslut ändras — inte för varje commit eller implementation.
+Roadmapen uppdateras när den långsiktiga produktinriktningen, ett strategiskt
+tema eller själva backlog-/labelmodellen ändras. Vanlig Issue-prioritering,
+`order:*`, status, merge och leveranshistorik hålls i GitHub och ska inte speglas
+i roadmapen.
 
 ## 3. Branch, Git och PR
 
@@ -331,8 +334,9 @@ parent-Issue ska inte användas som historiskt arkiv. Om stängning medvetet skj
 upp ska Issue-kommentaren ange exakt vilket levererbart arbete och vilken nästa
 grind som återstår.
 
-Kontrollera roadmapen när den faktiska produktordningen, paketstatusen eller en
-roadmap-refererad Issue-titel påverkas.
+Kontrollera roadmapen endast när den strategiska produktriktningen eller
+backlog-/labelmodellen påverkas; vanlig Issue-ordning och stängning kräver ingen
+roadmapändring.
 
 ## 8. Databasdriftsättning och publicering
 
@@ -416,8 +420,8 @@ beslut, inte en kopia av PR-mallen.
 
 - `README.md` — kort mänsklig projektöversikt.
 - `AGENTS.md` — permanent agentkonstitution + router.
-- `docs/product-roadmap.md` — produktpaket, riktning, prioritet och backlogmodell.
-- GitHub Issues + labels — konkret scope och operativ status/ordning.
+- `docs/product-roadmap.md` — strategisk produktriktning, teman och backlogmodell.
+- GitHub Issues + labels — konkret scope, operativ status, prioritet och ordning.
 - `docs/architecture.md` + specialistdokument — varaktig arkitektur, integritet
   och säkerhet.
 - `DEVELOPMENT.md` — miljösetup, tooling och exakta kommandon.
