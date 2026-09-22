@@ -195,7 +195,6 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   await expect(editDialog.getByRole("button", { name: "Atmosfär: 3 av 5" })).toBeVisible();
 });
 
-
 test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras", async ({
   page,
 }) => {

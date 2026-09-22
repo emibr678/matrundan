@@ -32,9 +32,7 @@ export function reviewModelIncludesAtmosphere(model: ReviewModel | null | undefi
   return model === "food_v1_atmosphere";
 }
 
-export function reviewModelUsesDetailedRatings(
-  model: ReviewModel | null | undefined,
-): boolean {
+export function reviewModelUsesDetailedRatings(model: ReviewModel | null | undefined): boolean {
   return model != null && model !== "food_v0_overall";
 }
 
