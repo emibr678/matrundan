@@ -1,5 +1,13 @@
 import * as React from "react";
-import { MessageCircle, Star } from "lucide-react";
+import {
+  Coins,
+  HandPlatter,
+  MessageCircle,
+  Sparkles,
+  Star,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -141,10 +149,12 @@ export function VisitReviewsSection({
   }
 
   const summaryDetails = [
-    { label: "Smak", value: visit.taste },
-    { label: "Service", value: visit.service },
-    { label: "Prisvärt", value: visit.value },
-    ...(visit.atmosphere != null ? [{ label: "Atmosfär", value: visit.atmosphere }] : []),
+    { label: "Smak", value: visit.taste, icon: UtensilsCrossed },
+    { label: "Service", value: visit.service, icon: HandPlatter },
+    { label: "Prisvärt", value: visit.value, icon: Coins },
+    ...(visit.atmosphere != null
+      ? [{ label: "Atmosfär", value: visit.atmosphere, icon: Sparkles }]
+      : []),
   ];
 
   return (
@@ -203,7 +213,12 @@ export function VisitReviewsSection({
                 }`}
               >
                 {summaryDetails.map((detail) => (
-                  <SummaryDetail key={detail.label} label={detail.label} value={detail.value} />
+                  <SummaryDetail
+                    key={detail.label}
+                    label={detail.label}
+                    value={detail.value}
+                    icon={detail.icon}
+                  />
                 ))}
               </div>
             ) : null}
@@ -574,10 +589,21 @@ function ParticipantAvatar({
   );
 }
 
-function SummaryDetail({ label, value }: { label: string; value?: number | null }) {
+function SummaryDetail({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value?: number | null;
+  icon: LucideIcon;
+}) {
   return (
-    <div className="min-w-0">
-      <div className="truncate text-[10px] font-medium text-muted-foreground">{label}</div>
+    <div className="min-w-0" data-summary-detail={label}>
+      <div className="flex min-w-0 items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground">
+        <Icon className="h-3 w-3 shrink-0 text-primary/65" aria-hidden="true" />
+        <span className="truncate">{label}</span>
+      </div>
       <div className="mt-0.5 text-sm font-semibold">
         {value != null ? formatRating(value) : "–"}
       </div>

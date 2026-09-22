@@ -61,6 +61,9 @@ test("Reaktionsväljaren är förankrad, fokusstyrd och flyttar inte nästa omd�
   const groupSummary = dialog.locator("[data-group-summary]");
   await expect(dialog.getByText("Gruppens betyg", { exact: true })).toBeVisible();
   await expect(groupRating.locator('[aria-hidden="true"] > span')).toHaveCount(5);
+  const summaryDetails = groupSummary.locator("[data-summary-detail]");
+  await expect(summaryDetails).toHaveCount(4);
+  await expect(summaryDetails.locator("svg")).toHaveCount(4);
   const [groupBackground, reviewBackground] = await Promise.all([
     groupSummary.evaluate((element) => getComputedStyle(element).backgroundColor),
     samReview.evaluate((element) => getComputedStyle(element).backgroundColor),
