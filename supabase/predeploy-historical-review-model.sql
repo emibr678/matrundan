@@ -14,11 +14,32 @@ SELECT
   ) AS legacy_food_reviews,
   count(*) FILTER (
     WHERE review_row.review_model IS NULL
+      AND visit.meal_type <> 'dryck'
+      AND review_row.taste IS NOT NULL
+      AND review_row.value IS NOT NULL
+      AND review_row.service IS NOT NULL
+      AND review_row.atmosphere IS NULL
+  ) AS legacy_food_3d_reviews,
+  count(*) FILTER (
+    WHERE review_row.review_model IS NULL
+      AND visit.meal_type <> 'dryck'
+      AND review_row.overall IS NOT NULL
+      AND review_row.taste IS NULL
+      AND review_row.value IS NULL
+      AND review_row.service IS NULL
+      AND review_row.atmosphere IS NULL
+  ) AS legacy_food_overall_only_reviews,
+  count(*) FILTER (
+    WHERE review_row.review_model IS NULL
       AND visit.meal_type = 'dryck'
   ) AS scoreless_reviews,
   count(*) FILTER (
     WHERE review_row.review_model IS NULL
       AND visit.meal_type <> 'dryck'
+      AND review_row.taste IS NOT NULL
+      AND review_row.value IS NOT NULL
+      AND review_row.service IS NOT NULL
+      AND review_row.atmosphere IS NULL
       AND review_row.overall IS DISTINCT FROM round(
         (review_row.taste + review_row.value + review_row.service)::numeric / 3,
         2
@@ -38,12 +59,21 @@ BEGIN
   JOIN public.visits visit ON visit.id = review_row.visit_id
   WHERE review_row.review_model IS NULL
     AND visit.meal_type <> 'dryck'
-    AND (
-      review_row.overall IS NULL
-      OR review_row.taste IS NULL
-      OR review_row.value IS NULL
-      OR review_row.service IS NULL
-      OR review_row.atmosphere IS NOT NULL
+    AND NOT (
+      (
+        review_row.overall BETWEEN 1 AND 5
+        AND review_row.taste BETWEEN 1 AND 5
+        AND review_row.value BETWEEN 1 AND 5
+        AND review_row.service BETWEEN 1 AND 5
+        AND review_row.atmosphere IS NULL
+      )
+      OR (
+        review_row.overall BETWEEN 1 AND 5
+        AND review_row.taste IS NULL
+        AND review_row.value IS NULL
+        AND review_row.service IS NULL
+        AND review_row.atmosphere IS NULL
+      )
     );
 
   SELECT count(*)

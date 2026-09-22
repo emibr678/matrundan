@@ -25,16 +25,21 @@ describe("Issue #365 — stabil historisk reviewmodell", () => {
     expect(predeploy).toContain("BEGIN TRANSACTION READ ONLY");
     expect(predeploy).toContain("review_model_null_total");
     expect(predeploy).toContain("legacy_food_reviews");
+    expect(predeploy).toContain("legacy_food_3d_reviews");
+    expect(predeploy).toContain("legacy_food_overall_only_reviews");
     expect(predeploy).toContain("rows_whose_overall_changes");
     expect(predeploy).toContain("Preflight stoppad: oväntade historiska omdömen");
     expect(predeploy).toContain("ROLLBACK");
   });
 
-  test("migrationen backfillar exakt scorebara legacyreviews till explicit 3D-modell", () => {
+  test("migrationen klassificerar verifierad legacydata som 3D eller overall-only", () => {
     expect(migration).toContain("'food_v0_3d'");
+    expect(migration).toContain("'food_v0_overall'");
     expect(migration).toContain("visit.meal_type <> 'dryck'");
     expect(migration).toContain("review_row.review_model IS NULL");
-    expect(migration).toContain("SET review_model = 'food_v0_3d'");
+    expect(migration).toContain("SET review_model = CASE");
+    expect(migration).toContain("THEN 'food_v0_3d'");
+    expect(migration).toContain("ELSE 'food_v0_overall'");
     expect(migration).toContain("DISABLE TRIGGER trg_reviews_updated_at");
     expect(migration).toContain("ENABLE TRIGGER trg_reviews_updated_at");
     expect(migration).toContain("Migrationen lämnade scorebara omdömen utan review_model");
@@ -48,6 +53,15 @@ describe("Issue #365 — stabil historisk reviewmodell", () => {
     expect(migration).toContain("NEW.review_model = 'food_v1_atmosphere'");
     expect(migration).toContain("Reviewmodellen är historiskt låst");
     expect(migration).toContain("Omdömets betygsmodell saknas");
+  });
+
+  test("overall-only behåller manuellt helhetsbetyg och kan bara ändra kommentar", () => {
+    expect(migration).toContain("NEW.review_model = 'food_v0_overall'");
+    expect(migration).toContain("Historiskt helhetsbetyg är låst");
+    expect(migration).toContain("_review_model = 'food_v0_overall'");
+    expect(migration).toContain(
+      "Historiskt helhetsbetyg kan inte skrivas om utan en ny uttrycklig modell",
+    );
   });
 
   test("separat upgrade-RPC kräver ägarskap, deltagande, gruppsynlighet och relevant modell", () => {
@@ -67,6 +81,7 @@ describe("Issue #365 — stabil historisk reviewmodell", () => {
   test("production-preflight verifierar data, RPC och negativa grants", () => {
     expect(productionPreflight).toContain("historical-review:no-scoreable-null-model");
     expect(productionPreflight).toContain("historical-review:stable-3d-score");
+    expect(productionPreflight).toContain("historical-review:stable-overall-only-score");
     expect(productionPreflight).toContain("historical-review:no-anon-upgrade-grant");
     expect(aggregatePreflight).toContain("\\ir production-preflight-historical-reviews.sql");
   });

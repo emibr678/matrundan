@@ -1,6 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formatRating } from "@/lib/matrundan/version";
 import type { ReviewModel, VisibleReview } from "@/lib/matrundan/types";
+import { RatingStars } from "./Rating";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 
 export function ReviewEditFields({
@@ -48,7 +50,23 @@ export function ReviewEditFields({
 
   return (
     <div className="space-y-4">
-      {!scoreless && model ? (
+      {!scoreless && model === "food_v0_overall" ? (
+        <div className="space-y-2 rounded-2xl border border-border/70 p-4">
+          <div className="flex min-h-14 items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">Helhetsbetyg</div>
+              <div className="mt-1 text-xl font-bold">
+                {review.overall == null ? "— / 5" : `${formatRating(review.overall)} / 5`}
+              </div>
+            </div>
+            <RatingStars value={review.overall ?? 0} size={20} showEmpty />
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Det här är ett äldre omdöme där bara helhetsbetyget sparades. Vi behåller det som det
+            är.
+          </p>
+        </div>
+      ) : !scoreless && model ? (
         <ReviewScoreFields
           model={model}
           taste={taste}

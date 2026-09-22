@@ -32,6 +32,12 @@ export function reviewModelIncludesAtmosphere(model: ReviewModel | null | undefi
   return model === "food_v1_atmosphere";
 }
 
+export function reviewModelUsesDetailedRatings(
+  model: ReviewModel | null | undefined,
+): boolean {
+  return model != null && model !== "food_v0_overall";
+}
+
 /**
  * Modellbyten sker aldrig automatiskt. En befintlig tredimensionell review får
  * bara kompletteras när dagens kontext uttryckligen använder Atmosfär.
@@ -45,8 +51,9 @@ export function canUpgradeReviewModelWithAtmosphere(
   currentModel: ReviewModel | null | undefined,
 ): boolean {
   return (
-    storedModel != null &&
-    !reviewModelIncludesAtmosphere(storedModel) &&
+    (storedModel === "food_v0_3d" ||
+      storedModel === "food_v1_quick" ||
+      storedModel === "food_v1_takeaway") &&
     currentModel === "food_v1_atmosphere"
   );
 }
@@ -67,6 +74,7 @@ export function effectiveReviewModel(
   isTakeaway: boolean,
 ): ReviewModel | null {
   if (!storedModel) return null;
+  if (storedModel === "food_v0_overall") return storedModel;
   return isTakeaway ? "food_v1_takeaway" : storedModel;
 }
 
@@ -81,7 +89,9 @@ export function effectiveReviewOverall(
   },
   isTakeaway: boolean,
 ): number | null {
-  if (!review.reviewModel) return review.overall ?? null;
+  if (!review.reviewModel || review.reviewModel === "food_v0_overall") {
+    return review.overall ?? null;
+  }
   return deriveReviewOverall(effectiveReviewModel(review.reviewModel, isTakeaway), {
     taste: review.taste ?? 0,
     value: review.value ?? 0,
@@ -108,7 +118,7 @@ export function reviewRatingsComplete(
   model: ReviewModel | null | undefined,
   ratings: ReviewDimensionValues,
 ): boolean {
-  if (!model) return false;
+  if (!reviewModelUsesDetailedRatings(model)) return false;
   if (!isWholeStar(ratings.taste) || !isWholeStar(ratings.service) || !isWholeStar(ratings.value)) {
     return false;
   }

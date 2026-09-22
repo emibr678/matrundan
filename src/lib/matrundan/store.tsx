@@ -22,6 +22,7 @@ import {
   effectiveReviewOverall,
   reviewModelForContext,
   reviewModelIncludesAtmosphere,
+  reviewModelUsesDetailedRatings,
   reviewRatingsComplete,
 } from "./review-model";
 import {
@@ -648,6 +649,9 @@ export function StoreProvider({
           if (
             newScored &&
             ownReview.reviewModel &&
+            reviewModelUsesDetailedRatings(
+              effectiveReviewModel(ownReview.reviewModel, input.isTakeaway),
+            ) &&
             !reviewRatingsComplete(effectiveReviewModel(ownReview.reviewModel, input.isTakeaway), {
               taste: ownReviewInput.taste ?? 0,
               value: ownReviewInput.value ?? 0,
@@ -694,28 +698,35 @@ export function StoreProvider({
               review.id === ownReviewInput.id &&
               review.userId === current.currentUserId
             ) {
-              const derivedOverall = review.reviewModel
-                ? deriveReviewOverall(review.reviewModel, {
-                    taste: ownReviewInput.taste ?? 0,
-                    value: ownReviewInput.value ?? 0,
-                    service: ownReviewInput.service ?? 0,
-                    atmosphere: ownReviewInput.atmosphere ?? 0,
-                  })
-                : null;
+              if (review.reviewModel === "food_v0_overall") {
+                nextReview = {
+                  ...nextReview,
+                  comment: ownReviewInput.comment,
+                };
+              } else {
+                const derivedOverall = review.reviewModel
+                  ? deriveReviewOverall(review.reviewModel, {
+                      taste: ownReviewInput.taste ?? 0,
+                      value: ownReviewInput.value ?? 0,
+                      service: ownReviewInput.service ?? 0,
+                      atmosphere: ownReviewInput.atmosphere ?? 0,
+                    })
+                  : null;
 
-              nextReview = {
-                ...nextReview,
-                overall: newScored
-                  ? (derivedOverall ?? ownReviewInput.overall ?? review.overall)
-                  : review.overall,
-                taste: newScored ? ownReviewInput.taste : review.taste,
-                value: newScored ? ownReviewInput.value : review.value,
-                service: newScored ? ownReviewInput.service : review.service,
-                atmosphere:
-                  newScored && review.reviewModel ? ownReviewInput.atmosphere : review.atmosphere,
-                comment: ownReviewInput.comment,
-                ratingVisible: nextReview.ratingVisible,
-              };
+                nextReview = {
+                  ...nextReview,
+                  overall: newScored
+                    ? (derivedOverall ?? ownReviewInput.overall ?? review.overall)
+                    : review.overall,
+                  taste: newScored ? ownReviewInput.taste : review.taste,
+                  value: newScored ? ownReviewInput.value : review.value,
+                  service: newScored ? ownReviewInput.service : review.service,
+                  atmosphere:
+                    newScored && review.reviewModel ? ownReviewInput.atmosphere : review.atmosphere,
+                  comment: ownReviewInput.comment,
+                  ratingVisible: nextReview.ratingVisible,
+                };
+              }
             }
             return nextReview;
           });
@@ -1030,7 +1041,12 @@ export function StoreProvider({
           .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
         if (!target) throw new Error("Ditt omdöme hittades inte.");
 
-        if (target.review.reviewModel) {
+        if (
+          target.review.reviewModel &&
+          reviewModelUsesDetailedRatings(
+            effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
+          )
+        ) {
           if (
             !reviewRatingsComplete(
               effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
@@ -1052,7 +1068,7 @@ export function StoreProvider({
             const scored = visitHasScore(visit);
             const reviews = (visit.visibleReviews ?? []).map((review) => {
               if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
-              if (!scored) {
+              if (!scored || review.reviewModel === "food_v0_overall") {
                 return {
                   ...review,
                   comment: input.comment ?? null,

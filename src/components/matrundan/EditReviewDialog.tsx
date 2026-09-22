@@ -61,6 +61,7 @@ export function EditReviewDialog({
   );
   const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
   const scoreless = scorelessOverride ?? (review.overall == null && review.reviewModel == null);
+  const historicalOverallOnly = review.reviewModel === "food_v0_overall";
   const activeModel = effectiveReviewModel(review.reviewModel, isTakeaway);
   const storedModelHasAtmosphere = reviewModelIncludesAtmosphere(review.reviewModel);
   const place = visit ? state.places.find((item) => item.id === visit.placeId) : undefined;
@@ -84,9 +85,11 @@ export function EditReviewDialog({
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = React.useState(false);
   const archived = state.group.lifecycleStatus === "archived";
-  const complete = displayModel
-    ? reviewRatingsComplete(displayModel, { taste, service, value, atmosphere })
-    : scoreless;
+  const complete = historicalOverallOnly
+    ? review.overall != null
+    : displayModel
+      ? reviewRatingsComplete(displayModel, { taste, service, value, atmosphere })
+      : scoreless;
 
   React.useEffect(() => {
     if (!open) return;
@@ -123,11 +126,13 @@ export function EditReviewDialog({
     try {
       const reviewInput = {
         overall: null,
-        taste: scoreless ? null : taste || null,
-        value: scoreless ? null : value || null,
-        service: scoreless ? null : service || null,
+        taste: scoreless || historicalOverallOnly ? null : taste || null,
+        value: scoreless || historicalOverallOnly ? null : value || null,
+        service: scoreless || historicalOverallOnly ? null : service || null,
         atmosphere:
-          scoreless || (!completingAtmosphere && !storedModelHasAtmosphere)
+          scoreless ||
+          historicalOverallOnly ||
+          (!completingAtmosphere && !storedModelHasAtmosphere)
             ? null
             : activeModelHasAtmosphere
               ? atmosphere || null
@@ -218,9 +223,11 @@ export function EditReviewDialog({
           <DialogDescription>
             {scoreless
               ? `${placeName}. Dryckesbesöket påverkar inte ställets betyg.`
-              : review.reviewModel === "food_v0_3d"
-                ? `${placeName}. Helhetsbetyget räknas automatiskt från Smak, Service och Prisvärdhet.`
-                : `${placeName}. Helhetsbetyget räknas automatiskt från de delar som gäller för besöket.`}
+              : historicalOverallOnly
+                ? `${placeName}. Det äldre helhetsbetyget behålls som sparat eftersom detaljbetyg saknas.`
+                : review.reviewModel === "food_v0_3d"
+                  ? `${placeName}. Helhetsbetyget räknas automatiskt från Smak, Service och Prisvärdhet.`
+                  : `${placeName}. Helhetsbetyget räknas automatiskt från de delar som gäller för besöket.`}
           </DialogDescription>
         </DialogHeader>
 

@@ -72,7 +72,26 @@ describe("aktiv reviewmodell efter korrigerad besökskontext", () => {
     expect(canUpgradeReviewModelWithAtmosphere("food_v1_atmosphere", "food_v1_atmosphere")).toBe(
       false,
     );
+    expect(canUpgradeReviewModelWithAtmosphere("food_v0_overall", "food_v1_atmosphere")).toBe(
+      false,
+    );
     expect(canUpgradeReviewModelWithAtmosphere(null, "food_v1_atmosphere")).toBe(false);
+  });
+
+  test("historiska overall-only-omdömen behåller sitt frysta helhetsbetyg", () => {
+    const historical = {
+      overall: 4,
+      taste: null,
+      service: null,
+      value: null,
+      atmosphere: null,
+      reviewModel: "food_v0_overall" as const,
+    };
+
+    expect(effectiveReviewModel(historical.reviewModel, false)).toBe("food_v0_overall");
+    expect(effectiveReviewModel(historical.reviewModel, true)).toBe("food_v0_overall");
+    expect(effectiveReviewOverall(historical, false)).toBe(4);
+    expect(effectiveReviewOverall(historical, true)).toBe(4);
   });
 
   test("historiska 3D-omdömen härleds stabilt från sina tre dimensioner", () => {

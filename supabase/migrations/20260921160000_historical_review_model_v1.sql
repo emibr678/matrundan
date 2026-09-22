@@ -2,9 +2,10 @@ BEGIN;
 
 -- Issue #365 — gör den tidigare tredimensionella matmodellen explicit och stabil.
 --
--- Migrationen accepterar bara den legacyform som produktbeslutet har verifierat:
--- scorebara matomdömen utan review_model ska ha Smak, Service och Prisvärdhet,
--- men ingen Atmosfär. Oväntade former stoppar hela transaktionen.
+-- Migrationen accepterar bara verifierade legacyformer:
+-- 1) scorebara matomdömen med Smak, Service och Prisvärdhet men utan Atmosfär,
+-- 2) äldre matomdömen där endast manuellt helhetsbetyg sparades.
+-- Partiella detaljbetyg eller andra oväntade former stoppar hela transaktionen.
 
 DO $guard$
 DECLARE
@@ -17,12 +18,21 @@ BEGIN
   JOIN public.visits visit ON visit.id = review_row.visit_id
   WHERE review_row.review_model IS NULL
     AND visit.meal_type <> 'dryck'
-    AND (
-      review_row.overall IS NULL
-      OR review_row.taste IS NULL
-      OR review_row.value IS NULL
-      OR review_row.service IS NULL
-      OR review_row.atmosphere IS NOT NULL
+    AND NOT (
+      (
+        review_row.overall BETWEEN 1 AND 5
+        AND review_row.taste BETWEEN 1 AND 5
+        AND review_row.value BETWEEN 1 AND 5
+        AND review_row.service BETWEEN 1 AND 5
+        AND review_row.atmosphere IS NULL
+      )
+      OR (
+        review_row.overall BETWEEN 1 AND 5
+        AND review_row.taste IS NULL
+        AND review_row.value IS NULL
+        AND review_row.service IS NULL
+        AND review_row.atmosphere IS NULL
+      )
     );
 
   SELECT count(*)
@@ -55,6 +65,7 @@ ALTER TABLE public.reviews
   ADD CONSTRAINT reviews_review_model_check
   CHECK (
     review_model IS NULL OR review_model IN (
+      'food_v0_overall',
       'food_v0_3d',
       'food_v1_takeaway',
       'food_v1_quick',
@@ -129,7 +140,29 @@ BEGIN
     RAISE EXCEPTION 'Reviewmodellen är historiskt låst';
   END IF;
 
-  IF NEW.review_model IS NOT NULL THEN
+  IF NEW.review_model = 'food_v0_overall' THEN
+    IF NEW.overall IS NULL
+       OR NEW.overall < 1
+       OR NEW.overall > 5
+       OR NEW.taste IS NOT NULL
+       OR NEW.value IS NOT NULL
+       OR NEW.service IS NOT NULL
+       OR NEW.atmosphere IS NOT NULL THEN
+      RAISE EXCEPTION 'Historiskt helhetsbetyg har ogiltig form';
+    END IF;
+
+    IF TG_OP = 'UPDATE'
+       AND OLD.review_model = 'food_v0_overall'
+       AND (
+         NEW.overall IS DISTINCT FROM OLD.overall
+         OR NEW.taste IS DISTINCT FROM OLD.taste
+         OR NEW.value IS DISTINCT FROM OLD.value
+         OR NEW.service IS DISTINCT FROM OLD.service
+         OR NEW.atmosphere IS DISTINCT FROM OLD.atmosphere
+       ) THEN
+      RAISE EXCEPTION 'Historiskt helhetsbetyg är låst';
+    END IF;
+  ELSIF NEW.review_model IS NOT NULL THEN
     NEW.overall := public.derive_review_overall_v1(
       NEW.review_model,
       NEW.taste,
@@ -148,7 +181,13 @@ $function$;
 ALTER TABLE public.reviews DISABLE TRIGGER trg_reviews_updated_at;
 
 UPDATE public.reviews AS review_row
-SET review_model = 'food_v0_3d'
+SET review_model = CASE
+  WHEN review_row.taste IS NOT NULL
+    AND review_row.value IS NOT NULL
+    AND review_row.service IS NOT NULL
+  THEN 'food_v0_3d'
+  ELSE 'food_v0_overall'
+END
 FROM public.visits AS visit
 WHERE visit.id = review_row.visit_id
   AND visit.meal_type <> 'dryck'
@@ -181,6 +220,23 @@ BEGIN
       )
   ) THEN
     RAISE EXCEPTION 'Historisk 3D-modell eller härlett helhetsbetyg är inkonsekvent';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.reviews review_row
+    WHERE review_row.review_model = 'food_v0_overall'
+      AND (
+        review_row.overall IS NULL
+        OR review_row.overall < 1
+        OR review_row.overall > 5
+        OR review_row.taste IS NOT NULL
+        OR review_row.value IS NOT NULL
+        OR review_row.service IS NOT NULL
+        OR review_row.atmosphere IS NOT NULL
+      )
+  ) THEN
+    RAISE EXCEPTION 'Historisk overall-only-modell är inkonsekvent';
   END IF;
 END;
 $assertions$;
@@ -244,6 +300,19 @@ BEGIN
       RAISE EXCEPTION 'Något att dricka ska inte ha stjärnbetyg';
     END IF;
     IF _normalized_comment IS NULL THEN RAISE EXCEPTION 'Kommentaren kan inte vara tom'; END IF;
+
+    UPDATE public.reviews
+    SET comment = _normalized_comment,
+        updated_at = now()
+    WHERE id = _review_id AND user_id = _uid;
+  ELSIF _review_model = 'food_v0_overall' THEN
+    IF _overall IS NOT NULL
+       OR _taste IS NOT NULL
+       OR _value IS NOT NULL
+       OR _service IS NOT NULL
+       OR _atmosphere IS NOT NULL THEN
+      RAISE EXCEPTION 'Historiskt helhetsbetyg kan inte skrivas om utan en ny uttrycklig modell';
+    END IF;
 
     UPDATE public.reviews
     SET comment = _normalized_comment,

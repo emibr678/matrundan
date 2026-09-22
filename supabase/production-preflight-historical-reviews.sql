@@ -4,7 +4,9 @@ WITH checks(name, ok) AS (
     (
       'historical-review:model-constraint',
       COALESCE((
-        SELECT position('food_v0_3d' IN pg_get_constraintdef(constraint_row.oid)) > 0
+        SELECT
+          position('food_v0_3d' IN pg_get_constraintdef(constraint_row.oid)) > 0
+          AND position('food_v0_overall' IN pg_get_constraintdef(constraint_row.oid)) > 0
         FROM pg_constraint constraint_row
         WHERE constraint_row.conrelid = 'public.reviews'::regclass
           AND constraint_row.conname = 'reviews_review_model_check'
@@ -32,6 +34,23 @@ WITH checks(name, ok) AS (
               (review_row.taste + review_row.value + review_row.service)::numeric / 3,
               2
             )
+          )
+      )
+    ),
+    (
+      'historical-review:stable-overall-only-score',
+      NOT EXISTS (
+        SELECT 1
+        FROM public.reviews review_row
+        WHERE review_row.review_model = 'food_v0_overall'
+          AND (
+            review_row.overall IS NULL
+            OR review_row.overall < 1
+            OR review_row.overall > 5
+            OR review_row.taste IS NOT NULL
+            OR review_row.value IS NOT NULL
+            OR review_row.service IS NOT NULL
+            OR review_row.atmosphere IS NOT NULL
           )
       )
     ),

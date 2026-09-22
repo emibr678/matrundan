@@ -462,6 +462,21 @@ export function buildExampleState(nowInput: Date): AppState {
       service: 4,
       comment: "Första kvällen på länge med hela gänget samlat.",
       createdBy: members.noor,
+      visibleReviews: [
+        {
+          id: "review-v3-alex",
+          userId: members.alex,
+          overall: 4,
+          taste: null,
+          value: null,
+          service: null,
+          atmosphere: null,
+          reviewModel: "food_v0_overall",
+          comment: "Ett äldre minne där bara helhetsbetyget sparades.",
+          ratingVisible: true,
+          commentVisible: true,
+        },
+      ],
     }),
     exampleVisit({
       id: visits.providerBistroFirst,
