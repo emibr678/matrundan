@@ -223,15 +223,21 @@ function withVisitParticipationScenarios(state: AppState): AppState {
       }
 
       if (visit.id === visits.providerBistroReturn) {
+        const historicalOverallOnlyReviews = (visit.visibleReviews ?? []).filter(
+          (review) => review.reviewModel === "food_v0_overall",
+        );
+
         return {
           ...visit,
           atmosphere: 4,
           currentUserParticipationStatus: "participant",
-          // Återbesöket är ett explicit fyrdimensionellt #307-fall.
+          // Sam behåller det explicita fyrdimensionella #307-fallet medan Alex
+          // bär #365-fixturen för äldre omdömen där bara helhetsbetyget finns.
           visibleReviews: [
+            ...historicalOverallOnlyReviews,
             {
-              id: "review-v8-alex",
-              userId: members.alex,
+              id: "review-v8-sam",
+              userId: members.sam,
               overall: 4,
               taste: 5,
               value: 3,
