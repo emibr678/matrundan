@@ -29,6 +29,14 @@ export function extractCommitPreviewUrl(body = "") {
   );
 }
 
+export function extractWorkersPreviewUrl(summary = "") {
+  return (
+    summary.match(
+      /(?:^|\n)Preview URL:\s*(https:\/\/[a-z0-9-]+-staging\.matrundan\.workers\.dev)(?:\s|$)/i,
+    )?.[1] ?? null
+  );
+}
+
 function footer({ repository, prNumber, ciRunUrl }) {
   return (
     "\n\n---\nAutomatiskt kvitto för [PR #" +
@@ -195,6 +203,16 @@ export async function main() {
     return getAll("/repos/" + repository + "/issues/" + prNumber + "/comments");
   }
 
+  async function workersCheckRuns() {
+    const payload = await getJson(
+      "/repos/" + repository + "/commits/" + targetSha + "/check-runs?per_page=100",
+    );
+    if (!Array.isArray(payload?.check_runs)) {
+      throw new Error("GitHub API skulle returnera check-runs för kandidat-SHA.");
+    }
+    return payload.check_runs;
+  }
+
   async function upsert(body, knownComments = null) {
     const existing = (knownComments ?? (await comments())).find(
       (comment) =>
@@ -246,6 +264,22 @@ export async function main() {
         String(right?.updated_at ?? "").localeCompare(String(left?.updated_at ?? "")),
       )[0];
     previewUrl = extractCommitPreviewUrl(cloudflareComment?.body ?? "");
+
+    if (!previewUrl) {
+      const cloudflareCheck = (await workersCheckRuns())
+        .filter(
+          (check) =>
+            check?.head_sha === targetSha &&
+            check?.name === "Workers Builds: staging" &&
+            check?.status === "completed" &&
+            check?.conclusion === "success" &&
+            check?.app?.slug === "cloudflare-workers-and-pages",
+        )
+        .sort((left, right) =>
+          String(right?.completed_at ?? "").localeCompare(String(left?.completed_at ?? "")),
+        )[0];
+      previewUrl = extractWorkersPreviewUrl(cloudflareCheck?.output?.summary ?? "");
+    }
 
     if (previewUrl) {
       try {
