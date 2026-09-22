@@ -57,7 +57,7 @@ describe("exempelgruppens omdömesscenarier", () => {
     expect(lunch?.meal).toBe("lunch");
     expect(lunch?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(2);
     expect(dinner?.meal).toBe("middag");
-    expect(dinner?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(1);
+    expect(dinner?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(2);
   });
 
   test("visar både historisk 3D-modell och modern Atmosfär-modell", () => {
