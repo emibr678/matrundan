@@ -9,7 +9,7 @@ För praktiskt utvecklingsarbete kompletteras det av:
 - `AGENTS.md` för bindande repo- och arbetsregler;
 - `docs/development-workflow.md` för planering, implementation, verifiering och
   leverans;
-- `docs/product-roadmap.md` för produktpaket och prioritering;
+- `docs/product-roadmap.md` för strategisk produktriktning och backlogmodell;
 - `supabase/production-preflight.sql` för den konkreta driftkontrollen efter
   migration.
 

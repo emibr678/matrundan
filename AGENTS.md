@@ -17,8 +17,8 @@ not every document by default.
 
 ## Read by task
 
-- `docs/product-roadmap.md` — product direction, packages, priority and backlog
-  ordering.
+- `docs/product-roadmap.md` — product direction, strategic themes and the
+  backlog/label model.
 - `docs/architecture.md` — durable data, privacy and security decisions. Follow
   its linked specialist architecture documents when the task touches them.
 - `docs/platform-migration-plan.md` — platform boundaries and the active work in
@@ -73,11 +73,11 @@ changes or publish. Do not broaden approved scope silently. Corrective docs and
 small maintenance may be changed inside an explicit review task only when they
 do not introduce product behaviour.
 
-GitHub Issues + labels are the operational backlog. The roadmap is the strategic
-product view and GitHub Project is a human-facing projection. Follow the label
-semantics documented in the roadmap rather than reproducing them here. When a
-roadmap issue changes relative order, keep its `order:*` label and the roadmap
-consistent.
+GitHub Issues + labels are the operational backlog and the only source of truth
+for concrete scope, status, priority and decided work order. GitHub Project is a
+human-facing projection of the same data. The roadmap is strategic and must not
+mirror the current issue queue, completion state or `order:*` values. Follow the
+label semantics documented there rather than reproducing them here.
 
 In human-facing status and planning, write **Issue #NNN — full title** and
 **PR #NNN — full title** when the namespaces could be confused. Machine
@@ -155,7 +155,7 @@ reason instead of omitting the field.
 Each durable fact should have one natural owner:
 
 - README — concise human-facing project entry.
-- roadmap — product direction, packages and priority.
+- roadmap — product direction, strategic themes and backlog/label semantics.
 - Issues — detailed current scope and operational backlog state.
 - architecture + specialist architecture docs — durable design/privacy/security
   decisions.
