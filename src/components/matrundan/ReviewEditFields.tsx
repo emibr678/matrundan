@@ -1,11 +1,8 @@
-import * as React from "react";
-import { ChevronDown } from "lucide-react";
-
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formatRating } from "@/lib/matrundan/version";
 import type { ReviewModel, VisibleReview } from "@/lib/matrundan/types";
-import { RatingInput } from "./Rating";
+import { RatingStars } from "./Rating";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 
 export function ReviewEditFields({
@@ -13,13 +10,11 @@ export function ReviewEditFields({
   scoreless,
   activeModel,
   showModelNotice = true,
-  overall,
   taste,
   value,
   service,
   atmosphere,
   comment,
-  onOverallChange,
   onTasteChange,
   onValueChange,
   onServiceChange,
@@ -27,18 +22,17 @@ export function ReviewEditFields({
   onCommentChange,
   idPrefix,
   disabled = false,
+  modelUpgrade,
 }: {
   review: VisibleReview;
   scoreless: boolean;
   activeModel?: ReviewModel | null;
   showModelNotice?: boolean;
-  overall: number;
   taste: number;
   value: number;
   service: number;
   atmosphere: number;
   comment: string;
-  onOverallChange: (value: number) => void;
   onTasteChange: (value: number) => void;
   onValueChange: (value: number) => void;
   onServiceChange: (value: number) => void;
@@ -46,18 +40,33 @@ export function ReviewEditFields({
   onCommentChange: (value: string) => void;
   idPrefix: string;
   disabled?: boolean;
+  modelUpgrade?: {
+    active: boolean;
+    onStart: () => void;
+    onCancel: () => void;
+  };
 }) {
   const model = activeModel === undefined ? review.reviewModel : activeModel;
-  const legacy = !scoreless && review.reviewModel == null;
-  const [showLegacyDetails, setShowLegacyDetails] = React.useState(false);
-
-  React.useEffect(() => {
-    setShowLegacyDetails(false);
-  }, [review.id, scoreless]);
 
   return (
     <div className="space-y-4">
-      {!scoreless && model ? (
+      {!scoreless && model === "food_v0_overall" ? (
+        <div className="space-y-2 rounded-2xl border border-border/70 p-4">
+          <div className="flex min-h-14 items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">Helhetsbetyg</div>
+              <div className="mt-1 text-xl font-bold">
+                {review.overall == null ? "— / 5" : `${formatRating(review.overall)} / 5`}
+              </div>
+            </div>
+            <RatingStars value={review.overall ?? 0} size={20} showEmpty />
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Det här är ett äldre omdöme där bara helhetsbetyget sparades. Vi behåller det som det
+            är.
+          </p>
+        </div>
+      ) : !scoreless && model ? (
         <ReviewScoreFields
           model={model}
           taste={taste}
@@ -69,40 +78,9 @@ export function ReviewEditFields({
           onValueChange={onValueChange}
           onAtmosphereChange={onAtmosphereChange}
           showModelNotice={showModelNotice}
+          modelUpgrade={modelUpgrade}
+          disabled={disabled}
         />
-      ) : null}
-
-      {legacy ? (
-        <>
-          <div className="rounded-2xl bg-secondary/60 p-4">
-            <RatingInput
-              value={overall}
-              onChange={onOverallChange}
-              label="Helhetsbetyg"
-              size={32}
-            />
-          </div>
-
-          <Collapsible open={showLegacyDetails} onOpenChange={setShowLegacyDetails}>
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className="flex min-h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-medium"
-                disabled={disabled}
-              >
-                <span>Äldre detaljbetyg (frivilligt)</span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${showLegacyDetails ? "rotate-180" : ""}`}
-                />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-3 pt-3">
-              <RatingInput value={taste} onChange={onTasteChange} label="Smak" />
-              <RatingInput value={service} onChange={onServiceChange} label="Service" />
-              <RatingInput value={value} onChange={onValueChange} label="Prisvärdhet" />
-            </CollapsibleContent>
-          </Collapsible>
-        </>
       ) : null}
 
       <div className="space-y-1.5">

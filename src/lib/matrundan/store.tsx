@@ -16,11 +16,13 @@ import { DEMO_STATE } from "./demo-data";
 import { normalizeFoodTags } from "./food-tags";
 import { normalizeOccasionClassification } from "./occasions";
 import {
+  canUpgradeReviewModelWithAtmosphere,
   deriveReviewOverall,
   effectiveReviewModel,
   effectiveReviewOverall,
   reviewModelForContext,
   reviewModelIncludesAtmosphere,
+  reviewModelUsesDetailedRatings,
   reviewRatingsComplete,
 } from "./review-model";
 import {
@@ -30,8 +32,10 @@ import {
   restoreGroupPlace as liveRestoreGroupPlace,
   updateGroupPlaceMetadata as liveUpdateGroupPlaceMetadata,
   updateOwnReview as liveUpdateOwnReview,
+  upgradeOwnReviewModel as liveUpgradeOwnReviewModel,
   type GroupPlaceMetadataInput,
   type ReviewEditInput,
+  type ReviewModelUpgradeInput,
 } from "./live-admin-4b";
 import {
   liveCreateOrLinkProviderPlace,
@@ -243,6 +247,7 @@ interface StoreContextValue {
   restorePlace: (placeId: string) => Promise<void>;
   updatePlaceMetadata: (placeId: string, input: GroupPlaceMetadataInput) => Promise<void>;
   updateOwnReview: (reviewId: string, input: ReviewEditInput) => Promise<void>;
+  upgradeOwnReviewModel: (reviewId: string, input: ReviewModelUpgradeInput) => Promise<void>;
   resetDemo: () => void;
   getPlace: (id: string) => Place | undefined;
   memberById: (id: string) => AppState["members"][number] | undefined;
@@ -644,6 +649,9 @@ export function StoreProvider({
           if (
             newScored &&
             ownReview.reviewModel &&
+            reviewModelUsesDetailedRatings(
+              effectiveReviewModel(ownReview.reviewModel, input.isTakeaway),
+            ) &&
             !reviewRatingsComplete(effectiveReviewModel(ownReview.reviewModel, input.isTakeaway), {
               taste: ownReviewInput.taste ?? 0,
               value: ownReviewInput.value ?? 0,
@@ -690,28 +698,35 @@ export function StoreProvider({
               review.id === ownReviewInput.id &&
               review.userId === current.currentUserId
             ) {
-              const derivedOverall = review.reviewModel
-                ? deriveReviewOverall(review.reviewModel, {
-                    taste: ownReviewInput.taste ?? 0,
-                    value: ownReviewInput.value ?? 0,
-                    service: ownReviewInput.service ?? 0,
-                    atmosphere: ownReviewInput.atmosphere ?? 0,
-                  })
-                : null;
+              if (review.reviewModel === "food_v0_overall") {
+                nextReview = {
+                  ...nextReview,
+                  comment: ownReviewInput.comment,
+                };
+              } else {
+                const derivedOverall = review.reviewModel
+                  ? deriveReviewOverall(review.reviewModel, {
+                      taste: ownReviewInput.taste ?? 0,
+                      value: ownReviewInput.value ?? 0,
+                      service: ownReviewInput.service ?? 0,
+                      atmosphere: ownReviewInput.atmosphere ?? 0,
+                    })
+                  : null;
 
-              nextReview = {
-                ...nextReview,
-                overall: newScored
-                  ? (derivedOverall ?? ownReviewInput.overall ?? review.overall)
-                  : review.overall,
-                taste: newScored ? ownReviewInput.taste : review.taste,
-                value: newScored ? ownReviewInput.value : review.value,
-                service: newScored ? ownReviewInput.service : review.service,
-                atmosphere:
-                  newScored && review.reviewModel ? ownReviewInput.atmosphere : review.atmosphere,
-                comment: ownReviewInput.comment,
-                ratingVisible: nextReview.ratingVisible,
-              };
+                nextReview = {
+                  ...nextReview,
+                  overall: newScored
+                    ? (derivedOverall ?? ownReviewInput.overall ?? review.overall)
+                    : review.overall,
+                  taste: newScored ? ownReviewInput.taste : review.taste,
+                  value: newScored ? ownReviewInput.value : review.value,
+                  service: newScored ? ownReviewInput.service : review.service,
+                  atmosphere:
+                    newScored && review.reviewModel ? ownReviewInput.atmosphere : review.atmosphere,
+                  comment: ownReviewInput.comment,
+                  ratingVisible: nextReview.ratingVisible,
+                };
+              }
             }
             return nextReview;
           });
@@ -1026,7 +1041,12 @@ export function StoreProvider({
           .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
         if (!target) throw new Error("Ditt omdöme hittades inte.");
 
-        if (target.review.reviewModel) {
+        if (
+          target.review.reviewModel &&
+          reviewModelUsesDetailedRatings(
+            effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
+          )
+        ) {
           if (
             !reviewRatingsComplete(
               effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
@@ -1048,7 +1068,7 @@ export function StoreProvider({
             const scored = visitHasScore(visit);
             const reviews = (visit.visibleReviews ?? []).map((review) => {
               if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
-              if (!scored) {
+              if (!scored || review.reviewModel === "food_v0_overall") {
                 return {
                   ...review,
                   comment: input.comment ?? null,
@@ -1071,6 +1091,51 @@ export function StoreProvider({
                 atmosphere: review.reviewModel ? (input.atmosphere ?? null) : null,
                 comment: input.comment ?? null,
                 ratingVisible: review.ratingVisible,
+              };
+            });
+            return aggregateVisit({ ...visit, visibleReviews: reviews });
+          }),
+        }));
+      },
+
+      upgradeOwnReviewModel: async (reviewId, input) => {
+        if (mode === "live") {
+          await runLive((groupId) => liveUpgradeOwnReviewModel(groupId, reviewId, input));
+          return;
+        }
+        assertDemoWritable(state, demoReadOnly);
+        const target = state.visits
+          .flatMap((visit) => (visit.visibleReviews ?? []).map((review) => ({ visit, review })))
+          .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
+        if (!target) throw new Error("Ditt omdöme hittades inte.");
+        const place = state.places.find((item) => item.id === target.visit.placeId);
+        const targetModel = place
+          ? reviewModelForContext({
+              isTakeaway: target.visit.isTakeaway === true,
+              occasions: place.occasions,
+            })
+          : null;
+        if (!canUpgradeReviewModelWithAtmosphere(target.review.reviewModel, targetModel)) {
+          throw new Error("Atmosfär ingår inte i den aktuella betygsmodellen.");
+        }
+        if (!reviewRatingsComplete(targetModel, input)) {
+          throw new Error("Sätt alla relevanta betyg.");
+        }
+
+        setState((current) => ({
+          ...current,
+          visits: current.visits.map((visit) => {
+            const reviews = (visit.visibleReviews ?? []).map((review) => {
+              if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
+              return {
+                ...review,
+                reviewModel: targetModel,
+                overall: deriveReviewOverall(targetModel, input) ?? review.overall,
+                taste: input.taste,
+                value: input.value,
+                service: input.service,
+                atmosphere: input.atmosphere,
+                comment: input.comment,
               };
             });
             return aggregateVisit({ ...visit, visibleReviews: reviews });

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  canUpgradeReviewModelWithAtmosphere,
   effectiveReviewModel,
   effectiveReviewOverall,
   reviewModelIncludesAtmosphere,
@@ -61,18 +62,51 @@ describe("aktiv reviewmodell efter korrigerad besökskontext", () => {
     );
   });
 
-  test("legacyomdömen behåller sitt manuella helhetsbetyg", () => {
-    const legacy = {
+  test("alla tredimensionella modeller kan kompletteras först när dagens modell har Atmosfär", () => {
+    for (const storedModel of ["food_v0_3d", "food_v1_quick", "food_v1_takeaway"] as const) {
+      expect(canUpgradeReviewModelWithAtmosphere(storedModel, "food_v1_atmosphere")).toBe(true);
+      expect(canUpgradeReviewModelWithAtmosphere(storedModel, "food_v1_quick")).toBe(false);
+      expect(canUpgradeReviewModelWithAtmosphere(storedModel, "food_v1_takeaway")).toBe(false);
+    }
+
+    expect(canUpgradeReviewModelWithAtmosphere("food_v1_atmosphere", "food_v1_atmosphere")).toBe(
+      false,
+    );
+    expect(canUpgradeReviewModelWithAtmosphere("food_v0_overall", "food_v1_atmosphere")).toBe(
+      false,
+    );
+    expect(canUpgradeReviewModelWithAtmosphere(null, "food_v1_atmosphere")).toBe(false);
+  });
+
+  test("historiska overall-only-omdömen behåller sitt frysta helhetsbetyg", () => {
+    const historical = {
       overall: 4,
-      taste: 5,
-      service: 3,
-      value: 2,
+      taste: null,
+      service: null,
+      value: null,
       atmosphere: null,
-      reviewModel: null,
+      reviewModel: "food_v0_overall" as const,
     };
 
-    expect(effectiveReviewOverall(legacy, false)).toBe(4);
-    expect(effectiveReviewOverall(legacy, true)).toBe(4);
+    expect(effectiveReviewModel(historical.reviewModel, false)).toBe("food_v0_overall");
+    expect(effectiveReviewModel(historical.reviewModel, true)).toBe("food_v0_overall");
+    expect(effectiveReviewOverall(historical, false)).toBe(4);
+    expect(effectiveReviewOverall(historical, true)).toBe(4);
+  });
+
+  test("historiska 3D-omdömen härleds stabilt från sina tre dimensioner", () => {
+    const historical = {
+      overall: 4,
+      taste: 4,
+      service: 5,
+      value: 5,
+      atmosphere: null,
+      reviewModel: "food_v0_3d" as const,
+    };
+
+    expect(effectiveReviewOverall(historical, false)).toBe(4.67);
+    expect(effectiveReviewOverall(historical, true)).toBe(4.67);
+    expect(reviewModelIncludesAtmosphere(historical.reviewModel)).toBe(false);
   });
 
   test("ofullständiga moderna dimensioner ger inget fabricerat helhetsbetyg", () => {

@@ -159,9 +159,17 @@ describe("publik exempeldata", () => {
     expect(takeawayVisit?.overall).toBeCloseTo(13 / 3);
 
     const atmosphereVisit = state.visits.find((visit) => visit.id === visits.providerBistroReturn);
-    const atmosphereReview = atmosphereVisit?.visibleReviews?.find(
+    const historicalOverallOnlyReview = atmosphereVisit?.visibleReviews?.find(
       (review) => review.userId === members.alex,
     );
+    const atmosphereReview = atmosphereVisit?.visibleReviews?.find(
+      (review) => review.userId === members.sam,
+    );
+    expect(historicalOverallOnlyReview?.reviewModel).toBe("food_v0_overall");
+    expect(historicalOverallOnlyReview?.taste).toBeNull();
+    expect(historicalOverallOnlyReview?.value).toBeNull();
+    expect(historicalOverallOnlyReview?.service).toBeNull();
+    expect(historicalOverallOnlyReview?.atmosphere).toBeNull();
     expect(atmosphereReview?.reviewModel).toBe("food_v1_atmosphere");
     expect(atmosphereReview?.atmosphere).toBe(4);
     expect(atmosphereVisit?.atmosphere).toBe(4);

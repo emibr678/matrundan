@@ -121,3 +121,117 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
 
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");
 });
+
+test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sparning", async ({
+  page,
+}) => {
+  await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+  await page.goto("/matstallen/p1?visit=v10");
+
+  const visitDialog = page.getByRole("dialog").first();
+  const reviewSection = visitDialog.getByLabel("Gängets omdömen");
+  const historicalReview = reviewSection.locator('[data-review-id="review-v10-alex"]');
+
+  await expect(historicalReview.getByText("4,7 / 5", { exact: true })).toBeVisible();
+  await expect(historicalReview.getByText("Atmosfär", { exact: true })).toHaveCount(0);
+
+  await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
+  let editDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
+
+  await expect(editDialog.getByText("Äldre detaljbetyg (frivilligt)")).toHaveCount(0);
+  await expect(editDialog.getByRole("button", { name: /Atmosfär:/ })).toHaveCount(0);
+  await expect(editDialog.getByText("4,7 / 5", { exact: true })).toBeVisible();
+  const scoreFields = editDialog.getByRole("group", { name: "Detaljbetyg" });
+  await expect(scoreFields.getByText("Ingick inte i betyget när omdömet skapades.")).toBeVisible();
+  await expect(scoreFields.getByRole("button", { name: "Lägg till Atmosfär" })).toBeVisible();
+  await expectNoLocatorOverflow(editDialog, "historiskt 3D-omdöme");
+
+  await scoreFields.getByRole("button", { name: "Lägg till Atmosfär" }).click();
+  await expect(editDialog.getByRole("button", { name: "Atmosfär: 3 av 5" })).toBeVisible();
+  await expect(
+    scoreFields.getByText(
+      "När du sparar läggs Atmosfär till i omdömet och helhetsbetyget räknas om.",
+    ),
+  ).toBeVisible();
+  await editDialog.getByRole("button", { name: "Atmosfär: 3 av 5" }).click();
+  await expect(editDialog.getByText("4,3 / 5", { exact: true })).toBeVisible();
+
+  await scoreFields.getByRole("button", { name: "Ångra", exact: true }).click();
+  await expect(editDialog.getByRole("button", { name: /Atmosfär:/ })).toHaveCount(0);
+  await expect(editDialog.getByText("4,7 / 5", { exact: true })).toBeVisible();
+
+  await scoreFields.getByRole("button", { name: "Lägg till Atmosfär" }).click();
+  await editDialog.getByRole("button", { name: "Atmosfär: 3 av 5" }).click();
+  await expectNoLocatorOverflow(editDialog, "frivillig Atmosfär-komplettering");
+  await expectNoHorizontalOverflow(page, "frivillig Atmosfär-komplettering på 360 px");
+  await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
+
+  const upgradeConfirmation = page.getByRole("alertdialog", { name: "Lägga till Atmosfär?" });
+  await expect(upgradeConfirmation).toBeVisible();
+  await expect(
+    upgradeConfirmation.getByText(
+      "När du sparar blir Atmosfär en permanent del av omdömet och helhetsbetyget räknas om. Du kan ändra betyget senare, men inte ta bort Atmosfär igen.",
+    ),
+  ).toBeVisible();
+  await expectNoLocatorOverflow(upgradeConfirmation, "bekräfta modelluppgradering");
+  await upgradeConfirmation.getByRole("button", { name: "Avbryt" }).click();
+  await expect(editDialog).toBeVisible();
+  await expect(editDialog.getByText("4,3 / 5", { exact: true })).toBeVisible();
+
+  await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
+  await page
+    .getByRole("alertdialog", { name: "Lägga till Atmosfär?" })
+    .getByRole("button", { name: "Lägg till och spara" })
+    .click();
+
+  await expect(page.getByText("Ditt omdöme är uppdaterat.")).toBeVisible();
+  await expect(historicalReview.getByText("4,3 / 5", { exact: true })).toBeVisible();
+  await expect(historicalReview.getByText("Atmosfär", { exact: true })).toBeVisible();
+
+  await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
+  editDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
+  await expect(editDialog.getByRole("button", { name: "Lägg till Atmosfär" })).toHaveCount(0);
+  await expect(editDialog.getByRole("button", { name: "Atmosfär: 3 av 5" })).toBeVisible();
+});
+
+test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras", async ({
+  page,
+}) => {
+  await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+  await page.goto("/matstallen/p1?visit=v8");
+
+  const visitDialog = page.getByRole("dialog").first();
+  const reviewSection = visitDialog.getByLabel("Gängets omdömen");
+  const historicalReview = reviewSection.locator('[data-review-id="review-v8-alex"]');
+
+  await expect(historicalReview.getByText("4,0 / 5", { exact: true })).toBeVisible();
+  await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
+
+  const editDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
+  await expect(
+    editDialog.getByText(
+      "Det äldre helhetsbetyget behålls som sparat eftersom detaljbetyg saknas.",
+    ),
+  ).toBeVisible();
+  await expect(editDialog.getByRole("group", { name: "Detaljbetyg" })).toHaveCount(0);
+  await expect(editDialog.getByRole("button", { name: "Lägg till Atmosfär" })).toHaveCount(0);
+  await expect(editDialog.getByText("4,0 / 5", { exact: true })).toBeVisible();
+
+  await editDialog
+    .getByLabel("Kommentar (frivilligt)")
+    .fill("Kommentaren går att uppdatera utan att historiska betyg hittas på.");
+  await expectNoLocatorOverflow(editDialog, "historiskt helhetsbetyg utan detaljbetyg");
+  await expectNoHorizontalOverflow(page, "historiskt helhetsbetyg utan detaljbetyg på 360 px");
+  await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
+
+  await expect(page.getByText("Ditt omdöme är uppdaterat.")).toBeVisible();
+  await expect(
+    historicalReview.getByText(
+      "Kommentaren går att uppdatera utan att historiska betyg hittas på.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(historicalReview.getByText("4,0 / 5", { exact: true })).toBeVisible();
+});

@@ -3230,6 +3230,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      upgrade_own_review_model_v1: {
+        Args: {
+          _atmosphere: number
+          _comment?: string
+          _group_id: string
+          _review_id: string
+          _service: number
+          _taste: number
+          _value: number
+        }
+        Returns: undefined
+      }
       upsert_visit_photo: {
         Args: {
           _byte_size: number
@@ -3384,4 +3396,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

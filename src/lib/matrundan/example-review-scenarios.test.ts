@@ -55,9 +55,29 @@ describe("exempelgruppens omdömesscenarier", () => {
     const dinner = state.visits.find((item) => item.id === EXAMPLE_IDS.visits.providerBistroReturn);
 
     expect(lunch?.meal).toBe("lunch");
-    expect(lunch?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(1);
+    expect(lunch?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(2);
     expect(dinner?.meal).toBe("middag");
-    expect(dinner?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(1);
+    expect(dinner?.visibleReviews?.filter((review) => review.ratingVisible)).toHaveLength(2);
+  });
+
+  test("visar både historisk 3D-modell och modern Atmosfär-modell", () => {
+    const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
+    const historical = state.visits
+      .find((item) => item.id === EXAMPLE_IDS.visits.providerBistroLunch)
+      ?.visibleReviews?.find((review) => review.userId === state.currentUserId);
+    const modern = state.visits
+      .find((item) => item.id === EXAMPLE_IDS.visits.repeatCafeLatest)
+      ?.visibleReviews?.find((review) => review.userId === state.currentUserId);
+
+    expect(historical).toMatchObject({
+      overall: 4.67,
+      taste: 4,
+      value: 5,
+      service: 5,
+      atmosphere: null,
+      reviewModel: "food_v0_3d",
+    });
+    expect(modern?.reviewModel).toBe("food_v1_atmosphere");
   });
 
   test("självkorrigerad deltagare lämnar registreraren kvar på besöket", () => {
