@@ -62,8 +62,7 @@ export function ReviewEditFields({
             <RatingStars value={review.overall ?? 0} size={20} showEmpty />
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Det här är ett äldre omdöme där bara helhetsbetyget sparades. Vi behåller det som det
-            är.
+            Det här är ett äldre omdöme där bara helhetsbetyget sparades.
           </p>
         </div>
       ) : !scoreless && model ? (

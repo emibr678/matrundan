@@ -222,7 +222,7 @@ export function EditReviewDialog({
             {scoreless
               ? `${placeName}. Dryckesbesöket påverkar inte ställets betyg.`
               : historicalOverallOnly
-                ? `${placeName}. Det äldre helhetsbetyget behålls som sparat eftersom detaljbetyg saknas.`
+                ? placeName
                 : review.reviewModel === "food_v0_3d"
                   ? `${placeName}. Helhetsbetyget räknas automatiskt från Smak, Service och Prisvärdhet.`
                   : `${placeName}. Helhetsbetyget räknas automatiskt från de delar som gäller för besöket.`}
