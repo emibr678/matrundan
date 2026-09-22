@@ -200,11 +200,11 @@ test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras
 }) => {
   await page.goto("/exempel");
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
-  await page.goto("/matstallen/p6?visit=v3");
+  await page.goto("/matstallen/p1?visit=v8");
 
   const visitDialog = page.getByRole("dialog").first();
   const reviewSection = visitDialog.getByLabel("Gängets omdömen");
-  const historicalReview = reviewSection.locator('[data-review-id="review-v3-alex"]');
+  const historicalReview = reviewSection.locator('[data-review-id="review-v8-alex"]');
 
   await expect(historicalReview.getByText("4,0 / 5", { exact: true })).toBeVisible();
   await historicalReview.getByRole("button", { name: "Redigera omdöme" }).click();
