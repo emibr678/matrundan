@@ -212,7 +212,7 @@ test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras
   const editDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
   await expect(
     editDialog.getByText(
-      "Det här är ett äldre omdöme där bara helhetsbetyget sparades. Vi behåller det som det är.",
+      "Det äldre helhetsbetyget behålls som sparat eftersom detaljbetyg saknas.",
       { exact: true },
     ),
   ).toBeVisible();
