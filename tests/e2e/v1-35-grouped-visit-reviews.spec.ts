@@ -177,7 +177,7 @@ test("historiskt 3D-omdöme är komplett och Atmosfär läggs till först vid sp
   await expectNoLocatorOverflow(upgradeConfirmation, "bekräfta modelluppgradering");
   await upgradeConfirmation.getByRole("button", { name: "Avbryt" }).click();
   await expect(editDialog).toBeVisible();
-  await expect(historicalReview.getByText("4,7 / 5", { exact: true })).toBeVisible();
+  await expect(editDialog.getByText("4,3 / 5", { exact: true })).toBeVisible();
 
   await editDialog.getByRole("button", { name: "Spara omdöme" }).click();
   await page
