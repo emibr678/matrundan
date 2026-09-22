@@ -1,6 +1,6 @@
 import * as React from "react";
 import { toast } from "sonner";
-import { Users2, Sparkles, MessageSquare, TrendingUp } from "lucide-react";
+import { Image as ImageIcon, Users2, Sparkles, MessageSquare, TrendingUp } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
   const [error, setError] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<string | null>(null);
   const [shareComment, setShareComment] = React.useState(false);
+  const [sharePhoto, setSharePhoto] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [duplicateCandidate, setDuplicateCandidate] =
     React.useState<StrongVisitDuplicateCandidate | null>(null);
@@ -56,6 +57,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
     setTargets(null);
     setSelected(null);
     setShareComment(false);
+    setSharePhoto(false);
     setDuplicateCandidate(null);
     listVisitShareTargets(visitId)
       .then((rows) => {
@@ -83,6 +85,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
       chosen.groupId,
       chosen.ownHasComment ? shareComment : false,
       allowStrongDuplicate,
+      chosen.ownHasPhoto && !chosen.ownPhotoShared ? sharePhoto : false,
     );
     toast.success(`Besöket är tillagt i ${chosen.name}.`);
     await onShared();
@@ -168,6 +171,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                     disabled={t.alreadyLinked}
                     onClick={() => {
                       setSelected(t.groupId);
+                      setSharePhoto(false);
                       setDuplicateCandidate(null);
                     }}
                     className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none disabled:cursor-not-allowed"
@@ -246,6 +250,15 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                   checked={shareComment}
                   onCheckedChange={setShareComment}
                 />
+              </div>
+            ) : null}
+            {chosen.ownHasPhoto && !chosen.ownPhotoShared ? (
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-background/50 p-2">
+                <Label htmlFor="share-photo" className="flex items-center gap-2 text-sm">
+                  <ImageIcon className="h-4 w-4" />
+                  Dela även min bild
+                </Label>
+                <Switch id="share-photo" checked={sharePhoto} onCheckedChange={setSharePhoto} />
               </div>
             ) : null}
           </div>

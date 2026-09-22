@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ImagePlus, Loader2, MoreHorizontal, Save, Trash2, X } from "lucide-react";
+import { ImagePlus, Loader2, MoreHorizontal, Save, Share2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit, VisitPhoto } from "@/lib/matrundan/types";
+import { ShareOwnVisitPhotoDialog } from "./ShareOwnVisitPhotoDialog";
 import {
   canAddOrReplaceVisitPhoto,
   canDeleteVisitPhoto,
@@ -117,7 +118,7 @@ function GalleryImage({
 }
 
 export function VisitPhotoManager({ visit }: { visit: Visit }) {
-  const { state, memberById, saveVisitPhoto, deleteVisitPhoto, submitting } = useStore();
+  const { state, mode, memberById, saveVisitPhoto, deleteVisitPhoto, submitting } = useStore();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const galleryRef = React.useRef<HTMLDivElement>(null);
   const viewerRef = React.useRef<HTMLDivElement>(null);
@@ -127,6 +128,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
   const [viewerOpen, setViewerOpen] = React.useState(false);
   const [viewerIndex, setViewerIndex] = React.useState(0);
   const [pendingDeletePhoto, setPendingDeletePhoto] = React.useState<VisitPhoto | null>(null);
+  const [shareOwnPhotoOpen, setShareOwnPhotoOpen] = React.useState(false);
 
   const photos = getVisitPhotos(visit);
   const ownPhoto = getOwnVisitPhoto(visit, state.currentUserId);
@@ -275,9 +277,10 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                 currentRole,
                 groupArchived,
               );
+              const canShareOwnPhoto = own && mode === "live" && !groupArchived;
               return (
                 <div
-                  key={`${photo.uploadedBy}:${photo.storagePath ?? photo.updatedAt}`}
+                  key={`${photo.uploadedBy}:${photo.storagePath ?? photo.deliveryToken ?? photo.updatedAt}`}
                   role="group"
                   aria-label={`Bild från ${owner.name}${own ? ", din bild" : ""}`}
                   className={galleryPhotos.length > 1 ? "w-full shrink-0 snap-center" : "w-full"}
@@ -294,7 +297,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                   />
                   <div className="mt-2 flex min-h-9 items-center justify-between gap-2 px-1">
                     <OwnerBadge {...owner} own={own} />
-                    {!isEditingOwnPhoto && (canRemove || (own && canContribute)) ? (
+                    {!isEditingOwnPhoto && (canRemove || (own && canContribute) || canShareOwnPhoto) ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -317,6 +320,12 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                             <DropdownMenuItem onSelect={choosePhoto}>
                               <ImagePlus className="h-4 w-4" />
                               Byt bild
+                            </DropdownMenuItem>
+                          ) : null}
+                          {canShareOwnPhoto ? (
+                            <DropdownMenuItem onSelect={() => setShareOwnPhotoOpen(true)}>
+                              <Share2 className="h-4 w-4" />
+                              Dela din bild
                             </DropdownMenuItem>
                           ) : null}
                           {canRemove ? (
@@ -432,6 +441,18 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <ShareOwnVisitPhotoDialog
+        visitId={visit.id}
+        currentGroupId={state.group.id}
+        open={shareOwnPhotoOpen}
+        onOpenChange={setShareOwnPhotoOpen}
+        onShared={() => {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("matrundan:reload"));
+          }
+        }}
+      />
+
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
         <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-3xl overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
@@ -447,7 +468,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
               const owner = photoOwner(visit, photo, memberById);
               return (
                 <div
-                  key={`viewer:${photo.uploadedBy}:${photo.storagePath ?? photo.updatedAt}`}
+                  key={`viewer:${photo.uploadedBy}:${photo.storagePath ?? photo.deliveryToken ?? photo.updatedAt}`}
                   className="w-full shrink-0 snap-center"
                 >
                   <div className="overflow-hidden rounded-2xl bg-muted">

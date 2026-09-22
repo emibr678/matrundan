@@ -117,6 +117,7 @@ export function EditVisitDialog({
   const [shareLoading, setShareLoading] = React.useState(false);
   const [shareError, setShareError] = React.useState<string | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
+  const [sharePhotoGroupIds, setSharePhotoGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [confirmTakeaway, setConfirmTakeaway] = React.useState(false);
@@ -167,6 +168,7 @@ export function EditVisitDialog({
     setGuestInputOpen(false);
     setGuestName("");
     setShareGroupIds([]);
+    setSharePhotoGroupIds([]);
     setShareComment(false);
     setConfirmTakeaway(false);
   }, [
@@ -223,6 +225,33 @@ export function EditVisitDialog({
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     );
   }
+
+  function toggleShareTarget(groupId: string) {
+    const removing = shareGroupIds.includes(groupId);
+    setShareGroupIds((current) =>
+      removing ? current.filter((id) => id !== groupId) : [...current, groupId],
+    );
+    if (removing) {
+      setSharePhotoGroupIds((current) => current.filter((id) => id !== groupId));
+    }
+  }
+
+  function toggleSharePhotoTarget(groupId: string) {
+    setSharePhotoGroupIds((current) =>
+      current.includes(groupId)
+        ? current.filter((id) => id !== groupId)
+        : [...current, groupId],
+    );
+  }
+
+  React.useEffect(() => {
+    setSharePhotoGroupIds((current) => {
+      const next = current.filter((id) => shareGroupIds.includes(id));
+      return next.length === current.length && next.every((id, index) => id === current[index])
+        ? current
+        : next;
+    });
+  }, [shareGroupIds]);
 
   function closeGuestInput() {
     setGuestInputOpen(false);
@@ -287,7 +316,13 @@ export function EditVisitDialog({
       const failed: string[] = [];
       for (const target of selectedTargets) {
         try {
-          await shareVisitToGroup(visit.id, target.groupId, hasOwnComment ? shareComment : false);
+          await shareVisitToGroup(
+            visit.id,
+            target.groupId,
+            hasOwnComment ? shareComment : false,
+            false,
+            sharePhotoGroupIds.includes(target.groupId),
+          );
           sharedCount += 1;
         } catch {
           failed.push(target.name);
@@ -536,37 +571,45 @@ export function EditVisitDialog({
                 <div className="space-y-2">
                   {otherShareTargets.map((target) => {
                     const checked = shareGroupIds.includes(target.groupId);
+                    const sharePhoto = sharePhotoGroupIds.includes(target.groupId);
                     return (
-                      <label
+                      <div
                         key={target.groupId}
-                        className="flex min-h-11 items-center gap-3 rounded-xl border border-border/70 px-3 py-2 text-sm"
+                        className="rounded-xl border border-border/70"
                       >
-                        <Checkbox
-                          checked={target.alreadyLinked ? true : checked}
-                          disabled={target.alreadyLinked || isBusy}
-                          onCheckedChange={() =>
-                            setShareGroupIds((current) =>
-                              current.includes(target.groupId)
-                                ? current.filter((id) => id !== target.groupId)
-                                : [...current, target.groupId],
-                            )
-                          }
-                          aria-label={
-                            target.alreadyLinked
-                              ? `${target.name}, redan tillagt`
-                              : `Lägg till besöket i ${target.name}`
-                          }
-                        />
-                        <span aria-hidden>{target.emoji}</span>
-                        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                          {target.name}
-                        </span>
-                        {target.alreadyLinked ? (
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            Redan tillagt
+                        <label className="flex min-h-11 items-center gap-3 px-3 py-2 text-sm">
+                          <Checkbox
+                            checked={target.alreadyLinked ? true : checked}
+                            disabled={target.alreadyLinked || isBusy}
+                            onCheckedChange={() => toggleShareTarget(target.groupId)}
+                            aria-label={
+                              target.alreadyLinked
+                                ? `${target.name}, redan tillagt`
+                                : `Lägg till besöket i ${target.name}`
+                            }
+                          />
+                          <span aria-hidden>{target.emoji}</span>
+                          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                            {target.name}
                           </span>
+                          {target.alreadyLinked ? (
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              Redan tillagt
+                            </span>
+                          ) : null}
+                        </label>
+                        {checked && target.ownHasPhoto && !target.ownPhotoShared ? (
+                          <label className="flex min-h-10 items-center gap-2 border-t border-border/50 px-3 py-2 pl-11 text-xs text-muted-foreground">
+                            <Checkbox
+                              checked={sharePhoto}
+                              onCheckedChange={() => toggleSharePhotoTarget(target.groupId)}
+                              disabled={isBusy}
+                              aria-label={`Dela även min bild med ${target.name}`}
+                            />
+                            <span>Dela även min bild</span>
+                          </label>
                         ) : null}
-                      </label>
+                      </div>
                     );
                   })}
                 </div>

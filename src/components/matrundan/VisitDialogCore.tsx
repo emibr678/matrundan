@@ -112,6 +112,7 @@ export function VisitDialog({
   const [comment, setComment] = React.useState("");
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
+  const [sharePhotoGroupIds, setSharePhotoGroupIds] = React.useState<string[]>([]);
   const [shareComment, setShareComment] = React.useState(false);
   const scoredVisit = visitMealHasScore(meal);
   const currentUserParticipates = participants.includes(state.currentUserId);
@@ -141,6 +142,7 @@ export function VisitDialog({
       setShareTargets([]);
       setShareTargetsError(null);
       setShareGroupIds([]);
+      setSharePhotoGroupIds([]);
       setDuplicateCandidate(null);
       setDuplicateBusy(false);
     }
@@ -208,8 +210,27 @@ export function VisitDialog({
     setParticipants((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   };
 
-  const toggleShareGroup = (id: string) =>
-    setShareGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  const toggleShareGroup = (id: string) => {
+    const removing = shareGroupIds.includes(id);
+    setShareGroupIds((cur) => (removing ? cur.filter((x) => x !== id) : [...cur, id]));
+    if (removing) {
+      setSharePhotoGroupIds((cur) => cur.filter((x) => x !== id));
+    }
+  };
+
+  const toggleSharePhotoGroup = (id: string) =>
+    setSharePhotoGroupIds((cur) =>
+      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
+    );
+
+  React.useEffect(() => {
+    setSharePhotoGroupIds((current) => {
+      const next = photoFile ? current.filter((id) => shareGroupIds.includes(id)) : [];
+      return next.length === current.length && next.every((id, index) => id === current[index])
+        ? current
+        : next;
+    });
+  }, [photoFile, shareGroupIds]);
 
   function closeGuestInput() {
     setGuestInputOpen(false);
@@ -296,6 +317,7 @@ export function VisitDialog({
           groupId,
           hasComment ? shareComment : false,
           allowStrongDuplicate,
+          photoError == null && sharePhotoGroupIds.includes(groupId),
         );
         sharedCount += 1;
       } catch {
@@ -733,27 +755,38 @@ export function VisitDialog({
                 <div className="space-y-2">
                   {shareableGroups.map((group) => {
                     const checked = shareGroupIds.includes(group.groupId);
+                    const sharePhoto = sharePhotoGroupIds.includes(group.groupId);
                     return (
-                      <label
-                        key={group.groupId}
-                        className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl bg-background px-3 py-2 text-sm"
-                      >
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => toggleShareGroup(group.groupId)}
-                          disabled={isBusy}
-                          aria-label={`Dela besöket med ${group.name}`}
-                        />
-                        <span aria-hidden>{group.emoji ?? "🍽️"}</span>
-                        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                          {group.name}
-                        </span>
-                        {group.placeExistsInGroup ? (
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            finns redan
+                      <div key={group.groupId} className="rounded-xl bg-background">
+                        <label className="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2 text-sm">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleShareGroup(group.groupId)}
+                            disabled={isBusy}
+                            aria-label={`Dela besöket med ${group.name}`}
+                          />
+                          <span aria-hidden>{group.emoji ?? "🍽️"}</span>
+                          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                            {group.name}
                           </span>
+                          {group.placeExistsInGroup ? (
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              finns redan
+                            </span>
+                          ) : null}
+                        </label>
+                        {checked && photoFile ? (
+                          <label className="flex min-h-10 cursor-pointer items-center gap-2 border-t border-border/50 px-3 py-2 pl-11 text-xs text-muted-foreground">
+                            <Checkbox
+                              checked={sharePhoto}
+                              onCheckedChange={() => toggleSharePhotoGroup(group.groupId)}
+                              disabled={isBusy}
+                              aria-label={`Dela även min bild med ${group.name}`}
+                            />
+                            <span>Dela även min bild</span>
+                          </label>
                         ) : null}
-                      </label>
+                      </div>
                     );
                   })}
                 </div>
