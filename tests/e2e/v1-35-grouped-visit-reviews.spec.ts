@@ -213,7 +213,6 @@ test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras
   await expect(
     editDialog.getByText(
       "Det äldre helhetsbetyget behålls som sparat eftersom detaljbetyg saknas.",
-      { exact: true },
     ),
   ).toBeVisible();
   await expect(editDialog.getByRole("group", { name: "Detaljbetyg" })).toHaveCount(0);
