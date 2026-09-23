@@ -392,13 +392,18 @@ respektive `prod`. Den används som defense-in-depth för att redigera råa
 Error-meddelanden/stacks innan de når centrala Workers-loggar. Den får inte
 användas som behörighetsbeslut.
 
-### Runner-val per workflow
+### Runnerkontrakt per workflow
 
-Ordinarie **CI** är medvetet låst till GitHub-hostad `ubuntu-24.04`; den använder inte längre `MATRUNDAN_CI_RUNNER` som fallback. Det gör mergekvittot reproducerbart och oberoende av en privat utvecklingsmaskin.
+Alla GitHub Actions-workflows kör explicit på GitHub-hostad `ubuntu-24.04`.
+Repository-variabler får inte styra `runs-on`, och repository-scopade
+self-hosted runners ska inte registreras för Matrundan. Det gör verifiering,
+backup, recovery och produktionsjobb reproducerbara och isolerade från privata
+utvecklingsmaskiner.
 
-Vissa separata maintenance-/review-/recovery-workflows har egna runner-variabler eller fallbackar. Exempelvis kan **Visual review artifacts** fortfarande använda `MATRUNDAN_CI_RUNNER`, medan recovery använder sitt separata `MATRUNDAN_RECOVERY_RUNNER`-kontrakt. Läs respektive workflow och dess kanoniska driftdokument innan en sådan variabel ändras.
-
-Self-hosted runners är därför undantag för uttryckligen avgränsade workflows, inte generell CI-fallback. De ska vara betrodda och repository-scopade till Matrundan och får inte användas för obetrodda pull requests eller production-secrets utan workflowets uttryckliga trust-boundary.
+Workflows som använder staging- eller produktionshemligheter behåller sina
+separata ref-, SHA-, environment- och bekräftelsegrindar. Alternativ lokal
+körning görs som ett lokalt kommando, inte genom att registrera utvecklingsdatorn
+som GitHub Actions-runner.
 
 ## Iterationsdisciplin
 
