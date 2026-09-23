@@ -1,13 +1,6 @@
 import { z } from "zod";
 
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
 const deliveryTokenSchema = z.string().uuid();
-
-const resolvedPhotoSchema = z.object({
-  storagePath: z.string().min(1),
-  mimeType: z.string().min(1),
-});
 
 function unauthorized() {
   return new Response("Unauthorized", {
@@ -16,6 +9,13 @@ function unauthorized() {
       "cache-control": "private, no-store",
       "www-authenticate": "Bearer",
     },
+  });
+}
+
+function unavailable() {
+  return new Response("Unavailable", {
+    status: 502,
+    headers: { "cache-control": "private, no-store" },
   });
 }
 
@@ -35,31 +35,41 @@ export async function handleVisitPhotoDelivery(
 
   const authHeader = request.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return unauthorized();
-  const token = authHeader.slice("Bearer ".length).trim();
-  if (!token) return unauthorized();
 
-  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-  if (userError || !userData.user) return unauthorized();
+  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, "");
+  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !publishableKey) return unavailable();
 
-  const { data, error } = await supabaseAdmin.rpc("resolve_visit_photo_delivery_v1", {
-    _delivery_token: parsedToken.data,
-    _viewer_id: userData.user.id,
-  });
-  if (error || data == null) return notFound();
+  let response: Response;
+  try {
+    response = await fetch(`${supabaseUrl}/functions/v1/visit-photo-delivery`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+        apikey: publishableKey,
+        Accept: "image/*",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ deliveryToken: parsedToken.data }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch {
+    return unavailable();
+  }
 
-  const resolved = resolvedPhotoSchema.safeParse(data);
-  if (!resolved.success) return notFound();
+  if (response.status === 401) return unauthorized();
+  if (response.status === 403 || response.status === 404) return notFound();
+  if (!response.ok || !response.body) return unavailable();
 
-  const { data: blob, error: downloadError } = await supabaseAdmin.storage
-    .from("visit-photos")
-    .download(resolved.data.storagePath);
-  if (downloadError || !blob) return notFound();
+  const contentType = response.headers.get("content-type") || "application/octet-stream";
+  const contentLength = response.headers.get("content-length");
 
-  return new Response(await blob.arrayBuffer(), {
+  return new Response(response.body, {
     status: 200,
     headers: {
-      "content-type": resolved.data.mimeType,
-      "content-length": String(blob.size),
+      "content-type": contentType,
+      ...(contentLength ? { "content-length": contentLength } : {}),
       "cache-control": "private, no-store",
       "x-content-type-options": "nosniff",
     },

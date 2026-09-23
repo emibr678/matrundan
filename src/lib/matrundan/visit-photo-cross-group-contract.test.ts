@@ -12,6 +12,10 @@ const server = readFileSync(
   resolve(root, "src/lib/matrundan/visit-photo-delivery.server.ts"),
   "utf8",
 );
+const edgeFunction = readFileSync(
+  resolve(root, "supabase/functions/visit-photo-delivery/index.ts"),
+  "utf8",
+);
 const repository = readFileSync(resolve(root, "src/lib/matrundan/live-repository.ts"), "utf8");
 
 describe("Issue #179 cross-group-bilder", () => {
@@ -30,12 +34,16 @@ describe("Issue #179 cross-group-bilder", () => {
     expect(migration).not.toContain("'sourceGroupId', media.group_id");
   });
 
-  test("rå Storage-sökväg löses endast server-side efter verifierad bearer-session", () => {
+  test("rå Storage-sökväg löses endast i betrodd backend efter verifierad bearer-session", () => {
     expect(route).toContain('createFileRoute("/api/visit-photo/$deliveryToken")');
     expect(route).toContain('import("@/lib/matrundan/visit-photo-delivery.server")');
-    expect(server).toContain("supabaseAdmin.auth.getUser(token)");
-    expect(server).toContain('"resolve_visit_photo_delivery_v1"');
-    expect(server).toContain('"cache-control": "private, no-store"');
+    expect(server).toContain("/functions/v1/visit-photo-delivery");
+    expect(server).not.toContain("supabaseAdmin");
+    expect(edgeFunction).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(edgeFunction).toContain("admin.auth.getUser(token)");
+    expect(edgeFunction).toContain('"resolve_visit_photo_delivery_v1"');
+    expect(edgeFunction).toContain('.from("visit-photos")');
+    expect(edgeFunction).toContain('"cache-control": "private, no-store"');
     expect(repository).toContain("createDeliveredVisitPhotoUrls");
   });
 });

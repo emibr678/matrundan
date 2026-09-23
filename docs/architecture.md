@@ -267,10 +267,14 @@ besökslänk tas bort.
 
 Målgruppens read-model får endast ett opaque `deliveryToken` för cross-group-
 media; ursprungsgrupp och rå `storagePath` lämnar aldrig den gränsen.
-Appservern verifierar användarens Supabase-session och aktuell målgruppsbehörighet
-innan serverrollen översätter token till Storage-sökvägen och strömmar bilden.
-Därmed kan målgruppens admin inte skriva över eller radera originalet, samtidigt
-som byte av bild följer samma stabila mediaobjekt.
+Appservern tar emot användarens bearer-session via samma origin och vidarebefordrar
+den till den minimala Supabase Edge Functionen `visit-photo-delivery`. Funktionen
+revaliderar sessionen, låter den service-only resolver-RPC:n kontrollera aktuell
+målgruppsbehörighet och använder därefter serverrollen endast för att hämta det
+privata Storage-objektet. Cloudflare-preview behöver därmed ingen service-role-
+hemlighet för bildleveransen, och varken ursprungsgrupp eller rå Storage-sökväg
+exponeras för klienten. Därmed kan målgruppens admin inte skriva över eller
+radera originalet, samtidigt som byte av bild följer samma stabila mediaobjekt.
 
 ## RLS och RPC-mönster
 
