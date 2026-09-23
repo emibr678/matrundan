@@ -599,9 +599,7 @@ export function EditVisitDialog({
 
               {hasOwnComment && selectedTargets.length > 0 ? (
                 <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
-                  <Label htmlFor={`edit-visit-share-comment-${visit.id}`}>
-                    Dela min kommentar
-                  </Label>
+                  <Label htmlFor={`edit-visit-share-comment-${visit.id}`}>Dela min kommentar</Label>
                   <Switch
                     id={`edit-visit-share-comment-${visit.id}`}
                     checked={shareComment}
