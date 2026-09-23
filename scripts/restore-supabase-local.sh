@@ -272,7 +272,7 @@ select set_config(
   true
 );
 SET LOCAL ROLE authenticated;
-select public.get_group_app_state_v5l(:'smoke_group_id'::uuid);
+select public.get_group_app_state_v5m(:'smoke_group_id'::uuid);
 ROLLBACK;
 SQL
 

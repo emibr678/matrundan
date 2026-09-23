@@ -14,6 +14,81 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.41.0] – 2026-09-22
+
+### Nytt
+
+- Flera faktiska deltagare kan bidra med varsin privat bild till samma gemensamma
+  besök.
+- Ägare till äldre kompletta tredelade omdömen kan frivilligt lägga till
+  **Atmosfär** när den senare blir relevant, efter en tydlig bekräftelse.
+
+### Förbättrat
+
+- Gemensam besöksdata, personliga omdömen och personliga bilder har tydligare
+  separata redigeringsvägar. Atmosfärens beteende för **Hämtmat** och
+  **Snabbt & enkelt** förklaras där konsekvensen är relevant.
+- Historiska omdömen behåller den betygsmodell de skapades med. Äldre omdömen
+  med bara helhetsbetyg bevaras utan fabricerade detaljbetyg.
+- Gruppens samlade betyg och deltagarnas omdömen har fått en tydligare
+  mobilhierarki, och reaktioner väljs i en liten förankrad meny nära kommentaren.
+- **Passar för** använder nu **Snabbt & enkelt** konsekvent, medan dryckesbesök
+  visas som **Ett glas** med tydligare förklaring om att besöket sparas utan
+  betyg.
+
+### Rättat
+
+- Texten för äldre omdömen med endast helhetsbetyg visas inte längre dubbelt i
+  redigeringsdialogen.
+
+## [1.40.0] – 2026-09-19
+
+### Nytt
+
+- Den som registrerade ett besök kan nu korrigera datum, tillfälle, Hämtmat och
+  faktiska deltagare i efterhand utan att skapa ett nytt besök.
+- Topplistan kan filtreras på verkliga besökstillfällen som Lunch, Middag och
+  Fika och kombineras med Passar för och Hämtmat. Det visade betyget bygger bara
+  på relevanta besök och visar hur många besök och omdömen som ligger bakom.
+
+### Förbättrat
+
+- När ett besök rättas behålls befintliga omdömen, gäster och delningar på samma
+  gemensamma besök.
+- Platsmetadata använder tydligare begrepp: Typ av ställe, Kök och inriktning
+  samt Passar för. Interna begrepp om grundtyp och gruppoverride hålls under
+  huven.
+
+## [1.39.1] – 2026-09-19
+
+### Förbättrat
+
+- Det är enklare att skilja på och växla mellan flera grupper med korta
+  gruppbeskrivningar, senaste grupper och en samlad vy för alla grupper.
+- Matställen visar nu topplistans ledare direkt och skiljer tydligare på gruppens
+  lista och nya ställen.
+- En sökning utan träff kan fortsätta till tilläggsflödet utan att söktexten
+  behöver skrivas om.
+- Sökträffar blandar inte längre ihop en vald utgångspunkt med matställets
+  faktiska plats.
+
+## [1.39.0] – 2026-09-12
+
+### Nytt
+
+- Nya omdömen bygger på **Smak**, **Service** och **Prisvärdhet** samt
+  **Atmosfär** när vistelsen på plats är en relevant del av upplevelsen.
+  Helhetsbetyget räknas automatiskt som ett transparent medelvärde i stället
+  för att sättas separat.
+
+### Förbättrat
+
+- Hämtmat och ställen som endast passar för **Snabbt och enkelt** bedöms utan
+  Atmosfär. Decimalbetyg visas med motsvarande delvis fyllda stjärnor.
+- Äldre omdömen behåller sin tidigare betygsmodell, och verkliga besök kan
+  fortfarande sparas även om **Passar för** behöver kompletteras innan ett nytt
+  omdöme lämnas.
+
 ## [1.38.12] – 2026-09-11
 
 ### Nytt

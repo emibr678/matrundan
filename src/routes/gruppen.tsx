@@ -11,6 +11,7 @@ import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
 import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { appPageTitle } from "@/lib/app-environment";
 import { computeMemberProgression } from "@/lib/matrundan/gamification";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { formatRating } from "@/lib/matrundan/version";
@@ -25,12 +26,12 @@ export const Route = createFileRoute("/gruppen")({
   search: { middlewares: [stripSearchParams(GROUP_SEARCH_DEFAULTS)] },
   head: () => ({
     meta: [
-      { title: "Gruppen · Matrundan" },
+      { title: appPageTitle("Gruppen") },
       {
         name: "description",
         content: "Se gruppens medlemmar, höjdpunkter, favoriter och senaste aktivitet.",
       },
-      { property: "og:title", content: "Gruppen · Matrundan" },
+      { property: "og:title", content: appPageTitle("Gruppen") },
       { property: "og:description", content: "Gänget, aktivitet och favoriter." },
     ],
   }),

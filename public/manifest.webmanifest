@@ -1,6 +1,7 @@
 {
   "name": "Matrundan",
   "short_name": "Matrundan",
+  "id": "/",
   "description": "Gruppens privata matställeslista – lägg till, välj nästa stopp och minns era besök tillsammans.",
   "lang": "sv",
   "start_url": "/",

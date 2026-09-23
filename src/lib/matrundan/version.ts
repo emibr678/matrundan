@@ -3,6 +3,96 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_41_0_CHANGELOG: ChangelogEntry = {
+  version: "1.41.0",
+  date: "2026-09-22",
+  summary: "Besök samlar fler gemensamma minnen och omdömen är tydligare över tid.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Flera faktiska deltagare kan bidra med varsin privat bild till samma gemensamma besök.",
+        "Ägare till äldre kompletta tredelade omdömen kan frivilligt lägga till Atmosfär när den senare blir relevant, efter en tydlig bekräftelse.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Gemensam besöksdata, personliga omdömen och personliga bilder har tydligare separata redigeringsvägar, och Atmosfärens beteende för Hämtmat och Snabbt & enkelt förklaras där konsekvensen är relevant.",
+        "Historiska omdömen behåller den betygsmodell de skapades med; äldre omdömen med bara helhetsbetyg bevaras utan fabricerade detaljbetyg.",
+        "Gruppens samlade betyg och deltagarnas omdömen har fått en tydligare mobilhierarki, och reaktioner väljs i en liten förankrad meny nära kommentaren.",
+        "Passar för använder nu Snabbt & enkelt konsekvent, medan dryckesbesök visas som Ett glas med tydligare förklaring om att besöket sparas utan betyg.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Texten för äldre omdömen med endast helhetsbetyg visas inte längre dubbelt i redigeringsdialogen.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_40_0_CHANGELOG: ChangelogEntry = {
+  version: "1.40.0",
+  date: "2026-09-19",
+  summary: "Besök går att rätta och topplistor speglar verkliga besök tydligare.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Den som registrerade ett besök kan nu korrigera datum, tillfälle, Hämtmat och faktiska deltagare i efterhand utan att skapa ett nytt besök.",
+        "Topplistan kan filtreras på verkliga besökstillfällen som Lunch, Middag och Fika och kombineras med Passar för och Hämtmat. Det visade betyget bygger bara på relevanta besök och visar hur många besök och omdömen som ligger bakom.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "När ett besök rättas behålls befintliga omdömen, gäster och delningar på samma gemensamma besök.",
+        "Platsmetadata använder tydligare begrepp: Typ av ställe, Kök och inriktning samt Passar för. Interna begrepp om grundtyp och gruppoverride hålls under huven.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_39_1_CHANGELOG: ChangelogEntry = {
+  version: "1.39.1",
+  date: "2026-09-19",
+  summary: "Gruppbyte och Matställen är tydligare i vardagen.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "Det är enklare att skilja på och växla mellan flera grupper med korta gruppbeskrivningar, senaste grupper och en samlad vy för alla grupper.",
+        "Matställen visar nu topplistans ledare direkt och skiljer tydligare på gruppens lista och nya ställen.",
+        "En sökning utan träff kan fortsätta till tilläggsflödet utan att söktexten behöver skrivas om.",
+        "Sökträffar blandar inte längre ihop en vald utgångspunkt med matställets faktiska plats.",
+      ],
+    },
+  ],
+};
+
+const VERSION_1_39_0_CHANGELOG: ChangelogEntry = {
+  version: "1.39.0",
+  date: "2026-09-12",
+  summary: "Helhetsbetyget speglar nu de delar av matupplevelsen som faktiskt bedöms.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Nya omdömen bygger på Smak, Service och Prisvärdhet samt Atmosfär när vistelsen på plats är en relevant del av upplevelsen. Helhetsbetyget räknas automatiskt som ett transparent medelvärde.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hämtmat och ställen som endast passar för Snabbt och enkelt bedöms utan Atmosfär, medan decimalbetyg visas med motsvarande delvis fyllda stjärnor.",
+        "Äldre omdömen behåller sin tidigare betygsmodell och verkliga besök kan fortfarande sparas även om Passar för behöver kompletteras innan ett nytt omdöme lämnas.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_38_12_CHANGELOG: ChangelogEntry = {
   version: "1.38.12",
   date: "2026-09-11",
@@ -347,6 +437,10 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_41_0_CHANGELOG,
+  VERSION_1_40_0_CHANGELOG,
+  VERSION_1_39_1_CHANGELOG,
+  VERSION_1_39_0_CHANGELOG,
   VERSION_1_38_12_CHANGELOG,
   VERSION_1_38_11_CHANGELOG,
   VERSION_1_38_10_CHANGELOG,

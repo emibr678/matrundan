@@ -33,22 +33,28 @@ test("exempelgruppen visar personlig status, gäster, historik och avsiktlig kar
   await page.goto("/matstallen/p1");
   await page.getByRole("button", { name: "Registrera besök" }).click();
 
+  await expect(page.getByText("Välj alla som var med.", { exact: true })).toBeVisible();
+  const registrar = page.getByRole("button", { name: "Alex, du, deltagare" });
+  await expect(registrar).toBeDisabled();
+  await expect(registrar.getByText("Du", { exact: true })).toBeVisible();
   await expect(
-    page.getByText(
-      "Du registrerar besöket och räknas därför som deltagare. Välj vilka andra som var med.",
-    ),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", {
-      name: "Alex är deltagare eftersom du registrerar besöket",
-    }),
-  ).toBeDisabled();
+    page.getByText("Gäster hör bara till besöket och visas anonymt vid delning."),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Lägg till gäst" }).click();
+  await expect(
+    page.getByText("Gäster hör bara till besöket och visas anonymt vid delning."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Avbryt lägg till gäst" })).toBeVisible();
   await page.getByLabel("Gästens namn").fill("Maja");
   await page.getByRole("button", { name: "Lägg till", exact: true }).click();
+  await expect(page.getByLabel("Gästens namn")).toHaveCount(0);
   await expect(page.getByText("Maja")).toBeVisible();
+  await expect(page.getByText(/Bilden beskärs inte/)).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Helhetsbetyg: 5 av 5" }).click();
+  for (const dimension of ["Smak", "Service", "Prisvärdhet", "Atmosfär"]) {
+    await page.getByRole("button", { name: `${dimension}: 5 av 5` }).click();
+  }
+  await expect(page.getByText("Räknas automatiskt")).toBeVisible();
   await page.getByRole("button", { name: "Spara besök" }).click();
   await expect(page.getByText("Besök registrerat")).toBeVisible();
 

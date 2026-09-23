@@ -65,7 +65,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(page.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
 
   const storage = await page.evaluate(() => ({
-    current: window.sessionStorage.getItem("matrundan.exampleState.v3"),
+    current: window.sessionStorage.getItem("matrundan.exampleState.v4"),
     legacy: window.sessionStorage.getItem("matrundan.exampleState.v1"),
     sandbox: window.localStorage.getItem("matrundan.state.v1"),
   }));
@@ -85,6 +85,45 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   ).toBeVisible();
 });
 
+test("exempelgruppen använder samma #307-logik som registreringsflödet", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+
+  await page.goto("/matstallen/p8");
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  let dialog = page.getByRole("dialog", { name: "Registrera besök" });
+  await expect(dialog.getByText("Atmosfär ingår inte för Snabbt & enkelt.")).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Varför ingår inte Atmosfär för Snabbt & enkelt?" }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Snabbt & enkelt i exempelgruppen");
+
+  await page.goto("/matstallen/p7");
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  dialog = page.getByRole("dialog", { name: "Registrera besök" });
+  await dialog.getByRole("switch", { name: "Markera besöket som Hämtmat" }).click();
+  await expect(dialog.getByText("Atmosfär ingår inte vid Hämtmat.", { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Varför ingår inte Atmosfär vid Hämtmat?" }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Hämtmat i exempelgruppen");
+
+  await page.goto("/matstallen/p10");
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  const classification = page.getByRole("dialog", { name: "När passar stället bäst?" });
+  await expect(classification).toBeVisible();
+  await expect(
+    classification.getByText(
+      "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället. Valet sparas för gruppen.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(classification.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
+  await expect(classification.getByText(/saknar Passar för/)).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Passar för-grinden i exempelgruppen");
+});
+
 test("exempelgruppens centrala scenarier går att nå utan privat dataläckage", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
@@ -94,8 +133,29 @@ test("exempelgruppens centrala scenarier går att nå utan privat dataläckage",
   await expect(page.getByRole("heading", { name: "Kardemummaköket" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Besök (2)" })).toBeVisible();
   await page.getByRole("button", { name: /Öppna besök av Alex/ }).click();
-  await expect(page.getByRole("heading", { name: "Foto från besöket" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ta bort foto" })).toBeVisible();
+  const photoGallery = page.getByRole("region", { name: "Bilder från besöket" });
+  await expect(photoGallery).toBeVisible();
+  await expect(photoGallery.getByText("1 / 2", { exact: true })).toBeVisible();
+
+  const robinPhoto = photoGallery.getByRole("group", { name: "Bild från Robin" });
+  await expect(robinPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(0);
+  await expect(
+    robinPhoto.getByRole("button", { name: "Fler bildalternativ för Robin" }),
+  ).toBeVisible();
+
+  const alexPhoto = photoGallery.getByRole("group", { name: "Bild från Alex, din bild" });
+  await expect(alexPhoto.getByRole("button", { name: "Byt bild" })).toHaveCount(0);
+  await alexPhoto.getByRole("button", { name: "Fler alternativ för din bild" }).click();
+  await expect(page.getByRole("menuitem", { name: "Byt bild" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Ta bort din bild" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await robinPhoto.getByRole("button", { name: "Öppna bild från Robin" }).click();
+  const photoViewer = page.getByRole("dialog", { name: "Bilder från besöket" });
+  await expect(photoViewer).toBeVisible();
+  await expect(photoViewer.getByAltText("Bild från Robin")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expectNoHorizontalOverflow(page, "Flerbildsgalleri i exempelbesöket");
 
   await page.goto("/matstallen/p3?visit=v2");
   await expect(page.getByText("Aya", { exact: true })).toBeVisible();

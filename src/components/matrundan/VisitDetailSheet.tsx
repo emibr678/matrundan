@@ -1,7 +1,15 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, Share2, Trash2, UserRoundCheck, Users2 } from "lucide-react";
+import {
+  MapPin,
+  MoreHorizontal,
+  Pencil,
+  Share2,
+  Trash2,
+  UserRoundCheck,
+  Users2,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -11,6 +19,13 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,8 +46,8 @@ import { VisitGuestParticipationPrompt } from "./VisitGuestParticipationPrompt";
 import { VisitParticipationControls } from "./VisitParticipationControls";
 import { VisitPhotoManager } from "./VisitPhotoManager";
 import { VisitReviewsSection } from "./VisitReviewsSection";
-import { canAddOrReplaceVisitPhoto, canDeleteVisitPhoto } from "@/lib/matrundan/visit-photo";
-import { canDeleteOriginalVisit } from "@/lib/matrundan/visit-permissions";
+import { canDeleteOriginalVisit, canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
+import { EditVisitDialog } from "./EditVisitDialog";
 
 function formatVisitDate(iso: string) {
   const calendarDate = /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(0, 10)}T12:00:00` : iso;
@@ -87,14 +102,13 @@ export function VisitDetailSheet({
       activeGroupRole === "admin");
   const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
-  const canReplacePhoto =
-    !!visit && canAddOrReplaceVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
-  const canRemovePhoto =
-    !!visit && canDeleteVisitPhoto(visit, state.currentUserId, currentRole, groupArchived);
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
+  const canEdit =
+    !!visit && !demoReadOnly && canEditOriginalVisit(visit, state.currentUserId, groupArchived);
 
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
   const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
@@ -141,10 +155,13 @@ export function VisitDetailSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-md">
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto p-0 sm:max-w-md [&>button]:z-20"
+        >
           {visit && place ? (
             <div className="flex flex-col">
-              <SheetHeader className="space-y-0 border-b border-border/60 bg-gradient-to-br from-sage/40 to-secondary p-5 text-left">
+              <SheetHeader className="relative space-y-0 border-b border-border/60 bg-gradient-to-br from-sage/40 to-secondary p-5 pr-24 text-left">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                     Besök
@@ -184,6 +201,54 @@ export function VisitDetailSheet({
                 <SheetDescription className="mt-1 text-xs">
                   {formatVisitDate(visit.date)} · {formatVisitContext(visit)}
                 </SheetDescription>
+
+                {canEdit || canShare || canUnlink || canDelete ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-12 top-3 h-9 w-9 rounded-full text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                        aria-label="Besöksalternativ"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {canEdit ? (
+                        <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                          <Pencil className="h-4 w-4" />
+                          Redigera besök
+                        </DropdownMenuItem>
+                      ) : canShare ? (
+                        <DropdownMenuItem onSelect={() => setShareOpen(true)}>
+                          <Share2 className="h-4 w-4" />
+                          Lägg till i annan grupp
+                        </DropdownMenuItem>
+                      ) : null}
+                      {canUnlink || canDelete ? <DropdownMenuSeparator /> : null}
+                      {canUnlink ? (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setConfirmUnlink(true)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Ta bort från gruppen
+                        </DropdownMenuItem>
+                      ) : null}
+                      {canDelete ? (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setConfirmDelete(true)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Radera besöket
+                        </DropdownMenuItem>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
               </SheetHeader>
 
               <div className="space-y-4 p-5">
@@ -310,11 +375,7 @@ export function VisitDetailSheet({
                   />
                 ) : null}
 
-                <VisitPhotoManager
-                  visit={visit}
-                  canReplace={canReplacePhoto}
-                  canDelete={canRemovePhoto}
-                />
+                <VisitPhotoManager visit={visit} />
 
                 <Button asChild variant="outline" className="w-full">
                   <Link
@@ -325,40 +386,21 @@ export function VisitDetailSheet({
                     Till stället
                   </Link>
                 </Button>
-
-                {canShare ? (
-                  <Button variant="secondary" className="w-full" onClick={() => setShareOpen(true)}>
-                    <Share2 className="h-4 w-4" />
-                    Lägg till i annan grupp
-                  </Button>
-                ) : null}
-
-                {canUnlink ? (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-center text-destructive"
-                    onClick={() => setConfirmUnlink(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Ta bort från gruppen
-                  </Button>
-                ) : null}
-
-                {canDelete ? (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-center text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => setConfirmDelete(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Radera besöket
-                  </Button>
-                ) : null}
               </div>
             </div>
           ) : null}
         </SheetContent>
       </Sheet>
+
+      {visit && place ? (
+        <EditVisitDialog
+          visit={visit}
+          place={place}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          onSaved={reload}
+        />
+      ) : null}
 
       {isLive && activeGroupId && !groupArchived ? (
         <>
@@ -401,8 +443,9 @@ export function VisitDetailSheet({
           <AlertDialogHeader>
             <AlertDialogTitle>Radera besöket på {place?.name ?? "matstället"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Besöket, fotot och alla omdömen tas bort. Gruppens progression räknas om. Om besöket
-              har lagts till i andra grupper försvinner det även där. Det går inte att ångra.
+              Besöket, bilderna och alla omdömen tas bort. Gruppens progression räknas om. Om
+              besöket har lagts till i andra grupper försvinner det även där. Det går inte att
+              ångra.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

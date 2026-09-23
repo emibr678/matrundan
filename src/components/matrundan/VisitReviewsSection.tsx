@@ -1,11 +1,24 @@
 import * as React from "react";
-import { MessageCircle } from "lucide-react";
+import {
+  Coins,
+  HandPlatter,
+  MessageCircle,
+  Sparkles,
+  Star,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
+import {
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelIncludesAtmosphere,
+} from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit, VisibleReview } from "@/lib/matrundan/types";
@@ -44,6 +57,7 @@ export function VisitReviewsSection({
   const handledFocusKeyRef = React.useRef<string | null>(null);
   const focusHighlightTimeoutRef = React.useRef<number | null>(null);
   const currentUserId = state.currentUserId;
+  const place = state.places.find((item) => item.id === visit.placeId);
   const scored = visitHasScore(visit);
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const participationStatus =
@@ -54,7 +68,9 @@ export function VisitReviewsSection({
   );
   const writable =
     !groupArchived && !demoReadOnly && (mode === "live" ? Boolean(activeGroupId) : true);
-  const canAddOwnReview = participationStatus === "participant" && !summary.ownReview;
+  const canAddOwnReview =
+    participationStatus === "participant" &&
+    (scored ? !summary.ownReview || summary.ownReview.overall == null : !summary.ownReview);
   const visibleReviews = showAll
     ? summary.reviews
     : summary.reviews.slice(0, INITIAL_VISIBLE_REVIEWS);
@@ -132,6 +148,15 @@ export function VisitReviewsSection({
     }
   }
 
+  const summaryDetails = [
+    { label: "Smak", value: visit.taste, icon: UtensilsCrossed },
+    { label: "Service", value: visit.service, icon: HandPlatter },
+    { label: "Prisvärt", value: visit.value, icon: Coins },
+    ...(visit.atmosphere != null
+      ? [{ label: "Atmosfär", value: visit.atmosphere, icon: Sparkles }]
+      : []),
+  ];
+
   return (
     <VisitReviewReactionsProvider
       visit={visit}
@@ -147,25 +172,29 @@ export function VisitReviewsSection({
             <p className="mt-0.5 text-xs text-muted-foreground">
               {scored
                 ? visitReviewProgressLabel(summary.reviewCount, summary.participantCount)
-                : "Något att dricka · påverkar inte ställets betyg"}
+                : "Ett glas · påverkar inte ställets betyg"}
             </p>
           </div>
         </div>
 
         <Card className="overflow-hidden rounded-2xl border-border/70">
-          <div className="space-y-3 p-3">
+          <div
+            className="space-y-3 border-b border-primary/15 bg-secondary/50 p-4"
+            data-group-summary
+          >
             {scored ? (
               visit.overall > 0 ? (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground/75">Gruppens betyg</p>
+                  <div className="mt-1 flex items-center gap-2" data-group-rating>
                     <RatingStars value={visit.overall} size={18} />
                     <span className="font-display text-xl font-semibold">
                       {formatRating(visit.overall)} / 5
                     </span>
+                    <span className="sr-only">
+                      Gruppens helhetsbetyg {formatRating(visit.overall)} av 5
+                    </span>
                   </div>
-                  <span className="sr-only">
-                    Gruppens helhetsbetyg {formatRating(visit.overall)} av 5
-                  </span>
                 </div>
               ) : (
                 <p className="text-sm font-medium">Inget omdöme ännu</p>
@@ -177,11 +206,20 @@ export function VisitReviewsSection({
               </div>
             )}
 
-            {scored && (visit.taste != null || visit.value != null || visit.service != null) ? (
-              <div className="grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center">
-                <SummaryDetail label="Smak" value={visit.taste} />
-                <SummaryDetail label="Prisvärt" value={visit.value} />
-                <SummaryDetail label="Service" value={visit.service} />
+            {scored && summaryDetails.some((detail) => detail.value != null) ? (
+              <div
+                className={`grid gap-2 border-t border-border/60 pt-3 text-center ${
+                  summaryDetails.length === 4 ? "grid-cols-4" : "grid-cols-3"
+                }`}
+              >
+                {summaryDetails.map((detail) => (
+                  <SummaryDetail
+                    key={detail.label}
+                    label={detail.label}
+                    value={detail.value}
+                    icon={detail.icon}
+                  />
+                ))}
               </div>
             ) : null}
 
@@ -197,11 +235,12 @@ export function VisitReviewsSection({
           </div>
 
           {canAddOwnReview || visibleReviews.length > 0 ? (
-            <div className="divide-y divide-border/60 border-t border-border/60">
+            <div className="divide-y divide-border/60">
               {canAddOwnReview ? (
                 <OwnReviewPrompt
                   visit={visit}
                   placeName={placeName}
+                  placeOccasions={place?.occasions ?? []}
                   currentUserId={currentUserId}
                   writable={writable}
                   mode={mode === "live" ? "live" : "demo"}
@@ -228,6 +267,8 @@ export function VisitReviewsSection({
                     groupArchived={groupArchived}
                     demoReadOnly={demoReadOnly}
                     savingVisibility={savingVisibility}
+                    scoreless={!scored}
+                    isTakeaway={visit.isTakeaway === true}
                     onInteract={() => clearReviewHighlight(review.id)}
                     onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
                   />
@@ -268,6 +309,7 @@ export function VisitReviewsSection({
 function OwnReviewPrompt({
   visit,
   placeName,
+  placeOccasions,
   currentUserId,
   writable,
   mode,
@@ -276,6 +318,7 @@ function OwnReviewPrompt({
 }: {
   visit: Visit;
   placeName: string;
+  placeOccasions: Visit extends never ? never : import("@/lib/matrundan/types").Occasion[];
   currentUserId: string;
   writable: boolean;
   mode: "demo" | "live";
@@ -312,6 +355,8 @@ function OwnReviewPrompt({
             visitId={visit.id}
             placeName={placeName}
             scoreless={scoreless}
+            isTakeaway={visit.isTakeaway === true}
+            placeOccasions={placeOccasions}
             disabled={!writable}
             onSaved={onChanged}
           />
@@ -320,6 +365,8 @@ function OwnReviewPrompt({
             visitId={visit.id}
             placeName={placeName}
             scoreless={scoreless}
+            isTakeaway={visit.isTakeaway === true}
+            placeOccasions={placeOccasions}
             disabled={!writable}
           />
         )}
@@ -341,6 +388,8 @@ function ReviewRow({
   groupArchived,
   demoReadOnly,
   savingVisibility,
+  scoreless,
+  isTakeaway,
   onInteract,
   onToggleVisibility,
 }: {
@@ -356,6 +405,8 @@ function ReviewRow({
   groupArchived: boolean;
   demoReadOnly: boolean;
   savingVisibility: boolean;
+  scoreless: boolean;
+  isTakeaway: boolean;
   onInteract: () => void;
   onToggleVisibility: (next: boolean) => void;
 }) {
@@ -363,15 +414,60 @@ function ReviewRow({
   const comment = review.comment?.trim();
   const showComment = Boolean(comment && (own || review.commentVisible));
   const reactableComment = Boolean(comment && review.commentVisible);
-  const hasRating = review.ratingVisible && review.overall != null;
-  const hasDetails =
-    hasRating && (review.taste != null || review.value != null || review.service != null);
+  const activeModel = effectiveReviewModel(review.reviewModel, isTakeaway);
+  const activeOverall = effectiveReviewOverall(review, isTakeaway);
+  const hasRating = !scoreless && review.ratingVisible && activeOverall != null;
+  const detailItems = hasRating
+    ? [
+        { label: "Smak", value: review.taste },
+        { label: "Service", value: review.service },
+        { label: "Prisvärt", value: review.value },
+        ...(reviewModelIncludesAtmosphere(activeModel) && review.atmosphere != null
+          ? [{ label: "Atmosfär", value: review.atmosphere }]
+          : []),
+      ].filter((detail) => detail.value != null)
+    : [];
   const longComment = Boolean(showComment && (comment?.length ?? 0) > 110);
-  const canEditOwn = own && !groupArchived && !demoReadOnly;
+  const canEditOwn =
+    own &&
+    !groupArchived &&
+    !demoReadOnly &&
+    (scoreless || review.overall != null || review.reviewModel != null);
   const canToggleComment = canEditOwn && live && Boolean(comment);
   const showFullComment = commentExpanded || focused;
   const editAction = canEditOwn ? (
-    <EditReviewDialog review={review} placeName={placeName} compact />
+    <EditReviewDialog
+      review={review}
+      placeName={placeName}
+      compact
+      scoreless={scoreless}
+      isTakeaway={isTakeaway}
+    />
+  ) : null;
+  const commentContent = showComment ? (
+    <div className="min-w-0">
+      <p
+        className={`text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] ${
+          showFullComment ? "" : "line-clamp-3"
+        }`}
+      >
+        {comment}
+      </p>
+      {longComment && !focused ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className="mt-0.5 min-h-10 w-auto px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+          aria-expanded={commentExpanded}
+          onClick={() => setCommentExpanded((expanded) => !expanded)}
+        >
+          {commentExpanded ? "Visa mindre" : "Visa mer"}
+        </Button>
+      ) : null}
+      {own && comment && !review.commentVisible ? (
+        <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
+      ) : null}
+    </div>
   ) : null;
 
   return (
@@ -405,57 +501,49 @@ function ReviewRow({
               </Badge>
             ) : null}
           </div>
-          {showComment ? (
-            <p
-              className={`mt-1 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] ${
-                showFullComment ? "" : "line-clamp-3"
-              }`}
-            >
-              {comment}
-            </p>
-          ) : null}
-          {own && comment && !review.commentVisible ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">Kommentaren är dold i gruppen.</p>
-          ) : null}
         </div>
         {hasRating ? (
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <RatingStars value={review.overall as number} size={13} />
-            <span className="text-xs font-medium">
-              {formatRating(review.overall as number)} / 5
+          <div className="shrink-0 pt-0.5" data-review-rating>
+            <span className="flex items-center gap-1 text-sm font-semibold" aria-hidden="true">
+              <Star className="h-3.5 w-3.5 fill-mustard stroke-mustard-foreground/40" />
+              {formatRating(activeOverall as number)}
             </span>
             <span className="sr-only">
-              {name} gav {formatRating(review.overall as number)} av 5
+              {name} gav {formatRating(activeOverall as number)} av 5
             </span>
           </div>
         ) : null}
       </div>
 
-      {longComment && !focused ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className="mt-0.5 min-h-10 w-auto px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-          aria-expanded={commentExpanded}
-          onClick={() => setCommentExpanded((expanded) => !expanded)}
-        >
-          {commentExpanded ? "Visa mindre" : "Visa mer"}
-        </Button>
-      ) : null}
-
-      {hasDetails ? (
-        <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl bg-secondary/35 p-2 text-center">
-          <ReviewDetail label="Smak" value={review.taste} />
-          <ReviewDetail label="Prisvärt" value={review.value} />
-          <ReviewDetail label="Service" value={review.service} />
+      {commentContent ? (
+        <div className="ml-10 mt-1">
+          {reactableComment ? (
+            <ReviewReactionBar
+              reviewId={review.id}
+              authorName={name}
+              canReact={!own}
+              content={commentContent}
+            />
+          ) : (
+            commentContent
+          )}
         </div>
       ) : null}
 
-      {reactableComment ? (
-        <ReviewReactionBar reviewId={review.id} authorName={name} trailingAction={editAction} />
-      ) : editAction ? (
-        <div className="mt-2 flex justify-end">{editAction}</div>
+      {detailItems.length > 0 ? (
+        <div
+          className={`mt-2 grid gap-x-2 gap-y-1 border-t border-border/40 pt-2 text-center ${
+            detailItems.length === 4 ? "grid-cols-4" : "grid-cols-3"
+          }`}
+          data-review-details
+        >
+          {detailItems.map((detail) => (
+            <ReviewDetail key={detail.label} label={detail.label} value={detail.value} />
+          ))}
+        </div>
       ) : null}
+
+      {editAction ? <div className="mt-2 flex justify-end">{editAction}</div> : null}
 
       {canToggleComment ? (
         <div className="mt-1 flex justify-end">
@@ -501,10 +589,21 @@ function ParticipantAvatar({
   );
 }
 
-function SummaryDetail({ label, value }: { label: string; value?: number | null }) {
+function SummaryDetail({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value?: number | null;
+  icon: LucideIcon;
+}) {
   return (
-    <div className="min-w-0">
-      <div className="truncate text-[10px] font-medium text-muted-foreground">{label}</div>
+    <div className="min-w-0" data-summary-detail={label}>
+      <div className="flex min-w-0 items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground">
+        <Icon className="h-3 w-3 shrink-0 text-primary/65" aria-hidden="true" />
+        <span className="truncate">{label}</span>
+      </div>
       <div className="mt-0.5 text-sm font-semibold">
         {value != null ? formatRating(value) : "–"}
       </div>

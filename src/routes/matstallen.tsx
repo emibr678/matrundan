@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
+import { appPageTitle } from "@/lib/app-environment";
 
 import {
   Sheet,
@@ -31,7 +32,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { rankPlacesForOccasion, rankPlacesOverall } from "@/lib/matrundan/occasions";
+import { rankPlacesForOccasions, rankPlacesOverall } from "@/lib/matrundan/occasions";
+import {
+  RANKABLE_VISIT_MEALS,
+  ratingForPlaceInVisitContext,
+  type RankableVisitMeal,
+} from "@/lib/matrundan/visit-context-ranking";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import {
@@ -41,16 +47,17 @@ import {
   type Occasion,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
+import { VISIT_MEAL_LABEL } from "@/lib/matrundan/visit-context";
 
 export const Route = createFileRoute("/matstallen")({
   head: () => ({
     meta: [
-      { title: "Matställen · Matrundan" },
+      { title: appPageTitle("Matställen") },
       {
         name: "description",
         content: "Sök, filtrera och utforska gruppens matställen i lista eller på karta.",
       },
-      { property: "og:title", content: "Matställen · Matrundan" },
+      { property: "og:title", content: appPageTitle("Matställen") },
       {
         property: "og:description",
         content: "Gruppens gemensamma matställeslista.",
@@ -72,8 +79,6 @@ type Sort = "senaste" | "betyg" | "namn";
 type Filter = "alla" | "favoriter" | "nytt-for-gruppen" | "nytt-for-mig";
 type MissingField = "cuisines" | "occasions";
 type View = "lista" | "karta";
-type TopListFilter = Occasion | "alla";
-
 const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "alla", label: "Alla" },
   { key: "favoriter", label: "Favoriter" },
@@ -81,10 +86,19 @@ const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "nytt-for-gruppen", label: "Nytt för gruppen" },
 ];
 
-const TOP_LIST_FILTERS: { key: TopListFilter; label: string }[] = [
-  { key: "alla", label: "Alla" },
-  ...OCCASION_VALUES.map((key) => ({ key, label: OCCASION_LABEL[key] })),
-];
+const TOP_LIST_FILTERS = OCCASION_VALUES.map((key) => ({
+  key,
+  label: OCCASION_LABEL[key],
+}));
+
+const TOP_VISIT_FILTERS = RANKABLE_VISIT_MEALS.map((key) => ({
+  key,
+  label: VISIT_MEAL_LABEL[key],
+}));
+
+function toggleFilterValue<T extends string>(values: readonly T[], value: T): T[] {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
 
 function PlacesIndex() {
   const { state, demoReadOnly, avgRating, isFavorite, statusOf } = useStore();
@@ -94,7 +108,9 @@ function PlacesIndex() {
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
   const [occasion, setOccasion] = React.useState<Occasion | "alla">("alla");
   const [missingFields, setMissingFields] = React.useState<MissingField[]>([]);
-  const [topOccasion, setTopOccasion] = React.useState<TopListFilter>("alla");
+  const [topOccasions, setTopOccasions] = React.useState<Occasion[]>([]);
+  const [topVisits, setTopVisits] = React.useState<RankableVisitMeal[]>([]);
+  const [topTakeawayOnly, setTopTakeawayOnly] = React.useState(false);
   const [topOpen, setTopOpen] = React.useState(false);
 
   const [sort, setSort] = React.useState<Sort>("senaste");
@@ -102,6 +118,7 @@ function PlacesIndex() {
   const [view, setView] = React.useState<View>("lista");
   const [selectedPlaceId, setSelectedPlaceId] = React.useState<string | null>(null);
   const [addOpen, setAddOpen] = React.useState(false);
+  const [addInitialQuery, setAddInitialQuery] = React.useState("");
   const [filterOpen, setFilterOpen] = React.useState(false);
 
   const groupArchived = state.group.lifecycleStatus === "archived";
@@ -176,15 +193,30 @@ function PlacesIndex() {
     );
   }, [filtered, selectedPlaceId]);
 
-  const topRated = React.useMemo(
-    () =>
-      topOccasion === "alla"
-        ? rankPlacesOverall(activePlaces, avgRating)
-        : rankPlacesForOccasion(activePlaces, topOccasion, avgRating),
-    [activePlaces, avgRating, topOccasion],
+  const overallLeaderboardRating = React.useCallback(
+    (placeId: string) =>
+      ratingForPlaceInVisitContext(state.visits, placeId, {
+        meals: [],
+      }),
+    [state.visits],
   );
-  const hasRatings = activePlaces.some((place) => avgRating(place.id).count > 0);
-  const isSearching = query.trim().length > 0;
+  const overallTopRated = React.useMemo(
+    () => rankPlacesOverall(activePlaces, overallLeaderboardRating),
+    [activePlaces, overallLeaderboardRating],
+  );
+  const contextualRating = React.useCallback(
+    (placeId: string) =>
+      ratingForPlaceInVisitContext(state.visits, placeId, {
+        meals: topVisits,
+        takeawayOnly: topTakeawayOnly,
+      }),
+    [state.visits, topTakeawayOnly, topVisits],
+  );
+  const topRated = React.useMemo(
+    () => rankPlacesForOccasions(activePlaces, topOccasions, contextualRating),
+    [activePlaces, contextualRating, topOccasions],
+  );
+  const topLeader = overallTopRated[0] ?? null;
 
   const clearAdvanced = () => {
     setCategory("alla");
@@ -193,6 +225,20 @@ function PlacesIndex() {
     setSort("senaste");
   };
 
+  const openAdd = (initialQuery = "") => {
+    setAddInitialQuery(initialQuery);
+    setAddOpen(true);
+  };
+
+  const handleAddOpenChange = (open: boolean) => {
+    setAddOpen(open);
+    if (!open) setAddInitialQuery("");
+  };
+
+  const activePlaceCountLabel =
+    activePlaces.length === 1 ? "1 ställe" : `${activePlaces.length} ställen`;
+  const trimmedQuery = query.trim();
+
   const mappedCount = filtered.filter((place) => place.lat != null && place.lng != null).length;
   const unmappedCount = filtered.length - mappedCount;
   const mapItems = filtered.map((place) => ({
@@ -200,6 +246,7 @@ function PlacesIndex() {
     name: place.name,
     lat: place.lat,
     lng: place.lng,
+    category: place.category,
     eyebrow: CATEGORY_LABEL[place.category],
     description: [place.address, place.area, place.city].filter(Boolean).join(" · "),
     markerLabel: place.photo ?? "🍽️",
@@ -207,52 +254,61 @@ function PlacesIndex() {
   const MapComponent = exampleMode ? ExamplePlaceMap : PlaceMap;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 pt-2 md:max-w-4xl">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Vad gänget vill prova och har provat
-          </p>
-        </div>
-        {canWrite ? (
-          <Button onClick={() => setAddOpen(true)} size="sm" className="shrink-0 rounded-full">
-            <Plus className="h-4 w-4" /> Lägg till ställe
-          </Button>
-        ) : null}
+    <div className="mx-auto max-w-2xl space-y-3 pt-2 md:max-w-4xl">
+      <div>
+        <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">Vad gänget vill prova och har provat</p>
       </div>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Sök bland gruppens ställen"
-          className="rounded-2xl bg-card pl-9"
-          aria-label="Sök bland gruppens ställen"
-        />
-      </div>
-
-      {hasRatings && !isSearching ? (
+      {topLeader ? (
         <Collapsible open={topOpen} onOpenChange={setTopOpen}>
           <section
             aria-labelledby="place-leaderboard-heading"
             data-testid="occasion-leaderboard"
-            className="rounded-2xl border border-border/70 bg-card/60 px-3 py-2"
+            className="rounded-2xl border border-border/70 bg-card/60 px-3 py-3"
           >
-            <div className="flex items-center gap-1">
-              <h2 id="place-leaderboard-heading" className="font-display text-lg">
-                Topplista
-              </h2>
-              <OccasionGuide compact />
+            <div className="flex min-w-0 items-center gap-3">
+              {topOpen ? (
+                <h2 id="place-leaderboard-heading" className="min-w-0 flex-1 font-display text-lg">
+                  Topplista
+                </h2>
+              ) : (
+                <Link
+                  to="/matstallen/$placeId"
+                  params={{ placeId: topLeader.place.id }}
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Ledare i topplistan: ${topLeader.place.name}`}
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                    1
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h2
+                      id="place-leaderboard-heading"
+                      className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                    >
+                      Topplista
+                    </h2>
+                    <div className="truncate text-sm font-medium">{topLeader.place.name}</div>
+                    <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                      <RatingStars value={topLeader.rating.overall} size={12} />
+                      <span className="truncate text-xs text-muted-foreground">
+                        {formatRating(topLeader.rating.overall)} · {topLeader.rating.count}{" "}
+                        {topLeader.rating.count === 1 ? "omdöme" : "omdömen"}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              )}
               <CollapsibleTrigger asChild>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="ml-auto min-h-11 rounded-full text-xs text-muted-foreground"
+                  className="ml-auto min-h-11 shrink-0 rounded-full px-3 text-xs text-muted-foreground"
+                  aria-label={topOpen ? "Dölj topplista" : "Visa topp 3"}
                 >
-                  {topOpen ? "Dölj" : "Visa"}
+                  {topOpen ? "Dölj" : "Visa topp 3"}
                   <ChevronDown
                     className={["h-4 w-4 transition-transform", topOpen ? "rotate-180" : ""].join(
                       " ",
@@ -261,101 +317,171 @@ function PlacesIndex() {
                 </Button>
               </CollapsibleTrigger>
             </div>
-            <p className="text-[11px] text-muted-foreground">Gruppens högst betygsatta ställen</p>
 
-            <CollapsibleContent className="pt-3">
-              <div className="mb-2 flex flex-wrap gap-2" role="group" aria-label="Välj topplista">
-                {TOP_LIST_FILTERS.map((item) => {
-                  const active = topOccasion === item.key;
-                  return (
+            <CollapsibleContent className="pt-1.5">
+              <div className="space-y-1.5">
+                <div>
+                  <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
+                    <span>Passar för</span>
+                    <span className="-my-1.5 inline-flex">
+                      <OccasionGuide compact />
+                    </span>
+                  </div>
+                  <div
+                    className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
+                    role="group"
+                    aria-label="Filtrera topplistan på Passar för. Inget val visar alla."
+                  >
+                    {TOP_LIST_FILTERS.map((item) => {
+                      const active = topOccasions.includes(item.key);
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() =>
+                            setTopOccasions((current) => toggleFilterValue(current, item.key))
+                          }
+                          aria-pressed={active}
+                          aria-label={`Filtrera topplistan på ${item.label}`}
+                          className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Badge
+                            variant={active ? "default" : "outline"}
+                            className="w-full cursor-pointer justify-center rounded-full px-1.5 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
+                          >
+                            {item.label}
+                          </Badge>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-0.5 text-sm font-medium text-foreground">Tillfälle</div>
+                  <div
+                    className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-2"
+                    role="group"
+                    aria-label="Filtrera topplistan på besökstillfälle. Inget val visar alla tillfällen."
+                  >
+                    {TOP_VISIT_FILTERS.map((item) => {
+                      const active = topVisits.includes(item.key);
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() =>
+                            setTopVisits((current) => toggleFilterValue(current, item.key))
+                          }
+                          aria-pressed={active}
+                          aria-label={`Filtrera topplistan på ${item.label}`}
+                          className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Badge
+                            variant={active ? "default" : "outline"}
+                            className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
+                          >
+                            {item.label}
+                          </Badge>
+                        </button>
+                      );
+                    })}
                     <button
-                      key={item.key}
                       type="button"
-                      onClick={() => setTopOccasion(item.key)}
-                      aria-pressed={active}
-                      aria-label={
-                        item.key === "alla"
-                          ? "Visa topplista för alla betyg"
-                          : `Visa topplista för ${item.label}`
-                      }
-                      className="min-h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => setTopTakeawayOnly((current) => !current)}
+                      aria-pressed={topTakeawayOnly}
+                      aria-label="Filtrera topplistan på hämtmat"
+                      className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Badge
-                        variant={active ? "default" : "outline"}
-                        className="cursor-pointer rounded-full px-3 py-1 text-xs"
+                        variant={topTakeawayOnly ? "default" : "outline"}
+                        className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
                       >
-                        {item.label}
+                        Hämtmat
                       </Badge>
                     </button>
-                  );
-                })}
+                  </div>
+                </div>
               </div>
 
-              {topRated.length > 0 ? (
-                <div className="grid min-w-0 gap-2 md:grid-cols-3">
-                  {topRated.map(({ place, rating, rank }) => (
-                    <Link
-                      key={place.id}
-                      to="/matstallen/$placeId"
-                      params={{ placeId: place.id }}
-                      className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        {rank}
-                      </span>
-                      <PlaceThumb place={place} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">{place.name}</div>
-                        <div className="mt-0.5 flex items-center gap-2">
-                          <RatingStars value={rating.overall} size={12} />
-                          <span className="text-xs text-muted-foreground">
-                            {formatRating(rating.overall)} · {rating.count} besök
-                          </span>
+              <div className="mt-3">
+                {topRated.length > 0 ? (
+                  <div className="grid min-w-0 gap-2 md:grid-cols-3">
+                    {topRated.map(({ place, rating, rank }) => (
+                      <Link
+                        key={place.id}
+                        to="/matstallen/$placeId"
+                        params={{ placeId: place.id }}
+                        className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                          {rank}
+                        </span>
+                        <PlaceThumb place={place} size="sm" />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-medium">{place.name}</div>
+                          <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                            <RatingStars value={rating.overall} size={12} />
+                            <span className="min-w-0 truncate text-xs text-muted-foreground">
+                              {formatRating(rating.overall)} · {rating.visitCount ?? 0} besök ·{" "}
+                              {rating.count} {rating.count === 1 ? "omdöme" : "omdömen"}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
-                  {topOccasion === "alla"
-                    ? "Inga betyg ännu — de kommer när gänget har provat något."
-                    : `Inga betyg för ${OCCASION_LABEL[topOccasion].toLocaleLowerCase("sv")} ännu — de kommer när gänget har provat något.`}
-                </div>
-              )}
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
+                    {topOccasions.length === 0 && topVisits.length === 0 && !topTakeawayOnly
+                      ? "Inga betyg ännu — de kommer när gänget har provat något."
+                      : "Inga betyg matchar de valda filtren ännu."}
+                  </div>
+                )}
+              </div>
             </CollapsibleContent>
           </section>
         </Collapsible>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {QUICK_FILTERS.map((item) => {
-          const active = filter === item.key;
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setFilter(item.key)}
-              aria-pressed={active}
-              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Badge
-                variant={active ? "default" : "outline"}
-                className="min-h-8 cursor-pointer rounded-full px-3 py-1"
-              >
-                {item.label}
-              </Badge>
-            </button>
-          );
-        })}
+      <div className="flex items-center justify-between gap-3 pt-1">
+        <div className="min-w-0">
+          <h2 className="font-display text-xl font-semibold">Gruppens ställen</h2>
+          <p className="text-xs text-muted-foreground">
+            {activePlaceCountLabel} som gruppen vill prova eller har besökt
+          </p>
+        </div>
+        {canWrite ? (
+          <Button
+            type="button"
+            onClick={() => openAdd()}
+            size="sm"
+            className="shrink-0 rounded-full"
+            aria-label="Lägg till ställe"
+          >
+            <Plus className="h-4 w-4" /> Lägg till
+          </Button>
+        ) : null}
+      </div>
 
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Sök bland gruppens ställen"
+            className="h-10 rounded-2xl bg-card pl-9"
+            aria-label="Sök bland gruppens ställen"
+          />
+        </div>
         <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
           <SheetTrigger asChild>
             <Button
               variant="outline"
               size="sm"
-              className="ml-auto rounded-full"
+              className="h-10 shrink-0 rounded-2xl px-3"
               aria-label="Öppna filter och sortering"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -373,7 +499,7 @@ function PlacesIndex() {
               <SheetDescription>Samma urval används i både listan och kartan.</SheetDescription>
             </SheetHeader>
             <div className="space-y-5 py-4">
-              <FilterGroup label="Kategori">
+              <FilterGroup label="Typ av ställe">
                 <ChipRow
                   options={[
                     { key: "alla", label: "Alla" },
@@ -444,6 +570,28 @@ function PlacesIndex() {
         </Sheet>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        {QUICK_FILTERS.map((item) => {
+          const active = filter === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setFilter(item.key)}
+              aria-pressed={active}
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Badge
+                variant={active ? "default" : "outline"}
+                className="min-h-8 cursor-pointer rounded-full px-3 py-1"
+              >
+                {item.label}
+              </Badge>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" aria-label="Välj vy">
         <button
           type="button"
@@ -469,7 +617,7 @@ function PlacesIndex() {
 
       {sort === "betyg" ? (
         <p className="text-xs text-muted-foreground">
-          Sorterat på gruppens medelbetyg. Bara ställen med minst ett besök visas.
+          Sorterat på gruppens medelbetyg. Bara ställen med minst ett omdöme visas.
         </p>
       ) : null}
 
@@ -477,14 +625,38 @@ function PlacesIndex() {
         <div className="rounded-2xl border border-dashed border-border p-8 text-center">
           <div className="text-4xl">🍽️</div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Inga ställen matchar just nu. Rensa filtren för att se hela listan
-            {canWrite ? " eller lägg till ett nytt smultronställe" : ""}.
+            {trimmedQuery
+              ? `“${trimmedQuery}” finns inte i gruppens lista.`
+              : activePlaces.length === 0
+                ? "Gruppen har inga ställen ännu."
+                : "Inga ställen matchar de valda filtren."}
           </p>
-          {canWrite ? (
-            <Button className="mt-4" onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4" /> Lägg till ställe
+          {trimmedQuery && canWrite ? (
+            <Button
+              className="mt-4 max-w-full whitespace-normal"
+              onClick={() => openAdd(trimmedQuery)}
+              aria-label={`Sök efter ${trimmedQuery} och lägg till ställe`}
+            >
+              <Search className="h-4 w-4" /> Sök och lägg till
             </Button>
-          ) : null}
+          ) : canWrite && activePlaces.length === 0 ? (
+            <Button className="mt-4" onClick={() => openAdd()}>
+              <Plus className="h-4 w-4" /> Lägg till första stället
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4"
+              onClick={() => {
+                setQuery("");
+                setFilter("alla");
+                clearAdvanced();
+              }}
+            >
+              <X className="h-4 w-4" /> Rensa sökning och filter
+            </Button>
+          )}
         </div>
       ) : view === "lista" ? (
         <div className="space-y-3 pb-4 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
@@ -517,7 +689,13 @@ function PlacesIndex() {
         </section>
       )}
 
-      {canWrite ? <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} /> : null}
+      {canWrite ? (
+        <AddPlaceDialog
+          open={addOpen}
+          onOpenChange={handleAddOpenChange}
+          initialQuery={addInitialQuery}
+        />
+      ) : null}
     </div>
   );
 }

@@ -17,17 +17,23 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await page.goto("/matstallen?demo=1");
 
   const leaderboard = page.getByTestId("occasion-leaderboard");
-  await leaderboard.getByRole("button", { name: "Visa", exact: true }).click();
-  await expect(
-    leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(leaderboard.getByRole("link", { name: /Ledare i topplistan:/ })).toBeVisible();
+  await leaderboard.getByRole("button", { name: "Visa topp 3", exact: true }).click();
+  await expect(leaderboard.getByText("Alla", { exact: true })).toHaveCount(0);
+  await expect(leaderboard.getByText("Alla tillfällen", { exact: true })).toHaveCount(0);
   await expect(leaderboard.getByText("Månskärans Taquería", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
-  await leaderboard.getByRole("button", { name: /Avslappnat/ }).click();
-  await expect(
-    leaderboard.getByRole("button", { name: "Visa topplista för Avslappnat" }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await leaderboard.getByRole("button", { name: /Snabbt och enkelt/ }).click();
+
+  const relaxed = leaderboard.getByRole("button", {
+    name: "Filtrera topplistan på Avslappnat",
+  });
+  const quick = leaderboard.getByRole("button", {
+    name: "Filtrera topplistan på Snabbt & enkelt",
+  });
+  await relaxed.click();
+  await expect(relaxed).toHaveAttribute("aria-pressed", "true");
+  await quick.click();
+  await expect(quick).toHaveAttribute("aria-pressed", "true");
   await expect(leaderboard.getByText("Kvarterets Kardemumma", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Topplista per val");
 
@@ -36,7 +42,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(filterSheet.getByText("Passar för", { exact: true }).first()).toBeVisible();
   await expect(filterSheet.getByText("Avslappnat", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Något extra", { exact: true })).toBeVisible();
-  await expect(filterSheet.getByText("Snabbt och enkelt", { exact: true })).toBeVisible();
+  await expect(filterSheet.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Saknar uppgifter", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Trevlig middag", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Kategorifilter");
@@ -96,12 +102,17 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   ).toHaveCount(0);
 
   await manualDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
-  const guide = page.getByRole("dialog", { name: "Så fungerar Passar för" });
-  await expect(guide).toContainText("inte objektiv kvalitet");
+  const guide = page.getByRole("dialog", { name: "Passar för" });
+  await expect(guide).toContainText(
+    "Olika ställen passar olika bra beroende på vad ni är ute efter.",
+  );
   await expect(guide).toContainText("pizzeria");
-  await expect(guide).toContainText("Valen är likvärdiga");
-  await expect(guide).toContainText("båda topplistorna");
-  await expect(guide).toContainText("lämna valet tomt");
+  await expect(guide).toContainText("finkrog");
+  await expect(guide).toContainText("riktigt bra");
+  await expect(guide).toContainText("vid olika tillfällen");
+  await expect(guide).not.toContainText("inte hur bra eller dyrt det är");
+  await expect(guide).not.toContainText("olika topplistor");
+  await expect(guide).not.toContainText("Välj en eller två kategorier");
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
   await guide.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guide).toBeHidden();
@@ -115,7 +126,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
     exact: true,
   });
   const quickButton = manualDialog.getByRole("button", {
-    name: "Passar för: Snabbt och enkelt",
+    name: "Passar för: Snabbt & enkelt",
     exact: true,
   });
 

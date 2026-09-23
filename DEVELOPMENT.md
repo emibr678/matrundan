@@ -20,6 +20,25 @@ För en miljö som även ska köra mobila Playwright-kontroller:
 bash scripts/bootstrap-agent.sh --with-chromium
 ```
 
+I ChatGPT Work kan systempaket och Playwrights browser-CDN vara blockerade trots
+att checkout, Bun och appserver fungerar. Använd då den opt-in portabla
+Work-browsern för en riktad visuell loop:
+
+```bash
+bun run test:visual-smoke:work -- /?demo=1
+```
+
+Kommandot hämtar Chromium från en versions- och SHA-256-låst GitHub-release till
+användarens cache, startar Vite och Playwright i samma exekveringssession och
+skriver screenshots till den git-ignorerade katalogen `visual-review/`. Lägg
+till `--desktop` efter routen när layouten även behöver granskas vid 1280 px.
+Nedladdningen sker endast första gången versionen används och påverkar inte
+projektets vanliga dependencies eller GitHub Actions. Den portabla browsern kör
+utan browser-sandbox i den isolerade Work-containern och ska endast användas mot
+den lokala Matrundan-appen, aldrig för godtyckliga externa webbplatser. Flera
+routes körs sekventiellt eftersom Work-browserns enkelprocessläge inte kan
+återanvändas säkert mellan parallella testkontexter.
+
 Scriptet är idempotent och gör endast följande:
 
 1. läser den låsta Bun-versionen från `package.json`;
@@ -197,30 +216,45 @@ Dessutom inkluderas staged, unstaged och otrackade filer. Samma klassificering a
 
 ## CI
 
-De statiska kontrollerna och browserverifieringen körs i separata jobb. Ett browsertestfel kan därför läsas och återköras utan att döljas längst ned i samma jobb som format, typning och bygge.
+Draft-PR använder ingen GitHub-hostad runner för den ordinarie kandidat-DAG:en.
+Det översta `classify`-jobbet har draft-/same-repository-grinden och alla övriga
+kandidatjobb beror på den. Cloudflare branch-preview är däremot oberoende av
+kandidat-CI och kan användas under iteration som **iterationspreview – full CI ej
+körd**.
 
-Draft-PR startar inga runnerjobb i GitHub Actions. I checkout-läge körs under implementation och diagnostik de kanoniska lokala/Codex-kontrollerna, normalt:
+I checkout-läge används under implementation och diagnostik de kanoniska riktade
+kontrollerna, normalt `bun run verify:changed` och för UI vid behov
+`bun run verify:agent`. I connector-läge hålls PR:n draft och
+`/agent fast-verify` används bara när en konkret hypotes eller checkpoint
+motiverar GitHub-baserad riktad verifiering; den ska inte köras slentrianmässigt
+efter varje push.
 
-```bash
-bun run verify:changed
-```
+När PR:n markeras ready kör **CI** en kandidat-DAG:
 
-och för UI:
+- `Quality and contracts`, `Unit tests`, `TypeScript` och `Build` kör
+  oberoende och parallellt så flera fel kan synas i samma körning;
+- `Supabase type drift` kör bara när databas-/typfiler berörs;
+- `Staging DB readiness` är read-only och ligger i samma DAG;
+- full mobile Chromium körs över två Playwright-shards med oförändrad testsuite; Playwrights ordinarie enda CI-retry behålls för enstaka browserflakiness, medan ett persistent fel fortsatt gör kandidaten röd;
+- kartrelaterade kandidater kör dessutom WebKit/iPhone och desktop Chromium;
+- **CI / required** summerar alla relevanta resultat och är den kanoniska
+  mergekritiska slutsignalen.
 
-```bash
-bun run verify:agent
-```
+På `main` körs samma statiska/kontraktsbaserade gate men den fulla
+browserregressionen upprepas inte. När **CI / required** är grön fortsätter samma
+workflow direkt till det återanvändbara stagingjobbet för exakt `github.sha`.
+Stagingjobbet bygger/deployar exakt aktuell main-SHA och verifierar därefter att
+`/api/health` rapporterar samma release-SHA. Normal main→staging använder inte
+`workflow_run`.
 
-I connector-läge hålls PR:n också draft under iteration, men agenten får inte
-låtsas att lokala kontroller har körts. Använd en särskild GitHub-baserad riktad
-verifiering när en sådan finns. Om den saknas ska branchdiffen och relevant
-impact granskas först och PR:n flyttas till ready först när kandidaten är stabil
-nog att motivera full CI.
+CI-väntan ska vara state-aware. Följ i första hand **CI / required** för aktuell
+head-SHA. Om ett underjobb faller analyseras felet direkt; om PR-head ersätts
+slutar den gamla körningen vara beslutsgrund; och om en aktiv körning inte gör
+framsteg ska aktuellt jobb/steg diagnostiseras i stället för att fortsätta en
+blind sleep/fetch-loop.
 
-Det gör att en serie draft-pushar inte förbrukar GitHub-hostade minuter. När PR:n markeras redo, när en redan redo PR uppdateras, när `main` uppdateras eller vid manuell workflow-körning körs full CI. För UI ingår hela mobil Chromium-sviten; kartrelaterade ändringar kör även WebKit/iPhone och desktop Chromium.
-
-Ordinarie **CI** kör explicit på GitHub-hostad `ubuntu-24.04`. Andra workflows kan ha egna dokumenterade runnerkontrakt; läs deras faktiska `runs-on` i stället för att anta att `MATRUNDAN_CI_RUNNER` styr hela repot. På GitHub-hostade Linux-runners installerar Playwright både browser och systemberoenden i jobbet.
-
+Alla normala CI-jobb kör på GitHub-hostad `ubuntu-24.04`. Delad Node/Bun/cache-
+setup ligger i `.github/actions/setup-ci`. 
 ### Agent Operations i connector-läge
 
 När GitHub-connectorn inte kan starta `workflow_dispatch` direkt används den
@@ -233,6 +267,7 @@ Tillåtna utvecklings-/verifieringskommandon är:
 ```text
 /agent fast-verify <branch> <40-character-sha> [visual-path]
 /agent public-readiness <40-character-main-sha>
+/agent staging-db <branch> <40-character-sha> <pr-number> APPLY_STAGING_DB
 ```
 
 `fast-verify` kräver att angiven branch fortfarande pekar exakt på SHA:n. Den
@@ -240,16 +275,34 @@ checkar ut just den kandidaten på GitHub-hostad `ubuntu-24.04`, kör
 `verify:changed` och, när UI påverkas, changed mobile Playwright. Om en
 `visual-path` anges körs dessutom en riktad 360 px visual smoke för den routen.
 Denna väg använder inga produktionshemligheter och har endast `contents: read`.
-Full redo-CI krävs fortfarande som mergekvitto för färdig kandidat.
+Full redo-CI och den stabila **CI / required**-gaten krävs fortfarande som mergekvitto för färdig kandidat.
 
 `public-readiness` kräver att SHA:n fortfarande är exakt aktuell `main` och
 startar endast repots read-only public-readiness/secret-scan. Den innebär inte
 merge-, databas- eller publiceringsgodkännande.
 
+`staging-db` får endast användas efter separat uttryckligt
+stagingdatabasgodkännande. Kommandot kräver en öppen PR till `main`, exakt
+branch/head-SHA, PR-nummer och den bokstavliga bekräftelsen
+`APPLY_STAGING_DB`. Det separata workflowet kräver att alla kandidatkontroller utom
+**Staging DB readiness** är gröna för samma PR/SHA. Readiness får vara den enda
+blockeraren. Efter den uttryckligt godkända applyn återkörs de felade jobben i
+exakt samma CI-run; **CI / required** måste därefter bli grön. Flödet applicerar
+endast saknade repomigrationer mot Supabase **Matrundan Staging** och verifierar
+migrationshistorik samt den exakta Cloudflare-previewens `/api/health`. Productiondatabas och production-Worker
+är inte åtkomliga från den vägen.
+
+GitHub-environmenten `staging` använder samma
+`STAGING_SUPABASE_ACCESS_TOKEN` för normal stagingkontroll och den separat
+godkända stagingdatabasvägen. Tokenen ska vara projektbegränsad till Matrundan
+Staging med **Migrations → Read-write**. Den normala Worker-deployen använder
+dock endast tokenen för läsning av migrationshistoriken; skrivning sker endast
+i `staging-db`-workflowet efter dess explicita DB-godkännande samt PR-/SHA-/CI-grindar.
+
 Agent Operations-dispatchern själv har `actions: write` enbart för att starta de
-två allowlistade workflowen. Kommandon accepteras endast från repositoryägaren på
-en vanlig Issue, aldrig från PR-kommentarer. Production-, recovery- och
-DB-operationer ingår inte i denna brygga.
+tre allowlistade workflowen. Kommandon accepteras endast från repositoryägaren på
+en vanlig Issue, aldrig från PR-kommentarer. Production- och
+recoveryoperationer ingår inte i denna brygga.
 
 ### Releasekontrakt för staging-first
 

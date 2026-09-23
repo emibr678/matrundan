@@ -136,13 +136,9 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await expect(foodTagTrigger).toContainText("3 valda");
 
   await detailsDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
-  const guideDialog = page.getByRole("dialog", { name: "Så fungerar Passar för" });
+  const guideDialog = page.getByRole("dialog", { name: "Passar för" });
   await expectInsideViewport(page, guideDialog, "Passar för-hjälpen");
-  const guideScroll = await guideDialog.evaluate((element) => ({
-    clientHeight: element.clientHeight,
-    scrollHeight: element.scrollHeight,
-  }));
-  expect(guideScroll.scrollHeight).toBeGreaterThan(guideScroll.clientHeight);
+  await expectNoHorizontalOverflow(page, "Passar för-hjälpen");
   await guideDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guideDialog).toBeHidden();
 });

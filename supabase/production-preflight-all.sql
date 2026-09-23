@@ -8,10 +8,13 @@
 \set ON_ERROR_STOP on
 
 \ir production-preflight-read-model.sql
+\ir production-preflight-historical-reviews.sql
 \ir production-preflight.sql
 \ir production-preflight-invitations.sql
 \ir production-preflight-place-location.sql
 \ir production-preflight-review-reactions.sql
 \ir production-preflight-search-boundaries.sql
+\ir production-preflight-visit-duplicates.sql
+\ir production-preflight-visit-guest-member.sql
 \ir production-preflight-visit-participation.sql
 \ir production-preflight-visit-photo.sql

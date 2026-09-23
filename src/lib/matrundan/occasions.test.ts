@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   normalizeOccasionClassification,
   rankPlacesForOccasion,
+  rankPlacesForOccasions,
   rankPlacesOverall,
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
@@ -12,7 +13,7 @@ describe("sammanhangskategorier", () => {
   test("har tre tydliga och unika benämningar", () => {
     expect(OCCASION_VALUES).toEqual(["snabbt", "avslappnat", "middag"]);
     expect(OCCASION_VALUES.map((occasion) => OCCASION_LABEL[occasion])).toEqual([
-      "Snabbt och enkelt",
+      "Snabbt & enkelt",
       "Avslappnat",
       "Något extra",
     ]);
@@ -22,10 +23,12 @@ describe("sammanhangskategorier", () => {
     for (const occasion of OCCASION_VALUES) {
       expect(OCCASION_DESCRIPTION[occasion].length).toBeGreaterThan(30);
     }
-    expect(OCCASION_DESCRIPTION.snabbt).toContain("äta relativt snabbt");
+    expect(OCCASION_DESCRIPTION.snabbt).toContain("enkelt och smidigt att äta");
+    expect(OCCASION_DESCRIPTION.snabbt).toContain("själva besöket behöver stå i centrum");
     expect(OCCASION_DESCRIPTION.snabbt).not.toContain("ta med maten");
-    expect(OCCASION_DESCRIPTION.avslappnat).toContain("vänner eller familj");
-    expect(OCCASION_DESCRIPTION.middag).toContain("finkrog");
+    expect(OCCASION_DESCRIPTION.avslappnat).toContain("slå er ner och umgås");
+    expect(OCCASION_DESCRIPTION.middag).toContain("måltiden ska kännas lite mer speciell");
+    expect(OCCASION_DESCRIPTION.middag).not.toContain("finkrog");
   });
 
   test("normaliserar till högst två likvärdiga val i stabil ordning", () => {
@@ -87,6 +90,29 @@ describe("sammanhangskategorier", () => {
       ["p3", 2],
     ]);
     expect(quick.map(({ place: item, rank }) => [item.id, rank])).toEqual([["p2", 1]]);
+  });
+
+  test("flera Passar för-val är OR medan inget val betyder alla", () => {
+    const places = [
+      place("Bara snabbt", ["snabbt"], "p1"),
+      place("Bara avslappnat", ["avslappnat"], "p2"),
+      place("Något extra", ["middag"], "p3"),
+    ];
+    const ratings: Record<string, { overall: number; count: number }> = {
+      p1: { overall: 4.2, count: 1 },
+      p2: { overall: 4.8, count: 1 },
+      p3: { overall: 5, count: 1 },
+    };
+
+    expect(
+      rankPlacesForOccasions(places, ["snabbt", "avslappnat"], (id) => ratings[id]).map(
+        ({ place: item }) => item.id,
+      ),
+    ).toEqual(["p2", "p1"]);
+
+    expect(
+      rankPlacesForOccasions(places, [], (id) => ratings[id]).map(({ place: item }) => item.id),
+    ).toEqual(["p3", "p2", "p1"]);
   });
 });
 

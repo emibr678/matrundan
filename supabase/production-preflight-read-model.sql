@@ -5,12 +5,12 @@
 -- integritet, men den operativa current/fallback-sanningen ägs här.
 WITH checks(name, ok) AS (
   VALUES
-    ('read_rpc_current:get_group_app_state_v5l', to_regprocedure('public.get_group_app_state_v5l(uuid)') IS NOT NULL),
-    ('read_rpc_fallback:get_group_app_state_v5k', to_regprocedure('public.get_group_app_state_v5k(uuid)') IS NOT NULL),
-    ('grant:authenticated-current-read', COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_group_app_state_v5l(uuid)'), 'EXECUTE'), false)),
-    ('grant:authenticated-fallback-read', COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_group_app_state_v5k(uuid)'), 'EXECUTE'), false)),
-    ('isolation:no-anon-current-read', COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_group_app_state_v5l(uuid)'), 'EXECUTE'), false)),
-    ('isolation:no-anon-fallback-read', COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_group_app_state_v5k(uuid)'), 'EXECUTE'), false))
+    ('read_rpc_current:get_group_app_state_v5m', to_regprocedure('public.get_group_app_state_v5m(uuid)') IS NOT NULL),
+    ('read_rpc_fallback:get_group_app_state_v5l', to_regprocedure('public.get_group_app_state_v5l(uuid)') IS NOT NULL),
+    ('grant:authenticated-current-read', COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_group_app_state_v5m(uuid)'), 'EXECUTE'), false)),
+    ('grant:authenticated-fallback-read', COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_group_app_state_v5l(uuid)'), 'EXECUTE'), false)),
+    ('isolation:no-anon-current-read', COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_group_app_state_v5m(uuid)'), 'EXECUTE'), false)),
+    ('isolation:no-anon-fallback-read', COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_group_app_state_v5l(uuid)'), 'EXECUTE'), false))
 )
 SELECT name, ok
 FROM checks

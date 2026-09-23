@@ -19,8 +19,10 @@ for (const route of routes) {
 
 const projects = ["mobile-360", ...(includeDesktop ? ["desktop-1280"] : [])];
 
-for (const project of projects) {
-  await rm(path.join("visual-review", project), { recursive: true, force: true });
+if (process.env.VISUAL_REVIEW_PRESERVE_EXISTING !== "1") {
+  for (const project of projects) {
+    await rm(path.join("visual-review", project), { recursive: true, force: true });
+  }
 }
 
 console.log(`Visuell smoke check: ${routes.join(", ")} · ${projects.join(", ")}`);

@@ -3,6 +3,7 @@ import { Clipboard, RefreshCw } from "lucide-react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { Button } from "@/components/ui/button";
+import { appPageTitle } from "@/lib/app-environment";
 
 // Explicit Playwright/dev-harness. Production builds return 404 before rendering it.
 export const Route = createFileRoute("/placemapdiagnostik")({
@@ -10,7 +11,7 @@ export const Route = createFileRoute("/placemapdiagnostik")({
     if (import.meta.env.PROD) throw notFound();
   },
   head: () => ({
-    meta: [{ title: "PlaceMap-diagnostik · Matrundan" }],
+    meta: [{ title: appPageTitle("PlaceMap-diagnostik") }],
   }),
   component: PlaceMapDiagnosticsPage,
 });

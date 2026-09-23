@@ -17,14 +17,15 @@ not every document by default.
 
 ## Read by task
 
-- `docs/product-roadmap.md` — product direction, packages, priority and backlog
-  ordering.
+- `docs/product-roadmap.md` — product direction, strategic themes and the
+  backlog/label model.
 - `docs/architecture.md` — durable data, privacy and security decisions. Follow
   its linked specialist architecture documents when the task touches them.
 - `docs/platform-migration-plan.md` — platform boundaries and the active work in
   Issue #207.
 - `docs/development-workflow.md` — planning, implementation, verification,
   Lovable, merge, database deployment and publication.
+- `docs/ux-principles.md` — durable product UX, interaction and copy principles.
 - `docs/visual-review.md` — rendered GUI/UX review and opt-in Lovable rules.
 - `DEVELOPMENT.md` — environment setup and canonical commands.
 - `CHANGELOG.md` and `src/lib/matrundan/version.ts` — releases.
@@ -72,11 +73,11 @@ changes or publish. Do not broaden approved scope silently. Corrective docs and
 small maintenance may be changed inside an explicit review task only when they
 do not introduce product behaviour.
 
-GitHub Issues + labels are the operational backlog. The roadmap is the strategic
-product view and GitHub Project is a human-facing projection. Follow the label
-semantics documented in the roadmap rather than reproducing them here. When a
-roadmap issue changes relative order, keep its `order:*` label and the roadmap
-consistent.
+GitHub Issues + labels are the operational backlog and the only source of truth
+for concrete scope, status, priority and decided work order. GitHub Project is a
+human-facing projection of the same data. The roadmap is strategic and must not
+mirror the current issue queue, completion state or `order:*` values. Follow the
+label semantics documented there rather than reproducing them here.
 
 In human-facing status and planning, write **Issue #NNN — full title** and
 **PR #NNN — full title** when the namespaces could be confused. Machine
@@ -121,9 +122,20 @@ hypothesis, make the smallest targeted change and remove temporary diagnostics
 once the root cause is resolved.
 
 Use the narrowest check that can falsify the current candidate first, then widen
-verification as it stabilises. Canonical commands live in `DEVELOPMENT.md` and
-`package.json`. Never claim a check, migration, Lovable sync, preview,
-deployment or publication happened without evidence.
+verification as it stabilises. Keep the PR draft during implementation and UX
+iteration. A Cloudflare branch preview may be handed off as **iterationspreview –
+full CI ej körd** after targeted self-review; do not make early user feedback wait
+for candidate CI.
+
+When the PR is ready, follow the current head SHA and the canonical **CI /
+required** gate rather than polling every sub-workflow. On failure, diagnose the
+failed job immediately; when a newer head replaces the run, stop following the
+old run; and when a run makes no progress, inspect its current job/step instead
+of continuing a blind polling loop.
+
+Canonical commands live in `DEVELOPMENT.md` and `package.json`. Never claim a
+check, migration, Lovable sync, preview, deployment or publication happened
+without evidence.
 
 All rendered GUI changes must also follow the local `src/AGENTS.md` and
 `docs/visual-review.md`. Lovable is strictly opt-in: do not consult Lovable,
@@ -141,16 +153,20 @@ Before merge, require the agreed scope, reviewed diff, relevant green checks,
 required rendered UX evidence, any explicitly requested Lovable evidence and no
 known blocker. Database deployment and publication remain separate approvals.
 
-After a candidate or merge, use the structured chat receipt in
+After a candidate or merge, use the visually structured chat receipt in
 `docs/development-workflow.md` and report the relevant evidence without blending
-merge, Lovable, database or publication status.
+merge, Lovable, database or publication status. Always include the `Preview:`
+field. Before handing off a GUI candidate, read the canonical `Mobile PR handoff`
+comment for the current PR head and use its exact verified preview URL; if the
+candidate has no rendered surface, state `Preview: Inte relevant` with a short
+reason instead of omitting the field.
 
 ## Documentation lifecycle
 
 Each durable fact should have one natural owner:
 
 - README — concise human-facing project entry.
-- roadmap — product direction, packages and priority.
+- roadmap — product direction, strategic themes and backlog/label semantics.
 - Issues — detailed current scope and operational backlog state.
 - architecture + specialist architecture docs — durable design/privacy/security
   decisions.

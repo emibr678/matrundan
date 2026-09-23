@@ -9,7 +9,7 @@ För praktiskt utvecklingsarbete kompletteras det av:
 - `AGENTS.md` för bindande repo- och arbetsregler;
 - `docs/development-workflow.md` för planering, implementation, verifiering och
   leverans;
-- `docs/product-roadmap.md` för produktpaket och prioritering;
+- `docs/product-roadmap.md` för strategisk produktriktning och backlogmodell;
 - `supabase/production-preflight.sql` för den konkreta driftkontrollen efter
   migration.
 
@@ -224,25 +224,45 @@ Produktionsvakten för `visit-photos` är:
 Klienten får komprimera och validera för UX, men Storage-reglerna är den
 säkerhetsmässiga sanningen.
 
-Så länge dagens singelfotomodell används är `visit_media.uploaded_by` också en
-serverstyrd skrivgräns. En faktisk deltagare eller owner/admin får lägga den
-första bilden på ett originalbesök, men ett befintligt foto får endast ersättas
-av samma uppladdare. Owner/admin får radera ett foto som modereringsåtgärd och
-den som legitimt raderar hela originalbesöket måste fortsatt kunna städa dess
-media, men ingen av dessa rättigheter innebär rätt att skriva över en annan
-persons bild som sin egen.
+Ett kanoniskt besök kan bära flera privata mediaobjekt i sin **ursprungsgrupp**,
+men högst **en aktiv bild per faktisk identifierad deltagare**. Den databasmässiga
+unikheten är därför `(visit_id, group_id, uploaded_by)`. Varje mediaobjekt har
+stabilt individuellt ägarskap genom `visit_media.uploaded_by`.
 
-Regeln ska verkställas både i RPC/Storage-policy och i klientens presentation.
-Klientkontrollen är bara UX; databasen måste serialisera samtidiga första
-uppladdningar så två deltagare inte får ett last-write-wins-resultat. En
-misslyckad eller konkurrerande uppladdning får samtidigt kunna städa just sin
-egen orefererade Storage-fil utan rätt att radera någon annans media.
+Nya uppladdningar och ersättningar kräver att användaren:
 
-Den långsiktiga målbilden i #179 är flera privata, komprimerade bilder per samma
-kanoniska besök, med stabilt individuellt ägarskap per mediaobjekt och explicit
-gruppsynlighet vid cross-group-delning. En framtida karusell/galleri får därför
-inte byggas genom att försvaga `uploaded_by` eller kopiera media mellan grupper
-utan serverstyrd åtkomst.
+- är aktiv medlem i gruppen;
+- är faktisk deltagare på det kanoniska besöket;
+- arbetar i besökets ursprungsgrupp;
+- bara skapar eller ersätter sin egen bildplats.
+
+Owner/admin får moderera och radera en deltagares bild men får inte därigenom
+ladda upp eller skriva över bilden som om den vore deras egen. **Den som bara
+registrerade besöket får ingen separat rätt att punktmoderera andra deltagares
+bilder.** Helbesöksradering är en annan operation: dess RPC samlar först
+Storage-sökvägarna och raderar därefter det kanoniska besöket; klienten städar
+sedan endast de nu orefererade Storage-objekten. Därmed kan registreraren fortsatt
+radera ett besök när produktregeln tillåter det utan att få en fristående
+"ta bort någon annans bild"-förmåga.
+
+Skrivreglerna verkställs både i RPC/Storage-policy och i klientens presentation;
+klientkontrollen är endast UX.
+
+Upsert serialiseras per grupp, besök och uppladdare så samtidiga skrivningar till
+samma deltagares bildplats inte blir last-write-wins mellan två rader. En
+misslyckad uppladdning får kunna städa just sin egen orefererade Storage-fil utan
+rätt att radera någon annans media.
+
+Den aktuella grupp-read-modellen exponerar `photos[]` endast från den aktiva
+gruppens auktoriserade besökskontext. Ett äldre kompatibilitetsfält `photo`
+behålls som en enda stabil representativ bild, den äldsta kvarvarande bilden,
+så historikminiatyrer och äldre klienter inte behöver tolka ett galleri.
+
+Cross-group-synlighet ingår inte i flerfotomodellen. Ett foto blir aldrig synligt
+i en ny grupp bara för att det kanoniska besöket delas. **#179 Dela besöksfoto
+uttryckligen tillsammans med delat besök** ansvarar separat för framtida,
+uttrycklig och serverstyrd gruppsynlighet utan att exponera ursprungsgrupp,
+medlemskap, privata kommentarer eller Storage-sökvägar.
 
 ## RLS och RPC-mönster
 
@@ -266,21 +286,23 @@ behörighet att läsa den.
 
 ## Gruppstate
 
-`get_group_app_state_v5l(uuid)` är nuvarande primära read-RPC för gruppens
-applikationsstate. `get_group_app_state_v5k(uuid)` är den närmast föregående
-kompatibla läs-RPC:n och får användas som strikt fallback när v5l uttryckligen
+`get_group_app_state_v5m(uuid)` är nuvarande primära read-RPC för gruppens
+applikationsstate. `get_group_app_state_v5l(uuid)` är den närmast föregående
+kompatibla läs-RPC:n och får användas som strikt fallback när v5m uttryckligen
 saknas under en säker rullning. Andra auth-, nätverks- eller datafel får inte
 döljas genom fallback.
 
-v5l bygger additivt på v5k och kompletterar redan auktoriserade besök med den
-kanoniska `isTakeaway`-kontexten utan att bredda gruppens läsrättigheter. v5k
-lägger i sin tur till den privata `nextStop`-projektionen ovanpå v5j. v5j bevarar
-deltagarsemantiken genom v5i-wrappern över den serverinterna
-`get_group_app_state_v5i_participation_base(uuid)`. Basfunktionen får inte vara
-direkt körbar av `anon` eller `authenticated`. Wrappern filtrerar synliga
-reviews mot aktuella rader i `visit_participants` och exponerar endast den
-inloggade användarens minimerade deltagarstatus (`participant`, `declined` eller
-`none`).
+v5m bygger additivt på v5l och kompletterar redan auktoriserade reviewobjekt med
+`atmosphere` och `reviewModel` samt besöken med den aktiva gruppens privata
+`photos[]`, utan att bredda gruppens läsrättigheter. v5l
+kompletterar i sin tur redan auktoriserade besök med den kanoniska
+`isTakeaway`-kontexten ovanpå v5k. v5k lägger till den privata `nextStop`-
+projektionen ovanpå v5j. v5j bevarar deltagarsemantiken genom v5i-wrappern över
+den serverinterna `get_group_app_state_v5i_participation_base(uuid)`.
+Basfunktionen får inte vara direkt körbar av `anon` eller `authenticated`.
+Wrappern filtrerar synliga reviews mot aktuella rader i `visit_participants` och
+exponerar endast den inloggade användarens minimerade deltagarstatus
+(`participant`, `declined` eller `none`).
 
 Read-RPC:n ska:
 
@@ -291,7 +313,7 @@ Read-RPC:n ska:
 - undvika att exponera interna tabellfält som klienten inte behöver.
 
 Sekundär, potentiellt växande besöksdata som omdömesreaktioner ska inte läggas in
-i hela gruppens v5l-payload bara för att den visas i besöksdetaljen. Den läses i
+i hela gruppens v5m-payload bara för att den visas i besöksdetaljen. Den läses i
 stället lazy genom en grupp- och medlemsvaliderad, minifierad per-besök-RPC.
 
 ## Nästa stopp
@@ -356,19 +378,51 @@ kanoniska besöket. Progression, deltagarlistor, delningsbehörighet och aktivt
 deltagaromdöme ska härledas från den sanningen i stället för från en separat
 registreringspoäng eller administrativ kredit.
 
-`create_visit_with_review_v4` är den serverstyrda mutationsytan för nya besök i
+`create_visit_with_review_v5` är den serverstyrda mutationsytan för nya besök i
 den här modellen. Den som registrerar ett nytt besök måste själv finnas bland de
 validerade deltagarna. Nya besök använder `frukost`, `lunch`, `fika`, `middag`
 eller `dryck`; `kväll` bevaras endast som läsbart legacyvärde och avvisas för nya
-v4-skrivningar.
+v5-skrivningar.
 
-För scorebara matbesök krävs helhetsbetyg 1–5 medan smak, service och prisvärdhet
-är frivilliga. `dryck` (**Något att dricka**) är däremot ett fullvärdigt men
-scorelöst besök: inga numeriska reviewfält får sättas och besöket påverkar inte
-matställets betyg, men deltagande, progression, återbesök, kommentar och foto
-fungerar enligt samma kanoniska besöksmodell. `reviews.overall` är därför
-nullable endast för genuint scorelösa bidrag; servern behåller 1–5-invarianten
-för scorebara matbesök.
+Nya scorebara reviews använder en explicit och historiskt låst `review_model`.
+`food_v1_takeaway` och `food_v1_quick` kräver Smak, Service och Prisvärdhet 1–5.
+`food_v1_atmosphere` kräver samma tre dimensioner plus Atmosfär 1–5.
+Helhetsbetyget sätts inte separat utan härleds server-side som det aritmetiska
+medelvärdet av de dimensioner som ingår i modellen och lagras som decimal.
+Klienten får därför inte skicka ett manuellt overall för en review med ny modell.
+
+Hämtmat väljer alltid takeaway-modellen. För besök på plats avgör gruppens hela
+`Passar för`-mängd om Atmosfär ingår: endast **Snabbt & enkelt** ger quick-
+modellen, medan **Avslappnat** och/eller **Något extra** ger atmosphere-modellen,
+även i kombination med **Snabbt & enkelt**. Saknas `Passar för` får den metadata som behövs
+för ett nytt på-plats-omdöme sparas på gruppens platsrelation; ett
+Hämtmat-omdöme förblir entydigt även utan sådan klassificering men ett frivilligt
+val får fortfarande komplettera gruppens platsmetadata. Senare ändringar av
+`Passar för` eller besökskontext skriver aldrig om en befintlig reviews frysta
+modell eller historiska score.
+
+Reviews från före den härledda modellen har migrerats en gång till en explicit,
+historiskt låst legacy-modell. `food_v0_3d` används när Smak, Service och
+Prisvärdhet finns: Atmosfär fabriceras aldrig och helhetsbetyget härleds som de
+tre dimensionernas aritmetiska medelvärde. `food_v0_overall` används när den
+äldre raden endast har ett manuellt helhetsbetyg; då bevaras helhetsbetyget och
+saknade detaljbetyg förblir null. Partiella eller andra oväntade legacyformer
+stoppar migrationen för manuell bedömning. Backfillen är inte ett mönster för
+framtida automatiska modellbyten.
+
+Ett tredimensionellt omdöme är komplett enligt sin egen modell. Ett
+`food_v0_overall`-omdöme är på samma sätt historiskt giltigt utan detaljbetyg;
+vanlig redigering får ändra kommentaren men inte hitta på eller skriva om dess
+frysta betyg. Vanlig redigering
+behåller modellen. Endast reviewägaren kan genom en separat, uttrycklig och
+bekräftad handling komplettera med Atmosfär när den aktuella fyrdimensionella
+modellen är relevant. Det gäller `food_v0_3d`, `food_v1_quick` och, efter en
+korrigerad Hämtmat-markering, `food_v1_takeaway`; modellbytet sker atomärt först
+när alla fyra dimensioner sparas. `dryck`
+(**Ett glas**) är fortsatt ett fullvärdigt men scorelöst besök: inga numeriska
+reviewfält får sättas och besöket påverkar inte matställets betyg, men
+deltagande, progression, återbesök, kommentar och foto fungerar enligt samma
+kanoniska besöksmodell.
 
 `visits.is_takeaway` är en kanonisk egenskap på besöket. `false` är implicit På
 plats och `true` betyder Hämtmat; den är inte ett `Passar för`-värde och ändrar
@@ -378,8 +432,39 @@ att källgrupp eller annan privat gruppdata exponeras. Dubblettskyddet tar med
 Hämtmat-kontexten för scorebara matbesök så På plats och Hämtmat inte felaktigt
 behandlas som samma starka dubblett.
 
+En senare korrigering av `is_takeaway` är reversibel och får inte skriva om
+reviewns lagrade `review_model` eller dimensionsvärden. När ett befintligt
+modernt omdöme tillfälligt är aktivt i Hämtmat-kontext används i stället en
+**effektiv** tredimensionell modell för presentation och aggregat: Smak, Service
+och Prisvärdhet räknas om aritmetiskt och ett eventuellt sparat Atmosfärsvärde
+döljs men bevaras. Om Hämtmat tas bort igen återgår omdömet till sin lagrade
+modell och samma Atmosfärsvärde blir aktivt igen. Ett omdöme som skapades som
+Hämtmat får däremot aldrig ett fabricerat Atmosfärsvärde när markeringen senare
+tas bort; dess lagrade tredimensionella modell består tills en separat uttrycklig
+omvärdering eventuellt kompletterar den. Historiska `food_v0_3d`-reviews
+fortsätter använda samma tre dimensioner; Hämtmat-korrigering ändrar därför
+varken deras modell eller matematik. `food_v0_overall` saknar detaljdimensioner
+helt och behåller därför alltid sitt sparade helhetsbetyg oavsett Hämtmat-kontext.
+
 Servern avvisar ett nytt besök där `auth.uid()` inte finns bland de validerade
 `visit_participants`.
+
+`update_visit_v1` är den serverstyrda korrigeringsytan för ett redan kanoniskt
+besök. Endast den autentiserade registreraren får använda den, från besökets
+originalgrupp där registreraren fortfarande har aktivt medlemskap. Datum,
+besökskontext och deltagare som hör till originalgruppen kan korrigeras utan att
+ett nytt `visits.id` skapas. Identifierade deltagare som endast hör till en
+annan länkad grupp bevaras server-side och får inte försvinna för att klienten i
+originalgruppen saknar rätt att se deras identitet.
+
+Privata gäster uppdateras genom stabila `visit_guests.id`, aldrig genom
+namnmatchning. En gäst med en pågående eller accepterad #214-koppling får inte
+tas bort genom besöksredigeringen. Reviewrader raderas inte när deltagande
+korrigeras; gruppens read-modell filtrerar aktiva omdömen mot aktuell faktisk
+närvaro. En korrigering av `meal_type` eller `is_takeaway` får inte heller
+skriva om en redan fryst `review_model`. `update_own_review_v3` bevarar därför
+historiska ratingfält när besöket är scorelöst och ändrar då bara användarens
+kommentar; vid scorebara besök följer den samma frysta reviewmodell som v2.
 
 Registreringshandlingen i sig ger ingen extra progression. Registreraren får
 samma progression som andra därför att hen är faktisk deltagare, inte därför att
@@ -388,13 +473,18 @@ deltog i är den avsedda korrigeringen att radera felregistreringen och skapa
 besöket korrekt, inte att använda Matrundan som administrativ registrering åt
 andra.
 
-`save_own_review_for_visit_v1` kompletterar ett redan existerande kanoniskt
+`save_own_review_for_visit_v2` kompletterar ett redan existerande kanoniskt
 besök. Servern kräver att användaren är faktisk deltagare och att besöket är
-legitimt synligt i den aktuella gruppen. För scorebara besök krävs fortsatt
-helhetsbetyg 1–5. För `dryck` tillåts i stället en scorelös kommentar med null i
-alla ratingfält och `rating_visible = false`; en tom kommentar skapar inte ett
-meningslöst reviewobjekt. `reviews` behåller invarianten högst en kanonisk review
-per `(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt i
+legitimt synligt i den aktuella gruppen. För scorebara reviews väljer servern
+samma nya reviewmodell och härleder overall från de relevanta dimensionerna. För
+`dryck` tillåts i stället en scorelös kommentar med null i alla ratingfält och
+`rating_visible = false`; en tom kommentar skapar inte ett meningslöst
+reviewobjekt. `update_own_review_v3` behåller varje reviews frysta modell vid normal
+redigering. `upgrade_own_review_model_v1` är den separata ägarstyrda vägen från
+en tredimensionell modell (`food_v0_3d`, `food_v1_quick` eller
+`food_v1_takeaway`) till `food_v1_atmosphere`; kommentar-, besöks- eller
+metadataredigering kan aldrig utlösa samma övergång. `reviews` behåller invarianten högst en kanonisk review per
+`(visit_id, user_id)`; gruppspecifik synlighet ligger fortsatt i
 `review_group_visibility` och löses inte genom reviewkopior.
 
 ### Privata omdömesreaktioner

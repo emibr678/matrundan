@@ -35,8 +35,8 @@ describe("exempelgruppens pending-omdömen", () => {
     const state = buildExampleState(new Date(EXAMPLE_FIXTURE_REFERENCE_TIME));
     const pendingVisit = state.visits.find((visit) => visit.id === EXAMPLE_IDS.visits.guestReviews);
 
-    expect(pendingVisit?.visibleReviews?.map((review) => review.overall)).toEqual([4, 4, 5]);
-    expect(pendingVisit?.overall).toBeCloseTo(13 / 3);
+    expect(pendingVisit?.visibleReviews?.map((review) => review.overall)).toEqual([3.67, 4, 4.67]);
+    expect(pendingVisit?.overall).toBeCloseTo((3.67 + 4 + 4.67) / 3);
     expect(pendingVisit?.taste).toBeCloseTo(13 / 3);
     expect(pendingVisit?.value).toBe(4);
     expect(pendingVisit?.service).toBe(4);

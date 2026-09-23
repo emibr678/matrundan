@@ -12,6 +12,7 @@ const root = process.cwd();
 const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const migrationRoot = resolve(root, "supabase/migrations");
 const preflightPath = resolve(root, "supabase/production-preflight.sql");
+const preflightReadModelPath = resolve(root, "supabase/production-preflight-read-model.sql");
 const preflightLocationPath = resolve(root, "supabase/production-preflight-place-location.sql");
 const preflightBoundaryPath = resolve(root, "supabase/production-preflight-search-boundaries.sql");
 const preflightVisitParticipationPath = resolve(
@@ -21,6 +22,10 @@ const preflightVisitParticipationPath = resolve(
 const preflightReviewReactionsPath = resolve(
   root,
   "supabase/production-preflight-review-reactions.sql",
+);
+const preflightHistoricalReviewsPath = resolve(
+  root,
+  "supabase/production-preflight-historical-reviews.sql",
 );
 const errors = [];
 
@@ -58,6 +63,9 @@ const requiredFunctions = [
   "create_visit_with_review_v3",
   "save_own_review_for_visit_v1",
   "set_own_visit_participation_v1",
+  "update_visit_v1",
+  "update_own_review_v3",
+  "upgrade_own_review_model_v1",
   "get_visit_review_reactions_v1",
   "set_own_review_reaction_v1",
   "replace_group_search_settings",
@@ -189,6 +197,9 @@ for (const index of [
 if (!existsSync(preflightPath)) {
   errors.push("supabase/production-preflight.sql saknas.");
 }
+if (!existsSync(preflightReadModelPath)) {
+  errors.push("supabase/production-preflight-read-model.sql saknas.");
+}
 if (!existsSync(preflightLocationPath)) {
   errors.push("supabase/production-preflight-place-location.sql saknas.");
 }
@@ -201,20 +212,28 @@ if (!existsSync(preflightVisitParticipationPath)) {
 if (!existsSync(preflightReviewReactionsPath)) {
   errors.push("supabase/production-preflight-review-reactions.sql saknas.");
 }
+if (!existsSync(preflightHistoricalReviewsPath)) {
+  errors.push("supabase/production-preflight-historical-reviews.sql saknas.");
+}
 if (
   existsSync(preflightPath) &&
+  existsSync(preflightReadModelPath) &&
   existsSync(preflightLocationPath) &&
   existsSync(preflightBoundaryPath) &&
   existsSync(preflightVisitParticipationPath) &&
-  existsSync(preflightReviewReactionsPath)
+  existsSync(preflightReviewReactionsPath) &&
+  existsSync(preflightHistoricalReviewsPath)
 ) {
   const preflight = `${readFileSync(preflightPath, "utf8")}\n${readFileSync(
-    preflightLocationPath,
+    preflightReadModelPath,
     "utf8",
-  )}\n${readFileSync(preflightBoundaryPath, "utf8")}\n${readFileSync(
-    preflightVisitParticipationPath,
+  )}\n${readFileSync(preflightLocationPath, "utf8")}\n${readFileSync(
+    preflightBoundaryPath,
     "utf8",
-  )}\n${readFileSync(preflightReviewReactionsPath, "utf8")}`;
+  )}\n${readFileSync(preflightVisitParticipationPath, "utf8")}\n${readFileSync(
+    preflightReviewReactionsPath,
+    "utf8",
+  )}\n${readFileSync(preflightHistoricalReviewsPath, "utf8")}`;
   for (const name of requiredFunctions) {
     if (!preflight.includes(name)) {
       errors.push(`Produktions-preflight saknar ${name}.`);

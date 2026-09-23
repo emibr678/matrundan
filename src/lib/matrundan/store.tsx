@@ -16,14 +16,26 @@ import { DEMO_STATE } from "./demo-data";
 import { normalizeFoodTags } from "./food-tags";
 import { normalizeOccasionClassification } from "./occasions";
 import {
+  canUpgradeReviewModelWithAtmosphere,
+  deriveReviewOverall,
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelForContext,
+  reviewModelIncludesAtmosphere,
+  reviewModelUsesDetailedRatings,
+  reviewRatingsComplete,
+} from "./review-model";
+import {
   archiveGroup as liveArchiveGroup,
   archiveGroupPlace as liveArchiveGroupPlace,
   reactivateGroup as liveReactivateGroup,
   restoreGroupPlace as liveRestoreGroupPlace,
   updateGroupPlaceMetadata as liveUpdateGroupPlaceMetadata,
   updateOwnReview as liveUpdateOwnReview,
+  upgradeOwnReviewModel as liveUpgradeOwnReviewModel,
   type GroupPlaceMetadataInput,
   type ReviewEditInput,
+  type ReviewModelUpgradeInput,
 } from "./live-admin-4b";
 import {
   liveCreateOrLinkProviderPlace,
@@ -32,6 +44,9 @@ import {
   liveDeleteOriginalVisit,
   liveSetNextPlace,
   liveToggleFavorite,
+  liveUpdateVisit,
+  type VisitEditMutationInput,
+  type VisitMutationInput,
 } from "./live-mutations";
 import type {
   Activity,
@@ -43,15 +58,18 @@ import type {
   VisibleReview,
 } from "./types";
 import { APP_VERSION } from "./version";
-import { visitHasScore } from "./visit-context";
+import { visitHasScore, visitMealHasScore } from "./visit-context";
 import { canDeleteOriginalVisit } from "./visit-permissions";
 import {
+  applyPreparedVisitPhotoToDemoState,
   blobToDataUrl,
   canAddOrReplaceVisitPhoto,
   canDeleteVisitPhoto,
+  getVisitPhotos,
   liveDeleteVisitPhoto,
   liveSaveVisitPhoto,
   prepareVisitPhoto,
+  representativeVisitPhoto,
 } from "./visit-photo";
 
 const STORAGE_KEY = "matrundan.state.v1";
@@ -72,13 +90,14 @@ function avg(values: number[]): number | undefined {
 }
 
 function aggregateVisit(visit: Visit): Visit {
-  const reviews = (visit.visibleReviews ?? []).filter((review) =>
-    visit.participantIds.includes(review.userId),
-  );
-  const rated = reviews.filter(
-    (review): review is VisibleReview & { overall: number } =>
-      review.ratingVisible && review.overall != null,
-  );
+  const sourceReviews = visit.visibleReviews ?? [];
+  const reviews = sourceReviews.filter((review) => visit.participantIds.includes(review.userId));
+  const rated = visitHasScore(visit)
+    ? reviews.flatMap((review) => {
+        const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
+        return review.ratingVisible && overall != null ? [{ review, overall }] : [];
+      })
+    : [];
   const comment = reviews.find(
     (review) => review.commentVisible && Boolean(review.comment?.trim()),
   )?.comment;
@@ -86,27 +105,38 @@ function aggregateVisit(visit: Visit): Visit {
   if (!rated.length) {
     return {
       ...visit,
-      visibleReviews: reviews,
+      visibleReviews: sourceReviews,
       overall: 0,
       taste: undefined,
       value: undefined,
       service: undefined,
+      atmosphere: undefined,
       comment: comment ?? undefined,
     };
   }
 
   return {
     ...visit,
-    visibleReviews: reviews,
-    overall: avg(rated.map((review) => review.overall)) ?? 0,
+    visibleReviews: sourceReviews,
+    overall: avg(rated.map((item) => item.overall)) ?? 0,
     taste: avg(
-      rated.map((review) => review.taste).filter((value): value is number => value != null),
+      rated.map((item) => item.review.taste).filter((value): value is number => value != null),
     ),
     value: avg(
-      rated.map((review) => review.value).filter((value): value is number => value != null),
+      rated.map((item) => item.review.value).filter((value): value is number => value != null),
     ),
     service: avg(
-      rated.map((review) => review.service).filter((value): value is number => value != null),
+      rated.map((item) => item.review.service).filter((value): value is number => value != null),
+    ),
+    atmosphere: avg(
+      rated
+        .filter(({ review }) =>
+          reviewModelIncludesAtmosphere(
+            effectiveReviewModel(review.reviewModel, visit.isTakeaway === true),
+          ),
+        )
+        .map((item) => item.review.atmosphere)
+        .filter((value): value is number => value != null),
     ),
     comment: comment ?? undefined,
   };
@@ -142,6 +172,8 @@ function normalizeDemoState(input: AppState): AppState {
           taste: visit.taste ?? null,
           value: visit.value ?? null,
           service: visit.service ?? null,
+          atmosphere: visit.atmosphere ?? null,
+          reviewModel: null,
           comment: visit.comment ?? null,
           ratingVisible: true,
           commentVisible: true,
@@ -154,6 +186,8 @@ function normalizeDemoState(input: AppState): AppState {
             taste: null,
             value: null,
             service: null,
+            atmosphere: null,
+            reviewModel: null,
             comment: visit.comment,
             ratingVisible: false,
             commentVisible: true,
@@ -201,9 +235,10 @@ interface StoreContextValue {
     raw: unknown;
   }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
-  addVisit: (visit: Omit<Visit, "id">) => Promise<Visit>;
+  addVisit: (visit: VisitMutationInput) => Promise<Visit>;
+  updateVisit: (visitId: string, input: VisitEditMutationInput) => Promise<void>;
   saveVisitPhoto: (visitId: string, file: File, visitSnapshot?: Visit) => Promise<void>;
-  deleteVisitPhoto: (visitId: string) => Promise<void>;
+  deleteVisitPhoto: (visitId: string, uploadedBy?: string) => Promise<void>;
   deleteVisit: (visitId: string) => Promise<void>;
   setNext: (placeId: string | null) => Promise<void>;
   archiveGroup: () => Promise<void>;
@@ -212,6 +247,7 @@ interface StoreContextValue {
   restorePlace: (placeId: string) => Promise<void>;
   updatePlaceMetadata: (placeId: string, input: GroupPlaceMetadataInput) => Promise<void>;
   updateOwnReview: (reviewId: string, input: ReviewEditInput) => Promise<void>;
+  upgradeOwnReviewModel: (reviewId: string, input: ReviewModelUpgradeInput) => Promise<void>;
   resetDemo: () => void;
   getPlace: (id: string) => Place | undefined;
   memberById: (id: string) => AppState["members"][number] | undefined;
@@ -327,7 +363,11 @@ export function StoreProvider({
         };
         if (mode === "live") {
           const id = await runLive((groupId) => liveCreatePlace(groupId, normalizedInput));
-          return { ...normalizedInput, id, addedAt: new Date().toISOString() } as Place;
+          return {
+            ...normalizedInput,
+            id,
+            addedAt: new Date().toISOString(),
+          } as Place;
         }
 
         assertDemoWritable(state, demoReadOnly);
@@ -411,7 +451,11 @@ export function StoreProvider({
             raw,
           }),
         );
-        return { ...normalizedPlace, id, addedAt: new Date().toISOString() } as Place;
+        return {
+          ...normalizedPlace,
+          id,
+          addedAt: new Date().toISOString(),
+        } as Place;
       },
 
       toggleFavorite: async (placeId) => {
@@ -446,38 +490,91 @@ export function StoreProvider({
           return { ...visitInput, id } as Visit;
         }
         assertDemoWritable(state, demoReadOnly);
-        if (
-          state.places.find((place) => place.id === visitInput.placeId)?.collectionStatus ===
-          "archived"
-        ) {
+        const currentPlace = state.places.find((place) => place.id === visitInput.placeId);
+        if (currentPlace?.collectionStatus === "archived") {
           throw new Error("Lägg tillbaka matstället innan ett nytt besök registreras.");
         }
         const timestamp = Date.now();
         const scored = visitHasScore(visitInput);
+        const hasNewDimensions =
+          scored &&
+          [visitInput.taste, visitInput.value, visitInput.service, visitInput.atmosphere].some(
+            (rating) => rating != null && rating > 0,
+          );
+        const normalizedReviewOccasions = normalizeOccasionClassification(
+          visitInput.reviewOccasions ?? [],
+        );
+        const reviewOccasions = currentPlace?.occasions?.length
+          ? currentPlace.occasions
+          : normalizedReviewOccasions;
+        const reviewModel = hasNewDimensions
+          ? reviewModelForContext({
+              isTakeaway: visitInput.isTakeaway === true,
+              occasions: reviewOccasions,
+            })
+          : null;
+
+        if (
+          hasNewDimensions &&
+          (!reviewModel ||
+            !reviewRatingsComplete(reviewModel, {
+              taste: visitInput.taste ?? 0,
+              value: visitInput.value ?? 0,
+              service: visitInput.service ?? 0,
+              atmosphere: visitInput.atmosphere ?? 0,
+            }))
+        ) {
+          throw new Error(
+            reviewModel ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.",
+          );
+        }
+        if (scored && !hasNewDimensions && !visitInput.overall && visitInput.comment?.trim()) {
+          throw new Error("Sätt alla relevanta betyg innan kommentaren sparas med omdömet.");
+        }
+
+        const derivedOverall = reviewModel
+          ? deriveReviewOverall(reviewModel, {
+              taste: visitInput.taste ?? 0,
+              value: visitInput.value ?? 0,
+              service: visitInput.service ?? 0,
+              atmosphere: visitInput.atmosphere ?? 0,
+            })
+          : null;
+        const legacyReview = scored && !hasNewDimensions && visitInput.overall > 0;
         const review: VisibleReview | null =
-          scored || visitInput.comment?.trim()
+          hasNewDimensions || legacyReview || (!scored && Boolean(visitInput.comment?.trim()))
             ? {
                 id: `demo-review-${timestamp}`,
                 userId: state.currentUserId,
-                overall: scored ? visitInput.overall : null,
+                overall: scored ? (derivedOverall ?? visitInput.overall) : null,
                 taste: scored ? (visitInput.taste ?? null) : null,
                 value: scored ? (visitInput.value ?? null) : null,
                 service: scored ? (visitInput.service ?? null) : null,
+                atmosphere: scored && reviewModel ? (visitInput.atmosphere ?? null) : null,
+                reviewModel,
                 comment: visitInput.comment ?? null,
                 ratingVisible: scored,
                 commentVisible: true,
               }
             : null;
+        const { reviewOccasions: _writeHint, ...visitData } = visitInput;
         const visit = aggregateVisit({
-          ...visitInput,
+          ...visitData,
           id: `v-${timestamp}`,
           visibleReviews: review ? [review] : [],
         });
         setState((current) => {
           const place = current.places.find((item) => item.id === visit.placeId);
+          const nextPlaces =
+            hasNewDimensions && place?.occasions.length === 0 && reviewOccasions.length > 0
+              ? current.places.map((item) =>
+                  item.id === visit.placeId ? { ...item, occasions: reviewOccasions } : item,
+                )
+              : current.places;
           return pushActivity(
             {
               ...current,
+              places: nextPlaces,
               visits: [visit, ...current.visits],
               nextPlaceId: current.nextPlaceId === visit.placeId ? null : current.nextPlaceId,
             },
@@ -491,11 +588,194 @@ export function StoreProvider({
               text: `${nameOf(current, current.currentUserId)} registrerade ett besök på ${
                 place?.name ?? "ett ställe"
               }`,
-              target: { kind: "visit", placeId: visit.placeId, visitId: visit.id },
+              target: {
+                kind: "visit",
+                placeId: visit.placeId,
+                visitId: visit.id,
+              },
             },
           );
         });
         return visit;
+      },
+
+      updateVisit: async (visitId, input) => {
+        if (mode === "live") {
+          await runLive((groupId) => liveUpdateVisit(groupId, visitId, input));
+          return;
+        }
+
+        assertDemoWritable(state, demoReadOnly);
+        const target = state.visits.find((item) => item.id === visitId);
+        if (!target) throw new Error("Besöket finns inte.");
+        if (target.linkType === "shared" || target.createdBy !== state.currentUserId) {
+          throw new Error("Bara den som registrerade originalbesöket kan redigera det.");
+        }
+        if (!input.participantIds.includes(state.currentUserId)) {
+          throw new Error("Den som registrerade besöket måste vara deltagare.");
+        }
+
+        const editableParticipantIds = new Set([
+          ...state.members.map((member) => member.id),
+          ...(target.participants ?? [])
+            .filter((participant) => participant.status === "left")
+            .map((participant) => participant.id),
+        ]);
+        if (input.participantIds.some((id) => !editableParticipantIds.has(id))) {
+          throw new Error("Deltagarlistan innehåller en person som inte hör till gruppen.");
+        }
+
+        const oldScored = visitHasScore(target);
+        const newScored = visitMealHasScore(input.meal);
+        const ownReviewInput = input.ownReview ?? null;
+        const ownReview = ownReviewInput
+          ? (target.visibleReviews ?? []).find(
+              (review) => review.id === ownReviewInput.id && review.userId === state.currentUserId,
+            )
+          : undefined;
+
+        if (ownReviewInput && !ownReview) {
+          throw new Error("Ditt omdöme hittades inte.");
+        }
+        if (ownReviewInput && oldScored !== newScored) {
+          throw new Error(
+            "Spara först ändringen av tillfälle. Omdömet bevaras historiskt när besöket byter mellan mat och Ett glas.",
+          );
+        }
+        if (ownReviewInput && ownReview) {
+          if (!newScored && !ownReviewInput.comment?.trim()) {
+            throw new Error("Kommentaren kan inte vara tom.");
+          }
+          if (
+            newScored &&
+            ownReview.reviewModel &&
+            reviewModelUsesDetailedRatings(
+              effectiveReviewModel(ownReview.reviewModel, input.isTakeaway),
+            ) &&
+            !reviewRatingsComplete(effectiveReviewModel(ownReview.reviewModel, input.isTakeaway), {
+              taste: ownReviewInput.taste ?? 0,
+              value: ownReviewInput.value ?? 0,
+              service: ownReviewInput.service ?? 0,
+              atmosphere: ownReviewInput.atmosphere ?? 0,
+            })
+          ) {
+            throw new Error("Sätt alla relevanta betyg.");
+          }
+          if (
+            newScored &&
+            !ownReview.reviewModel &&
+            ownReview.overall != null &&
+            (ownReviewInput.overall == null ||
+              ownReviewInput.overall < 1 ||
+              ownReviewInput.overall > 5)
+          ) {
+            throw new Error("Helhetsbetyget måste vara 1–5.");
+          }
+        }
+
+        setState((current) => {
+          const currentVisit = current.visits.find((item) => item.id === visitId);
+          if (!currentVisit) throw new Error("Besöket finns inte.");
+
+          const currentEditableParticipantIds = new Set([
+            ...current.members.map((member) => member.id),
+            ...(currentVisit.participants ?? [])
+              .filter((participant) => participant.status === "left")
+              .map((participant) => participant.id),
+          ]);
+          const preservedParticipantIds = currentVisit.participantIds.filter(
+            (id) => !currentEditableParticipantIds.has(id),
+          );
+          const participantIds = [
+            ...new Set([...preservedParticipantIds, ...input.participantIds]),
+          ];
+
+          const visibleReviews = (currentVisit.visibleReviews ?? []).map((review) => {
+            let nextReview: VisibleReview = { ...review };
+
+            if (
+              ownReviewInput &&
+              review.id === ownReviewInput.id &&
+              review.userId === current.currentUserId
+            ) {
+              if (review.reviewModel === "food_v0_overall") {
+                nextReview = {
+                  ...nextReview,
+                  comment: ownReviewInput.comment,
+                };
+              } else {
+                const derivedOverall = review.reviewModel
+                  ? deriveReviewOverall(review.reviewModel, {
+                      taste: ownReviewInput.taste ?? 0,
+                      value: ownReviewInput.value ?? 0,
+                      service: ownReviewInput.service ?? 0,
+                      atmosphere: ownReviewInput.atmosphere ?? 0,
+                    })
+                  : null;
+
+                nextReview = {
+                  ...nextReview,
+                  overall: newScored
+                    ? (derivedOverall ?? ownReviewInput.overall ?? review.overall)
+                    : review.overall,
+                  taste: newScored ? ownReviewInput.taste : review.taste,
+                  value: newScored ? ownReviewInput.value : review.value,
+                  service: newScored ? ownReviewInput.service : review.service,
+                  atmosphere:
+                    newScored && review.reviewModel ? ownReviewInput.atmosphere : review.atmosphere,
+                  comment: ownReviewInput.comment,
+                  ratingVisible: nextReview.ratingVisible,
+                };
+              }
+            }
+            return nextReview;
+          });
+
+          const memberParticipants = current.members
+            .filter((member) => input.participantIds.includes(member.id))
+            .map((member) => ({
+              id: member.id,
+              name: member.name,
+              avatar: member.avatar ?? null,
+              avatarImage: member.avatarImage ?? null,
+              status: "active" as const,
+            }));
+          const historicalParticipants = (currentVisit.participants ?? []).filter(
+            (participant) =>
+              participant.status === "left" && input.participantIds.includes(participant.id),
+          );
+          const preservedParticipants = (currentVisit.participants ?? []).filter(
+            (participant) =>
+              participant.status !== "guest" && !currentEditableParticipantIds.has(participant.id),
+          );
+          const guestParticipants = input.guests.map((guest, index) => ({
+            id: guest.id ? `guest:${guest.id}` : `guest-demo-${visitId}-${index}`,
+            name: guest.name,
+            avatar: "👤",
+            avatarImage: null,
+            status: "guest" as const,
+          }));
+
+          const nextVisit = aggregateVisit({
+            ...currentVisit,
+            date: `${input.visitedOn.slice(0, 10)}T00:00:00.000Z`,
+            meal: input.meal,
+            isTakeaway: newScored ? input.isTakeaway : false,
+            participantIds,
+            participants: [
+              ...memberParticipants,
+              ...historicalParticipants,
+              ...preservedParticipants,
+              ...guestParticipants,
+            ],
+            visibleReviews,
+          });
+
+          return {
+            ...current,
+            visits: current.visits.map((item) => (item.id === visitId ? nextVisit : item)),
+          };
+        });
       },
 
       saveVisitPhoto: async (visitId, file, visitSnapshot) => {
@@ -510,7 +790,7 @@ export function StoreProvider({
             state.group.lifecycleStatus === "archived",
           )
         ) {
-          throw new Error("Du kan inte ersätta ett foto som en annan deltagare har lagt till.");
+          throw new Error("Endast faktiska deltagare kan lägga till eller byta sin bild.");
         }
         const prepared = await prepareVisitPhoto(file);
         if (mode === "live") {
@@ -519,61 +799,27 @@ export function StoreProvider({
         }
         assertDemoWritable(state, demoReadOnly);
         const url = await blobToDataUrl(prepared.blob);
-        const updatedAt = new Date().toISOString();
-        setState((current) => {
-          const currentVisit = current.visits.find((item) => item.id === visitId);
-          if (!currentVisit) throw new Error("Besöket finns inte.");
-          const currentRole = current.members.find(
-            (member) => member.id === current.currentUserId,
-          )?.role;
-          if (
-            !canAddOrReplaceVisitPhoto(
-              currentVisit,
-              current.currentUserId,
-              currentRole,
-              current.group.lifecycleStatus === "archived",
-            )
-          ) {
-            throw new Error("En annan deltagare har redan lagt till ett foto.");
-          }
-          return {
-            ...current,
-            visits: current.visits.map((item) =>
-              item.id === visitId
-                ? {
-                    ...item,
-                    photo: {
-                      url,
-                      uploadedBy: current.currentUserId,
-                      mimeType: prepared.mimeType,
-                      byteSize: prepared.byteSize,
-                      width: prepared.width,
-                      height: prepared.height,
-                      updatedAt,
-                    },
-                  }
-                : item,
-            ),
-          };
-        });
+        setState((current) => applyPreparedVisitPhotoToDemoState(current, visitId, prepared, url));
       },
 
-      deleteVisitPhoto: async (visitId) => {
+      deleteVisitPhoto: async (visitId, uploadedBy) => {
         const visit = state.visits.find((item) => item.id === visitId);
         if (!visit) throw new Error("Besöket finns inte.");
+        const targetUploadedBy = uploadedBy ?? state.currentUserId;
         const role = state.members.find((member) => member.id === state.currentUserId)?.role;
         if (
           !canDeleteVisitPhoto(
             visit,
+            targetUploadedBy,
             state.currentUserId,
             role,
             state.group.lifecycleStatus === "archived",
           )
         ) {
-          throw new Error("Du saknar behörighet att ta bort fotot för det här besöket.");
+          throw new Error("Du saknar behörighet att ta bort den här bilden.");
         }
         if (mode === "live") {
-          await runLive((groupId) => liveDeleteVisitPhoto(groupId, visitId));
+          await runLive((groupId) => liveDeleteVisitPhoto(groupId, visitId, targetUploadedBy));
           return;
         }
         assertDemoWritable(state, demoReadOnly);
@@ -586,17 +832,22 @@ export function StoreProvider({
           if (
             !canDeleteVisitPhoto(
               currentVisit,
+              targetUploadedBy,
               current.currentUserId,
               currentRole,
               current.group.lifecycleStatus === "archived",
             )
           ) {
-            throw new Error("Du saknar behörighet att ta bort fotot för det här besöket.");
+            throw new Error("Du saknar behörighet att ta bort den här bilden.");
           }
+          const photos = getVisitPhotos(currentVisit).filter(
+            (photo) => photo.uploadedBy !== targetUploadedBy,
+          );
+          const photo = representativeVisitPhoto({ photos, photo: null });
           return {
             ...current,
             visits: current.visits.map((item) =>
-              item.id === visitId ? { ...item, photo: null } : item,
+              item.id === visitId ? { ...item, photos, photo } : item,
             ),
           };
         });
@@ -618,10 +869,7 @@ export function StoreProvider({
         }
 
         if (mode === "live") {
-          await runLive(async (groupId) => {
-            if (visit.photo) await liveDeleteVisitPhoto(groupId, visitId);
-            await liveDeleteOriginalVisit(groupId, visitId);
-          });
+          await runLive((groupId) => liveDeleteOriginalVisit(groupId, visitId));
           return;
         }
 
@@ -736,7 +984,12 @@ export function StoreProvider({
           ...current,
           places: current.places.map((place) =>
             place.id === placeId
-              ? { ...place, collectionStatus: "active", archivedAt: null, archivedBy: null }
+              ? {
+                  ...place,
+                  collectionStatus: "active",
+                  archivedAt: null,
+                  archivedBy: null,
+                }
               : place,
           ),
         }));
@@ -783,26 +1036,106 @@ export function StoreProvider({
           return;
         }
         assertDemoWritable(state, demoReadOnly);
-        const exists = state.visits.some((visit) =>
-          visit.visibleReviews?.some(
-            (review) => review.id === reviewId && review.userId === state.currentUserId,
-          ),
-        );
-        if (!exists) throw new Error("Ditt omdöme hittades inte.");
+        const target = state.visits
+          .flatMap((visit) => (visit.visibleReviews ?? []).map((review) => ({ visit, review })))
+          .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
+        if (!target) throw new Error("Ditt omdöme hittades inte.");
+
+        if (
+          target.review.reviewModel &&
+          reviewModelUsesDetailedRatings(
+            effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
+          )
+        ) {
+          if (
+            !reviewRatingsComplete(
+              effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
+              {
+                taste: input.taste ?? 0,
+                value: input.value ?? 0,
+                service: input.service ?? 0,
+                atmosphere: input.atmosphere ?? 0,
+              },
+            )
+          ) {
+            throw new Error("Sätt alla relevanta betyg.");
+          }
+        }
+
         setState((current) => ({
           ...current,
           visits: current.visits.map((visit) => {
             const scored = visitHasScore(visit);
             const reviews = (visit.visibleReviews ?? []).map((review) => {
               if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
+              if (!scored || review.reviewModel === "food_v0_overall") {
+                return {
+                  ...review,
+                  comment: input.comment ?? null,
+                };
+              }
+              const derivedOverall = review.reviewModel
+                ? deriveReviewOverall(review.reviewModel, {
+                    taste: input.taste ?? 0,
+                    value: input.value ?? 0,
+                    service: input.service ?? 0,
+                    atmosphere: input.atmosphere ?? 0,
+                  })
+                : null;
               return {
                 ...review,
-                overall: scored ? input.overall : null,
-                taste: scored ? (input.taste ?? null) : null,
-                value: scored ? (input.value ?? null) : null,
-                service: scored ? (input.service ?? null) : null,
+                overall: derivedOverall ?? input.overall,
+                taste: input.taste ?? null,
+                value: input.value ?? null,
+                service: input.service ?? null,
+                atmosphere: review.reviewModel ? (input.atmosphere ?? null) : null,
                 comment: input.comment ?? null,
-                ratingVisible: scored ? review.ratingVisible : false,
+                ratingVisible: review.ratingVisible,
+              };
+            });
+            return aggregateVisit({ ...visit, visibleReviews: reviews });
+          }),
+        }));
+      },
+
+      upgradeOwnReviewModel: async (reviewId, input) => {
+        if (mode === "live") {
+          await runLive((groupId) => liveUpgradeOwnReviewModel(groupId, reviewId, input));
+          return;
+        }
+        assertDemoWritable(state, demoReadOnly);
+        const target = state.visits
+          .flatMap((visit) => (visit.visibleReviews ?? []).map((review) => ({ visit, review })))
+          .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
+        if (!target) throw new Error("Ditt omdöme hittades inte.");
+        const place = state.places.find((item) => item.id === target.visit.placeId);
+        const targetModel = place
+          ? reviewModelForContext({
+              isTakeaway: target.visit.isTakeaway === true,
+              occasions: place.occasions,
+            })
+          : null;
+        if (!canUpgradeReviewModelWithAtmosphere(target.review.reviewModel, targetModel)) {
+          throw new Error("Atmosfär ingår inte i den aktuella betygsmodellen.");
+        }
+        if (!reviewRatingsComplete(targetModel, input)) {
+          throw new Error("Sätt alla relevanta betyg.");
+        }
+
+        setState((current) => ({
+          ...current,
+          visits: current.visits.map((visit) => {
+            const reviews = (visit.visibleReviews ?? []).map((review) => {
+              if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
+              return {
+                ...review,
+                reviewModel: targetModel,
+                overall: deriveReviewOverall(targetModel, input) ?? review.overall,
+                taste: input.taste,
+                value: input.value,
+                service: input.service,
+                atmosphere: input.atmosphere,
+                comment: input.comment,
               };
             });
             return aggregateVisit({ ...visit, visibleReviews: reviews });
@@ -830,12 +1163,20 @@ export function StoreProvider({
           .filter((visit) => visit.placeId === placeId)
           .sort((a, b) => (a.date < b.date ? 1 : -1)),
       avgRating: (placeId) => {
-        const visits = state.visits.filter(
-          (visit) => visit.placeId === placeId && visitHasScore(visit) && visit.overall > 0,
-        );
-        if (!visits.length) return { overall: 0, count: 0 };
-        const sum = visits.reduce((total, visit) => total + visit.overall, 0);
-        return { overall: sum / visits.length, count: visits.length };
+        const ratings = state.visits
+          .filter((visit) => visit.placeId === placeId && visitHasScore(visit))
+          .flatMap((visit) =>
+            (visit.visibleReviews ?? []).flatMap((review) => {
+              if (!visit.participantIds.includes(review.userId) || !review.ratingVisible) {
+                return [];
+              }
+              const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
+              return overall != null ? [overall] : [];
+            }),
+          );
+        if (!ratings.length) return { overall: 0, count: 0 };
+        const sum = ratings.reduce((total, overall) => total + overall, 0);
+        return { overall: sum / ratings.length, count: ratings.length };
       },
       isFavorite: (placeId) =>
         state.favorites.some(
@@ -889,7 +1230,11 @@ export function StoreProvider({
         return counts;
       },
       occasionCounts: () => {
-        const counts: Record<Occasion, number> = { snabbt: 0, avslappnat: 0, middag: 0 };
+        const counts: Record<Occasion, number> = {
+          snabbt: 0,
+          avslappnat: 0,
+          middag: 0,
+        };
         state.places
           .filter((place) => place.collectionStatus !== "archived")
           .forEach((place) => place.occasions.forEach((occasion) => (counts[occasion] += 1)));

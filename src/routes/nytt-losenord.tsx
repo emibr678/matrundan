@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { appPageTitle } from "@/lib/app-environment";
 import {
   hasCurrentAccountSession,
   subscribeToPasswordRecovery,
@@ -18,12 +19,12 @@ import {
 export const Route = createFileRoute("/nytt-losenord")({
   head: () => ({
     meta: [
-      { title: "Välj nytt lösenord · Matrundan" },
+      { title: appPageTitle("Välj nytt lösenord") },
       {
         name: "description",
         content: "Sätt ett nytt lösenord för ditt Matrundan-konto och kom tillbaka till gruppen.",
       },
-      { property: "og:title", content: "Välj nytt lösenord · Matrundan" },
+      { property: "og:title", content: appPageTitle("Välj nytt lösenord") },
       {
         property: "og:description",
         content: "Sätt ett nytt lösenord för ditt Matrundan-konto.",

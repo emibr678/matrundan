@@ -178,7 +178,11 @@ async function mockLiveGroup(page: Page, practical: PracticalInfoState) {
     nextStopDateProposal: null,
   };
 
-  for (const rpc of ["get_group_app_state_v5l", "get_group_app_state_v5k"]) {
+  for (const rpc of [
+    "get_group_app_state_v5m",
+    "get_group_app_state_v5l",
+    "get_group_app_state_v5k",
+  ]) {
     await page.route(`**/rest/v1/rpc/${rpc}`, async (route) => {
       await route.fulfill({
         status: 200,

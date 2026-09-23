@@ -19,12 +19,18 @@ import type {
   Place,
   PlaceCategory,
   PlaceCollectionStatus,
+  ReviewModel,
   Role,
   SearchRadiusKm,
   VisibleReview,
   Visit,
 } from "./types";
 import { normalizeOccasionClassification } from "./occasions";
+import {
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelIncludesAtmosphere,
+} from "./review-model";
 import { normalizeWebsiteUrl } from "./place-links";
 import {
   CURRENT_GROUP_STATE_RPC,
@@ -34,6 +40,7 @@ import {
 import { isSearchRadiusKm } from "./search-areas";
 import { APP_VERSION } from "./version";
 import { createSignedVisitPhotoUrls } from "./visit-photo";
+import { visitMealHasScore } from "./visit-context";
 
 const ROLE_LABEL: Record<string, Role> = {
   owner: "ägare",
@@ -48,6 +55,8 @@ type ReviewRow = {
   taste: number | null;
   value: number | null;
   service: number | null;
+  atmosphere?: number | null;
+  reviewModel?: ReviewModel | null;
   comment: string | null;
   ratingVisible: boolean;
   commentVisible: boolean;
@@ -75,6 +84,16 @@ type VisitRow = {
     status: "active" | "left" | "guest";
   }[];
   reviews: ReviewRow[];
+  photos?: {
+    storagePath: string;
+    uploadedBy: string;
+    mimeType: string;
+    byteSize: number;
+    width: number;
+    height: number;
+    createdAt?: string;
+    updatedAt: string;
+  }[];
   photo: {
     storagePath: string;
     uploadedBy: string;
@@ -82,6 +101,7 @@ type VisitRow = {
     byteSize: number;
     width: number;
     height: number;
+    createdAt?: string;
     updatedAt: string;
   } | null;
 };
@@ -396,7 +416,10 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
   });
 
   const signedPhotoUrls = await createSignedVisitPhotoUrls(
-    p.visits.flatMap((visit) => (visit.photo?.storagePath ? [visit.photo.storagePath] : [])),
+    p.visits.flatMap((visit) => {
+      const photos = visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [];
+      return photos.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : []));
+    }),
   );
 
   const visits: Visit[] = p.visits.map((v) => {
@@ -408,20 +431,32 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       taste: r.taste,
       value: r.value,
       service: r.service,
+      atmosphere: r.atmosphere ?? null,
+      reviewModel: r.reviewModel ?? null,
       comment: r.comment,
       ratingVisible: r.ratingVisible,
       commentVisible: r.commentVisible,
     }));
     // Aggregat räknas bara från synliga, faktiska scores. Scorelösa kommentarer
     // kan fortfarande bidra med besöksminnet men aldrig med ett numeriskt betyg.
-    const rated = visibleReviews.filter(
-      (review): review is VisibleReview & { overall: number } =>
-        review.ratingVisible && review.overall != null,
-    );
-    const overall = rated.map((r) => r.overall);
-    const taste = rated.map((r) => r.taste).filter((x): x is number => x != null);
-    const value = rated.map((r) => r.value).filter((x): x is number => x != null);
-    const service = rated.map((r) => r.service).filter((x): x is number => x != null);
+    const rated = visitMealHasScore(v.meal)
+      ? visibleReviews.flatMap((review) => {
+          const overall = effectiveReviewOverall(review, v.isTakeaway ?? false);
+          return review.ratingVisible && overall != null ? [{ review, overall }] : [];
+        })
+      : [];
+    const overall = rated.map((item) => item.overall);
+    const taste = rated.map((item) => item.review.taste).filter((x): x is number => x != null);
+    const value = rated.map((item) => item.review.value).filter((x): x is number => x != null);
+    const service = rated.map((item) => item.review.service).filter((x): x is number => x != null);
+    const atmosphere = rated
+      .filter(({ review }) =>
+        reviewModelIncludesAtmosphere(
+          effectiveReviewModel(review.reviewModel, v.isTakeaway ?? false),
+        ),
+      )
+      .map((item) => item.review.atmosphere)
+      .filter((x): x is number => x != null);
     const comment = visibleReviews.find((r) => r.commentVisible && r.comment?.trim())?.comment;
     const currentUserParticipationStatus =
       v.currentUserParticipationStatus === "declined"
@@ -429,6 +464,13 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
         : participantIds.includes(p.currentUserId)
           ? ("participant" as const)
           : ("none" as const);
+    const rawPhotos = v.photos?.length ? v.photos : v.photo ? [v.photo] : [];
+    const photos = rawPhotos.map((photo) => ({
+      ...photo,
+      createdAt: photo.createdAt ?? photo.updatedAt,
+      url: signedPhotoUrls.get(photo.storagePath),
+    }));
+
     return {
       id: v.id,
       placeId: v.placeId,
@@ -441,14 +483,11 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       taste: avg(taste),
       value: avg(value),
       service: avg(service),
+      atmosphere: avg(atmosphere),
       comment: comment ?? undefined,
       createdBy: v.createdBy,
-      photo: v.photo
-        ? {
-            ...v.photo,
-            url: signedPhotoUrls.get(v.photo.storagePath),
-          }
-        : null,
+      photos,
+      photo: photos[0] ?? null,
       linkType: v.linkType,
       linkedBy: v.linkedBy,
       linkedAt: v.linkedAt,

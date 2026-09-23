@@ -10,10 +10,11 @@ import { z } from "zod";
 import type { BulkPlaceAddResult, ProviderPlaceBatchInput } from "./bulk-place-add";
 import { MAX_BULK_PLACE_COUNT } from "./bulk-place-add";
 import { createManualPlaceFromFallback, reuseManualPlaceInGroup } from "./reusable-manual-places";
-import type { Place, Visit } from "./types";
+import type { Occasion, Place, Visit } from "./types";
 import { rpcClient } from "./rpc-client";
 import { flushNotificationOutbox } from "./notifications.functions";
 import { visitMealHasScore } from "./visit-context";
+import { removeVisitPhotoStoragePaths } from "./visit-photo";
 
 /**
  * Interna mutationshintar för det manuella tilläggsflödet. De lagras aldrig på
@@ -24,6 +25,39 @@ export type ManualPlaceMutationHints = {
   reusePlaceId?: string;
   declinedReusablePlaceIds?: string[];
 };
+
+export type VisitMutationInput = Omit<Visit, "id"> & {
+  /** Endast när Passar för saknas och behöver frysas tillsammans med en ny review. */
+  reviewOccasions?: Occasion[];
+};
+
+export interface VisitEditGuestInput {
+  /** UUID för en redan registrerad privat gäst. Null betyder ny gäst. */
+  id: string | null;
+  name: string;
+}
+
+export interface VisitEditOwnReviewInput {
+  id: string;
+  overall: number | null;
+  taste: number | null;
+  value: number | null;
+  service: number | null;
+  atmosphere: number | null;
+  comment: string | null;
+}
+
+export interface VisitEditMutationInput {
+  visitedOn: string;
+  meal: Visit["meal"];
+  isTakeaway: boolean;
+  /** Grupprelevanta deltagare. Cross-group-identiteter bevaras server-side. */
+  participantIds: string[];
+  guests: VisitEditGuestInput[];
+  /** Endast privata gäster som användaren uttryckligen tog bort i editorn. */
+  removedGuestIds: string[];
+  ownReview?: VisitEditOwnReviewInput | null;
+}
 
 /**
  * Notiser köas av databasen. Vi puffar på utskicket direkt efter en händelse
@@ -127,7 +161,7 @@ export async function liveCreatePlace(
 
 export async function liveCreateVisitWithReview(
   groupId: string,
-  input: Omit<Visit, "id">,
+  input: VisitMutationInput,
 ): Promise<string> {
   const visitedOn = input.date.length >= 10 ? input.date.slice(0, 10) : input.date;
   const guestNames = (input.participants ?? [])
@@ -137,7 +171,7 @@ export async function liveCreateVisitWithReview(
   const registrarParticipates = input.participantIds.includes(input.createdBy);
   const scored = visitMealHasScore(input.meal);
   const visitId = await rpcClient.call(
-    "create_visit_with_review_v4",
+    "create_visit_with_review_v5",
     {
       _group_id: groupId,
       _place_id: input.placeId,
@@ -145,12 +179,13 @@ export async function liveCreateVisitWithReview(
       _meal_type: input.meal,
       _participant_ids: input.participantIds ?? [],
       _is_takeaway: scored && input.isTakeaway === true,
-      _overall: registrarParticipates && scored ? input.overall : null,
       _taste: registrarParticipates && scored ? nn(input.taste) : null,
       _value: registrarParticipates && scored ? nn(input.value) : null,
       _service: registrarParticipates && scored ? nn(input.service) : null,
+      _atmosphere: registrarParticipates && scored ? nn(input.atmosphere) : null,
       _comment: registrarParticipates ? nn(input.comment) : null,
       _guest_names: guestNames,
+      _review_occasions: input.reviewOccasions ?? null,
     },
     ID_SCHEMA,
     "Kunde inte registrera besöket.",
@@ -159,11 +194,44 @@ export async function liveCreateVisitWithReview(
   return visitId;
 }
 
-export async function liveDeleteOriginalVisit(groupId: string, visitId: string): Promise<void> {
-  await rpcClient.callVoid("delete_original_visit", {
+export async function liveUpdateVisit(
+  groupId: string,
+  visitId: string,
+  input: VisitEditMutationInput,
+): Promise<void> {
+  const visitedOn = input.visitedOn.length >= 10 ? input.visitedOn.slice(0, 10) : input.visitedOn;
+
+  await rpcClient.callVoid("update_visit_v1", {
     _group_id: groupId,
     _visit_id: visitId,
+    _visited_on: visitedOn,
+    _meal_type: input.meal,
+    _participant_ids: input.participantIds,
+    _is_takeaway: input.meal === "dryck" ? false : input.isTakeaway,
+    _guests: input.guests.map((guest) => ({ id: guest.id, name: guest.name })),
+    _removed_guest_ids: input.removedGuestIds,
+    _update_own_review: Boolean(input.ownReview),
+    _review_id: input.ownReview?.id ?? null,
+    _review_overall: input.ownReview?.overall ?? null,
+    _review_taste: input.ownReview?.taste ?? null,
+    _review_value: input.ownReview?.value ?? null,
+    _review_service: input.ownReview?.service ?? null,
+    _review_atmosphere: input.ownReview?.atmosphere ?? null,
+    _review_comment: input.ownReview?.comment ?? null,
   });
+}
+
+export async function liveDeleteOriginalVisit(groupId: string, visitId: string): Promise<void> {
+  const storagePaths = await rpcClient.call(
+    "delete_original_visit",
+    {
+      _group_id: groupId,
+      _visit_id: visitId,
+    },
+    z.array(z.string()),
+    "Kunde inte radera besöket.",
+  );
+  await removeVisitPhotoStoragePaths(storagePaths);
 }
 
 export async function liveToggleFavorite(groupId: string, placeId: string): Promise<boolean> {

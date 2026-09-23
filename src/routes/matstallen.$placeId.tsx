@@ -34,12 +34,19 @@ import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { appPageTitle } from "@/lib/app-environment";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
+import {
+  effectiveReviewModel,
+  effectiveReviewOverall,
+  reviewModelIncludesAtmosphere,
+} from "@/lib/matrundan/review-model";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatVisitContext } from "@/lib/matrundan/visit-context";
+import { getVisitPhotos } from "@/lib/matrundan/visit-photo";
 import { formatRating } from "@/lib/matrundan/version";
 
 const PLACE_SEARCH_DEFAULTS = { visit: "" };
@@ -55,12 +62,12 @@ export const Route = createFileRoute("/matstallen/$placeId")({
   },
   head: () => ({
     meta: [
-      { title: "Matställe · Matrundan" },
+      { title: appPageTitle("Matställe") },
       {
         name: "description",
         content: "Detaljer, besök och betyg för ett matställe.",
       },
-      { property: "og:title", content: "Matställe · Matrundan" },
+      { property: "og:title", content: appPageTitle("Matställe") },
       { property: "og:description", content: "Detaljer, besök och betyg." },
     ],
   }),
@@ -112,20 +119,38 @@ function PlaceDetail() {
   );
   const nextPendingReviewVisit = pendingReviewVisits[0] ?? null;
   const detail = React.useMemo(() => {
-    const taste: number[] = [];
-    const value: number[] = [];
-    const service: number[] = [];
-    visits.forEach((visit) => {
-      if (visit.taste) taste.push(visit.taste);
-      if (visit.value) value.push(visit.value);
-      if (visit.service) service.push(visit.service);
-    });
+    const ratedReviews = visits.flatMap((visit) =>
+      (visit.visibleReviews ?? []).flatMap((review) => {
+        const overall = effectiveReviewOverall(review, visit.isTakeaway === true);
+        return visit.participantIds.includes(review.userId) &&
+          review.ratingVisible &&
+          overall != null
+          ? [{ review, visit }]
+          : [];
+      }),
+    );
     const avg = (values: number[]) =>
       values.length ? values.reduce((sum, item) => sum + item, 0) / values.length : 0;
+    const dimension = (key: "taste" | "value" | "service" | "atmosphere") =>
+      avg(
+        ratedReviews.flatMap(({ review, visit }) => {
+          if (
+            key === "atmosphere" &&
+            !reviewModelIncludesAtmosphere(
+              effectiveReviewModel(review.reviewModel, visit.isTakeaway === true),
+            )
+          ) {
+            return [];
+          }
+          const value = review[key];
+          return value != null ? [value] : [];
+        }),
+      );
     return {
-      taste: avg(taste),
-      value: avg(value),
-      service: avg(service),
+      taste: dimension("taste"),
+      value: dimension("value"),
+      service: dimension("service"),
+      atmosphere: dimension("atmosphere"),
     };
   }, [visits]);
 
@@ -402,6 +427,7 @@ function PlaceDetail() {
             {visits.map((visit) => {
               const author = memberById(visit.createdBy);
               const pendingReview = canCompleteReview && pendingReviewVisitIds.has(visit.id);
+              const photoCount = getVisitPhotos(visit).length;
               const visibleParticipants =
                 visit.participants && visit.participants.length > 0
                   ? visit.participants
@@ -432,11 +458,18 @@ function PlaceDetail() {
                 >
                   <div className="flex items-start gap-3">
                     {visit.photo?.url ? (
-                      <img
-                        src={visit.photo.url}
-                        alt=""
-                        className="h-16 w-20 shrink-0 rounded-xl border border-border/70 object-cover"
-                      />
+                      <div className="relative h-16 w-20 shrink-0">
+                        <img
+                          src={visit.photo.url}
+                          alt=""
+                          className="h-full w-full rounded-xl border border-border/70 object-cover"
+                        />
+                        {photoCount > 1 ? (
+                          <span className="absolute bottom-1 right-1 rounded-full bg-background/90 px-1.5 py-0.5 text-[10px] font-medium shadow-sm">
+                            +{photoCount - 1}
+                          </span>
+                        ) : null}
+                      </div>
                     ) : (
                       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">
                         {author?.avatar ?? "🙂"}
@@ -497,12 +530,15 @@ function PlaceDetail() {
         </div>
         <Card className="space-y-3 rounded-2xl border-border/70 p-4">
           {place.cuisines.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {place.cuisines.map((cuisine) => (
-                <Badge key={cuisine} variant="secondary" className="rounded-full">
-                  {cuisine}
-                </Badge>
-              ))}
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground">Kök och inriktning</div>
+              <div className="flex flex-wrap gap-1.5">
+                {place.cuisines.map((cuisine) => (
+                  <Badge key={cuisine} variant="secondary" className="rounded-full">
+                    {cuisine}
+                  </Badge>
+                ))}
+              </div>
             </div>
           ) : null}
           {occasions.length > 0 ? (
@@ -526,12 +562,6 @@ function PlaceDetail() {
             </div>
           ) : null}
           {place.notes ? <p className="text-sm text-muted-foreground">{place.notes}</p> : null}
-          {(place.categoryOverride != null || place.cuisinesOverride != null) && (
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Kategori eller kök och inriktning har anpassats för den här gruppen. Matställets namn
-              och adress är oförändrade.
-            </p>
-          )}
           <div className="text-xs text-muted-foreground">
             Tillagt av {memberById(place.addedBy)?.name ?? "någon"} · {formatDate(place.addedAt)}
           </div>
@@ -542,12 +572,19 @@ function PlaceDetail() {
         <section>
           <h2 className="mb-2 font-display text-lg">Betygsdetaljer</h2>
           <p className="mb-2 text-xs text-muted-foreground">
-            Frivilliga snitt per aspekt – syns bara när gänget har lämnat dem.
+            Snitt per aspekt från de omdömen där aspekten ingår.
           </p>
-          <Card className="grid grid-cols-3 gap-3 rounded-2xl border-border/70 p-4">
+          <Card
+            className={`grid gap-3 rounded-2xl border-border/70 p-4 ${
+              detail.atmosphere > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+            }`}
+          >
             <RatingCell label="Smak" value={detail.taste} />
             <RatingCell label="Prisvärd" value={detail.value} />
             <RatingCell label="Service" value={detail.service} />
+            {detail.atmosphere > 0 ? (
+              <RatingCell label="Atmosfär" value={detail.atmosphere} />
+            ) : null}
           </Card>
         </section>
       ) : null}

@@ -467,6 +467,7 @@ export type Database = {
           created_at: string
           created_by: string
           default_search_radius_km: number
+          description: string | null
           emoji: string | null
           home_lat: number | null
           home_lng: number | null
@@ -485,6 +486,7 @@ export type Database = {
           created_at?: string
           created_by: string
           default_search_radius_km?: number
+          description?: string | null
           emoji?: string | null
           home_lat?: number | null
           home_lng?: number | null
@@ -503,6 +505,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           default_search_radius_km?: number
+          description?: string | null
           emoji?: string | null
           home_lat?: number | null
           home_lng?: number | null
@@ -1718,10 +1721,12 @@ export type Database = {
       }
       reviews: {
         Row: {
+          atmosphere: number | null
           comment: string | null
           created_at: string
           id: string
           overall: number | null
+          review_model: string | null
           service: number | null
           taste: number | null
           updated_at: string
@@ -1730,10 +1735,12 @@ export type Database = {
           visit_id: string
         }
         Insert: {
+          atmosphere?: number | null
           comment?: string | null
           created_at?: string
           id?: string
           overall?: number | null
+          review_model?: string | null
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -1742,10 +1749,12 @@ export type Database = {
           visit_id: string
         }
         Update: {
+          atmosphere?: number | null
           comment?: string | null
           created_at?: string
           id?: string
           overall?: number | null
+          review_model?: string | null
           service?: number | null
           taste?: number | null
           updated_at?: string
@@ -1980,7 +1989,7 @@ export type Database = {
           {
             foreignKeyName: "visit_media_visit_group_fk"
             columns: ["visit_id", "group_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "visit_group_links"
             referencedColumns: ["visit_id", "group_id"]
           },
@@ -2146,8 +2155,17 @@ export type Database = {
         Args: { _group_id: string; _visit_id: string }
         Returns: boolean
       }
+      can_delete_own_visit_photo_path: {
+        Args: { _storage_path: string }
+        Returns: boolean
+      }
       can_delete_visit_photo: {
-        Args: { _group_id: string; _user_id: string; _visit_id: string }
+        Args: {
+          _group_id: string
+          _uploaded_by: string
+          _user_id: string
+          _visit_id: string
+        }
         Returns: boolean
       }
       can_manage_own_visit_photo: {
@@ -2208,6 +2226,16 @@ export type Database = {
       create_group_with_owner_v2: {
         Args: {
           _default_radius_km?: number
+          _emoji?: string
+          _name: string
+          _search_areas?: Json
+        }
+        Returns: string
+      }
+      create_group_with_owner_v3: {
+        Args: {
+          _default_radius_km?: number
+          _description?: string
           _emoji?: string
           _name: string
           _search_areas?: Json
@@ -2419,17 +2447,49 @@ export type Database = {
         }
         Returns: string
       }
+      create_visit_with_review_v5: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _guest_names?: string[]
+          _is_takeaway?: boolean
+          _meal_type: string
+          _participant_ids: string[]
+          _place_id: string
+          _review_occasions?: string[]
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visited_on: string
+        }
+        Returns: string
+      }
       cross_group_practical_info_candidate_v1: {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json
       }
       delete_original_visit: {
         Args: { _group_id: string; _visit_id: string }
-        Returns: undefined
+        Returns: string[]
       }
       delete_visit_photo: {
         Args: { _group_id: string; _visit_id: string }
         Returns: string
+      }
+      delete_visit_photo_v2: {
+        Args: { _group_id: string; _uploaded_by: string; _visit_id: string }
+        Returns: string
+      }
+      derive_review_overall_v1: {
+        Args: {
+          _atmosphere?: number
+          _review_model: string
+          _service: number
+          _taste: number
+          _value: number
+        }
+        Returns: number
       }
       dismiss_place_improvement_candidate_v1: {
         Args: { _candidate_id: string; _reason: string }
@@ -2515,6 +2575,7 @@ export type Database = {
         Returns: Json
       }
       get_group_app_state_v5l: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5m: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2833,6 +2894,15 @@ export type Database = {
         Args: { _areas: Json; _default_radius_km: number; _group_id: string }
         Returns: undefined
       }
+      resolve_new_review_model_v1: {
+        Args: {
+          _group_id: string
+          _is_takeaway: boolean
+          _place_id: string
+          _review_occasions?: string[]
+        }
+        Returns: string
+      }
       resolve_place_maintenance_work_item_v1: {
         Args: { _kind: string; _work_item_id: string }
         Returns: string
@@ -2879,6 +2949,19 @@ export type Database = {
           _comment?: string
           _group_id: string
           _overall: number
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visit_id: string
+        }
+        Returns: string
+      }
+      save_own_review_for_visit_v2: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _review_occasions?: string[]
           _service?: number
           _taste?: number
           _value?: number
@@ -3019,6 +3102,15 @@ export type Database = {
         Args: { _group_id: string; _new_owner_id: string }
         Returns: undefined
       }
+      update_group_identity_v1: {
+        Args: {
+          _description?: string
+          _emoji?: string
+          _group_id: string
+          _name: string
+        }
+        Returns: undefined
+      }
       update_group_place_metadata: {
         Args: {
           _category_override?: string
@@ -3077,6 +3169,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_own_review_v2: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _overall?: number
+          _review_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+        }
+        Returns: undefined
+      }
+      update_own_review_v3: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _group_id: string
+          _overall?: number
+          _review_id: string
+          _service?: number
+          _taste?: number
+          _value?: number
+        }
+        Returns: undefined
+      }
       update_place_data_report_osm_status_v1: {
         Args: {
           _note_closed_at: string
@@ -3089,6 +3207,39 @@ export type Database = {
       }
       update_profile: {
         Args: { _avatar_emoji?: string; _display_name: string }
+        Returns: undefined
+      }
+      update_visit_v1: {
+        Args: {
+          _group_id: string
+          _guests?: Json
+          _is_takeaway?: boolean
+          _meal_type: string
+          _participant_ids: string[]
+          _removed_guest_ids?: string[]
+          _review_atmosphere?: number
+          _review_comment?: string
+          _review_id?: string
+          _review_overall?: number
+          _review_service?: number
+          _review_taste?: number
+          _review_value?: number
+          _update_own_review?: boolean
+          _visit_id: string
+          _visited_on: string
+        }
+        Returns: undefined
+      }
+      upgrade_own_review_model_v1: {
+        Args: {
+          _atmosphere: number
+          _comment?: string
+          _group_id: string
+          _review_id: string
+          _service: number
+          _taste: number
+          _value: number
+        }
         Returns: undefined
       }
       upsert_visit_photo: {

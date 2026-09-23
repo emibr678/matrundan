@@ -3,6 +3,8 @@ import { OCCASION_VALUES, type Occasion, type Place } from "@/lib/matrundan/type
 export interface PlaceRating {
   overall: number;
   count: number;
+  /** Antal unika verkliga besök som faktiskt bidrar med minst ett synligt omdöme. */
+  visitCount?: number;
 }
 
 export interface RankedOccasionPlace {
@@ -61,6 +63,7 @@ function rankRatedPlaces(
     .sort(
       (a, b) =>
         b.rating.overall - a.rating.overall ||
+        (b.rating.visitCount ?? 0) - (a.rating.visitCount ?? 0) ||
         b.rating.count - a.rating.count ||
         a.place.name.localeCompare(b.place.name, "sv"),
     );
@@ -84,15 +87,30 @@ export function rankPlacesOverall(
   return rankRatedPlaces(places, ratingOf, limit);
 }
 
+export function rankPlacesForOccasions(
+  places: readonly Place[],
+  occasions: readonly Occasion[],
+  ratingOf: (placeId: string) => PlaceRating,
+  limit = 3,
+): RankedOccasionPlace[] {
+  const selected = OCCASION_VALUES.filter((occasion) => occasions.includes(occasion));
+  if (selected.length === 0) return rankRatedPlaces(places, ratingOf, limit);
+
+  return rankRatedPlaces(
+    places.filter((place) => {
+      const placeOccasions = normalizeOccasionClassification(place.occasions);
+      return selected.some((occasion) => placeOccasions.includes(occasion));
+    }),
+    ratingOf,
+    limit,
+  );
+}
+
 export function rankPlacesForOccasion(
   places: readonly Place[],
   occasion: Occasion,
   ratingOf: (placeId: string) => PlaceRating,
   limit = 3,
 ): RankedOccasionPlace[] {
-  return rankRatedPlaces(
-    places.filter((place) => normalizeOccasionClassification(place.occasions).includes(occasion)),
-    ratingOf,
-    limit,
-  );
+  return rankPlacesForOccasions(places, [occasion], ratingOf, limit);
 }

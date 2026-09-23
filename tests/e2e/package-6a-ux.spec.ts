@@ -98,23 +98,60 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Lägg till ställe", exact: true })).toBeVisible();
 
-  const search = page.getByRole("textbox", { name: "Sök bland gruppens ställen" });
-  await expect(search).toHaveAttribute("placeholder", "Sök bland gruppens ställen");
-  const searchTop = await search.evaluate((element) => element.getBoundingClientRect().top);
-  const topListTop = await page.getByRole("heading", { name: "Topplista" }).evaluate((element) => {
-    return element.getBoundingClientRect().top;
-  });
-  expect(searchTop).toBeLessThan(topListTop);
-  await search.fill("Kvarterets");
-  await expect(page.getByTestId("occasion-leaderboard")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /Kvarterets Kardemumma/ })).toBeVisible();
-  await search.fill("");
   const leaderboard = page.getByTestId("occasion-leaderboard");
+  const collectionHeading = page.getByRole("heading", { name: "Gruppens ställen" });
+  const search = page.getByRole("textbox", { name: "Sök bland gruppens ställen" });
+  const filterButton = page.getByRole("button", { name: "Öppna filter och sortering" });
+
   await expect(leaderboard).toBeVisible();
-  await leaderboard.getByRole("button", { name: "Visa", exact: true }).click();
+  await expect(leaderboard.getByRole("link", { name: /Ledare i topplistan:/ })).toBeVisible();
+  await expect(collectionHeading).toBeVisible();
   await expect(
-    leaderboard.getByRole("button", { name: "Visa topplista för alla betyg" }),
-  ).toHaveAttribute("aria-pressed", "true");
+    collectionHeading
+      .locator("..")
+      .getByText(/\d+ ställen? som gruppen vill prova eller har besökt/),
+  ).toBeVisible();
+  await expect(search).toHaveAttribute("placeholder", "Sök bland gruppens ställen");
+
+  const [topListTop, collectionTop, searchBox, filterBox] = await Promise.all([
+    leaderboard.evaluate((element) => element.getBoundingClientRect().top),
+    collectionHeading.evaluate((element) => element.getBoundingClientRect().top),
+    search.boundingBox(),
+    filterButton.boundingBox(),
+  ]);
+  expect(topListTop).toBeLessThan(collectionTop);
+  expect(collectionTop).toBeLessThan(searchBox!.y);
+  expect(Math.abs(searchBox!.y - filterBox!.y)).toBeLessThanOrEqual(1);
+
+  const longStatusBox = await page
+    .getByText("3 av 5 har provat", { exact: true })
+    .first()
+    .boundingBox();
+  expect(longStatusBox).not.toBeNull();
+  expect(longStatusBox!.x + longStatusBox!.width).toBeLessThanOrEqual(360);
+
+  await search.fill("Kvarterets");
+  await expect(leaderboard).toBeVisible();
+  await expect(page.getByRole("link", { name: /Kvarterets Kardemumma Café/ })).toBeVisible();
+
+  await search.fill("Päronträdets Trattoria");
+  const addFromSearch = page.getByRole("button", {
+    name: "Sök efter Päronträdets Trattoria och lägg till ställe",
+  });
+  await expect(addFromSearch).toBeVisible();
+  await addFromSearch.click();
+  const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(addDialog.getByLabel("Sök matställen")).toHaveValue("Päronträdets Trattoria");
+  await page.keyboard.press("Escape");
+  await expect(addDialog).toBeHidden();
+
+  await search.fill("");
+  await leaderboard.getByRole("button", { name: "Visa topp 3", exact: true }).click();
+  await expect(leaderboard.getByText("Alla", { exact: true })).toHaveCount(0);
+  await expect(leaderboard.getByText("Alla tillfällen", { exact: true })).toHaveCount(0);
+  await expect(
+    leaderboard.getByRole("button", { name: "Filtrera topplistan på Snabbt & enkelt" }),
+  ).toHaveAttribute("aria-pressed", "false");
   await expectNoHorizontalOverflow(page, "Matställen");
 
   await page.goto("/matstallen/p7?demo=1");

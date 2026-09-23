@@ -29,9 +29,10 @@ På hög nivå finns i dag bland annat:
   deltagande och återbesök;
 - push/PWA-stöd, integritetssida och självbetjänad kontoradering.
 
-Detaljerad aktuell releasehistorik finns i [CHANGELOG.md](./CHANGELOG.md). Den
-strategiska produktriktningen och nästa arbete finns i
-[docs/product-roadmap.md](./docs/product-roadmap.md).
+Detaljerad aktuell releasehistorik finns i [CHANGELOG.md](./CHANGELOG.md).
+Strategisk produktriktning och backlogmodell finns i
+[docs/product-roadmap.md](./docs/product-roadmap.md); nästa konkreta arbete och
+dess ordning finns i GitHub Issues och labels.
 
 ## Körlägen
 
@@ -107,8 +108,8 @@ Olika dokument har olika ansvar:
 | Källa | Ansvar |
 | --- | --- |
 | [AGENTS.md](./AGENTS.md) | Kort bindande agentkonstitution och dokumentrouter |
-| [docs/product-roadmap.md](./docs/product-roadmap.md) | Produktinriktning, paket och prioritering |
-| GitHub Issues + labels | Detaljerat scope, status och operativ backlog |
+| [docs/product-roadmap.md](./docs/product-roadmap.md) | Strategisk produktinriktning, teman och backlogmodell |
+| GitHub Issues + labels | Detaljerat scope, status, prioritet och operativ arbetsordning |
 | [docs/architecture.md](./docs/architecture.md) | Varaktiga arkitektur-, integritets- och säkerhetsbeslut |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Miljösetup och kanoniska kommandon |
 | [docs/development-workflow.md](./docs/development-workflow.md) | Planering, implementation, verifiering och leverans |

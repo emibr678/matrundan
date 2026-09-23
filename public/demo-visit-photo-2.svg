@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Fiktiv besöksbild med fika</title>
+  <desc id="desc">Illustration av två kaffekoppar och kardemummabullar på ett bord.</desc>
+  <rect width="1200" height="800" fill="#ead8bf"/>
+  <rect y="520" width="1200" height="280" fill="#c9956e"/>
+  <circle cx="310" cy="385" r="175" fill="#f7efe3"/>
+  <circle cx="310" cy="385" r="115" fill="#bb7b43"/>
+  <path d="M225 385c55-85 120-85 170 0-50 80-115 80-170 0Z" fill="#d7a36f"/>
+  <path d="M260 325c25 45 80 75 118 96M225 370c45 35 105 65 150 73" fill="none" stroke="#8b5737" stroke-width="18" stroke-linecap="round"/>
+  <rect x="670" y="235" width="250" height="230" rx="38" fill="#f6f1e7"/>
+  <ellipse cx="795" cy="250" rx="105" ry="42" fill="#7b4b32"/>
+  <path d="M920 295h70c75 0 75 135 0 135h-70" fill="none" stroke="#f6f1e7" stroke-width="42"/>
+  <path d="M725 185c-20-45 30-58 10-105M790 185c-20-45 30-58 10-105M855 185c-20-45 30-58 10-105" fill="none" stroke="#fff7ec" stroke-width="14" stroke-linecap="round"/>
+  <text x="58" y="700" font-family="system-ui, sans-serif" font-size="32" font-weight="600" fill="#5e4635">Fika tillsammans</text>
+  <text x="58" y="748" font-family="system-ui, sans-serif" font-size="24" fill="#6f5542">Fiktiv exempelbild · privata minnen stannar i gruppen</text>
+</svg>
