@@ -79,7 +79,9 @@ export function VisitParticipationControls({
         className="h-10 w-full justify-start px-2 text-sm font-normal text-muted-foreground hover:text-foreground"
         disabled={!writable || saving}
         onClick={() =>
-          participating ? setConfirmDeclineOpen(true) : void updateParticipation(true)
+          participating
+            ? setConfirmDeclineOpen(true)
+            : void updateParticipation(true)
         }
       >
         {saving ? (
