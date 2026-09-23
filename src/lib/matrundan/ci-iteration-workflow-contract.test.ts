@@ -31,7 +31,10 @@ describe("CI-iterationskontrakt", () => {
     expect(workflow).toContain("uses: ./.github/workflows/mobile-pr-handoff.yml");
     expect(workflow).toContain("uses: ./.github/workflows/cloudflare-staging-deploy.yml");
     expect(workflow).toContain(
-      "github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.required.result == 'success'",
+      "always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.required.result == 'success'",
+    );
+    expect(workflow).toContain(
+      "always() && github.event_name == 'pull_request' && needs.required.result == 'success'",
     );
   });
 

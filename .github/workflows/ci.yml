@@ -498,7 +498,7 @@ jobs:
   handoff:
     name: Mobile handoff
     needs: required
-    if: github.event_name == 'pull_request' && needs.required.result == 'success'
+    if: always() && github.event_name == 'pull_request' && needs.required.result == 'success'
     permissions:
       actions: read
       checks: read
@@ -513,7 +513,7 @@ jobs:
   staging:
     name: Staging deploy
     needs: required
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.required.result == 'success'
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.required.result == 'success'
     permissions:
       contents: read
     uses: ./.github/workflows/cloudflare-staging-deploy.yml
