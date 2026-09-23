@@ -27,7 +27,9 @@ Deno.serve(async (request: Request) => {
 
   const payload = await request.json().catch(() => null);
   const deliveryToken =
-    payload && typeof payload.deliveryToken === "string" ? payload.deliveryToken : "";
+    payload && typeof payload.deliveryToken === "string"
+      ? payload.deliveryToken
+      : "";
   if (!UUID_PATTERN.test(deliveryToken)) return jsonError(404, "NOT_FOUND");
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
