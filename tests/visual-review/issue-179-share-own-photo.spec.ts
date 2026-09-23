@@ -314,47 +314,45 @@ async function openShareDialog(page: Page, ownHasPhoto: boolean) {
 
   const visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByRole("heading", { name: "Bistro Test" })).toBeVisible();
-  const shareButton = visitDialog.getByRole("button", { name: "Dela vidare" });
+  const shareButton = visitDialog.getByRole("button", { name: "Lägg till i annan grupp" });
   await expect(shareButton).toBeVisible();
   await shareButton.click();
 
   const shareDialog = page.getByRole("dialog", {
-    name: "Dela besöket vidare",
+    name: "Lägg till besöket i en annan grupp",
   });
   await expect(shareDialog).toBeVisible();
   await shareDialog.getByRole("button", { name: /Jobbgänget med ett lite längre namn/ }).click();
   return shareDialog;
 }
 
-test("fånga ändra deltagande i sekundärmenyn", async ({ page }, testInfo) => {
+test("fånga eget deltagande som status och motsatt handling", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await seedSession(page);
   await mockLive(page, true);
   await page.goto(`/besok?visit=${VISIT_ID}`, { waitUntil: "domcontentloaded" });
 
   const visitDialog = page.getByRole("dialog").first();
-  await expect(visitDialog.getByRole("button", { name: "Dela vidare" })).toBeVisible();
-  await expect(visitDialog.getByRole("button", { name: "Jag var inte med" })).toHaveCount(0);
+  await expect(visitDialog.getByText("Ditt deltagande", { exact: true })).toBeVisible();
+  await expect(visitDialog.getByText("Du var med", { exact: true })).toBeVisible();
+  const declineButton = visitDialog.getByRole("button", { name: "Jag var inte med" });
+  await expect(declineButton).toBeVisible();
+  await expect(visitDialog.getByRole("button", { name: "Lägg till i annan grupp" })).toBeVisible();
 
-  await visitDialog.getByRole("button", { name: "Besöksalternativ" }).click();
-  const participationItem = page.getByRole("menuitem", { name: "Ändra deltagande" });
-  await expect(participationItem).toBeVisible();
-  await participationItem.click();
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-179-eget-deltagande-inline");
 
-  const participationDialog = page.getByRole("alertdialog", { name: "Ändra ditt deltagande" });
+  await declineButton.click();
+  const participationDialog = page.getByRole("alertdialog", { name: "Var du inte med?" });
   await expect(participationDialog).toBeVisible();
-  await expect(
-    participationDialog.getByText("Du är registrerad som deltagare på det här besöket.", {
-      exact: false,
-    }),
-  ).toBeVisible();
   await expect(
     participationDialog.getByRole("button", { name: "Markera att jag inte var med" }),
   ).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-179-andra-deltagande");
+  await capture(page, testInfo, "issue-179-eget-deltagande-bekraftelse");
 });
 
 test("fånga uttrycklig bilddelning när egen bild finns", async ({ page }, testInfo) => {

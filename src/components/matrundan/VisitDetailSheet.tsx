@@ -5,7 +5,6 @@ import {
   MapPin,
   MoreHorizontal,
   Pencil,
-  Share2,
   Trash2,
   UserRoundCheck,
   Users2,
@@ -114,7 +113,6 @@ export function VisitDetailSheet({
     !!visit && !demoReadOnly && canEditOriginalVisit(visit, state.currentUserId, groupArchived);
 
   const [shareOpen, setShareOpen] = React.useState(false);
-  const [participationOpen, setParticipationOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
@@ -209,7 +207,7 @@ export function VisitDetailSheet({
                   {formatVisitDate(visit.date)} · {formatVisitContext(visit)}
                 </SheetDescription>
 
-                {canEdit || canShare || canChangeParticipation || canUnlink || canDelete ? (
+                {canEdit || canUnlink || canDelete ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -227,18 +225,6 @@ export function VisitDetailSheet({
                         <DropdownMenuItem onSelect={() => setEditOpen(true)}>
                           <Pencil className="h-4 w-4" />
                           Redigera besök
-                        </DropdownMenuItem>
-                      ) : null}
-                      {canShare ? (
-                        <DropdownMenuItem onSelect={() => setShareOpen(true)}>
-                          <Share2 className="h-4 w-4" />
-                          Dela vidare
-                        </DropdownMenuItem>
-                      ) : null}
-                      {canChangeParticipation ? (
-                        <DropdownMenuItem onSelect={() => setParticipationOpen(true)}>
-                          <UserRoundCheck className="h-4 w-4" />
-                          Ändra deltagande
                         </DropdownMenuItem>
                       ) : null}
                       {canUnlink || canDelete ? <DropdownMenuSeparator /> : null}
@@ -266,31 +252,17 @@ export function VisitDetailSheet({
               </SheetHeader>
 
               <div className="space-y-4 p-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
-                    <span
-                      className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-sm"
-                      aria-hidden="true"
-                    >
-                      {author?.avatar ?? "🙂"}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
-                      registrerade besöket
-                    </span>
-                  </div>
-                  {canShare ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 shrink-0 rounded-full px-3"
-                      onClick={() => setShareOpen(true)}
-                    >
-                      <Share2 className="h-4 w-4" />
-                      Dela vidare
-                    </Button>
-                  ) : null}
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-sm"
+                    aria-hidden="true"
+                  >
+                    {author?.avatar ?? "🙂"}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
+                    registrerade besöket
+                  </span>
                 </div>
 
                 <section>
@@ -362,6 +334,29 @@ export function VisitDetailSheet({
                       ) : null}
                     </div>
                   ) : null}
+
+                  {canChangeParticipation ? (
+                    <VisitParticipationControls
+                      visit={visit}
+                      currentUserId={state.currentUserId}
+                      groupArchived={groupArchived}
+                      demoReadOnly={demoReadOnly}
+                      onChanged={reload}
+                    />
+                  ) : null}
+
+                  {canShare ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 h-10 rounded-xl px-3"
+                      onClick={() => setShareOpen(true)}
+                    >
+                      <Users2 className="h-4 w-4" />
+                      Lägg till i annan grupp
+                    </Button>
+                  ) : null}
                 </section>
 
                 {(isLive && activeGroupId) || (isDemo && isShared && !isParticipant) ? (
@@ -407,18 +402,6 @@ export function VisitDetailSheet({
           open={editOpen}
           onOpenChange={setEditOpen}
           onSaved={reload}
-        />
-      ) : null}
-
-      {visit && canChangeParticipation ? (
-        <VisitParticipationControls
-          visit={visit}
-          currentUserId={state.currentUserId}
-          groupArchived={groupArchived}
-          demoReadOnly={demoReadOnly}
-          open={participationOpen}
-          onOpenChange={setParticipationOpen}
-          onChanged={reload}
         />
       ) : null}
 
