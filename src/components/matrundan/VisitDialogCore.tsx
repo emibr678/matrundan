@@ -228,9 +228,7 @@ export function VisitDialog({
   };
 
   const toggleSharePhotoGroup = (id: string) =>
-    setSharePhotoGroupIds((cur) =>
-      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
-    );
+    setSharePhotoGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   function closeGuestInput() {
     setGuestInputOpen(false);
