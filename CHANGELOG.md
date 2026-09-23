@@ -14,6 +14,33 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.41.0] – 2026-09-22
+
+### Nytt
+
+- Flera faktiska deltagare kan bidra med varsin privat bild till samma gemensamma
+  besök.
+- Ägare till äldre kompletta tredelade omdömen kan frivilligt lägga till
+  **Atmosfär** när den senare blir relevant, efter en tydlig bekräftelse.
+
+### Förbättrat
+
+- Gemensam besöksdata, personliga omdömen och personliga bilder har tydligare
+  separata redigeringsvägar. Atmosfärens beteende för **Hämtmat** och
+  **Snabbt & enkelt** förklaras där konsekvensen är relevant.
+- Historiska omdömen behåller den betygsmodell de skapades med. Äldre omdömen
+  med bara helhetsbetyg bevaras utan fabricerade detaljbetyg.
+- Gruppens samlade betyg och deltagarnas omdömen har fått en tydligare
+  mobilhierarki, och reaktioner väljs i en liten förankrad meny nära kommentaren.
+- **Passar för** använder nu **Snabbt & enkelt** konsekvent, medan dryckesbesök
+  visas som **Ett glas** med tydligare förklaring om att besöket sparas utan
+  betyg.
+
+### Rättat
+
+- Texten för äldre omdömen med endast helhetsbetyg visas inte längre dubbelt i
+  redigeringsdialogen.
+
 ## [1.40.0] – 2026-09-19
 
 ### Nytt
