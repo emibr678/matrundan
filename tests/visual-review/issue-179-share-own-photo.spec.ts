@@ -7,8 +7,13 @@ const ACTIVE_GROUP_KEY = "matrundan.activeGroup.v1";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const SOURCE_GROUP_ID = "33333333-3333-4333-8333-333333333333";
 const TARGET_GROUP_ID = "44444444-4444-4444-8444-444444444444";
+const SECOND_TARGET_GROUP_ID = "77777777-7777-4777-8777-777777777777";
 const PLACE_ID = "55555555-5555-4555-8555-555555555555";
 const VISIT_ID = "66666666-6666-4666-8666-666666666666";
+const PNG_1PX = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAD0lEQVR4nGP4z8DAwMAAAAYAAeIhvDMAAAAASUVORK5CYII=",
+  "base64",
+);
 
 async function stabilize(page: Page) {
   await page.addStyleTag({
@@ -205,6 +210,13 @@ async function mockLive(page: Page, ownHasPhoto: boolean) {
             role: "member",
             lifecycleStatus: "active",
           },
+          {
+            id: SECOND_TARGET_GROUP_ID,
+            name: "Stockholms skärgård",
+            emoji: "🍣",
+            role: "member",
+            lifecycleStatus: "active",
+          },
         ]),
       });
       return;
@@ -215,6 +227,30 @@ async function mockLive(page: Page, ownHasPhoto: boolean) {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(sourceState()),
+      });
+      return;
+    }
+
+    if (rpc === "list_place_share_targets_v4b") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            groupId: TARGET_GROUP_ID,
+            name: "Jobbgänget med ett lite längre namn",
+            emoji: "🥘",
+            placeExistsInGroup: true,
+            sharedVisitsCountForProgression: true,
+          },
+          {
+            groupId: SECOND_TARGET_GROUP_ID,
+            name: "Stockholms skärgård",
+            emoji: "🍣",
+            placeExistsInGroup: false,
+            sharedVisitsCountForProgression: false,
+          },
+        ]),
       });
       return;
     }
@@ -286,9 +322,12 @@ test("fånga uttrycklig bilddelning när egen bild finns", async ({ page }, test
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   const shareDialog = await openShareDialog(page, true);
 
-  const photoSwitch = shareDialog.getByRole("switch", { name: "Dela även min bild" });
+  const photoSwitch = shareDialog.getByRole("switch", { name: "Dela min bild" });
+  const commentSwitch = shareDialog.getByRole("switch", { name: "Dela min kommentar" });
   await expect(photoSwitch).toBeVisible();
-  await expect(photoSwitch).not.toBeChecked();
+  await expect(photoSwitch).toBeChecked();
+  await expect(commentSwitch).toBeChecked();
+  await expect(shareDialog.getByText("Stället läggs till", { exact: true })).toBeVisible();
   await expect(shareDialog.getByText("Gruppen räknar inte delade besök mot progression.")).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
@@ -299,11 +338,46 @@ test("dölj bildvalet när användaren saknar egen bild", async ({ page }, testI
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   const shareDialog = await openShareDialog(page, false);
 
-  await expect(shareDialog.getByRole("switch", { name: "Dela även min bild" })).toHaveCount(0);
-  await expect(shareDialog.getByRole("switch", { name: "Dela min kommentar" })).toBeVisible();
+  await expect(shareDialog.getByRole("switch", { name: "Dela min bild" })).toHaveCount(0);
+  const commentSwitch = shareDialog.getByRole("switch", { name: "Dela min kommentar" });
+  await expect(commentSwitch).toBeVisible();
+  await expect(commentSwitch).toBeChecked();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-179-dela-besok-utan-egen-bild");
+});
+
+test("fånga förenklad flergruppsdelning vid registrering", async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await seedSession(page);
+  await mockLive(page, true);
+  await page.goto(`/matstallen/${PLACE_ID}`, { waitUntil: "domcontentloaded" });
+
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  const dialog = page.getByRole("dialog", { name: "Registrera besök" });
+  await expect(dialog).toBeVisible();
+
+  await dialog.getByLabel("Kommentar (frivilligt)").fill("Kvällens favorit.");
+  await dialog.getByLabel("Välj foto från besöket").setInputFiles({
+    name: "middag.png",
+    mimeType: "image/png",
+    buffer: PNG_1PX,
+  });
+
+  await expect(dialog.getByText("Välj vilka grupper som också ska få besöket.")).toBeVisible();
+  await expect(dialog.getByText("Stället finns redan", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Stället läggs till", { exact: true })).toBeVisible();
+
+  const photoSwitch = dialog.getByRole("switch", { name: "Dela min bild" });
+  const commentSwitch = dialog.getByRole("switch", { name: "Dela min kommentar" });
+  await expect(photoSwitch).toBeVisible();
+  await expect(commentSwitch).toBeVisible();
+  await expect(photoSwitch).toBeChecked();
+  await expect(commentSwitch).toBeChecked();
+
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-179-registrera-flergruppsdelning");
 });
 
 test("fånga delat besök med bild i exempelgruppen", async ({ page }, testInfo) => {

@@ -112,7 +112,7 @@ export function VisitDialog({
   const [comment, setComment] = React.useState("");
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
-  const [sharePhotoGroupIds, setSharePhotoGroupIds] = React.useState<string[]>([]);
+  const [sharePhoto, setSharePhoto] = React.useState(false);
   const [shareComment, setShareComment] = React.useState(false);
   const scoredVisit = visitMealHasScore(meal);
   const currentUserParticipates = participants.includes(state.currentUserId);
@@ -138,11 +138,11 @@ export function VisitDialog({
       setReviewOccasions([]);
       setComment("");
       setPhotoFile(null);
+      setSharePhoto(false);
       setShareComment(false);
       setShareTargets([]);
       setShareTargetsError(null);
       setShareGroupIds([]);
-      setSharePhotoGroupIds([]);
       setDuplicateCandidate(null);
       setDuplicateBusy(false);
     }
@@ -186,13 +186,12 @@ export function VisitDialog({
   }, [activeGroupId, open, mode, placeId]);
 
   React.useEffect(() => {
-    setSharePhotoGroupIds((current) => {
-      const next = photoFile ? current.filter((id) => shareGroupIds.includes(id)) : [];
-      return next.length === current.length && next.every((id, index) => id === current[index])
-        ? current
-        : next;
-    });
-  }, [photoFile, shareGroupIds]);
+    setSharePhoto(photoFile != null);
+  }, [photoFile]);
+
+  React.useEffect(() => {
+    setShareComment(hasComment);
+  }, [hasComment]);
 
   if (!place) return null;
   const currentPlace = place;
@@ -222,13 +221,7 @@ export function VisitDialog({
   const toggleShareGroup = (id: string) => {
     const removing = shareGroupIds.includes(id);
     setShareGroupIds((cur) => (removing ? cur.filter((x) => x !== id) : [...cur, id]));
-    if (removing) {
-      setSharePhotoGroupIds((cur) => cur.filter((x) => x !== id));
-    }
   };
-
-  const toggleSharePhotoGroup = (id: string) =>
-    setSharePhotoGroupIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   function closeGuestInput() {
     setGuestInputOpen(false);
@@ -315,7 +308,7 @@ export function VisitDialog({
           groupId,
           hasComment ? shareComment : false,
           allowStrongDuplicate,
-          photoFile != null && photoError == null && sharePhotoGroupIds.includes(groupId),
+          photoFile != null && photoError == null && sharePhoto,
         );
         sharedCount += 1;
       } catch {
@@ -727,12 +720,21 @@ export function VisitDialog({
             {canShare && !shareTargetsLoading && !shareTargetsError ? (
               <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
+                  <div className="min-w-0 space-y-1">
                     <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
                     <p className="text-xs text-muted-foreground">
-                      Besöket och matstället läggs till i de valda grupperna. Ursprungsgrupp,
-                      privata kommentarer, gästnamn och andra gruppers medlemmar syns aldrig.
+                      Välj vilka grupper som också ska få besöket.
                     </p>
+                    <details className="text-xs text-muted-foreground">
+                      <summary className="w-fit cursor-pointer font-medium text-primary">
+                        Vad delas?
+                      </summary>
+                      <p className="mt-1 leading-relaxed">
+                        Besöket och stället läggs till i valda grupper. Bara din egen bild och
+                        kommentar kan följa med via valen nedan. Ursprungsgrupp, privata gästnamn
+                        och andra gruppers medlemskap syns aldrig.
+                      </p>
+                    </details>
                   </div>
                   <button
                     type="button"
@@ -753,7 +755,6 @@ export function VisitDialog({
                 <div className="space-y-2">
                   {shareableGroups.map((group) => {
                     const checked = shareGroupIds.includes(group.groupId);
-                    const sharePhoto = sharePhotoGroupIds.includes(group.groupId);
                     return (
                       <div key={group.groupId} className="rounded-xl bg-background">
                         <label className="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2 text-sm">
@@ -764,43 +765,36 @@ export function VisitDialog({
                             aria-label={`Dela besöket med ${group.name}`}
                           />
                           <span aria-hidden>{group.emoji ?? "🍽️"}</span>
-                          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                            {group.name}
-                          </span>
-                          {group.placeExistsInGroup ? (
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              finns redan
+                          <span className="min-w-0 flex-1">
+                            <span className="block [overflow-wrap:anywhere]">{group.name}</span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              {group.placeExistsInGroup
+                                ? "Stället finns redan"
+                                : "Stället läggs till"}
                             </span>
-                          ) : null}
+                          </span>
                         </label>
-                        {checked && photoFile ? (
-                          <label className="flex min-h-10 cursor-pointer items-center gap-2 border-t border-border/50 px-3 py-2 pl-11 text-xs text-muted-foreground">
-                            <Checkbox
-                              checked={sharePhoto}
-                              onCheckedChange={() => toggleSharePhotoGroup(group.groupId)}
-                              disabled={isBusy}
-                              aria-label={`Dela även min bild med ${group.name}`}
-                            />
-                            <span>Dela även min bild</span>
-                          </label>
-                        ) : null}
                       </div>
                     );
                   })}
                 </div>
-                {guests.length > 0 && shareGroupIds.length > 0 ? (
-                  <div className="flex gap-2 rounded-xl bg-background px-3 py-2.5 text-xs text-muted-foreground">
-                    <UserRoundCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <p>
-                      Efter sparandet kan du koppla en gäst till en medlem i en vald grupp. Personen
-                      bekräftar själv.
-                    </p>
+                {photoFile && shareGroupIds.length > 0 ? (
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-background px-3 py-2">
+                    <Label htmlFor="share-photo" className="text-sm font-normal">
+                      Dela min bild
+                    </Label>
+                    <Switch
+                      id="share-photo"
+                      checked={sharePhoto}
+                      onCheckedChange={setSharePhoto}
+                      disabled={isBusy}
+                    />
                   </div>
                 ) : null}
                 {hasComment && shareGroupIds.length > 0 ? (
                   <div className="flex items-center justify-between gap-3 rounded-xl bg-background px-3 py-2">
                     <Label htmlFor="share-comment" className="text-sm font-normal">
-                      Dela även min kommentar
+                      Dela min kommentar
                     </Label>
                     <Switch
                       id="share-comment"
@@ -808,6 +802,15 @@ export function VisitDialog({
                       onCheckedChange={setShareComment}
                       disabled={isBusy}
                     />
+                  </div>
+                ) : null}
+                {guests.length > 0 && shareGroupIds.length > 0 ? (
+                  <div className="flex gap-2 rounded-xl bg-background px-3 py-2.5 text-xs text-muted-foreground">
+                    <UserRoundCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <p>
+                      Efter sparandet kan du koppla en gäst till en medlem i en vald grupp. Personen
+                      bekräftar själv.
+                    </p>
                   </div>
                 ) : null}
               </div>

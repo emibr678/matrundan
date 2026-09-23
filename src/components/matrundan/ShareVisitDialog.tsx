@@ -171,7 +171,8 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                     disabled={t.alreadyLinked}
                     onClick={() => {
                       setSelected(t.groupId);
-                      setSharePhoto(false);
+                      setShareComment(t.ownHasComment);
+                      setSharePhoto(t.ownHasPhoto && !t.ownPhotoShared);
                       setDuplicateCandidate(null);
                     }}
                     className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none disabled:cursor-not-allowed"
@@ -184,8 +185,10 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                       <div className="truncate font-medium">{t.name}</div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
                         {t.alreadyLinked
-                          ? "Redan tillagt"
-                          : `${t.visibleParticipants.length} deltagare från gruppen`}
+                          ? "Besöket finns redan"
+                          : t.placeExistsInGroup
+                            ? "Stället finns redan"
+                            : "Stället läggs till"}
                       </div>
                     </div>
                     {t.alreadyLinked ? (
@@ -228,7 +231,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="text-muted-foreground">
                 {chosen.relevantReviewCount} betyg från personer som är eller har varit medlemmar
-                blir synliga i gruppen. Kommentarer följer inte automatiskt.
+                blir synliga i gruppen. Övriga deltagares kommentarer följer inte med.
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -256,7 +259,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
               <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-background/50 p-2">
                 <Label htmlFor="share-photo" className="flex items-center gap-2 text-sm">
                   <ImageIcon className="h-4 w-4" />
-                  Dela även min bild
+                  Dela min bild
                 </Label>
                 <Switch id="share-photo" checked={sharePhoto} onCheckedChange={setSharePhoto} />
               </div>

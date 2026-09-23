@@ -44,6 +44,7 @@ import { reviewModelIncludesAtmosphere } from "@/lib/matrundan/review-model";
 import type { Place, Visit } from "@/lib/matrundan/types";
 import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
 import { canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
+import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
 
 interface DraftGuest {
   key: string;
@@ -117,7 +118,7 @@ export function EditVisitDialog({
   const [shareLoading, setShareLoading] = React.useState(false);
   const [shareError, setShareError] = React.useState<string | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
-  const [sharePhotoGroupIds, setSharePhotoGroupIds] = React.useState<string[]>([]);
+  const [sharePhoto, setSharePhoto] = React.useState(false);
   const [shareComment, setShareComment] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [confirmTakeaway, setConfirmTakeaway] = React.useState(false);
@@ -131,6 +132,7 @@ export function EditVisitDialog({
     (target) => !target.alreadyLinked && shareGroupIds.includes(target.groupId),
   );
   const hasOwnComment = Boolean(ownReview?.comment?.trim());
+  const hasOwnPhoto = Boolean(getOwnVisitPhoto(visit, state.currentUserId));
   const takeawayChangesRatings =
     visit.isTakeaway !== true &&
     isTakeaway &&
@@ -168,13 +170,15 @@ export function EditVisitDialog({
     setGuestInputOpen(false);
     setGuestName("");
     setShareGroupIds([]);
-    setSharePhotoGroupIds([]);
-    setShareComment(false);
+    setSharePhoto(hasOwnPhoto);
+    setShareComment(hasOwnComment);
     setConfirmTakeaway(false);
   }, [
     memberCandidates,
     mode,
     open,
+    hasOwnComment,
+    hasOwnPhoto,
     ownReview,
     state.currentUserId,
     visit.date,
@@ -231,25 +235,7 @@ export function EditVisitDialog({
     setShareGroupIds((current) =>
       removing ? current.filter((id) => id !== groupId) : [...current, groupId],
     );
-    if (removing) {
-      setSharePhotoGroupIds((current) => current.filter((id) => id !== groupId));
-    }
   }
-
-  function toggleSharePhotoTarget(groupId: string) {
-    setSharePhotoGroupIds((current) =>
-      current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId],
-    );
-  }
-
-  React.useEffect(() => {
-    setSharePhotoGroupIds((current) => {
-      const next = current.filter((id) => shareGroupIds.includes(id));
-      return next.length === current.length && next.every((id, index) => id === current[index])
-        ? current
-        : next;
-    });
-  }, [shareGroupIds]);
 
   function closeGuestInput() {
     setGuestInputOpen(false);
@@ -319,7 +305,7 @@ export function EditVisitDialog({
             target.groupId,
             hasOwnComment ? shareComment : false,
             false,
-            sharePhotoGroupIds.includes(target.groupId),
+            hasOwnPhoto ? sharePhoto : false,
           );
           sharedCount += 1;
         } catch {
@@ -548,8 +534,7 @@ export function EditVisitDialog({
               <div>
                 <h3 className="text-sm font-medium">Lägg till i fler grupper</h3>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Befintliga gruppkopplingar ligger kvar. Välj bara nya grupper som besöket också
-                  ska läggas till i.
+                  Välj nya grupper som också ska få besöket.
                 </p>
               </div>
 
@@ -569,7 +554,6 @@ export function EditVisitDialog({
                 <div className="space-y-2">
                   {otherShareTargets.map((target) => {
                     const checked = shareGroupIds.includes(target.groupId);
-                    const sharePhoto = sharePhotoGroupIds.includes(target.groupId);
                     return (
                       <div key={target.groupId} className="rounded-xl border border-border/70">
                         <label className="flex min-h-11 items-center gap-3 px-3 py-2 text-sm">
@@ -584,36 +568,39 @@ export function EditVisitDialog({
                             }
                           />
                           <span aria-hidden>{target.emoji}</span>
-                          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                            {target.name}
-                          </span>
-                          {target.alreadyLinked ? (
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              Redan tillagt
+                          <span className="min-w-0 flex-1">
+                            <span className="block [overflow-wrap:anywhere]">{target.name}</span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              {target.alreadyLinked
+                                ? "Besöket finns redan"
+                                : target.placeExistsInGroup
+                                  ? "Stället finns redan"
+                                  : "Stället läggs till"}
                             </span>
-                          ) : null}
+                          </span>
                         </label>
-                        {checked && target.ownHasPhoto && !target.ownPhotoShared ? (
-                          <label className="flex min-h-10 items-center gap-2 border-t border-border/50 px-3 py-2 pl-11 text-xs text-muted-foreground">
-                            <Checkbox
-                              checked={sharePhoto}
-                              onCheckedChange={() => toggleSharePhotoTarget(target.groupId)}
-                              disabled={isBusy}
-                              aria-label={`Dela även min bild med ${target.name}`}
-                            />
-                            <span>Dela även min bild</span>
-                          </label>
-                        ) : null}
                       </div>
                     );
                   })}
                 </div>
               )}
 
+              {hasOwnPhoto && selectedTargets.length > 0 ? (
+                <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
+                  <Label htmlFor={`edit-visit-share-photo-${visit.id}`}>Dela min bild</Label>
+                  <Switch
+                    id={`edit-visit-share-photo-${visit.id}`}
+                    checked={sharePhoto}
+                    onCheckedChange={setSharePhoto}
+                    disabled={isBusy}
+                  />
+                </div>
+              ) : null}
+
               {hasOwnComment && selectedTargets.length > 0 ? (
                 <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
                   <Label htmlFor={`edit-visit-share-comment-${visit.id}`}>
-                    Dela även min kommentar
+                    Dela min kommentar
                   </Label>
                   <Switch
                     id={`edit-visit-share-comment-${visit.id}`}
