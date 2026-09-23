@@ -212,9 +212,9 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                 </p>
                 {chosen.externalParticipantCount > 0 ? (
                   <p>
-                    {chosen.externalParticipantCount} annan
-                    {chosen.externalParticipantCount === 1 ? " deltagare visas" : " deltagare visas"}{" "}
-                    anonymt.
+                    {chosen.externalParticipantCount === 1
+                      ? "1 annan deltagare visas anonymt."
+                      : `${chosen.externalParticipantCount} andra deltagare visas anonymt.`}
                   </p>
                 ) : null}
                 <p>

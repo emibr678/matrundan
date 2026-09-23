@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2, UserRoundCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -12,7 +12,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { persistDemoState } from "@/lib/matrundan/demo-state";
 import { setOwnDemoVisitParticipation } from "@/lib/matrundan/demo-visit-participation";
 import { setOwnVisitParticipation } from "@/lib/matrundan/live-visit-participation";
@@ -25,17 +24,20 @@ export function VisitParticipationControls({
   currentUserId,
   groupArchived,
   demoReadOnly,
+  open,
+  onOpenChange,
   onChanged,
 }: {
   visit: Visit;
   currentUserId: string;
   groupArchived: boolean;
   demoReadOnly: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onChanged: () => void | Promise<void>;
 }) {
   const { state } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const status =
@@ -55,7 +57,7 @@ export function VisitParticipationControls({
         persistDemoState(setOwnDemoVisitParticipation(state, visit.id, participating), exampleMode);
       }
       toast.success("Ditt deltagande är uppdaterat.");
-      setOpen(false);
+      onOpenChange(false);
       if (mode === "live") await onChanged();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte ändra deltagandet.");
@@ -69,35 +71,28 @@ export function VisitParticipationControls({
   const participating = status === "participant";
 
   return (
-    <>
-      <DropdownMenuItem disabled={!writable || saving} onSelect={() => setOpen(true)}>
-        <UserRoundCheck className="h-4 w-4" />
-        Ändra deltagande
-      </DropdownMenuItem>
-
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ändra ditt deltagande</AlertDialogTitle>
-            <AlertDialogDescription>
-              {participating
-                ? "Du är registrerad som deltagare på det här besöket. Om det inte stämmer kan du markera att du inte var med."
-                : "Du är inte registrerad som deltagare på det här besöket. Om det var ett misstag kan du markera att du var med."}
-              {" Ändringen gäller samma besök i alla grupper där det visas."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={saving}>Avbryt</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={saving}
-              onClick={() => void updateParticipation(!participating)}
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {participating ? "Markera att jag inte var med" : "Markera att jag var med"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Ändra ditt deltagande</AlertDialogTitle>
+          <AlertDialogDescription>
+            {participating
+              ? "Du är registrerad som deltagare på det här besöket. Om det inte stämmer kan du markera att du inte var med."
+              : "Du är inte registrerad som deltagare på det här besöket. Om det var ett misstag kan du markera att du var med."}
+            {" Ändringen gäller samma besök i alla grupper där det visas."}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={saving}>Avbryt</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={saving}
+            onClick={() => void updateParticipation(!participating)}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {participating ? "Markera att jag inte var med" : "Markera att jag var med"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

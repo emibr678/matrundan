@@ -114,6 +114,7 @@ export function VisitDetailSheet({
     !!visit && !demoReadOnly && canEditOriginalVisit(visit, state.currentUserId, groupArchived);
 
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [participationOpen, setParticipationOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
@@ -234,14 +235,11 @@ export function VisitDetailSheet({
                           Dela vidare
                         </DropdownMenuItem>
                       ) : null}
-                      {canChangeParticipation && visit ? (
-                        <VisitParticipationControls
-                          visit={visit}
-                          currentUserId={state.currentUserId}
-                          groupArchived={groupArchived}
-                          demoReadOnly={demoReadOnly}
-                          onChanged={reload}
-                        />
+                      {canChangeParticipation ? (
+                        <DropdownMenuItem onSelect={() => setParticipationOpen(true)}>
+                          <UserRoundCheck className="h-4 w-4" />
+                          Ändra deltagande
+                        </DropdownMenuItem>
                       ) : null}
                       {canUnlink || canDelete ? <DropdownMenuSeparator /> : null}
                       {canUnlink ? (
@@ -409,6 +407,18 @@ export function VisitDetailSheet({
           open={editOpen}
           onOpenChange={setEditOpen}
           onSaved={reload}
+        />
+      ) : null}
+
+      {visit && canChangeParticipation ? (
+        <VisitParticipationControls
+          visit={visit}
+          currentUserId={state.currentUserId}
+          groupArchived={groupArchived}
+          demoReadOnly={demoReadOnly}
+          open={participationOpen}
+          onOpenChange={setParticipationOpen}
+          onChanged={reload}
         />
       ) : null}
 
