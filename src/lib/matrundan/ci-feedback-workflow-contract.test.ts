@@ -38,6 +38,7 @@ describe("PR-verifieringens feedbackkontrakt", () => {
     expect(workflow).toContain(
       "bun run test:mobile -- --shard=${{ matrix.shard }}/3 --max-failures=3 --retries=0",
     );
+    expect(workflow).toContain("needs.classify.outputs.has_browser == 'true'");
     expect(workflow).toContain("github.event_name != 'push'");
   });
 });

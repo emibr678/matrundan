@@ -45,6 +45,7 @@ jobs:
       base_sha: ${{ steps.changes.outputs.base_sha }}
       has_format: ${{ steps.changes.outputs.has_format }}
       has_ui: ${{ steps.changes.outputs.has_ui }}
+      has_browser: ${{ steps.changes.outputs.has_browser }}
       has_map: ${{ steps.changes.outputs.has_map }}
       has_db: ${{ steps.changes.outputs.has_db }}
       has_migrations: ${{ steps.changes.outputs.has_migrations }}
@@ -327,7 +328,7 @@ jobs:
   browser:
     name: Mobile Chromium shard ${{ matrix.shard }}/3
     needs: classify
-    if: needs.classify.outputs.has_ui == 'true' && github.event_name != 'push'
+    if: needs.classify.outputs.has_browser == 'true' && github.event_name != 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
