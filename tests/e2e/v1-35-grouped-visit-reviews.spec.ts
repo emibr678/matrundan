@@ -272,5 +272,7 @@ test("historiskt helhetsbetyg utan detaljbetyg kan redigeras inom sin gamla mode
   const reopenedEditDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
   await expect(reopenedEditDialog.getByText("3,0 / 5", { exact: true })).toBeVisible();
   await expect(reopenedEditDialog.getByRole("group", { name: "Detaljbetyg" })).toHaveCount(0);
-  await expect(reopenedEditDialog.getByRole("button", { name: "Lägg till Atmosfär" })).toHaveCount(0);
+  await expect(
+    reopenedEditDialog.getByRole("button", { name: "Lägg till Atmosfär" }),
+  ).toHaveCount(0);
 });
