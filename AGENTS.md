@@ -122,9 +122,20 @@ hypothesis, make the smallest targeted change and remove temporary diagnostics
 once the root cause is resolved.
 
 Use the narrowest check that can falsify the current candidate first, then widen
-verification as it stabilises. Canonical commands live in `DEVELOPMENT.md` and
-`package.json`. Never claim a check, migration, Lovable sync, preview,
-deployment or publication happened without evidence.
+verification as it stabilises. Keep the PR draft during implementation and UX
+iteration. A Cloudflare branch preview may be handed off as **iterationspreview –
+full CI ej körd** after targeted self-review; do not make early user feedback wait
+for candidate CI.
+
+When the PR is ready, follow the current head SHA and the canonical **CI /
+required** gate rather than polling every sub-workflow. On failure, diagnose the
+failed job immediately; when a newer head replaces the run, stop following the
+old run; and when a run makes no progress, inspect its current job/step instead
+of continuing a blind polling loop.
+
+Canonical commands live in `DEVELOPMENT.md` and `package.json`. Never claim a
+check, migration, Lovable sync, preview, deployment or publication happened
+without evidence.
 
 All rendered GUI changes must also follow the local `src/AGENTS.md` and
 `docs/visual-review.md`. Lovable is strictly opt-in: do not consult Lovable,
