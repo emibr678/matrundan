@@ -221,7 +221,8 @@ export function VisitDetailSheet({
                           <Pencil className="h-4 w-4" />
                           Redigera besök
                         </DropdownMenuItem>
-                      ) : canShare ? (
+                      ) : null}
+                      {canShare ? (
                         <DropdownMenuItem onSelect={() => setShareOpen(true)}>
                           <Share2 className="h-4 w-4" />
                           Lägg till i annan grupp
