@@ -238,9 +238,7 @@ export function EditVisitDialog({
 
   function toggleSharePhotoTarget(groupId: string) {
     setSharePhotoGroupIds((current) =>
-      current.includes(groupId)
-        ? current.filter((id) => id !== groupId)
-        : [...current, groupId],
+      current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId],
     );
   }
 
@@ -573,10 +571,7 @@ export function EditVisitDialog({
                     const checked = shareGroupIds.includes(target.groupId);
                     const sharePhoto = sharePhotoGroupIds.includes(target.groupId);
                     return (
-                      <div
-                        key={target.groupId}
-                        className="rounded-xl border border-border/70"
-                      >
+                      <div key={target.groupId} className="rounded-xl border border-border/70">
                         <label className="flex min-h-11 items-center gap-3 px-3 py-2 text-sm">
                           <Checkbox
                             checked={target.alreadyLinked ? true : checked}
