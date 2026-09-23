@@ -77,6 +77,7 @@ export function EditReviewDialog({
   const [confirmUpgradeOpen, setConfirmUpgradeOpen] = React.useState(false);
   const displayModel = completingAtmosphere ? "food_v1_atmosphere" : activeModel;
   const activeModelHasAtmosphere = reviewModelIncludesAtmosphere(displayModel);
+  const [overall, setOverall] = React.useState(review.overall ?? 0);
   const [taste, setTaste] = React.useState(review.taste ?? 0);
   const [value, setValue] = React.useState(review.value ?? 0);
   const [service, setService] = React.useState(review.service ?? 0);
@@ -86,7 +87,7 @@ export function EditReviewDialog({
   const [removePhoto, setRemovePhoto] = React.useState(false);
   const archived = state.group.lifecycleStatus === "archived";
   const complete = historicalOverallOnly
-    ? review.overall != null
+    ? Number.isInteger(overall) && overall >= 1 && overall <= 5
     : displayModel
       ? reviewRatingsComplete(displayModel, { taste, service, value, atmosphere })
       : scoreless;
@@ -95,6 +96,7 @@ export function EditReviewDialog({
     if (!open) return;
     setCompletingAtmosphere(false);
     setConfirmUpgradeOpen(false);
+    setOverall(review.overall ?? 0);
     setTaste(review.taste ?? 0);
     setValue(review.value ?? 0);
     setService(review.service ?? 0);
@@ -125,7 +127,7 @@ export function EditReviewDialog({
 
     try {
       const reviewInput = {
-        overall: null,
+        overall: historicalOverallOnly ? overall || null : null,
         taste: scoreless || historicalOverallOnly ? null : taste || null,
         value: scoreless || historicalOverallOnly ? null : value || null,
         service: scoreless || historicalOverallOnly ? null : service || null,
@@ -235,11 +237,13 @@ export function EditReviewDialog({
             scoreless={scoreless}
             activeModel={displayModel}
             showModelNotice={!(displayModel === "food_v1_takeaway" && !isTakeaway)}
+            overall={overall}
             taste={taste}
             value={value}
             service={service}
             atmosphere={atmosphere}
             comment={comment}
+            onOverallChange={setOverall}
             onTasteChange={setTaste}
             onValueChange={setValue}
             onServiceChange={setService}
