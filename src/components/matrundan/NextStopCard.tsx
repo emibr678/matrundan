@@ -3,9 +3,7 @@ import { Link } from "@tanstack/react-router";
 import {
   CalendarDays,
   Check,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
   Flag,
   Heart,
   Loader2,
@@ -90,7 +88,6 @@ export function NextStopCard({
   const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [switching, setSwitching] = React.useState<NextStopPlaceProposal | null>(null);
-  const [otherOpen, setOtherOpen] = React.useState(false);
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const proposals = React.useMemo<ProposalItem[]>(
@@ -125,10 +122,6 @@ export function NextStopCard({
     () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
     [activePlaces, state.visits],
   );
-
-  React.useEffect(() => {
-    setOtherOpen(false);
-  }, [focusedPlace?.id]);
 
   async function run(key: string, operation: () => Promise<void>, success?: string) {
     if (busy) return;
@@ -225,7 +218,7 @@ export function NextStopCard({
       "shuffle",
       () => propose(pick.id),
       focusedPlace
-        ? `${pick.name} lades till under Andra förslag.`
+        ? `${pick.name} lades till bland förslagen på nästa stopp.`
         : `${pick.name} är gruppens nästa stopp.`,
     );
   }
@@ -388,52 +381,38 @@ export function NextStopCard({
       </Card>
 
       {otherProposals.length > 0 ? (
-        <div className="mt-0">
-          <button
-            type="button"
-            className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
-            aria-expanded={otherOpen}
-            onClick={() => setOtherOpen((current) => !current)}
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <span>Andra förslag ({otherProposals.length})</span>
-              {leadingAlternativeId && !otherOpen ? (
-                <span className="truncate text-[11px] font-medium text-primary">
-                  Flest vill hit
-                </span>
-              ) : null}
-            </span>
-            {otherOpen ? (
-              <ChevronUp className="h-4 w-4 shrink-0" />
-            ) : (
-              <ChevronDown className="h-4 w-4 shrink-0" />
-            )}
-          </button>
-          {otherOpen ? (
-            <div className="mt-1 divide-y divide-border/60 border-t border-border/60 px-2">
-              {otherProposals.map((item) => (
-                <ProposalRow
-                  key={item.proposal.id}
-                  item={item}
-                  currentUserId={state.currentUserId}
-                  canInteract={canInteract}
-                  busy={busy}
-                  isMostSupported={item.proposal.id === leadingAlternativeId}
-                  onSupport={() => void togglePlaceSupport(item)}
-                  onSwitch={() => setSwitching(item.proposal)}
-                  onWithdraw={() => withdrawProposal(item)}
-                />
-              ))}
-              {proposals.length < 5 ? (
-                <div className="py-2">
-                  <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
-                    <Link to="/matstallen">Föreslå ett annat ställe</Link>
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+        <section className="mt-3" aria-labelledby="next-stop-alternatives-heading">
+          <div className="flex min-h-9 items-center px-2">
+            <h3
+              id="next-stop-alternatives-heading"
+              className="text-sm font-medium text-muted-foreground"
+            >
+              Fler förslag på nästa stopp ({otherProposals.length})
+            </h3>
+          </div>
+          <div className="mt-1 divide-y divide-border/60 rounded-2xl border border-border/60 bg-card/70 px-2">
+            {otherProposals.map((item) => (
+              <ProposalRow
+                key={item.proposal.id}
+                item={item}
+                currentUserId={state.currentUserId}
+                canInteract={canInteract}
+                busy={busy}
+                isMostSupported={item.proposal.id === leadingAlternativeId}
+                onSupport={() => void togglePlaceSupport(item)}
+                onSwitch={() => setSwitching(item.proposal)}
+                onWithdraw={() => withdrawProposal(item)}
+              />
+            ))}
+            {proposals.length < 5 ? (
+              <div className="py-2">
+                <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
+                  <Link to="/matstallen">Föreslå ett annat ställe</Link>
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </section>
       ) : proposals.length < 5 ? (
         <div className="mt-1 flex justify-center">
           <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
