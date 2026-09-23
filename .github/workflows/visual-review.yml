@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@v7
         with:
           show-progress: false
 
@@ -60,7 +60,7 @@ jobs:
           done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
 
       - name: Set up pinned Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@v7
         with:
           node-version: 22.12.0
 
@@ -69,7 +69,7 @@ jobs:
 
       - name: Cache Bun downloads
         if: runner.environment != 'self-hosted'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
@@ -81,7 +81,7 @@ jobs:
 
       - name: Cache Playwright Chromium
         if: runner.environment != 'self-hosted'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache@v6
         with:
           path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
           key: visual-review-playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload visual review artifact
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@v7
         with:
           name: visual-review-${{ github.event_name == 'pull_request' && format('pr-{0}-{1}', github.event.pull_request.number, github.run_id) || format('manual-{0}', github.run_id) }}
           path: visual-review
@@ -123,12 +123,12 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@v7
         with:
           show-progress: false
 
       - name: Remove superseded visual review artifacts
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@v7
         with:
           script: |
             const cleanup = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/artifact-lifecycle.cjs`);

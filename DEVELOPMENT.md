@@ -235,7 +235,7 @@ När PR:n markeras ready kör **CI** en kandidat-DAG:
   oberoende och parallellt så flera fel kan synas i samma körning;
 - `Supabase type drift` kör bara när databas-/typfiler berörs;
 - `Staging DB readiness` är read-only och ligger i samma DAG;
-- full mobile Chromium körs över tre Playwright-shards med oförändrad testsuite;
+- full mobile Chromium körs över två Playwright-shards med oförändrad testsuite;
 - kartrelaterade kandidater kör dessutom WebKit/iPhone och desktop Chromium;
 - **CI / required** summerar alla relevanta resultat och är den kanoniska
   mergekritiska slutsignalen.
@@ -254,9 +254,7 @@ framsteg ska aktuellt jobb/steg diagnostiseras i stället för att fortsätta en
 blind sleep/fetch-loop.
 
 Alla normala CI-jobb kör på GitHub-hostad `ubuntu-24.04`. Delad Node/Bun/cache-
-setup ligger i `.github/actions/setup-ci`. Externa Actions ska vara pinade till
-full commit-SHA med versionskommentar så Dependabot kan uppdatera dem spårbart.
-
+setup ligger i `.github/actions/setup-ci`. 
 ### Agent Operations i connector-läge
 
 När GitHub-connectorn inte kan starta `workflow_dispatch` direkt används den
