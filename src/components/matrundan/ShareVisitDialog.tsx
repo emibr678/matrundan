@@ -264,11 +264,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
             Avbryt
           </Button>
           <Button onClick={submit} disabled={!chosen || chosen.alreadyLinked || submitting}>
-            {submitting
-              ? "Kontrollerar…"
-              : chosen
-                ? `Lägg till i ${chosen.name}`
-                : "Välj grupp"}
+            {submitting ? "Kontrollerar…" : chosen ? `Lägg till i ${chosen.name}` : "Välj grupp"}
           </Button>
         </DialogFooter>
       </DialogContent>
