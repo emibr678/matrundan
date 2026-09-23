@@ -35,7 +35,7 @@ export function VisitParticipationControls({
 }) {
   const { state } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [confirmDeclineOpen, setConfirmDeclineOpen] = React.useState(false);
+  const [confirmDecline, setConfirmDecline] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const status =
@@ -57,7 +57,7 @@ export function VisitParticipationControls({
       toast.success(
         participating ? "Du är åter deltagare på besöket." : "Deltagandet är korrigerat.",
       );
-      setConfirmDeclineOpen(false);
+      setConfirmDecline(false);
       if (mode === "live") await onChanged();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte ändra deltagandet.");
@@ -68,7 +68,21 @@ export function VisitParticipationControls({
 
   if (status === "none" || isRegistrar) return null;
 
-  const participating = status === "participant";
+  if (status === "declined") {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-10 w-full justify-start px-2 text-sm font-normal text-muted-foreground hover:text-foreground"
+        disabled={!writable || saving}
+        onClick={() => void updateParticipation(true)}
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
+        Jag var med
+      </Button>
+    );
+  }
 
   return (
     <>
@@ -78,30 +92,20 @@ export function VisitParticipationControls({
         size="sm"
         className="h-10 w-full justify-start px-2 text-sm font-normal text-muted-foreground hover:text-foreground"
         disabled={!writable || saving}
-        onClick={() =>
-          participating
-            ? setConfirmDeclineOpen(true)
-            : void updateParticipation(true)
-        }
+        onClick={() => setConfirmDecline(true)}
       >
-        {saving ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : participating ? (
-          <UserMinus className="h-4 w-4" />
-        ) : (
-          <Undo2 className="h-4 w-4" />
-        )}
-        {participating ? "Jag var inte med" : "Jag var med"}
+        <UserMinus className="h-4 w-4" />
+        Jag var inte med
       </Button>
 
-      <AlertDialog open={confirmDeclineOpen} onOpenChange={setConfirmDeclineOpen}>
+      <AlertDialog open={confirmDecline} onOpenChange={setConfirmDecline}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Var du inte med på besöket?</AlertDialogTitle>
             <AlertDialogDescription>
-              Då tas du bort som deltagare på samma verkliga besök i alla grupper där det visas.
-              Din progression räknas om och ditt eventuella omdöme döljs. Du kan återställa
-              deltagandet senare om detta var ett misstag.
+              Då tas du bort som deltagare på samma verkliga besök i alla grupper där det visas. Din
+              progression räknas om och ditt eventuella omdöme döljs. Du kan återställa deltagandet
+              senare om detta var ett misstag.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
