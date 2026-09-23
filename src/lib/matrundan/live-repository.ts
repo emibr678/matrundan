@@ -21,6 +21,7 @@ import type {
   PlaceCollectionStatus,
   ReviewModel,
   Role,
+  OwnVisitParticipationStatus,
   SearchRadiusKm,
   VisibleReview,
   Visit,
@@ -240,6 +241,21 @@ type Payload = {
 function avg(xs: number[]): number | undefined {
   if (!xs.length) return undefined;
   return xs.reduce((a, b) => a + b, 0) / xs.length;
+}
+
+export function resolveOwnVisitParticipationStatus(
+  explicitStatus: string | undefined,
+  participantIds: string[],
+  currentUserId: string,
+): OwnVisitParticipationStatus {
+  if (
+    explicitStatus === "participant" ||
+    explicitStatus === "declined" ||
+    explicitStatus === "none"
+  ) {
+    return explicitStatus;
+  }
+  return participantIds.includes(currentUserId) ? "participant" : "none";
 }
 
 function mapNextStopDateProposal(row: NextStopDateProposalRow | null): NextStopDateProposal | null {
@@ -465,12 +481,11 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       .map((item) => item.review.atmosphere)
       .filter((x): x is number => x != null);
     const comment = visibleReviews.find((r) => r.commentVisible && r.comment?.trim())?.comment;
-    const currentUserParticipationStatus =
-      v.currentUserParticipationStatus === "declined"
-        ? ("declined" as const)
-        : participantIds.includes(p.currentUserId)
-          ? ("participant" as const)
-          : ("none" as const);
+    const currentUserParticipationStatus = resolveOwnVisitParticipationStatus(
+      v.currentUserParticipationStatus,
+      participantIds,
+      p.currentUserId,
+    );
     const rawPhotos = v.photos?.length ? v.photos : v.photo ? [v.photo] : [];
     const photos = rawPhotos.map((photo) => ({
       ...photo,
