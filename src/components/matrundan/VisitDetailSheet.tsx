@@ -2,6 +2,7 @@ import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
+  ChevronRight,
   MapPin,
   MoreHorizontal,
   Pencil,
@@ -196,19 +197,21 @@ export function VisitDetailSheet({
                   ) : null}
                 </div>
                 <SheetTitle className="mt-1 font-display text-2xl leading-tight">
-                  <Link
-                    to="/matstallen/$placeId"
-                    params={{ placeId: place.id }}
-                    onClick={() => onOpenChange(false)}
-                    className="hover:underline"
-                  >
-                    {place.name}
-                  </Link>
+                  {place.name}
                 </SheetTitle>
-                <SheetDescription className="mt-1 flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {place.address}, {place.city}
-                </SheetDescription>
+                <Link
+                  to="/matstallen/$placeId"
+                  params={{ placeId: place.id }}
+                  onClick={() => onOpenChange(false)}
+                  aria-label={`Till ${place.name}`}
+                  className="mt-1 flex min-h-8 w-fit max-w-full items-center gap-1 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">
+                    {place.address}, {place.city}
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                </Link>
                 <SheetDescription className="mt-1 text-xs">
                   {formatVisitDate(visit.date)} · {formatVisitContext(visit)}
                 </SheetDescription>
@@ -383,24 +386,14 @@ export function VisitDetailSheet({
                 {canShare ? (
                   <Button
                     type="button"
-                    variant="ghost"
-                    className="w-full justify-start px-2 text-sm font-normal text-muted-foreground hover:text-foreground"
+                    variant="outline"
+                    className="min-h-11 w-full"
                     onClick={() => setShareOpen(true)}
                   >
                     <UsersRound className="h-4 w-4" />
                     Lägg till i annan grupp
                   </Button>
                 ) : null}
-
-                <Button asChild variant="outline" className="w-full">
-                  <Link
-                    to="/matstallen/$placeId"
-                    params={{ placeId: place.id }}
-                    onClick={() => onOpenChange(false)}
-                  >
-                    Till stället
-                  </Link>
-                </Button>
               </div>
             </div>
           ) : null}

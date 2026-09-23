@@ -137,8 +137,8 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
     name: "Lägg till din bild",
   });
   await expect(addPhotoButton).toBeVisible();
-  await expect(addPhotoButton).toHaveClass(/min-h-11/);
-  await expect(addPhotoButton).not.toHaveClass(/min-h-24/);
+  await expect(addPhotoButton).toHaveClass(/h-8/);
+  await expect(addPhotoButton).not.toHaveClass(/min-h-11/);
   await expect(addPhotoButton).not.toHaveClass(/border-dashed/);
 
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");

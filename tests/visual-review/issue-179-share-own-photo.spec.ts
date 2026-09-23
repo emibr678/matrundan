@@ -333,12 +333,17 @@ test("fånga kontextuell deltagarkorrigering och besöksdelning", async ({ page 
   await page.goto(`/besok?visit=${VISIT_ID}`, { waitUntil: "domcontentloaded" });
 
   const visitDialog = page.getByRole("dialog").first();
+  const placeLink = visitDialog.getByRole("link", { name: "Till Bistro Test" });
+  await expect(placeLink).toBeVisible();
+  await expect(placeLink).toHaveAttribute("href", `/matstallen/${PLACE_ID}`);
+  await expect(visitDialog.getByRole("button", { name: "Till stället" })).toHaveCount(0);
   await expect(visitDialog.getByText("Ditt deltagande", { exact: true })).toHaveCount(0);
   await expect(visitDialog.getByText("Du var med", { exact: true })).toHaveCount(0);
   const declineButton = visitDialog.getByRole("button", { name: "Jag var inte med" });
   const shareButton = visitDialog.getByRole("button", { name: "Lägg till i annan grupp" });
   await expect(declineButton).toBeVisible();
   await expect(shareButton).toBeVisible();
+  await expect(visitDialog.getByRole("button", { name: "Lägg till din bild" })).toBeVisible();
 
   const participantHeading = visitDialog.getByRole("heading", { name: "Deltagare" });
   const reviewsHeading = visitDialog.getByRole("heading", { name: "Gängets omdömen" });

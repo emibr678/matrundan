@@ -158,6 +158,7 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
     groupArchived,
   );
   const disabled = busy || submitting;
+  const canAddOwnPhoto = canContribute && !ownPhoto && !file;
 
   React.useEffect(() => {
     if (!file) {
@@ -251,9 +252,24 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
 
   return (
     <section aria-labelledby={`visit-photos-${visit.id}`} className="min-w-0">
-      <h3 id={`visit-photos-${visit.id}`} className="mb-2 text-sm font-medium">
-        {galleryPhotos.length === 1 ? "Bild från besöket" : "Bilder från besöket"}
-      </h3>
+      <div className="mb-2 flex min-h-8 items-center justify-between gap-3">
+        <h3 id={`visit-photos-${visit.id}`} className="text-sm font-medium">
+          {galleryPhotos.length <= 1 ? "Bild från besöket" : "Bilder från besöket"}
+        </h3>
+        {canAddOwnPhoto ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 shrink-0 px-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
+            disabled={disabled}
+            onClick={choosePhoto}
+          >
+            <ImagePlus className="h-3.5 w-3.5" />
+            Lägg till din bild
+          </Button>
+        ) : null}
+      </div>
 
       {galleryPhotos.length > 0 ? (
         <div className="min-w-0">
@@ -388,21 +404,6 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
           event.currentTarget.value = "";
         }}
       />
-
-      {canContribute && !ownPhoto && !file ? (
-        <div className={photos.length > 0 ? "mt-3" : "mt-1"}>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11"
-            disabled={disabled}
-            onClick={choosePhoto}
-          >
-            <ImagePlus className="h-4 w-4" />
-            Lägg till din bild
-          </Button>
-        </div>
-      ) : null}
 
       <AlertDialog
         open={pendingDeletePhoto != null}
