@@ -52,8 +52,15 @@ export async function handleHealthRequest(request: Request): Promise<Response> {
 
   try {
     await checkSupabaseReachability();
+    const isProduction = process.env.MATRUNDAN_ENVIRONMENT?.trim().toLowerCase() === "prod";
     return Response.json(
-      { status: "ok", release: RELEASE_SHA },
+      {
+        status: "ok",
+        release: RELEASE_SHA,
+        ...(isProduction
+          ? {}
+          : { visitPhotoServerKeyConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) }),
+      },
       { headers: { "cache-control": "no-store" } },
     );
   } catch (error) {
