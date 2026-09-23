@@ -6,7 +6,7 @@ const workflowPath = ".github/workflows/staging-db-apply.yml";
 const workflow = readFileSync(resolve(process.cwd(), workflowPath), "utf8");
 
 describe("stagingdatabas-workflowets kontrakt", () => {
-  test("kräver uttryckligt godkännande och en exakt öppen PR-head med grön CI", () => {
+  test("kräver uttryckligt godkännande och en exakt öppen PR-head där readiness får vara enda CI-blockeraren", () => {
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("confirmation:");
     expect(workflow).toContain("CONFIRMATION: ${{ inputs.confirmation }}");
@@ -18,7 +18,10 @@ describe("stagingdatabas-workflowets kontrakt", () => {
     expect(workflow).toContain("pullRequest?.base?.ref !== 'main'");
     expect(workflow).toContain("pullRequest?.head?.sha !== targetSha");
     expect(workflow).toContain("run?.name === 'CI'");
-    expect(workflow).toContain("run?.conclusion === 'success'");
+    expect(workflow).toContain("ciRun.conclusion !== 'success'");
+    expect(workflow).toContain("staging-readiness-only blocker");
+    expect(workflow).toContain("CI / required");
+    expect(workflow).toContain("allowedFailures");
   });
 
   test("återanvänder den staging-scopeade access-tokenen för den godkända migrationsvägen", () => {

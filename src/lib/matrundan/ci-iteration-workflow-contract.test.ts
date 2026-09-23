@@ -22,7 +22,7 @@ describe("CI-iterationskontrakt", () => {
     expect(workflow).toContain("  supabase_types:");
     expect(workflow).toContain("  staging_db_readiness:");
     expect(workflow).toContain("  required:");
-    expect(workflow).toContain("    name: required");
+    expect(workflow).toContain("    name: CI / required");
     expect(workflow).toContain("if: always() && needs.classify.result == 'success'");
   });
 

@@ -173,7 +173,7 @@ jobs:
             );
             const jobs = Array.isArray(jobsPayload?.jobs) ? jobsPayload.jobs : [];
             const readiness = jobs.find((job) => job?.name === 'Staging DB readiness');
-            const required = jobs.find((job) => job?.name === 'required');
+            const required = jobs.find((job) => job?.name === 'CI / required');
             if (readiness?.conclusion !== 'failure' || required?.conclusion !== 'failure') {
               console.error('Failed CI is not the expected staging-readiness-only blocker.');
               process.exit(1);

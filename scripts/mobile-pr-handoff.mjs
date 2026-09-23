@@ -167,15 +167,10 @@ export async function main() {
   }
 
   let prNumber =
-    Number.isInteger(explicitPrNumber) && explicitPrNumber > 0
-      ? explicitPrNumber
-      : null;
+    Number.isInteger(explicitPrNumber) && explicitPrNumber > 0 ? explicitPrNumber : null;
   if (!Number.isInteger(prNumber) && eventPath) {
     const event = JSON.parse(fs.readFileSync(eventPath, "utf8"));
-    prNumber =
-      event.workflow_run?.pull_requests?.[0]?.number ??
-      event.pull_request?.number ??
-      null;
+    prNumber = event.workflow_run?.pull_requests?.[0]?.number ?? event.pull_request?.number ?? null;
   }
   if (!Number.isInteger(prNumber)) {
     const candidates = await getAll("/repos/" + repository + "/commits/" + targetSha + "/pulls");
