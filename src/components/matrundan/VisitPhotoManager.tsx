@@ -297,7 +297,8 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                   />
                   <div className="mt-2 flex min-h-9 items-center justify-between gap-2 px-1">
                     <OwnerBadge {...owner} own={own} />
-                    {!isEditingOwnPhoto && (canRemove || (own && canContribute) || canShareOwnPhoto) ? (
+                    {!isEditingOwnPhoto &&
+                    (canRemove || (own && canContribute) || canShareOwnPhoto) ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
