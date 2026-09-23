@@ -129,7 +129,7 @@ function sourceState() {
         cuisines: ["Svenskt"],
         canonicalCuisines: ["Svenskt"],
         cuisinesOverride: null,
-        occasions: ["Avslappnat"],
+        occasions: ["avslappnat"],
         address: "Testgatan 1",
         area: "Södermalm",
         city: "Stockholm",
