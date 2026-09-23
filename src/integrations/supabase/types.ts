@@ -2626,10 +2626,6 @@ export type Database = {
       get_group_app_state_v5l: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5m: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5n: { Args: { _group_id: string }; Returns: Json }
-      grant_own_visit_photo_visibility_v1: {
-        Args: { _target_group_id: string; _visit_id: string }
-        Returns: string
-      }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2668,6 +2664,10 @@ export type Database = {
       get_visit_review_reactions_v1: {
         Args: { _group_id: string; _visit_id: string }
         Returns: Json
+      }
+      grant_own_visit_photo_visibility_v1: {
+        Args: { _target_group_id: string; _visit_id: string }
+        Returns: string
       }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
@@ -2952,10 +2952,6 @@ export type Database = {
         Args: { _areas: Json; _default_radius_km: number; _group_id: string }
         Returns: undefined
       }
-      resolve_visit_photo_delivery_v1: {
-        Args: { _delivery_token: string; _viewer_id: string }
-        Returns: Json
-      }
       resolve_new_review_model_v1: {
         Args: {
           _group_id: string
@@ -2968,6 +2964,10 @@ export type Database = {
       resolve_place_maintenance_work_item_v1: {
         Args: { _kind: string; _work_item_id: string }
         Returns: string
+      }
+      resolve_visit_photo_delivery_v1: {
+        Args: { _delivery_token: string; _viewer_id: string }
+        Returns: Json
       }
       respond_next_stop_date: {
         Args: { _group_id: string; _proposal_id: string; _response: string }
