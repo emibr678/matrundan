@@ -36,7 +36,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
 
   const visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByRole("heading", { name: "Tacoateljén" })).toBeVisible();
-  const reviewSection = visitDialog.getByLabel("Gängets omdömen");
+  const reviewSection = visitDialog.locator('section[aria-labelledby="visit-reviews-v2"]');
   await expect(reviewSection).toBeVisible();
   await expect(
     reviewSection.getByText("3 av 4 deltagare i gruppen har lämnat omdöme"),
