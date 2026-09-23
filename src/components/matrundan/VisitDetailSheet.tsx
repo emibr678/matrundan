@@ -1,7 +1,15 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { MapPin, MoreHorizontal, Pencil, Trash2, UserRoundCheck, Users2 } from "lucide-react";
+import {
+  MapPin,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  UserRoundCheck,
+  Users2,
+  UsersRound,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -328,27 +336,31 @@ export function VisitDetailSheet({
                     </div>
                   ) : null}
 
-                  {canChangeParticipation ? (
-                    <VisitParticipationControls
-                      visit={visit}
-                      currentUserId={state.currentUserId}
-                      groupArchived={groupArchived}
-                      demoReadOnly={demoReadOnly}
-                      onChanged={reload}
-                    />
-                  ) : null}
+                  {canChangeParticipation || canShare ? (
+                    <div className="mt-2 space-y-1">
+                      {canChangeParticipation ? (
+                        <VisitParticipationControls
+                          visit={visit}
+                          currentUserId={state.currentUserId}
+                          groupArchived={groupArchived}
+                          demoReadOnly={demoReadOnly}
+                          onChanged={reload}
+                        />
+                      ) : null}
 
-                  {canShare ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 h-10 rounded-xl px-3"
-                      onClick={() => setShareOpen(true)}
-                    >
-                      <Users2 className="h-4 w-4" />
-                      Lägg till i annan grupp
-                    </Button>
+                      {canShare ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-10 w-full justify-start px-2 text-sm font-normal"
+                          onClick={() => setShareOpen(true)}
+                        >
+                          <UsersRound className="h-4 w-4" />
+                          Lägg till i annan grupp
+                        </Button>
+                      ) : null}
+                    </div>
                   ) : null}
                 </section>
 

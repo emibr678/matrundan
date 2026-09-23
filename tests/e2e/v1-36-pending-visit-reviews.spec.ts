@@ -48,7 +48,8 @@ test("Hem sammanfattar pending omdömen och öppnar rätt kanoniska besök", asy
   const visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByRole("heading", { name: "Tacoateljén" })).toBeVisible();
   await expect(visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" })).toBeVisible();
-  await expect(visitDialog.getByText("Du var med", { exact: true })).toBeVisible();
+  await expect(visitDialog.getByText("Ditt deltagande", { exact: true })).toHaveCount(0);
+  await expect(visitDialog.getByText("Du var med", { exact: true })).toHaveCount(0);
   await expect(visitDialog.getByRole("button", { name: "Jag var inte med" })).toBeVisible();
   await expectNoLocatorOverflow(visitDialog, "pending-besökets detalj");
 });

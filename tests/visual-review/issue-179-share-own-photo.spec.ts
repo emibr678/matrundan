@@ -326,33 +326,36 @@ async function openShareDialog(page: Page, ownHasPhoto: boolean) {
   return shareDialog;
 }
 
-test("fånga eget deltagande som status och motsatt handling", async ({ page }, testInfo) => {
+test("fånga lågmälda staplade deltagar- och grupphandlingar", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await seedSession(page);
   await mockLive(page, true);
   await page.goto(`/besok?visit=${VISIT_ID}`, { waitUntil: "domcontentloaded" });
 
   const visitDialog = page.getByRole("dialog").first();
-  await expect(visitDialog.getByText("Ditt deltagande", { exact: true })).toBeVisible();
-  await expect(visitDialog.getByText("Du var med", { exact: true })).toBeVisible();
+  await expect(visitDialog.getByText("Ditt deltagande", { exact: true })).toHaveCount(0);
+  await expect(visitDialog.getByText("Du var med", { exact: true })).toHaveCount(0);
   const declineButton = visitDialog.getByRole("button", { name: "Jag var inte med" });
+  const shareButton = visitDialog.getByRole("button", { name: "Lägg till i annan grupp" });
   await expect(declineButton).toBeVisible();
-  await expect(visitDialog.getByRole("button", { name: "Lägg till i annan grupp" })).toBeVisible();
+  await expect(shareButton).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-179-eget-deltagande-inline");
+  await capture(page, testInfo, "issue-179-lagmalda-besokshandlingar");
 
   await declineButton.click();
-  const participationDialog = page.getByRole("alertdialog", { name: "Var du inte med?" });
+  const participationDialog = page.getByRole("alertdialog", {
+    name: "Var du inte med på besöket?",
+  });
   await expect(participationDialog).toBeVisible();
   await expect(
-    participationDialog.getByRole("button", { name: "Markera att jag inte var med" }),
+    participationDialog.getByRole("button", { name: "Ja, jag var inte med" }),
   ).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-179-eget-deltagande-bekraftelse");
+  await capture(page, testInfo, "issue-179-deltagande-bekraftelse");
 });
 
 test("fånga uttrycklig bilddelning när egen bild finns", async ({ page }, testInfo) => {
