@@ -373,7 +373,7 @@ function PlaceDetail() {
                       void runNextStop(
                         () => propose(place.id),
                         hasNextStop
-                          ? `${place.name} lades till under Andra förslag.`
+                          ? `${place.name} lades till bland förslagen på nästa stopp.`
                           : `${place.name} är gruppens nästa stopp.`,
                       )
                     }
