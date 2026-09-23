@@ -1,7 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.112.3";
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function jsonError(status: number, code: string) {
   return Response.json(
@@ -27,9 +26,7 @@ Deno.serve(async (request: Request) => {
 
   const payload = await request.json().catch(() => null);
   const deliveryToken =
-    payload && typeof payload.deliveryToken === "string"
-      ? payload.deliveryToken
-      : "";
+    payload && typeof payload.deliveryToken === "string" ? payload.deliveryToken : "";
   if (!UUID_PATTERN.test(deliveryToken)) return jsonError(404, "NOT_FOUND");
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
