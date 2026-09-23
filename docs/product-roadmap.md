@@ -122,6 +122,19 @@ beslutad, exempelvis `order:010`, `order:020` och `order:030`.
   kan rangordnas i stället.
 - Stängda Issues ska inte ligga kvar som operativa köposter.
 
+### Genomförandeform
+
+- `execution:work` – används sparsamt när ett Issue bedöms vinna tydligt på Work,
+  exempelvis för tvärgående arbete över flera domäner/lager, längre sammanhängande
+  analys/implementation eller förändringar där konsekvensen av en felaktig modell är
+  hög.
+- Avsaknad av `execution:work` betyder vanlig Chat som standard. Skapa inte en
+  separat `execution:chat`-label.
+- Genomförandeformen ändrar inte `status:*`, `priority:*` eller `order:*` och
+  innebär inte implementations-, merge-, databas- eller publiceringsgodkännande.
+- `execution:work` innebär inte automatiskt Lovable; Lovable är fortsatt separat
+  opt-in enligt det ordinarie arbetsflödet.
+
 ### Typ
 
 - `type:feature`
