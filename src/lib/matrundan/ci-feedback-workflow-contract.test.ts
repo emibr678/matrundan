@@ -36,7 +36,7 @@ describe("PR-verifieringens feedbackkontrakt", () => {
     expect(workflow).toContain("matrix:\n        shard: [1, 2]");
     expect(workflow).toContain("fail-fast: false");
     expect(workflow).toContain(
-      "bun run test:mobile -- --shard=${{ matrix.shard }}/2 --max-failures=3 --retries=0",
+      "bun run test:mobile -- --shard=${{ matrix.shard }}/2 --max-failures=3",
     );
     expect(workflow).toContain("needs.classify.outputs.has_browser == 'true'");
     expect(workflow).toContain("github.event_name != 'push'");

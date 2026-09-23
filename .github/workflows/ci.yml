@@ -353,7 +353,7 @@ jobs:
       - name: Full mobile Chromium shard
         run: |
           started="$(date +%s)"
-          bun run test:mobile -- --shard=${{ matrix.shard }}/2 --max-failures=3 --retries=0
+          bun run test:mobile -- --shard=${{ matrix.shard }}/2 --max-failures=3
           finished="$(date +%s)"
           echo "Shard ${{ matrix.shard }}/2 duration: $((finished - started))s" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload browser report on failure
