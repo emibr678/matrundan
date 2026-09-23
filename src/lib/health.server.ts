@@ -53,13 +53,18 @@ export async function handleHealthRequest(request: Request): Promise<Response> {
   try {
     await checkSupabaseReachability();
     const isProduction = process.env.MATRUNDAN_ENVIRONMENT?.trim().toLowerCase() === "prod";
+    const visitPhotoServerKeyConfigured = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+    if (!isProduction && !visitPhotoServerKeyConfigured) {
+      return Response.json(
+        { status: "degraded", release: RELEASE_SHA, visitPhotoServerKeyConfigured: false },
+        { status: 503, headers: { "cache-control": "no-store" } },
+      );
+    }
     return Response.json(
       {
         status: "ok",
         release: RELEASE_SHA,
-        ...(isProduction
-          ? {}
-          : { visitPhotoServerKeyConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) }),
+        ...(isProduction ? {} : { visitPhotoServerKeyConfigured: true }),
       },
       { headers: { "cache-control": "no-store" } },
     );
