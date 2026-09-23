@@ -260,7 +260,9 @@ export function VisitDetailSheet({
                     {author?.avatar ?? "🙂"}
                   </span>
                   <span className="min-w-0">
-                    <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
+                    <span className="font-medium text-foreground">
+                      {author?.name ?? "Någon"}
+                    </span>{" "}
                     registrerade besöket
                   </span>
                 </div>

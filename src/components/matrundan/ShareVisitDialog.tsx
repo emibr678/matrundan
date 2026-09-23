@@ -136,7 +136,9 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
       <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Lägg till besöket i en annan grupp</DialogTitle>
-          <DialogDescription>Välj vilken annan grupp som också ska få samma besök.</DialogDescription>
+          <DialogDescription>
+            Välj vilken annan grupp som också ska få samma besök.
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (
@@ -262,7 +264,11 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
             Avbryt
           </Button>
           <Button onClick={submit} disabled={!chosen || chosen.alreadyLinked || submitting}>
-            {submitting ? "Kontrollerar…" : chosen ? `Lägg till i ${chosen.name}` : "Välj grupp"}
+            {submitting
+              ? "Kontrollerar…"
+              : chosen
+                ? `Lägg till i ${chosen.name}`
+                : "Välj grupp"}
           </Button>
         </DialogFooter>
       </DialogContent>

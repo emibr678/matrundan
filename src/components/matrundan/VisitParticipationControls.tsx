@@ -70,7 +70,9 @@ export function VisitParticipationControls({
 
   return (
     <>
-      <div className="mt-3 flex min-h-12 flex-wrap items-center justify-between gap-2 rounded-xl bg-secondary/40 px-3 py-2.5">
+      <div
+        className="mt-3 flex min-h-12 flex-wrap items-center justify-between gap-2 rounded-xl bg-secondary/40 px-3 py-2.5"
+      >
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-muted-foreground">Ditt deltagande</div>
           <div className="mt-0.5 text-sm font-medium">
