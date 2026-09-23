@@ -326,7 +326,7 @@ async function openShareDialog(page: Page, ownHasPhoto: boolean) {
   return shareDialog;
 }
 
-test("fånga lågmälda staplade deltagar- och grupphandlingar", async ({ page }, testInfo) => {
+test("fånga kontextuell deltagarkorrigering och besöksdelning", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await seedSession(page);
   await mockLive(page, true);
@@ -340,9 +340,24 @@ test("fånga lågmälda staplade deltagar- och grupphandlingar", async ({ page }
   await expect(declineButton).toBeVisible();
   await expect(shareButton).toBeVisible();
 
+  const participantHeading = visitDialog.getByRole("heading", { name: "Deltagare" });
+  const reviewsHeading = visitDialog.getByRole("heading", { name: "Gängets omdömen" });
+  const [participantBox, declineBox, reviewsBox, shareBox] = await Promise.all([
+    participantHeading.boundingBox(),
+    declineButton.boundingBox(),
+    reviewsHeading.boundingBox(),
+    shareButton.boundingBox(),
+  ]);
+  expect(participantBox).not.toBeNull();
+  expect(declineBox).not.toBeNull();
+  expect(reviewsBox).not.toBeNull();
+  expect(shareBox).not.toBeNull();
+  expect(Math.abs((participantBox?.y ?? 0) - (declineBox?.y ?? 0))).toBeLessThan(24);
+  expect(shareBox?.y ?? 0).toBeGreaterThan(reviewsBox?.y ?? 0);
+
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-179-lagmalda-besokshandlingar");
+  await capture(page, testInfo, "issue-179-kontextuella-besokshandlingar");
 
   await declineButton.click();
   const participationDialog = page.getByRole("alertdialog", {

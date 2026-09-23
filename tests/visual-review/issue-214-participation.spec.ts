@@ -252,8 +252,8 @@ test("fånga originalgruppens gästkoppling", async ({ page }, testInfo) => {
   await page.goto(`/besok?visit=${VISIT_ID}`, { waitUntil: "domcontentloaded" });
   const visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByText("Joppe", { exact: true })).toBeVisible();
-  await visitDialog.getByRole("button", { name: "Koppla gäst till medlem" }).click();
-  const linkDialog = page.getByRole("dialog", { name: "Koppla gäst till medlem" });
+  await visitDialog.getByRole("button", { name: "Koppla Joppe till gruppmedlem" }).click();
+  const linkDialog = page.getByRole("dialog", { name: "Koppla Joppe till gruppmedlem" });
   await expect(linkDialog.getByRole("button", { name: "Johan Andersson" })).toBeVisible();
   await linkDialog.getByRole("button", { name: "Johan Andersson" }).click();
   await stabilize(page);

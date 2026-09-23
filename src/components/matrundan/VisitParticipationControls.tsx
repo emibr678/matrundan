@@ -74,7 +74,7 @@ export function VisitParticipationControls({
         type="button"
         variant="ghost"
         size="sm"
-        className="h-10 w-full justify-start px-2 text-sm font-normal text-muted-foreground hover:text-foreground"
+        className="h-8 shrink-0 px-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
         disabled={!writable || saving}
         onClick={() => void updateParticipation(true)}
       >
@@ -90,7 +90,7 @@ export function VisitParticipationControls({
         type="button"
         variant="ghost"
         size="sm"
-        className="h-10 w-full justify-start px-2 text-sm font-normal text-muted-foreground hover:text-foreground"
+        className="h-8 shrink-0 px-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
         disabled={!writable || saving}
         onClick={() => setConfirmDecline(true)}
       >

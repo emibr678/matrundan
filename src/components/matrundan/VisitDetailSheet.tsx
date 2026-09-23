@@ -87,8 +87,9 @@ export function VisitDetailSheet({
   const isParticipant = participationStatus === "participant";
   const isShared = visit?.linkType === "shared";
   const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
-  const hasPrivateGuests =
-    visit?.participants?.some((participant) => participant.status === "guest") ?? false;
+  const privateGuests =
+    visit?.participants?.filter((participant) => participant.status === "guest") ?? [];
+  const hasPrivateGuests = privateGuests.length > 0;
   const hasExternalParticipants = (visit?.externalParticipantCount ?? 0) > 0;
   const canLinkGuest =
     !groupArchived && isLive && !isShared && hasPrivateGuests && activeGroupCount >= 2;
@@ -116,6 +117,10 @@ export function VisitDetailSheet({
   const [shareOpen, setShareOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
+  const [guestLinkTarget, setGuestLinkTarget] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [unlinking, setUnlinking] = React.useState(false);
@@ -267,7 +272,18 @@ export function VisitDetailSheet({
                 </div>
 
                 <section>
-                  <h3 className="mb-2 text-sm font-medium">Deltagare</h3>
+                  <div className="mb-2 flex min-h-8 items-center justify-between gap-3">
+                    <h3 className="text-sm font-medium">Deltagare</h3>
+                    {canChangeParticipation ? (
+                      <VisitParticipationControls
+                        visit={visit}
+                        currentUserId={state.currentUserId}
+                        groupArchived={groupArchived}
+                        demoReadOnly={demoReadOnly}
+                        onChanged={reload}
+                      />
+                    ) : null}
+                  </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(visit.participants && visit.participants.length > 0
                       ? visit.participants
@@ -316,50 +332,29 @@ export function VisitDetailSheet({
                       </Badge>
                     ) : null}
                   </div>
-                  {hasPrivateGuests ? (
-                    <div className="mt-1.5 space-y-1.5">
-                      <p className="text-[11px] text-muted-foreground">
-                        Gäster hör bara till besöket och räknas inte som gruppmedlemmar.
-                      </p>
-                      {canLinkGuest ? (
+                  {canLinkGuest && privateGuests.length > 0 ? (
+                    <div className="mt-1.5 space-y-0.5">
+                      {privateGuests.map((guestParticipant) => (
                         <Button
+                          key={guestParticipant.id}
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="h-auto min-h-10 px-2 text-xs text-muted-foreground"
-                          onClick={() => setGuestLinkOpen(true)}
+                          className="h-auto min-h-8 max-w-full justify-start px-1.5 py-1 text-xs font-normal text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setGuestLinkTarget({
+                              id: guestParticipant.id,
+                              name: guestParticipant.name,
+                            });
+                            setGuestLinkOpen(true);
+                          }}
                         >
-                          <UserRoundCheck className="h-3.5 w-3.5" />
-                          Koppla gäst till medlem
+                          <UserRoundCheck className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">
+                            Koppla {guestParticipant.name} till gruppmedlem
+                          </span>
                         </Button>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {canChangeParticipation || canShare ? (
-                    <div className="mt-2 space-y-1">
-                      {canChangeParticipation ? (
-                        <VisitParticipationControls
-                          visit={visit}
-                          currentUserId={state.currentUserId}
-                          groupArchived={groupArchived}
-                          demoReadOnly={demoReadOnly}
-                          onChanged={reload}
-                        />
-                      ) : null}
-
-                      {canShare ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-10 w-full justify-start px-2 text-sm font-normal"
-                          onClick={() => setShareOpen(true)}
-                        >
-                          <UsersRound className="h-4 w-4" />
-                          Lägg till i annan grupp
-                        </Button>
-                      ) : null}
+                      ))}
                     </div>
                   ) : null}
                 </section>
@@ -384,6 +379,18 @@ export function VisitDetailSheet({
                 />
 
                 <VisitPhotoManager visit={visit} />
+
+                {canShare ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full justify-start px-2 text-sm font-normal text-muted-foreground hover:text-foreground"
+                    onClick={() => setShareOpen(true)}
+                  >
+                    <UsersRound className="h-4 w-4" />
+                    Lägg till i annan grupp
+                  </Button>
+                ) : null}
 
                 <Button asChild variant="outline" className="w-full">
                   <Link
@@ -422,8 +429,13 @@ export function VisitDetailSheet({
           <GuestMemberLinkDialog
             visitId={visit?.id ?? null}
             sourceGroupId={activeGroupId}
+            initialGuestId={guestLinkTarget?.id ?? null}
+            initialGuestName={guestLinkTarget?.name ?? null}
             open={guestLinkOpen}
-            onOpenChange={setGuestLinkOpen}
+            onOpenChange={(nextOpen) => {
+              setGuestLinkOpen(nextOpen);
+              if (!nextOpen) setGuestLinkTarget(null);
+            }}
           />
         </>
       ) : null}
