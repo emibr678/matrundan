@@ -326,7 +326,7 @@ jobs:
           NODE
 
   browser:
-    name: Mobile Chromium shard ${{ matrix.shard }}/2
+    name: Mobile Chromium shard ${{ matrix.shard }}/3
     needs: classify
     if: needs.classify.outputs.has_browser == 'true' && github.event_name != 'push'
     runs-on: ubuntu-24.04
@@ -334,7 +334,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -353,9 +353,9 @@ jobs:
       - name: Full mobile Chromium shard
         run: |
           started="$(date +%s)"
-          bun run test:mobile -- --shard=${{ matrix.shard }}/2 --max-failures=3 --retries=0
+          bun run test:mobile -- --shard=${{ matrix.shard }}/3 --max-failures=3 --retries=0
           finished="$(date +%s)"
-          echo "Shard ${{ matrix.shard }}/2 duration: $((finished - started))s" >> "$GITHUB_STEP_SUMMARY"
+          echo "Shard ${{ matrix.shard }}/3 duration: $((finished - started))s" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload browser report on failure
         if: failure()
         continue-on-error: true

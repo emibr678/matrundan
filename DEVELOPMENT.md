@@ -235,7 +235,7 @@ När PR:n markeras ready kör **CI** en kandidat-DAG:
   oberoende och parallellt så flera fel kan synas i samma körning;
 - `Supabase type drift` kör bara när databas-/typfiler berörs;
 - `Staging DB readiness` är read-only och ligger i samma DAG;
-- full mobile Chromium körs över två Playwright-shards med oförändrad testsuite;
+- full mobile Chromium körs över tre Playwright-shards med oförändrad testsuite;
 - kartrelaterade kandidater kör dessutom WebKit/iPhone och desktop Chromium;
 - **CI / required** summerar alla relevanta resultat och är den kanoniska
   mergekritiska slutsignalen.
