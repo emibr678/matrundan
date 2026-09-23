@@ -574,7 +574,7 @@ export function EditVisitDialog({
                               {target.alreadyLinked
                                 ? "Besöket finns redan"
                                 : target.placeExistsInGroup
-                                  ? "Stället finns redan"
+                                  ? "Stället finns i gruppen"
                                   : "Stället läggs till"}
                             </span>
                           </span>

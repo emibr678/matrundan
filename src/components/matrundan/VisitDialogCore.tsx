@@ -729,11 +729,11 @@ export function VisitDialog({
                       <summary className="w-fit cursor-pointer font-medium text-primary">
                         Vad delas?
                       </summary>
-                      <p className="mt-1 leading-relaxed">
-                        Besöket och stället läggs till i valda grupper. Bara din egen bild och
-                        kommentar kan följa med via valen nedan. Ursprungsgrupp, privata gästnamn
-                        och andra gruppers medlemskap syns aldrig.
-                      </p>
+                      <ul className="mt-1.5 list-disc space-y-1 pl-4 leading-relaxed">
+                        <li>Besöket och stället läggs till i valda grupper.</li>
+                        <li>Din bild och kommentar följer med om valen nedan är på.</li>
+                        <li>Ursprungsgrupp och privata gästuppgifter delas inte.</li>
+                      </ul>
                     </details>
                   </div>
                   <button
@@ -769,7 +769,7 @@ export function VisitDialog({
                             <span className="block [overflow-wrap:anywhere]">{group.name}</span>
                             <span className="mt-0.5 block text-xs text-muted-foreground">
                               {group.placeExistsInGroup
-                                ? "Stället finns redan"
+                                ? "Stället finns i gruppen"
                                 : "Stället läggs till"}
                             </span>
                           </span>

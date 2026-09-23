@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Loader2, Undo2, UserMinus } from "lucide-react";
+import { Loader2, UserRoundCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -12,8 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { persistDemoState } from "@/lib/matrundan/demo-state";
 import { setOwnDemoVisitParticipation } from "@/lib/matrundan/demo-visit-participation";
 import { setOwnVisitParticipation } from "@/lib/matrundan/live-visit-participation";
@@ -36,7 +35,7 @@ export function VisitParticipationControls({
 }) {
   const { state } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [confirmDecline, setConfirmDecline] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const fallbackParticipant = visit.participantIds.includes(currentUserId);
   const status =
@@ -55,10 +54,8 @@ export function VisitParticipationControls({
       } else {
         persistDemoState(setOwnDemoVisitParticipation(state, visit.id, participating), exampleMode);
       }
-      toast.success(
-        participating ? "Du är åter deltagare på besöket." : "Deltagandet är korrigerat.",
-      );
-      setConfirmDecline(false);
+      toast.success("Ditt deltagande är uppdaterat.");
+      setOpen(false);
       if (mode === "live") await onChanged();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte ändra deltagandet.");
@@ -67,60 +64,36 @@ export function VisitParticipationControls({
     }
   }
 
-  if (status === "none") return null;
+  if (status === "none" || isRegistrar) return null;
 
-  if (status === "declined") {
-    return (
-      <Card className="space-y-3 rounded-2xl border-border/70 bg-secondary/30 p-3">
-        <div>
-          <p className="text-sm font-medium">Du har markerat att du inte var med</p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Besöket räknas därför inte i din progression och ditt eventuella omdöme visas inte.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={!writable || saving}
-          onClick={() => void updateParticipation(true)}
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
-          Jag var med
-        </Button>
-      </Card>
-    );
-  }
-
-  if (isRegistrar) return null;
+  const participating = status === "participant";
 
   return (
     <>
-      <Button
-        type="button"
-        variant="ghost"
-        className="w-full justify-center text-muted-foreground"
-        disabled={!writable || saving}
-        onClick={() => setConfirmDecline(true)}
-      >
-        <UserMinus className="h-4 w-4" />
-        Jag var inte med
-      </Button>
+      <DropdownMenuItem disabled={!writable || saving} onSelect={() => setOpen(true)}>
+        <UserRoundCheck className="h-4 w-4" />
+        Ändra deltagande
+      </DropdownMenuItem>
 
-      <AlertDialog open={confirmDecline} onOpenChange={setConfirmDecline}>
+      <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Var du inte med på besöket?</AlertDialogTitle>
+            <AlertDialogTitle>Ändra ditt deltagande</AlertDialogTitle>
             <AlertDialogDescription>
-              Då tas du bort som deltagare på samma verkliga besök i alla grupper där det visas. Din
-              progression räknas om och ditt eventuella omdöme döljs. Du kan återställa deltagandet
-              senare om detta var ett misstag.
+              {participating
+                ? "Du är registrerad som deltagare på det här besöket. Om det inte stämmer kan du markera att du inte var med."
+                : "Du är inte registrerad som deltagare på det här besöket. Om det var ett misstag kan du markera att du var med."}
+              {" Ändringen gäller samma besök i alla grupper där det visas."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={saving}>Avbryt</AlertDialogCancel>
-            <AlertDialogAction disabled={saving} onClick={() => void updateParticipation(false)}>
-              {saving ? "Sparar…" : "Ja, jag var inte med"}
+            <AlertDialogAction
+              disabled={saving}
+              onClick={() => void updateParticipation(!participating)}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {participating ? "Markera att jag inte var med" : "Markera att jag var med"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -5,6 +5,7 @@ import path from "node:path";
 const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 const ACTIVE_GROUP_KEY = "matrundan.activeGroup.v1";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
+const REGISTRAR_ID = "99999999-9999-4999-8999-999999999999";
 const SOURCE_GROUP_ID = "33333333-3333-4333-8333-333333333333";
 const TARGET_GROUP_ID = "44444444-4444-4444-8444-444444444444";
 const SECOND_TARGET_GROUP_ID = "77777777-7777-4777-8777-777777777777";
@@ -114,7 +115,10 @@ function sourceState() {
       searchAreas: [],
       homeLocation: null,
     },
-    members: [{ id: USER_ID, name: "Emil", avatar: "🙂", avatarImage: null, role: "ägare" }],
+    members: [
+      { id: USER_ID, name: "Kalle", avatar: "🙂", avatarImage: null, role: "ägare" },
+      { id: REGISTRAR_ID, name: "Emil", avatar: "🦔", avatarImage: null, role: "medlem" },
+    ],
     places: [
       {
         id: PLACE_ID,
@@ -158,19 +162,26 @@ function sourceState() {
         date: "2026-09-20",
         meal: "middag",
         isTakeaway: false,
-        createdBy: USER_ID,
+        createdBy: REGISTRAR_ID,
         linkType: "original",
-        linkedBy: USER_ID,
+        linkedBy: REGISTRAR_ID,
         linkedAt: "2026-09-20T20:00:00Z",
         externalParticipantCount: 0,
         countsForProgression: true,
-        participantIds: [USER_ID],
+        participantIds: [USER_ID, REGISTRAR_ID],
         currentUserParticipationStatus: "participant",
         participants: [
           {
             id: USER_ID,
-            name: "Emil",
+            name: "Kalle",
             avatar: "🙂",
+            avatarImage: null,
+            status: "active",
+          },
+          {
+            id: REGISTRAR_ID,
+            name: "Emil",
+            avatar: "🦔",
             avatarImage: null,
             status: "active",
           },
@@ -303,20 +314,48 @@ async function openShareDialog(page: Page, ownHasPhoto: boolean) {
 
   const visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByRole("heading", { name: "Bistro Test" })).toBeVisible();
-  await visitDialog.getByRole("button", { name: "Besöksalternativ" }).click();
-
-  await expect(page.getByRole("menuitem", { name: "Redigera besök" })).toBeVisible();
-  const shareMenuItem = page.getByRole("menuitem", { name: "Lägg till i annan grupp" });
-  await expect(shareMenuItem).toBeVisible();
-  await shareMenuItem.click();
+  const shareButton = visitDialog.getByRole("button", { name: "Dela vidare" });
+  await expect(shareButton).toBeVisible();
+  await shareButton.click();
 
   const shareDialog = page.getByRole("dialog", {
-    name: "Lägg till besöket i en annan grupp",
+    name: "Dela besöket vidare",
   });
   await expect(shareDialog).toBeVisible();
   await shareDialog.getByRole("button", { name: /Jobbgänget med ett lite längre namn/ }).click();
   return shareDialog;
 }
+
+test("fånga ändra deltagande i sekundärmenyn", async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await seedSession(page);
+  await mockLive(page, true);
+  await page.goto(`/besok?visit=${VISIT_ID}`, { waitUntil: "domcontentloaded" });
+
+  const visitDialog = page.getByRole("dialog").first();
+  await expect(visitDialog.getByRole("button", { name: "Dela vidare" })).toBeVisible();
+  await expect(visitDialog.getByRole("button", { name: "Jag var inte med" })).toHaveCount(0);
+
+  await visitDialog.getByRole("button", { name: "Besöksalternativ" }).click();
+  const participationItem = page.getByRole("menuitem", { name: "Ändra deltagande" });
+  await expect(participationItem).toBeVisible();
+  await participationItem.click();
+
+  const participationDialog = page.getByRole("alertdialog", { name: "Ändra ditt deltagande" });
+  await expect(participationDialog).toBeVisible();
+  await expect(
+    participationDialog.getByText("Du är registrerad som deltagare på det här besöket.", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await expect(
+    participationDialog.getByRole("button", { name: "Markera att jag inte var med" }),
+  ).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-179-andra-deltagande");
+});
 
 test("fånga uttrycklig bilddelning när egen bild finns", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
@@ -328,7 +367,7 @@ test("fånga uttrycklig bilddelning när egen bild finns", async ({ page }, test
   await expect(photoSwitch).toBeChecked();
   await expect(commentSwitch).toBeChecked();
   await expect(shareDialog.getByText("Stället läggs till", { exact: true })).toBeVisible();
-  await expect(shareDialog.getByText("Gruppen räknar inte delade besök mot progression.")).toBeVisible();
+  await expect(shareDialog.getByText("Räknas inte i gruppens progression.")).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-179-dela-besok-med-egen-bild");
@@ -365,7 +404,7 @@ test("fånga förenklad flergruppsdelning vid registrering", async ({ page }, te
   });
 
   await expect(dialog.getByText("Välj vilka grupper som också ska få besöket.")).toBeVisible();
-  await expect(dialog.getByText("Stället finns redan", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Stället finns i gruppen", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Stället läggs till", { exact: true })).toBeVisible();
 
   const photoSwitch = dialog.getByRole("switch", { name: "Dela min bild" });

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { toast } from "sonner";
-import { Image as ImageIcon, Users2, Sparkles, MessageSquare, TrendingUp } from "lucide-react";
+import { Image as ImageIcon, MessageSquare } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -87,7 +87,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
       allowStrongDuplicate,
       chosen.ownHasPhoto && !chosen.ownPhotoShared ? sharePhoto : false,
     );
-    toast.success(`Besöket är tillagt i ${chosen.name}.`);
+    toast.success(`Besöket är delat med ${chosen.name}.`);
     await onShared();
     setDuplicateCandidate(null);
     onOpenChange(false);
@@ -135,11 +135,8 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] max-w-md overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Lägg till besöket i en annan grupp</DialogTitle>
-          <DialogDescription>
-            Bara du och personer med aktivt medlemskap i mottagargruppen syns som deltagare. Övriga
-            räknas anonymt.
-          </DialogDescription>
+          <DialogTitle>Dela besöket vidare</DialogTitle>
+          <DialogDescription>Välj vilken annan grupp som också ska få besöket.</DialogDescription>
         </DialogHeader>
 
         {loading ? (
@@ -187,7 +184,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                         {t.alreadyLinked
                           ? "Besöket finns redan"
                           : t.placeExistsInGroup
-                            ? "Stället finns redan"
+                            ? "Stället finns i gruppen"
                             : "Stället läggs till"}
                       </div>
                     </div>
@@ -205,41 +202,31 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
 
         {chosen && !chosen.alreadyLinked ? (
           <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-3 text-sm">
-            <div className="flex items-start gap-2">
-              <Users2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Deltagare från gruppen</div>
-                <div className="mt-0.5 text-muted-foreground">
-                  {chosen.visibleParticipants.length > 0
-                    ? chosen.visibleParticipants
-                        .map((p) => (p.status === "left" ? `${p.name} (tidigare medlem)` : p.name))
-                        .join(", ")
-                    : "Ingen av deltagarna är eller har varit medlem i mottagargruppen."}
-                  {chosen.externalParticipantCount > 0 ? (
-                    <>
-                      {" · "}
-                      <span>
-                        +{chosen.externalParticipantCount} person
-                        {chosen.externalParticipantCount === 1 ? "" : "er"} utanför gruppen
-                      </span>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="text-muted-foreground">
-                {chosen.relevantReviewCount} betyg från personer som är eller har varit medlemmar
-                blir synliga i gruppen. Övriga deltagares kommentarer följer inte med.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="text-muted-foreground">
-                {chosen.sharedVisitsCountForProgression
-                  ? "Gruppen räknar delade besök mot progression."
-                  : "Gruppen räknar inte delade besök mot progression."}
+            <div>
+              <p className="font-medium">Samma besök läggs till i gruppens historik.</p>
+              <div className="mt-2 space-y-1 text-muted-foreground">
+                <p>
+                  {chosen.visibleParticipants.length <= 1
+                    ? "Du syns som deltagare."
+                    : `Du och ${chosen.visibleParticipants.length - 1} ${chosen.visibleParticipants.length === 2 ? "annan" : "andra"} i gruppen syns som deltagare.`}
+                </p>
+                {chosen.externalParticipantCount > 0 ? (
+                  <p>
+                    {chosen.externalParticipantCount} annan
+                    {chosen.externalParticipantCount === 1 ? " deltagare visas" : " deltagare visas"}{" "}
+                    anonymt.
+                  </p>
+                ) : null}
+                <p>
+                  {chosen.relevantReviewCount === 0
+                    ? "Inga betyg följer med."
+                    : `${chosen.relevantReviewCount} betyg följer med.`}
+                </p>
+                <p>
+                  {chosen.sharedVisitsCountForProgression
+                    ? "Räknas i gruppens progression."
+                    : "Räknas inte i gruppens progression."}
+                </p>
               </div>
             </div>
             {chosen.ownHasComment ? (
@@ -264,6 +251,9 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                 <Switch id="share-photo" checked={sharePhoto} onCheckedChange={setSharePhoto} />
               </div>
             ) : null}
+            <p className="text-xs text-muted-foreground">
+              Andras kommentarer och bilder följer inte med.
+            </p>
           </div>
         ) : null}
 
@@ -272,7 +262,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
             Avbryt
           </Button>
           <Button onClick={submit} disabled={!chosen || chosen.alreadyLinked || submitting}>
-            {submitting ? "Kontrollerar…" : chosen ? `Lägg till i ${chosen.name}` : "Välj grupp"}
+            {submitting ? "Kontrollerar…" : chosen ? `Dela med ${chosen.name}` : "Välj grupp"}
           </Button>
         </DialogFooter>
       </DialogContent>
