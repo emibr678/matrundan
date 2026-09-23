@@ -28,12 +28,16 @@ describe("PR-verifieringens feedbackkontrakt", () => {
     expect(workflow).toContain("cancel-in-progress: true");
   });
 
-  test("redo-CI kör två Playwright-workers och samlar högst tre fel", () => {
+  test("redo-CI shardar full mobil Chromium över tre runners utan fail-fast", () => {
     const config = readFileSync(resolve(process.cwd(), playwrightConfigPath), "utf8");
     const workflow = readFileSync(resolve(process.cwd(), ciWorkflowPath), "utf8");
 
     expect(config).toContain("workers: process.env.CI ? 2 : undefined");
-    expect(workflow).toContain("bun run test:mobile -- --max-failures=3 --retries=0");
-    expect(workflow).toContain("Mobile Chromium tests discovered:");
+    expect(workflow).toContain("matrix:\n        shard: [1, 2, 3]");
+    expect(workflow).toContain("fail-fast: false");
+    expect(workflow).toContain(
+      "bun run test:mobile -- --shard=${{ matrix.shard }}/3 --max-failures=3 --retries=0",
+    );
+    expect(workflow).toContain("github.event_name != 'push'");
   });
 });

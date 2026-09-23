@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
-const readiness = readFileSync(resolve(root, ".github/workflows/staging-db-readiness.yml"), "utf8");
+const ci = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 const stagingApply = readFileSync(resolve(root, ".github/workflows/staging-db-apply.yml"), "utf8");
 const stagingDeploy = readFileSync(
   resolve(root, ".github/workflows/cloudflare-staging-deploy.yml"),
@@ -11,20 +11,22 @@ const stagingDeploy = readFileSync(
 );
 
 describe("stagingdatabasens merge-readiness", () => {
-  test("PR-checken är read-only och kräver append-only migrationshistorik", () => {
-    expect(readiness).toContain("name: Staging DB readiness");
-    expect(readiness).toContain("environment: staging");
-    expect(readiness).toContain("git diff --name-status");
-    expect(readiness).toContain("Existing migrations are append-only");
-    expect(readiness).toContain("method: 'GET'");
-    expect(readiness).not.toContain("method: 'POST'");
+  test("readiness är en read-only del av kandidat-DAG:en", () => {
+    expect(ci).toContain("name: Staging DB readiness");
+    expect(ci).toContain("environment: staging");
+    expect(ci).toContain("git diff --name-status");
+    expect(ci).toContain("Existing migrations are append-only");
+    expect(ci).toContain("method: 'GET'");
+    expect(ci).not.toContain("method: 'POST'");
   });
 
-  test("godkänd staging-apply triggar om readiness för exakt PR-head", () => {
+  test("godkänd staging-apply tillåts bara när readiness är enda CI-blockeraren", () => {
     expect(stagingApply).toContain("actions: write");
-    expect(stagingApply).toContain("run?.name === 'Staging DB readiness'");
+    expect(stagingApply).toContain("staging DB readiness is the only CI blocker");
+    expect(stagingApply).toContain("Staging DB readiness");
+    expect(stagingApply).toContain("allowedFailures");
     expect(stagingApply).toContain("/rerun-failed-jobs");
-    expect(stagingApply).toContain("head_sha=");
+    expect(stagingApply).toContain("CI_RUN_ID");
   });
 
   test("post-merge stagingdeploy behåller migrationspärren", () => {

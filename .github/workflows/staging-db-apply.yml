@@ -52,13 +52,13 @@ jobs:
 
     steps:
       - name: Check out exact approved candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.expected_sha }}
           fetch-depth: 0
           show-progress: false
 
-      - name: Guard exact open PR, head SHA, approval and green CI
+      - name: Guard exact open PR, head SHA, approval and candidate checks
         run: |
           set -euo pipefail
           if [[ "$CONFIRMATION" != "APPLY_STAGING_DB" ]]; then
@@ -75,6 +75,8 @@ jobs:
           fi
 
           node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
           const apiRoot = 'https://api.github.com';
           const repository = process.env.GITHUB_REPOSITORY;
           const branch = process.env.BRANCH;
@@ -141,22 +143,67 @@ jobs:
               repository +
               '/actions/runs?head_sha=' +
               targetSha +
-              '&per_page=100',
+              '&event=pull_request&per_page=100',
           );
-          const successfulCi = (runs?.workflow_runs ?? []).some(
-            (run) =>
-              run?.name === 'CI' &&
-              run?.event === 'pull_request' &&
-              run?.status === 'completed' &&
-              run?.conclusion === 'success' &&
-              (run?.pull_requests ?? []).some((candidate) => candidate?.number === prNumber),
-          );
-          if (!successfulCi) {
-            console.error('No successful ordinary CI run exists for this exact PR head SHA.');
+          const ciRun = (runs?.workflow_runs ?? [])
+            .filter(
+              (run) =>
+                run?.name === 'CI' &&
+                run?.status === 'completed' &&
+                (run?.pull_requests ?? []).some((candidate) => candidate?.number === prNumber),
+            )
+            .sort((left, right) =>
+              String(right?.created_at ?? '').localeCompare(String(left?.created_at ?? '')),
+            )[0];
+
+          if (!ciRun) {
+            console.error('No completed CI run exists for this exact PR head SHA.');
             process.exit(1);
           }
 
-          console.log('Verified explicit staging approval, exact open PR head and green CI.');
+          let needsRerun = false;
+          if (ciRun.conclusion !== 'success') {
+            if (ciRun.conclusion !== 'failure') {
+              console.error('Candidate CI has unsupported conclusion: ' + String(ciRun.conclusion));
+              process.exit(1);
+            }
+
+            const jobsPayload = await getJson(
+              apiRoot + '/repos/' + repository + '/actions/runs/' + ciRun.id + '/jobs?per_page=100',
+            );
+            const jobs = Array.isArray(jobsPayload?.jobs) ? jobsPayload.jobs : [];
+            const readiness = jobs.find((job) => job?.name === 'Staging DB readiness');
+            const required = jobs.find((job) => job?.name === 'required');
+            if (readiness?.conclusion !== 'failure' || required?.conclusion !== 'failure') {
+              console.error('Failed CI is not the expected staging-readiness-only blocker.');
+              process.exit(1);
+            }
+
+            const allowedFailures = new Set(['Staging DB readiness', 'required']);
+            const blockers = jobs.filter(
+              (job) =>
+                !['success', 'skipped'].includes(job?.conclusion) &&
+                !allowedFailures.has(job?.name),
+            );
+            if (blockers.length > 0) {
+              console.error(
+                'Staging DB apply is blocked by non-database CI failures: ' +
+                  blockers.map((job) => job?.name + '=' + job?.conclusion).join(', '),
+              );
+              process.exit(1);
+            }
+            needsRerun = true;
+          }
+
+          fs.appendFileSync(
+            process.env.GITHUB_ENV,
+            'CI_RUN_ID=' + ciRun.id + '\n' + 'CI_NEEDS_RERUN=' + (needsRerun ? '1' : '0') + '\n',
+          );
+          console.log(
+            needsRerun
+              ? 'Verified exact candidate; staging DB readiness is the only CI blocker.'
+              : 'Verified exact candidate with green CI.',
+          );
           NODE
 
       - name: Validate staging Management API credential
@@ -405,97 +452,29 @@ jobs:
           }
           NODE
 
-      - name: Rerun staging DB readiness for exact PR head
+      - name: Rerun failed candidate jobs after approved staging apply
         run: |
           set -euo pipefail
-          node --input-type=module <<'NODE'
-          const repository = process.env.GITHUB_REPOSITORY;
-          const targetSha = process.env.TARGET_SHA;
-          const prNumber = Number(process.env.PR_NUMBER);
-          const headers = {
-            accept: 'application/vnd.github+json',
-            authorization: 'Bearer ' + process.env.GITHUB_API_TOKEN,
-            'x-github-api-version': '2022-11-28',
-          };
+          if [[ "${CI_NEEDS_RERUN:-0}" != "1" ]]; then
+            echo "Candidate CI was already green; no failed jobs need rerun."
+            exit 0
+          fi
+          if [[ ! "${CI_RUN_ID:-}" =~ ^[0-9]+$ ]]; then
+            echo "Missing exact CI run id for rerun." >&2
+            exit 1
+          fi
 
-          const listResponse = await fetch(
-            'https://api.github.com/repos/' +
-              repository +
-              '/actions/runs?head_sha=' +
-              targetSha +
-              '&event=pull_request&per_page=100',
-            { headers, signal: AbortSignal.timeout(10_000) },
-          );
-          const payload = await listResponse.json().catch(() => null);
-          if (!listResponse.ok) {
-            console.error(
-              'Could not read staging DB readiness runs (HTTP ' +
-                listResponse.status +
-                ').',
-            );
-            process.exit(1);
-          }
-
-          const readiness = (payload?.workflow_runs ?? [])
-            .filter(
-              (run) =>
-                run?.name === 'Staging DB readiness' &&
-                (run?.pull_requests ?? []).some(
-                  (candidate) => candidate?.number === prNumber,
-                ),
-            )
-            .sort((a, b) =>
-              String(b?.created_at ?? '').localeCompare(
-                String(a?.created_at ?? ''),
-              ),
-            )[0];
-
-          if (!readiness) {
-            console.error(
-              'No Staging DB readiness run exists for the exact PR head SHA.',
-            );
-            process.exit(1);
-          }
-          if (readiness.status !== 'completed') {
-            console.error(
-              'Staging DB readiness is still running for the exact PR head SHA.',
-            );
-            process.exit(1);
-          }
-          if (readiness.conclusion === 'success') {
-            console.log('Staging DB readiness is already green for this PR head.');
-            process.exit(0);
-          }
-          if (readiness.conclusion !== 'failure') {
-            console.error(
-              'Staging DB readiness has unexpected conclusion: ' +
-                String(readiness.conclusion),
-            );
-            process.exit(1);
-          }
-
-          const rerunResponse = await fetch(
-            'https://api.github.com/repos/' +
-              repository +
-              '/actions/runs/' +
-              readiness.id +
-              '/rerun-failed-jobs',
-            {
-              method: 'POST',
-              headers,
-              signal: AbortSignal.timeout(10_000),
-            },
-          );
-          if (!rerunResponse.ok) {
-            console.error(
-              'Could not rerun Staging DB readiness (HTTP ' +
-                rerunResponse.status +
-                ').',
-            );
-            process.exit(1);
-          }
-
-          console.log(
-            'Queued Staging DB readiness rerun for exact PR head ' + targetSha + '.',
-          );
-          NODE
+          response_status="$(
+            curl --silent --show-error --output /tmp/rerun-response.txt --write-out '%{http_code}' \
+              --request POST \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer $GITHUB_API_TOKEN" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID/rerun-failed-jobs"
+          )"
+          if [[ "$response_status" != "201" ]]; then
+            echo "Could not rerun failed candidate jobs (HTTP $response_status)." >&2
+            cat /tmp/rerun-response.txt >&2 || true
+            exit 1
+          fi
+          echo "Queued failed-job rerun for exact candidate CI run $CI_RUN_ID."

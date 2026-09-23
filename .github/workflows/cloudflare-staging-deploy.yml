@@ -1,9 +1,12 @@
 name: Cloudflare staging deploy
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  workflow_call:
+    inputs:
+      expected_sha:
+        description: Exact current main SHA to deploy
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       expected_sha:
@@ -12,7 +15,6 @@ on:
         type: string
 
 permissions:
-  actions: read
   contents: read
 
 concurrency:
@@ -29,17 +31,12 @@ env:
   STAGING_PUBLIC_URL: https://staging.matrundan.workers.dev
   STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
   STAGING_SUPABASE_URL: https://wpihfmwbubvdiaavtpia.supabase.co
-  TARGET_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_sha }}
+  TARGET_SHA: ${{ inputs.expected_sha }}
 
 jobs:
   deploy:
     name: Deploy exact main SHA to staging
-    if: >-
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main') ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     environment: staging
@@ -51,7 +48,7 @@ jobs:
 
     steps:
       - name: Check out exact staging candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
@@ -69,15 +66,15 @@ jobs:
           git fetch --no-tags origin main
           current_main="$(git rev-parse origin/main)"
           if [[ "$TARGET_SHA" != "$current_main" ]]; then
-            if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
-              echo "Skipping superseded staging candidate $TARGET_SHA; current main is $current_main."
-              echo "deploy=false" >> "$GITHUB_OUTPUT"
-              exit 0
+            if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+              echo "Manual staging deploy must target current main." >&2
+              echo "expected=$TARGET_SHA" >&2
+              echo "current=$current_main" >&2
+              exit 1
             fi
-            echo "Manual staging deploy must target current main." >&2
-            echo "expected=$TARGET_SHA" >&2
-            echo "current=$current_main" >&2
-            exit 1
+            echo "Skipping superseded staging candidate $TARGET_SHA; current main is $current_main."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           echo "deploy=true" >> "$GITHUB_OUTPUT"
@@ -100,93 +97,9 @@ jobs:
 
       - name: Set up pinned Node
         if: steps.guard.outputs.deploy == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.12.0
-
-      - name: Detect whether Supabase type drift is relevant
-        id: db_scope
-        if: steps.guard.outputs.deploy == 'true'
-        run: |
-          set -euo pipefail
-          parent="$(git rev-parse "${TARGET_SHA}^1" 2>/dev/null || true)"
-          if [[ -z "$parent" ]]; then
-            echo "No parent commit available; require type drift conservatively."
-            echo "db_relevant=true" >> "$GITHUB_OUTPUT"
-            echo "TYPE_DRIFT_STATUS=required and verified before deploy" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          db_relevant=false
-          while IFS= read -r file; do
-            case "$file" in
-              supabase/migrations/*|supabase/config.toml|src/integrations/supabase/types.ts|scripts/supabase-types.sh|.github/workflows/supabase-types.yml)
-                echo "Database/type-relevant change: $file"
-                db_relevant=true
-                break
-                ;;
-            esac
-          done < <(git diff --name-only "$parent" "$TARGET_SHA")
-
-          echo "db_relevant=$db_relevant" >> "$GITHUB_OUTPUT"
-          if [[ "$db_relevant" == "true" ]]; then
-            echo "TYPE_DRIFT_STATUS=required and verified before deploy" >> "$GITHUB_ENV"
-          else
-            echo "TYPE_DRIFT_STATUS=not required for this merge (no database/type files changed)" >> "$GITHUB_ENV"
-          fi
-
-      - name: Require successful Supabase type drift for exact SHA
-        if: steps.guard.outputs.deploy == 'true' && steps.db_scope.outputs.db_relevant == 'true'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'NODE'
-          const repository = process.env.GITHUB_REPOSITORY;
-          const targetSha = process.env.TARGET_SHA;
-          const token = process.env.GITHUB_TOKEN;
-          const endpoint = `https://api.github.com/repos/${repository}/actions/runs?head_sha=${targetSha}&per_page=100`;
-          let last = 'no matching Supabase type drift run yet';
-
-          for (let attempt = 1; attempt <= 30; attempt += 1) {
-            const response = await fetch(endpoint, {
-              headers: {
-                accept: 'application/vnd.github+json',
-                authorization: `Bearer ${token}`,
-                'x-github-api-version': '2022-11-28',
-              },
-              signal: AbortSignal.timeout(10_000),
-            });
-            const payload = await response.json().catch(() => null);
-            if (!response.ok) {
-              console.error(`Could not read GitHub workflow runs (HTTP ${response.status}).`);
-              process.exit(1);
-            }
-
-            const run = (payload?.workflow_runs ?? [])
-              .filter((candidate) =>
-                candidate?.name === 'Supabase type drift' &&
-                candidate?.head_branch === 'main' &&
-                candidate?.event === 'push'
-              )
-              .sort((a, b) => String(b?.created_at ?? '').localeCompare(String(a?.created_at ?? '')))[0];
-
-            if (run?.status === 'completed' && run?.conclusion === 'success') {
-              console.log(`Verified Supabase type drift run #${run.run_number} for ${targetSha}.`);
-              process.exit(0);
-            }
-            if (run?.status === 'completed') {
-              console.error(`Supabase type drift run #${run.run_number} completed with ${run.conclusion}. Staging deploy is blocked.`);
-              process.exit(1);
-            }
-
-            last = run ? `run #${run.run_number} status=${run.status}` : last;
-            await new Promise((resolve) => setTimeout(resolve, 10_000));
-          }
-
-          console.error(`Timed out waiting for Supabase type drift on ${targetSha}: ${last}`);
-          process.exit(1);
-          NODE
 
       - name: Resolve public staging build configuration
         if: steps.guard.outputs.deploy == 'true'
@@ -385,8 +298,8 @@ jobs:
             echo '## Cloudflare staging deploy'
             echo
             echo "- SHA: \`$TARGET_SHA\`"
-            echo '- Trigger: successful post-merge CI on current `main` (or explicit manual retry)'
-            echo "- Supabase type drift: $TYPE_DRIFT_STATUS"
+            echo '- Trigger: same-run `CI / required` on current `main` (or explicit manual retry)'
+            echo '- Candidate gate: `CI / required` green for exact current main SHA'
             echo '- Supabase Staging migration compatibility: verified read-only through migrations API; no migration applied'
             echo '- Worker: `staging` (`--env staging`)'
             echo "- URL: $STAGING_PUBLIC_URL"

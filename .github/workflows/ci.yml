@@ -22,11 +22,17 @@ defaults:
     shell: bash
 
 concurrency:
-  group: ci-hosted-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
   cancel-in-progress: true
 
+env:
+  SUPABASE_CLI_VERSION: '2.115.0'
+  SUPABASE_TELEMETRY_DISABLED: '1'
+  STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
+
 jobs:
-  verify:
+  classify:
+    name: Classify candidate
     if: >-
       github.event_name != 'pull_request' ||
       (
@@ -34,62 +40,26 @@ jobs:
         github.event.pull_request.head.repo.full_name == github.repository
       )
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 5
     outputs:
       base_sha: ${{ steps.changes.outputs.base_sha }}
+      has_format: ${{ steps.changes.outputs.has_format }}
       has_ui: ${{ steps.changes.outputs.has_ui }}
       has_map: ${{ steps.changes.outputs.has_map }}
-
+      has_db: ${{ steps.changes.outputs.has_db }}
+      has_migrations: ${{ steps.changes.outputs.has_migrations }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           show-progress: false
-
-      - name: Normalize Windows checkout
-        if: runner.os == 'Windows'
-        run: |
-          git config core.autocrlf false
-          while IFS= read -r -d '' file; do
-            sed -i 's/\r$//' "$file"
-          done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
-
-      - name: Set up pinned Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22.12.0
-
-      - name: Report verification mode
-        shell: bash
-        run: |
-          echo "Full verification: browser checks run when relevant." >> "$GITHUB_STEP_SUMMARY"
-          echo "Configured target: ubuntu-24.04 (GitHub-hosted)" >> "$GITHUB_STEP_SUMMARY"
-          echo "Actual runner: ${{ runner.name }} (${{ runner.os }}/${{ runner.arch }}, ${{ runner.environment }})" >> "$GITHUB_STEP_SUMMARY"
-
       - name: Set up pinned Bun
-        id: bun
         uses: ./.github/actions/setup-bun
-
-      - name: Report runtime
-        run: echo "Bun ${{ steps.bun.outputs.bun-version }}" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Cache Bun downloads
-        if: runner.environment != 'self-hosted'
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Find changed files
+      - name: Classify changed files
         id: changes
-        shell: bash
         run: |
+          set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
           elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
@@ -97,193 +67,391 @@ jobs:
           else
             base_sha="$(git rev-parse HEAD^)"
           fi
-
           bun scripts/repo-tools.mjs ci-flags "$base_sha" >> "$GITHUB_OUTPUT"
 
+  quality:
+    name: Quality and contracts
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          show-progress: false
+      - name: Set up CI runtime
+        uses: ./.github/actions/setup-ci
       - name: Doctor
         run: bun run doctor
-
       - name: Guard tooling and lockfiles
         env:
-          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+          MATRUNDAN_BASE_SHA: ${{ needs.classify.outputs.base_sha }}
         run: bun scripts/repo-tools.mjs guard-tooling
-
       - name: Shell scripts
         run: bun run check:shell
-
       - name: Release and changelog contract
         env:
           MATRUNDAN_CI_EVENT_NAME: "${{ github.event_name }}"
           MATRUNDAN_VERSION_EXEMPT: "${{ contains(github.event.pull_request.body || '', '- [x] Version: inte relevant') && '1' || '0' }}"
-        run: bun scripts/release-check.mjs "${{ steps.changes.outputs.base_sha }}"
-
+        run: bun scripts/release-check.mjs "${{ needs.classify.outputs.base_sha }}"
       - name: Database and RPC contract
-        run: bun scripts/database-contract-check.mjs "${{ steps.changes.outputs.base_sha }}"
-
+        run: bun scripts/database-contract-check.mjs "${{ needs.classify.outputs.base_sha }}"
       - name: Dead code guard
         run: bun run check:dead-code
-
       - name: Prettier changed code and configuration
-        if: steps.changes.outputs.has_format == 'true'
+        if: needs.classify.outputs.has_format == 'true'
         env:
-          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+          MATRUNDAN_BASE_SHA: ${{ needs.classify.outputs.base_sha }}
         run: bun run format:check:changed
-
       - name: Create formatting patch on failure
-        if: failure() && steps.changes.outputs.has_format == 'true'
+        if: failure() && needs.classify.outputs.has_format == 'true'
         env:
-          MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
+          MATRUNDAN_BASE_SHA: ${{ needs.classify.outputs.base_sha }}
         run: |
           bun run format:changed
           git diff --binary > formatting.patch
-
       - name: Upload formatting patch
-        if: failure() && steps.changes.outputs.has_format == 'true'
-        uses: actions/upload-artifact@v7
+        if: failure() && needs.classify.outputs.has_format == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: formatting-patch-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
           path: formatting.patch
           if-no-files-found: error
           retention-days: 5
-
       - name: ESLint full repository
         run: bun run lint
 
-      - name: Unit tests
-        run: bun run test:unit
-
-      - name: TypeScript
-        run: bun run typecheck
-
-      - name: Unit test TypeScript
-        run: bun run typecheck:unit
-
-      - name: Playwright TypeScript
-        run: bun run typecheck:e2e
-
-      - name: Lovable preview build contract
-        run: bun run build
-
-      - name: Production build and Cloudflare staging artifact
-        run: bun run cloudflare:build
-
-  browser:
-    needs: verify
-    if: needs.verify.result == 'success' && needs.verify.outputs.has_ui == 'true'
+  unit:
+    name: Unit tests
+    needs: classify
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-
+    timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           show-progress: false
+      - name: Set up CI runtime
+        uses: ./.github/actions/setup-ci
+      - name: Unit tests
+        run: bun run test:unit
 
-      - name: Normalize Windows checkout
-        if: runner.os == 'Windows'
+  typecheck:
+    name: TypeScript
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          show-progress: false
+      - name: Set up CI runtime
+        uses: ./.github/actions/setup-ci
+      - name: App TypeScript
+        run: bun run typecheck
+      - name: Unit test TypeScript
+        run: bun run typecheck:unit
+      - name: Playwright TypeScript
+        run: bun run typecheck:e2e
+
+  build:
+    name: Build
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          show-progress: false
+      - name: Set up CI runtime
+        uses: ./.github/actions/setup-ci
+      - name: Lovable preview build contract
+        run: bun run build
+      - name: Production build and Cloudflare staging artifact
+        run: bun run cloudflare:build
+
+  supabase_types:
+    name: Supabase type drift
+    needs: classify
+    if: needs.classify.outputs.has_db == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          show-progress: false
+      - name: Set up CI runtime
+        uses: ./.github/actions/setup-ci
+      - name: Start migration-built local Postgres
+        run: npx --yes "supabase@${{ env.SUPABASE_CLI_VERSION }}" db start
+      - name: Verify generated Supabase types
+        run: bash scripts/supabase-types.sh check src/integrations/supabase/types.ts
+      - name: Generate expected types on failure
+        if: failure()
+        run: bash scripts/supabase-types.sh generate supabase-types.generated.ts
+      - name: Upload expected types on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: supabase-types-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+          path: supabase-types.generated.ts
+          if-no-files-found: ignore
+          retention-days: 5
+      - name: Stop local Supabase database
+        if: always()
+        run: npx --yes "supabase@${{ env.SUPABASE_CLI_VERSION }}" stop --no-backup
+
+  staging_db_readiness:
+    name: Staging DB readiness
+    needs: classify
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: staging
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      TARGET_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+          show-progress: false
+      - name: Guard exact candidate and append-only migration history
         run: |
-          git config core.autocrlf false
-          while IFS= read -r -d '' file; do
-            sed -i 's/\r$//' "$file"
-          done < <(git ls-files -z -- '*.ts' '*.tsx' '*.sql')
+          set -euo pipefail
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || [[ ! "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid PR head or base SHA." >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$TARGET_SHA" ]]; then
+            echo "Checked out commit does not match the PR head SHA." >&2
+            exit 1
+          fi
+          while IFS=$'\t' read -r status path extra; do
+            [[ -z "$status" ]] && continue
+            if [[ "$status" != "A" ]]; then
+              echo "Existing migrations are append-only; found $status for $path${extra:+ -> $extra}." >&2
+              exit 1
+            fi
+          done < <(
+            git diff --name-status --diff-filter=ACDMRTUXB "$BASE_SHA" "$TARGET_SHA" -- supabase/migrations
+          )
+      - name: Validate read-only staging credential
+        run: |
+          set -euo pipefail
+          if [[ -z "${STAGING_SUPABASE_ACCESS_TOKEN:-}" ]]; then
+            echo "Missing STAGING_SUPABASE_ACCESS_TOKEN in the GitHub staging environment." >&2
+            exit 1
+          fi
+      - name: Verify every repo migration exists in Supabase Staging
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const token = process.env.STAGING_SUPABASE_ACCESS_TOKEN;
+          const projectId = process.env.STAGING_SUPABASE_PROJECT_ID;
+          const endpoint =
+            'https://api.supabase.com/v1/projects/' + projectId + '/database/migrations';
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              accept: 'application/json',
+              authorization: 'Bearer ' + token,
+            },
+            signal: AbortSignal.timeout(15_000),
+          });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || !Array.isArray(payload)) {
+            console.error(
+              'Could not read Supabase Staging migration history (HTTP ' +
+                response.status +
+                ').',
+            );
+            process.exit(1);
+          }
+          const remote = new Set(
+            payload
+              .map((row) => row?.name)
+              .filter((value) => typeof value === 'string' && value.length > 0),
+          );
+          const local = fs
+            .readdirSync('supabase/migrations')
+            .filter((name) => name.endsWith('.sql'))
+            .sort()
+            .map((name) => ({ name, stem: path.basename(name, '.sql') }));
+          function candidatesFor(stem) {
+            const suffix = stem.replace(/^\d+_/, '');
+            return new Set([
+              stem,
+              stem.replaceAll('-', '_'),
+              suffix,
+              suffix.replaceAll('-', '_'),
+            ]);
+          }
+          const missing = local.filter(
+            ({ stem }) =>
+              ![...candidatesFor(stem)].some((candidate) => remote.has(candidate)),
+          );
+          if (missing.length > 0) {
+            console.error('Supabase Staging is not merge-ready; missing repo migration(s):');
+            for (const migration of missing) console.error('- ' + migration.name);
+            console.error(
+              'Apply missing migrations only through the separately approved Staging database apply flow, then rerun failed CI jobs.',
+            );
+            process.exit(1);
+          }
+          console.log(
+            'Supabase Staging is merge-ready for ' +
+              process.env.TARGET_SHA +
+              ': all ' +
+              local.length +
+              ' repo migrations are represented.',
+          );
+          NODE
 
-      - name: Set up pinned Node
-        uses: actions/setup-node@v7
+  browser:
+    name: Mobile Chromium shard ${{ matrix.shard }}/3
+    needs: classify
+    if: needs.classify.outputs.has_ui == 'true' && github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          node-version: 22.12.0
-
-      - name: Set up pinned Bun
-        uses: ./.github/actions/setup-bun
-
-      - name: Cache Bun downloads
-        if: runner.environment != 'self-hosted'
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('package.json', 'bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
+          fetch-depth: 0
+          show-progress: false
+      - name: Set up CI runtime
+        uses: ./.github/actions/setup-ci
       - name: Cache Playwright browsers
-        if: runner.environment != 'self-hosted'
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
-          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}-map-${{ needs.verify.outputs.has_map }}
-
-      - name: Install Chromium on GitHub-hosted runner
-        if: runner.environment != 'self-hosted' && needs.verify.outputs.has_map != 'true'
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}-chromium
+      - name: Install Chromium
         run: bunx playwright install --with-deps chromium
-
-      - name: Install Chromium and WebKit on GitHub-hosted runner
-        if: runner.environment != 'self-hosted' && needs.verify.outputs.has_map == 'true'
-        run: bunx playwright install --with-deps chromium webkit
-
-      - name: Install Chromium on self-hosted runner
-        if: runner.environment == 'self-hosted' && needs.verify.outputs.has_map != 'true'
-        run: bunx playwright install chromium
-
-      - name: Install Chromium and WebKit on self-hosted runner
-        if: runner.environment == 'self-hosted' && needs.verify.outputs.has_map == 'true'
-        run: bunx playwright install chromium webkit
-
-      - name: Browser diagnostics before smoke
-        run: |
-          echo "Started: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          echo "Runner: ${{ runner.name }} (${{ runner.os }}/${{ runner.arch }}, ${{ runner.environment }})"
-          bunx playwright --version
-          echo "Disk before smoke:"
-          df -h . || true
-          echo "Mobile Chromium tests discovered:"
-          bunx playwright test --project=mobile-chromium --list
-
-      - name: Full mobile Chromium smoke test
+      - name: Full mobile Chromium shard
         run: |
           started="$(date +%s)"
-          echo "Smoke started: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          set +e
-          bun run test:mobile -- --max-failures=3 --retries=0
-          status=$?
-          set -e
+          bun run test:mobile -- --shard=${{ matrix.shard }}/3 --max-failures=3 --retries=0
           finished="$(date +%s)"
-          echo "Smoke finished: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          echo "Smoke duration: $((finished - started))s"
-          echo "Smoke exit code: $status"
-          exit "$status"
-
-      - name: Browser diagnostics after smoke
-        if: always()
-        run: |
-          echo "Finished: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          echo "Disk after smoke:"
-          df -h . || true
-          echo "Playwright result files:"
-          find test-results -maxdepth 3 -type f -print 2>/dev/null || true
-          echo "Playwright report files:"
-          find playwright-report -maxdepth 2 -type f -print 2>/dev/null || true
-
-      - name: iPhone and desktop map compatibility
-        if: needs.verify.outputs.has_map == 'true'
-        run: bun run test:map:cross-browser
-
+          echo "Shard ${{ matrix.shard }}/3 duration: $((finished - started))s" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload browser report on failure
         if: failure()
         continue-on-error: true
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: playwright-report-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+          name: playwright-report-shard-${{ matrix.shard }}-${{ github.run_id }}
           path: playwright-report
           if-no-files-found: ignore
           retention-days: 5
 
-  artifact_cleanup:
+  map_browser:
+    name: Map cross-browser
+    needs: classify
+    if: needs.classify.outputs.has_map == 'true' && github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          show-progress: false
+      - name: Set up CI runtime
+        uses: ./.github/actions/setup-ci
+      - name: Cache Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}-map
+      - name: Install Chromium and WebKit
+        run: bunx playwright install --with-deps chromium webkit
+      - name: iPhone and desktop map compatibility
+        run: bun run test:map:cross-browser
+
+  required:
+    name: required
     needs:
-      - verify
+      - classify
+      - quality
+      - unit
+      - typecheck
+      - build
+      - supabase_types
+      - staging_db_readiness
       - browser
+      - map_browser
+    if: always() && needs.classify.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      QUALITY_RESULT: ${{ needs.quality.result }}
+      UNIT_RESULT: ${{ needs.unit.result }}
+      TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+      BUILD_RESULT: ${{ needs.build.result }}
+      SUPABASE_TYPES_RESULT: ${{ needs.supabase_types.result }}
+      STAGING_DB_RESULT: ${{ needs.staging_db_readiness.result }}
+      BROWSER_RESULT: ${{ needs.browser.result }}
+      MAP_BROWSER_RESULT: ${{ needs.map_browser.result }}
+    steps:
+      - name: Summarize merge-critical candidate checks
+        run: |
+          set -euo pipefail
+          failed=0
+          for entry in \
+            "quality:$QUALITY_RESULT" \
+            "unit:$UNIT_RESULT" \
+            "typecheck:$TYPECHECK_RESULT" \
+            "build:$BUILD_RESULT" \
+            "supabase-types:$SUPABASE_TYPES_RESULT" \
+            "staging-db:$STAGING_DB_RESULT" \
+            "browser:$BROWSER_RESULT" \
+            "map-browser:$MAP_BROWSER_RESULT"; do
+            name="${entry%%:*}"
+            result="${entry#*:}"
+            printf '%-18s %s\n' "$name" "$result"
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              failed=1
+            fi
+          done
+          if (( failed != 0 )); then
+            echo "One or more merge-critical candidate checks failed or were cancelled." >&2
+            exit 1
+          fi
+          echo "All relevant candidate checks passed or were legitimately skipped." >> "$GITHUB_STEP_SUMMARY"
+
+  artifact_cleanup:
+    name: Clean failed-run artifacts
+    needs:
+      - classify
+      - quality
+      - unit
+      - typecheck
+      - build
+      - supabase_types
+      - staging_db_readiness
+      - browser
+      - map_browser
     if: >-
       always() &&
       !cancelled() &&
@@ -291,26 +459,30 @@ jobs:
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       (
-        needs.verify.result == 'failure' ||
-        needs.browser.result == 'failure'
+        needs.quality.result == 'failure' ||
+        needs.unit.result == 'failure' ||
+        needs.typecheck.result == 'failure' ||
+        needs.build.result == 'failure' ||
+        needs.supabase_types.result == 'failure' ||
+        needs.staging_db_readiness.result == 'failure' ||
+        needs.browser.result == 'failure' ||
+        needs.map_browser.result == 'failure'
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       actions: write
       contents: read
-
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           show-progress: false
-
       - name: Remove superseded and legacy artifacts
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
-            const cleanup = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/artifact-lifecycle.cjs`);
+            const cleanup = require(process.env.GITHUB_WORKSPACE + '/.github/scripts/artifact-lifecycle.cjs');
             await cleanup({
               github,
               context,
@@ -321,3 +493,29 @@ jobs:
               keepCurrent: true,
               cleanupLegacy: true,
             });
+
+  handoff:
+    name: Mobile handoff
+    needs: required
+    if: github.event_name == 'pull_request' && needs.required.result == 'success'
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/mobile-pr-handoff.yml
+    with:
+      target_sha: ${{ github.event.pull_request.head.sha }}
+      pr_number: ${{ github.event.pull_request.number }}
+      ci_run_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  staging:
+    name: Staging deploy
+    needs: required
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.required.result == 'success'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/cloudflare-staging-deploy.yml
+    with:
+      expected_sha: ${{ github.sha }}
+    secrets: inherit

@@ -137,6 +137,15 @@ function isMapFile(file) {
   return MAP_FILES.has(file);
 }
 
+function isDatabaseFile(file) {
+  return (
+    file.startsWith("supabase/migrations/") ||
+    file === "supabase/config.toml" ||
+    file === "src/integrations/supabase/types.ts" ||
+    file === "scripts/supabase-types.sh"
+  );
+}
+
 function classify(files) {
   return {
     all: files,
@@ -144,6 +153,8 @@ function classify(files) {
     code: files.filter(isCodeFile),
     ui: files.filter(isUiFile),
     map: files.filter(isMapFile),
+    database: files.filter(isDatabaseFile),
+    migrations: files.filter((file) => file.startsWith("supabase/migrations/")),
     workflows: files.filter((file) => file.startsWith(".github/workflows/")),
     dependencies: files.filter((file) => file === "package.json" || file === "bun.lock"),
   };
@@ -310,6 +321,8 @@ function ciFlags(explicitBase) {
   console.log(`has_code=${bool(changed.code.length > 0)}`);
   console.log(`has_ui=${bool(changed.ui.length > 0)}`);
   console.log(`has_map=${bool(changed.map.length > 0)}`);
+  console.log(`has_db=${bool(changed.database.length > 0)}`);
+  console.log(`has_migrations=${bool(changed.migrations.length > 0)}`);
   console.log(`has_workflow=${bool(changed.workflows.length > 0)}`);
   console.log(`has_dependencies=${bool(changed.dependencies.length > 0)}`);
 }

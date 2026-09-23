@@ -120,7 +120,8 @@ export async function main() {
   const targetSha = requiredEnvironment("TARGET_SHA");
   const ciRunUrl = requiredEnvironment("CI_RUN_URL");
   const githubToken = requiredEnvironment("GITHUB_API_TOKEN");
-  const eventPath = requiredEnvironment("GITHUB_EVENT_PATH");
+  const explicitPrNumber = Number(process.env.PR_NUMBER || "");
+  const eventPath = process.env.GITHUB_EVENT_PATH || "";
   if (!/^[0-9a-f]{40}$/.test(targetSha)) throw new Error("Ogiltig kandidat-SHA.");
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
     throw new Error("Ogiltigt repositorynamn.");
@@ -165,9 +166,11 @@ export async function main() {
     return rows;
   }
 
-  const event = JSON.parse(fs.readFileSync(eventPath, "utf8"));
-  const workflowRun = event.workflow_run;
-  let prNumber = workflowRun?.pull_requests?.[0]?.number;
+  let prNumber = Number.isInteger(explicitPrNumber) && explicitPrNumber > 0 ? explicitPrNumber : null;
+  if (!Number.isInteger(prNumber) && eventPath) {
+    const event = JSON.parse(fs.readFileSync(eventPath, "utf8"));
+    prNumber = event.workflow_run?.pull_requests?.[0]?.number ?? event.pull_request?.number ?? null;
+  }
   if (!Number.isInteger(prNumber)) {
     const candidates = await getAll("/repos/" + repository + "/commits/" + targetSha + "/pulls");
     prNumber = candidates.find(
