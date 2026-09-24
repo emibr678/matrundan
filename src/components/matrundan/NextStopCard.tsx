@@ -628,6 +628,7 @@ function FocusedPlaceHero({ item }: { item: ProposalItem }) {
   return (
     <div
       data-next-stop-proposal="selected"
+      data-next-stop-place-id={item.place.id}
       className="bg-gradient-to-br from-primary/85 to-primary px-5 py-4 text-primary-foreground"
     >
       <div className="pr-9">
@@ -778,6 +779,7 @@ function AlternativeProposalCard({
   return (
     <Card
       data-next-stop-proposal="alternative"
+      data-next-stop-place-id={item.place.id}
       className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-3xl border-primary/15 bg-card p-0 shadow-sm"
     >
       <div className="relative bg-gradient-to-br from-primary/20 via-secondary/55 to-card px-5 py-4">
