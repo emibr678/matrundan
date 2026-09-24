@@ -289,9 +289,11 @@ test("övriga karusellförslag sorteras nyast först", async ({ page }) => {
   }
   await page.goto("/?demo=1");
 
-  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toContainText(
-    "Månskärans Taquería",
-  );
+  await expect(
+    page
+      .locator('[data-next-stop-proposal="alternative"]')
+      .filter({ hasText: "Månskärans Taquería" }),
+  ).toHaveCount(1);
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 4");
   const labels = await page
     .getByLabel("Välj förslag i karusellen")

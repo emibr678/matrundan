@@ -70,7 +70,7 @@ test("fånga karusellens nästa stopp och nyss tillagda förslag", async ({ page
   await stabilize(page);
   await capture(page, testInfo, "issue-393-karusell-nytt-forslag");
 
-  await page.getByRole("button", { name: /Föregående förslag:/ }).click();
+  await page.getByRole("button", { name: /Visa nästa stopp:/ }).click();
   const selected = page.locator('[data-next-stop-proposal="selected"]');
   await expect(selected).toBeVisible();
   await expect(selected.getByText("Valt nästa stopp", { exact: true })).toBeVisible();
@@ -88,9 +88,11 @@ test("fånga karusell med flera förslag och nyast först", async ({ page }, tes
   await proposeFromDetail(page, "p3");
   await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
 
-  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toContainText(
-    "Månskärans Taquería",
-  );
+  await expect(
+    page
+      .locator('[data-next-stop-proposal="alternative"]')
+      .filter({ hasText: "Månskärans Taquería" }),
+  ).toHaveCount(1);
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 4");
   await expect(page.getByText("4 förslag", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
