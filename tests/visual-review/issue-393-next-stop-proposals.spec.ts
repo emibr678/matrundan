@@ -37,6 +37,17 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
 }
 
+async function expectCarouselIndex(page: Page, index: number) {
+  const viewport = page.getByTestId("next-stop-carousel-viewport");
+  await expect
+    .poll(() =>
+      viewport.evaluate((element) =>
+        element.clientWidth ? Math.round(element.scrollLeft / element.clientWidth) : -1,
+      ),
+    )
+    .toBe(index);
+}
+
 async function resetDemo(page: Page) {
   await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
   await page.evaluate(() => {
@@ -66,6 +77,7 @@ test("fånga karusellens nästa stopp och nyss tillagda förslag", async ({ page
   await expect(alternative.getByText("Förslag", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Föregående förslag:/ })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
+  await expectCarouselIndex(page, 1);
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-393-karusell-nytt-forslag");
@@ -75,6 +87,7 @@ test("fånga karusellens nästa stopp och nyss tillagda förslag", async ({ page
   await expect(selected).toBeVisible();
   await expect(selected.getByText("Valt nästa stopp", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Nästa förslag:/ })).toBeVisible();
+  await expectCarouselIndex(page, 0);
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-393-karusell-nasta-stopp");
@@ -94,6 +107,7 @@ test("fånga karusell med flera förslag och nyast först", async ({ page }, tes
       .filter({ hasText: "Månskärans Taquería" }),
   ).toHaveCount(1);
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 4");
+  await expectCarouselIndex(page, 1);
   await expect(page.getByText("4 förslag", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);

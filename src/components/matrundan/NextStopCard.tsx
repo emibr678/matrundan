@@ -144,7 +144,11 @@ export function NextStopCard({
 
   React.useEffect(() => {
     setActiveCarouselIndex(0);
-    carouselViewportRef.current?.scrollTo({ left: 0, behavior: "auto" });
+    const resetFrame = window.requestAnimationFrame(() => {
+      const viewport = carouselViewportRef.current;
+      if (viewport) viewport.scrollLeft = 0;
+    });
+    return () => window.cancelAnimationFrame(resetFrame);
   }, [focusedPlace?.id]);
 
   React.useEffect(() => {
@@ -153,7 +157,7 @@ export function NextStopCard({
       const nextIndex = Math.min(current, maxIndex);
       if (nextIndex !== current) {
         const viewport = carouselViewportRef.current;
-        viewport?.scrollTo({ left: viewport.clientWidth * nextIndex, behavior: "auto" });
+        if (viewport) viewport.scrollLeft = viewport.clientWidth * nextIndex;
       }
       return nextIndex;
     });
@@ -170,7 +174,7 @@ export function NextStopCard({
     setActiveCarouselIndex(revealIndex);
     const revealFrame = window.requestAnimationFrame(() => {
       const viewport = carouselViewportRef.current;
-      viewport?.scrollTo({ left: viewport.clientWidth * revealIndex, behavior: "auto" });
+      if (viewport) viewport.scrollLeft = viewport.clientWidth * revealIndex;
     });
     const consumeTimer = window.setTimeout(() => {
       if (window.sessionStorage.getItem(storageKey) === revealPlaceId) {
@@ -324,11 +328,15 @@ export function NextStopCard({
     );
   }
 
-  function changeCarouselIndex(index: number, behavior: ScrollBehavior = "smooth") {
+  function changeCarouselIndex(index: number) {
     const nextIndex = Math.min(Math.max(index, 0), Math.max(0, carouselItems.length - 1));
     const viewport = carouselViewportRef.current;
-    setActiveCarouselIndex(nextIndex);
-    viewport?.scrollTo({ left: viewport.clientWidth * nextIndex, behavior });
+    if (!viewport) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    viewport.scrollTo({
+      left: viewport.clientWidth * nextIndex,
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
   }
 
   function handleCarouselScroll(event: React.UIEvent<HTMLDivElement>) {
@@ -431,7 +439,7 @@ export function NextStopCard({
         <div
           ref={carouselViewportRef}
           data-testid="next-stop-carousel-viewport"
-          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] motion-reduce:scroll-auto [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onScroll={handleCarouselScroll}
         >
           {carouselItems.map((item, index) => {
