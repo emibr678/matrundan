@@ -314,7 +314,7 @@ async function openShareDialog(page: Page, ownHasPhoto: boolean) {
 
   const visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByRole("heading", { name: "Bistro Test" })).toBeVisible();
-  const shareButton = visitDialog.getByRole("button", { name: "Lägg till i annan grupp" });
+  const shareButton = visitDialog.getByRole("button", { name: "Lägg till besöket i en annan grupp" });
   await expect(shareButton).toBeVisible();
   await shareButton.click();
 
@@ -345,7 +345,7 @@ test("fånga kontextuell deltagarkorrigering och besöksdelning", async ({ page 
   await expect(visitDialog.getByText("Ditt deltagande", { exact: true })).toHaveCount(0);
   await expect(visitDialog.getByText("Du var med", { exact: true })).toHaveCount(0);
   const declineButton = visitDialog.getByRole("button", { name: "Jag var inte med" });
-  const shareButton = visitDialog.getByRole("button", { name: "Lägg till i annan grupp" });
+  const shareButton = visitDialog.getByRole("button", { name: "Lägg till besöket i en annan grupp" });
   await expect(declineButton).toBeVisible();
   await expect(shareButton).toBeVisible();
   await expect(visitDialog.getByRole("button", { name: "Lägg till din bild" })).toBeVisible();

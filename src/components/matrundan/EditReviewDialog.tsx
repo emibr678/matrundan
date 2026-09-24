@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
 import {
   canUpgradeReviewModelWithAtmosphere,
   effectiveReviewModel,
@@ -28,6 +30,7 @@ import {
   reviewModelIncludesAtmosphere,
   reviewRatingsComplete,
 } from "@/lib/matrundan/review-model";
+import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisibleReview } from "@/lib/matrundan/types";
 import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
@@ -40,12 +43,14 @@ export function EditReviewDialog({
   compact = false,
   scoreless: scorelessOverride,
   isTakeaway = false,
+  onChanged,
 }: {
   review: VisibleReview;
   placeName: string;
   compact?: boolean;
   scoreless?: boolean;
   isTakeaway?: boolean;
+  onChanged?: () => void | Promise<void>;
 }) {
   const {
     updateOwnReview,
@@ -56,6 +61,7 @@ export function EditReviewDialog({
     state,
     demoReadOnly,
   } = useStore();
+  const { mode, activeGroupId } = useSession();
   const visit = state.visits.find((item) =>
     (item.visibleReviews ?? []).some((candidate) => candidate.id === review.id),
   );
@@ -82,6 +88,7 @@ export function EditReviewDialog({
   const [service, setService] = React.useState(review.service ?? 0);
   const [atmosphere, setAtmosphere] = React.useState(review.atmosphere ?? 0);
   const [comment, setComment] = React.useState(review.comment ?? "");
+  const [commentVisible, setCommentVisible] = React.useState(review.commentVisible);
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = React.useState(false);
   const archived = state.group.lifecycleStatus === "archived";
@@ -100,6 +107,7 @@ export function EditReviewDialog({
     setService(review.service ?? 0);
     setAtmosphere(review.atmosphere ?? 0);
     setComment(review.comment ?? "");
+    setCommentVisible(review.commentVisible);
     setPhotoFile(null);
     setRemovePhoto(false);
   }, [open, review]);
@@ -150,6 +158,26 @@ export function EditReviewDialog({
         await updateOwnReview(review.id, reviewInput);
       }
 
+      let visibilityWarning: string | null = null;
+      if (
+        mode === "live" &&
+        activeGroupId &&
+        comment.trim() &&
+        commentVisible !== review.commentVisible
+      ) {
+        try {
+          await setReviewGroupVisibility(
+            review.id,
+            activeGroupId,
+            review.ratingVisible,
+            commentVisible,
+          );
+        } catch {
+          visibilityWarning =
+            "Omdömet sparades, men kommentarens synlighet i gruppen kunde inte uppdateras.";
+        }
+      }
+
       if (visit && photoFile) {
         try {
           await saveVisitPhoto(visit.id, photoFile, visit);
@@ -190,7 +218,12 @@ export function EditReviewDialog({
           : "Ditt omdöme är uppdaterat och bilden borttagen.";
       }
 
-      toast.success(successMessage);
+      if (onChanged) await onChanged();
+      if (visibilityWarning) {
+        toast.warning(visibilityWarning);
+      } else {
+        toast.success(successMessage);
+      }
       setOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera.");
@@ -260,6 +293,23 @@ export function EditReviewDialog({
                 : undefined
             }
           />
+
+          {mode === "live" && activeGroupId && comment.trim() ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/30 p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Kommentar i den här gruppen</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  Påverkar bara om din kommentar visas i den här gruppen.
+                </p>
+              </div>
+              <Switch
+                aria-label="Visa kommentaren i den här gruppen"
+                checked={commentVisible}
+                onCheckedChange={setCommentVisible}
+                disabled={submitting}
+              />
+            </div>
+          ) : null}
 
           {visit ? (
             <VisitPhotoField

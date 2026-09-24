@@ -203,7 +203,7 @@ export function VisitDetailSheet({
                   className="group -mx-2 mt-1 block min-h-14 max-w-full rounded-lg px-2 py-1.5 transition-colors hover:bg-background/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex items-center gap-1.5">
-                    <SheetTitle className="min-w-0 flex-1 font-display text-2xl leading-tight transition-colors group-hover:text-foreground">
+                    <SheetTitle className="min-w-0 font-display text-2xl leading-tight transition-colors group-hover:text-foreground">
                       {place.name}
                     </SheetTitle>
                     <ChevronRight
@@ -384,7 +384,7 @@ export function VisitDetailSheet({
                     onClick={() => setShareOpen(true)}
                   >
                     <UsersRound className="h-4 w-4" />
-                    Lägg till i annan grupp
+                    Lägg till besöket i en annan grupp
                   </Button>
                 ) : null}
               </div>
