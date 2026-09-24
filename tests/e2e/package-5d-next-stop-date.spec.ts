@@ -103,7 +103,9 @@ test("ett nytt förslag läggs sist på tur men visas direkt som återkoppling",
   await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
   await page.goto("/exempel");
 
-  const alternative = page.locator('[data-next-stop-proposal="alternative"][data-next-stop-place-id="p2"]');
+  const alternative = page.locator(
+    '[data-next-stop-proposal="alternative"][data-next-stop-place-id="p2"]',
+  );
   await expect(alternative).toBeVisible();
   await expect(alternative.getByText("På tur", { exact: true })).toBeVisible();
   await expect(alternative.getByRole("button", { name: "Gör till nästa stopp" })).toBeVisible();
