@@ -526,7 +526,6 @@ function ReviewRow({
           ))}
         </div>
       ) : null}
-
     </div>
   );
 }
