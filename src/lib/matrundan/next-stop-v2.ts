@@ -13,6 +13,8 @@ export function nextStopProposalRevealStorageKey(): string {
   return "matrundan.nextStop.v2.reveal";
 }
 
+export const NEXT_STOP_COMPLETED_EVENT = "matrundan:next-stop-completed";
+
 function scheduleNotificationFlush(): void {
   void flushNotificationOutbox().catch(() => {
     /* Notiser får aldrig blockera själva skrivningen. */
@@ -34,18 +36,16 @@ function legacyProposal(state: AppState, placeId: string): NextStopPlaceProposal
 
 function exampleNextStopState(state: AppState): NextStopState | null {
   const primaryPlaceId = state.nextPlaceId ?? state.places.find((place) => place.id === "p5")?.id;
-  const alternativePlaceId = state.places.find(
-    (place) => place.id === "p1" && place.collectionStatus !== "archived",
-  )?.id;
-  if (!primaryPlaceId && !alternativePlaceId) return null;
+  const queuedPlaceIds = ["p1", "p3"].flatMap((placeId) => {
+    const place = state.places.find(
+      (item) => item.id === placeId && item.collectionStatus !== "archived",
+    );
+    return place ? [place.id] : [];
+  });
+  if (!primaryPlaceId && queuedPlaceIds.length === 0) return null;
 
   const createdAt = state.nextStopDateProposal?.createdAt ?? state.group.createdAt;
-  const primarySupports = ["m1", "m2", "m3", "m5"]
-    .filter((memberId) => state.members.some((member) => member.id === memberId))
-    .map((memberId) => ({ memberId, updatedAt: createdAt }));
-  const alternativeSupports = ["m2", "m4"]
-    .filter((memberId) => state.members.some((member) => member.id === memberId))
-    .map((memberId) => ({ memberId, updatedAt: createdAt }));
+  const createdBase = new Date(createdAt).getTime();
   const proposals: NextStopPlaceProposal[] = [];
 
   if (primaryPlaceId) {
@@ -54,24 +54,26 @@ function exampleNextStopState(state: AppState): NextStopState | null {
       placeId: primaryPlaceId,
       proposedBy: "m1",
       createdAt,
-      supports: primarySupports,
+      supports: [],
     });
   }
-  if (alternativePlaceId && alternativePlaceId !== primaryPlaceId) {
+
+  queuedPlaceIds.forEach((placeId, index) => {
+    if (placeId === primaryPlaceId) return;
     proposals.push({
-      id: "example-next-stop-alternative",
-      placeId: alternativePlaceId,
-      proposedBy: "m2",
-      createdAt,
-      supports: alternativeSupports,
+      id: `example-next-stop-queued-${index + 1}`,
+      placeId,
+      proposedBy: index === 0 ? "m2" : "m3",
+      createdAt: new Date(createdBase + (index + 1) * 60_000).toISOString(),
+      supports: [],
     });
-  }
+  });
 
   return {
     revision: 1,
     plannedDate: state.nextStopDateProposal?.date ?? defaultNextStopDateValue(),
     plannedTime: null,
-    selectedPlaceId: primaryPlaceId ?? null,
+    selectedPlaceId: primaryPlaceId ?? proposals[0]?.placeId ?? null,
     proposals,
   };
 }
