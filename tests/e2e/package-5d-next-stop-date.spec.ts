@@ -67,13 +67,17 @@ test("hybridkortet behåller v1-hierarkin men flera ställesförslag", async ({ 
 
   await proposeAlternativeFromDetail(page);
   await expect(
-    page.getByRole("heading", { name: "Fler förslag på nästa stopp (1)" }),
+    page.getByRole("heading", { name: "Fler förslag (1)" }),
   ).toBeVisible();
 
   const alternative = page.locator('[data-next-stop-proposal="alternative"]');
+  await expect(alternative.getByText("Lilla Myntans Matrum", { exact: true })).toBeVisible();
   await expect(alternative.getByText(/föreslog/i)).toBeVisible();
+  await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toHaveCount(0);
+  await alternative.getByRole("button", { name: "Visa val för Lilla Myntans Matrum" }).click();
   await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toBeVisible();
   await expect(alternative.getByRole("button", { name: "Välj ställe" })).toBeVisible();
+  await expect(alternative.getByRole("link", { name: "Till stället" })).toBeVisible();
   await expectNoOverflow(page);
 });
 
@@ -91,11 +95,11 @@ test("Jag vill hit kan markeras på både fokus och alternativ utan att byta sto
   await expect(focusedSupport).toHaveAttribute("aria-pressed", "true");
 
   await expect(
-    page.getByRole("heading", { name: "Fler förslag på nästa stopp (1)" }),
+    page.getByRole("heading", { name: "Fler förslag (1)" }),
   ).toBeVisible();
-  const alternativeSupport = page
-    .locator('[data-next-stop-proposal="alternative"]')
-    .getByRole("button", { name: /Jag vill hit/ });
+  const alternative = page.locator('[data-next-stop-proposal="alternative"]');
+  await alternative.getByRole("button", { name: /Visa val för/ }).click();
+  const alternativeSupport = alternative.getByRole("button", { name: /Jag vill hit/ });
   if ((await alternativeSupport.getAttribute("aria-pressed")) !== "true")
     await alternativeSupport.click();
   await expect(alternativeSupport).toHaveAttribute("aria-pressed", "true");
@@ -174,9 +178,10 @@ test("Välj ställe bevarar dag, dagsvar och platsintresse men flyttar fokus", a
   const beforeDay = await dayRow(page).getAttribute("aria-label");
 
   await expect(
-    page.getByRole("heading", { name: "Fler förslag på nästa stopp (1)" }),
+    page.getByRole("heading", { name: "Fler förslag (1)" }),
   ).toBeVisible();
   const alternative = page.locator('[data-next-stop-proposal="alternative"]');
+  await alternative.getByRole("button", { name: /Visa val för/ }).click();
   const support = alternative.getByRole("button", { name: /Jag vill hit/ });
   if ((await support.getAttribute("aria-pressed")) !== "true") await support.click();
   await expect(support).toHaveAttribute("aria-pressed", "true");
@@ -220,7 +225,7 @@ test("Slumpa förslag lägger till alternativ utan att skriva över nästa stopp
   await page.getByRole("button", { name: "Slumpa förslag" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Fler förslag på nästa stopp (1)" }),
+    page.getByRole("heading", { name: "Fler förslag (1)" }),
   ).toBeVisible();
   const after = await page
     .locator('[data-next-stop-proposal="selected"]')
@@ -246,7 +251,7 @@ test("matställedetaljen skapar ett alternativ utan att ersätta nästa stopp", 
     .textContent();
   expect(after).toBe(before);
   await expect(
-    page.getByRole("heading", { name: "Fler förslag på nästa stopp (1)" }),
+    page.getByRole("heading", { name: "Fler förslag (1)" }),
   ).toBeVisible();
 });
 

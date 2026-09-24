@@ -88,6 +88,7 @@ export function NextStopCard({
   const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [switching, setSwitching] = React.useState<NextStopPlaceProposal | null>(null);
+  const [expandedProposalId, setExpandedProposalId] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const proposals = React.useMemo<ProposalItem[]>(
@@ -122,6 +123,10 @@ export function NextStopCard({
     () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
     [activePlaces, state.visits],
   );
+
+  React.useEffect(() => {
+    setExpandedProposalId(null);
+  }, [focusedPlace?.id]);
 
   async function run(key: string, operation: () => Promise<void>, success?: string) {
     if (busy) return;
@@ -382,15 +387,15 @@ export function NextStopCard({
 
       {otherProposals.length > 0 ? (
         <section className="mt-3" aria-labelledby="next-stop-alternatives-heading">
-          <div className="flex min-h-9 items-center px-2">
+          <div className="flex min-h-8 items-center px-1">
             <h3
               id="next-stop-alternatives-heading"
               className="text-sm font-medium text-muted-foreground"
             >
-              Fler förslag på nästa stopp ({otherProposals.length})
+              Fler förslag ({otherProposals.length})
             </h3>
           </div>
-          <div className="mt-1 divide-y divide-border/60 rounded-2xl border border-border/60 bg-card/70 px-2">
+          <div className="mt-0.5 divide-y divide-border/50">
             {otherProposals.map((item) => (
               <ProposalRow
                 key={item.proposal.id}
@@ -399,24 +404,23 @@ export function NextStopCard({
                 canInteract={canInteract}
                 busy={busy}
                 isMostSupported={item.proposal.id === leadingAlternativeId}
+                expanded={expandedProposalId === item.proposal.id}
+                onToggle={() =>
+                  setExpandedProposalId((current) =>
+                    current === item.proposal.id ? null : item.proposal.id,
+                  )
+                }
                 onSupport={() => void togglePlaceSupport(item)}
                 onSwitch={() => setSwitching(item.proposal)}
                 onWithdraw={() => withdrawProposal(item)}
               />
             ))}
-            {proposals.length < 5 ? (
-              <div className="py-2">
-                <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
-                  <Link to="/matstallen">Föreslå ett annat ställe</Link>
-                </Button>
-              </div>
-            ) : null}
           </div>
         </section>
       ) : proposals.length < 5 ? (
         <div className="mt-1 flex justify-center">
           <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
-            <Link to="/matstallen">Föreslå ett annat ställe</Link>
+            <Link to="/matstallen">Föreslå ett ställe</Link>
           </Button>
         </div>
       ) : null}
@@ -697,6 +701,8 @@ function ProposalRow({
   canInteract,
   busy,
   isMostSupported,
+  expanded,
+  onToggle,
   onSupport,
   onSwitch,
   onWithdraw,
@@ -706,285 +712,97 @@ function ProposalRow({
   canInteract: boolean;
   busy: string | null;
   isMostSupported: boolean;
+  expanded: boolean;
+  onToggle: () => void;
   onSupport: () => void;
   onSwitch: () => void;
   onWithdraw: () => void;
 }) {
   const { state } = useStore();
   const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
-
-  return (
-    <div data-next-stop-proposal="alternative" className="py-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-        <PlaceIdentity place={item.place} />
-        {canRemove ? (
-          <ProposalMenu
-            placeName={item.place.name}
-            busy={busy === `withdraw:${item.proposal.id}`}
-            onWithdraw={onWithdraw}
-          />
-        ) : null}
-      </div>
-      <div className="mt-1.5 pl-[3.75rem]">
-        <div className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span>{proposerLabel(item.proposal, state)}</span>
-          {isMostSupported ? (
-            <span className="font-medium text-primary">Flest vill hit</span>
-          ) : null}
-        </div>
-        <div className="mt-2 flex flex-nowrap items-center gap-2">
-          <PlacePreferenceButton
-            proposal={item.proposal}
-            currentUserId={currentUserId}
-            canInteract={canInteract}
-            busy={busy}
-            onClick={onSupport}
-          />
-          {canInteract ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-10 min-h-10 shrink-0 rounded-full border-primary/40 px-3 text-xs text-primary"
-              onClick={onSwitch}
-              disabled={busy !== null}
-            >
-              Välj ställe
-            </Button>
-          ) : null}
-        </div>
-      </div>
-    </div>
+  const supported = item.proposal.supports.some(
+    (support) => support.memberId === currentUserId,
   );
-}
+  const detailsId = `next-stop-proposal-${item.proposal.id}-details`;
 
-function PlaceIdentity({ place }: { place: Place }) {
   return (
-    <div className="flex min-w-0 items-start gap-3">
-      <Link
-        to="/matstallen/$placeId"
-        params={{ placeId: place.id }}
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-secondary text-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={`Öppna ${place.name}`}
+    <div data-next-stop-proposal="alternative" className="py-1">
+      <button
+        type="button"
+        className="flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-expanded={expanded}
+        aria-controls={detailsId}
+        aria-label={`${expanded ? "Dölj" : "Visa"} val för ${item.place.name}`}
+        onClick={onToggle}
       >
-        {place.photo ?? "🍽️"}
-      </Link>
-      <div className="min-w-0 flex-1">
-        <Link
-          to="/matstallen/$placeId"
-          params={{ placeId: place.id }}
-          className="block font-display text-base font-semibold leading-tight hover:underline sm:text-lg"
+        <span
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-xl"
+          aria-hidden="true"
         >
-          {place.name}
-        </Link>
-        <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4 shrink-0" />
-          <span className="truncate">
-            {place.address}, {place.city}
+          {item.place.photo ?? "🍽️"}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-display text-[15px] font-semibold leading-tight sm:text-base">
+            {item.place.name}
           </span>
-        </div>
-      </div>
-    </div>
-  );
-}
+          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+            <span className="truncate">{proposerLabel(item.proposal, state)}</span>
+            <span aria-hidden="true">·</span>
+            <span className={supported ? "font-medium text-primary" : undefined}>
+              {item.proposal.supports.length} vill hit
+            </span>
+            {isMostSupported ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="font-medium text-primary">Flest vill hit</span>
+              </>
+            ) : null}
+          </span>
+        </span>
+        <ChevronRight
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
 
-function DayPlanningSheet({
-  open,
-  onOpenChange,
-  plannedDate,
-  responses,
-  currentUserId,
-  members,
-  canInteract,
-  busy,
-  onRespond,
-  onEditDate,
-  onRemoveDate,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  plannedDate: string | null;
-  responses: DayResponse[];
-  currentUserId: string;
-  members: ReturnType<typeof useStore>["state"]["members"];
-  canInteract: boolean;
-  busy: string | null;
-  onRespond: (response: NextStopDayResponseValue) => void;
-  onEditDate: () => void;
-  onRemoveDate: () => void;
-}) {
-  if (!plannedDate) return null;
-  const ownResponse = responses.find((item) => item.memberId === currentUserId)?.response;
-  const canMembers = responses
-    .filter((item) => item.response === "can")
-    .map((item) => members.find((member) => member.id === item.memberId))
-    .filter((member): member is NonNullable<typeof member> => Boolean(member));
-  const cannotMembers = responses
-    .filter((item) => item.response === "cannot")
-    .map((item) => members.find((member) => member.id === item.memberId))
-    .filter((member): member is NonNullable<typeof member> => Boolean(member));
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-3xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:px-6"
-      >
-        <SheetHeader className="pr-8 text-left">
-          <SheetTitle className="font-display text-2xl">
-            {formatNextStopDate(plannedDate, null)}
-          </SheetTitle>
-          <SheetDescription>Svara om dagen fungerar för dig och se gruppens svar.</SheetDescription>
-        </SheetHeader>
-
-        {canInteract ? (
-          <section className="mt-5">
-            <h3 className="mb-2 text-sm font-medium">Kan du den dagen?</h3>
-            <div className="grid grid-cols-2 gap-2">
+      {expanded ? (
+        <div id={detailsId} className="pb-2 pl-[3.25rem] pr-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <PlacePreferenceButton
+              proposal={item.proposal}
+              currentUserId={currentUserId}
+              canInteract={canInteract}
+              busy={busy}
+              onClick={onSupport}
+            />
+            {canInteract ? (
               <Button
                 type="button"
-                variant={ownResponse === "can" ? "secondary" : "outline"}
-                className="min-h-16 flex-col gap-1"
-                aria-pressed={ownResponse === "can"}
-                disabled={busy !== null}
-                onClick={() => onRespond("can")}
-              >
-                {busy === "day-response:can" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-                Jag kan
-              </Button>
-              <Button
-                type="button"
+                size="sm"
                 variant="outline"
-                className={[
-                  "min-h-16 flex-col gap-1",
-                  ownResponse === "cannot" ? "border-destructive/60 bg-destructive/10" : "",
-                ].join(" ")}
-                aria-pressed={ownResponse === "cannot"}
+                className="h-10 min-h-10 shrink-0 rounded-full border-primary/40 px-3 text-xs text-primary"
+                onClick={onSwitch}
                 disabled={busy !== null}
-                onClick={() => onRespond("cannot")}
               >
-                {busy === "day-response:cannot" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <X className="h-4 w-4" />
-                )}
-                Jag kan inte
+                Välj ställe
               </Button>
-            </div>
-          </section>
-        ) : null}
-
-        <section className="mt-5">
-          <h3 className="text-sm font-medium">Gruppens svar</h3>
-          {canMembers.length > 0 || cannotMembers.length > 0 ? (
-            <div className="mt-2 space-y-2 rounded-2xl bg-muted/35 p-3">
-              {canMembers.length > 0 ? (
-                <div className="text-sm leading-relaxed">
-                  <span className="font-medium">Kan:</span>{" "}
-                  <span className="text-muted-foreground">
-                    {canMembers
-                      .map((member) => `${member.avatar ?? ""} ${member.name}`.trim())
-                      .join(", ")}
-                  </span>
-                </div>
-              ) : null}
-              {cannotMembers.length > 0 ? (
-                <div className="text-sm leading-relaxed">
-                  <span className="font-medium">Kan inte:</span>{" "}
-                  <span className="text-muted-foreground">
-                    {cannotMembers
-                      .map((member) => `${member.avatar ?? ""} ${member.name}`.trim())
-                      .join(", ")}
-                  </span>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <p className="mt-1 text-sm text-muted-foreground">Ingen har svarat än.</p>
-          )}
-        </section>
-
-        {canInteract ? (
-          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-border/60 pt-4 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              disabled={busy !== null}
-              onClick={onRemoveDate}
-            >
-              Ta bort dag
+            ) : null}
+            <Button asChild type="button" size="sm" variant="ghost" className="h-10 px-2 text-xs">
+              <Link to="/matstallen/$placeId" params={{ placeId: item.place.id }}>
+                Till stället
+              </Link>
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11"
-              disabled={busy !== null}
-              onClick={onEditDate}
-            >
-              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
-            </Button>
+            {canRemove ? (
+              <ProposalMenu
+                placeName={item.place.name}
+                busy={busy === `withdraw:${item.proposal.id}`}
+                onWithdraw={onWithdraw}
+              />
+            ) : null}
           </div>
-        ) : null}
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function FocusedActionsMenu({
-  plannedDate,
-  canRemove,
-  busy,
-  onEditDate,
-  onRemoveDate,
-  onWithdraw,
-}: {
-  plannedDate: string | null;
-  canRemove: boolean;
-  busy: string | null;
-  onEditDate: () => void;
-  onRemoveDate: () => void;
-  onWithdraw: () => void;
-}) {
-  const isBusy =
-    busy === "schedule" || busy === "remove-date" || Boolean(busy?.startsWith("withdraw:"));
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 shrink-0 rounded-full bg-black/10 text-primary-foreground hover:bg-black/20 hover:text-primary-foreground"
-          aria-label="Fler val för nästa stopp"
-          disabled={busy !== null}
-        >
-          {isBusy ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <MoreHorizontal className="h-4 w-4" />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {plannedDate ? (
-          <>
-            <DropdownMenuItem onSelect={onEditDate}>
-              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
-          </>
-        ) : null}
-        {canRemove ? (
-          <DropdownMenuItem onSelect={onWithdraw}>Ta bort förslag</DropdownMenuItem>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

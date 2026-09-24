@@ -61,15 +61,24 @@ test("fånga ett synligt alternativ till nästa stopp", async ({ page }, testInf
   await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
 
   await expect(
-    page.getByRole("heading", { name: "Fler förslag på nästa stopp (1)" }),
+    page.getByRole("heading", { name: "Fler förslag (1)" }),
   ).toBeVisible();
-  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toBeVisible();
+  const alternative = page.locator('[data-next-stop-proposal="alternative"]');
+  await expect(alternative).toBeVisible();
+  await expect(alternative.getByText("Lilla Myntans Matrum", { exact: true })).toBeVisible();
+  await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-393-nasta-stopp-ett-forslag");
+  await capture(page, testInfo, "issue-393-nasta-stopp-ett-forslag-kompakt");
+
+  await alternative.getByRole("button", { name: "Visa val för Lilla Myntans Matrum" }).click();
+  await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-393-nasta-stopp-ett-forslag-expanderat");
 });
 
-test("fånga flera synliga alternativ utan dold lista", async ({ page }, testInfo) => {
+test("fånga flera kompakta alternativ utan dold lista", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await resetDemo(page);
   await proposeFromDetail(page, "p1");
@@ -78,7 +87,7 @@ test("fånga flera synliga alternativ utan dold lista", async ({ page }, testInf
   await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
 
   await expect(
-    page.getByRole("heading", { name: "Fler förslag på nästa stopp (3)" }),
+    page.getByRole("heading", { name: "Fler förslag (3)" }),
   ).toBeVisible();
   await expect(page.locator('[data-next-stop-proposal="alternative"]')).toHaveCount(3);
   await expectNoHorizontalOverflow(page);
