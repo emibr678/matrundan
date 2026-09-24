@@ -87,7 +87,7 @@ test("fånga nästa stopp och mjuk kö", async ({ page }, testInfo) => {
   await expectCarouselIndex(page, 1);
   const queued = page
     .locator('[data-next-stop-proposal="alternative"]')
-    .filter({ hasText: "Rundans Bistro" });
+    .filter({ has: page.getByRole("heading", { name: "Rundans Bistro", exact: true }) });
   await expect(queued.getByText("På tur", { exact: true })).toBeVisible();
   await expect(queued.getByText("På tur efter Gröna Terrassen", { exact: true })).toBeVisible();
   await expect(
