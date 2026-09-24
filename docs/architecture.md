@@ -445,9 +445,10 @@ framtida automatiska modellbyten.
 
 Ett tredimensionellt omdöme är komplett enligt sin egen modell. Ett
 `food_v0_overall`-omdöme är på samma sätt historiskt giltigt utan detaljbetyg;
-vanlig redigering får ändra kommentaren men inte hitta på eller skriva om dess
-frysta betyg. Vanlig redigering
-behåller modellen. Endast reviewägaren kan genom en separat, uttrycklig och
+vanlig redigering får ändra det manuella helhetsbetyget inom 1–5 och kommentaren,
+men får inte fabricera detaljbetyg eller byta modell. Det senast manuellt sparade
+helhetsbetyget är reviewns kanoniska score. Vanlig redigering behåller modellen.
+Endast reviewägaren kan genom en separat, uttrycklig och
 bekräftad handling komplettera med Atmosfär när den aktuella fyrdimensionella
 modellen är relevant. Det gäller `food_v0_3d`, `food_v1_quick` och, efter en
 korrigerad Hämtmat-markering, `food_v1_takeaway`; modellbytet sker atomärt först
