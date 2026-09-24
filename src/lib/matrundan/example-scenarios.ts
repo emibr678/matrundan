@@ -581,6 +581,28 @@ export function buildExampleState(nowInput: Date): AppState {
       linkedAt: timestamp(now, -17),
       linkType: "shared",
       countsForProgression: false,
+      photos: [
+        {
+          url: "/demo-visit-photo-2.svg",
+          uploadedBy: members.sam,
+          mimeType: "image/svg+xml",
+          byteSize: 4380,
+          width: 1200,
+          height: 800,
+          createdAt: timestamp(now, -18),
+          updatedAt: timestamp(now, -18),
+        },
+      ],
+      photo: {
+        url: "/demo-visit-photo-2.svg",
+        uploadedBy: members.sam,
+        mimeType: "image/svg+xml",
+        byteSize: 4380,
+        width: 1200,
+        height: 800,
+        createdAt: timestamp(now, -18),
+        updatedAt: timestamp(now, -18),
+      },
       visibleReviews: [
         historicalReview(
           "review-v9-sam",

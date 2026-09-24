@@ -21,6 +21,7 @@ import type {
   PlaceCollectionStatus,
   ReviewModel,
   Role,
+  OwnVisitParticipationStatus,
   SearchRadiusKm,
   VisibleReview,
   Visit,
@@ -39,7 +40,7 @@ import {
 } from "./read-model-version";
 import { isSearchRadiusKm } from "./search-areas";
 import { APP_VERSION } from "./version";
-import { createSignedVisitPhotoUrls } from "./visit-photo";
+import { createDeliveredVisitPhotoUrls, createSignedVisitPhotoUrls } from "./visit-photo";
 import { visitMealHasScore } from "./visit-context";
 
 const ROLE_LABEL: Record<string, Role> = {
@@ -85,7 +86,8 @@ type VisitRow = {
   }[];
   reviews: ReviewRow[];
   photos?: {
-    storagePath: string;
+    storagePath?: string;
+    deliveryToken?: string;
     uploadedBy: string;
     mimeType: string;
     byteSize: number;
@@ -95,7 +97,8 @@ type VisitRow = {
     updatedAt: string;
   }[];
   photo: {
-    storagePath: string;
+    storagePath?: string;
+    deliveryToken?: string;
     uploadedBy: string;
     mimeType: string;
     byteSize: number;
@@ -238,6 +241,21 @@ type Payload = {
 function avg(xs: number[]): number | undefined {
   if (!xs.length) return undefined;
   return xs.reduce((a, b) => a + b, 0) / xs.length;
+}
+
+export function resolveOwnVisitParticipationStatus(
+  explicitStatus: string | undefined,
+  participantIds: string[],
+  currentUserId: string,
+): OwnVisitParticipationStatus {
+  if (
+    explicitStatus === "participant" ||
+    explicitStatus === "declined" ||
+    explicitStatus === "none"
+  ) {
+    return explicitStatus;
+  }
+  return participantIds.includes(currentUserId) ? "participant" : "none";
 }
 
 function mapNextStopDateProposal(row: NextStopDateProposalRow | null): NextStopDateProposal | null {
@@ -415,12 +433,17 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     };
   });
 
-  const signedPhotoUrls = await createSignedVisitPhotoUrls(
-    p.visits.flatMap((visit) => {
-      const photos = visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [];
-      return photos.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : []));
-    }),
+  const rawPhotoRows = p.visits.flatMap((visit) =>
+    visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [],
   );
+  const [signedPhotoUrls, deliveredPhotoUrls] = await Promise.all([
+    createSignedVisitPhotoUrls(
+      rawPhotoRows.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : [])),
+    ),
+    createDeliveredVisitPhotoUrls(
+      rawPhotoRows.flatMap((photo) => (photo.deliveryToken ? [photo.deliveryToken] : [])),
+    ),
+  ]);
 
   const visits: Visit[] = p.visits.map((v) => {
     const participantIds = v.participantIds ?? [];
@@ -458,17 +481,20 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       .map((item) => item.review.atmosphere)
       .filter((x): x is number => x != null);
     const comment = visibleReviews.find((r) => r.commentVisible && r.comment?.trim())?.comment;
-    const currentUserParticipationStatus =
-      v.currentUserParticipationStatus === "declined"
-        ? ("declined" as const)
-        : participantIds.includes(p.currentUserId)
-          ? ("participant" as const)
-          : ("none" as const);
+    const currentUserParticipationStatus = resolveOwnVisitParticipationStatus(
+      v.currentUserParticipationStatus,
+      participantIds,
+      p.currentUserId,
+    );
     const rawPhotos = v.photos?.length ? v.photos : v.photo ? [v.photo] : [];
     const photos = rawPhotos.map((photo) => ({
       ...photo,
       createdAt: photo.createdAt ?? photo.updatedAt,
-      url: signedPhotoUrls.get(photo.storagePath),
+      url: photo.storagePath
+        ? signedPhotoUrls.get(photo.storagePath)
+        : photo.deliveryToken
+          ? deliveredPhotoUrls.get(photo.deliveryToken)
+          : undefined,
     }));
 
     return {

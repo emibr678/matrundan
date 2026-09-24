@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
 import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
 import { Route as ApiPublicHooksPushDispatchRouteImport } from './routes/api/public/hooks/push-dispatch'
+import { Route as ApiVisitPhotoDeliveryTokenRouteImport } from './routes/api/visit-photo.$deliveryToken'
 
 const RapporteradeFelRoute = RapporteradeFelRouteImport.update({
   id: '/rapporterade-fel',
@@ -83,6 +84,11 @@ const InbjudanTokenRoute = InbjudanTokenRouteImport.update({
   path: '/inbjudan/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVisitPhotoDeliveryTokenRoute = ApiVisitPhotoDeliveryTokenRouteImport.update({
+  id: '/api/visit-photo/$deliveryToken',
+  path: '/api/visit-photo/$deliveryToken',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksPushDispatchRoute =
   ApiPublicHooksPushDispatchRouteImport.update({
     id: '/api/public/hooks/push-dispatch',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
+  '/api/visit-photo/$deliveryToken': typeof ApiVisitPhotoDeliveryTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
+  '/api/visit-photo/$deliveryToken': typeof ApiVisitPhotoDeliveryTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/api/public/hooks/push-dispatch': typeof ApiPublicHooksPushDispatchRoute
+  '/api/visit-photo/$deliveryToken': typeof ApiVisitPhotoDeliveryTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/api/public/hooks/push-dispatch'
+    | '/api/visit-photo/$deliveryToken'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/api/public/hooks/push-dispatch'
+    | '/api/visit-photo/$deliveryToken'
   id:
     | '__root__'
     | '/'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/api/public/hooks/push-dispatch'
+    | '/api/visit-photo/$deliveryToken'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   RapporteradeFelRoute: typeof RapporteradeFelRoute
   InbjudanTokenRoute: typeof InbjudanTokenRoute
   ApiPublicHooksPushDispatchRoute: typeof ApiPublicHooksPushDispatchRoute
+  ApiVisitPhotoDeliveryTokenRoute: typeof ApiVisitPhotoDeliveryTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPushDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/visit-photo/$deliveryToken': {
+      id: '/api/visit-photo/$deliveryToken'
+      path: '/api/visit-photo/$deliveryToken'
+      fullPath: '/api/visit-photo/$deliveryToken'
+      preLoaderRoute: typeof ApiVisitPhotoDeliveryTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -320,6 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   RapporteradeFelRoute: RapporteradeFelRoute,
   InbjudanTokenRoute: InbjudanTokenRoute,
   ApiPublicHooksPushDispatchRoute: ApiPublicHooksPushDispatchRoute,
+  ApiVisitPhotoDeliveryTokenRoute: ApiVisitPhotoDeliveryTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

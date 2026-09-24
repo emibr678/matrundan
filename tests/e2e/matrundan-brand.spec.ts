@@ -19,15 +19,11 @@ async function expectTransparentBrandMark(
   await expect(mark).toHaveAttribute("src", "/brand/matrundan-mark.png");
   await expect(brand.locator("svg.lucide-utensils")).toHaveCount(0);
 
-  const styles = await mark.evaluate((node) => {
-    const computed = window.getComputedStyle(node);
-    return {
-      background: computed.backgroundColor,
-      loaded: (node as HTMLImageElement).naturalWidth > 0,
-    };
-  });
-  expect(styles.background).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
-  expect(styles.loaded).toBe(true);
+  await expect
+    .poll(() => mark.evaluate((node) => (node as HTMLImageElement).naturalWidth > 0))
+    .toBe(true);
+  const background = await mark.evaluate((node) => window.getComputedStyle(node).backgroundColor);
+  expect(background).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
 }
 
 test("landningen använder central brand och gemensam Om-dialog", async ({ page }) => {

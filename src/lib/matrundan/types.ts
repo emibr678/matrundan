@@ -112,9 +112,12 @@ export interface VisitParticipant {
 }
 
 export interface VisitPhoto {
-  /** Kortlivad signerad URL i live-läge eller data-/asset-URL i demo. */
+  /** Kortlivad signerad/blob-URL i live-läge eller data-/asset-URL i demo. */
   url?: string;
+  /** Finns endast för media i den aktiva gruppens egen Storage-kontext. */
   storagePath?: string;
+  /** Opaque serverleveransnyckel för uttryckligt cross-group-delad media. */
+  deliveryToken?: string;
   uploadedBy: string;
   mimeType: string;
   byteSize: number;
@@ -145,7 +148,7 @@ export interface Visit {
   atmosphere?: number;
   comment?: string;
   createdBy: string;
-  /** Privata deltagarbilder för just den aktiva gruppens koppling till besöket. */
+  /** Privata deltagarbilder som är uttryckligt synliga i den aktiva gruppen. */
   photos?: VisitPhoto[];
   /**
    * Bakåtkompatibel representativ bild. Nya ytor ska använda photos när de

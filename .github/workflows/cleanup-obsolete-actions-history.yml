@@ -1,0 +1,339 @@
+name: Cleanup obsolete Actions history
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Inventory only, or delete obsolete workflow runs
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - delete
+      confirmation:
+        description: Type DELETE_OBSOLETE_RUNS when mode is delete
+        required: false
+        type: string
+      max_deletions:
+        description: Maximum runs to delete in one execution
+        required: true
+        default: "1000"
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: cleanup-obsolete-actions-history
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Inventory or delete obsolete workflow runs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CLEANUP_MODE: ${{ inputs.mode }}
+      CLEANUP_CONFIRMATION: ${{ inputs.confirmation }}
+      CLEANUP_MAX_DELETIONS: ${{ inputs.max_deletions }}
+      GITHUB_API_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Inventory and optionally delete obsolete runs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const apiRoot = "https://api.github.com";
+          const repo = process.env.GITHUB_REPOSITORY;
+          const mode = process.env.CLEANUP_MODE;
+          const confirmation = process.env.CLEANUP_CONFIRMATION ?? "";
+          const maxDeletions = Number.parseInt(process.env.CLEANUP_MAX_DELETIONS ?? "", 10);
+          const minimumAgeDays = 7;
+          const cutoffMs = Date.now() - minimumAgeDays * 24 * 60 * 60 * 1000;
+
+          if (!["dry-run", "delete"].includes(mode)) {
+            throw new Error(`Unsupported cleanup mode: ${mode}`);
+          }
+          if (!Number.isInteger(maxDeletions) || maxDeletions < 1 || maxDeletions > 1000) {
+            throw new Error("max_deletions must be an integer between 1 and 1000.");
+          }
+          if (mode === "delete" && confirmation !== "DELETE_OBSOLETE_RUNS") {
+            throw new Error("Delete mode requires confirmation DELETE_OBSOLETE_RUNS.");
+          }
+
+          const headers = {
+            accept: "application/vnd.github+json",
+            authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
+            "x-github-api-version": "2022-11-28",
+          };
+
+          async function api(path, init = {}) {
+            const response = await fetch(`${apiRoot}${path}`, {
+              ...init,
+              headers: { ...headers, ...(init.headers ?? {}) },
+              signal: AbortSignal.timeout(20_000),
+            });
+            if (!response.ok) {
+              const body = await response.text().catch(() => "");
+              throw new Error(
+                `${init.method ?? "GET"} ${path} failed with HTTP ${response.status}: ${body.slice(0, 500)}`,
+              );
+            }
+            if (response.status === 204) return null;
+            return response.json();
+          }
+
+          function utcDay(date) {
+            return date.toISOString().slice(0, 10);
+          }
+
+          function normalizeWorkflowPath(path) {
+            if (typeof path !== "string" || !path) return null;
+            let normalized = path;
+            const atIndex = normalized.indexOf("@");
+            if (atIndex >= 0) normalized = normalized.slice(0, atIndex);
+            const repoPrefix = `${repo}/`;
+            if (normalized.startsWith(repoPrefix)) {
+              normalized = normalized.slice(repoPrefix.length);
+            }
+            return normalized.startsWith(".github/workflows/") &&
+              /\.ya?ml$/i.test(normalized)
+              ? normalized
+              : null;
+          }
+
+          function escapeMarkdown(value) {
+            return String(value).replaceAll("|", "\\|").replaceAll("\n", " ");
+          }
+
+          const repository = await api(`/repos/${repo}`);
+          const defaultBranch = repository.default_branch;
+          const branch = await api(
+            `/repos/${repo}/branches/${encodeURIComponent(defaultBranch)}`,
+          );
+          const mainSha = branch.commit.sha;
+
+          if (process.env.GITHUB_REF_NAME !== defaultBranch) {
+            throw new Error(
+              `Cleanup must run from default branch ${defaultBranch}; got ${process.env.GITHUB_REF_NAME}.`,
+            );
+          }
+
+          const workflowContents = await api(
+            `/repos/${repo}/contents/.github/workflows?ref=${encodeURIComponent(mainSha)}`,
+          );
+          const activePaths = new Set(
+            workflowContents
+              .filter(
+                (item) =>
+                  item.type === "file" &&
+                  typeof item.path === "string" &&
+                  /\.ya?ml$/i.test(item.path),
+              )
+              .map((item) => item.path),
+          );
+
+          const createdAt = new Date(repository.created_at);
+          const start = new Date(
+            Date.UTC(
+              createdAt.getUTCFullYear(),
+              createdAt.getUTCMonth(),
+              createdAt.getUTCDate(),
+            ),
+          );
+          const end = new Date();
+          const candidates = [];
+          let scannedRuns = 0;
+          let preservedActive = 0;
+          let preservedYoung = 0;
+          let preservedUnknownPath = 0;
+
+          for (
+            let cursor = new Date(start);
+            cursor <= end;
+            cursor.setUTCDate(cursor.getUTCDate() + 1)
+          ) {
+            const day = utcDay(cursor);
+            let page = 1;
+
+            while (true) {
+              const payload = await api(
+                `/repos/${repo}/actions/runs?created=${encodeURIComponent(day)}&per_page=100&page=${page}`,
+              );
+
+              if (payload.total_count > 1000) {
+                throw new Error(
+                  `Safety stop: ${day} has ${payload.total_count} runs; refine date partitioning before cleanup.`,
+                );
+              }
+
+              const runs = payload.workflow_runs ?? [];
+              if (runs.length === 0) break;
+
+              for (const run of runs) {
+                scannedRuns += 1;
+                const path = normalizeWorkflowPath(run.path);
+                const createdMs = Date.parse(run.created_at);
+
+                if (!path) {
+                  preservedUnknownPath += 1;
+                  continue;
+                }
+                if (activePaths.has(path)) {
+                  preservedActive += 1;
+                  continue;
+                }
+                if (!Number.isFinite(createdMs) || createdMs > cutoffMs) {
+                  preservedYoung += 1;
+                  continue;
+                }
+
+                candidates.push({
+                  id: run.id,
+                  name: run.name ?? "(unnamed)",
+                  path,
+                  created_at: run.created_at,
+                  html_url: run.html_url,
+                });
+              }
+
+              if (runs.length < 100) break;
+              page += 1;
+            }
+          }
+
+          const groups = new Map();
+          for (const run of candidates) {
+            const current = groups.get(run.path) ?? {
+              path: run.path,
+              names: new Set(),
+              count: 0,
+              first: run.created_at,
+              last: run.created_at,
+              runs: [],
+            };
+            current.names.add(run.name);
+            current.count += 1;
+            if (run.created_at < current.first) current.first = run.created_at;
+            if (run.created_at > current.last) current.last = run.created_at;
+            current.runs.push(run);
+            groups.set(run.path, current);
+          }
+
+          const manifestGroups = [...groups.values()]
+            .sort((a, b) => a.path.localeCompare(b.path))
+            .map((group) => ({
+              path: group.path,
+              names: [...group.names].sort(),
+              count: group.count,
+              first: group.first,
+              last: group.last,
+            }));
+
+          const manifest = {
+            generated_at: new Date().toISOString(),
+            default_branch: defaultBranch,
+            main_sha: mainSha,
+            minimum_age_days: minimumAgeDays,
+            active_workflow_paths: [...activePaths].sort(),
+            scanned_runs: scannedRuns,
+            obsolete_candidate_runs: candidates.length,
+            obsolete_workflow_paths: manifestGroups.length,
+            preserved_active_runs: preservedActive,
+            preserved_recent_obsolete_runs: preservedYoung,
+            preserved_unknown_path_runs: preservedUnknownPath,
+            groups: manifestGroups,
+          };
+
+          console.log("CLEANUP_MANIFEST_JSON_BEGIN");
+          console.log(JSON.stringify(manifest, null, 2));
+          console.log("CLEANUP_MANIFEST_JSON_END");
+
+          const summary = [];
+          summary.push("# Obsolete Actions history cleanup");
+          summary.push("");
+          summary.push(`- Mode: **${mode}**`);
+          summary.push(`- Default branch SHA: \`${mainSha}\``);
+          summary.push(`- Active workflow files: **${activePaths.size}**`);
+          summary.push(`- Scanned runs: **${scannedRuns}**`);
+          summary.push(`- Obsolete candidate runs (older than ${minimumAgeDays} days): **${candidates.length}**`);
+          summary.push(`- Obsolete workflow paths: **${manifestGroups.length}**`);
+          summary.push(`- Preserved active runs: **${preservedActive}**`);
+          summary.push(`- Preserved recent obsolete runs: **${preservedYoung}**`);
+          summary.push(`- Preserved runs with unknown/non-workflow path: **${preservedUnknownPath}**`);
+          summary.push("");
+          summary.push("| Workflow path | Names | Runs | First | Last |");
+          summary.push("| --- | --- | ---: | --- | --- |");
+          for (const group of manifestGroups) {
+            summary.push(
+              `| ${escapeMarkdown(group.path)} | ${escapeMarkdown(group.names.join(", "))} | ${group.count} | ${group.first} | ${group.last} |`,
+            );
+          }
+          summary.push("");
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary.join("\n") + "\n");
+
+          if (mode === "dry-run") {
+            console.log("Dry-run complete. No workflow runs were deleted.");
+            process.exit(0);
+          }
+
+          const branchBeforeDelete = await api(
+            `/repos/${repo}/branches/${encodeURIComponent(defaultBranch)}`,
+          );
+          if (branchBeforeDelete.commit.sha !== mainSha) {
+            throw new Error(
+              `Safety stop: ${defaultBranch} moved from ${mainSha} to ${branchBeforeDelete.commit.sha} during inventory.`,
+            );
+          }
+
+          const groupsForDeletion = [...groups.values()].sort((a, b) =>
+            a.last.localeCompare(b.last),
+          );
+          const selected = [];
+          for (const group of groupsForDeletion) {
+            const orderedRuns = [...group.runs].sort((a, b) =>
+              a.created_at.localeCompare(b.created_at),
+            );
+            for (const run of orderedRuns) {
+              if (selected.length >= maxDeletions) break;
+              selected.push(run);
+            }
+            if (selected.length >= maxDeletions) break;
+          }
+
+          let deleted = 0;
+          for (const run of selected) {
+            const response = await fetch(
+              `${apiRoot}/repos/${repo}/actions/runs/${run.id}`,
+              {
+                method: "DELETE",
+                headers,
+                signal: AbortSignal.timeout(20_000),
+              },
+            );
+
+            if (response.status !== 204 && response.status !== 404) {
+              const body = await response.text().catch(() => "");
+              throw new Error(
+                `DELETE run ${run.id} failed with HTTP ${response.status}: ${body.slice(0, 500)}`,
+              );
+            }
+
+            if (response.status === 204) deleted += 1;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+
+          fs.appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `\n## Delete result\n\n- Deleted this execution: **${deleted}**\n- Selection limit: **${maxDeletions}**\n- Remaining candidates will be rediscovered safely on the next execution.\n`,
+          );
+          console.log(
+            `Delete mode complete: deleted ${deleted} obsolete runs (limit ${maxDeletions}).`,
+          );
+          NODE

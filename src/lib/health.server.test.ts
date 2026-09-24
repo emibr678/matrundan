@@ -14,10 +14,12 @@ async function withHealthEnvironment<T>(fetchImpl: TestFetch, run: () => Promise
   const originalFetch = globalThis.fetch;
   const originalUrl = process.env.SUPABASE_URL;
   const originalKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+  const originalEnvironment = process.env.MATRUNDAN_ENVIRONMENT;
 
   globalThis.fetch = fetchImpl as typeof fetch;
   process.env.SUPABASE_URL = SUPABASE_URL;
   process.env.SUPABASE_PUBLISHABLE_KEY = PUBLISHABLE_KEY;
+  process.env.MATRUNDAN_ENVIRONMENT = "prod";
 
   try {
     return await run();
@@ -27,6 +29,8 @@ async function withHealthEnvironment<T>(fetchImpl: TestFetch, run: () => Promise
     else process.env.SUPABASE_URL = originalUrl;
     if (originalKey == null) delete process.env.SUPABASE_PUBLISHABLE_KEY;
     else process.env.SUPABASE_PUBLISHABLE_KEY = originalKey;
+    if (originalEnvironment == null) delete process.env.MATRUNDAN_ENVIRONMENT;
+    else process.env.MATRUNDAN_ENVIRONMENT = originalEnvironment;
   }
 }
 

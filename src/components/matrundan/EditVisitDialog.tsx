@@ -44,6 +44,7 @@ import { reviewModelIncludesAtmosphere } from "@/lib/matrundan/review-model";
 import type { Place, Visit } from "@/lib/matrundan/types";
 import { VISIT_MEALS, VISIT_MEAL_LABEL, visitMealHasScore } from "@/lib/matrundan/visit-context";
 import { canEditOriginalVisit } from "@/lib/matrundan/visit-permissions";
+import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
 
 interface DraftGuest {
   key: string;
@@ -117,6 +118,7 @@ export function EditVisitDialog({
   const [shareLoading, setShareLoading] = React.useState(false);
   const [shareError, setShareError] = React.useState<string | null>(null);
   const [shareGroupIds, setShareGroupIds] = React.useState<string[]>([]);
+  const [sharePhoto, setSharePhoto] = React.useState(false);
   const [shareComment, setShareComment] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [confirmTakeaway, setConfirmTakeaway] = React.useState(false);
@@ -130,6 +132,7 @@ export function EditVisitDialog({
     (target) => !target.alreadyLinked && shareGroupIds.includes(target.groupId),
   );
   const hasOwnComment = Boolean(ownReview?.comment?.trim());
+  const hasOwnPhoto = Boolean(getOwnVisitPhoto(visit, state.currentUserId));
   const takeawayChangesRatings =
     visit.isTakeaway !== true &&
     isTakeaway &&
@@ -167,12 +170,15 @@ export function EditVisitDialog({
     setGuestInputOpen(false);
     setGuestName("");
     setShareGroupIds([]);
-    setShareComment(false);
+    setSharePhoto(hasOwnPhoto);
+    setShareComment(hasOwnComment);
     setConfirmTakeaway(false);
   }, [
     memberCandidates,
     mode,
     open,
+    hasOwnComment,
+    hasOwnPhoto,
     ownReview,
     state.currentUserId,
     visit.date,
@@ -221,6 +227,13 @@ export function EditVisitDialog({
     if (id === state.currentUserId) return;
     setParticipants((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
+  }
+
+  function toggleShareTarget(groupId: string) {
+    const removing = shareGroupIds.includes(groupId);
+    setShareGroupIds((current) =>
+      removing ? current.filter((id) => id !== groupId) : [...current, groupId],
     );
   }
 
@@ -287,7 +300,13 @@ export function EditVisitDialog({
       const failed: string[] = [];
       for (const target of selectedTargets) {
         try {
-          await shareVisitToGroup(visit.id, target.groupId, hasOwnComment ? shareComment : false);
+          await shareVisitToGroup(
+            visit.id,
+            target.groupId,
+            hasOwnComment ? shareComment : false,
+            false,
+            hasOwnPhoto ? sharePhoto : false,
+          );
           sharedCount += 1;
         } catch {
           failed.push(target.name);
@@ -515,8 +534,7 @@ export function EditVisitDialog({
               <div>
                 <h3 className="text-sm font-medium">Lägg till i fler grupper</h3>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Befintliga gruppkopplingar ligger kvar. Välj bara nya grupper som besöket också
-                  ska läggas till i.
+                  Välj nya grupper som också ska få besöket.
                 </p>
               </div>
 
@@ -537,46 +555,51 @@ export function EditVisitDialog({
                   {otherShareTargets.map((target) => {
                     const checked = shareGroupIds.includes(target.groupId);
                     return (
-                      <label
-                        key={target.groupId}
-                        className="flex min-h-11 items-center gap-3 rounded-xl border border-border/70 px-3 py-2 text-sm"
-                      >
-                        <Checkbox
-                          checked={target.alreadyLinked ? true : checked}
-                          disabled={target.alreadyLinked || isBusy}
-                          onCheckedChange={() =>
-                            setShareGroupIds((current) =>
-                              current.includes(target.groupId)
-                                ? current.filter((id) => id !== target.groupId)
-                                : [...current, target.groupId],
-                            )
-                          }
-                          aria-label={
-                            target.alreadyLinked
-                              ? `${target.name}, redan tillagt`
-                              : `Lägg till besöket i ${target.name}`
-                          }
-                        />
-                        <span aria-hidden>{target.emoji}</span>
-                        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                          {target.name}
-                        </span>
-                        {target.alreadyLinked ? (
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            Redan tillagt
+                      <div key={target.groupId} className="rounded-xl border border-border/70">
+                        <label className="flex min-h-11 items-center gap-3 px-3 py-2 text-sm">
+                          <Checkbox
+                            checked={target.alreadyLinked ? true : checked}
+                            disabled={target.alreadyLinked || isBusy}
+                            onCheckedChange={() => toggleShareTarget(target.groupId)}
+                            aria-label={
+                              target.alreadyLinked
+                                ? `${target.name}, redan tillagt`
+                                : `Lägg till besöket i ${target.name}`
+                            }
+                          />
+                          <span aria-hidden>{target.emoji}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block [overflow-wrap:anywhere]">{target.name}</span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              {target.alreadyLinked
+                                ? "Besöket finns redan"
+                                : target.placeExistsInGroup
+                                  ? "Stället finns i gruppen"
+                                  : "Stället läggs till"}
+                            </span>
                           </span>
-                        ) : null}
-                      </label>
+                        </label>
+                      </div>
                     );
                   })}
                 </div>
               )}
 
+              {hasOwnPhoto && selectedTargets.length > 0 ? (
+                <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
+                  <Label htmlFor={`edit-visit-share-photo-${visit.id}`}>Dela min bild</Label>
+                  <Switch
+                    id={`edit-visit-share-photo-${visit.id}`}
+                    checked={sharePhoto}
+                    onCheckedChange={setSharePhoto}
+                    disabled={isBusy}
+                  />
+                </div>
+              ) : null}
+
               {hasOwnComment && selectedTargets.length > 0 ? (
                 <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
-                  <Label htmlFor={`edit-visit-share-comment-${visit.id}`}>
-                    Dela även min kommentar
-                  </Label>
+                  <Label htmlFor={`edit-visit-share-comment-${visit.id}`}>Dela min kommentar</Label>
                   <Switch
                     id={`edit-visit-share-comment-${visit.id}`}
                     checked={shareComment}

@@ -58,11 +58,15 @@ function linkableGuestIds(targets: GuestMemberTarget[], completedGuestIds: Set<s
 export function GuestMemberLinkDialog({
   visitId,
   sourceGroupId,
+  initialGuestId = null,
+  initialGuestName = null,
   open,
   onOpenChange,
 }: {
   visitId: string | null;
   sourceGroupId: string | null;
+  initialGuestId?: string | null;
+  initialGuestName?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -82,7 +86,7 @@ export function GuestMemberLinkDialog({
     setLoading(true);
     setLoadError(null);
     setTargets([]);
-    setSelectedGuestId(null);
+    setSelectedGuestId(initialGuestId);
     setSelectedGroupId(null);
     setSelectedMemberId(null);
     setCompletedGuestIds([]);
@@ -104,7 +108,7 @@ export function GuestMemberLinkDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, sourceGroupId, visitId]);
+  }, [initialGuestId, open, sourceGroupId, visitId]);
 
   const completedGuestIdSet = React.useMemo(() => new Set(completedGuestIds), [completedGuestIds]);
   const availableGuestIds = React.useMemo(
@@ -125,9 +129,12 @@ export function GuestMemberLinkDialog({
     if (continuation) return;
     setSelectedGuestId((current) => {
       if (current && guests.some((guest) => guest.id === current)) return current;
+      if (initialGuestId && guests.some((guest) => guest.id === initialGuestId)) {
+        return initialGuestId;
+      }
       return guests.length === 1 ? guests[0].id : null;
     });
-  }, [continuation, guests]);
+  }, [continuation, guests, initialGuestId]);
 
   const groups = React.useMemo(() => {
     if (!selectedGuestId) return [];
@@ -212,7 +219,11 @@ export function GuestMemberLinkDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Koppla gäst till medlem</DialogTitle>
+          <DialogTitle>
+            {initialGuestName
+              ? `Koppla ${initialGuestName} till gruppmedlem`
+              : "Koppla gäst till gruppmedlem"}
+          </DialogTitle>
           <DialogDescription>
             Välj vem gästen är i en grupp där besöket redan finns. Personen bekräftar själv.
           </DialogDescription>

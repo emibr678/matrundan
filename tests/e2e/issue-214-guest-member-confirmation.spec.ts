@@ -392,8 +392,8 @@ for (const viewport of VIEWPORTS) {
     await expect(visitDialog.getByRole("heading", { name: "Bistro Test" })).toBeVisible();
     await expect(visitDialog.getByText("Joppe", { exact: true })).toBeVisible();
 
-    await visitDialog.getByRole("button", { name: "Koppla gäst till medlem" }).click();
-    const linkDialog = page.getByRole("dialog", { name: "Koppla gäst till medlem" });
+    await visitDialog.getByRole("button", { name: "Koppla Joppe till gruppmedlem" }).click();
+    const linkDialog = page.getByRole("dialog", { name: "Koppla Joppe till gruppmedlem" });
     await expect(linkDialog.getByText("Joppe", { exact: true })).toBeVisible();
     await expect(linkDialog.getByText("Jobbgänget", { exact: true })).toBeVisible();
     await expect(linkDialog.getByRole("button", { name: "Johan Andersson" })).toBeVisible();

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { toast } from "sonner";
-import { Users2, Sparkles, MessageSquare, TrendingUp } from "lucide-react";
+import { Image as ImageIcon, MessageSquare } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
   const [error, setError] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<string | null>(null);
   const [shareComment, setShareComment] = React.useState(false);
+  const [sharePhoto, setSharePhoto] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [duplicateCandidate, setDuplicateCandidate] =
     React.useState<StrongVisitDuplicateCandidate | null>(null);
@@ -56,6 +57,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
     setTargets(null);
     setSelected(null);
     setShareComment(false);
+    setSharePhoto(false);
     setDuplicateCandidate(null);
     listVisitShareTargets(visitId)
       .then((rows) => {
@@ -83,6 +85,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
       chosen.groupId,
       chosen.ownHasComment ? shareComment : false,
       allowStrongDuplicate,
+      chosen.ownHasPhoto && !chosen.ownPhotoShared ? sharePhoto : false,
     );
     toast.success(`Besöket är tillagt i ${chosen.name}.`);
     await onShared();
@@ -134,8 +137,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
         <DialogHeader>
           <DialogTitle>Lägg till besöket i en annan grupp</DialogTitle>
           <DialogDescription>
-            Bara du och personer med aktivt medlemskap i mottagargruppen syns som deltagare. Övriga
-            räknas anonymt.
+            Välj vilken annan grupp som också ska få samma besök.
           </DialogDescription>
         </DialogHeader>
 
@@ -168,6 +170,8 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                     disabled={t.alreadyLinked}
                     onClick={() => {
                       setSelected(t.groupId);
+                      setShareComment(t.ownHasComment);
+                      setSharePhoto(t.ownHasPhoto && !t.ownPhotoShared);
                       setDuplicateCandidate(null);
                     }}
                     className="flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none disabled:cursor-not-allowed"
@@ -180,8 +184,10 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                       <div className="truncate font-medium">{t.name}</div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
                         {t.alreadyLinked
-                          ? "Redan tillagt"
-                          : `${t.visibleParticipants.length} deltagare från gruppen`}
+                          ? "Besöket finns redan"
+                          : t.placeExistsInGroup
+                            ? "Stället finns i gruppen"
+                            : "Stället läggs till"}
                       </div>
                     </div>
                     {t.alreadyLinked ? (
@@ -198,41 +204,31 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
 
         {chosen && !chosen.alreadyLinked ? (
           <div className="space-y-3 rounded-xl border border-border/70 bg-muted/30 p-3 text-sm">
-            <div className="flex items-start gap-2">
-              <Users2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Deltagare från gruppen</div>
-                <div className="mt-0.5 text-muted-foreground">
-                  {chosen.visibleParticipants.length > 0
-                    ? chosen.visibleParticipants
-                        .map((p) => (p.status === "left" ? `${p.name} (tidigare medlem)` : p.name))
-                        .join(", ")
-                    : "Ingen av deltagarna är eller har varit medlem i mottagargruppen."}
-                  {chosen.externalParticipantCount > 0 ? (
-                    <>
-                      {" · "}
-                      <span>
-                        +{chosen.externalParticipantCount} person
-                        {chosen.externalParticipantCount === 1 ? "" : "er"} utanför gruppen
-                      </span>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="text-muted-foreground">
-                {chosen.relevantReviewCount} betyg från personer som är eller har varit medlemmar
-                blir synliga i gruppen. Kommentarer följer inte automatiskt.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="text-muted-foreground">
-                {chosen.sharedVisitsCountForProgression
-                  ? "Gruppen räknar delade besök mot progression."
-                  : "Gruppen räknar inte delade besök mot progression."}
+            <div>
+              <p className="font-medium">Samma besök läggs till i gruppens historik.</p>
+              <div className="mt-2 space-y-1 text-muted-foreground">
+                <p>
+                  {chosen.visibleParticipants.length <= 1
+                    ? "Du syns som deltagare."
+                    : `Du och ${chosen.visibleParticipants.length - 1} ${chosen.visibleParticipants.length === 2 ? "annan" : "andra"} i gruppen syns som deltagare.`}
+                </p>
+                {chosen.externalParticipantCount > 0 ? (
+                  <p>
+                    {chosen.externalParticipantCount === 1
+                      ? "1 annan deltagare visas anonymt."
+                      : `${chosen.externalParticipantCount} andra deltagare visas anonymt.`}
+                  </p>
+                ) : null}
+                <p>
+                  {chosen.relevantReviewCount === 0
+                    ? "Inga betyg följer med."
+                    : `${chosen.relevantReviewCount} betyg följer med.`}
+                </p>
+                <p>
+                  {chosen.sharedVisitsCountForProgression
+                    ? "Räknas i gruppens progression."
+                    : "Räknas inte i gruppens progression."}
+                </p>
               </div>
             </div>
             {chosen.ownHasComment ? (
@@ -248,6 +244,18 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                 />
               </div>
             ) : null}
+            {chosen.ownHasPhoto && !chosen.ownPhotoShared ? (
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-background/50 p-2">
+                <Label htmlFor="share-photo" className="flex items-center gap-2 text-sm">
+                  <ImageIcon className="h-4 w-4" />
+                  Dela min bild
+                </Label>
+                <Switch id="share-photo" checked={sharePhoto} onCheckedChange={setSharePhoto} />
+              </div>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              Andras kommentarer och bilder följer inte med.
+            </p>
           </div>
         ) : null}
 
