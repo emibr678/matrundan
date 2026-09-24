@@ -276,6 +276,47 @@ hemlighet för bildleveransen, och varken ursprungsgrupp eller rå Storage-sökv
 exponeras för klienten. Därmed kan målgruppens admin inte skriva över eller
 radera originalet, samtidigt som byte av bild följer samma stabila mediaobjekt.
 
+## Säkerhets- och persondatakarta
+
+Matrundans säkerhetsmodell utgår från att **gruppen är den primära
+integritetsgränsen** och att klienten aldrig är auktoritativ för användar-ID,
+grupp-ID eller roll. Webbroutes och deep links får välja vilken grupp klienten
+försöker läsa, men den server-/databasväg som levererar gruppstate måste alltid
+kontrollera `auth.uid()`, aktivt medlemskap och vid administrativa skrivningar
+rätt grupproll. Den negativa regressionen ligger i
+`supabase/tests/security-boundaries.test.sql`.
+
+Autentisering och profilflöde:
+
+- appen initierar Google OAuth via Supabase Auth;
+- Supabase Auth håller den externa provideridentiteten och rå provider-metadata,
+  bland annat e-post, provider-ID, namn och avatar när Google levererar dem;
+- `public.profiles` är den gruppsynliga projektionen och innehåller användar-ID,
+  visningsnamn och avatar, inte provider-token eller providerhemligheter;
+- provider-/user-metadata används för profilbootstrap, aldrig som grupproll eller
+  behörighetskälla. Behörighet kommer från signerad Supabase-session,
+  `auth.uid()`, `memberships`, RLS och avgränsade RPC:er.
+
+Privata dataområden:
+
+- medlemskap, gruppmetadata, besök, deltagande, omdömeskommentarer och
+  reaktioner är gruppscopade;
+- besöksbilder ligger i den privata Storage-bucketen `visit-photos`; rå
+  `storage_path` får bara lämna ursprungsgruppen enligt mediakontraktet nedan;
+- `push_subscriptions` innehåller privata push-endpoints och Web Push-nyckelmaterial,
+  `notification_preferences` personliga inställningar och
+  `notification_outbox` mottagar-ID samt notistext. De är inte grupphistorik;
+- Geoapify används för plats-/kartsökning och ska inte få Supabase-identitet som
+  del av behörighetsmodellen. Cloudflare Worker förmedlar serverfunktionerna men
+  får inte göra klientens gruppval till ett behörighetsbeslut.
+
+Kontoborttagning är därför en sammansatt operation: databasen scrubbar/anonymiserar
+historisk identitet, rensar privat notisdata, returnerar privata bildsökvägar för
+Storage-radering och serverfunktionen tar därefter bort Supabase Auth-användaren.
+Nya tabeller eller kolumner som binder direkt till en användare ska fortsatt
+granskas mot detta flöde. Push-endpoints, notispreferenser och köad notistext får
+inte lämnas kvar efter profilens soft-delete.
+
 ## RLS och RPC-mönster
 
 ### Direkt RLS
