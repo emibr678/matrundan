@@ -166,144 +166,60 @@ När Cloudflare-runtime är aktiv för utvecklingsflödet gäller den låsta
 miljömodellen i `docs/platform-migration-plan.md`:
 
 - feature-/PR-brancher får automatiska preview-versioner av Worker `staging`;
+- under draft är previewn en **iterationspreview – full CI ej körd** och får
+  användas för tidig användarfeedback efter agentens riktade egenkontroll;
 - preview använder demo/fixtures eller Supabase **Matrundan Staging** och får
   aldrig produktions-service-role, produktionsdatabasens skrivprivilegier eller
   andra produktionshemligheter;
-- `main` är staging-Workerns produktionsbranch i Cloudflare och en merge kan
-  därför uppdatera den stabila `staging.matrundan.workers.dev`;
-- PR-checken **Staging DB readiness** läser Supabase Stagings migrationshistorik
-  och verifierar att samtliga repo-migrationer för exakt PR-head redan finns där;
-  den gör inga databasskrivningar;
-- migrationshistoriken är append-only relativt `main`: en PR får lägga till nya
-  migrationsfiler men ska inte ändra, byta namn på eller radera redan mergade
-  migrationer;
-- om readiness är röd på grund av en saknad migration krävs separat uttryckligt
-  godkännande för **Staging database apply**. Det flödet applicerar godkända
-  saknade migrationer och triggar därefter om readiness för exakt PR-head;
-- en migrationsbärande PR är inte mergeklar förrän både ordinarie CI och
-  **Staging DB readiness** är gröna. Post-merge-kontrollen i stagingdeployen
-  behålls som defense-in-depth; en saknad stagingmigration efter merge är ett
-  processfel som ska stoppas, inte ett normalt mellanläge;
-- den stagingdeploymenten är verifieringsmiljö, inte Matrundans publicerade
-  produktion;
-- Worker `app` och Wrangler-miljön `prod` får inte auto-promoveras enbart för att
-  `main` ändras. Produktion kräver separat publiceringsgodkännande.
+- `Staging DB readiness` är ett read-only-jobb i kandidatens ordinarie CI-DAG
+  och verifierar att repo-migrationerna för exakt PR-head finns i staging;
+- migrationshistoriken är append-only relativt `main`;
+- om readiness är röd på grund av saknad migration krävs separat uttryckligt
+  godkännande för **Staging database apply**. Apply-vägen tillåts endast när
+  readiness är den enda egentliga kandidatblockeraren och återkör därefter de
+  felade jobben för exakt samma CI-run;
+- kandidaten är inte mergeklar förrän **CI / required** är grön;
+- efter merge anropar samma main-CI stagingdeployen direkt för exakt main-SHA.
+  Deployen verifierar åter migrationskompatibiliteten och `/api/health` som
+  defense-in-depth; normal main→staging använder inte `workflow_run`;
+- staging är verifieringsmiljö, inte Matrundans publicerade produktion;
+- Worker `app` och Wrangler-miljön `prod` auto-promoveras aldrig av main.
 
 Exakta Wrangler-/Cloudflare-kommandon och dashboardinställningar hör hemma i
 `DEVELOPMENT.md`, inte här.
 
-## 4. Diagnostik och implementation
-
-En icke-trivial bugg börjar med reproduktion och observerade data. Formulera en
-falsifierbar hypotes innan upprepade kodändringar och använd minsta riktade
-experiment som kan skilja hypoteserna åt. Ta bort tillfällig diagnostik när
-rotorsaken är löst.
-
-För godkänd implementation:
-
-- gör minsta sammanhängande ändring som uppfyller scopet;
-- undvik orelaterad refaktorering och kosmetiska massändringar;
-- återanvänd etablerade domän- och UI-mönster;
-- låt inte en providers bekvämlighet flytta domän-, integritets- eller
-  behörighetsregler till fel lager;
-- ändra inte produktionsdata från featurebranch utan separat godkännande och
-  verifierad miljögräns.
-
-Under iteration: börja med den smalaste kontroll som kan falsifiera kandidaten.
-Bredda först när den stabiliserats.
-
-## 5. Renderad UX och Lovable
-
-Alla GUI-ändringar följer [visual-review.md](./visual-review.md) och den lokala
-`src/AGENTS.md`:
-
-- nivå 1 för alla renderade GUI-ändringar;
-- nivå 2 när interaktion/användarresa ändras;
-- nivå 3 för större layout-, hierarki- eller huvudflödesändringar.
-
-Temporära screenshots och riktade states är standard under iteration. Breda
-browsermatriser och GitHub-artifacts används först när risk eller färdig kandidat
-motiverar dem.
-
-**Lovable är opt-in.** Konsultera inte Lovable, låt inte Lovable skriva kod,
-synka inte en branch till Lovable och skapa inte Lovable-preview om användaren
-inte uttryckligen har bett om Lovable i den aktuella uppgiften. Nivå 3 i sig är
-inte ett skäl att använda Lovable; normal renderad verifiering görs med repots
-browser-/screenshotverktyg.
-
-### Lovable-konsultation
-
-När användaren uttryckligen ber att bolla UX med Lovable används Plan mode före
-låst lösning när verktyget är tillgängligt. Om konsultationen inte kan
-genomföras ska begränsningen redovisas; den ersätts inte tyst av ett annat
-Lovable-flöde.
-
-### Lovable-implementation
-
-När användaren uttryckligen ber Lovable implementera UX:
-
-1. utgå från verifierad featurebranch/PR;
-2. välj exakt PR-branch i Lovable;
-3. verifiera branchnamn och aktuell head-SHA innan Lovable skriver kod;
-4. låt Lovable fokusera på visuell hierarki, layout, spacing, responsivitet och
-   interaktionspolish;
-5. granska diffen och kör normal repo-verifiering efteråt.
-
-Om rätt branch/head inte kan verifieras ska Lovable inte skriva kod. En branch
-innebär inte en isolerad databas.
-
-### Nivå 3-grind
-
-För nivå 3/större visuella ändringar krävs före merge:
-
-- exakt PR-branch och aktuell head-SHA;
-- 360 px och desktop granskade;
-- relevanta states samt demo/exempel och live jämförda när relevant och möjligt;
-- persona-/UX-fynd och konkreta korrigeringar redovisade;
-- ett tydligt granskningsunderlag och manuella teststeg lämnade i chatten;
-- användarens uttryckliga mergegodkännande efter granskningen.
-
-När användaren uttryckligen har begärt Lovable tillkommer verifierad
-Lovable-branch/synk och aktuell previewlänk. Om Lovable inte har begärts ska
-kandidaten inte blockeras av Lovable; använd repots browserkontroller,
-temporära screenshots och vid behov GitHub-artifact som granskningsunderlag.
-
-Preview är granskning, inte publicering, och ersätter inte diff, tester,
-browserkontroller eller CI.
-
-Backend-, dokumentations- och andra osynliga ändringar kräver normalt inte
-renderad granskning; motivera kort varför.
-
 ## 6. Verifiering och CI
 
 Kanoniska kommandon och aktuell runnerinformation finns i `package.json` och
-[DEVELOPMENT.md](../DEVELOPMENT.md). Hårdkoda inte en parallell kommandolista i
-processdokumentation.
+[DEVELOPMENT.md](../DEVELOPMENT.md).
 
 Verifieringsprincipen är:
 
 1. riktad kontroll under iteration;
-2. relevant domän-/browserkontroll för kandidatens faktiska risk;
-3. repoets ordinarie kandidat-/CI-kontroller före merge.
+2. tidig iterationspreview/renderad kontroll där GUI berörs;
+3. full ordinarie kandidat-CI först när PR:n lämnar draft;
+4. **CI / required** som enda kanoniska slutsignal för mergekritisk CI.
 
-I checkout-läge görs steg 1–2 normalt i checkouten före push. I connector-läge
-används en GitHub-baserad riktad verifieringsväg när repot exponerar en sådan;
-om den saknas hålls PR:n draft genom implementationen och full CI startas först
-när den sammanhängande kandidaten är värd en bred körning. Connector-läge får
-inte ersätta saknad verifiering med påstådd lokal evidens.
+Draft-iteration ska inte förbruka full regressions-CI utan nytta. GUI-agenten får
+iterera autonomt med riktade screenshots/browserkontroller och därefter lämna en
+Cloudflare-preview tydligt märkt **iterationspreview – full CI ej körd**. Det är
+feedback, inte ett verifierat kandidat-/mergekvitto.
+
+När PR:n görs ready kör de oberoende quality-, unit-, type-, build-, DB- och
+browserkontroller som är relevanta parallellt. Ett tidigt formatfel ska därmed
+inte dölja ett samtidigt typ- eller unitfel. Full UI-regression behåller hela
+testsuiten men shardar mobil Chromium över flera runners.
+
+Agentens väntan ska vara state-aware: följ aktuell head-SHA och den kanoniska
+**CI / required**-gaten; analysera ett fel direkt; sluta följa en run som ersatts
+av ny head-SHA; och diagnostisera ett jobb som inte gör framsteg i stället för
+att fortsätta blind polling. Påstå aldrig att test, preview, deploy eller smoke
+är klar utan faktisk evidens.
 
 GUI-kandidater redovisar reviewnivå, states och viewportar enligt
 `visual-review.md`. Databas/RPC-kandidater granskar minst autentisering,
 medlemskap/roller, `SECURITY DEFINER`/`search_path`, grants, gruppisolering och
-databevarande där detta är relevant.
-
-Påstå aldrig att ett test eller en smoke har körts om det inte finns ett faktiskt
-resultat. Saknad live-session, browser, runner eller annan verifieringsförmåga
-redovisas som en begränsning — den ersätts inte av en gissning.
-
-Draft-iteration ska inte förbruka CI/artifacts utan nytta. När kandidaten är redo
-ska relevant ordinarie CI vara grön före merge. Hosted och self-hosted runner är
-likvärdiga endast när samma avsedda verifieringskontrakt faktiskt passerar.
+databevarande där relevant.
 
 ## 7. Merge
 
@@ -366,6 +282,12 @@ Chatten är användarens mobila kontrollpanel, inte den fullständiga revisionsl
 PR:n och Actions behåller den tekniska evidensen. Agenten ska därför inte skicka
 ett leveranskvitto medan inget krävs från användaren och agentägt arbete kan
 fortsätta.
+
+Under draft-/UX-iteration får en användartestpunkt komma tidigare: ange då
+**Preview:** med branch-/commit-previewn och märk den uttryckligen
+**iterationspreview – full CI ej körd**. Det kan användas för feedback men får
+inte beskrivas som verifierad kandidat. Det kanoniska `Mobile PR handoff`-
+kvittot skapas först efter grön **CI / required** för aktuell head-SHA.
 
 När en verklig handoff nås:
 

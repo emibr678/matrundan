@@ -27,7 +27,7 @@ jobs:
   provision:
     name: Provision prod VAPID keypair
     if: github.ref == 'refs/heads/main'
-    runs-on: ${{ vars.MATRUNDAN_PROD_PREFLIGHT_RUNNER || vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: production
     env:
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Check out exact main candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           show-progress: false
@@ -80,7 +80,7 @@ jobs:
           fi
 
       - name: Set up pinned Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.12.0
 

@@ -13,7 +13,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { persistDemoState } from "@/lib/matrundan/demo-state";
 import { setOwnDemoVisitParticipation } from "@/lib/matrundan/demo-visit-participation";
 import { setOwnVisitParticipation } from "@/lib/matrundan/live-visit-participation";
@@ -67,39 +66,31 @@ export function VisitParticipationControls({
     }
   }
 
-  if (status === "none") return null;
+  if (status === "none" || isRegistrar) return null;
 
   if (status === "declined") {
     return (
-      <Card className="space-y-3 rounded-2xl border-border/70 bg-secondary/30 p-3">
-        <div>
-          <p className="text-sm font-medium">Du har markerat att du inte var med</p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Besöket räknas därför inte i din progression och ditt eventuella omdöme visas inte.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={!writable || saving}
-          onClick={() => void updateParticipation(true)}
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
-          Jag var med
-        </Button>
-      </Card>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-8 shrink-0 px-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
+        disabled={!writable || saving}
+        onClick={() => void updateParticipation(true)}
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
+        Jag var med
+      </Button>
     );
   }
-
-  if (isRegistrar) return null;
 
   return (
     <>
       <Button
         type="button"
         variant="ghost"
-        className="w-full justify-center text-muted-foreground"
+        size="sm"
+        className="h-8 shrink-0 px-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
         disabled={!writable || saving}
         onClick={() => setConfirmDecline(true)}
       >

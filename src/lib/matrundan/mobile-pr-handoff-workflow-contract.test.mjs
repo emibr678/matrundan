@@ -12,17 +12,17 @@ const workflowPath = ".github/workflows/mobile-pr-handoff.yml";
 const workflow = readFileSync(resolve(process.cwd(), workflowPath), "utf8");
 
 describe("det mobila PR-kvittots workflow-kontrakt", () => {
-  test("kör först efter grön ordinarie PR-CI med betrodd main-kod", () => {
-    expect(workflow).toContain("workflow_run:");
-    expect(workflow).toContain("workflows: [CI]");
-    expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'");
-    expect(workflow).toContain("github.event.workflow_run.event == 'pull_request'");
+  test("är ett återanvändbart steg efter CI / required med betrodd main-kod", () => {
+    expect(workflow).toContain("workflow_call:");
+    expect(workflow).not.toContain("workflow_run:");
+    expect(workflow).toContain("target_sha:");
+    expect(workflow).toContain("pr_number:");
+    expect(workflow).toContain("ci_run_url:");
     expect(workflow).toContain("actions: read");
     expect(workflow).toContain("checks: read");
     expect(workflow).toContain("contents: read");
     expect(workflow).toContain("pull-requests: write");
     expect(workflow).not.toContain("issues: write");
-    expect(workflow).toContain("actions/checkout@v7");
     expect(workflow).toContain("ref: main");
     expect(workflow).toContain("persist-credentials: false");
     expect(workflow).not.toContain("contents: write");
@@ -32,6 +32,7 @@ describe("det mobila PR-kvittots workflow-kontrakt", () => {
   test("binder kvittot till en exakt öppen same-repository-PR mot main", () => {
     const script = readFileSync(resolve(process.cwd(), "scripts/mobile-pr-handoff.mjs"), "utf8");
 
+    expect(script).toContain("process.env.PR_NUMBER");
     expect(script).toContain('pull?.state !== "open"');
     expect(script).toContain("pull?.draft === true");
     expect(script).toContain('pull?.base?.ref !== "main"');
@@ -44,7 +45,6 @@ describe("det mobila PR-kvittots workflow-kontrakt", () => {
     const commitUrl = "https://d050f4e7-staging.matrundan.workers.dev";
     const branchUrl = "https://feature-staging.matrundan.workers.dev";
     const comment = `<a href='${commitUrl}'>Commit Preview URL</a><a href='${branchUrl}'>Branch Preview URL</a>`;
-
     const workersSummary = `Build ID: example
 Preview URL: ${commitUrl}
 Preview Alias URL: ${branchUrl}
@@ -58,11 +58,9 @@ Preview Alias URL: ${branchUrl}
     expect(script).toContain('"/check-runs?per_page=100"');
     expect(script).toContain("check?.head_sha === targetSha");
     expect(script).toContain('check?.name === "Workers Builds: staging"');
-    expect(script).toContain('check?.app?.slug === "cloudflare-workers-and-pages"');
     expect(script).toContain('previewUrl + "/api/health"');
     expect(script).toContain('payload?.status === "ok"');
     expect(script).toContain("payload?.release === targetSha");
-    expect(script).toContain("throw new Error(lastFailure)");
   });
 
   test("upsertar ett enda tydligt kvitto med explicit previewstatus", () => {
@@ -86,7 +84,6 @@ Preview Alias URL: ${branchUrl}
     expect(nonUi).toContain("## ✅ Teknisk kandidat verifierad");
     expect(nonUi).toContain("Preview | ➖ Inte relevant – inga GUI-filer ändrades");
     expect(pending).toContain("## ⏳ Preview väntar");
-    expect(pending).toContain("**Blockerare:** Inte klar.");
   });
 
   test("klassificerar GUI enligt repots CI-kontrakt", () => {

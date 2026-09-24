@@ -2,3 +2,6 @@ project_id = "wpihfmwbubvdiaavtpia"
 
 [db]
 major_version = 17
+
+[functions.visit-photo-delivery]
+verify_jwt = false

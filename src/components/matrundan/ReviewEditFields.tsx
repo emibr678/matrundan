@@ -2,7 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatRating } from "@/lib/matrundan/version";
 import type { ReviewModel, VisibleReview } from "@/lib/matrundan/types";
-import { RatingInput } from "./Rating";
+import { RatingStars } from "./Rating";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 
 export function ReviewEditFields({
@@ -10,13 +10,11 @@ export function ReviewEditFields({
   scoreless,
   activeModel,
   showModelNotice = true,
-  overall,
   taste,
   value,
   service,
   atmosphere,
   comment,
-  onOverallChange,
   onTasteChange,
   onValueChange,
   onServiceChange,
@@ -30,13 +28,11 @@ export function ReviewEditFields({
   scoreless: boolean;
   activeModel?: ReviewModel | null;
   showModelNotice?: boolean;
-  overall: number;
   taste: number;
   value: number;
   service: number;
   atmosphere: number;
   comment: string;
-  onOverallChange: (value: number) => void;
   onTasteChange: (value: number) => void;
   onValueChange: (value: number) => void;
   onServiceChange: (value: number) => void;
@@ -60,10 +56,10 @@ export function ReviewEditFields({
             <div className="min-w-0">
               <div className="text-sm font-semibold">Helhetsbetyg</div>
               <div className="mt-1 text-xl font-bold">
-                {overall <= 0 ? "— / 5" : `${formatRating(overall)} / 5`}
+                {review.overall == null ? "— / 5" : `${formatRating(review.overall)} / 5`}
               </div>
             </div>
-            <RatingInput value={overall} onChange={onOverallChange} size={20} />
+            <RatingStars value={review.overall ?? 0} size={20} showEmpty />
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
             Det här är ett äldre omdöme där bara helhetsbetyget sparades.

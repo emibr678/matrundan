@@ -200,7 +200,9 @@ describe("publik exempeldata", () => {
     expect(shared?.countsForProgression).toBe(false);
     expect(state.group.sharedVisitsCountForProgression).toBe(false);
     expect(shared?.externalParticipantCount).toBe(2);
-    expect(shared?.photo).toBeUndefined();
+    expect(shared?.photos).toHaveLength(1);
+    expect(shared?.photo?.uploadedBy).toBe(members.sam);
+    expect(shared?.photo?.url).toBe("/demo-visit-photo-2.svg");
     expect(
       shared?.participants?.every(
         (participant) =>

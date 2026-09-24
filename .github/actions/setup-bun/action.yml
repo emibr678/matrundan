@@ -11,7 +11,7 @@ runs:
   steps:
     - name: Set up Bun on hosted or non-Windows runner
       if: runner.environment != 'self-hosted' || runner.os != 'Windows'
-      uses: oven-sh/setup-bun@v2
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
 
     - name: Set up Bun on self-hosted Windows runner
       if: runner.environment == 'self-hosted' && runner.os == 'Windows'

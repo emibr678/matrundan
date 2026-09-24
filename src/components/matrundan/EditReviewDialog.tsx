@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
 import {
   canUpgradeReviewModelWithAtmosphere,
   effectiveReviewModel,
@@ -28,6 +30,7 @@ import {
   reviewModelIncludesAtmosphere,
   reviewRatingsComplete,
 } from "@/lib/matrundan/review-model";
+import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisibleReview } from "@/lib/matrundan/types";
 import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
@@ -40,12 +43,14 @@ export function EditReviewDialog({
   compact = false,
   scoreless: scorelessOverride,
   isTakeaway = false,
+  onChanged,
 }: {
   review: VisibleReview;
   placeName: string;
   compact?: boolean;
   scoreless?: boolean;
   isTakeaway?: boolean;
+  onChanged?: () => void | Promise<void>;
 }) {
   const {
     updateOwnReview,
@@ -56,6 +61,7 @@ export function EditReviewDialog({
     state,
     demoReadOnly,
   } = useStore();
+  const { mode, activeGroupId } = useSession();
   const visit = state.visits.find((item) =>
     (item.visibleReviews ?? []).some((candidate) => candidate.id === review.id),
   );
@@ -77,17 +83,17 @@ export function EditReviewDialog({
   const [confirmUpgradeOpen, setConfirmUpgradeOpen] = React.useState(false);
   const displayModel = completingAtmosphere ? "food_v1_atmosphere" : activeModel;
   const activeModelHasAtmosphere = reviewModelIncludesAtmosphere(displayModel);
-  const [overall, setOverall] = React.useState(review.overall ?? 0);
   const [taste, setTaste] = React.useState(review.taste ?? 0);
   const [value, setValue] = React.useState(review.value ?? 0);
   const [service, setService] = React.useState(review.service ?? 0);
   const [atmosphere, setAtmosphere] = React.useState(review.atmosphere ?? 0);
   const [comment, setComment] = React.useState(review.comment ?? "");
+  const [commentVisible, setCommentVisible] = React.useState(review.commentVisible);
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = React.useState(false);
   const archived = state.group.lifecycleStatus === "archived";
   const complete = historicalOverallOnly
-    ? Number.isInteger(overall) && overall >= 1 && overall <= 5
+    ? review.overall != null
     : displayModel
       ? reviewRatingsComplete(displayModel, { taste, service, value, atmosphere })
       : scoreless;
@@ -96,12 +102,12 @@ export function EditReviewDialog({
     if (!open) return;
     setCompletingAtmosphere(false);
     setConfirmUpgradeOpen(false);
-    setOverall(review.overall ?? 0);
     setTaste(review.taste ?? 0);
     setValue(review.value ?? 0);
     setService(review.service ?? 0);
     setAtmosphere(review.atmosphere ?? 0);
     setComment(review.comment ?? "");
+    setCommentVisible(review.commentVisible);
     setPhotoFile(null);
     setRemovePhoto(false);
   }, [open, review]);
@@ -127,7 +133,7 @@ export function EditReviewDialog({
 
     try {
       const reviewInput = {
-        overall: historicalOverallOnly ? overall || null : null,
+        overall: null,
         taste: scoreless || historicalOverallOnly ? null : taste || null,
         value: scoreless || historicalOverallOnly ? null : value || null,
         service: scoreless || historicalOverallOnly ? null : service || null,
@@ -150,6 +156,26 @@ export function EditReviewDialog({
         });
       } else {
         await updateOwnReview(review.id, reviewInput);
+      }
+
+      let visibilityWarning: string | null = null;
+      if (
+        mode === "live" &&
+        activeGroupId &&
+        comment.trim() &&
+        commentVisible !== review.commentVisible
+      ) {
+        try {
+          await setReviewGroupVisibility(
+            review.id,
+            activeGroupId,
+            review.ratingVisible,
+            commentVisible,
+          );
+        } catch {
+          visibilityWarning =
+            "Omdömet sparades, men kommentarens synlighet i gruppen kunde inte uppdateras.";
+        }
       }
 
       if (visit && photoFile) {
@@ -192,7 +218,12 @@ export function EditReviewDialog({
           : "Ditt omdöme är uppdaterat och bilden borttagen.";
       }
 
-      toast.success(successMessage);
+      if (onChanged) await onChanged();
+      if (visibilityWarning) {
+        toast.warning(visibilityWarning);
+      } else {
+        toast.success(successMessage);
+      }
       setOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera.");
@@ -207,14 +238,15 @@ export function EditReviewDialog({
         <Button
           variant={compact ? "ghost" : "secondary"}
           aria-label={compact ? (scoreless ? "Redigera kommentar" : "Redigera omdöme") : undefined}
+          title={compact ? (scoreless ? "Redigera kommentar" : "Redigera omdöme") : undefined}
           className={
             compact
-              ? "min-h-10 w-auto gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+              ? "grid h-11 w-11 shrink-0 place-items-center rounded-full p-0 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
               : "w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
           }
         >
-          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-          {scoreless ? "Redigera kommentar" : "Redigera omdöme"}
+          <Pencil className={compact ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} aria-hidden="true" />
+          {compact ? null : scoreless ? "Redigera kommentar" : "Redigera omdöme"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -237,13 +269,11 @@ export function EditReviewDialog({
             scoreless={scoreless}
             activeModel={displayModel}
             showModelNotice={!(displayModel === "food_v1_takeaway" && !isTakeaway)}
-            overall={overall}
             taste={taste}
             value={value}
             service={service}
             atmosphere={atmosphere}
             comment={comment}
-            onOverallChange={setOverall}
             onTasteChange={setTaste}
             onValueChange={setValue}
             onServiceChange={setService}
@@ -264,6 +294,18 @@ export function EditReviewDialog({
                 : undefined
             }
           />
+
+          {mode === "live" && activeGroupId && visit?.linkType === "shared" && comment.trim() ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/30 p-3">
+              <span className="text-sm font-medium">Visa kommentaren i den här gruppen</span>
+              <Switch
+                aria-label="Visa kommentaren i den här gruppen"
+                checked={commentVisible}
+                onCheckedChange={setCommentVisible}
+                disabled={submitting}
+              />
+            </div>
+          ) : null}
 
           {visit ? (
             <VisitPhotoField

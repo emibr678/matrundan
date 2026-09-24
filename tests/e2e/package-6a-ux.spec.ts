@@ -57,7 +57,11 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   await page.goto("/?demo=1");
   await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
   await expect(page.locator("header").getByText("Fredagsgänget", { exact: true })).toHaveCount(1);
-  await expect(page.getByText("Nästa stopp", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Nästa stopp och ställen på tur" })
+      .getByText("Nästa stopp", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Senaste aktivitet" })).toHaveCount(0);
   await expect(page.getByText(/^Ni har provat \d+ av \d+ ställen tillsammans$/)).toBeVisible();
   await expect(page.getByText(/^\d+%$/)).toHaveCount(0);

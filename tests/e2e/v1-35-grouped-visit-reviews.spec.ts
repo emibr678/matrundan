@@ -36,7 +36,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
 
   const visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByRole("heading", { name: "Tacoateljén" })).toBeVisible();
-  const reviewSection = visitDialog.getByLabel("Gängets omdömen");
+  const reviewSection = visitDialog.locator('section[aria-labelledby="visit-reviews-v2"]');
   await expect(reviewSection).toBeVisible();
   await expect(
     reviewSection.getByText("3 av 4 deltagare i gruppen har lämnat omdöme"),
@@ -102,7 +102,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
     name: "Redigera omdöme",
   });
   await expect(editReviewButton).toBeVisible();
-  await expect(reviewSection.getByText("Redigera omdöme", { exact: true })).toBeVisible();
+  await expect(reviewSection.getByText("Redigera omdöme", { exact: true })).toHaveCount(0);
 
   await expect(visitDialog.getByRole("heading", { name: "Bild från besöket" })).toBeVisible();
   await expect(visitDialog.getByAltText("Bild från Alex")).toBeVisible();
@@ -137,8 +137,8 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
     name: "Lägg till din bild",
   });
   await expect(addPhotoButton).toBeVisible();
-  await expect(addPhotoButton).toHaveClass(/min-h-11/);
-  await expect(addPhotoButton).not.toHaveClass(/min-h-24/);
+  await expect(addPhotoButton).toHaveClass(/h-8/);
+  await expect(addPhotoButton).not.toHaveClass(/min-h-11/);
   await expect(addPhotoButton).not.toHaveClass(/border-dashed/);
 
   await expectNoLocatorOverflow(visitDialog, "kompletterat fleromdömesscenario");

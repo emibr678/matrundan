@@ -13,6 +13,7 @@ const preferences = await Bun.file(
 const legacyBridge = await Bun.file(
   "supabase/migrations/20260816183100_next_stop_v2_legacy_selection_bridge.sql",
 ).text();
+const queue = await Bun.file("supabase/migrations/20260924110000_next_stop_queue_v1.sql").text();
 const archiveBridge = await Bun.file(
   "supabase/migrations/20260816183200_next_stop_v2_place_archive_bridge.sql",
 ).text();
@@ -82,15 +83,19 @@ describe("databaskontrakt för Nästa stopp v2", () => {
     expect(focusModel).toContain("_expected_revision bigint DEFAULT NULL");
   });
 
-  test("verkligt originalbesök avslutar relevant plan men delat besök gör det inte", () => {
-    expect(migration).toContain(
+  test("bara ett uttryckligt genomfört Nästa stopp avancerar den mjuka kön", () => {
+    expect(queue).toContain(
       "CREATE OR REPLACE FUNCTION public.close_next_stop_v2_on_original_visit()",
     );
-    expect(migration).toContain("IF NEW.link_type <> 'original' THEN RETURN NEW; END IF;");
-    expect(migration).toContain(
-      "DELETE FROM public.next_stop_place_proposals WHERE group_id = NEW.group_id",
-    );
-    expect(migration).toContain("DELETE FROM public.next_stop_plans WHERE group_id = NEW.group_id");
+    expect(queue).toContain("current_setting('matrundan.complete_next_stop', true)");
+    expect(queue).toContain("_selected_place_id IS DISTINCT FROM _place_id");
+    expect(queue).toContain("DELETE FROM public.next_stop_place_proposals");
+    expect(queue).toContain("WHERE id = _selected_proposal_id");
+    expect(queue).toContain("ORDER BY p.created_at, p.id");
+    expect(queue).toContain("planned_date = NULL");
+    expect(queue).toContain("CREATE OR REPLACE FUNCTION public.create_visit_with_review_v6(");
+    expect(queue).toContain("_complete_next_stop boolean DEFAULT false");
+    expect(queue).toContain("public.create_visit_with_review_v5(");
   });
 
   test("arkivering kan flytta fokus och behålla samma dagssvar på ersättaren", () => {

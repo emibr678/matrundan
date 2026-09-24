@@ -7,10 +7,6 @@ const migration = readFileSync(
   resolve(root, "supabase/migrations/20260921160000_historical_review_model_v1.sql"),
   "utf8",
 );
-const editableOverallMigration = readFileSync(
-  resolve(root, "supabase/migrations/20260923005500_edit_historical_overall_v1.sql"),
-  "utf8",
-);
 const predeploy = readFileSync(
   resolve(root, "supabase/predeploy-historical-review-model.sql"),
   "utf8",
@@ -59,26 +55,13 @@ describe("Issue #365 — stabil historisk reviewmodell", () => {
     expect(migration).toContain("Omdömets betygsmodell saknas");
   });
 
-  test("ursprungliga #365-migrationen frös overall-only innan den senare korrigeringen", () => {
+  test("overall-only behåller manuellt helhetsbetyg och kan bara ändra kommentar", () => {
     expect(migration).toContain("NEW.review_model = 'food_v0_overall'");
     expect(migration).toContain("Historiskt helhetsbetyg är låst");
     expect(migration).toContain("_review_model = 'food_v0_overall'");
     expect(migration).toContain(
       "Historiskt helhetsbetyg kan inte skrivas om utan en ny uttrycklig modell",
     );
-  });
-
-  test("senare korrigering tillåter 1–5 inom food_v0_overall utan detaljbetyg eller modellbyte", () => {
-    expect(editableOverallMigration).toContain(
-      "CREATE OR REPLACE FUNCTION public.enforce_derived_review_model_v1",
-    );
-    expect(editableOverallMigration).toContain("NEW.review_model = 'food_v0_overall'");
-    expect(editableOverallMigration).not.toContain("Historiskt helhetsbetyg är låst");
-    expect(editableOverallMigration).toContain("_review_model = 'food_v0_overall'");
-    expect(editableOverallMigration).toContain("trunc(_overall)");
-    expect(editableOverallMigration).toContain("SET overall = _overall");
-    expect(editableOverallMigration).toContain("Historiskt helhetsbetyg saknar detaljbetyg");
-    expect(editableOverallMigration).toContain("Reviewmodellen är historiskt låst");
   });
 
   test("separat upgrade-RPC kräver ägarskap, deltagande, gruppsynlighet och relevant modell", () => {

@@ -71,15 +71,15 @@ describe("Nästa stopp v2", () => {
     expect(canWithdrawNextStopProposal(stateAsMember("m4"), proposal)).toBe(false);
   });
 
-  test("exempelgruppen har fokus, alternativ och oberoende Jag vill hit-signaler", () => {
+  test("exempelgruppen har ett nästa stopp och två deterministiska ställen på tur", () => {
     const now = new Date("2026-08-16T12:00:00.000Z");
     const first = deriveNextStopState(buildExampleState(now));
     const second = deriveNextStopState(buildExampleState(now));
     expect(first).toEqual(second);
-    expect(first?.proposals.length).toBeGreaterThanOrEqual(2);
+    expect(first?.proposals).toHaveLength(3);
     expect(first?.selectedPlaceId).toBe(first?.proposals[0]?.placeId);
-    expect(first?.proposals[0]?.supports.length).toBeGreaterThan(0);
-    expect(first?.proposals[1]?.supports.length).toBeGreaterThan(0);
+    expect(first?.proposals.map((item) => item.placeId)).toEqual(["p5", "p1", "p3"]);
+    expect(first?.proposals.every((item) => item.supports.length === 0)).toBe(true);
     expect(first?.plannedTime).toBeNull();
   });
 });

@@ -29,6 +29,8 @@ export type ManualPlaceMutationHints = {
 export type VisitMutationInput = Omit<Visit, "id"> & {
   /** Endast när Passar för saknas och behöver frysas tillsammans med en ny review. */
   reviewOccasions?: Occasion[];
+  /** Write-hint: true endast när besöket registreras från gruppens aktuella Nästa stopp. */
+  completeNextStop?: boolean;
 };
 
 export interface VisitEditGuestInput {
@@ -170,26 +172,48 @@ export async function liveCreateVisitWithReview(
     .filter(Boolean);
   const registrarParticipates = input.participantIds.includes(input.createdBy);
   const scored = visitMealHasScore(input.meal);
-  const visitId = await rpcClient.call(
-    "create_visit_with_review_v5",
-    {
-      _group_id: groupId,
-      _place_id: input.placeId,
-      _visited_on: visitedOn,
-      _meal_type: input.meal,
-      _participant_ids: input.participantIds ?? [],
-      _is_takeaway: scored && input.isTakeaway === true,
-      _taste: registrarParticipates && scored ? nn(input.taste) : null,
-      _value: registrarParticipates && scored ? nn(input.value) : null,
-      _service: registrarParticipates && scored ? nn(input.service) : null,
-      _atmosphere: registrarParticipates && scored ? nn(input.atmosphere) : null,
-      _comment: registrarParticipates ? nn(input.comment) : null,
-      _guest_names: guestNames,
-      _review_occasions: input.reviewOccasions ?? null,
-    },
-    ID_SCHEMA,
-    "Kunde inte registrera besöket.",
-  );
+  const args = {
+    _group_id: groupId,
+    _place_id: input.placeId,
+    _visited_on: visitedOn,
+    _meal_type: input.meal,
+    _participant_ids: input.participantIds ?? [],
+    _is_takeaway: scored && input.isTakeaway === true,
+    _taste: registrarParticipates && scored ? nn(input.taste) : null,
+    _value: registrarParticipates && scored ? nn(input.value) : null,
+    _service: registrarParticipates && scored ? nn(input.service) : null,
+    _atmosphere: registrarParticipates && scored ? nn(input.atmosphere) : null,
+    _comment: registrarParticipates ? nn(input.comment) : null,
+    _guest_names: guestNames,
+    _review_occasions: input.reviewOccasions ?? null,
+  };
+
+  let visitId: string;
+  if (input.completeNextStop) {
+    try {
+      visitId = await rpcClient.call(
+        "create_visit_with_review_v6",
+        { ...args, _complete_next_stop: true },
+        ID_SCHEMA,
+        "Kunde inte registrera besöket.",
+      );
+    } catch (error) {
+      if (isMissingNextStopV2(error)) {
+        throw new Error(
+          "Nästa stopp-kön behöver databasuppdateras innan besöket kan registreras från den här vyn.",
+        );
+      }
+      throw error;
+    }
+  } else {
+    visitId = await rpcClient.call(
+      "create_visit_with_review_v5",
+      args,
+      ID_SCHEMA,
+      "Kunde inte registrera besöket.",
+    );
+  }
+
   scheduleNotificationFlush();
   return visitId;
 }

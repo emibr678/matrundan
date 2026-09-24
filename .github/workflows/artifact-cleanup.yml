@@ -18,18 +18,18 @@ defaults:
 jobs:
   cleanup:
     if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.MATRUNDAN_CI_RUNNER || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
 
     steps:
       - name: Check out cleanup helper
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: main
           show-progress: false
 
       - name: Remove closed PR artifacts
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const cleanup = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/artifact-lifecycle.cjs`);

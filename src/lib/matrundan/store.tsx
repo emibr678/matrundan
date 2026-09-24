@@ -1041,24 +1041,7 @@ export function StoreProvider({
           .find(({ review }) => review.id === reviewId && review.userId === state.currentUserId);
         if (!target) throw new Error("Ditt omdöme hittades inte.");
 
-        if (target.review.reviewModel === "food_v0_overall") {
-          if (
-            input.overall == null ||
-            !Number.isInteger(input.overall) ||
-            input.overall < 1 ||
-            input.overall > 5
-          ) {
-            throw new Error("Helhetsbetyg måste vara 1–5.");
-          }
-          if (
-            input.taste != null ||
-            input.value != null ||
-            input.service != null ||
-            input.atmosphere != null
-          ) {
-            throw new Error("Det äldre helhetsbetyget saknar detaljbetyg.");
-          }
-        } else if (
+        if (
           target.review.reviewModel &&
           reviewModelUsesDetailedRatings(
             effectiveReviewModel(target.review.reviewModel, target.visit.isTakeaway === true),
@@ -1085,20 +1068,9 @@ export function StoreProvider({
             const scored = visitHasScore(visit);
             const reviews = (visit.visibleReviews ?? []).map((review) => {
               if (review.id !== reviewId || review.userId !== current.currentUserId) return review;
-              if (!scored) {
+              if (!scored || review.reviewModel === "food_v0_overall") {
                 return {
                   ...review,
-                  comment: input.comment ?? null,
-                };
-              }
-              if (review.reviewModel === "food_v0_overall") {
-                return {
-                  ...review,
-                  overall: input.overall,
-                  taste: null,
-                  value: null,
-                  service: null,
-                  atmosphere: null,
                   comment: input.comment ?? null,
                 };
               }

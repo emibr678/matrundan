@@ -37,7 +37,10 @@ export const Route = createFileRoute("/")({
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
   const [addOpen, setAddOpen] = React.useState(false);
-  const [visitPlace, setVisitPlace] = React.useState<string | null>(null);
+  const [visitTarget, setVisitTarget] = React.useState<{
+    placeId: string;
+    completeNextStopOnSave: boolean;
+  } | null>(null);
   const groupArchived = state.group.lifecycleStatus === "archived";
   const canWrite = !groupArchived && !demoReadOnly;
   const activePlaces = React.useMemo(
@@ -119,7 +122,7 @@ export function Home() {
       <NextStopCard
         activePlaces={activePlaces}
         canWrite={canWrite}
-        onRegisterVisit={setVisitPlace}
+        onRegisterVisit={(placeId) => setVisitTarget({ placeId, completeNextStopOnSave: true })}
       />
 
       {pendingReviewVisit && pendingReviewPlace ? (
@@ -232,9 +235,10 @@ export function Home() {
         <>
           <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
           <VisitDialog
-            open={visitPlace !== null}
-            onOpenChange={(open) => !open && setVisitPlace(null)}
-            placeId={visitPlace}
+            open={visitTarget !== null}
+            onOpenChange={(open) => !open && setVisitTarget(null)}
+            placeId={visitTarget?.placeId ?? null}
+            completeNextStopOnSave={visitTarget?.completeNextStopOnSave ?? false}
           />
         </>
       ) : null}

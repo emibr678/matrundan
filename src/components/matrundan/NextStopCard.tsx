@@ -3,11 +3,10 @@ import { Link } from "@tanstack/react-router";
 import {
   CalendarDays,
   Check,
-  ChevronDown,
+  ChevronLeft,
+  CornerDownRight,
   ChevronRight,
-  ChevronUp,
   Flag,
-  Heart,
   Loader2,
   MapPin,
   MoreHorizontal,
@@ -48,6 +47,7 @@ import {
 } from "@/lib/matrundan/next-stop-date";
 import {
   canWithdrawNextStopProposal,
+  nextStopProposalRevealStorageKey,
   type NextStopDayResponseValue,
 } from "@/lib/matrundan/next-stop-v2";
 import { useStore } from "@/lib/matrundan/store";
@@ -80,17 +80,18 @@ export function NextStopCard({
     dayResponses,
     backendReady,
     propose,
-    setSupport,
     select,
     withdraw,
     setSchedule,
     setDayResponse,
   } = useNextStopV2();
   const [scheduleOpen, setScheduleOpen] = React.useState(false);
+  const [dateChangeConfirmOpen, setDateChangeConfirmOpen] = React.useState(false);
   const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [switching, setSwitching] = React.useState<NextStopPlaceProposal | null>(null);
-  const [otherOpen, setOtherOpen] = React.useState(false);
+  const [activeCarouselIndex, setActiveCarouselIndex] = React.useState(0);
+  const carouselViewportRef = React.useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const proposals = React.useMemo<ProposalItem[]>(
@@ -103,32 +104,77 @@ export function NextStopCard({
   const focusedItem =
     proposals.find((item) => item.place.id === nextStop?.selectedPlaceId) ?? proposals[0];
   const focusedPlace = focusedItem?.place;
-  const otherProposals = focusedItem
-    ? proposals.filter((item) => item.proposal.id !== focusedItem.proposal.id)
-    : [];
+  const focusedProposalId = focusedItem?.proposal.id ?? null;
+  const otherProposals = React.useMemo(
+    () =>
+      focusedProposalId
+        ? proposals
+            .filter((item) => item.proposal.id !== focusedProposalId)
+            .sort(
+              (left, right) =>
+                new Date(left.proposal.createdAt).getTime() -
+                new Date(right.proposal.createdAt).getTime(),
+            )
+        : [],
+    [focusedProposalId, proposals],
+  );
+  const carouselItems = React.useMemo(
+    () => (focusedItem ? [focusedItem, ...otherProposals] : []),
+    [focusedItem, otherProposals],
+  );
   const plannedDate = focusedItem ? (nextStop?.plannedDate ?? null) : null;
   const passed = plannedDate ? isPastDateValue(plannedDate) : false;
   const canInteract = canWrite && backendReady;
-  const maxSupportCount = Math.max(0, ...proposals.map((item) => item.proposal.supports.length));
-  const maxSupportItems =
-    maxSupportCount > 0
-      ? proposals.filter((item) => item.proposal.supports.length === maxSupportCount)
-      : [];
-  const leadingAlternativeId =
-    maxSupportItems.length === 1 &&
-    focusedItem &&
-    maxSupportItems[0]?.proposal.id !== focusedItem.proposal.id
-      ? maxSupportItems[0]?.proposal.id
-      : null;
-
   const untried = React.useMemo(
     () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
     [activePlaces, state.visits],
   );
 
   React.useEffect(() => {
-    setOtherOpen(false);
+    setActiveCarouselIndex(0);
+    const resetFrame = window.requestAnimationFrame(() => {
+      const viewport = carouselViewportRef.current;
+      if (viewport) viewport.scrollLeft = 0;
+    });
+    return () => window.cancelAnimationFrame(resetFrame);
   }, [focusedPlace?.id]);
+
+  React.useEffect(() => {
+    const maxIndex = Math.max(0, carouselItems.length - 1);
+    setActiveCarouselIndex((current) => {
+      const nextIndex = Math.min(current, maxIndex);
+      if (nextIndex !== current) {
+        const viewport = carouselViewportRef.current;
+        if (viewport) viewport.scrollLeft = viewport.clientWidth * nextIndex;
+      }
+      return nextIndex;
+    });
+  }, [carouselItems.length]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || carouselItems.length < 2) return;
+    const storageKey = nextStopProposalRevealStorageKey();
+    const revealPlaceId = window.sessionStorage.getItem(storageKey);
+    if (!revealPlaceId) return;
+    const revealIndex = carouselItems.findIndex((item) => item.place.id === revealPlaceId);
+    if (revealIndex < 0) return;
+
+    setActiveCarouselIndex(revealIndex);
+    const revealFrame = window.requestAnimationFrame(() => {
+      const viewport = carouselViewportRef.current;
+      if (viewport) viewport.scrollLeft = viewport.clientWidth * revealIndex;
+    });
+    const consumeTimer = window.setTimeout(() => {
+      if (window.sessionStorage.getItem(storageKey) === revealPlaceId) {
+        window.sessionStorage.removeItem(storageKey);
+      }
+    }, 300);
+
+    return () => {
+      window.cancelAnimationFrame(revealFrame);
+      window.clearTimeout(consumeTimer);
+    };
+  }, [carouselItems]);
 
   async function run(key: string, operation: () => Promise<void>, success?: string) {
     if (busy) return;
@@ -153,6 +199,18 @@ export function NextStopCard({
     openSchedule();
   }
 
+  async function persistSchedule(nextDate: string, success: string) {
+    await run(
+      "schedule",
+      async () => {
+        await setSchedule(nextDate);
+        setScheduleOpen(false);
+        setDateChangeConfirmOpen(false);
+      },
+      success,
+    );
+  }
+
   async function saveSchedule() {
     if (!date) {
       toast.error("Välj en dag.");
@@ -163,14 +221,22 @@ export function NextStopCard({
       return;
     }
 
-    await run(
-      "schedule",
-      async () => {
-        await setSchedule(date);
-        setScheduleOpen(false);
-      },
-      plannedDate ? "Den nya dagen är föreslagen." : "Dagen är föreslagen.",
-    );
+    if (!plannedDate) {
+      await persistSchedule(date, "Dagen är vald.");
+      return;
+    }
+
+    if (date === plannedDate) {
+      setScheduleOpen(false);
+      return;
+    }
+
+    setScheduleOpen(false);
+    setDateChangeConfirmOpen(true);
+  }
+
+  async function confirmDateChange() {
+    await persistSchedule(date, "Dagen är ändrad.");
   }
 
   async function removeDate() {
@@ -198,16 +264,9 @@ export function NextStopCard({
     );
   }
 
-  async function togglePlaceSupport(item: ProposalItem) {
-    const supported = item.proposal.supports.some(
-      (support) => support.memberId === state.currentUserId,
-    );
-    await run(`support:${item.proposal.id}`, () => setSupport(item.proposal.id, !supported));
-  }
-
   async function randomProposal() {
     if (proposals.length >= 5) {
-      toast.info("Fem ställen är redan på förslag.");
+      toast.info("Fem ställen är redan i kön.");
       return;
     }
 
@@ -217,16 +276,23 @@ export function NextStopCard({
     const pool = preferredPool.length > 0 ? preferredPool : fallbackPool;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (!pick) {
-      toast.info("Alla aktiva ställen är redan på förslag.");
+      toast.info("Alla aktiva ställen finns redan i kön.");
       return;
     }
 
     await run(
       "shuffle",
-      () => propose(pick.id),
-      focusedPlace
-        ? `${pick.name} lades till under Andra förslag.`
-        : `${pick.name} är gruppens nästa stopp.`,
+      async () => {
+        const storageKey = nextStopProposalRevealStorageKey();
+        if (typeof window !== "undefined") window.sessionStorage.setItem(storageKey, pick.id);
+        try {
+          await propose(pick.id);
+        } catch (error) {
+          if (typeof window !== "undefined") window.sessionStorage.removeItem(storageKey);
+          throw error;
+        }
+      },
+      focusedPlace ? `${pick.name} lades sist på tur.` : `${pick.name} är gruppens nästa stopp.`,
     );
   }
 
@@ -261,18 +327,33 @@ export function NextStopCard({
     );
   }
 
+  function changeCarouselIndex(index: number) {
+    const nextIndex = Math.min(Math.max(index, 0), Math.max(0, carouselItems.length - 1));
+    const viewport = carouselViewportRef.current;
+    if (!viewport) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    viewport.scrollTo({
+      left: viewport.clientWidth * nextIndex,
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  }
+
+  function handleCarouselScroll(event: React.UIEvent<HTMLDivElement>) {
+    const viewport = event.currentTarget;
+    if (viewport.clientWidth === 0) return;
+    const nextIndex = Math.min(
+      Math.max(Math.round(viewport.scrollLeft / viewport.clientWidth), 0),
+      Math.max(0, carouselItems.length - 1),
+    );
+    setActiveCarouselIndex((current) => (current === nextIndex ? current : nextIndex));
+  }
+
   if (passed && plannedDate && focusedItem) {
     return (
       <section>
-        <NextStopHeading showShuffle={false} />
+        <NextStopHeading showShuffle={false} queuedCount={otherProposals.length} />
         <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
-          <FocusedPlaceHero
-            item={focusedItem}
-            currentUserId={state.currentUserId}
-            canInteract={canInteract}
-            busy={busy}
-            onSupport={() => void togglePlaceSupport(focusedItem)}
-          />
+          <FocusedPlaceHero item={focusedItem} />
           <div className="border-t border-border/60 p-4">
             <h2 className="font-display text-xl font-semibold">Blev det av?</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -318,7 +399,7 @@ export function NextStopCard({
           </div>
           <h2 className="mt-3 font-display text-xl">Vart går rundan härnäst?</h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            Föreslå ett ställe. Det första blir nästa stopp och fler idéer sparas som alternativ.
+            Föreslå ett ställe. Det första blir nästa stopp och fler idéer läggs på tur.
           </p>
           <div className="mt-4 flex justify-center">
             <Button asChild>
@@ -337,110 +418,113 @@ export function NextStopCard({
     <section>
       <NextStopHeading
         showShuffle={canInteract && proposals.length < 5}
+        queuedCount={otherProposals.length}
         busy={busy}
         onShuffle={() => void randomProposal()}
       />
 
-      <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
-        <div className="relative">
-          <FocusedPlaceHero
-            item={focusedItem}
-            currentUserId={state.currentUserId}
-            canInteract={canInteract}
-            busy={busy}
-            onSupport={() => void togglePlaceSupport(focusedItem)}
+      <div
+        className="relative"
+        role="region"
+        aria-roledescription="karusell"
+        aria-label="Nästa stopp och ställen på tur"
+      >
+        <div
+          ref={carouselViewportRef}
+          data-testid="next-stop-carousel-viewport"
+          className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          onScroll={handleCarouselScroll}
+        >
+          {carouselItems.map((item, index) => {
+            const selected = item.proposal.id === focusedItem.proposal.id;
+            const active = index === activeCarouselIndex;
+            return (
+              <div
+                key={item.proposal.id}
+                className="w-full shrink-0 snap-center"
+                aria-hidden={!active}
+                inert={!active}
+              >
+                {selected ? (
+                  <Card className="h-full min-h-[18rem] overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
+                    <div className="relative">
+                      <FocusedPlaceHero item={focusedItem} />
+                      {showFocusedActions ? (
+                        <div className="absolute right-3 top-3">
+                          <FocusedActionsMenu
+                            plannedDate={plannedDate}
+                            canRemove={canRemoveFocused}
+                            busy={busy}
+                            onEditDate={openSchedule}
+                            onRemoveDate={() => void removeDate()}
+                            onWithdraw={() => withdrawProposal(focusedItem)}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <DayRow
+                      plannedDate={plannedDate}
+                      dayResponses={dayResponses}
+                      currentUserId={state.currentUserId}
+                      canInteract={canInteract}
+                      onOpenPlanning={() => setPlanningOpen(true)}
+                      onAddDate={openSchedule}
+                    />
+
+                    {canWrite ? (
+                      <div className="border-t border-border/60 p-4">
+                        <Button
+                          type="button"
+                          onClick={() => onRegisterVisit(focusedItem.place.id)}
+                          className="h-12 w-full text-base"
+                          size="lg"
+                        >
+                          <Check className="h-4 w-4" /> Registrera besök
+                        </Button>
+                      </div>
+                    ) : null}
+                  </Card>
+                ) : (
+                  <AlternativeProposalCard
+                    item={item}
+                    previousPlaceName={
+                      carouselItems[index - 1]?.place.name ?? focusedItem.place.name
+                    }
+                    canInteract={canInteract}
+                    busy={busy}
+                    onSwitch={() => setSwitching(item.proposal)}
+                    onWithdraw={() => withdrawProposal(item)}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {activeCarouselIndex > 0 ? (
+          <CarouselArrow
+            direction="previous"
+            placeName={carouselItems[activeCarouselIndex - 1]?.place.name}
+            onClick={() => changeCarouselIndex(activeCarouselIndex - 1)}
           />
-          {showFocusedActions ? (
-            <div className="absolute right-3 top-3">
-              <FocusedActionsMenu
-                plannedDate={plannedDate}
-                canRemove={canRemoveFocused}
-                busy={busy}
-                onEditDate={openSchedule}
-                onRemoveDate={() => void removeDate()}
-                onWithdraw={() => withdrawProposal(focusedItem)}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        <DayRow
-          plannedDate={plannedDate}
-          dayResponses={dayResponses}
-          currentUserId={state.currentUserId}
-          canInteract={canInteract}
-          onOpenPlanning={() => setPlanningOpen(true)}
-          onAddDate={openSchedule}
-        />
-
-        {canWrite ? (
-          <div className="border-t border-border/60 p-4">
-            <Button
-              type="button"
-              onClick={() => onRegisterVisit(focusedItem.place.id)}
-              className="h-12 w-full text-base"
-              size="lg"
-            >
-              <Check className="h-4 w-4" /> Registrera besök
-            </Button>
-          </div>
         ) : null}
-      </Card>
+        {activeCarouselIndex < carouselItems.length - 1 ? (
+          <CarouselArrow
+            direction="next"
+            placeName={carouselItems[activeCarouselIndex + 1]?.place.name}
+            onClick={() => changeCarouselIndex(activeCarouselIndex + 1)}
+          />
+        ) : null}
 
-      {otherProposals.length > 0 ? (
-        <div className="mt-0">
-          <button
-            type="button"
-            className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
-            aria-expanded={otherOpen}
-            onClick={() => setOtherOpen((current) => !current)}
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <span>Andra förslag ({otherProposals.length})</span>
-              {leadingAlternativeId && !otherOpen ? (
-                <span className="truncate text-[11px] font-medium text-primary">
-                  Flest vill hit
-                </span>
-              ) : null}
-            </span>
-            {otherOpen ? (
-              <ChevronUp className="h-4 w-4 shrink-0" />
-            ) : (
-              <ChevronDown className="h-4 w-4 shrink-0" />
-            )}
-          </button>
-          {otherOpen ? (
-            <div className="mt-1 divide-y divide-border/60 border-t border-border/60 px-2">
-              {otherProposals.map((item) => (
-                <ProposalRow
-                  key={item.proposal.id}
-                  item={item}
-                  currentUserId={state.currentUserId}
-                  canInteract={canInteract}
-                  busy={busy}
-                  isMostSupported={item.proposal.id === leadingAlternativeId}
-                  onSupport={() => void togglePlaceSupport(item)}
-                  onSwitch={() => setSwitching(item.proposal)}
-                  onWithdraw={() => withdrawProposal(item)}
-                />
-              ))}
-              {proposals.length < 5 ? (
-                <div className="py-2">
-                  <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
-                    <Link to="/matstallen">Föreslå ett annat ställe</Link>
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      ) : proposals.length < 5 ? (
-        <div className="mt-1 flex justify-center">
-          <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
-            <Link to="/matstallen">Föreslå ett annat ställe</Link>
-          </Button>
-        </div>
-      ) : null}
+        {carouselItems.length > 1 ? (
+          <NextStopCarouselControls
+            items={carouselItems}
+            activeIndex={activeCarouselIndex}
+            onSelect={changeCarouselIndex}
+          />
+        ) : null}
+      </div>
 
       <DayPlanningSheet
         open={planningOpen && Boolean(plannedDate)}
@@ -465,9 +549,18 @@ export function NextStopCard({
         onSave={() => void saveSchedule()}
         onRemove={() => void removeDate()}
       />
+      <DateChangeConfirmDialog
+        open={dateChangeConfirmOpen && Boolean(plannedDate)}
+        plannedDate={plannedDate}
+        nextDate={date}
+        busy={busy}
+        onClose={() => setDateChangeConfirmOpen(false)}
+        onConfirm={() => void confirmDateChange()}
+      />
       <SwitchDialog
         proposal={switching}
         currentPlace={focusedItem.place}
+        plannedDate={plannedDate}
         getPlace={getPlace}
         busy={busy}
         onClose={() => setSwitching(null)}
@@ -479,17 +572,26 @@ export function NextStopCard({
 
 function NextStopHeading({
   showShuffle,
+  queuedCount = 0,
   onShuffle,
   busy = null,
 }: {
   showShuffle: boolean;
+  queuedCount?: number;
   onShuffle?: () => void;
   busy?: string | null;
 }) {
   return (
     <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
-      <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
-        <Flag className="h-3.5 w-3.5" aria-hidden="true" /> Nästa stopp
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
+          <Flag className="h-3.5 w-3.5" aria-hidden="true" /> Nästa stopp
+        </div>
+        {queuedCount > 0 ? (
+          <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+            {queuedCount} på tur
+          </span>
+        ) : null}
       </div>
       {showShuffle && onShuffle ? (
         <button
@@ -521,106 +623,50 @@ function proposerLabel(
     : "Föreslaget tidigare";
 }
 
-function FocusedPlaceHero({
-  item,
-  currentUserId,
-  canInteract,
-  busy,
-  onSupport,
-}: {
-  item: ProposalItem;
-  currentUserId: string;
-  canInteract: boolean;
-  busy: string | null;
-  onSupport: () => void;
-}) {
+function FocusedPlaceHero({ item }: { item: ProposalItem }) {
   const { state } = useStore();
   return (
     <div
       data-next-stop-proposal="selected"
+      data-next-stop-place-id={item.place.id}
       className="bg-gradient-to-br from-primary/85 to-primary px-5 py-4 text-primary-foreground"
     >
-      <Link
-        to="/matstallen/$placeId"
-        params={{ placeId: item.place.id }}
-        className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40"
-        aria-label={`Öppna ${item.place.name}`}
-      >
-        <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
-          {item.place.photo ?? "🍽️"}
+      <div className="pr-9">
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="rounded-full bg-primary-foreground/15 px-2 py-1 font-medium">
+            Nästa stopp
+          </span>
+          <span className="opacity-80">{CATEGORY_LABEL[item.place.category]}</span>
         </div>
-        <div className="min-w-0 pr-8">
-          <div className="text-[11px] tracking-wide opacity-80">
-            {CATEGORY_LABEL[item.place.category]}
+        <Link
+          to="/matstallen/$placeId"
+          params={{ placeId: item.place.id }}
+          className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 rounded-xl transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40"
+          aria-label={`Öppna ${item.place.name}`}
+        >
+          <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
+            {item.place.photo ?? "🍽️"}
           </div>
-          <h2 className="mt-0.5 font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
-            {item.place.name}
-          </h2>
-          <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
-            <MapPin className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">
-              {item.place.address}, {item.place.city}
-            </span>
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-1">
+              <h2 className="min-w-0 font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
+                {item.place.name}
+              </h2>
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" aria-hidden="true" />
+            </div>
+            <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">
+                {item.place.address}, {item.place.city}
+              </span>
+            </div>
           </div>
-          <div className="mt-1.5 text-xs opacity-85">{proposerLabel(item.proposal, state)}</div>
+        </Link>
+        <div className="mt-2 pl-[3.5rem] text-xs opacity-85">
+          {proposerLabel(item.proposal, state)}
         </div>
-      </Link>
-      <div className="mt-2.5 pl-[3.5rem]">
-        <PlacePreferenceButton
-          proposal={item.proposal}
-          currentUserId={currentUserId}
-          canInteract={canInteract}
-          busy={busy}
-          inverse
-          onClick={onSupport}
-        />
       </div>
     </div>
-  );
-}
-
-function PlacePreferenceButton({
-  proposal,
-  currentUserId,
-  canInteract,
-  busy,
-  inverse = false,
-  onClick,
-}: {
-  proposal: NextStopPlaceProposal;
-  currentUserId: string;
-  canInteract: boolean;
-  busy: string | null;
-  inverse?: boolean;
-  onClick: () => void;
-}) {
-  const supported = proposal.supports.some((support) => support.memberId === currentUserId);
-  const isBusy = busy === `support:${proposal.id}`;
-  return (
-    <button
-      type="button"
-      aria-pressed={supported}
-      disabled={!canInteract || busy !== null}
-      onClick={onClick}
-      className={[
-        "inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors disabled:cursor-default",
-        inverse
-          ? supported
-            ? "border-primary-foreground/55 bg-primary-foreground/20 text-primary-foreground"
-            : "border-primary-foreground/35 bg-black/5 text-primary-foreground hover:bg-primary-foreground/10"
-          : supported
-            ? "border-primary/35 bg-primary/10 text-primary"
-            : "border-border/80 bg-card text-foreground hover:bg-muted/50",
-        !canInteract ? "opacity-90" : "",
-      ].join(" ")}
-    >
-      {isBusy ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Heart className={supported ? "h-4 w-4 fill-current" : "h-4 w-4"} />
-      )}
-      <span>Jag vill hit · {proposal.supports.length}</span>
-    </button>
   );
 }
 
@@ -679,8 +725,8 @@ function DayRow({
         onClick={onAddDate}
       >
         <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
-        <span className="min-w-0 flex-1 text-sm text-muted-foreground">Ingen dag föreslagen</span>
-        <span className="text-sm font-medium text-primary">Föreslå dag</span>
+        <span className="min-w-0 flex-1 text-sm text-muted-foreground">Ingen dag vald</span>
+        <span className="text-sm font-medium text-primary">Välj dag</span>
       </button>
     );
   }
@@ -712,22 +758,18 @@ function DayRow({
   );
 }
 
-function ProposalRow({
+function AlternativeProposalCard({
   item,
-  currentUserId,
+  previousPlaceName,
   canInteract,
   busy,
-  isMostSupported,
-  onSupport,
   onSwitch,
   onWithdraw,
 }: {
   item: ProposalItem;
-  currentUserId: string;
+  previousPlaceName: string;
   canInteract: boolean;
   busy: string | null;
-  isMostSupported: boolean;
-  onSupport: () => void;
   onSwitch: () => void;
   onWithdraw: () => void;
 }) {
@@ -735,76 +777,171 @@ function ProposalRow({
   const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
 
   return (
-    <div data-next-stop-proposal="alternative" className="py-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-        <PlaceIdentity place={item.place} />
+    <Card
+      data-next-stop-proposal="alternative"
+      data-next-stop-place-id={item.place.id}
+      className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-3xl border-primary/15 bg-card p-0 shadow-sm"
+    >
+      <div className="relative bg-gradient-to-br from-primary/20 via-secondary/55 to-card px-5 py-4">
+        <div className="pr-9">
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="rounded-full bg-primary/12 px-2 py-1 font-medium text-primary">
+              På tur
+            </span>
+            <span className="text-muted-foreground">{CATEGORY_LABEL[item.place.category]}</span>
+          </div>
+          <Link
+            to="/matstallen/$placeId"
+            params={{ placeId: item.place.id }}
+            className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 rounded-xl outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`Öppna ${item.place.name}`}
+          >
+            <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
+              {item.place.photo ?? "🍽️"}
+            </div>
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-1">
+                <h2 className="min-w-0 font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
+                  {item.place.name}
+                </h2>
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  {item.place.address}, {item.place.city}
+                </span>
+              </div>
+            </div>
+          </Link>
+          <div className="mt-2 pl-[3.5rem] text-xs text-muted-foreground">
+            {proposerLabel(item.proposal, state)}
+          </div>
+        </div>
         {canRemove ? (
-          <ProposalMenu
-            placeName={item.place.name}
-            busy={busy === `withdraw:${item.proposal.id}`}
-            onWithdraw={onWithdraw}
-          />
+          <div className="absolute right-3 top-3">
+            <ProposalMenu
+              placeName={item.place.name}
+              busy={busy === `withdraw:${item.proposal.id}`}
+              onWithdraw={onWithdraw}
+            />
+          </div>
         ) : null}
       </div>
-      <div className="mt-1.5 pl-[3.75rem]">
-        <div className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span>{proposerLabel(item.proposal, state)}</span>
-          {isMostSupported ? (
-            <span className="font-medium text-primary">Flest vill hit</span>
-          ) : null}
-        </div>
-        <div className="mt-2 flex flex-nowrap items-center gap-2">
-          <PlacePreferenceButton
-            proposal={item.proposal}
-            currentUserId={currentUserId}
-            canInteract={canInteract}
-            busy={busy}
-            onClick={onSupport}
-          />
-          {canInteract ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-10 min-h-10 shrink-0 rounded-full border-primary/40 px-3 text-xs text-primary"
-              onClick={onSwitch}
-              disabled={busy !== null}
-            >
-              Välj ställe
-            </Button>
-          ) : null}
-        </div>
+
+      <div className="flex min-h-20 flex-1 items-center gap-3 border-t border-primary/10 bg-primary/[0.045] px-5 py-3.5">
+        <span
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+          aria-hidden="true"
+        >
+          <CornerDownRight className="h-4 w-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">Efter {previousPlaceName}</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+            {item.place.name} står näst på tur.
+          </span>
+        </span>
       </div>
-    </div>
+
+      {canInteract ? (
+        <div className="border-t border-border/60 p-4">
+          <Button
+            type="button"
+            className="h-12 w-full text-base"
+            size="lg"
+            onClick={onSwitch}
+            disabled={busy !== null}
+          >
+            Gör till nästa stopp
+          </Button>
+        </div>
+      ) : null}
+    </Card>
   );
 }
 
-function PlaceIdentity({ place }: { place: Place }) {
+function CarouselArrow({
+  direction,
+  placeName,
+  onClick,
+}: {
+  direction: "previous" | "next";
+  placeName?: string;
+  onClick: () => void;
+}) {
+  const previous = direction === "previous";
   return (
-    <div className="flex min-w-0 items-start gap-3">
-      <Link
-        to="/matstallen/$placeId"
-        params={{ placeId: place.id }}
-        className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-secondary text-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={`Öppna ${place.name}`}
-      >
-        {place.photo ?? "🍽️"}
-      </Link>
-      <div className="min-w-0 flex-1">
-        <Link
-          to="/matstallen/$placeId"
-          params={{ placeId: place.id }}
-          className="block font-display text-base font-semibold leading-tight hover:underline sm:text-lg"
-        >
-          {place.name}
-        </Link>
-        <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4 shrink-0" />
-          <span className="truncate">
-            {place.address}, {place.city}
-          </span>
-        </div>
+    <button
+      type="button"
+      className={[
+        "absolute top-[7.25rem] z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-border/60 bg-background/65 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        previous ? "left-2" : "right-2",
+      ].join(" ")}
+      aria-label={
+        previous
+          ? `Föregående ställe i kön${placeName ? `: ${placeName}` : ""}`
+          : `Nästa ställe i kön${placeName ? `: ${placeName}` : ""}`
+      }
+      onClick={onClick}
+    >
+      {previous ? (
+        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+      ) : (
+        <ChevronRight className="h-5 w-5" aria-hidden="true" />
+      )}
+    </button>
+  );
+}
+
+function NextStopCarouselControls({
+  items,
+  activeIndex,
+  onSelect,
+}: {
+  items: ProposalItem[];
+  activeIndex: number;
+  onSelect: (index: number) => void;
+}) {
+  return (
+    <div className="mt-2 flex min-h-9 items-center justify-center gap-2.5">
+      <div className="flex items-center" aria-label="Välj ställe i kön">
+        {items.map((item, index) => {
+          const active = index === activeIndex;
+          const label =
+            index === 0
+              ? `Visa nästa stopp: ${item.place.name}`
+              : `Visa ställe på tur: ${item.place.name}`;
+          return (
+            <button
+              key={item.proposal.id}
+              type="button"
+              className="grid h-8 w-7 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={label}
+              aria-current={active ? "true" : undefined}
+              onClick={() => onSelect(index)}
+            >
+              <span
+                className={[
+                  "block h-1.5 rounded-full transition-all",
+                  active ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/35",
+                ].join(" ")}
+                aria-hidden="true"
+              />
+            </button>
+          );
+        })}
       </div>
+      <span
+        data-testid="next-stop-carousel-position"
+        className="text-[11px] tabular-nums text-muted-foreground"
+        aria-live="polite"
+      >
+        {activeIndex + 1} av {items.length}
+      </span>
     </div>
   );
 }
@@ -947,7 +1084,7 @@ function DayPlanningSheet({
               disabled={busy !== null}
               onClick={onEditDate}
             >
-              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
+              <CalendarDays className="h-4 w-4" /> Ändra dag
             </Button>
           </div>
         ) : null}
@@ -996,7 +1133,7 @@ function FocusedActionsMenu({
         {plannedDate ? (
           <>
             <DropdownMenuItem onSelect={onEditDate}>
-              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
+              <CalendarDays className="h-4 w-4" /> Ändra dag
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
           </>
@@ -1025,7 +1162,7 @@ function ProposalMenu({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-9 w-9 shrink-0 text-muted-foreground"
+          className="h-9 w-9 shrink-0 rounded-full bg-background/55 text-muted-foreground hover:bg-background/80"
           aria-label={`Fler val för ${placeName}`}
         >
           {busy ? (
@@ -1065,10 +1202,10 @@ function ScheduleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>{plannedDate ? "Föreslå annan dag" : "Föreslå dag"}</DialogTitle>
+          <DialogTitle>{plannedDate ? "Ändra dag" : "Välj dag"}</DialogTitle>
           <DialogDescription>
             {plannedDate
-              ? "Välj en annan dag för gruppens nästa stopp. Gruppens dagsvar börjar då om."
+              ? "Välj en ny dag. Alla i gruppen får svara på nytt om du ändrar den."
               : "Välj den dag gruppen tänker göra nästa stopp."}
           </DialogDescription>
         </DialogHeader>
@@ -1101,7 +1238,50 @@ function ScheduleDialog({
           </Button>
           <Button type="button" disabled={busy !== null} onClick={onSave}>
             {busy === "schedule" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Spara
+            {plannedDate ? "Fortsätt" : "Välj dag"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DateChangeConfirmDialog({
+  open,
+  plannedDate,
+  nextDate,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  plannedDate: string | null;
+  nextDate: string;
+  busy: string | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!plannedDate || !nextDate) return null;
+
+  const nextDay = formatNextStopDate(nextDate, null).toLocaleLowerCase("sv-SE");
+  const currentDay = formatNextStopDate(plannedDate, null);
+
+  return (
+    <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{`Ändra till ${nextDay}?`}</DialogTitle>
+          <DialogDescription>
+            {currentDay} ersätts. Alla i gruppen får svara på nytt.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Avbryt
+          </Button>
+          <Button type="button" disabled={busy !== null} onClick={onConfirm}>
+            {busy === "schedule" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Ändra dag
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1112,6 +1292,7 @@ function ScheduleDialog({
 function SwitchDialog({
   proposal,
   currentPlace,
+  plannedDate,
   getPlace,
   busy,
   onClose,
@@ -1119,21 +1300,25 @@ function SwitchDialog({
 }: {
   proposal: NextStopPlaceProposal | null;
   currentPlace: Place;
+  plannedDate: string | null;
   getPlace: (placeId: string) => Place | undefined;
   busy: string | null;
   onClose: () => void;
   onConfirm: () => void;
 }) {
   const target = proposal ? getPlace(proposal.placeId) : undefined;
+  const day = plannedDate ? formatNextStopDate(plannedDate, null) : null;
   return (
     <Dialog open={Boolean(proposal)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Välj det här stället?</DialogTitle>
+          <DialogTitle>
+            {target ? `Göra ${target.name} till nästa stopp?` : "Göra det här till nästa stopp?"}
+          </DialogTitle>
           <DialogDescription>
             {target
-              ? `${target.name} blir gruppens nästa stopp i stället för ${currentPlace.name}. Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar.`
-              : "Det här förslaget blir gruppens nästa stopp."}
+              ? `${currentPlace.name} står kvar på tur.${day ? ` ${day} och gruppens svar följer med.` : ""}`
+              : "Det nuvarande nästa stoppet står kvar på tur."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -1144,7 +1329,7 @@ function SwitchDialog({
             {proposal && busy === `select:${proposal.id}` ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : null}
-            Välj ställe
+            Gör till nästa stopp
           </Button>
         </DialogFooter>
       </DialogContent>

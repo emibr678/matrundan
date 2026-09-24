@@ -1,9 +1,20 @@
 name: Mobile PR handoff
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  workflow_call:
+    inputs:
+      target_sha:
+        description: Exact verified PR head SHA
+        required: true
+        type: string
+      pr_number:
+        description: Exact open PR number
+        required: true
+        type: number
+      ci_run_url:
+        description: Canonical CI run URL
+        required: true
+        type: string
 
 permissions:
   actions: read
@@ -18,23 +29,19 @@ defaults:
 jobs:
   receipt:
     name: Surface verified mobile handoff
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       GITHUB_API_TOKEN: ${{ github.token }}
-      CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
-      TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
-
+      CI_RUN_URL: ${{ inputs.ci_run_url }}
+      TARGET_SHA: ${{ inputs.target_sha }}
+      PR_NUMBER: ${{ inputs.pr_number }}
     steps:
       - name: Check out trusted default-branch tooling
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: main
           persist-credentials: false
           show-progress: false
-
       - name: Verify candidate and upsert the canonical PR receipt
         run: node scripts/mobile-pr-handoff.mjs

@@ -1995,6 +1995,55 @@ export type Database = {
           },
         ]
       }
+      visit_media_group_visibility: {
+        Row: {
+          created_at: string
+          delivery_token: string
+          granted_by: string
+          group_id: string
+          media_id: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_token?: string
+          granted_by: string
+          group_id: string
+          media_id: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          delivery_token?: string
+          granted_by?: string
+          group_id?: string
+          media_id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_media_group_visibility_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_media_group_visibility_media_visit_fkey"
+            columns: ["media_id", "visit_id"]
+            isOneToOne: false
+            referencedRelation: "visit_media"
+            referencedColumns: ["id", "visit_id"]
+          },
+          {
+            foreignKeyName: "visit_media_group_visibility_visit_group_fkey"
+            columns: ["visit_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "visit_group_links"
+            referencedColumns: ["visit_id", "group_id"]
+          },
+        ]
+      }
       visit_participants: {
         Row: {
           user_id: string
@@ -2465,6 +2514,25 @@ export type Database = {
         }
         Returns: string
       }
+      create_visit_with_review_v6: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _complete_next_stop?: boolean
+          _group_id: string
+          _guest_names?: string[]
+          _is_takeaway?: boolean
+          _meal_type: string
+          _participant_ids: string[]
+          _place_id: string
+          _review_occasions?: string[]
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visited_on: string
+        }
+        Returns: string
+      }
       cross_group_practical_info_candidate_v1: {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json
@@ -2576,6 +2644,7 @@ export type Database = {
       }
       get_group_app_state_v5l: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5m: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5n: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2614,6 +2683,10 @@ export type Database = {
       get_visit_review_reactions_v1: {
         Args: { _group_id: string; _visit_id: string }
         Returns: Json
+      }
+      grant_own_visit_photo_visibility_v1: {
+        Args: { _target_group_id: string; _visit_id: string }
+        Returns: string
       }
       group_is_active: { Args: { _group_id: string }; Returns: boolean }
       has_group_role: {
@@ -2792,6 +2865,10 @@ export type Database = {
         Args: { _visit_id: string }
         Returns: Json
       }
+      list_visit_share_targets_v5: {
+        Args: { _visit_id: string }
+        Returns: Json
+      }
       mark_place_improvement_candidate_needs_osm_v1: {
         Args: { _candidate_id: string }
         Returns: string
@@ -2906,6 +2983,10 @@ export type Database = {
       resolve_place_maintenance_work_item_v1: {
         Args: { _kind: string; _work_item_id: string }
         Returns: string
+      }
+      resolve_visit_photo_delivery_v1: {
+        Args: { _delivery_token: string; _viewer_id: string }
+        Returns: Json
       }
       respond_next_stop_date: {
         Args: { _group_id: string; _proposal_id: string; _response: string }
@@ -3085,6 +3166,16 @@ export type Database = {
         Args: {
           _allow_strong_duplicate?: boolean
           _share_own_comment?: boolean
+          _target_group_id: string
+          _visit_id: string
+        }
+        Returns: string
+      }
+      share_visit_to_group_v4: {
+        Args: {
+          _allow_strong_duplicate?: boolean
+          _share_own_comment?: boolean
+          _share_own_photo?: boolean
           _target_group_id: string
           _visit_id: string
         }

@@ -8,12 +8,9 @@ import {
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
-import { toast } from "sonner";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { setReviewGroupVisibility } from "@/lib/matrundan/live-sharing";
 import {
   effectiveReviewModel,
   effectiveReviewOverall,
@@ -52,7 +49,6 @@ export function VisitReviewsSection({
   const { state, memberById } = useStore();
   const { mode, activeGroupId } = useSession();
   const [showAll, setShowAll] = React.useState(false);
-  const [savingVisibility, setSavingVisibility] = React.useState(false);
   const [highlightedReviewId, setHighlightedReviewId] = React.useState<string | null>(null);
   const handledFocusKeyRef = React.useRef<string | null>(null);
   const focusHighlightTimeoutRef = React.useRef<number | null>(null);
@@ -130,22 +126,6 @@ export function VisitReviewsSection({
       focusHighlightTimeoutRef.current = null;
     }
     setHighlightedReviewId(null);
-  }
-
-  async function toggleOwnCommentVisibility(review: VisibleReview, next: boolean) {
-    if (!activeGroupId || groupArchived) return;
-    setSavingVisibility(true);
-    try {
-      await setReviewGroupVisibility(review.id, activeGroupId, review.ratingVisible, next);
-      toast.success(
-        next ? "Din kommentar är synlig i gruppen." : "Din kommentar är dold i gruppen.",
-      );
-      await onChanged();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
-    } finally {
-      setSavingVisibility(false);
-    }
   }
 
   const summaryDetails = [
@@ -263,14 +243,12 @@ export function VisitReviewsSection({
                     focused={review.id === focusReviewId}
                     highlighted={review.id === highlightedReviewId}
                     placeName={placeName}
-                    live={mode === "live"}
                     groupArchived={groupArchived}
                     demoReadOnly={demoReadOnly}
-                    savingVisibility={savingVisibility}
                     scoreless={!scored}
                     isTakeaway={visit.isTakeaway === true}
                     onInteract={() => clearReviewHighlight(review.id)}
-                    onToggleVisibility={(next) => void toggleOwnCommentVisibility(review, next)}
+                    onChanged={onChanged}
                   />
                 );
               })}
@@ -384,14 +362,12 @@ function ReviewRow({
   focused,
   highlighted,
   placeName,
-  live,
   groupArchived,
   demoReadOnly,
-  savingVisibility,
   scoreless,
   isTakeaway,
   onInteract,
-  onToggleVisibility,
+  onChanged,
 }: {
   review: VisibleReview;
   name: string;
@@ -401,14 +377,12 @@ function ReviewRow({
   focused: boolean;
   highlighted: boolean;
   placeName: string;
-  live: boolean;
   groupArchived: boolean;
   demoReadOnly: boolean;
-  savingVisibility: boolean;
   scoreless: boolean;
   isTakeaway: boolean;
   onInteract: () => void;
-  onToggleVisibility: (next: boolean) => void;
+  onChanged: () => void | Promise<void>;
 }) {
   const [commentExpanded, setCommentExpanded] = React.useState(false);
   const comment = review.comment?.trim();
@@ -433,7 +407,6 @@ function ReviewRow({
     !groupArchived &&
     !demoReadOnly &&
     (scoreless || review.overall != null || review.reviewModel != null);
-  const canToggleComment = canEditOwn && live && Boolean(comment);
   const showFullComment = commentExpanded || focused;
   const editAction = canEditOwn ? (
     <EditReviewDialog
@@ -442,6 +415,7 @@ function ReviewRow({
       compact
       scoreless={scoreless}
       isTakeaway={isTakeaway}
+      onChanged={onChanged}
     />
   ) : null;
   const commentContent = showComment ? (
@@ -487,8 +461,10 @@ function ReviewRow({
           : undefined
       }
     >
-      <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
-        <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
+      <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-x-2.5">
+        <div className="row-span-2">
+          <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
+        </div>
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             <p className="max-w-full truncate text-sm font-medium">{name}</p>
@@ -512,23 +488,35 @@ function ReviewRow({
               {name} gav {formatRating(activeOverall as number)} av 5
             </span>
           </div>
-        ) : null}
-      </div>
+        ) : (
+          <span aria-hidden="true" />
+        )}
 
-      {commentContent ? (
-        <div className="ml-10 mt-1">
-          {reactableComment ? (
+        {commentContent ? (
+          <div className="col-start-2 col-end-4 mt-0.5 min-w-0">
+            {reactableComment || editAction ? (
+              <ReviewReactionBar
+                reviewId={review.id}
+                authorName={name}
+                canReact={!own}
+                trailingAction={editAction}
+                content={commentContent}
+              />
+            ) : (
+              commentContent
+            )}
+          </div>
+        ) : editAction ? (
+          <div className="col-start-2 col-end-4 mt-0.5 min-w-0">
             <ReviewReactionBar
               reviewId={review.id}
               authorName={name}
-              canReact={!own}
-              content={commentContent}
+              canReact={false}
+              trailingAction={editAction}
             />
-          ) : (
-            commentContent
-          )}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {detailItems.length > 0 ? (
         <div
@@ -540,27 +528,6 @@ function ReviewRow({
           {detailItems.map((detail) => (
             <ReviewDetail key={detail.label} label={detail.label} value={detail.value} />
           ))}
-        </div>
-      ) : null}
-
-      {editAction ? <div className="mt-2 flex justify-end">{editAction}</div> : null}
-
-      {canToggleComment ? (
-        <div className="mt-1 flex justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            className="min-h-10 w-auto px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-            disabled={savingVisibility}
-            aria-label={`${review.commentVisible ? "Dölj" : "Visa"} din kommentar i gruppen`}
-            onClick={() => onToggleVisibility(!review.commentVisible)}
-          >
-            {savingVisibility
-              ? "Sparar…"
-              : review.commentVisible
-                ? "Dölj kommentar"
-                : "Visa kommentar"}
-          </Button>
         </div>
       ) : null}
     </div>
