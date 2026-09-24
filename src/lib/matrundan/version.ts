@@ -3,6 +3,30 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_42_0_CHANGELOG: ChangelogEntry = {
+  version: "1.42.0",
+  date: "2026-09-24",
+  summary: "Besöksdelning och Nästa stopp är tydligare i gruppens gemensamma matresa.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Den egna besöksbilden kan nu följa med uttryckligen till valda grupper när samma verkliga besök delas, utan att bilden kopieras eller byter ägare.",
+        "Nästa stopp fungerar nu som en mjuk kö: ett ställe ligger först och fler idéer väntar På tur i stället för att bli en omröstning.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Ställen som står på tur visas i en kompakt mobilkarusell och kan uttryckligen flyttas fram till Nästa stopp utan att resten av kön tappas bort.",
+        "Gruppens planerade dag kan ändras med en tydlig bekräftelse; tidigare dagsvar ersätts först när bytet bekräftas så att gruppen kan svara på nytt.",
+        "Kön går vidare först när det aktuella Nästa stoppet registreras som genomfört från planeringsflödet. Vanliga spontana besök påverkar inte planeringen.",
+        "Delade besöksbilder behåller individuellt ägarskap och exponeras inte automatiskt mellan grupper.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_41_0_CHANGELOG: ChangelogEntry = {
   version: "1.41.0",
   date: "2026-09-22",
@@ -437,6 +461,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_42_0_CHANGELOG,
   VERSION_1_41_0_CHANGELOG,
   VERSION_1_40_0_CHANGELOG,
   VERSION_1_39_1_CHANGELOG,
