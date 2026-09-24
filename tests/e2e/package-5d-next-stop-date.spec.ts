@@ -74,10 +74,14 @@ test("exempelgruppen visar ett nästa stopp och två ställen på tur", async ({
   await expect(selected.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();
   await expect(page.getByText("2 på tur", { exact: true })).toBeVisible();
   await expect(
-    page.locator('[data-next-stop-proposal="alternative"]').filter({ hasText: "Rundans Bistro" }),
+    page
+      .locator('[data-next-stop-proposal="alternative"]')
+      .filter({ has: page.getByRole("heading", { name: "Rundans Bistro", exact: true }) }),
   ).toContainText("På tur efter Gröna Terrassen");
   await expect(
-    page.locator('[data-next-stop-proposal="alternative"]').filter({ hasText: "Tacoateljén" }),
+    page
+      .locator('[data-next-stop-proposal="alternative"]')
+      .filter({ has: page.getByRole("heading", { name: "Tacoateljén", exact: true }) }),
   ).toContainText("På tur efter Rundans Bistro");
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
   await expect(page.getByText(/Jag vill hit|Flest vill hit/)).toHaveCount(0);
@@ -103,9 +107,9 @@ test("ett nytt förslag läggs sist på tur men visas direkt som återkoppling",
   await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
   await page.goto("/exempel");
 
-  const alternative = page.locator('[data-next-stop-proposal="alternative"]').filter({
-    hasText: "Kardemummaköket",
-  });
+  const alternative = page
+    .locator('[data-next-stop-proposal="alternative"]')
+    .filter({ has: page.getByRole("heading", { name: "Kardemummaköket", exact: true }) });
   await expect(alternative).toBeVisible();
   await expect(alternative.getByText("På tur", { exact: true })).toBeVisible();
   await expect(alternative.getByRole("button", { name: "Gör till nästa stopp" })).toBeVisible();
@@ -140,9 +144,9 @@ test("karusellen glider med horisontell scroll-snap och tydliga overlay-pilar", 
   await page.getByRole("button", { name: /Nästa ställe i kön:/ }).click();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 3");
   await expect(
-    page.locator('[data-next-stop-proposal="alternative"]').filter({
-      hasText: "Rundans Bistro",
-    }),
+    page
+      .locator('[data-next-stop-proposal="alternative"]')
+      .filter({ has: page.getByRole("heading", { name: "Rundans Bistro", exact: true }) }),
   ).toBeVisible();
   await expect
     .poll(() =>
@@ -167,9 +171,9 @@ test("Gör till nästa stopp flyttar fram stället men behåller resten av kön 
   const beforeDay = await dayRow(page).getAttribute("aria-label");
 
   await page.getByRole("button", { name: "Visa ställe på tur: Tacoateljén" }).click();
-  const alternative = page.locator('[data-next-stop-proposal="alternative"]').filter({
-    hasText: "Tacoateljén",
-  });
+  const alternative = page
+    .locator('[data-next-stop-proposal="alternative"]')
+    .filter({ has: page.getByRole("heading", { name: "Tacoateljén", exact: true }) });
   await alternative.getByRole("button", { name: "Gör till nästa stopp" }).click();
 
   const switchDialog = page.getByRole("dialog", {
@@ -230,7 +234,9 @@ test("ett spontant besök på ett ställe På tur påverkar inte kön", async ({
   await expect(page.getByText("2 på tur", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Visa ställe på tur: Rundans Bistro" }).click();
   await expect(
-    page.locator('[data-next-stop-proposal="alternative"]').filter({ hasText: "Rundans Bistro" }),
+    page
+      .locator('[data-next-stop-proposal="alternative"]')
+      .filter({ has: page.getByRole("heading", { name: "Rundans Bistro", exact: true }) }),
   ).toBeVisible();
   await expectNoOverflow(page);
 });
