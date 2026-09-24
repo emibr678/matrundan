@@ -319,53 +319,69 @@ stället lazy genom en grupp- och medlemsvaliderad, minifierad per-besök-RPC.
 ## Nästa stopp
 
 Nästa stopp är privat gruppstate och ska inte härledas från en offentlig katalog
-eller annan grupps planering.
+eller annan grupps planering. Produktmodellen är en **mjuk kö** för sådant gruppen
+faktiskt vill försöka göra tillsammans, inte en omröstning eller en full
+eventplanerare.
 
-`next_stop_place_proposals` lagrar gruppens aktiva ställesförslag och refererar
-samma kanoniska `place_id` som gruppens `group_places`. `next_stop_place_supports`
-lagrar högst en frivillig **Jag vill hit**-markering per medlem och förslag.
-Markeringen är en positiv platspräferens som får finnas på flera ställen
-samtidigt; den är inte närvaro, en exklusiv röst eller en serverrankning och får
-aldrig automatiskt ändra gruppens nästa stopp.
+`next_stop_place_proposals` lagrar de aktiva köplatserna och refererar samma
+kanoniska `place_id` som gruppens `group_places`. Förslagens `created_at`
+äger standardordningen: första aktiva stället är **Nästa stopp** och övriga
+ligger **På tur** äldst först. Nya förslag läggs sist och skriver aldrig över
+köhuvudet. Gruppen får uttryckligen flytta fram ett senare ställe; då blir det
+Nästa stopp medan den tidigare köplatsen och övriga ställen behåller sin
+inbördes skapade ordning.
+
+`group_next_place` är den bakåtkompatibla och auktoritativa projektionen av
+köhuvudet. Den är inte en ranking. Eventuell `next_stop_place_supports`-data
+(**Jag vill hit**) är privat kompatibilitets-/preferensdata och får varken
+omsortera kön, utse vinnare eller vara nödvändig för att förstå Nästa stopp.
+Den signalens eventuella framtida användning utanför planeringskön är ett separat
+produktbeslut.
 
 `next_stop_plans` lagrar gruppens enda gemensamma planeringsdag. V2 använder
-inte klockslag, och en dag får bara finnas när gruppen har ett faktiskt nästa
-stopp. Binära dagsvar **Jag kan** / **Jag kan inte** återanvänder under
-övergången den privata `next_stop_date_responses`-lagringen; uteblivet svar är
-ingen signal och `Osäker` ingår inte i v2. Byte av ställe bevarar samma dag och
-dagsvar, medan byte av dag nollställer svaren på den tidigare dagen.
+inte klockslag, och en dag får bara finnas när gruppen har ett faktiskt Nästa
+stopp. Binära dagsvar **Jag kan** / **Jag kan inte** återanvänder den privata
+`next_stop_date_responses`-lagringen; uteblivet svar är ingen signal och
+`Osäker` ingår inte. Om gruppen manuellt flyttar fram ett annat ställe inom
+samma planerade tillfälle följer dag och dagsvar med. När det aktuella Nästa
+stoppet faktiskt genomförs nollställs däremot dag och svar innan nästa köplats
+flyttas fram.
 
-`next_stop_plans`, `next_stop_place_proposals` och `next_stop_place_supports` är
-server-only för klientroller. De läses genom den minimerade `nextStop`-
-projektionen som v5l återanvänder från v5k; dagsvaren läses genom samma
-gruppscopade kompatibilitetsdata som den befintliga datumresponsen.
+Ett vanligt kanoniskt besök ska inte i sig konsumera planeringskön. Spontan fika,
+lunch, middag eller ett besök på ett ställe som råkar ligga På tur får bygga
+gruppens historik utan att ändra Nästa stopp. Endast en besöksregistrering som
+uttryckligen startas från det aktuella **Nästa stopp** får avancera kön.
+Live-skrivningen använder därför den etablerade besöksmutationen som bas men
+sätter en transaktionslokal completion-signal genom
+`create_visit_with_review_v6`. Servern verifierar att originalbesöket gäller
+gruppens aktuella köhuvud, tar bort endast den köplatsen och väljer därefter
+äldsta kvarvarande aktiva förslag. Besöksskrivning och köförflyttning sker i
+samma transaktion.
 
-`group_next_place` behålls som bakåtkompatibel och auktoritativ projektion av
-gruppens aktuella fokuserade **Nästa stopp**. Det första aktiva förslaget får
-fokus automatiskt. Senare förslag bevaras utan overwrite och gruppen byter
-uttryckligen via **Välj ställe**. Stödsiffror får aldrig flytta fokus
-server-side. Äldre `set_next_place`- och datumklienter får samexistera under
-övergången genom additiva bridge-/speglingsregler; de får inte skapa två
-konkurrerande sanningar eller tyst radera den nya klientens förslag.
+`next_stop_plans`, `next_stop_place_proposals` och
+`next_stop_place_supports` är server-only för klientroller. De läses genom den
+minimerade `nextStop`-projektionen som v5l återanvänder från v5k; dagsvaren
+läses genom samma gruppscopade kompatibilitetsdata som den befintliga
+datumresponsen.
 
-V2-mutationerna ska minst säkerställa:
+Nästa-stopp-mutationerna ska minst säkerställa:
 
 - aktiv grupp, autentisering och aktivt medlemskap;
-- att föreslagna ställen fortfarande är aktiva i gruppens lista;
-- högst fem aktiva ställesförslag;
+- att köställen fortfarande är aktiva i gruppens lista;
+- högst fem aktiva köställen;
 - proposer eller owner/admin för destruktiv borttagning av ett förslag;
-- att platsintresse bara ändrar den inloggade medlemmens egen markering;
-- gruppnivålås och revision vid handlingar som kan skriva över gemensamt fokus
+- gruppnivålås och revision vid handlingar som kan flytta gemensamt köhuvud
   eller dag, så stale klientstate ger ett begripligt konfliktfel i stället för
   last-write-wins;
+- att endast explicit completion från aktuellt Nästa stopp får konsumera
+  köhuvudet;
+- deterministisk framflyttning via `created_at, id`;
 - Europe/Stockholm-semantik för passerad planeringsdag.
 
-Ett verkligt **originalbesök** på ett valt eller aktivt föreslaget ställe är den
-kanoniska händelsen och får avsluta det relevanta nästa-stopp-flödet samt dess
-dagsvar. Ett delat besök eller ett originalbesök på ett helt annat ställe får
-inte tyst rensa planeringen. En passerad planeringsdag skapar aldrig ett besök
-automatiskt; klienten ska fråga efter verkligheten och låta användaren registrera
-det besök som faktiskt skedde.
+Arkivering av köhuvudet får flytta fram nästa äldsta aktiva ställe enligt samma
+ordning. En passerad planeringsdag skapar aldrig ett besök automatiskt; klienten
+ska fråga efter verkligheten och låta användaren registrera det besök som
+faktiskt skedde.
 
 ## Besök och deltagare
 
@@ -378,8 +394,10 @@ kanoniska besöket. Progression, deltagarlistor, delningsbehörighet och aktivt
 deltagaromdöme ska härledas från den sanningen i stället för från en separat
 registreringspoäng eller administrativ kredit.
 
-`create_visit_with_review_v5` är den serverstyrda mutationsytan för nya besök i
-den här modellen. Den som registrerar ett nytt besök måste själv finnas bland de
+`create_visit_with_review_v5` är den serverstyrda basmutationen för vanliga nya besök i
+den här modellen. `create_visit_with_review_v6` återanvänder samma mutation men
+kan, endast när klienten uttryckligen registrerar aktuellt Nästa stopp, fullfölja
+köhuvudet atomärt i samma transaktion. Den som registrerar ett nytt besök måste själv finnas bland de
 validerade deltagarna. Nya besök använder `frukost`, `lunch`, `fika`, `middag`
 eller `dryck`; `kväll` bevaras endast som läsbart legacyvärde och avvisas för nya
 v5-skrivningar.
