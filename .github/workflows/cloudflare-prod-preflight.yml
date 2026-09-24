@@ -27,8 +27,19 @@ env:
   PROD_CANDIDATE_PREVIEW_URL: https://prod-candidate-app.matrundan.workers.dev
 
 jobs:
+  security_gate:
+    name: Production security gate
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/security-gate.yml
+    with:
+      expected_sha: ${{ github.sha }}
+    permissions:
+      contents: read
+      security-events: write
+
   preflight:
     name: Cloudflare prod preflight
+    needs: security_gate
     if: github.ref == 'refs/heads/main'
     # This job may read production credentials and upload an inert Worker version,
     # but it never restores data or promotes production traffic.
@@ -329,6 +340,34 @@ jobs:
           console.log('Verified production Supabase server credential and Geoapify server/browser credentials.');
           NODE
 
+      - name: Verify production database security baseline
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const url = new URL('/rest/v1/rpc/run_release_security_gate_v1', process.env.PROD_SUPABASE_URL);
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+              apikey: process.env.PROD_SUPABASE_SERVICE_ROLE_KEY,
+              'content-type': 'application/json',
+            },
+            body: '{}',
+            signal: AbortSignal.timeout(10_000),
+          });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || payload?.ok !== true) {
+            const failed = Array.isArray(payload?.failedChecks)
+              ? payload.failedChecks.join(', ')
+              : 'unavailable';
+            console.error(
+              `Production database security baseline failed (HTTP ${response.status}; checks=${failed}).`,
+            );
+            process.exit(1);
+          }
+          console.log('Verified production database security baseline.');
+          NODE
+
       - name: Set up pinned Bun
         uses: ./.github/actions/setup-bun
 
@@ -626,6 +665,8 @@ jobs:
             echo "- SHA: \`$GITHUB_SHA\`"
             echo '- Worker: `app` (`--env prod`)'
             echo '- GitHub production configuration: complete'
+            echo '- Repository/CodeQL/security gate: passed for exact release SHA'
+            echo '- Production database security baseline: verified'
             echo '- Preview URLs: enabled without changing production workers.dev availability'
             echo '- Supabase privileged credential: verified against production project'
             echo '- Geoapify server key + production/preview browser origins: verified'
