@@ -179,9 +179,7 @@ test("Gör till nästa stopp flyttar fram stället men behåller resten av kön 
   const switchDialog = page.getByRole("dialog", {
     name: "Göra Tacoateljén till nästa stopp?",
   });
-  await expect(switchDialog).toContainText(
-    "Gröna Terrassen står kvar på tur.",
-  );
+  await expect(switchDialog).toContainText("Gröna Terrassen står kvar på tur.");
   await expect(switchDialog).toContainText("gruppens svar följer med");
   await switchDialog.getByRole("button", { name: "Gör till nästa stopp" }).click();
 
