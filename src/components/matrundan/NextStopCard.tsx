@@ -405,7 +405,7 @@ export function NextStopCard({
         className="relative"
         role="region"
         aria-roledescription="karusell"
-        aria-label="Förslag på nästa stopp"
+        aria-label="Nästa stopp och ställen på tur"
       >
         <div
           ref={carouselViewportRef}

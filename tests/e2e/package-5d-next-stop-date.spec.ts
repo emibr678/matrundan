@@ -41,8 +41,8 @@ function dayRow(page: Page) {
 }
 
 async function ensureDay(page: Page, days = 7) {
-  if ((await dayRow(page).count()) > 0) return;
-  await page.getByRole("button", { name: "Föreslå dag" }).click();
+  if (await dayRow(page).isVisible().catch(() => false)) return;
+  await page.getByRole("button", { name: /Föreslå dag/ }).click();
   const dialog = page.getByRole("dialog", { name: "Föreslå dag" });
   await dialog.getByLabel("Dag").fill(futureDate(days));
   await dialog.getByRole("button", { name: "Spara" }).click();
@@ -132,8 +132,11 @@ test("karusellen glider med horisontell scroll-snap och tydliga overlay-pilar", 
       hasText: "Rundans Bistro",
     }),
   ).toBeVisible();
-  const secondScrollLeft = await viewport.evaluate((element) => element.scrollLeft);
-  expect(secondScrollLeft).toBeGreaterThan(300);
+  const secondPosition = await viewport.evaluate((element) => ({
+    scrollLeft: element.scrollLeft,
+    width: element.clientWidth,
+  }));
+  expect(secondPosition.scrollLeft).toBeGreaterThan(secondPosition.width * 0.9);
 
   await page.getByRole("button", { name: /Föregående ställe i kön:/ }).click();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
