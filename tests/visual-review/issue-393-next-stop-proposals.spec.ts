@@ -118,3 +118,27 @@ test("fånga nytt förslag sist på tur", async ({ page }, testInfo) => {
   await expectNoHorizontalOverflow(page);
   await captureElement(newest, testInfo, "issue-393-ko-nytt-sist-kort");
 });
+
+test("fånga tydlig bekräftelse när gruppens dag ändras", async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await resetDemo(page);
+
+  const dayButton = page.getByRole("button", { name: /Öppna dagsvaren för/ });
+  await expect(dayButton).toBeVisible();
+  await dayButton.click();
+
+  const sheet = page.getByRole("dialog");
+  await sheet.getByRole("button", { name: "Ändra dag" }).click();
+
+  const dateDialog = page.getByRole("dialog", { name: "Ändra dag" });
+  const date = new Date();
+  date.setDate(date.getDate() + 14);
+  await dateDialog.getByLabel("Dag").fill(date.toISOString().slice(0, 10));
+  await dateDialog.getByRole("button", { name: "Fortsätt" }).click();
+
+  const confirm = page.getByRole("dialog", { name: /Ändra till .*\?/ });
+  await expect(confirm).toContainText("Alla i gruppen får svara på nytt.");
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-393-andra-dag-bekraftelse");
+});

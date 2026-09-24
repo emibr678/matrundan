@@ -48,10 +48,10 @@ async function ensureDay(page: Page, days = 7) {
       .catch(() => false)
   )
     return;
-  await page.getByRole("button", { name: /Föreslå dag/ }).click();
-  const dialog = page.getByRole("dialog", { name: "Föreslå dag" });
+  await page.getByRole("button", { name: /Välj dag/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Välj dag" });
   await dialog.getByLabel("Dag").fill(futureDate(days));
-  await dialog.getByRole("button", { name: "Spara" }).click();
+  await dialog.getByRole("button", { name: "Välj dag" }).click();
   await expect(dayRow(page)).toBeVisible();
 }
 
@@ -215,7 +215,7 @@ test("Registrera besök från Nästa stopp avancerar kön och nollställer gamma
   await expect(page.getByText("1 på tur", { exact: true })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 2");
   await expect(dayRow(page)).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Föreslå dag" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Välj dag" })).toBeVisible();
   await expectNoOverflow(page);
 });
 
@@ -259,7 +259,7 @@ test("dagen använder bara Jag kan och Jag kan inte i en bottom sheet", async ({
   await expectNoOverflow(page);
 });
 
-test("föreslå annan dag nollställer gruppens dagsvar", async ({ page }) => {
+test("ändra dag kräver bekräftelse och låter gruppen svara på nytt", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
   await ensureDay(page);
@@ -270,10 +270,28 @@ test("föreslå annan dag nollställer gruppens dagsvar", async ({ page }) => {
   if ((await canButton.getAttribute("aria-pressed")) !== "true") await canButton.click();
   await expect(canButton).toHaveAttribute("aria-pressed", "true");
 
-  await sheet.getByRole("button", { name: "Föreslå annan dag" }).click();
-  const dateDialog = page.getByRole("dialog", { name: "Föreslå annan dag" });
+  await sheet.getByRole("button", { name: "Ändra dag" }).click();
+  let dateDialog = page.getByRole("dialog", { name: "Ändra dag" });
   await dateDialog.getByLabel("Dag").fill(futureDate(14));
-  await dateDialog.getByRole("button", { name: "Spara" }).click();
+  await dateDialog.getByRole("button", { name: "Fortsätt" }).click();
+
+  let confirmDialog = page.getByRole("dialog", { name: /Ändra till .*\?/ });
+  await expect(confirmDialog).toContainText("ersätts. Alla i gruppen får svara på nytt.");
+  await confirmDialog.getByRole("button", { name: "Avbryt" }).click();
+
+  await dayRow(page).click();
+  sheet = page.getByRole("dialog");
+  await expect(sheet.getByRole("button", { name: "Jag kan", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await sheet.getByRole("button", { name: "Ändra dag" }).click();
+  dateDialog = page.getByRole("dialog", { name: "Ändra dag" });
+  await dateDialog.getByLabel("Dag").fill(futureDate(14));
+  await dateDialog.getByRole("button", { name: "Fortsätt" }).click();
+  confirmDialog = page.getByRole("dialog", { name: /Ändra till .*\?/ });
+  await confirmDialog.getByRole("button", { name: "Ändra dag" }).click();
 
   await dayRow(page).click();
   sheet = page.getByRole("dialog");

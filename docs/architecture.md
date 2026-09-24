@@ -357,7 +357,10 @@ stopp. Binära dagsvar **Jag kan** / **Jag kan inte** återanvänder den privata
 `Osäker` ingår inte. Om gruppen manuellt flyttar fram ett annat ställe inom
 samma planerade tillfälle följer dag och dagsvar med. När det aktuella Nästa
 stoppet faktiskt genomförs nollställs däremot dag och svar innan nästa köplats
-flyttas fram.
+flyttas fram. Dagen är gruppägd: en aktiv gruppmedlem får ändra den, men klienten
+ska tydligt bekräfta ett faktiskt byte och förklara att tidigare dagsvar ersätts
+så att alla i gruppen får svara på nytt. Förslagsställaren är inte moderator
+eller godkännare för datumändringar.
 
 Ett vanligt kanoniskt besök ska inte i sig konsumera planeringskön. Spontan fika,
 lunch, middag eller ett besök på ett ställe som råkar ligga På tur får bygga

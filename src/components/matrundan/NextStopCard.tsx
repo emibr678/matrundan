@@ -86,6 +86,7 @@ export function NextStopCard({
     setDayResponse,
   } = useNextStopV2();
   const [scheduleOpen, setScheduleOpen] = React.useState(false);
+  const [dateChangeConfirmOpen, setDateChangeConfirmOpen] = React.useState(false);
   const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [switching, setSwitching] = React.useState<NextStopPlaceProposal | null>(null);
@@ -198,6 +199,18 @@ export function NextStopCard({
     openSchedule();
   }
 
+  async function persistSchedule(nextDate: string, success: string) {
+    await run(
+      "schedule",
+      async () => {
+        await setSchedule(nextDate);
+        setScheduleOpen(false);
+        setDateChangeConfirmOpen(false);
+      },
+      success,
+    );
+  }
+
   async function saveSchedule() {
     if (!date) {
       toast.error("Välj en dag.");
@@ -208,14 +221,22 @@ export function NextStopCard({
       return;
     }
 
-    await run(
-      "schedule",
-      async () => {
-        await setSchedule(date);
-        setScheduleOpen(false);
-      },
-      plannedDate ? "Den nya dagen är föreslagen." : "Dagen är föreslagen.",
-    );
+    if (!plannedDate) {
+      await persistSchedule(date, "Dagen är vald.");
+      return;
+    }
+
+    if (date === plannedDate) {
+      setScheduleOpen(false);
+      return;
+    }
+
+    setScheduleOpen(false);
+    setDateChangeConfirmOpen(true);
+  }
+
+  async function confirmDateChange() {
+    await persistSchedule(date, "Dagen är ändrad.");
   }
 
   async function removeDate() {
@@ -528,6 +549,14 @@ export function NextStopCard({
         onSave={() => void saveSchedule()}
         onRemove={() => void removeDate()}
       />
+      <DateChangeConfirmDialog
+        open={dateChangeConfirmOpen && Boolean(plannedDate)}
+        plannedDate={plannedDate}
+        nextDate={date}
+        busy={busy}
+        onClose={() => setDateChangeConfirmOpen(false)}
+        onConfirm={() => void confirmDateChange()}
+      />
       <SwitchDialog
         proposal={switching}
         currentPlace={focusedItem.place}
@@ -695,8 +724,8 @@ function DayRow({
         onClick={onAddDate}
       >
         <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
-        <span className="min-w-0 flex-1 text-sm text-muted-foreground">Ingen dag föreslagen</span>
-        <span className="text-sm font-medium text-primary">Föreslå dag</span>
+        <span className="min-w-0 flex-1 text-sm text-muted-foreground">Ingen dag vald</span>
+        <span className="text-sm font-medium text-primary">Välj dag</span>
       </button>
     );
   }
@@ -1053,7 +1082,7 @@ function DayPlanningSheet({
               disabled={busy !== null}
               onClick={onEditDate}
             >
-              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
+              <CalendarDays className="h-4 w-4" /> Ändra dag
             </Button>
           </div>
         ) : null}
@@ -1102,7 +1131,7 @@ function FocusedActionsMenu({
         {plannedDate ? (
           <>
             <DropdownMenuItem onSelect={onEditDate}>
-              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
+              <CalendarDays className="h-4 w-4" /> Ändra dag
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
           </>
@@ -1171,10 +1200,10 @@ function ScheduleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>{plannedDate ? "Föreslå annan dag" : "Föreslå dag"}</DialogTitle>
+          <DialogTitle>{plannedDate ? "Ändra dag" : "Välj dag"}</DialogTitle>
           <DialogDescription>
             {plannedDate
-              ? "Välj en annan dag för gruppens nästa stopp. Gruppens dagsvar börjar då om."
+              ? "Välj en ny dag. Alla i gruppen får svara på nytt om du ändrar den."
               : "Välj den dag gruppen tänker göra nästa stopp."}
           </DialogDescription>
         </DialogHeader>
@@ -1207,7 +1236,50 @@ function ScheduleDialog({
           </Button>
           <Button type="button" disabled={busy !== null} onClick={onSave}>
             {busy === "schedule" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Spara
+            {plannedDate ? "Fortsätt" : "Välj dag"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DateChangeConfirmDialog({
+  open,
+  plannedDate,
+  nextDate,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  plannedDate: string | null;
+  nextDate: string;
+  busy: string | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!plannedDate || !nextDate) return null;
+
+  const nextDay = formatNextStopDate(nextDate, null).toLocaleLowerCase("sv-SE");
+  const currentDay = formatNextStopDate(plannedDate, null);
+
+  return (
+    <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>{`Ändra till ${nextDay}?`}</DialogTitle>
+          <DialogDescription>
+            {currentDay} ersätts. Alla i gruppen får svara på nytt.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Avbryt
+          </Button>
+          <Button type="button" disabled={busy !== null} onClick={onConfirm}>
+            {busy === "schedule" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Ändra dag
           </Button>
         </DialogFooter>
       </DialogContent>
