@@ -491,16 +491,26 @@ function ReviewRow({
 
       {commentContent ? (
         <div className="ml-10 mt-1">
-          {reactableComment ? (
+          {reactableComment || editAction ? (
             <ReviewReactionBar
               reviewId={review.id}
               authorName={name}
               canReact={!own}
+              trailingAction={editAction}
               content={commentContent}
             />
           ) : (
             commentContent
           )}
+        </div>
+      ) : editAction ? (
+        <div className="ml-10 mt-1">
+          <ReviewReactionBar
+            reviewId={review.id}
+            authorName={name}
+            canReact={false}
+            trailingAction={editAction}
+          />
         </div>
       ) : null}
 
@@ -517,7 +527,6 @@ function ReviewRow({
         </div>
       ) : null}
 
-      {editAction ? <div className="mt-2 flex justify-end">{editAction}</div> : null}
     </div>
   );
 }

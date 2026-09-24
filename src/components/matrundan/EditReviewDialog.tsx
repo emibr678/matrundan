@@ -238,14 +238,15 @@ export function EditReviewDialog({
         <Button
           variant={compact ? "ghost" : "secondary"}
           aria-label={compact ? (scoreless ? "Redigera kommentar" : "Redigera omdöme") : undefined}
+          title={compact ? (scoreless ? "Redigera kommentar" : "Redigera omdöme") : undefined}
           className={
             compact
-              ? "min-h-10 w-auto gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+              ? "grid h-11 w-11 shrink-0 place-items-center rounded-full p-0 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
               : "w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
           }
         >
-          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-          {scoreless ? "Redigera kommentar" : "Redigera omdöme"}
+          <Pencil className={compact ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} aria-hidden="true" />
+          {compact ? null : scoreless ? "Redigera kommentar" : "Redigera omdöme"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

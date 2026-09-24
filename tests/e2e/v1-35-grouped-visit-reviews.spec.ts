@@ -102,7 +102,7 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
     name: "Redigera omdöme",
   });
   await expect(editReviewButton).toBeVisible();
-  await expect(reviewSection.getByText("Redigera omdöme", { exact: true })).toBeVisible();
+  await expect(reviewSection.getByText("Redigera omdöme", { exact: true })).toHaveCount(0);
 
   await expect(visitDialog.getByRole("heading", { name: "Bild från besöket" })).toBeVisible();
   await expect(visitDialog.getByAltText("Bild från Alex")).toBeVisible();

@@ -163,12 +163,21 @@ export function ReviewReactionBar({
 
   if (!reactionReady) {
     if (!content && !trailingAction) return null;
-    return (
+    return content ? (
       <div
-        className={content ? "min-w-0" : "mt-2 flex justify-end"}
+        className="flex min-w-0 items-end gap-1"
         data-review-reactions={reviewId}
+        data-review-action-row={reviewId}
       >
-        {content}
+        <div className="min-w-0 flex-1">{content}</div>
+        {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
+      </div>
+    ) : (
+      <div
+        className="mt-2 flex min-w-0 justify-end"
+        data-review-reactions={reviewId}
+        data-review-action-row={reviewId}
+      >
         {trailingAction}
       </div>
     );
@@ -247,15 +256,11 @@ export function ReviewReactionBar({
           <div className="flex min-w-0 items-end gap-1" data-review-action-row={reviewId}>
             <div className="min-w-0 flex-1">{content}</div>
             {reactionPicker}
+            {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
           </div>
 
-          {buckets.length > 0 || trailingAction ? (
-            <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                {reactionChips}
-              </div>
-              {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
-            </div>
+          {buckets.length > 0 ? (
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">{reactionChips}</div>
           ) : null}
         </>
       ) : (

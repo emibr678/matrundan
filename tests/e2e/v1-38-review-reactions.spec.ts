@@ -203,7 +203,15 @@ test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ pa
       name: "Lägg till reaktion på Alexs omdöme",
     }),
   ).toHaveCount(0);
-  await expect(ownReview.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
+  const ownEditButton = ownReview.getByRole("button", { name: "Redigera omdöme" });
+  await expect(ownEditButton).toBeVisible();
+  await expect(ownReview.getByText("Redigera omdöme", { exact: true })).toHaveCount(0);
+  const ownActionRow = ownReview.locator("[data-review-action-row]");
+  await expect(ownActionRow.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
+  const ownEditBox = await ownEditButton.boundingBox();
+  expect(ownEditBox).not.toBeNull();
+  expect(ownEditBox!.width).toBeGreaterThanOrEqual(44);
+  expect(ownEditBox!.height).toBeGreaterThanOrEqual(44);
   await expectNoHorizontalOverflow(page, ownReview, "eget omdöme på 360 px");
 
   await expect
