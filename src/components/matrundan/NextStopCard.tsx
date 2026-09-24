@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Flag,
-  Heart,
   Loader2,
   MapPin,
   MoreHorizontal,
@@ -80,7 +79,6 @@ export function NextStopCard({
     dayResponses,
     backendReady,
     propose,
-    setSupport,
     select,
     withdraw,
     setSchedule,
@@ -112,8 +110,8 @@ export function NextStopCard({
             .filter((item) => item.proposal.id !== focusedProposalId)
             .sort(
               (left, right) =>
-                new Date(right.proposal.createdAt).getTime() -
-                new Date(left.proposal.createdAt).getTime(),
+                new Date(left.proposal.createdAt).getTime() -
+                new Date(right.proposal.createdAt).getTime(),
             )
         : [],
     [focusedProposalId, proposals],
@@ -125,18 +123,6 @@ export function NextStopCard({
   const plannedDate = focusedItem ? (nextStop?.plannedDate ?? null) : null;
   const passed = plannedDate ? isPastDateValue(plannedDate) : false;
   const canInteract = canWrite && backendReady;
-  const maxSupportCount = Math.max(0, ...proposals.map((item) => item.proposal.supports.length));
-  const maxSupportItems =
-    maxSupportCount > 0
-      ? proposals.filter((item) => item.proposal.supports.length === maxSupportCount)
-      : [];
-  const leadingAlternativeId =
-    maxSupportItems.length === 1 &&
-    focusedItem &&
-    maxSupportItems[0]?.proposal.id !== focusedItem.proposal.id
-      ? maxSupportItems[0]?.proposal.id
-      : null;
-
   const untried = React.useMemo(
     () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
     [activePlaces, state.visits],
@@ -256,16 +242,9 @@ export function NextStopCard({
     );
   }
 
-  async function togglePlaceSupport(item: ProposalItem) {
-    const supported = item.proposal.supports.some(
-      (support) => support.memberId === state.currentUserId,
-    );
-    await run(`support:${item.proposal.id}`, () => setSupport(item.proposal.id, !supported));
-  }
-
   async function randomProposal() {
     if (proposals.length >= 5) {
-      toast.info("Fem ställen är redan på förslag.");
+      toast.info("Fem ställen är redan i kön.");
       return;
     }
 
@@ -275,7 +254,7 @@ export function NextStopCard({
     const pool = preferredPool.length > 0 ? preferredPool : fallbackPool;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (!pick) {
-      toast.info("Alla aktiva ställen är redan på förslag.");
+      toast.info("Alla aktiva ställen finns redan i kön.");
       return;
     }
 
@@ -292,7 +271,7 @@ export function NextStopCard({
         }
       },
       focusedPlace
-        ? `${pick.name} lades till bland förslagen på nästa stopp.`
+        ? `${pick.name} lades sist på tur.`
         : `${pick.name} är gruppens nästa stopp.`,
     );
   }
@@ -352,15 +331,9 @@ export function NextStopCard({
   if (passed && plannedDate && focusedItem) {
     return (
       <section>
-        <NextStopHeading showShuffle={false} proposalCount={proposals.length} />
+        <NextStopHeading showShuffle={false} queuedCount={otherProposals.length} />
         <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
-          <FocusedPlaceHero
-            item={focusedItem}
-            currentUserId={state.currentUserId}
-            canInteract={canInteract}
-            busy={busy}
-            onSupport={() => void togglePlaceSupport(focusedItem)}
-          />
+          <FocusedPlaceHero item={focusedItem} />
           <div className="border-t border-border/60 p-4">
             <h2 className="font-display text-xl font-semibold">Blev det av?</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -406,7 +379,7 @@ export function NextStopCard({
           </div>
           <h2 className="mt-3 font-display text-xl">Vart går rundan härnäst?</h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            Föreslå ett ställe. Det första blir nästa stopp och fler idéer sparas som alternativ.
+            Föreslå ett ställe. Det första blir nästa stopp och fler idéer läggs på tur.
           </p>
           <div className="mt-4 flex justify-center">
             <Button asChild>
@@ -425,7 +398,7 @@ export function NextStopCard({
     <section>
       <NextStopHeading
         showShuffle={canInteract && proposals.length < 5}
-        proposalCount={proposals.length}
+        queuedCount={otherProposals.length}
         busy={busy}
         onShuffle={() => void randomProposal()}
       />
@@ -455,13 +428,7 @@ export function NextStopCard({
                 {selected ? (
                   <Card className="h-full min-h-[18rem] overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
                     <div className="relative">
-                      <FocusedPlaceHero
-                        item={focusedItem}
-                        currentUserId={state.currentUserId}
-                        canInteract={canInteract}
-                        busy={busy}
-                        onSupport={() => void togglePlaceSupport(focusedItem)}
-                      />
+                      <FocusedPlaceHero item={focusedItem} />
                       {showFocusedActions ? (
                         <div className="absolute right-3 top-3">
                           <FocusedActionsMenu
@@ -501,11 +468,8 @@ export function NextStopCard({
                 ) : (
                   <AlternativeProposalCard
                     item={item}
-                    currentUserId={state.currentUserId}
                     canInteract={canInteract}
                     busy={busy}
-                    isMostSupported={item.proposal.id === leadingAlternativeId}
-                    onSupport={() => void togglePlaceSupport(item)}
                     onSwitch={() => setSwitching(item.proposal)}
                     onWithdraw={() => withdrawProposal(item)}
                   />
@@ -565,6 +529,7 @@ export function NextStopCard({
       <SwitchDialog
         proposal={switching}
         currentPlace={focusedItem.place}
+        plannedDate={plannedDate}
         getPlace={getPlace}
         busy={busy}
         onClose={() => setSwitching(null)}
@@ -576,12 +541,12 @@ export function NextStopCard({
 
 function NextStopHeading({
   showShuffle,
-  proposalCount = 0,
+  queuedCount = 0,
   onShuffle,
   busy = null,
 }: {
   showShuffle: boolean;
-  proposalCount?: number;
+  queuedCount?: number;
   onShuffle?: () => void;
   busy?: string | null;
 }) {
@@ -591,9 +556,9 @@ function NextStopHeading({
         <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
           <Flag className="h-3.5 w-3.5" aria-hidden="true" /> Nästa stopp
         </div>
-        {proposalCount > 1 ? (
+        {queuedCount > 0 ? (
           <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
-            {proposalCount} förslag
+            {queuedCount} på tur
           </span>
         ) : null}
       </div>
@@ -627,19 +592,7 @@ function proposerLabel(
     : "Föreslaget tidigare";
 }
 
-function FocusedPlaceHero({
-  item,
-  currentUserId,
-  canInteract,
-  busy,
-  onSupport,
-}: {
-  item: ProposalItem;
-  currentUserId: string;
-  canInteract: boolean;
-  busy: string | null;
-  onSupport: () => void;
-}) {
+function FocusedPlaceHero({ item }: { item: ProposalItem }) {
   const { state } = useStore();
   return (
     <div
@@ -649,7 +602,7 @@ function FocusedPlaceHero({
       <div className="pr-9">
         <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
           <span className="rounded-full bg-primary-foreground/15 px-2 py-1 font-medium">
-            Valt nästa stopp
+            Nästa stopp
           </span>
           <span className="opacity-80">{CATEGORY_LABEL[item.place.category]}</span>
         </div>
@@ -663,9 +616,12 @@ function FocusedPlaceHero({
             {item.place.photo ?? "🍽️"}
           </div>
           <div className="min-w-0">
-            <h2 className="font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
-              {item.place.name}
-            </h2>
+            <div className="flex min-w-0 items-center gap-1">
+              <h2 className="min-w-0 font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
+                {item.place.name}
+              </h2>
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-70" aria-hidden="true" />
+            </div>
             <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">
@@ -677,63 +633,8 @@ function FocusedPlaceHero({
         <div className="mt-2 pl-[3.5rem] text-xs opacity-85">
           {proposerLabel(item.proposal, state)}
         </div>
-        <div className="mt-3 pl-[3.5rem]">
-          <PlacePreferenceButton
-            proposal={item.proposal}
-            currentUserId={currentUserId}
-            canInteract={canInteract}
-            busy={busy}
-            inverse
-            onClick={onSupport}
-          />
-        </div>
       </div>
     </div>
-  );
-}
-
-function PlacePreferenceButton({
-  proposal,
-  currentUserId,
-  canInteract,
-  busy,
-  inverse = false,
-  onClick,
-}: {
-  proposal: NextStopPlaceProposal;
-  currentUserId: string;
-  canInteract: boolean;
-  busy: string | null;
-  inverse?: boolean;
-  onClick: () => void;
-}) {
-  const supported = proposal.supports.some((support) => support.memberId === currentUserId);
-  const isBusy = busy === `support:${proposal.id}`;
-  return (
-    <button
-      type="button"
-      aria-pressed={supported}
-      disabled={!canInteract || busy !== null}
-      onClick={onClick}
-      className={[
-        "inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors disabled:cursor-default",
-        inverse
-          ? supported
-            ? "border-primary-foreground/55 bg-primary-foreground/20 text-primary-foreground"
-            : "border-primary-foreground/35 bg-black/5 text-primary-foreground hover:bg-primary-foreground/10"
-          : supported
-            ? "border-primary/35 bg-primary/10 text-primary"
-            : "border-border/80 bg-card text-foreground hover:bg-muted/50",
-        !canInteract ? "opacity-90" : "",
-      ].join(" ")}
-    >
-      {isBusy ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Heart className={supported ? "h-4 w-4 fill-current" : "h-4 w-4"} />
-      )}
-      <span>Jag vill hit · {proposal.supports.length}</span>
-    </button>
   );
 }
 
@@ -827,20 +728,14 @@ function DayRow({
 
 function AlternativeProposalCard({
   item,
-  currentUserId,
   canInteract,
   busy,
-  isMostSupported,
-  onSupport,
   onSwitch,
   onWithdraw,
 }: {
   item: ProposalItem;
-  currentUserId: string;
   canInteract: boolean;
   busy: string | null;
-  isMostSupported: boolean;
-  onSupport: () => void;
   onSwitch: () => void;
   onWithdraw: () => void;
 }) {
@@ -852,30 +747,33 @@ function AlternativeProposalCard({
       data-next-stop-proposal="alternative"
       className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm"
     >
-      <div className="relative flex-1 bg-gradient-to-br from-primary/[0.08] to-card px-5 py-4">
+      <div className="relative flex-1 bg-gradient-to-br from-primary/[0.14] to-card px-5 py-4">
         <div className="pr-9">
           <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
             <span className="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">
-              Förslag
+              På tur
             </span>
             <span className="text-muted-foreground">{CATEGORY_LABEL[item.place.category]}</span>
-            {isMostSupported ? (
-              <span className="font-medium text-primary">Flest vill hit</span>
-            ) : null}
           </div>
           <Link
             to="/matstallen/$placeId"
             params={{ placeId: item.place.id }}
-            className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 rounded-xl outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={`Öppna ${item.place.name}`}
           >
             <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
               {item.place.photo ?? "🍽️"}
             </div>
             <div className="min-w-0">
-              <h2 className="font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
-                {item.place.name}
-              </h2>
+              <div className="flex min-w-0 items-center gap-1">
+                <h2 className="min-w-0 font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
+                  {item.place.name}
+                </h2>
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </div>
               <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
@@ -886,15 +784,6 @@ function AlternativeProposalCard({
           </Link>
           <div className="mt-2 pl-[3.5rem] text-xs text-muted-foreground">
             {proposerLabel(item.proposal, state)}
-          </div>
-          <div className="mt-3 pl-[3.5rem]">
-            <PlacePreferenceButton
-              proposal={item.proposal}
-              currentUserId={currentUserId}
-              canInteract={canInteract}
-              busy={busy}
-              onClick={onSupport}
-            />
           </div>
         </div>
         {canRemove ? (
@@ -907,8 +796,8 @@ function AlternativeProposalCard({
           </div>
         ) : null}
       </div>
-      <div className="mt-auto grid gap-1 border-t border-border/60 p-4">
-        {canInteract ? (
+      {canInteract ? (
+        <div className="mt-auto border-t border-border/60 p-4">
           <Button
             type="button"
             className="min-h-12 w-full"
@@ -917,13 +806,8 @@ function AlternativeProposalCard({
           >
             Gör till nästa stopp
           </Button>
-        ) : null}
-        <Button asChild type="button" variant="ghost" className="min-h-10 w-full">
-          <Link to="/matstallen/$placeId" params={{ placeId: item.place.id }}>
-            Till stället
-          </Link>
-        </Button>
-      </div>
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -947,8 +831,8 @@ function CarouselArrow({
       ].join(" ")}
       aria-label={
         previous
-          ? `Föregående förslag${placeName ? `: ${placeName}` : ""}`
-          : `Nästa förslag${placeName ? `: ${placeName}` : ""}`
+          ? `Föregående ställe i kön${placeName ? `: ${placeName}` : ""}`
+          : `Nästa ställe i kön${placeName ? `: ${placeName}` : ""}`
       }
       onClick={onClick}
     >
@@ -972,13 +856,13 @@ function NextStopCarouselControls({
 }) {
   return (
     <div className="mt-2 flex min-h-9 items-center justify-center gap-2.5">
-      <div className="flex items-center" aria-label="Välj förslag i karusellen">
+      <div className="flex items-center" aria-label="Välj ställe i kön">
         {items.map((item, index) => {
           const active = index === activeIndex;
           const label =
             index === 0
               ? `Visa nästa stopp: ${item.place.name}`
-              : `Visa förslag: ${item.place.name}`;
+              : `Visa ställe på tur: ${item.place.name}`;
           return (
             <button
               key={item.proposal.id}
@@ -1313,6 +1197,7 @@ function ScheduleDialog({
 function SwitchDialog({
   proposal,
   currentPlace,
+  plannedDate,
   getPlace,
   busy,
   onClose,
@@ -1320,21 +1205,25 @@ function SwitchDialog({
 }: {
   proposal: NextStopPlaceProposal | null;
   currentPlace: Place;
+  plannedDate: string | null;
   getPlace: (placeId: string) => Place | undefined;
   busy: string | null;
   onClose: () => void;
   onConfirm: () => void;
 }) {
   const target = proposal ? getPlace(proposal.placeId) : undefined;
+  const day = plannedDate ? formatNextStopDate(plannedDate, null) : null;
   return (
     <Dialog open={Boolean(proposal)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Gör det här till nästa stopp?</DialogTitle>
+          <DialogTitle>
+            {target ? `Göra ${target.name} till nästa stopp?` : "Göra det här till nästa stopp?"}
+          </DialogTitle>
           <DialogDescription>
             {target
-              ? `${target.name} blir gruppens nästa stopp i stället för ${currentPlace.name}. Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar.`
-              : "Det här förslaget blir gruppens nästa stopp."}
+              ? `${target.name} flyttas fram som gruppens nästa stopp. ${currentPlace.name} ligger kvar på tur.${day ? ` ${day} och gruppens svar följer med.` : ""}`
+              : "Stället flyttas fram som gruppens nästa stopp."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -1352,3 +1241,4 @@ function SwitchDialog({
     </Dialog>
   );
 }
+
