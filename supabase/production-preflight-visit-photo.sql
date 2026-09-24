@@ -165,7 +165,7 @@ checks(name, ok) AS (
       'visit-photo:delete-policy-cleans-only-orphaned-media',
       COALESCE(
         (
-          SELECT position('not exists' IN lower(qual)) > 0
+          SELECT lower(qual) ~ E'not[[:space:]]*\\(exists'
             AND position('visit_media' IN qual) > 0
             AND position('has_group_role' IN qual) > 0
             AND position('can_delete_original_visit' IN qual) = 0
@@ -236,7 +236,7 @@ checks(name, ok) AS (
       'visit-photo:gallery-migration-exposed-photo-array',
       COALESCE(
         (
-          SELECT position('''photos''' IN lower(v5m_def)) > 0
+          SELECT position('''{photos}''' IN lower(v5m_def)) > 0
             AND position('visit_media' IN lower(v5m_def)) > 0
           FROM function_defs
         ),
