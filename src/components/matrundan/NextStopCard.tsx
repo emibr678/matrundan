@@ -720,9 +720,7 @@ function ProposalRow({
 }) {
   const { state } = useStore();
   const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
-  const supported = item.proposal.supports.some(
-    (support) => support.memberId === currentUserId,
-  );
+  const supported = item.proposal.supports.some((support) => support.memberId === currentUserId);
   const detailsId = `next-stop-proposal-${item.proposal.id}-details`;
 
   return (
