@@ -14,20 +14,20 @@ defaults:
 
 jobs:
   dispatch:
-    name: Dispatch exact verified prod candidate
+    name: Dispatch verified prod candidate
     if: >-
       github.event.issue.number == 207 &&
       !github.event.issue.pull_request &&
       github.event.comment.author_association == 'OWNER' &&
       github.event.comment.user.login == github.repository_owner &&
-      startsWith(github.event.comment.body, '/prod-publish ')
+      startsWith(github.event.comment.body, '/prod-publish')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       GITHUB_API_TOKEN: ${{ github.token }}
 
     steps:
-      - name: Validate command and dispatch exact production candidate
+      - name: Validate owner command and dispatch publication
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
@@ -35,13 +35,8 @@ jobs:
 
           const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
           const body = event.comment?.body?.trim() ?? '';
-          const match = body.match(
-            /^\/prod-publish ([0-9a-f]{40}) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) PUBLISH_PROD$/,
-          );
-          if (!match) {
-            console.error(
-              'Command must be exactly: /prod-publish <40-character-main-sha> <candidate-version-uuid> PUBLISH_PROD',
-            );
+          if (body !== '/prod-publish PUBLISH_PROD') {
+            console.error('Command must be exactly: /prod-publish PUBLISH_PROD');
             process.exit(1);
           }
 
@@ -55,7 +50,6 @@ jobs:
             process.exit(1);
           }
 
-          const [, expectedSha, candidateVersionId] = match;
           const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
           const apiRoot = 'https://api.github.com';
           const headers = {
@@ -74,26 +68,15 @@ jobs:
             console.error(`Could not resolve current main SHA (HTTP ${mainResponse.status}).`);
             process.exit(1);
           }
-          if (mainSha !== expectedSha) {
-            console.error(`Refusing stale prod publish command: expected ${expectedSha}, current main is ${mainSha}.`);
-            process.exit(1);
-          }
 
           const dispatchResponse = await fetch(
             `${apiRoot}/repos/${owner}/${repo}/actions/workflows/cloudflare-prod-publish.yml/dispatches`,
             {
               method: 'POST',
-              headers: {
-                ...headers,
-                'content-type': 'application/json',
-              },
+              headers: { ...headers, 'content-type': 'application/json' },
               body: JSON.stringify({
                 ref: 'main',
-                inputs: {
-                  expected_sha: expectedSha,
-                  candidate_version_id: candidateVersionId,
-                  confirmation: 'PUBLISH_PROD',
-                },
+                inputs: { confirmation: 'PUBLISH_PROD' },
               }),
               signal: AbortSignal.timeout(10_000),
             },
@@ -107,6 +90,6 @@ jobs:
           }
 
           console.log(
-            `Dispatched Cloudflare prod publish for exact main SHA ${expectedSha} and candidate ${candidateVersionId}.`,
+            `Dispatched Cloudflare prod publish for current main ${mainSha}; candidate identity is resolved by the publish workflow.`,
           );
           NODE

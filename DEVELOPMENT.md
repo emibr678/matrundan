@@ -300,9 +300,23 @@ dock endast tokenen för läsning av migrationshistoriken; skrivning sker endast
 i `staging-db`-workflowet efter dess explicita DB-godkännande samt PR-/SHA-/CI-grindar.
 
 Agent Operations-dispatchern själv har `actions: write` enbart för att starta de
-tre allowlistade workflowen. Kommandon accepteras endast från repositoryägaren på
-en vanlig Issue, aldrig från PR-kommentarer. Production- och
-recoveryoperationer ingår inte i denna brygga.
+tre allowlistade utvecklings-/verifieringsworkflowen. Kommandon accepteras endast
+från repositoryägaren på en vanlig Issue, aldrig från PR-kommentarer.
+
+Production ligger fortsatt utanför den generella `/agent`-bryggan men har två
+separata owner-only dispatchers på Issue #207:
+
+```text
+/prod-preflight
+/prod-publish PUBLISH_PROD
+```
+
+`/prod-preflight` löser aktuell `main` själv och startar den inerta
+produktionspreflighten. Efter autentiserad smoke och separat uttryckligt
+publiceringsgodkännande startar `/prod-publish PUBLISH_PROD` publiceringen.
+SHA och Cloudflare Worker-version kopieras inte mellan stegen; publish-workflowet
+löser exakt lyckad preflight och dess kandidat maskinellt. Recoveryoperationer
+ingår inte i någon av dessa bryggor.
 
 ### Releasekontrakt för staging-first
 
@@ -355,28 +369,42 @@ automatiskt promoverar produktion.
 
 ### Produktionskandidat och publicering
 
-Produktion använder två separata manuella GitHub Actions-grindar:
+Produktion använder två separata manuella GitHub Actions-grindar men
+kandidatidentiteten förs mellan dem av GitHub/Cloudflare, inte genom mänsklig
+copy-paste:
 
-1. **Cloudflare prod preflight** bygger exakt angiven `main`-SHA, validerar hela
-   GitHub `production`-konfigurationen och leverantörscredentials, laddar upp
-   server-secrets tillsammans med en **inert** Worker-version och exponerar den
-   som den fasta preview-aliasen `https://prod-candidate-app.matrundan.workers.dev`.
-   Workflowet verifierar att aktiv production-deployment är oförändrad och att
-   kandidatens `/api/health` rapporterar exakt release-SHA.
+1. **Cloudflare prod preflight** kör endast från aktuell `main`, verifierar att
+   dispatchens SHA fortfarande är current main, validerar hela GitHub
+   `production`-konfigurationen och leverantörscredentials, bygger kandidaten,
+   laddar upp server-secrets tillsammans med en **inert** Worker-version och
+   exponerar den som
+   `https://prod-candidate-app.matrundan.workers.dev`. Kandidaten märks med
+   exakt preflight-run-ID och release-SHA. Aktiv production-deployment ska vara
+   oförändrad och kandidatens `/api/health` ska rapportera exakt release-SHA.
 2. Efter separat autentiserad smoke och separat publiceringsgodkännande får
-   **Cloudflare prod publish** promovera **exakt samma Worker version-ID** till
-   100 % trafik. Publiceringsworkflowet bygger eller laddar inte upp ny kod och
-   vägrar en kandidat som inte kan kopplas till den angivna aktuella `main`-SHA:n.
+   **Cloudflare prod publish** köras med den enda bekräftelsen `PUBLISH_PROD`.
+   Workflowet hittar senaste lyckade prod-preflight för exakt aktuell
+   `main`-SHA, löser Worker-versionen från preflight-run-ID + SHA, verifierar
+   bindings och kandidatidentitet igen och promoverar exakt den versionen till
+   100 % trafik. Om `main` har flyttat eller ingen sådan lyckad preflight finns
+   blockeras publiceringen.
 
 Använd därför inte ett manuellt `wrangler deploy --env prod` som normal
 publiceringsväg. Det skulle skapa en ny, ej smoke-testad version samtidigt som den
 publiceras och bryta kontraktet att exakt verifierad kandidat ska promoveras.
 
 Preflight och publish använder samma concurrency-grupp så en ny kandidat inte kan
-laddas upp samtidigt som en tidigare kandidat promoveras. Publiceringsworkflowet
-kräver dessutom exakt SHA, exakt Worker version-ID och bekräftelsetexten
-`PUBLISH_PROD`; det är fortfarande inte ett godkännande i sig att workflowet finns
-i repot.
+laddas upp samtidigt som en tidigare kandidat promoveras. Preflight vägrar också
+en appversion vars `vX.Y.Z`-tagg redan finns. Efter grön publik health skapar
+publish en oflyttbar releaseidentitet i praktiken: Git-taggen `v<APP_VERSION>`
+måste peka exakt på produktions-SHA:n och får aldrig flyttas. Om taggen saknas
+skapas den; om den redan pekar på en annan SHA stoppas workflowet. Därefter
+skapas motsvarande GitHub Release med notes från den redan materialiserade
+`CHANGELOG.md`-sektionen och markeras som latest.
+
+Tag/Release är alltså **kvitto på lyckad publicering**, inte trigger för
+publiceringen. Det gör GitHub Releases jämförbara med GitLab Releases samtidigt
+som preflight → smoke → explicit publish behålls.
 
 Build-time `VITE_*`-värden hör till respektive byggmiljö. Server-only värden som
 `GEOAPIFY_API_KEY`, Supabase secret/service-role och VAPID private key hör till
