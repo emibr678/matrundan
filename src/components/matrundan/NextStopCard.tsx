@@ -467,7 +467,9 @@ export function NextStopCard({
                 ) : (
                   <AlternativeProposalCard
                     item={item}
-                    previousPlaceName={carouselItems[index - 1]?.place.name ?? focusedItem.place.name}
+                    previousPlaceName={
+                      carouselItems[index - 1]?.place.name ?? focusedItem.place.name
+                    }
                     canInteract={canInteract}
                     busy={busy}
                     onSwitch={() => setSwitching(item.proposal)}
