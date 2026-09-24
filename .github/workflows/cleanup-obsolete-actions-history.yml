@@ -15,6 +15,11 @@ on:
         description: Type DELETE_OBSOLETE_RUNS when mode is delete
         required: false
         type: string
+      minimum_age_days:
+        description: Preserve obsolete runs newer than this many days
+        required: true
+        default: "7"
+        type: string
       max_deletions:
         description: Maximum runs to delete in one execution
         required: true
@@ -37,6 +42,7 @@ jobs:
     env:
       CLEANUP_MODE: ${{ inputs.mode }}
       CLEANUP_CONFIRMATION: ${{ inputs.confirmation }}
+      CLEANUP_MINIMUM_AGE_DAYS: ${{ inputs.minimum_age_days }}
       CLEANUP_MAX_DELETIONS: ${{ inputs.max_deletions }}
       GITHUB_API_TOKEN: ${{ github.token }}
 
@@ -53,12 +59,18 @@ jobs:
           const repo = process.env.GITHUB_REPOSITORY;
           const mode = process.env.CLEANUP_MODE;
           const confirmation = process.env.CLEANUP_CONFIRMATION ?? "";
+          const minimumAgeDays = Number.parseInt(
+            process.env.CLEANUP_MINIMUM_AGE_DAYS ?? "",
+            10,
+          );
           const maxDeletions = Number.parseInt(process.env.CLEANUP_MAX_DELETIONS ?? "", 10);
-          const minimumAgeDays = 7;
           const cutoffMs = Date.now() - minimumAgeDays * 24 * 60 * 60 * 1000;
 
           if (!["dry-run", "delete"].includes(mode)) {
             throw new Error(`Unsupported cleanup mode: ${mode}`);
+          }
+          if (!Number.isInteger(minimumAgeDays) || minimumAgeDays < 0 || minimumAgeDays > 30) {
+            throw new Error("minimum_age_days must be an integer between 0 and 30.");
           }
           if (!Number.isInteger(maxDeletions) || maxDeletions < 1 || maxDeletions > 1000) {
             throw new Error("max_deletions must be an integer between 1 and 1000.");
