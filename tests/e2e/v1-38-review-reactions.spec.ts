@@ -222,6 +222,8 @@ test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ pa
       return focusedBox.y - dialogBox.y;
     })
     .toBeGreaterThanOrEqual(40);
+  // Kompaktare omdömeskort kan nå scrollcontainerns slut tidigare; det fokuserade
+  // omdömet ska fortfarande hamna tydligt i den övre halvan av mobilvyn.
   await expect
     .poll(async () => {
       const dialogBox = await dialog.boundingBox();
@@ -229,7 +231,7 @@ test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ pa
       if (!dialogBox || !focusedBox) return 999;
       return focusedBox.y - dialogBox.y;
     })
-    .toBeLessThan(220);
+    .toBeLessThan(300);
 
   await page.waitForTimeout(2_500);
   await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");
