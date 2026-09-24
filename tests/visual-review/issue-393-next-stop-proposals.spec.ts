@@ -110,9 +110,7 @@ test("fånga nytt förslag sist på tur", async ({ page }, testInfo) => {
   await expect(page.getByText("3 på tur", { exact: true })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("4 av 4");
   await expectCarouselIndex(page, 3);
-  const newest = page
-    .locator('[data-next-stop-proposal="alternative"]')
-    .filter({ has: page.getByRole("heading", { name: "Kardemummaköket", exact: true }) });
+  const newest = page.locator('[data-next-stop-proposal="alternative"][data-next-stop-place-id="p2"]');
   await expect(newest).toBeVisible();
   await expect(newest.getByText("Efter Tacoateljén", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
