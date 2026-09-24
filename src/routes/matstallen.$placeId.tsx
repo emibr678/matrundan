@@ -43,6 +43,7 @@ import {
 } from "@/lib/matrundan/review-model";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { formatDate, useStore } from "@/lib/matrundan/store";
+import { nextStopProposalRevealStorageKey } from "@/lib/matrundan/next-stop-v2";
 import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
 import { CATEGORY_LABEL, OCCASION_DESCRIPTION, OCCASION_LABEL } from "@/lib/matrundan/types";
 import { formatVisitContext } from "@/lib/matrundan/visit-context";
@@ -192,13 +193,24 @@ function PlaceDetail() {
     else router.navigate({ to: "/matstallen" });
   };
 
-  async function runNextStop(operation: () => Promise<void>, success: string) {
+  async function runNextStop(
+    operation: () => Promise<void>,
+    success: string,
+    revealPlaceId?: string,
+  ) {
     if (nextBusy) return;
     setNextBusy(true);
+    const storageKey = nextStopProposalRevealStorageKey(state.group.id);
+    if (revealPlaceId && typeof window !== "undefined") {
+      window.sessionStorage.setItem(storageKey, revealPlaceId);
+    }
     try {
       await operation();
       toast.success(success);
     } catch (error) {
+      if (revealPlaceId && typeof window !== "undefined") {
+        window.sessionStorage.removeItem(storageKey);
+      }
       toast.error(error instanceof Error ? error.message : "Kunde inte uppdatera nästa stopp.");
     } finally {
       setNextBusy(false);
@@ -375,6 +387,7 @@ function PlaceDetail() {
                         hasNextStop
                           ? `${place.name} lades till bland förslagen på nästa stopp.`
                           : `${place.name} är gruppens nästa stopp.`,
+                        place.id,
                       )
                     }
                     className="min-h-11 w-full whitespace-normal"

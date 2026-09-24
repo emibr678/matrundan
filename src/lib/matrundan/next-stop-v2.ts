@@ -9,6 +9,10 @@ const EXAMPLE_GROUP_ID = "example-stockholm";
 
 export type NextStopDayResponseValue = "can" | "cannot";
 
+export function nextStopProposalRevealStorageKey(groupId: string): string {
+  return `matrundan.nextStop.v2.reveal.${groupId}`;
+}
+
 function scheduleNotificationFlush(): void {
   void flushNotificationOutbox().catch(() => {
     /* Notiser får aldrig blockera själva skrivningen. */

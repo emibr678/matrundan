@@ -46,6 +46,7 @@ import {
 } from "@/lib/matrundan/next-stop-date";
 import {
   canWithdrawNextStopProposal,
+  nextStopProposalRevealStorageKey,
   type NextStopDayResponseValue,
 } from "@/lib/matrundan/next-stop-v2";
 import { useStore } from "@/lib/matrundan/store";
@@ -88,7 +89,8 @@ export function NextStopCard({
   const [planningOpen, setPlanningOpen] = React.useState(false);
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [switching, setSwitching] = React.useState<NextStopPlaceProposal | null>(null);
-  const [expandedProposalId, setExpandedProposalId] = React.useState<string | null>(null);
+  const [activeCarouselIndex, setActiveCarouselIndex] = React.useState(0);
+  const carouselTouchStart = React.useRef<{ x: number; y: number } | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const proposals = React.useMemo<ProposalItem[]>(
@@ -101,9 +103,27 @@ export function NextStopCard({
   const focusedItem =
     proposals.find((item) => item.place.id === nextStop?.selectedPlaceId) ?? proposals[0];
   const focusedPlace = focusedItem?.place;
-  const otherProposals = focusedItem
-    ? proposals.filter((item) => item.proposal.id !== focusedItem.proposal.id)
-    : [];
+  const focusedProposalId = focusedItem?.proposal.id ?? null;
+  const otherProposals = React.useMemo(
+    () =>
+      focusedProposalId
+        ? proposals
+            .filter((item) => item.proposal.id !== focusedProposalId)
+            .sort(
+              (left, right) =>
+                new Date(right.proposal.createdAt).getTime() -
+                new Date(left.proposal.createdAt).getTime(),
+            )
+        : [],
+    [focusedProposalId, proposals],
+  );
+  const carouselItems = React.useMemo(
+    () => (focusedItem ? [focusedItem, ...otherProposals] : []),
+    [focusedItem, otherProposals],
+  );
+  const activeCarouselItem =
+    carouselItems[Math.min(activeCarouselIndex, Math.max(0, carouselItems.length - 1))] ??
+    focusedItem;
   const plannedDate = focusedItem ? (nextStop?.plannedDate ?? null) : null;
   const passed = plannedDate ? isPastDateValue(plannedDate) : false;
   const canInteract = canWrite && backendReady;
@@ -125,8 +145,25 @@ export function NextStopCard({
   );
 
   React.useEffect(() => {
-    setExpandedProposalId(null);
+    setActiveCarouselIndex(0);
   }, [focusedPlace?.id]);
+
+  React.useEffect(() => {
+    setActiveCarouselIndex((current) =>
+      Math.min(current, Math.max(0, carouselItems.length - 1)),
+    );
+  }, [carouselItems.length]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || carouselItems.length < 2) return;
+    const storageKey = nextStopProposalRevealStorageKey(state.group.id);
+    const revealPlaceId = window.sessionStorage.getItem(storageKey);
+    if (!revealPlaceId) return;
+    const revealIndex = carouselItems.findIndex((item) => item.place.id === revealPlaceId);
+    if (revealIndex < 0) return;
+    setActiveCarouselIndex(revealIndex);
+    window.sessionStorage.removeItem(storageKey);
+  }, [carouselItems, state.group.id]);
 
   async function run(key: string, operation: () => Promise<void>, success?: string) {
     if (busy) return;
@@ -221,7 +258,16 @@ export function NextStopCard({
 
     await run(
       "shuffle",
-      () => propose(pick.id),
+      async () => {
+        const storageKey = nextStopProposalRevealStorageKey(state.group.id);
+        if (typeof window !== "undefined") window.sessionStorage.setItem(storageKey, pick.id);
+        try {
+          await propose(pick.id);
+        } catch (error) {
+          if (typeof window !== "undefined") window.sessionStorage.removeItem(storageKey);
+          throw error;
+        }
+      },
       focusedPlace
         ? `${pick.name} lades till bland förslagen på nästa stopp.`
         : `${pick.name} är gruppens nästa stopp.`,
@@ -259,10 +305,31 @@ export function NextStopCard({
     );
   }
 
+  function changeCarouselIndex(index: number) {
+    setActiveCarouselIndex(Math.min(Math.max(index, 0), Math.max(0, carouselItems.length - 1)));
+  }
+
+  function handleCarouselTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    const touch = event.touches[0];
+    if (!touch) return;
+    carouselTouchStart.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleCarouselTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    const start = carouselTouchStart.current;
+    carouselTouchStart.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 44 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    changeCarouselIndex(activeCarouselIndex + (deltaX < 0 ? 1 : -1));
+  }
+
   if (passed && plannedDate && focusedItem) {
     return (
       <section>
-        <NextStopHeading showShuffle={false} />
+        <NextStopHeading showShuffle={false} proposalCount={proposals.length} />
         <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
           <FocusedPlaceHero
             item={focusedItem}
@@ -335,11 +402,21 @@ export function NextStopCard({
     <section>
       <NextStopHeading
         showShuffle={canInteract && proposals.length < 5}
+        proposalCount={proposals.length}
         busy={busy}
         onShuffle={() => void randomProposal()}
       />
 
-      <Card className="overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
+      <div
+        className="touch-pan-y"
+        role="region"
+        aria-roledescription="karusell"
+        aria-label="Förslag på nästa stopp"
+        onTouchStart={handleCarouselTouchStart}
+        onTouchEnd={handleCarouselTouchEnd}
+      >
+        {activeCarouselItem?.proposal.id === focusedItem.proposal.id ? (
+          <Card className="min-h-[18rem] overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
         <div className="relative">
           <FocusedPlaceHero
             item={focusedItem}
@@ -383,47 +460,28 @@ export function NextStopCard({
             </Button>
           </div>
         ) : null}
-      </Card>
+          </Card>
+        ) : activeCarouselItem ? (
+          <AlternativeProposalCard
+            item={activeCarouselItem}
+            currentUserId={state.currentUserId}
+            canInteract={canInteract}
+            busy={busy}
+            isMostSupported={activeCarouselItem.proposal.id === leadingAlternativeId}
+            onSupport={() => void togglePlaceSupport(activeCarouselItem)}
+            onSwitch={() => setSwitching(activeCarouselItem.proposal)}
+            onWithdraw={() => withdrawProposal(activeCarouselItem)}
+          />
+        ) : null}
 
-      {otherProposals.length > 0 ? (
-        <section className="mt-3" aria-labelledby="next-stop-alternatives-heading">
-          <div className="flex min-h-8 items-center px-1">
-            <h3
-              id="next-stop-alternatives-heading"
-              className="text-sm font-medium text-muted-foreground"
-            >
-              Fler förslag ({otherProposals.length})
-            </h3>
-          </div>
-          <div className="mt-0.5 divide-y divide-border/50">
-            {otherProposals.map((item) => (
-              <ProposalRow
-                key={item.proposal.id}
-                item={item}
-                currentUserId={state.currentUserId}
-                canInteract={canInteract}
-                busy={busy}
-                isMostSupported={item.proposal.id === leadingAlternativeId}
-                expanded={expandedProposalId === item.proposal.id}
-                onToggle={() =>
-                  setExpandedProposalId((current) =>
-                    current === item.proposal.id ? null : item.proposal.id,
-                  )
-                }
-                onSupport={() => void togglePlaceSupport(item)}
-                onSwitch={() => setSwitching(item.proposal)}
-                onWithdraw={() => withdrawProposal(item)}
-              />
-            ))}
-          </div>
-        </section>
-      ) : proposals.length < 5 ? (
-        <div className="mt-1 flex justify-center">
-          <Button asChild variant="ghost" size="sm" className="min-h-10 px-2 text-primary">
-            <Link to="/matstallen">Föreslå ett ställe</Link>
-          </Button>
-        </div>
-      ) : null}
+        {carouselItems.length > 1 ? (
+          <NextStopCarouselControls
+            items={carouselItems}
+            activeIndex={activeCarouselIndex}
+            onSelect={changeCarouselIndex}
+          />
+        ) : null}
+      </div>
 
       <DayPlanningSheet
         open={planningOpen && Boolean(plannedDate)}
@@ -462,17 +520,26 @@ export function NextStopCard({
 
 function NextStopHeading({
   showShuffle,
+  proposalCount = 0,
   onShuffle,
   busy = null,
 }: {
   showShuffle: boolean;
+  proposalCount?: number;
   onShuffle?: () => void;
   busy?: string | null;
 }) {
   return (
     <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
-      <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
-        <Flag className="h-3.5 w-3.5" aria-hidden="true" /> Nästa stopp
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground">
+          <Flag className="h-3.5 w-3.5" aria-hidden="true" /> Nästa stopp
+        </div>
+        {proposalCount > 1 ? (
+          <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+            {proposalCount} förslag
+          </span>
+        ) : null}
       </div>
       {showShuffle && onShuffle ? (
         <button
@@ -695,14 +762,12 @@ function DayRow({
   );
 }
 
-function ProposalRow({
+function AlternativeProposalCard({
   item,
   currentUserId,
   canInteract,
   busy,
   isMostSupported,
-  expanded,
-  onToggle,
   onSupport,
   onSwitch,
   onWithdraw,
@@ -712,60 +777,54 @@ function ProposalRow({
   canInteract: boolean;
   busy: string | null;
   isMostSupported: boolean;
-  expanded: boolean;
-  onToggle: () => void;
   onSupport: () => void;
   onSwitch: () => void;
   onWithdraw: () => void;
 }) {
   const { state } = useStore();
   const canRemove = canInteract && canWithdrawNextStopProposal(state, item.proposal);
-  const supported = item.proposal.supports.some((support) => support.memberId === currentUserId);
-  const detailsId = `next-stop-proposal-${item.proposal.id}-details`;
 
   return (
-    <div data-next-stop-proposal="alternative" className="py-1">
-      <button
-        type="button"
-        className="flex min-h-14 w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-expanded={expanded}
-        aria-controls={detailsId}
-        aria-label={`${expanded ? "Dölj" : "Visa"} val för ${item.place.name}`}
-        onClick={onToggle}
-      >
-        <span
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary text-xl"
-          aria-hidden="true"
-        >
-          {item.place.photo ?? "🍽️"}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-display text-[15px] font-semibold leading-tight sm:text-base">
-            {item.place.name}
-          </span>
-          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-            <span className="truncate">{proposerLabel(item.proposal, state)}</span>
-            <span aria-hidden="true">·</span>
-            <span className={supported ? "font-medium text-primary" : undefined}>
-              {item.proposal.supports.length} vill hit
+    <Card
+      data-next-stop-proposal="alternative"
+      className="flex min-h-[18rem] flex-col overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm"
+    >
+      <div className="relative flex-1 bg-gradient-to-br from-secondary/80 to-card px-5 py-4">
+        <div className="pr-9">
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">
+              Förslag
             </span>
+            <span className="text-muted-foreground">{CATEGORY_LABEL[item.place.category]}</span>
             {isMostSupported ? (
-              <>
-                <span aria-hidden="true">·</span>
-                <span className="font-medium text-primary">Flest vill hit</span>
-              </>
+              <span className="font-medium text-primary">Flest vill hit</span>
             ) : null}
-          </span>
-        </span>
-        <ChevronRight
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
-          aria-hidden="true"
-        />
-      </button>
-
-      {expanded ? (
-        <div id={detailsId} className="pb-2 pl-[3.25rem] pr-2">
-          <div className="flex flex-wrap items-center gap-2">
+          </div>
+          <Link
+            to="/matstallen/$placeId"
+            params={{ placeId: item.place.id }}
+            className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`Öppna ${item.place.name}`}
+          >
+            <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
+              {item.place.photo ?? "🍽️"}
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
+                {item.place.name}
+              </h2>
+              <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  {item.place.address}, {item.place.city}
+                </span>
+              </div>
+            </div>
+          </Link>
+          <div className="mt-2 pl-[3.5rem] text-xs text-muted-foreground">
+            {proposerLabel(item.proposal, state)}
+          </div>
+          <div className="mt-3 pl-[3.5rem]">
             <PlacePreferenceButton
               proposal={item.proposal}
               currentUserId={currentUserId}
@@ -773,33 +832,77 @@ function ProposalRow({
               busy={busy}
               onClick={onSupport}
             />
-            {canInteract ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-10 min-h-10 shrink-0 rounded-full border-primary/40 px-3 text-xs text-primary"
-                onClick={onSwitch}
-                disabled={busy !== null}
-              >
-                Välj ställe
-              </Button>
-            ) : null}
-            <Button asChild type="button" size="sm" variant="ghost" className="h-10 px-2 text-xs">
-              <Link to="/matstallen/$placeId" params={{ placeId: item.place.id }}>
-                Till stället
-              </Link>
-            </Button>
-            {canRemove ? (
-              <ProposalMenu
-                placeName={item.place.name}
-                busy={busy === `withdraw:${item.proposal.id}`}
-                onWithdraw={onWithdraw}
-              />
-            ) : null}
           </div>
         </div>
-      ) : null}
+        {canRemove ? (
+          <div className="absolute right-3 top-3">
+            <ProposalMenu
+              placeName={item.place.name}
+              busy={busy === `withdraw:${item.proposal.id}`}
+              onWithdraw={onWithdraw}
+            />
+          </div>
+        ) : null}
+      </div>
+      <div className="mt-auto grid gap-1 border-t border-border/60 p-4">
+        {canInteract ? (
+          <Button type="button" className="min-h-12 w-full" onClick={onSwitch} disabled={busy !== null}>
+            Välj som nästa stopp
+          </Button>
+        ) : null}
+        <Button asChild type="button" variant="ghost" className="min-h-10 w-full">
+          <Link to="/matstallen/$placeId" params={{ placeId: item.place.id }}>
+            Till stället
+          </Link>
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function NextStopCarouselControls({
+  items,
+  activeIndex,
+  onSelect,
+}: {
+  items: ProposalItem[];
+  activeIndex: number;
+  onSelect: (index: number) => void;
+}) {
+  return (
+    <div className="mt-2 flex min-h-9 items-center justify-center gap-2.5">
+      <div className="flex items-center" aria-label="Välj förslag i karusellen">
+        {items.map((item, index) => {
+          const active = index === activeIndex;
+          const label =
+            index === 0 ? `Visa nästa stopp: ${item.place.name}` : `Visa förslag: ${item.place.name}`;
+          return (
+            <button
+              key={item.proposal.id}
+              type="button"
+              className="grid h-8 w-7 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={label}
+              aria-current={active ? "true" : undefined}
+              onClick={() => onSelect(index)}
+            >
+              <span
+                className={[
+                  "block h-1.5 rounded-full transition-all",
+                  active ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/35",
+                ].join(" ")}
+                aria-hidden="true"
+              />
+            </button>
+          );
+        })}
+      </div>
+      <span
+        data-testid="next-stop-carousel-position"
+        className="text-[11px] tabular-nums text-muted-foreground"
+        aria-live="polite"
+      >
+        {activeIndex + 1} av {items.length}
+      </span>
     </div>
   );
 }

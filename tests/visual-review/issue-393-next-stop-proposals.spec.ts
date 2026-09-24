@@ -44,6 +44,7 @@ async function resetDemo(page: Page) {
     window.localStorage.removeItem("matrundan.nextStop.v2.g1");
     window.localStorage.removeItem("matrundan.nextStop.v2.responses.g1");
     window.localStorage.removeItem("matrundan.nextStopDate.v1.g1");
+    window.sessionStorage.removeItem("matrundan.nextStop.v2.reveal.g1");
   });
   await page.reload({ waitUntil: "domcontentloaded" });
 }
@@ -54,31 +55,26 @@ async function proposeFromDetail(page: Page, placeId: string) {
   await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
 }
 
-test("fånga ett synligt alternativ till nästa stopp", async ({ page }, testInfo) => {
+test("fånga karusellens nästa stopp och nyss tillagda förslag", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await resetDemo(page);
   await proposeFromDetail(page, "p1");
   await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
 
-  await expect(
-    page.getByRole("heading", { name: "Fler förslag (1)" }),
-  ).toBeVisible();
-  const alternative = page.locator('[data-next-stop-proposal="alternative"]');
-  await expect(alternative).toBeVisible();
-  await expect(alternative.getByText("Lilla Myntans Matrum", { exact: true })).toBeVisible();
-  await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toHaveCount(0);
+  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toBeVisible();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-393-nasta-stopp-ett-forslag-kompakt");
+  await capture(page, testInfo, "issue-393-karusell-nytt-forslag");
 
-  await alternative.getByRole("button", { name: "Visa val för Lilla Myntans Matrum" }).click();
-  await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toBeVisible();
+  await page.getByRole("button", { name: /Visa nästa stopp:/ }).click();
+  await expect(page.locator('[data-next-stop-proposal="selected"]')).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-393-nasta-stopp-ett-forslag-expanderat");
+  await capture(page, testInfo, "issue-393-karusell-nasta-stopp");
 });
 
-test("fånga flera kompakta alternativ utan dold lista", async ({ page }, testInfo) => {
+test("fånga karusell med flera förslag och nyast först", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await resetDemo(page);
   await proposeFromDetail(page, "p1");
@@ -86,11 +82,12 @@ test("fånga flera kompakta alternativ utan dold lista", async ({ page }, testIn
   await proposeFromDetail(page, "p3");
   await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
 
-  await expect(
-    page.getByRole("heading", { name: "Fler förslag (3)" }),
-  ).toBeVisible();
-  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toHaveCount(3);
+  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toContainText(
+    "Månskärans Taquería",
+  );
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 4");
+  await expect(page.getByText("4 förslag", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
-  await capture(page, testInfo, "issue-393-nasta-stopp-flera-forslag");
+  await capture(page, testInfo, "issue-393-karusell-flera-forslag");
 });
