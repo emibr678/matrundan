@@ -23,6 +23,8 @@ const visitShareTargetSchema = z.object({
   visibleParticipants: z.array(visibleParticipantSchema),
   relevantReviewCount: z.number().int().nonnegative(),
   ownHasComment: z.boolean(),
+  ownHasPhoto: z.boolean(),
+  ownPhotoShared: z.boolean(),
   sharedVisitsCountForProgression: z.boolean(),
 });
 
@@ -64,6 +66,8 @@ export interface VisitShareTarget {
   visibleParticipants: VisibleParticipant[];
   relevantReviewCount: number;
   ownHasComment: boolean;
+  ownHasPhoto: boolean;
+  ownPhotoShared: boolean;
   sharedVisitsCountForProgression: boolean;
 }
 
@@ -88,7 +92,7 @@ export interface OwnVisitForPlace {
 
 export async function listVisitShareTargets(visitId: string): Promise<VisitShareTarget[]> {
   return rpcClient.call(
-    "list_visit_share_targets_v4b",
+    "list_visit_share_targets_v5",
     { _visit_id: visitId },
     z.array(visitShareTargetSchema),
     "Kunde inte läsa vilka grupper besöket kan delas till.",
@@ -121,17 +125,31 @@ export async function shareVisitToGroup(
   targetGroupId: string,
   shareOwnComment: boolean,
   allowStrongDuplicate = false,
+  shareOwnPhoto = false,
 ): Promise<string> {
   return rpcClient.call(
-    "share_visit_to_group_v3",
+    "share_visit_to_group_v4",
     {
       _visit_id: visitId,
       _target_group_id: targetGroupId,
       _share_own_comment: shareOwnComment,
       _allow_strong_duplicate: allowStrongDuplicate,
+      _share_own_photo: shareOwnPhoto,
     },
     z.string().min(1),
     "Kunde inte dela besöket.",
+  );
+}
+
+export async function shareOwnVisitPhotoToGroup(
+  visitId: string,
+  targetGroupId: string,
+): Promise<void> {
+  await rpcClient.call(
+    "grant_own_visit_photo_visibility_v1",
+    { _visit_id: visitId, _target_group_id: targetGroupId },
+    z.string().min(1),
+    "Kunde inte dela din bild.",
   );
 }
 

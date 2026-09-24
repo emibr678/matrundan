@@ -91,9 +91,7 @@ test("Reaktionsväljaren är förankrad, fokusstyrd och flyttar inte nästa omd�
   expect(triggerBox!.height).toBeGreaterThanOrEqual(44);
   const commentBox = await samComment.boundingBox();
   expect(commentBox).not.toBeNull();
-  expect(
-    Math.abs(triggerBox!.y + triggerBox!.height - (commentBox!.y + commentBox!.height)),
-  ).toBeLessThanOrEqual(2);
+  expect(Math.abs(triggerBox!.y - commentBox!.y)).toBeLessThanOrEqual(2);
 
   const nextReview = dialog.locator('[data-review-id="review-v2-kim"]');
   const nextReviewYBefore = (await nextReview.boundingBox())?.y;
@@ -203,7 +201,31 @@ test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ pa
       name: "Lägg till reaktion på Alexs omdöme",
     }),
   ).toHaveCount(0);
-  await expect(ownReview.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
+  const ownEditButton = ownReview.getByRole("button", { name: "Redigera omdöme" });
+  await expect(ownEditButton).toBeVisible();
+  await expect(ownReview.getByText("Redigera omdöme", { exact: true })).toHaveCount(0);
+  const ownActionRow = ownReview.locator("[data-review-action-row]");
+  await expect(ownActionRow.getByRole("button", { name: "Redigera omdöme" })).toBeVisible();
+  const ownEditBox = await ownEditButton.boundingBox();
+  expect(ownEditBox).not.toBeNull();
+  expect(ownEditBox!.width).toBeGreaterThanOrEqual(44);
+  expect(ownEditBox!.height).toBeGreaterThanOrEqual(44);
+
+  const ownName = ownReview.getByText("Alex", { exact: true }).first();
+  const ownComment = ownReview.getByText(
+    "En lugn fredagsfika och en riktigt bra kardemummabulle.",
+    { exact: true },
+  );
+  const [ownNameBox, ownCommentBox] = await Promise.all([
+    ownName.boundingBox(),
+    ownComment.boundingBox(),
+  ]);
+  expect(ownNameBox).not.toBeNull();
+  expect(ownCommentBox).not.toBeNull();
+  // Chromium kan rapportera subpixelavrundning trots samma layoutkolumn.
+  expect(Math.abs(ownNameBox!.x - ownCommentBox!.x)).toBeLessThanOrEqual(3);
+  expect(ownCommentBox!.y - (ownNameBox!.y + ownNameBox!.height)).toBeLessThanOrEqual(8);
+
   await expectNoHorizontalOverflow(page, ownReview, "eget omdöme på 360 px");
 
   await expect
@@ -214,6 +236,8 @@ test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ pa
       return focusedBox.y - dialogBox.y;
     })
     .toBeGreaterThanOrEqual(40);
+  // Kompaktare omdömeskort kan nå scrollcontainerns slut tidigare; det fokuserade
+  // omdömet ska fortfarande hamna tydligt i den övre halvan av mobilvyn.
   await expect
     .poll(async () => {
       const dialogBox = await dialog.boundingBox();
@@ -221,7 +245,7 @@ test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ pa
       if (!dialogBox || !focusedBox) return 999;
       return focusedBox.y - dialogBox.y;
     })
-    .toBeLessThan(220);
+    .toBeLessThan(300);
 
   await page.waitForTimeout(2_500);
   await expect(focusedReview).toHaveAttribute("data-review-highlighted", "true");

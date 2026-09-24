@@ -2,13 +2,14 @@ import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
+  ChevronRight,
   MapPin,
   MoreHorizontal,
   Pencil,
-  Share2,
   Trash2,
   UserRoundCheck,
   Users2,
+  UsersRound,
 } from "lucide-react";
 import {
   Sheet,
@@ -76,7 +77,6 @@ export function VisitDetailSheet({
     [visitId, state.visits],
   );
   const place = visit ? getPlace(visit.placeId) : undefined;
-  const author = visit ? memberById(visit.createdBy) : undefined;
 
   const isLive = mode === "live" && !!activeGroupId;
   const isDemo = mode === "demo";
@@ -87,8 +87,9 @@ export function VisitDetailSheet({
   const isParticipant = participationStatus === "participant";
   const isShared = visit?.linkType === "shared";
   const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
-  const hasPrivateGuests =
-    visit?.participants?.some((participant) => participant.status === "guest") ?? false;
+  const privateGuests =
+    visit?.participants?.filter((participant) => participant.status === "guest") ?? [];
+  const hasPrivateGuests = privateGuests.length > 0;
   const hasExternalParticipants = (visit?.externalParticipantCount ?? 0) > 0;
   const canLinkGuest =
     !groupArchived && isLive && !isShared && hasPrivateGuests && activeGroupCount >= 2;
@@ -101,6 +102,12 @@ export function VisitDetailSheet({
       activeGroupRole === "owner" ||
       activeGroupRole === "admin");
   const canShare = !groupArchived && isLive && !!visit && isParticipant && activeGroupCount >= 2;
+  const canChangeParticipation =
+    !!visit &&
+    participationStatus !== "none" &&
+    visit.createdBy !== state.currentUserId &&
+    !groupArchived &&
+    !demoReadOnly;
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const canDelete =
     !!visit && canDeleteOriginalVisit(visit, state.currentUserId, currentRole, groupArchived);
@@ -110,6 +117,10 @@ export function VisitDetailSheet({
   const [shareOpen, setShareOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [guestLinkOpen, setGuestLinkOpen] = React.useState(false);
+  const [guestLinkTarget, setGuestLinkTarget] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [confirmUnlink, setConfirmUnlink] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [unlinking, setUnlinking] = React.useState(false);
@@ -184,25 +195,34 @@ export function VisitDetailSheet({
                     </Badge>
                   ) : null}
                 </div>
-                <SheetTitle className="mt-1 font-display text-2xl leading-tight">
-                  <Link
-                    to="/matstallen/$placeId"
-                    params={{ placeId: place.id }}
-                    onClick={() => onOpenChange(false)}
-                    className="hover:underline"
-                  >
-                    {place.name}
-                  </Link>
-                </SheetTitle>
-                <SheetDescription className="mt-1 flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {place.address}, {place.city}
-                </SheetDescription>
+                <Link
+                  to="/matstallen/$placeId"
+                  params={{ placeId: place.id }}
+                  onClick={() => onOpenChange(false)}
+                  aria-label={`Till ${place.name}`}
+                  className="group -mx-2 mt-1 block min-h-14 max-w-full rounded-lg px-2 py-1.5 transition-colors hover:bg-background/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <SheetTitle className="min-w-0 font-display text-2xl leading-tight transition-colors group-hover:text-foreground">
+                      {place.name}
+                    </SheetTitle>
+                    <ChevronRight
+                      className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground transition-colors group-hover:text-foreground/80">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">
+                      {place.address}, {place.city}
+                    </span>
+                  </div>
+                </Link>
                 <SheetDescription className="mt-1 text-xs">
                   {formatVisitDate(visit.date)} · {formatVisitContext(visit)}
                 </SheetDescription>
 
-                {canEdit || canShare || canUnlink || canDelete ? (
+                {canEdit || canUnlink || canDelete ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -220,11 +240,6 @@ export function VisitDetailSheet({
                         <DropdownMenuItem onSelect={() => setEditOpen(true)}>
                           <Pencil className="h-4 w-4" />
                           Redigera besök
-                        </DropdownMenuItem>
-                      ) : canShare ? (
-                        <DropdownMenuItem onSelect={() => setShareOpen(true)}>
-                          <Share2 className="h-4 w-4" />
-                          Lägg till i annan grupp
                         </DropdownMenuItem>
                       ) : null}
                       {canUnlink || canDelete ? <DropdownMenuSeparator /> : null}
@@ -252,21 +267,19 @@ export function VisitDetailSheet({
               </SheetHeader>
 
               <div className="space-y-4 p-5">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span
-                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-sm"
-                    aria-hidden="true"
-                  >
-                    {author?.avatar ?? "🙂"}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
-                    registrerade besöket
-                  </span>
-                </div>
-
                 <section>
-                  <h3 className="mb-2 text-sm font-medium">Deltagare</h3>
+                  <div className="mb-2 flex min-h-8 items-center justify-between gap-3">
+                    <h3 className="text-sm font-medium">Deltagare</h3>
+                    {canChangeParticipation ? (
+                      <VisitParticipationControls
+                        visit={visit}
+                        currentUserId={state.currentUserId}
+                        groupArchived={groupArchived}
+                        demoReadOnly={demoReadOnly}
+                        onChanged={reload}
+                      />
+                    ) : null}
+                  </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(visit.participants && visit.participants.length > 0
                       ? visit.participants
@@ -315,23 +328,29 @@ export function VisitDetailSheet({
                       </Badge>
                     ) : null}
                   </div>
-                  {hasPrivateGuests ? (
-                    <div className="mt-1.5 space-y-1.5">
-                      <p className="text-[11px] text-muted-foreground">
-                        Gäster hör bara till besöket och räknas inte som gruppmedlemmar.
-                      </p>
-                      {canLinkGuest ? (
+                  {canLinkGuest && privateGuests.length > 0 ? (
+                    <div className="mt-1.5 space-y-0.5">
+                      {privateGuests.map((guestParticipant) => (
                         <Button
+                          key={guestParticipant.id}
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="h-auto min-h-10 px-2 text-xs text-muted-foreground"
-                          onClick={() => setGuestLinkOpen(true)}
+                          className="h-auto min-h-8 max-w-full justify-start px-1.5 py-1 text-xs font-normal text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setGuestLinkTarget({
+                              id: guestParticipant.id,
+                              name: guestParticipant.name,
+                            });
+                            setGuestLinkOpen(true);
+                          }}
                         >
-                          <UserRoundCheck className="h-3.5 w-3.5" />
-                          Koppla gäst till medlem
+                          <UserRoundCheck className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">
+                            Koppla {guestParticipant.name} till gruppmedlem
+                          </span>
                         </Button>
-                      ) : null}
+                      ))}
                     </div>
                   ) : null}
                 </section>
@@ -346,16 +365,6 @@ export function VisitDetailSheet({
                   />
                 ) : null}
 
-                {participationStatus === "declined" ? (
-                  <VisitParticipationControls
-                    visit={visit}
-                    currentUserId={state.currentUserId}
-                    groupArchived={groupArchived}
-                    demoReadOnly={demoReadOnly}
-                    onChanged={reload}
-                  />
-                ) : null}
-
                 <VisitReviewsSection
                   visit={visit}
                   placeName={place.name}
@@ -365,27 +374,19 @@ export function VisitDetailSheet({
                   onChanged={reload}
                 />
 
-                {participationStatus === "participant" ? (
-                  <VisitParticipationControls
-                    visit={visit}
-                    currentUserId={state.currentUserId}
-                    groupArchived={groupArchived}
-                    demoReadOnly={demoReadOnly}
-                    onChanged={reload}
-                  />
-                ) : null}
-
                 <VisitPhotoManager visit={visit} />
 
-                <Button asChild variant="outline" className="w-full">
-                  <Link
-                    to="/matstallen/$placeId"
-                    params={{ placeId: place.id }}
-                    onClick={() => onOpenChange(false)}
+                {canShare ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 w-full"
+                    onClick={() => setShareOpen(true)}
                   >
-                    Till stället
-                  </Link>
-                </Button>
+                    <UsersRound className="h-4 w-4" />
+                    Lägg till besöket i en annan grupp
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -414,8 +415,13 @@ export function VisitDetailSheet({
           <GuestMemberLinkDialog
             visitId={visit?.id ?? null}
             sourceGroupId={activeGroupId}
+            initialGuestId={guestLinkTarget?.id ?? null}
+            initialGuestName={guestLinkTarget?.name ?? null}
             open={guestLinkOpen}
-            onOpenChange={setGuestLinkOpen}
+            onOpenChange={(nextOpen) => {
+              setGuestLinkOpen(nextOpen);
+              if (!nextOpen) setGuestLinkTarget(null);
+            }}
           />
         </>
       ) : null}

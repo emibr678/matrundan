@@ -258,11 +258,23 @@ gruppens auktoriserade besökskontext. Ett äldre kompatibilitetsfält `photo`
 behålls som en enda stabil representativ bild, den äldsta kvarvarande bilden,
 så historikminiatyrer och äldre klienter inte behöver tolka ett galleri.
 
-Cross-group-synlighet ingår inte i flerfotomodellen. Ett foto blir aldrig synligt
-i en ny grupp bara för att det kanoniska besöket delas. **#179 Dela besöksfoto
-uttryckligen tillsammans med delat besök** ansvarar separat för framtida,
-uttrycklig och serverstyrd gruppsynlighet utan att exponera ursprungsgrupp,
-medlemskap, privata kommentarer eller Storage-sökvägar.
+Cross-group-synlighet är uttrycklig och individuell. Ett foto blir aldrig
+synligt i en ny grupp bara för att det kanoniska besöket delas. Bildägaren kan
+i stället skapa en `visit_media_group_visibility` för sin egen befintliga bild
+och en målgrupp där samma kanoniska besök redan finns. Relationen kopierar
+varken fil eller ägarskap och kaskadreras när mediaobjektet eller målgruppens
+besökslänk tas bort.
+
+Målgruppens read-model får endast ett opaque `deliveryToken` för cross-group-
+media; ursprungsgrupp och rå `storagePath` lämnar aldrig den gränsen.
+Appservern tar emot användarens bearer-session via samma origin och vidarebefordrar
+den till den minimala Supabase Edge Functionen `visit-photo-delivery`. Funktionen
+revaliderar sessionen, låter den service-only resolver-RPC:n kontrollera aktuell
+målgruppsbehörighet och använder därefter serverrollen endast för att hämta det
+privata Storage-objektet. Cloudflare-preview behöver därmed ingen service-role-
+hemlighet för bildleveransen, och varken ursprungsgrupp eller rå Storage-sökväg
+exponeras för klienten. Därmed kan målgruppens admin inte skriva över eller
+radera originalet, samtidigt som byte av bild följer samma stabila mediaobjekt.
 
 ## RLS och RPC-mönster
 
@@ -286,8 +298,8 @@ behörighet att läsa den.
 
 ## Gruppstate
 
-`get_group_app_state_v5m(uuid)` är nuvarande primära read-RPC för gruppens
-applikationsstate. `get_group_app_state_v5l(uuid)` är den närmast föregående
+`get_group_app_state_v5n(uuid)` är nuvarande primära read-RPC för gruppens
+applikationsstate. `get_group_app_state_v5m(uuid)` är den närmast föregående
 kompatibla läs-RPC:n och får användas som strikt fallback när v5m uttryckligen
 saknas under en säker rullning. Andra auth-, nätverks- eller datafel får inte
 döljas genom fallback.

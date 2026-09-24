@@ -301,6 +301,57 @@ export async function liveDeleteVisitPhoto(
   if (previousPath) await removeStoragePath(previousPath);
 }
 
+const deliveredObjectUrls = new Map<string, string>();
+
+export async function createDeliveredVisitPhotoUrls(tokens: string[]) {
+  const unique = [...new Set(tokens.filter(Boolean))];
+  const keep = new Set(unique);
+
+  for (const [token, url] of deliveredObjectUrls) {
+    if (!keep.has(token)) {
+      URL.revokeObjectURL(url);
+      deliveredObjectUrls.delete(token);
+    }
+  }
+
+  const result = new Map<string, string>();
+  if (unique.length === 0 || typeof window === "undefined") return result;
+
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) return result;
+
+  await Promise.all(
+    unique.map(async (token) => {
+      const cached = deliveredObjectUrls.get(token);
+      if (cached) {
+        result.set(token, cached);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/visit-photo/${encodeURIComponent(token)}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "image/*",
+          },
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        deliveredObjectUrls.set(token, url);
+        result.set(token, url);
+      } catch (error) {
+        console.error("[Matrundan] Kunde inte hämta delad besöksbild:", error);
+      }
+    }),
+  );
+
+  return result;
+}
+
 export async function createSignedVisitPhotoUrls(paths: string[]) {
   const unique = [...new Set(paths.filter(Boolean))];
   const result = new Map<string, string>();

@@ -67,8 +67,10 @@ test("en medlem kan redigera endast sitt eget omdöme", async ({ page }) => {
 
   const visitSheet = page.getByRole("dialog");
   await expect(visitSheet.getByRole("heading", { name: "Kvarterets Kardemumma" })).toBeVisible();
-  await expect(visitSheet.getByRole("link", { name: "Maps" })).toHaveCount(0);
-  await visitSheet.getByRole("button", { name: "Redigera omdöme" }).click();
+  expect(await visitSheet.getByRole("link", { name: "Maps" }).count()).toBe(0);
+  const editReviewButton = visitSheet.getByRole("button", { name: "Redigera omdöme" });
+  await expect(editReviewButton).toBeVisible();
+  await editReviewButton.click();
 
   const editDialog = page.getByRole("dialog", { name: "Redigera ditt omdöme" });
   const comment = editDialog.getByLabel("Kommentar (frivilligt)");
