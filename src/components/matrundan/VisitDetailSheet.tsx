@@ -77,7 +77,6 @@ export function VisitDetailSheet({
     [visitId, state.visits],
   );
   const place = visit ? getPlace(visit.placeId) : undefined;
-  const author = visit ? memberById(visit.createdBy) : undefined;
 
   const isLive = mode === "live" && !!activeGroupId;
   const isDemo = mode === "demo";
@@ -196,21 +195,28 @@ export function VisitDetailSheet({
                     </Badge>
                   ) : null}
                 </div>
-                <SheetTitle className="mt-1 font-display text-2xl leading-tight">
-                  {place.name}
-                </SheetTitle>
                 <Link
                   to="/matstallen/$placeId"
                   params={{ placeId: place.id }}
                   onClick={() => onOpenChange(false)}
                   aria-label={`Till ${place.name}`}
-                  className="mt-1 flex min-h-8 w-fit max-w-full items-center gap-1 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="group -mx-2 mt-1 block min-h-14 max-w-full rounded-lg px-2 py-1.5 transition-colors hover:bg-background/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  <span className="truncate">
-                    {place.address}, {place.city}
-                  </span>
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <div className="flex items-center gap-1.5">
+                    <SheetTitle className="min-w-0 flex-1 font-display text-2xl leading-tight transition-colors group-hover:text-foreground">
+                      {place.name}
+                    </SheetTitle>
+                    <ChevronRight
+                      className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="mt-1 flex min-w-0 items-center gap-1 text-sm text-muted-foreground transition-colors group-hover:text-foreground/80">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">
+                      {place.address}, {place.city}
+                    </span>
+                  </div>
                 </Link>
                 <SheetDescription className="mt-1 text-xs">
                   {formatVisitDate(visit.date)} · {formatVisitContext(visit)}
@@ -261,19 +267,6 @@ export function VisitDetailSheet({
               </SheetHeader>
 
               <div className="space-y-4 p-5">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span
-                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-sm"
-                    aria-hidden="true"
-                  >
-                    {author?.avatar ?? "🙂"}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="font-medium text-foreground">{author?.name ?? "Någon"}</span>{" "}
-                    registrerade besöket
-                  </span>
-                </div>
-
                 <section>
                   <div className="mb-2 flex min-h-8 items-center justify-between gap-3">
                     <h3 className="text-sm font-medium">Deltagare</h3>
