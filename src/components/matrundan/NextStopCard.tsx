@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Check,
   ChevronLeft,
+  CornerDownRight,
   ChevronRight,
   Flag,
   Loader2,
@@ -466,6 +467,7 @@ export function NextStopCard({
                 ) : (
                   <AlternativeProposalCard
                     item={item}
+                    previousPlaceName={carouselItems[index - 1]?.place.name ?? focusedItem.place.name}
                     canInteract={canInteract}
                     busy={busy}
                     onSwitch={() => setSwitching(item.proposal)}
@@ -726,12 +728,14 @@ function DayRow({
 
 function AlternativeProposalCard({
   item,
+  previousPlaceName,
   canInteract,
   busy,
   onSwitch,
   onWithdraw,
 }: {
   item: ProposalItem;
+  previousPlaceName: string;
   canInteract: boolean;
   busy: string | null;
   onSwitch: () => void;
@@ -743,12 +747,12 @@ function AlternativeProposalCard({
   return (
     <Card
       data-next-stop-proposal="alternative"
-      className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm"
+      className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-3xl border-primary/15 bg-card p-0 shadow-sm"
     >
-      <div className="relative flex-1 bg-gradient-to-br from-primary/[0.14] to-card px-5 py-4">
+      <div className="relative bg-gradient-to-br from-primary/20 via-secondary/55 to-card px-5 py-4">
         <div className="pr-9">
           <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">
+            <span className="rounded-full bg-primary/12 px-2 py-1 font-medium text-primary">
               På tur
             </span>
             <span className="text-muted-foreground">{CATEGORY_LABEL[item.place.category]}</span>
@@ -794,11 +798,28 @@ function AlternativeProposalCard({
           </div>
         ) : null}
       </div>
+
+      <div className="flex min-h-20 flex-1 items-center gap-3 border-t border-primary/10 bg-primary/[0.045] px-5 py-3.5">
+        <span
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+          aria-hidden="true"
+        >
+          <CornerDownRight className="h-4 w-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">På tur efter {previousPlaceName}</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+            Kön flyttas fram när nästa stopp är avklarat.
+          </span>
+        </span>
+      </div>
+
       {canInteract ? (
-        <div className="mt-auto border-t border-border/60 p-4">
+        <div className="border-t border-border/60 p-4">
           <Button
             type="button"
-            className="min-h-12 w-full"
+            className="h-12 w-full text-base"
+            size="lg"
             onClick={onSwitch}
             disabled={busy !== null}
           >
@@ -1108,7 +1129,7 @@ function ProposalMenu({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-9 w-9 shrink-0 text-muted-foreground"
+          className="h-9 w-9 shrink-0 rounded-full bg-background/55 text-muted-foreground hover:bg-background/80"
           aria-label={`Fler val för ${placeName}`}
         >
           {busy ? (
@@ -1220,8 +1241,8 @@ function SwitchDialog({
           </DialogTitle>
           <DialogDescription>
             {target
-              ? `${target.name} flyttas fram som gruppens nästa stopp. ${currentPlace.name} ligger kvar på tur.${day ? ` ${day} och gruppens svar följer med.` : ""}`
-              : "Stället flyttas fram som gruppens nästa stopp."}
+              ? `${target.name} flyttas fram. ${currentPlace.name} ligger kvar på tur.${day ? ` ${day} och gruppens svar följer med.` : ""}`
+              : "Stället flyttas fram som nästa stopp."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
