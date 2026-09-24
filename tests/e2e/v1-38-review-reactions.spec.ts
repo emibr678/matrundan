@@ -91,9 +91,7 @@ test("Reaktionsväljaren är förankrad, fokusstyrd och flyttar inte nästa omd�
   expect(triggerBox!.height).toBeGreaterThanOrEqual(44);
   const commentBox = await samComment.boundingBox();
   expect(commentBox).not.toBeNull();
-  expect(
-    Math.abs(triggerBox!.y + triggerBox!.height - (commentBox!.y + commentBox!.height)),
-  ).toBeLessThanOrEqual(2);
+  expect(Math.abs(triggerBox!.y - commentBox!.y)).toBeLessThanOrEqual(2);
 
   const nextReview = dialog.locator('[data-review-id="review-v2-kim"]');
   const nextReviewYBefore = (await nextReview.boundingBox())?.y;
@@ -212,6 +210,21 @@ test("Hem fokuserar senaste omdömet tills användaren interagerar", async ({ pa
   expect(ownEditBox).not.toBeNull();
   expect(ownEditBox!.width).toBeGreaterThanOrEqual(44);
   expect(ownEditBox!.height).toBeGreaterThanOrEqual(44);
+
+  const ownName = ownReview.getByText("Alex", { exact: true }).first();
+  const ownComment = ownReview.getByText(
+    "En lugn fredagsfika och en riktigt bra kardemummabulle.",
+    { exact: true },
+  );
+  const [ownNameBox, ownCommentBox] = await Promise.all([
+    ownName.boundingBox(),
+    ownComment.boundingBox(),
+  ]);
+  expect(ownNameBox).not.toBeNull();
+  expect(ownCommentBox).not.toBeNull();
+  expect(Math.abs(ownNameBox!.x - ownCommentBox!.x)).toBeLessThanOrEqual(1);
+  expect(ownCommentBox!.y - (ownNameBox!.y + ownNameBox!.height)).toBeLessThanOrEqual(8);
+
   await expectNoHorizontalOverflow(page, ownReview, "eget omdöme på 360 px");
 
   await expect

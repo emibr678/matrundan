@@ -461,8 +461,10 @@ function ReviewRow({
           : undefined
       }
     >
-      <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2.5">
-        <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
+      <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-x-2.5">
+        <div className="row-span-2">
+          <ParticipantAvatar avatar={avatar} avatarImage={avatarImage} name={name} />
+        </div>
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             <p className="max-w-full truncate text-sm font-medium">{name}</p>
@@ -486,33 +488,35 @@ function ReviewRow({
               {name} gav {formatRating(activeOverall as number)} av 5
             </span>
           </div>
-        ) : null}
-      </div>
+        ) : (
+          <span aria-hidden="true" />
+        )}
 
-      {commentContent ? (
-        <div className="ml-10 mt-1">
-          {reactableComment || editAction ? (
+        {commentContent ? (
+          <div className="col-start-2 col-end-4 mt-0.5 min-w-0">
+            {reactableComment || editAction ? (
+              <ReviewReactionBar
+                reviewId={review.id}
+                authorName={name}
+                canReact={!own}
+                trailingAction={editAction}
+                content={commentContent}
+              />
+            ) : (
+              commentContent
+            )}
+          </div>
+        ) : editAction ? (
+          <div className="col-start-2 col-end-4 mt-0.5 min-w-0">
             <ReviewReactionBar
               reviewId={review.id}
               authorName={name}
-              canReact={!own}
+              canReact={false}
               trailingAction={editAction}
-              content={commentContent}
             />
-          ) : (
-            commentContent
-          )}
-        </div>
-      ) : editAction ? (
-        <div className="ml-10 mt-1">
-          <ReviewReactionBar
-            reviewId={review.id}
-            authorName={name}
-            canReact={false}
-            trailingAction={editAction}
-          />
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {detailItems.length > 0 ? (
         <div

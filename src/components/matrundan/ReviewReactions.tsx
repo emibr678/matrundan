@@ -165,7 +165,7 @@ export function ReviewReactionBar({
     if (!content && !trailingAction) return null;
     return content ? (
       <div
-        className="flex min-w-0 items-end gap-1"
+        className="flex min-w-0 items-start gap-1"
         data-review-reactions={reviewId}
         data-review-action-row={reviewId}
       >
@@ -253,7 +253,7 @@ export function ReviewReactionBar({
     <div className={content ? "min-w-0" : "mt-1 min-w-0"} data-review-reactions={reviewId}>
       {content ? (
         <>
-          <div className="flex min-w-0 items-end gap-1" data-review-action-row={reviewId}>
+          <div className="flex min-w-0 items-start gap-1" data-review-action-row={reviewId}>
             <div className="min-w-0 flex-1">{content}</div>
             {reactionPicker}
             {trailingAction ? <div className="shrink-0">{trailingAction}</div> : null}
