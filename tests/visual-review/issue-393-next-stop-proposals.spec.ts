@@ -112,7 +112,7 @@ test("fånga nytt förslag sist på tur", async ({ page }, testInfo) => {
   await expectCarouselIndex(page, 3);
   const newest = page
     .locator('[data-next-stop-proposal="alternative"]')
-    .filter({ hasText: "Kardemummaköket" });
+    .filter({ has: page.getByRole("heading", { name: "Kardemummaköket", exact: true }) });
   await expect(newest).toBeVisible();
   await expect(newest.getByText("På tur efter Tacoateljén", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
