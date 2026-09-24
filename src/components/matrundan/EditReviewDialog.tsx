@@ -295,9 +295,9 @@ export function EditReviewDialog({
           />
 
           {mode === "live" &&
-          activeGroupId &&
-          visit?.linkType === "shared" &&
-          comment.trim() ? (
+            activeGroupId &&
+            visit?.linkType === "shared" &&
+            comment.trim() ? (
             <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/30 p-3">
               <span className="text-sm font-medium">Visa kommentaren i den här gruppen</span>
               <Switch
