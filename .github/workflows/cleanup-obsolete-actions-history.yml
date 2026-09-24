@@ -35,10 +35,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      CLEANUP_MODE: \${{ inputs.mode }}
-      CLEANUP_CONFIRMATION: \${{ inputs.confirmation }}
-      CLEANUP_MAX_DELETIONS: \${{ inputs.max_deletions }}
-      GITHUB_API_TOKEN: \${{ github.token }}
+      CLEANUP_MODE: ${{ inputs.mode }}
+      CLEANUP_CONFIRMATION: ${{ inputs.confirmation }}
+      CLEANUP_MAX_DELETIONS: ${{ inputs.max_deletions }}
+      GITHUB_API_TOKEN: ${{ github.token }}
 
     steps:
       - name: Inventory and optionally delete obsolete runs
@@ -58,7 +58,7 @@ jobs:
           const cutoffMs = Date.now() - minimumAgeDays * 24 * 60 * 60 * 1000;
 
           if (!["dry-run", "delete"].includes(mode)) {
-            throw new Error(\`Unsupported cleanup mode: \${mode}\`);
+            throw new Error(`Unsupported cleanup mode: ${mode}`);
           }
           if (!Number.isInteger(maxDeletions) || maxDeletions < 1 || maxDeletions > 1000) {
             throw new Error("max_deletions must be an integer between 1 and 1000.");
@@ -69,12 +69,12 @@ jobs:
 
           const headers = {
             accept: "application/vnd.github+json",
-            authorization: \`Bearer \${process.env.GITHUB_API_TOKEN}\`,
+            authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
             "x-github-api-version": "2022-11-28",
           };
 
           async function api(path, init = {}) {
-            const response = await fetch(\`\${apiRoot}\${path}\`, {
+            const response = await fetch(`${apiRoot}${path}`, {
               ...init,
               headers: { ...headers, ...(init.headers ?? {}) },
               signal: AbortSignal.timeout(20_000),
@@ -82,7 +82,7 @@ jobs:
             if (!response.ok) {
               const body = await response.text().catch(() => "");
               throw new Error(
-                \`\${init.method ?? "GET"} \${path} failed with HTTP \${response.status}: \${body.slice(0, 500)}\`,
+                `${init.method ?? "GET"} ${path} failed with HTTP ${response.status}: ${body.slice(0, 500)}`,
               );
             }
             if (response.status === 204) return null;
@@ -98,7 +98,7 @@ jobs:
             let normalized = path;
             const atIndex = normalized.indexOf("@");
             if (atIndex >= 0) normalized = normalized.slice(0, atIndex);
-            const repoPrefix = \`\${repo}/\`;
+            const repoPrefix = `${repo}/`;
             if (normalized.startsWith(repoPrefix)) {
               normalized = normalized.slice(repoPrefix.length);
             }
@@ -112,21 +112,21 @@ jobs:
             return String(value).replaceAll("|", "\\|").replaceAll("\n", " ");
           }
 
-          const repository = await api(\`/repos/\${repo}\`);
+          const repository = await api(`/repos/${repo}`);
           const defaultBranch = repository.default_branch;
           const branch = await api(
-            \`/repos/\${repo}/branches/\${encodeURIComponent(defaultBranch)}\`,
+            `/repos/${repo}/branches/${encodeURIComponent(defaultBranch)}`,
           );
           const mainSha = branch.commit.sha;
 
           if (process.env.GITHUB_REF_NAME !== defaultBranch) {
             throw new Error(
-              \`Cleanup must run from default branch \${defaultBranch}; got \${process.env.GITHUB_REF_NAME}.\`,
+              `Cleanup must run from default branch ${defaultBranch}; got ${process.env.GITHUB_REF_NAME}.`,
             );
           }
 
           const workflowContents = await api(
-            \`/repos/\${repo}/contents/.github/workflows?ref=\${encodeURIComponent(mainSha)}\`,
+            `/repos/${repo}/contents/.github/workflows?ref=${encodeURIComponent(mainSha)}`,
           );
           const activePaths = new Set(
             workflowContents
@@ -164,12 +164,12 @@ jobs:
 
             while (true) {
               const payload = await api(
-                \`/repos/\${repo}/actions/runs?created=\${encodeURIComponent(day)}&per_page=100&page=\${page}\`,
+                `/repos/${repo}/actions/runs?created=${encodeURIComponent(day)}&per_page=100&page=${page}`,
               );
 
               if (payload.total_count > 1000) {
                 throw new Error(
-                  \`Safety stop: \${day} has \${payload.total_count} runs; refine date partitioning before cleanup.\`,
+                  `Safety stop: ${day} has ${payload.total_count} runs; refine date partitioning before cleanup.`,
                 );
               }
 
@@ -258,21 +258,21 @@ jobs:
           const summary = [];
           summary.push("# Obsolete Actions history cleanup");
           summary.push("");
-          summary.push(\`- Mode: **\${mode}**\`);
-          summary.push(\`- Default branch SHA: \\\`\${mainSha}\\\`\`);
-          summary.push(\`- Active workflow files: **\${activePaths.size}**\`);
-          summary.push(\`- Scanned runs: **\${scannedRuns}**\`);
-          summary.push(\`- Obsolete candidate runs (older than \${minimumAgeDays} days): **\${candidates.length}**\`);
-          summary.push(\`- Obsolete workflow paths: **\${manifestGroups.length}**\`);
-          summary.push(\`- Preserved active runs: **\${preservedActive}**\`);
-          summary.push(\`- Preserved recent obsolete runs: **\${preservedYoung}**\`);
-          summary.push(\`- Preserved runs with unknown/non-workflow path: **\${preservedUnknownPath}**\`);
+          summary.push(`- Mode: **${mode}**`);
+          summary.push(`- Default branch SHA: \`${mainSha}\``);
+          summary.push(`- Active workflow files: **${activePaths.size}**`);
+          summary.push(`- Scanned runs: **${scannedRuns}**`);
+          summary.push(`- Obsolete candidate runs (older than ${minimumAgeDays} days): **${candidates.length}**`);
+          summary.push(`- Obsolete workflow paths: **${manifestGroups.length}**`);
+          summary.push(`- Preserved active runs: **${preservedActive}**`);
+          summary.push(`- Preserved recent obsolete runs: **${preservedYoung}**`);
+          summary.push(`- Preserved runs with unknown/non-workflow path: **${preservedUnknownPath}**`);
           summary.push("");
           summary.push("| Workflow path | Names | Runs | First | Last |");
           summary.push("| --- | --- | ---: | --- | --- |");
           for (const group of manifestGroups) {
             summary.push(
-              \`| \${escapeMarkdown(group.path)} | \${escapeMarkdown(group.names.join(", "))} | \${group.count} | \${group.first} | \${group.last} |\`,
+              `| ${escapeMarkdown(group.path)} | ${escapeMarkdown(group.names.join(", "))} | ${group.count} | ${group.first} | ${group.last} |`,
             );
           }
           summary.push("");
@@ -284,11 +284,11 @@ jobs:
           }
 
           const branchBeforeDelete = await api(
-            \`/repos/\${repo}/branches/\${encodeURIComponent(defaultBranch)}\`,
+            `/repos/${repo}/branches/${encodeURIComponent(defaultBranch)}`,
           );
           if (branchBeforeDelete.commit.sha !== mainSha) {
             throw new Error(
-              \`Safety stop: \${defaultBranch} moved from \${mainSha} to \${branchBeforeDelete.commit.sha} during inventory.\`,
+              `Safety stop: ${defaultBranch} moved from ${mainSha} to ${branchBeforeDelete.commit.sha} during inventory.`,
             );
           }
 
@@ -310,7 +310,7 @@ jobs:
           let deleted = 0;
           for (const run of selected) {
             const response = await fetch(
-              \`\${apiRoot}/repos/\${repo}/actions/runs/\${run.id}\`,
+              `${apiRoot}/repos/${repo}/actions/runs/${run.id}`,
               {
                 method: "DELETE",
                 headers,
@@ -321,7 +321,7 @@ jobs:
             if (response.status !== 204 && response.status !== 404) {
               const body = await response.text().catch(() => "");
               throw new Error(
-                \`DELETE run \${run.id} failed with HTTP \${response.status}: \${body.slice(0, 500)}\`,
+                `DELETE run ${run.id} failed with HTTP ${response.status}: ${body.slice(0, 500)}`,
               );
             }
 
@@ -331,9 +331,9 @@ jobs:
 
           fs.appendFileSync(
             process.env.GITHUB_STEP_SUMMARY,
-            \`\n## Delete result\n\n- Deleted this execution: **\${deleted}**\n- Selection limit: **\${maxDeletions}**\n- Remaining candidates will be rediscovered safely on the next execution.\n\`,
+            `\n## Delete result\n\n- Deleted this execution: **${deleted}**\n- Selection limit: **${maxDeletions}**\n- Remaining candidates will be rediscovered safely on the next execution.\n`,
           );
           console.log(
-            \`Delete mode complete: deleted \${deleted} obsolete runs (limit \${maxDeletions}).\`,
+            `Delete mode complete: deleted ${deleted} obsolete runs (limit ${maxDeletions}).`,
           );
           NODE
