@@ -1,4 +1,4 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -27,6 +27,12 @@ async function capture(page: Page, testInfo: TestInfo, name: string) {
   const outputDirectory = path.join("visual-review", testInfo.project.name);
   await mkdir(outputDirectory, { recursive: true });
   await page.screenshot({ path: path.join(outputDirectory, `${name}.png`), fullPage: true });
+}
+
+async function captureElement(element: Locator, testInfo: TestInfo, name: string) {
+  const outputDirectory = path.join("visual-review", testInfo.project.name);
+  await mkdir(outputDirectory, { recursive: true });
+  await element.screenshot({ path: path.join(outputDirectory, `${name}.png`) });
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -86,8 +92,7 @@ test("fånga nästa stopp och mjuk kö", async ({ page }, testInfo) => {
   await expect(queued.getByRole("button", { name: "Gör till nästa stopp" })).toBeVisible();
   await expect(queued.getByText(/Jag vill hit|Flest vill hit|Till stället/)).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
-  await stabilize(page);
-  await capture(page, testInfo, "issue-393-ko-pa-tur");
+  await captureElement(queued, testInfo, "issue-393-ko-pa-tur-kort");
 });
 
 test("fånga nytt förslag sist på tur", async ({ page }, testInfo) => {
@@ -101,10 +106,10 @@ test("fånga nytt förslag sist på tur", async ({ page }, testInfo) => {
   await expect(page.getByText("3 på tur", { exact: true })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("4 av 4");
   await expectCarouselIndex(page, 3);
-  await expect(
-    page.locator('[data-next-stop-proposal="alternative"]').filter({ hasText: "Kardemummaköket" }),
-  ).toBeVisible();
+  const newest = page
+    .locator('[data-next-stop-proposal="alternative"]')
+    .filter({ hasText: "Kardemummaköket" });
+  await expect(newest).toBeVisible();
   await expectNoHorizontalOverflow(page);
-  await stabilize(page);
-  await capture(page, testInfo, "issue-393-ko-nytt-sist");
+  await captureElement(newest, testInfo, "issue-393-ko-nytt-sist-kort");
 });
