@@ -26,6 +26,7 @@ async function resetDemo(page: Page) {
     window.localStorage.removeItem("matrundan.nextStopDate.v1.g1");
   });
   await page.reload();
+  await expect(page.locator('[data-next-stop-proposal="selected"]')).toBeVisible();
 }
 
 async function expectNoOverflow(page: Page) {
@@ -137,16 +138,17 @@ test("karusellen glider med horisontell scroll-snap och tydliga overlay-pilar", 
       hasText: "Rundans Bistro",
     }),
   ).toBeVisible();
-  const secondPosition = await viewport.evaluate((element) => ({
-    scrollLeft: element.scrollLeft,
-    width: element.clientWidth,
-  }));
-  expect(secondPosition.scrollLeft).toBeGreaterThan(secondPosition.width * 0.9);
+  await expect
+    .poll(() =>
+      viewport.evaluate((element) =>
+        element.clientWidth ? element.scrollLeft / element.clientWidth : 0,
+      ),
+    )
+    .toBeGreaterThan(0.9);
 
   await page.getByRole("button", { name: /Föregående ställe i kön:/ }).click();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
-  const firstScrollLeft = await viewport.evaluate((element) => element.scrollLeft);
-  expect(firstScrollLeft).toBeLessThan(20);
+  await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeLessThan(10);
   await expectNoOverflow(page);
 });
 
