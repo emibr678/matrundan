@@ -17,6 +17,7 @@ async function resetDemo(page: Page) {
   await page.evaluate(() => {
     window.localStorage.removeItem("matrundan.state.v1");
     window.sessionStorage.removeItem("matrundan.exampleState.v4");
+    window.sessionStorage.setItem("matrundan.exampleSession.v1", "1");
     window.localStorage.removeItem("matrundan.nextStop.v2.g1");
     window.localStorage.removeItem("matrundan.nextStop.v2.responses.g1");
     window.sessionStorage.removeItem("matrundan.nextStop.v2.example-stockholm");
