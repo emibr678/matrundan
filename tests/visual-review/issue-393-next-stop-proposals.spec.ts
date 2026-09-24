@@ -89,6 +89,10 @@ test("fånga nästa stopp och mjuk kö", async ({ page }, testInfo) => {
     .locator('[data-next-stop-proposal="alternative"]')
     .filter({ hasText: "Rundans Bistro" });
   await expect(queued.getByText("På tur", { exact: true })).toBeVisible();
+  await expect(queued.getByText("På tur efter Gröna Terrassen", { exact: true })).toBeVisible();
+  await expect(
+    queued.getByText("Kön flyttas fram när nästa stopp är avklarat.", { exact: true }),
+  ).toBeVisible();
   await expect(queued.getByRole("button", { name: "Gör till nästa stopp" })).toBeVisible();
   await expect(queued.getByText(/Jag vill hit|Flest vill hit|Till stället/)).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
@@ -110,6 +114,7 @@ test("fånga nytt förslag sist på tur", async ({ page }, testInfo) => {
     .locator('[data-next-stop-proposal="alternative"]')
     .filter({ hasText: "Kardemummaköket" });
   await expect(newest).toBeVisible();
+  await expect(newest.getByText("På tur efter Tacoateljén", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await captureElement(newest, testInfo, "issue-393-ko-nytt-sist-kort");
 });
