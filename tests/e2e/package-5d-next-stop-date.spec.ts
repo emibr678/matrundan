@@ -26,13 +26,6 @@ async function resetDemo(page: Page) {
   await page.reload();
 }
 
-async function proposeAlternativeFromDetail(page: Page) {
-  await page.goto("/matstallen/p1?demo=1");
-  await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
-  await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
-  await page.goto("/?demo=1");
-}
-
 async function expectNoOverflow(page: Page) {
   const widths = await page.evaluate(() => ({
     client: document.documentElement.clientWidth,
@@ -54,89 +47,174 @@ async function ensureDay(page: Page, days = 7) {
   await expect(dayRow(page)).toBeVisible();
 }
 
-test("karusellen visar nästa stopp först och nyaste egna förslaget direkt efter tillägg", async ({
+async function registerScorelessVisit(page: Page, buttonName: RegExp | string) {
+  await page.getByRole("button", { name: buttonName }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Registrera besök" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("combobox").click();
+  await page.getByRole("option", { name: "Ett glas" }).click();
+  await dialog.getByRole("button", { name: "Spara besök" }).click();
+  await expect(dialog).toBeHidden();
+}
+
+test("exempelgruppen visar ett nästa stopp och två ställen på tur", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemo(page);
+
+  const selected = page.locator('[data-next-stop-proposal="selected"]');
+  await expect(selected.getByText("Nästa stopp", { exact: true })).toBeVisible();
+  await expect(selected.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();
+  await expect(page.getByText("2 på tur", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
+  await expect(page.getByText(/Jag vill hit|Flest vill hit/)).toHaveCount(0);
+
+  const labels = await page
+    .getByLabel("Välj ställe i kön")
+    .getByRole("button")
+    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+  expect(labels).toEqual([
+    "Visa nästa stopp: Gröna Terrassen",
+    "Visa ställe på tur: Rundans Bistro",
+    "Visa ställe på tur: Tacoateljén",
+  ]);
+  await expectNoOverflow(page);
+});
+
+test("ett nytt förslag läggs sist på tur men visas direkt som återkoppling", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemo(page);
+
+  await page.goto("/matstallen/p2?demo=1");
+  await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
+  await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
+  await page.goto("/?demo=1");
+
+  const alternative = page.locator('[data-next-stop-proposal="alternative"]').filter({
+    hasText: "Kardemummaköket",
+  });
+  await expect(alternative).toBeVisible();
+  await expect(alternative.getByText("På tur", { exact: true })).toBeVisible();
+  await expect(alternative.getByRole("button", { name: "Gör till nästa stopp" })).toBeVisible();
+  await expect(alternative.getByRole("link", { name: "Öppna Kardemummaköket" })).toBeVisible();
+  await expect(alternative.getByText(/Jag vill hit|Flest vill hit|Till stället/)).toHaveCount(0);
+  await expect(page.getByText("3 på tur", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("4 av 4");
+
+  const labels = await page
+    .getByLabel("Välj ställe i kön")
+    .getByRole("button")
+    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+  expect(labels).toEqual([
+    "Visa nästa stopp: Gröna Terrassen",
+    "Visa ställe på tur: Rundans Bistro",
+    "Visa ställe på tur: Tacoateljén",
+    "Visa ställe på tur: Kardemummaköket",
+  ]);
+  await expectNoOverflow(page);
+});
+
+test("karusellen glider med horisontell scroll-snap och tydliga overlay-pilar", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
-
-  const focused = page.locator('[data-next-stop-proposal="selected"]');
-  await expect(focused).toBeVisible();
-  await expect(focused.getByText("Valt nästa stopp", { exact: true })).toBeVisible();
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveCount(0);
-  const selectedName = await focused.getByRole("heading").textContent();
-
-  await proposeAlternativeFromDetail(page);
-  const alternative = page.locator('[data-next-stop-proposal="alternative"]');
-  await expect(alternative).toBeVisible();
-  await expect(alternative.getByText("Förslag", { exact: true })).toBeVisible();
-  await expect(alternative.getByText("Lilla Myntans Matrum", { exact: true })).toBeVisible();
-  await expect(alternative.getByText(/föreslog/i)).toBeVisible();
-  await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toBeVisible();
-  await expect(alternative.getByRole("button", { name: "Gör till nästa stopp" })).toBeVisible();
-  await expect(page.getByText("2 förslag", { exact: true })).toBeVisible();
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
-  await expect(page.getByRole("button", { name: /Föregående förslag:/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Nästa förslag:/ })).toHaveCount(0);
-
-  await page.getByRole("button", { name: /Föregående förslag:/ }).click();
-  await expect(page.locator('[data-next-stop-proposal="selected"]')).toBeVisible();
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 2");
-  await expect(page.getByRole("button", { name: /Nästa förslag:/ })).toBeVisible();
-  expect(
-    await page.locator('[data-next-stop-proposal="selected"]').getByRole("heading").textContent(),
-  ).toBe(selectedName);
-  await expectNoOverflow(page);
-});
-test("karusellen glider med horisontell scroll-snap och följer sidpositionen", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 800 });
-  await resetDemo(page);
-  await proposeAlternativeFromDetail(page);
 
   const viewport = page.getByTestId("next-stop-carousel-viewport");
   await expect(viewport).toHaveCSS("scroll-snap-type", /x/);
+  await expect(page.getByRole("button", { name: /Nästa ställe i kön:/ })).toBeVisible();
 
-  await page.getByRole("button", { name: /Föregående förslag:/ }).click();
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 2");
-  const firstScrollLeft = await viewport.evaluate((element) => element.scrollLeft);
-  expect(firstScrollLeft).toBeLessThan(20);
-
-  await page.getByRole("button", { name: /Nästa förslag:/ }).click();
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
+  await page.getByRole("button", { name: /Nästa ställe i kön:/ }).click();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 3");
+  await expect(page.locator('[data-next-stop-proposal="alternative"]').filter({
+    hasText: "Rundans Bistro",
+  })).toBeVisible();
   const secondScrollLeft = await viewport.evaluate((element) => element.scrollLeft);
   expect(secondScrollLeft).toBeGreaterThan(300);
+
+  await page.getByRole("button", { name: /Föregående ställe i kön:/ }).click();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
+  const firstScrollLeft = await viewport.evaluate((element) => element.scrollLeft);
+  expect(firstScrollLeft).toBeLessThan(20);
   await expectNoOverflow(page);
 });
 
-test("Jag vill hit kan markeras på både nästa stopp och ett karusellförslag utan omsortering", async ({
+test("Gör till nästa stopp flyttar fram stället men behåller resten av kön och dagen", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
+  await ensureDay(page);
+  const beforeDay = await dayRow(page).getAttribute("aria-label");
 
-  const focused = page.locator('[data-next-stop-proposal="selected"]');
-  const beforeName = await focused.getByRole("heading").textContent();
-  const focusedSupport = focused.getByRole("button", { name: /Jag vill hit/ });
-  if ((await focusedSupport.getAttribute("aria-pressed")) !== "true") await focusedSupport.click();
-  await expect(focusedSupport).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Visa ställe på tur: Tacoateljén" }).click();
+  const alternative = page.locator('[data-next-stop-proposal="alternative"]').filter({
+    hasText: "Tacoateljén",
+  });
+  await alternative.getByRole("button", { name: "Gör till nästa stopp" }).click();
 
-  await proposeAlternativeFromDetail(page);
-  const alternative = page.locator('[data-next-stop-proposal="alternative"]');
-  const alternativeSupport = alternative.getByRole("button", { name: /Jag vill hit/ });
-  if ((await alternativeSupport.getAttribute("aria-pressed")) !== "true") {
-    await alternativeSupport.click();
-  }
-  await expect(alternativeSupport).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
+  const switchDialog = page.getByRole("dialog", {
+    name: "Göra Tacoateljén till nästa stopp?",
+  });
+  await expect(switchDialog).toContainText(
+    "Tacoateljén flyttas fram som gruppens nästa stopp. Gröna Terrassen ligger kvar på tur.",
+  );
+  await expect(switchDialog).toContainText("gruppens svar följer med");
+  await switchDialog.getByRole("button", { name: "Gör till nästa stopp" }).click();
 
-  await page.getByRole("button", { name: /Visa nästa stopp:/ }).click();
-  const afterName = await page
-    .locator('[data-next-stop-proposal="selected"]')
-    .getByRole("heading")
-    .textContent();
-  expect(afterName).toBe(beforeName);
+  const selected = page.locator('[data-next-stop-proposal="selected"]');
+  await expect(selected.getByRole("heading", { name: "Tacoateljén" })).toBeVisible();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
+  await expect(dayRow(page)).toHaveAttribute("aria-label", beforeDay ?? "");
+
+  const labels = await page
+    .getByLabel("Välj ställe i kön")
+    .getByRole("button")
+    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+  expect(labels).toEqual([
+    "Visa nästa stopp: Tacoateljén",
+    "Visa ställe på tur: Gröna Terrassen",
+    "Visa ställe på tur: Rundans Bistro",
+  ]);
   await expectNoOverflow(page);
 });
+
+test("Registrera besök från Nästa stopp avancerar kön och nollställer gammal dag", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemo(page);
+  await expect(dayRow(page)).toBeVisible();
+
+  await registerScorelessVisit(page, "Registrera besök");
+  await expect(page.getByText("Besök registrerat")).toBeVisible();
+
+  const selected = page.locator('[data-next-stop-proposal="selected"]');
+  await expect(selected.getByRole("heading", { name: "Rundans Bistro" })).toBeVisible();
+  await expect(page.getByText("1 på tur", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 2");
+  await expect(dayRow(page)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Föreslå dag" })).toBeVisible();
+  await expectNoOverflow(page);
+});
+
+test("ett spontant besök på ett ställe På tur påverkar inte kön", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemo(page);
+
+  await page.goto("/matstallen/p1?demo=1");
+  await registerScorelessVisit(page, /Registrera besök/);
+  await page.goto("/?demo=1");
+
+  const selected = page.locator('[data-next-stop-proposal="selected"]');
+  await expect(selected.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();
+  await expect(page.getByText("2 på tur", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Visa ställe på tur: Rundans Bistro" }).click();
+  await expect(
+    page.locator('[data-next-stop-proposal="alternative"]').filter({ hasText: "Rundans Bistro" }),
+  ).toBeVisible();
+  await expectNoOverflow(page);
+});
+
 test("dagen använder bara Jag kan och Jag kan inte i en bottom sheet", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
@@ -183,136 +261,13 @@ test("föreslå annan dag nollställer gruppens dagsvar", async ({ page }) => {
   await expectNoOverflow(page);
 });
 
-test("Välj som nästa stopp flyttar karusellförslaget till första positionen och bevarar planeringen", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 360, height: 800 });
-  await resetDemo(page);
-  await ensureDay(page);
-
-  const beforeName = await page
-    .locator('[data-next-stop-proposal="selected"]')
-    .getByRole("heading")
-    .textContent();
-  await dayRow(page).click();
-  let sheet = page.getByRole("dialog");
-  const canButton = sheet.getByRole("button", { name: "Jag kan", exact: true });
-  if ((await canButton.getAttribute("aria-pressed")) !== "true") await canButton.click();
-  await expect(canButton).toHaveAttribute("aria-pressed", "true");
-  await page.keyboard.press("Escape");
-  const beforeDay = await dayRow(page).getAttribute("aria-label");
-
-  await proposeAlternativeFromDetail(page);
-  const alternative = page.locator('[data-next-stop-proposal="alternative"]');
-  const support = alternative.getByRole("button", { name: /Jag vill hit/ });
-  if ((await support.getAttribute("aria-pressed")) !== "true") await support.click();
-  await expect(support).toHaveAttribute("aria-pressed", "true");
-
-  await alternative.getByRole("button", { name: "Gör till nästa stopp" }).click();
-  const switchDialog = page.getByRole("dialog", { name: "Gör det här till nästa stopp?" });
-  await expect(switchDialog).toContainText(
-    "Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar",
-  );
-  await switchDialog.getByRole("button", { name: "Gör till nästa stopp" }).click();
-
-  const selected = page.locator('[data-next-stop-proposal="selected"]');
-  const afterName = await selected.getByRole("heading").textContent();
-  expect(afterName).not.toBe(beforeName);
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 2");
-  await expect(dayRow(page)).toHaveAttribute("aria-label", beforeDay ?? "");
-  await expect(selected.getByRole("button", { name: /Jag vill hit/ })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-
-  await dayRow(page).click();
-  sheet = page.getByRole("dialog");
-  await expect(sheet.getByRole("button", { name: "Jag kan", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expectNoOverflow(page);
-});
-test("Slumpa förslag visar det nya alternativet utan att skriva över nästa stopp", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 360, height: 800 });
-  await resetDemo(page);
-
-  const before = await page
-    .locator('[data-next-stop-proposal="selected"]')
-    .getByRole("heading")
-    .textContent();
-  await page.getByRole("button", { name: "Slumpa förslag" }).click();
-
-  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toBeVisible();
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
-  await page.getByRole("button", { name: /Visa nästa stopp:/ }).click();
-  const after = await page
-    .locator('[data-next-stop-proposal="selected"]')
-    .getByRole("heading")
-    .textContent();
-  expect(after).toBe(before);
-  await expectNoOverflow(page);
-});
-
-test("matställedetaljen öppnar det nyss tillagda förslaget när Hem visas", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 800 });
-  await resetDemo(page);
-  const before = await page
-    .locator('[data-next-stop-proposal="selected"]')
-    .getByRole("heading")
-    .textContent();
-
-  await proposeAlternativeFromDetail(page);
-
-  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toContainText(
-    "Lilla Myntans Matrum",
-  );
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
-  await page.getByRole("button", { name: /Visa nästa stopp:/ }).click();
-  const after = await page
-    .locator('[data-next-stop-proposal="selected"]')
-    .getByRole("heading")
-    .textContent();
-  expect(after).toBe(before);
-});
-
-test("övriga karusellförslag sorteras nyast först", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 800 });
-  await resetDemo(page);
-
-  for (const placeId of ["p1", "p2", "p3"]) {
-    await page.goto(`/matstallen/${placeId}?demo=1`);
-    await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
-    await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
-  }
-  await page.goto("/?demo=1");
-
-  await expect(
-    page
-      .locator('[data-next-stop-proposal="alternative"]')
-      .filter({ hasText: "Månskärans Taquería" }),
-  ).toHaveCount(1);
-  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 4");
-  const labels = await page
-    .getByLabel("Välj förslag i karusellen")
-    .getByRole("button")
-    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
-  expect(labels.slice(1)).toEqual([
-    "Visa förslag: Månskärans Taquería",
-    "Visa förslag: Kvarterets Kardemumma",
-    "Visa förslag: Lilla Myntans Matrum",
-  ]);
-  await expectNoOverflow(page);
-});
 test("passerad dag frågar vad som hände utan att återinföra tid", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
 
   await page.evaluate((date) => {
-    window.localStorage.setItem(
-      "matrundan.nextStop.v2.g1",
+    window.sessionStorage.setItem(
+      "matrundan.nextStop.v2.example-stockholm",
       JSON.stringify({
         revision: 3,
         plannedDate: date,
