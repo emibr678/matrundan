@@ -20,7 +20,7 @@ async function resetDemo(page: Page) {
     window.localStorage.removeItem("matrundan.nextStop.v2.responses.g1");
     window.sessionStorage.removeItem("matrundan.nextStop.v2.example-stockholm");
     window.sessionStorage.removeItem("matrundan.nextStop.v2.responses.example-stockholm");
-    window.sessionStorage.removeItem("matrundan.nextStop.v2.reveal.g1");
+    window.sessionStorage.removeItem("matrundan.nextStop.v2.reveal");
     window.localStorage.removeItem("matrundan.nextStopDate.v1.g1");
   });
   await page.reload();

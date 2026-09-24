@@ -200,7 +200,7 @@ function PlaceDetail() {
   ) {
     if (nextBusy) return;
     setNextBusy(true);
-    const storageKey = nextStopProposalRevealStorageKey(state.group.id);
+    const storageKey = nextStopProposalRevealStorageKey();
     if (revealPlaceId && typeof window !== "undefined") {
       window.sessionStorage.setItem(storageKey, revealPlaceId);
     }

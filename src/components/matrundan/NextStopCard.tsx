@@ -154,7 +154,7 @@ export function NextStopCard({
 
   React.useEffect(() => {
     if (typeof window === "undefined" || carouselItems.length < 2) return;
-    const storageKey = nextStopProposalRevealStorageKey(state.group.id);
+    const storageKey = nextStopProposalRevealStorageKey();
     const revealPlaceId = window.sessionStorage.getItem(storageKey);
     if (!revealPlaceId) return;
     const revealIndex = carouselItems.findIndex((item) => item.place.id === revealPlaceId);
@@ -257,7 +257,7 @@ export function NextStopCard({
     await run(
       "shuffle",
       async () => {
-        const storageKey = nextStopProposalRevealStorageKey(state.group.id);
+        const storageKey = nextStopProposalRevealStorageKey();
         if (typeof window !== "undefined") window.sessionStorage.setItem(storageKey, pick.id);
         try {
           await propose(pick.id);

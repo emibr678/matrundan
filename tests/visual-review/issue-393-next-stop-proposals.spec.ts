@@ -44,7 +44,7 @@ async function resetDemo(page: Page) {
     window.localStorage.removeItem("matrundan.nextStop.v2.g1");
     window.localStorage.removeItem("matrundan.nextStop.v2.responses.g1");
     window.localStorage.removeItem("matrundan.nextStopDate.v1.g1");
-    window.sessionStorage.removeItem("matrundan.nextStop.v2.reveal.g1");
+    window.sessionStorage.removeItem("matrundan.nextStop.v2.reveal");
   });
   await page.reload({ waitUntil: "domcontentloaded" });
 }

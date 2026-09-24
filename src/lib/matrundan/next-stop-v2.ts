@@ -9,8 +9,8 @@ const EXAMPLE_GROUP_ID = "example-stockholm";
 
 export type NextStopDayResponseValue = "can" | "cannot";
 
-export function nextStopProposalRevealStorageKey(groupId: string): string {
-  return `matrundan.nextStop.v2.reveal.${groupId}`;
+export function nextStopProposalRevealStorageKey(): string {
+  return "matrundan.nextStop.v2.reveal";
 }
 
 function scheduleNotificationFlush(): void {
