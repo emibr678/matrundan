@@ -35,6 +35,7 @@ import {
   reviewModelIncludesAtmosphere,
   reviewRatingsComplete,
 } from "@/lib/matrundan/review-model";
+import { NEXT_STOP_COMPLETED_EVENT } from "@/lib/matrundan/next-stop-v2";
 import { useSession } from "@/lib/matrundan/session";
 import { defaultShareGroupIds, toggleAllSelection } from "@/lib/matrundan/sharing-selection";
 import { useStore } from "@/lib/matrundan/store";
@@ -65,10 +66,12 @@ export function VisitDialog({
   open,
   onOpenChange,
   placeId,
+  completeNextStopOnSave = false,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   placeId: string | null;
+  completeNextStopOnSave?: boolean;
 }) {
   const navigate = useNavigate();
   const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
@@ -276,7 +279,17 @@ export function VisitDialog({
           ? reviewOccasions
           : undefined,
       createdBy: state.currentUserId,
+      ...(mode === "live" && completeNextStopOnSave ? { completeNextStop: true } : {}),
     });
+
+    if (mode === "demo" && completeNextStopOnSave && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent(NEXT_STOP_COMPLETED_EVENT, {
+          detail: { placeId: currentPlace.id },
+        }),
+      );
+    }
+
     let photoError: Error | null = null;
     if (photoFile && created?.id) {
       try {
