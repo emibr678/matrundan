@@ -77,12 +77,12 @@ test("exempelgruppen visar ett nästa stopp och två ställen på tur", async ({
     page
       .locator('[data-next-stop-proposal="alternative"]')
       .filter({ has: page.getByRole("heading", { name: "Rundans Bistro", exact: true }) }),
-  ).toContainText("På tur efter Gröna Terrassen");
+  ).toContainText("Efter Gröna Terrassen");
   await expect(
     page
       .locator('[data-next-stop-proposal="alternative"]')
       .filter({ has: page.getByRole("heading", { name: "Tacoateljén", exact: true }) }),
-  ).toContainText("På tur efter Rundans Bistro");
+  ).toContainText("Efter Rundans Bistro");
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
   await expect(page.getByText(/Jag vill hit|Flest vill hit/)).toHaveCount(0);
 
@@ -180,7 +180,7 @@ test("Gör till nästa stopp flyttar fram stället men behåller resten av kön 
     name: "Göra Tacoateljén till nästa stopp?",
   });
   await expect(switchDialog).toContainText(
-    "Tacoateljén flyttas fram. Gröna Terrassen ligger kvar på tur.",
+    "Gröna Terrassen står kvar på tur.",
   );
   await expect(switchDialog).toContainText("gruppens svar följer med");
   await switchDialog.getByRole("button", { name: "Gör till nästa stopp" }).click();

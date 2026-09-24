@@ -89,9 +89,9 @@ test("fånga nästa stopp och mjuk kö", async ({ page }, testInfo) => {
     .locator('[data-next-stop-proposal="alternative"]')
     .filter({ has: page.getByRole("heading", { name: "Rundans Bistro", exact: true }) });
   await expect(queued.getByText("På tur", { exact: true })).toBeVisible();
-  await expect(queued.getByText("På tur efter Gröna Terrassen", { exact: true })).toBeVisible();
+  await expect(queued.getByText("Efter Gröna Terrassen", { exact: true })).toBeVisible();
   await expect(
-    queued.getByText("Kön flyttas fram när nästa stopp är avklarat.", { exact: true }),
+    queued.getByText("Rundans Bistro står näst på tur.", { exact: true }),
   ).toBeVisible();
   await expect(queued.getByRole("button", { name: "Gör till nästa stopp" })).toBeVisible();
   await expect(queued.getByText(/Jag vill hit|Flest vill hit|Till stället/)).toHaveCount(0);
@@ -114,7 +114,7 @@ test("fånga nytt förslag sist på tur", async ({ page }, testInfo) => {
     .locator('[data-next-stop-proposal="alternative"]')
     .filter({ has: page.getByRole("heading", { name: "Kardemummaköket", exact: true }) });
   await expect(newest).toBeVisible();
-  await expect(newest.getByText("På tur efter Tacoateljén", { exact: true })).toBeVisible();
+  await expect(newest.getByText("Efter Tacoateljén", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await captureElement(newest, testInfo, "issue-393-ko-nytt-sist-kort");
 });

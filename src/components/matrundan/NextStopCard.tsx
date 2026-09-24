@@ -809,9 +809,9 @@ function AlternativeProposalCard({
           <CornerDownRight className="h-4 w-4" />
         </span>
         <span className="min-w-0">
-          <span className="block text-sm font-medium">På tur efter {previousPlaceName}</span>
+          <span className="block text-sm font-medium">Efter {previousPlaceName}</span>
           <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-            Kön flyttas fram när nästa stopp är avklarat.
+            {item.place.name} står näst på tur.
           </span>
         </span>
       </div>
@@ -1243,8 +1243,8 @@ function SwitchDialog({
           </DialogTitle>
           <DialogDescription>
             {target
-              ? `${target.name} flyttas fram. ${currentPlace.name} ligger kvar på tur.${day ? ` ${day} och gruppens svar följer med.` : ""}`
-              : "Stället flyttas fram som nästa stopp."}
+              ? `${currentPlace.name} står kvar på tur.${day ? ` ${day} och gruppens svar följer med.` : ""}`
+              : "Det nuvarande nästa stoppet står kvar på tur."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
