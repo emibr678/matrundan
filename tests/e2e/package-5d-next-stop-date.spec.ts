@@ -41,7 +41,12 @@ function dayRow(page: Page) {
 }
 
 async function ensureDay(page: Page, days = 7) {
-  if (await dayRow(page).isVisible().catch(() => false)) return;
+  if (
+    await dayRow(page)
+      .isVisible()
+      .catch(() => false)
+  )
+    return;
   await page.getByRole("button", { name: /Föreslå dag/ }).click();
   const dialog = page.getByRole("dialog", { name: "Föreslå dag" });
   await dialog.getByLabel("Dag").fill(futureDate(days));
