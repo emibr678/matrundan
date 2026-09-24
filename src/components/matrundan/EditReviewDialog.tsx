@@ -294,14 +294,12 @@ export function EditReviewDialog({
             }
           />
 
-          {mode === "live" && activeGroupId && comment.trim() ? (
+          {mode === "live" &&
+          activeGroupId &&
+          visit?.linkType === "shared" &&
+          comment.trim() ? (
             <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/30 p-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Kommentar i den här gruppen</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Påverkar bara om din kommentar visas i den här gruppen.
-                </p>
-              </div>
+              <span className="text-sm font-medium">Visa kommentaren i den här gruppen</span>
               <Switch
                 aria-label="Visa kommentaren i den här gruppen"
                 checked={commentVisible}
