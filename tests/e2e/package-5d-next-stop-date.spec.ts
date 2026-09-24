@@ -73,6 +73,12 @@ test("exempelgruppen visar ett nästa stopp och två ställen på tur", async ({
   await expect(selected.getByText("Nästa stopp", { exact: true })).toBeVisible();
   await expect(selected.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();
   await expect(page.getByText("2 på tur", { exact: true })).toBeVisible();
+  await expect(
+    page.locator('[data-next-stop-proposal="alternative"]').filter({ hasText: "Rundans Bistro" }),
+  ).toContainText("På tur efter Gröna Terrassen");
+  await expect(
+    page.locator('[data-next-stop-proposal="alternative"]').filter({ hasText: "Tacoateljén" }),
+  ).toContainText("På tur efter Rundans Bistro");
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
   await expect(page.getByText(/Jag vill hit|Flest vill hit/)).toHaveCount(0);
 
@@ -170,7 +176,7 @@ test("Gör till nästa stopp flyttar fram stället men behåller resten av kön 
     name: "Göra Tacoateljén till nästa stopp?",
   });
   await expect(switchDialog).toContainText(
-    "Tacoateljén flyttas fram som gruppens nästa stopp. Gröna Terrassen ligger kvar på tur.",
+    "Tacoateljén flyttas fram. Gröna Terrassen ligger kvar på tur.",
   );
   await expect(switchDialog).toContainText("gruppens svar följer med");
   await switchDialog.getByRole("button", { name: "Gör till nästa stopp" }).click();
