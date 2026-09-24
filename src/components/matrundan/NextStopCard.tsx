@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import {
   CalendarDays,
   Check,
+  ChevronLeft,
   ChevronRight,
   Flag,
   Heart,
@@ -90,7 +91,7 @@ export function NextStopCard({
   const [date, setDate] = React.useState(defaultNextStopDateValue);
   const [switching, setSwitching] = React.useState<NextStopPlaceProposal | null>(null);
   const [activeCarouselIndex, setActiveCarouselIndex] = React.useState(0);
-  const carouselTouchStart = React.useRef<{ x: number; y: number } | null>(null);
+  const carouselViewportRef = React.useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const proposals = React.useMemo<ProposalItem[]>(
@@ -146,10 +147,19 @@ export function NextStopCard({
 
   React.useEffect(() => {
     setActiveCarouselIndex(0);
+    carouselViewportRef.current?.scrollTo({ left: 0, behavior: "auto" });
   }, [focusedPlace?.id]);
 
   React.useEffect(() => {
-    setActiveCarouselIndex((current) => Math.min(current, Math.max(0, carouselItems.length - 1)));
+    const maxIndex = Math.max(0, carouselItems.length - 1);
+    setActiveCarouselIndex((current) => {
+      const nextIndex = Math.min(current, maxIndex);
+      if (nextIndex !== current) {
+        const viewport = carouselViewportRef.current;
+        viewport?.scrollTo({ left: viewport.clientWidth * nextIndex, behavior: "auto" });
+      }
+      return nextIndex;
+    });
   }, [carouselItems.length]);
 
   React.useEffect(() => {
@@ -161,13 +171,20 @@ export function NextStopCard({
     if (revealIndex < 0) return;
 
     setActiveCarouselIndex(revealIndex);
+    const revealFrame = window.requestAnimationFrame(() => {
+      const viewport = carouselViewportRef.current;
+      viewport?.scrollTo({ left: viewport.clientWidth * revealIndex, behavior: "auto" });
+    });
     const consumeTimer = window.setTimeout(() => {
       if (window.sessionStorage.getItem(storageKey) === revealPlaceId) {
         window.sessionStorage.removeItem(storageKey);
       }
     }, 300);
 
-    return () => window.clearTimeout(consumeTimer);
+    return () => {
+      window.cancelAnimationFrame(revealFrame);
+      window.clearTimeout(consumeTimer);
+    };
   }, [carouselItems]);
 
   async function run(key: string, operation: () => Promise<void>, success?: string) {
@@ -310,25 +327,21 @@ export function NextStopCard({
     );
   }
 
-  function changeCarouselIndex(index: number) {
-    setActiveCarouselIndex(Math.min(Math.max(index, 0), Math.max(0, carouselItems.length - 1)));
+  function changeCarouselIndex(index: number, behavior: ScrollBehavior = "smooth") {
+    const nextIndex = Math.min(Math.max(index, 0), Math.max(0, carouselItems.length - 1));
+    const viewport = carouselViewportRef.current;
+    setActiveCarouselIndex(nextIndex);
+    viewport?.scrollTo({ left: viewport.clientWidth * nextIndex, behavior });
   }
 
-  function handleCarouselTouchStart(event: React.TouchEvent<HTMLDivElement>) {
-    const touch = event.touches[0];
-    if (!touch) return;
-    carouselTouchStart.current = { x: touch.clientX, y: touch.clientY };
-  }
-
-  function handleCarouselTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
-    const start = carouselTouchStart.current;
-    carouselTouchStart.current = null;
-    const touch = event.changedTouches[0];
-    if (!start || !touch) return;
-    const deltaX = touch.clientX - start.x;
-    const deltaY = touch.clientY - start.y;
-    if (Math.abs(deltaX) < 44 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
-    changeCarouselIndex(activeCarouselIndex + (deltaX < 0 ? 1 : -1));
+  function handleCarouselScroll(event: React.UIEvent<HTMLDivElement>) {
+    const viewport = event.currentTarget;
+    if (viewport.clientWidth === 0) return;
+    const nextIndex = Math.min(
+      Math.max(Math.round(viewport.scrollLeft / viewport.clientWidth), 0),
+      Math.max(0, carouselItems.length - 1),
+    );
+    setActiveCarouselIndex((current) => (current === nextIndex ? current : nextIndex));
   }
 
   if (passed && plannedDate && focusedItem) {
@@ -413,69 +426,102 @@ export function NextStopCard({
       />
 
       <div
-        className="touch-pan-y"
+        className="relative"
         role="region"
         aria-roledescription="karusell"
         aria-label="Förslag på nästa stopp"
-        onTouchStart={handleCarouselTouchStart}
-        onTouchEnd={handleCarouselTouchEnd}
       >
-        {activeCarouselItem?.proposal.id === focusedItem.proposal.id ? (
-          <Card className="min-h-[18rem] overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
-            <div className="relative">
-              <FocusedPlaceHero
-                item={focusedItem}
-                currentUserId={state.currentUserId}
-                canInteract={canInteract}
-                busy={busy}
-                onSupport={() => void togglePlaceSupport(focusedItem)}
-              />
-              {showFocusedActions ? (
-                <div className="absolute right-3 top-3">
-                  <FocusedActionsMenu
-                    plannedDate={plannedDate}
-                    canRemove={canRemoveFocused}
+        <div
+          ref={carouselViewportRef}
+          data-testid="next-stop-carousel-viewport"
+          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] motion-reduce:scroll-auto [&::-webkit-scrollbar]:hidden"
+          onScroll={handleCarouselScroll}
+        >
+          {carouselItems.map((item, index) => {
+            const selected = item.proposal.id === focusedItem.proposal.id;
+            const active = index === activeCarouselIndex;
+            return (
+              <div
+                key={item.proposal.id}
+                className="w-full shrink-0 snap-center"
+                aria-hidden={!active}
+                inert={!active}
+              >
+                {selected ? (
+                  <Card className="h-full min-h-[18rem] overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
+                    <div className="relative">
+                      <FocusedPlaceHero
+                        item={focusedItem}
+                        currentUserId={state.currentUserId}
+                        canInteract={canInteract}
+                        busy={busy}
+                        onSupport={() => void togglePlaceSupport(focusedItem)}
+                      />
+                      {showFocusedActions ? (
+                        <div className="absolute right-3 top-3">
+                          <FocusedActionsMenu
+                            plannedDate={plannedDate}
+                            canRemove={canRemoveFocused}
+                            busy={busy}
+                            onEditDate={openSchedule}
+                            onRemoveDate={() => void removeDate()}
+                            onWithdraw={() => withdrawProposal(focusedItem)}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <DayRow
+                      plannedDate={plannedDate}
+                      dayResponses={dayResponses}
+                      currentUserId={state.currentUserId}
+                      canInteract={canInteract}
+                      onOpenPlanning={() => setPlanningOpen(true)}
+                      onAddDate={openSchedule}
+                    />
+
+                    {canWrite ? (
+                      <div className="border-t border-border/60 p-4">
+                        <Button
+                          type="button"
+                          onClick={() => onRegisterVisit(focusedItem.place.id)}
+                          className="h-12 w-full text-base"
+                          size="lg"
+                        >
+                          <Check className="h-4 w-4" /> Registrera besök
+                        </Button>
+                      </div>
+                    ) : null}
+                  </Card>
+                ) : (
+                  <AlternativeProposalCard
+                    item={item}
+                    currentUserId={state.currentUserId}
+                    canInteract={canInteract}
                     busy={busy}
-                    onEditDate={openSchedule}
-                    onRemoveDate={() => void removeDate()}
-                    onWithdraw={() => withdrawProposal(focusedItem)}
+                    isMostSupported={item.proposal.id === leadingAlternativeId}
+                    onSupport={() => void togglePlaceSupport(item)}
+                    onSwitch={() => setSwitching(item.proposal)}
+                    onWithdraw={() => withdrawProposal(item)}
                   />
-                </div>
-              ) : null}
-            </div>
-
-            <DayRow
-              plannedDate={plannedDate}
-              dayResponses={dayResponses}
-              currentUserId={state.currentUserId}
-              canInteract={canInteract}
-              onOpenPlanning={() => setPlanningOpen(true)}
-              onAddDate={openSchedule}
-            />
-
-            {canWrite ? (
-              <div className="border-t border-border/60 p-4">
-                <Button
-                  type="button"
-                  onClick={() => onRegisterVisit(focusedItem.place.id)}
-                  className="h-12 w-full text-base"
-                  size="lg"
-                >
-                  <Check className="h-4 w-4" /> Registrera besök
-                </Button>
+                )}
               </div>
-            ) : null}
-          </Card>
-        ) : activeCarouselItem ? (
-          <AlternativeProposalCard
-            item={activeCarouselItem}
-            currentUserId={state.currentUserId}
-            canInteract={canInteract}
-            busy={busy}
-            isMostSupported={activeCarouselItem.proposal.id === leadingAlternativeId}
-            onSupport={() => void togglePlaceSupport(activeCarouselItem)}
-            onSwitch={() => setSwitching(activeCarouselItem.proposal)}
-            onWithdraw={() => withdrawProposal(activeCarouselItem)}
+            );
+          })}
+        </div>
+
+        {activeCarouselIndex > 0 ? (
+          <CarouselArrow
+            direction="previous"
+            placeName={carouselItems[activeCarouselIndex - 1]?.place.name}
+            onClick={() => changeCarouselIndex(activeCarouselIndex - 1)}
+          />
+        ) : null}
+        {activeCarouselIndex < carouselItems.length - 1 ? (
+          <CarouselArrow
+            direction="next"
+            placeName={carouselItems[activeCarouselIndex + 1]?.place.name}
+            onClick={() => changeCarouselIndex(activeCarouselIndex + 1)}
           />
         ) : null}
 
@@ -595,40 +641,47 @@ function FocusedPlaceHero({
       data-next-stop-proposal="selected"
       className="bg-gradient-to-br from-primary/85 to-primary px-5 py-4 text-primary-foreground"
     >
-      <Link
-        to="/matstallen/$placeId"
-        params={{ placeId: item.place.id }}
-        className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40"
-        aria-label={`Öppna ${item.place.name}`}
-      >
-        <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
-          {item.place.photo ?? "🍽️"}
+      <div className="pr-9">
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="rounded-full bg-primary-foreground/15 px-2 py-1 font-medium">
+            Valt nästa stopp
+          </span>
+          <span className="opacity-80">{CATEGORY_LABEL[item.place.category]}</span>
         </div>
-        <div className="min-w-0 pr-8">
-          <div className="text-[11px] tracking-wide opacity-80">
-            {CATEGORY_LABEL[item.place.category]}
+        <Link
+          to="/matstallen/$placeId"
+          params={{ placeId: item.place.id }}
+          className="grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-3 rounded-xl transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/40"
+          aria-label={`Öppna ${item.place.name}`}
+        >
+          <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
+            {item.place.photo ?? "🍽️"}
           </div>
-          <h2 className="mt-0.5 font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
-            {item.place.name}
-          </h2>
-          <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
-            <MapPin className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">
-              {item.place.address}, {item.place.city}
-            </span>
+          <div className="min-w-0">
+            <h2 className="font-display text-2xl font-semibold leading-tight [overflow-wrap:anywhere] sm:text-3xl">
+              {item.place.name}
+            </h2>
+            <div className="mt-1 flex min-w-0 items-center gap-1 text-sm opacity-90">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">
+                {item.place.address}, {item.place.city}
+              </span>
+            </div>
           </div>
-          <div className="mt-1.5 text-xs opacity-85">{proposerLabel(item.proposal, state)}</div>
+        </Link>
+        <div className="mt-2 pl-[3.5rem] text-xs opacity-85">
+          {proposerLabel(item.proposal, state)}
         </div>
-      </Link>
-      <div className="mt-2.5 pl-[3.5rem]">
-        <PlacePreferenceButton
-          proposal={item.proposal}
-          currentUserId={currentUserId}
-          canInteract={canInteract}
-          busy={busy}
-          inverse
-          onClick={onSupport}
-        />
+        <div className="mt-3 pl-[3.5rem]">
+          <PlacePreferenceButton
+            proposal={item.proposal}
+            currentUserId={currentUserId}
+            canInteract={canInteract}
+            busy={busy}
+            inverse
+            onClick={onSupport}
+          />
+        </div>
       </div>
     </div>
   );
@@ -792,9 +845,9 @@ function AlternativeProposalCard({
   return (
     <Card
       data-next-stop-proposal="alternative"
-      className="flex min-h-[18rem] flex-col overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm"
+      className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm"
     >
-      <div className="relative flex-1 bg-gradient-to-br from-secondary/80 to-card px-5 py-4">
+      <div className="relative flex-1 bg-gradient-to-br from-primary/[0.08] to-card px-5 py-4">
         <div className="pr-9">
           <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
             <span className="rounded-full bg-primary/10 px-2 py-1 font-medium text-primary">
@@ -857,7 +910,7 @@ function AlternativeProposalCard({
             onClick={onSwitch}
             disabled={busy !== null}
           >
-            Välj som nästa stopp
+            Gör till nästa stopp
           </Button>
         ) : null}
         <Button asChild type="button" variant="ghost" className="min-h-10 w-full">
@@ -867,6 +920,39 @@ function AlternativeProposalCard({
         </Button>
       </div>
     </Card>
+  );
+}
+
+function CarouselArrow({
+  direction,
+  placeName,
+  onClick,
+}: {
+  direction: "previous" | "next";
+  placeName?: string;
+  onClick: () => void;
+}) {
+  const previous = direction === "previous";
+  return (
+    <button
+      type="button"
+      className={[
+        "absolute top-[7.25rem] z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-border/60 bg-background/65 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        previous ? "left-2" : "right-2",
+      ].join(" ")}
+      aria-label={
+        previous
+          ? `Föregående förslag${placeName ? `: ${placeName}` : ""}`
+          : `Nästa förslag${placeName ? `: ${placeName}` : ""}`
+      }
+      onClick={onClick}
+    >
+      {previous ? (
+        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+      ) : (
+        <ChevronRight className="h-5 w-5" aria-hidden="true" />
+      )}
+    </button>
   );
 }
 
@@ -1239,7 +1325,7 @@ function SwitchDialog({
     <Dialog open={Boolean(proposal)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Välj det här stället?</DialogTitle>
+          <DialogTitle>Gör det här till nästa stopp?</DialogTitle>
           <DialogDescription>
             {target
               ? `${target.name} blir gruppens nästa stopp i stället för ${currentPlace.name}. Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar.`
@@ -1254,7 +1340,7 @@ function SwitchDialog({
             {proposal && busy === `select:${proposal.id}` ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : null}
-            Välj ställe
+            Gör till nästa stopp
           </Button>
         </DialogFooter>
       </DialogContent>

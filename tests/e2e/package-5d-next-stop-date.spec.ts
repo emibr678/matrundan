@@ -62,26 +62,52 @@ test("karusellen visar nästa stopp först och nyaste egna förslaget direkt eft
 
   const focused = page.locator('[data-next-stop-proposal="selected"]');
   await expect(focused).toBeVisible();
+  await expect(focused.getByText("Valt nästa stopp", { exact: true })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveCount(0);
   const selectedName = await focused.getByRole("heading").textContent();
 
   await proposeAlternativeFromDetail(page);
   const alternative = page.locator('[data-next-stop-proposal="alternative"]');
   await expect(alternative).toBeVisible();
+  await expect(alternative.getByText("Förslag", { exact: true })).toBeVisible();
   await expect(alternative.getByText("Lilla Myntans Matrum", { exact: true })).toBeVisible();
   await expect(alternative.getByText(/föreslog/i)).toBeVisible();
   await expect(alternative.getByRole("button", { name: /Jag vill hit/ })).toBeVisible();
-  await expect(alternative.getByRole("button", { name: "Välj som nästa stopp" })).toBeVisible();
+  await expect(alternative.getByRole("button", { name: "Gör till nästa stopp" })).toBeVisible();
   await expect(page.getByText("2 förslag", { exact: true })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
+  await expect(page.getByRole("button", { name: /Föregående förslag:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Nästa förslag:/ })).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Visa nästa stopp:/ }).click();
+  await page.getByRole("button", { name: /Föregående förslag:/ }).click();
   await expect(page.locator('[data-next-stop-proposal="selected"]')).toBeVisible();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 2");
+  await expect(page.getByRole("button", { name: /Nästa förslag:/ })).toBeVisible();
   expect(
     await page.locator('[data-next-stop-proposal="selected"]').getByRole("heading").textContent(),
   ).toBe(selectedName);
   await expectNoOverflow(page);
 });
+test("karusellen glider med horisontell scroll-snap och följer sidpositionen", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await resetDemo(page);
+  await proposeAlternativeFromDetail(page);
+
+  const viewport = page.getByTestId("next-stop-carousel-viewport");
+  await expect(viewport).toHaveCSS("scroll-snap-type", /x/);
+
+  await page.getByRole("button", { name: /Föregående förslag:/ }).click();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 2");
+  const firstScrollLeft = await viewport.evaluate((element) => element.scrollLeft);
+  expect(firstScrollLeft).toBeLessThan(20);
+
+  await page.getByRole("button", { name: /Nästa förslag:/ }).click();
+  await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
+  const secondScrollLeft = await viewport.evaluate((element) => element.scrollLeft);
+  expect(secondScrollLeft).toBeGreaterThan(300);
+  await expectNoOverflow(page);
+});
+
 test("Jag vill hit kan markeras på både nästa stopp och ett karusellförslag utan omsortering", async ({
   page,
 }) => {
@@ -182,12 +208,12 @@ test("Välj som nästa stopp flyttar karusellförslaget till första positionen 
   if ((await support.getAttribute("aria-pressed")) !== "true") await support.click();
   await expect(support).toHaveAttribute("aria-pressed", "true");
 
-  await alternative.getByRole("button", { name: "Välj som nästa stopp" }).click();
-  const switchDialog = page.getByRole("dialog", { name: "Välj det här stället?" });
+  await alternative.getByRole("button", { name: "Gör till nästa stopp" }).click();
+  const switchDialog = page.getByRole("dialog", { name: "Gör det här till nästa stopp?" });
   await expect(switchDialog).toContainText(
     "Dagen, dagsvaren och allas Jag vill hit-markeringar ligger kvar",
   );
-  await switchDialog.getByRole("button", { name: "Välj ställe" }).click();
+  await switchDialog.getByRole("button", { name: "Gör till nästa stopp" }).click();
 
   const selected = page.locator('[data-next-stop-proposal="selected"]');
   const afterName = await selected.getByRole("heading").textContent();

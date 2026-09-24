@@ -61,14 +61,20 @@ test("fånga karusellens nästa stopp och nyss tillagda förslag", async ({ page
   await proposeFromDetail(page, "p1");
   await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
 
-  await expect(page.locator('[data-next-stop-proposal="alternative"]')).toBeVisible();
+  const alternative = page.locator('[data-next-stop-proposal="alternative"]');
+  await expect(alternative).toBeVisible();
+  await expect(alternative.getByText("Förslag", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Föregående förslag:/ })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 2");
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-393-karusell-nytt-forslag");
 
-  await page.getByRole("button", { name: /Visa nästa stopp:/ }).click();
-  await expect(page.locator('[data-next-stop-proposal="selected"]')).toBeVisible();
+  await page.getByRole("button", { name: /Föregående förslag:/ }).click();
+  const selected = page.locator('[data-next-stop-proposal="selected"]');
+  await expect(selected).toBeVisible();
+  await expect(selected.getByText("Valt nästa stopp", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Nästa förslag:/ })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-393-karusell-nasta-stopp");
