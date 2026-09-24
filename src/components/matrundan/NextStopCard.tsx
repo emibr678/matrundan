@@ -806,6 +806,206 @@ function ProposalRow({
   );
 }
 
+function DayPlanningSheet({
+  open,
+  onOpenChange,
+  plannedDate,
+  responses,
+  currentUserId,
+  members,
+  canInteract,
+  busy,
+  onRespond,
+  onEditDate,
+  onRemoveDate,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  plannedDate: string | null;
+  responses: DayResponse[];
+  currentUserId: string;
+  members: ReturnType<typeof useStore>["state"]["members"];
+  canInteract: boolean;
+  busy: string | null;
+  onRespond: (response: NextStopDayResponseValue) => void;
+  onEditDate: () => void;
+  onRemoveDate: () => void;
+}) {
+  if (!plannedDate) return null;
+  const ownResponse = responses.find((item) => item.memberId === currentUserId)?.response;
+  const canMembers = responses
+    .filter((item) => item.response === "can")
+    .map((item) => members.find((member) => member.id === item.memberId))
+    .filter((member): member is NonNullable<typeof member> => Boolean(member));
+  const cannotMembers = responses
+    .filter((item) => item.response === "cannot")
+    .map((item) => members.find((member) => member.id === item.memberId))
+    .filter((member): member is NonNullable<typeof member> => Boolean(member));
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[85dvh] overflow-y-auto rounded-t-3xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 sm:px-6"
+      >
+        <SheetHeader className="pr-8 text-left">
+          <SheetTitle className="font-display text-2xl">
+            {formatNextStopDate(plannedDate, null)}
+          </SheetTitle>
+          <SheetDescription>Svara om dagen fungerar för dig och se gruppens svar.</SheetDescription>
+        </SheetHeader>
+
+        {canInteract ? (
+          <section className="mt-5">
+            <h3 className="mb-2 text-sm font-medium">Kan du den dagen?</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={ownResponse === "can" ? "secondary" : "outline"}
+                className="min-h-16 flex-col gap-1"
+                aria-pressed={ownResponse === "can"}
+                disabled={busy !== null}
+                onClick={() => onRespond("can")}
+              >
+                {busy === "day-response:can" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                Jag kan
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className={[
+                  "min-h-16 flex-col gap-1",
+                  ownResponse === "cannot" ? "border-destructive/60 bg-destructive/10" : "",
+                ].join(" ")}
+                aria-pressed={ownResponse === "cannot"}
+                disabled={busy !== null}
+                onClick={() => onRespond("cannot")}
+              >
+                {busy === "day-response:cannot" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
+                Jag kan inte
+              </Button>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="mt-5">
+          <h3 className="text-sm font-medium">Gruppens svar</h3>
+          {canMembers.length > 0 || cannotMembers.length > 0 ? (
+            <div className="mt-2 space-y-2 rounded-2xl bg-muted/35 p-3">
+              {canMembers.length > 0 ? (
+                <div className="text-sm leading-relaxed">
+                  <span className="font-medium">Kan:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {canMembers
+                      .map((member) => `${member.avatar ?? ""} ${member.name}`.trim())
+                      .join(", ")}
+                  </span>
+                </div>
+              ) : null}
+              {cannotMembers.length > 0 ? (
+                <div className="text-sm leading-relaxed">
+                  <span className="font-medium">Kan inte:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {cannotMembers
+                      .map((member) => `${member.avatar ?? ""} ${member.name}`.trim())
+                      .join(", ")}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-muted-foreground">Ingen har svarat än.</p>
+          )}
+        </section>
+
+        {canInteract ? (
+          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-border/60 pt-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-11 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={busy !== null}
+              onClick={onRemoveDate}
+            >
+              Ta bort dag
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              disabled={busy !== null}
+              onClick={onEditDate}
+            >
+              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
+            </Button>
+          </div>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function FocusedActionsMenu({
+  plannedDate,
+  canRemove,
+  busy,
+  onEditDate,
+  onRemoveDate,
+  onWithdraw,
+}: {
+  plannedDate: string | null;
+  canRemove: boolean;
+  busy: string | null;
+  onEditDate: () => void;
+  onRemoveDate: () => void;
+  onWithdraw: () => void;
+}) {
+  const isBusy =
+    busy === "schedule" || busy === "remove-date" || Boolean(busy?.startsWith("withdraw:"));
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0 rounded-full bg-black/10 text-primary-foreground hover:bg-black/20 hover:text-primary-foreground"
+          aria-label="Fler val för nästa stopp"
+          disabled={busy !== null}
+        >
+          {isBusy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <MoreHorizontal className="h-4 w-4" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {plannedDate ? (
+          <>
+            <DropdownMenuItem onSelect={onEditDate}>
+              <CalendarDays className="h-4 w-4" /> Föreslå annan dag
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onRemoveDate}>Ta bort dag</DropdownMenuItem>
+          </>
+        ) : null}
+        {canRemove ? (
+          <DropdownMenuItem onSelect={onWithdraw}>Ta bort förslag</DropdownMenuItem>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function ProposalMenu({
   placeName,
   busy,
