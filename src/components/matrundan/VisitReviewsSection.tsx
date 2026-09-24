@@ -518,7 +518,6 @@ function ReviewRow({
       ) : null}
 
       {editAction ? <div className="mt-2 flex justify-end">{editAction}</div> : null}
-
     </div>
   );
 }
