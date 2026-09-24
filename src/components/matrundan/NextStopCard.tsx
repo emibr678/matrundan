@@ -159,9 +159,16 @@ export function NextStopCard({
     if (!revealPlaceId) return;
     const revealIndex = carouselItems.findIndex((item) => item.place.id === revealPlaceId);
     if (revealIndex < 0) return;
+
     setActiveCarouselIndex(revealIndex);
-    window.sessionStorage.removeItem(storageKey);
-  }, [carouselItems, state.group.id]);
+    const consumeTimer = window.setTimeout(() => {
+      if (window.sessionStorage.getItem(storageKey) === revealPlaceId) {
+        window.sessionStorage.removeItem(storageKey);
+      }
+    }, 300);
+
+    return () => window.clearTimeout(consumeTimer);
+  }, [carouselItems]);
 
   async function run(key: string, operation: () => Promise<void>, success?: string) {
     if (busy) return;
