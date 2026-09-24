@@ -2465,6 +2465,25 @@ export type Database = {
         }
         Returns: string
       }
+      create_visit_with_review_v6: {
+        Args: {
+          _atmosphere?: number
+          _comment?: string
+          _complete_next_stop?: boolean
+          _group_id: string
+          _guest_names?: string[]
+          _is_takeaway?: boolean
+          _meal_type: string
+          _participant_ids: string[]
+          _place_id: string
+          _review_occasions?: string[]
+          _service?: number
+          _taste?: number
+          _value?: number
+          _visited_on: string
+        }
+        Returns: string
+      }
       cross_group_practical_info_candidate_v1: {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json

@@ -13,9 +13,10 @@ function pastDate(days: number) {
 }
 
 async function resetDemo(page: Page) {
-  await page.goto("/?demo=1");
+  await page.goto("/exempel");
   await page.evaluate(() => {
     window.localStorage.removeItem("matrundan.state.v1");
+    window.sessionStorage.removeItem("matrundan.exampleState.v4");
     window.localStorage.removeItem("matrundan.nextStop.v2.g1");
     window.localStorage.removeItem("matrundan.nextStop.v2.responses.g1");
     window.sessionStorage.removeItem("matrundan.nextStop.v2.example-stockholm");
@@ -84,10 +85,10 @@ test("ett nytt förslag läggs sist på tur men visas direkt som återkoppling",
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
 
-  await page.goto("/matstallen/p2?demo=1");
+  await page.goto("/matstallen/p2");
   await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
   await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
-  await page.goto("/?demo=1");
+  await page.goto("/exempel");
 
   const alternative = page.locator('[data-next-stop-proposal="alternative"]').filter({
     hasText: "Kardemummaköket",
@@ -203,9 +204,9 @@ test("ett spontant besök på ett ställe På tur påverkar inte kön", async ({
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
 
-  await page.goto("/matstallen/p1?demo=1");
+  await page.goto("/matstallen/p1");
   await registerScorelessVisit(page, /Registrera besök/);
-  await page.goto("/?demo=1");
+  await page.goto("/exempel");
 
   const selected = page.locator('[data-next-stop-proposal="selected"]');
   await expect(selected.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();

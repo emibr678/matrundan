@@ -49,9 +49,10 @@ async function expectCarouselIndex(page: Page, index: number) {
 }
 
 async function resetDemo(page: Page) {
-  await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
+  await page.goto("/exempel", { waitUntil: "domcontentloaded" });
   await page.evaluate(() => {
     window.localStorage.removeItem("matrundan.state.v1");
+    window.sessionStorage.removeItem("matrundan.exampleState.v4");
     window.localStorage.removeItem("matrundan.nextStop.v2.g1");
     window.localStorage.removeItem("matrundan.nextStop.v2.responses.g1");
     window.localStorage.removeItem("matrundan.nextStopDate.v1.g1");
@@ -91,10 +92,10 @@ test("fånga nästa stopp och mjuk kö", async ({ page }, testInfo) => {
 test("fånga nytt förslag sist på tur", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await resetDemo(page);
-  await page.goto("/matstallen/p2?demo=1", { waitUntil: "domcontentloaded" });
+  await page.goto("/matstallen/p2", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Föreslå som nästa stopp" }).click();
   await expect(page.getByRole("button", { name: "På förslag" })).toBeVisible();
-  await page.goto("/?demo=1", { waitUntil: "domcontentloaded" });
+  await page.goto("/exempel", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByText("3 på tur", { exact: true })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("4 av 4");
