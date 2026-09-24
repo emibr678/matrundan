@@ -207,7 +207,9 @@ test("Välj som nästa stopp flyttar karusellförslaget till första positionen 
   );
   await expectNoOverflow(page);
 });
-test("Slumpa förslag visar det nya alternativet utan att skriva över nästa stopp", async ({ page }) => {
+test("Slumpa förslag visar det nya alternativet utan att skriva över nästa stopp", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await resetDemo(page);
 

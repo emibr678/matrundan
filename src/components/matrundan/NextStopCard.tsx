@@ -149,9 +149,7 @@ export function NextStopCard({
   }, [focusedPlace?.id]);
 
   React.useEffect(() => {
-    setActiveCarouselIndex((current) =>
-      Math.min(current, Math.max(0, carouselItems.length - 1)),
-    );
+    setActiveCarouselIndex((current) => Math.min(current, Math.max(0, carouselItems.length - 1)));
   }, [carouselItems.length]);
 
   React.useEffect(() => {
@@ -417,49 +415,49 @@ export function NextStopCard({
       >
         {activeCarouselItem?.proposal.id === focusedItem.proposal.id ? (
           <Card className="min-h-[18rem] overflow-hidden rounded-3xl border-border/70 bg-card p-0 shadow-sm">
-        <div className="relative">
-          <FocusedPlaceHero
-            item={focusedItem}
-            currentUserId={state.currentUserId}
-            canInteract={canInteract}
-            busy={busy}
-            onSupport={() => void togglePlaceSupport(focusedItem)}
-          />
-          {showFocusedActions ? (
-            <div className="absolute right-3 top-3">
-              <FocusedActionsMenu
-                plannedDate={plannedDate}
-                canRemove={canRemoveFocused}
+            <div className="relative">
+              <FocusedPlaceHero
+                item={focusedItem}
+                currentUserId={state.currentUserId}
+                canInteract={canInteract}
                 busy={busy}
-                onEditDate={openSchedule}
-                onRemoveDate={() => void removeDate()}
-                onWithdraw={() => withdrawProposal(focusedItem)}
+                onSupport={() => void togglePlaceSupport(focusedItem)}
               />
+              {showFocusedActions ? (
+                <div className="absolute right-3 top-3">
+                  <FocusedActionsMenu
+                    plannedDate={plannedDate}
+                    canRemove={canRemoveFocused}
+                    busy={busy}
+                    onEditDate={openSchedule}
+                    onRemoveDate={() => void removeDate()}
+                    onWithdraw={() => withdrawProposal(focusedItem)}
+                  />
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
 
-        <DayRow
-          plannedDate={plannedDate}
-          dayResponses={dayResponses}
-          currentUserId={state.currentUserId}
-          canInteract={canInteract}
-          onOpenPlanning={() => setPlanningOpen(true)}
-          onAddDate={openSchedule}
-        />
+            <DayRow
+              plannedDate={plannedDate}
+              dayResponses={dayResponses}
+              currentUserId={state.currentUserId}
+              canInteract={canInteract}
+              onOpenPlanning={() => setPlanningOpen(true)}
+              onAddDate={openSchedule}
+            />
 
-        {canWrite ? (
-          <div className="border-t border-border/60 p-4">
-            <Button
-              type="button"
-              onClick={() => onRegisterVisit(focusedItem.place.id)}
-              className="h-12 w-full text-base"
-              size="lg"
-            >
-              <Check className="h-4 w-4" /> Registrera besök
-            </Button>
-          </div>
-        ) : null}
+            {canWrite ? (
+              <div className="border-t border-border/60 p-4">
+                <Button
+                  type="button"
+                  onClick={() => onRegisterVisit(focusedItem.place.id)}
+                  className="h-12 w-full text-base"
+                  size="lg"
+                >
+                  <Check className="h-4 w-4" /> Registrera besök
+                </Button>
+              </div>
+            ) : null}
           </Card>
         ) : activeCarouselItem ? (
           <AlternativeProposalCard
@@ -846,7 +844,12 @@ function AlternativeProposalCard({
       </div>
       <div className="mt-auto grid gap-1 border-t border-border/60 p-4">
         {canInteract ? (
-          <Button type="button" className="min-h-12 w-full" onClick={onSwitch} disabled={busy !== null}>
+          <Button
+            type="button"
+            className="min-h-12 w-full"
+            onClick={onSwitch}
+            disabled={busy !== null}
+          >
             Välj som nästa stopp
           </Button>
         ) : null}
@@ -875,7 +878,9 @@ function NextStopCarouselControls({
         {items.map((item, index) => {
           const active = index === activeIndex;
           const label =
-            index === 0 ? `Visa nästa stopp: ${item.place.name}` : `Visa förslag: ${item.place.name}`;
+            index === 0
+              ? `Visa nästa stopp: ${item.place.name}`
+              : `Visa förslag: ${item.place.name}`;
           return (
             <button
               key={item.proposal.id}
