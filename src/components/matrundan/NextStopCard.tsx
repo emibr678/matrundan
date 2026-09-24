@@ -122,9 +122,6 @@ export function NextStopCard({
     () => (focusedItem ? [focusedItem, ...otherProposals] : []),
     [focusedItem, otherProposals],
   );
-  const activeCarouselItem =
-    carouselItems[Math.min(activeCarouselIndex, Math.max(0, carouselItems.length - 1))] ??
-    focusedItem;
   const plannedDate = focusedItem ? (nextStop?.plannedDate ?? null) : null;
   const passed = plannedDate ? isPastDateValue(plannedDate) : false;
   const canInteract = canWrite && backendReady;
