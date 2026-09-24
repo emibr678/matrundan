@@ -14,6 +14,27 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.42.0] – 2026-09-24
+
+### Nytt
+
+- Den egna besöksbilden kan nu följa med uttryckligen till valda grupper när samma
+  verkliga besök delas, utan att bilden kopieras eller byter ägare.
+- **Nästa stopp** fungerar nu som en mjuk kö: ett ställe ligger först och fler
+  idéer väntar **På tur** i stället för att bli en omröstning.
+
+### Förbättrat
+
+- Ställen som står på tur visas i en kompakt mobilkarusell och kan uttryckligen
+  flyttas fram till Nästa stopp utan att resten av kön tappas bort.
+- Gruppens planerade dag kan ändras med en tydlig bekräftelse; tidigare dagsvar
+  ersätts först när bytet bekräftas så att gruppen kan svara på nytt.
+- Kön går vidare först när det aktuella Nästa stoppet registreras som genomfört
+  från planeringsflödet. Vanliga spontana besök påverkar inte planeringen.
+- Delade besöksbilder behåller individuellt ägarskap och exponeras inte
+  automatiskt mellan grupper.
+
+
 ## [1.41.0] – 2026-09-22
 
 ### Nytt
