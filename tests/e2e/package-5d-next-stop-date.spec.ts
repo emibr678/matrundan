@@ -125,9 +125,11 @@ test("karusellen glider med horisontell scroll-snap och tydliga overlay-pilar", 
 
   await page.getByRole("button", { name: /Nästa ställe i kön:/ }).click();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 3");
-  await expect(page.locator('[data-next-stop-proposal="alternative"]').filter({
-    hasText: "Rundans Bistro",
-  })).toBeVisible();
+  await expect(
+    page.locator('[data-next-stop-proposal="alternative"]').filter({
+      hasText: "Rundans Bistro",
+    }),
+  ).toBeVisible();
   const secondScrollLeft = await viewport.evaluate((element) => element.scrollLeft);
   expect(secondScrollLeft).toBeGreaterThan(300);
 

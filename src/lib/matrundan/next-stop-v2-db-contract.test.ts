@@ -13,9 +13,7 @@ const preferences = await Bun.file(
 const legacyBridge = await Bun.file(
   "supabase/migrations/20260816183100_next_stop_v2_legacy_selection_bridge.sql",
 ).text();
-const queue = await Bun.file(
-  "supabase/migrations/20260924110000_next_stop_queue_v1.sql",
-).text();
+const queue = await Bun.file("supabase/migrations/20260924110000_next_stop_queue_v1.sql").text();
 const archiveBridge = await Bun.file(
   "supabase/migrations/20260816183200_next_stop_v2_place_archive_bridge.sql",
 ).text();

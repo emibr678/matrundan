@@ -270,9 +270,7 @@ export function NextStopCard({
           throw error;
         }
       },
-      focusedPlace
-        ? `${pick.name} lades sist på tur.`
-        : `${pick.name} är gruppens nästa stopp.`,
+      focusedPlace ? `${pick.name} lades sist på tur.` : `${pick.name} är gruppens nästa stopp.`,
     );
   }
 
@@ -1241,4 +1239,3 @@ function SwitchDialog({
     </Dialog>
   );
 }
-
