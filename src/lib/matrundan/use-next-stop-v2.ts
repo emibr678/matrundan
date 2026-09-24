@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   canWithdrawNextStopProposal,
   deriveNextStopState,
+  NEXT_STOP_COMPLETED_EVENT,
   liveProposeNextStopPlaceV2,
   liveSelectNextStopPlaceV2,
   liveSetNextStopDayResponseV2,
@@ -139,7 +140,6 @@ export function useNextStopV2() {
   const [demoResponses, setDemoResponses] = React.useState<DayResponse[]>(() =>
     mode === "demo" ? readDemoResponses(state.group.id, fallbackResponses) : [],
   );
-  const initialVisitIds = React.useRef(new Set(state.visits.map((visit) => visit.id)));
 
   const nextStop = mode === "live" ? fallback : demoState;
   const dayResponses = mode === "live" ? legacyResponsesForState(state, nextStop) : demoResponses;
@@ -175,7 +175,6 @@ export function useNextStopV2() {
       const normalized = derived ? normalizeState(derived) : null;
       setDemoState(normalized);
       setDemoResponses(legacyResponsesForState(state, normalized));
-      initialVisitIds.current = new Set(state.visits.map((visit) => visit.id));
     };
     window.addEventListener("matrundan:demo-reset", reset);
     return () => window.removeEventListener("matrundan:demo-reset", reset);
@@ -225,21 +224,33 @@ export function useNextStopV2() {
   }, [mode, state.group.lifecycleStatus, state.places]);
 
   React.useEffect(() => {
-    if (mode !== "demo") return;
-    const known = initialVisitIds.current;
-    const addedVisits = state.visits.filter((visit) => !known.has(visit.id));
-    initialVisitIds.current = new Set(state.visits.map((visit) => visit.id));
-    if (addedVisits.length === 0 || !demoState) return;
+    if (mode !== "demo" || typeof window === "undefined") return;
 
-    const plannedPlaceIds = new Set(demoState.proposals.map((proposal) => proposal.placeId));
-    const relevantVisit = addedVisits.some(
-      (visit) => visit.linkType !== "shared" && plannedPlaceIds.has(visit.placeId),
-    );
-    if (!relevantVisit) return;
+    const completeNextStop = (event: Event) => {
+      const placeId = (event as CustomEvent<{ placeId?: string }>).detail?.placeId;
+      if (!placeId) return;
 
-    setDemoState(null);
-    setDemoResponses([]);
-  }, [demoState, mode, state.visits]);
+      setDemoState((current) => {
+        if (!current || current.selectedPlaceId !== placeId) return current;
+
+        const proposals = current.proposals.filter((proposal) => proposal.placeId !== placeId);
+        setDemoResponses([]);
+        if (proposals.length === 0) return null;
+
+        return {
+          ...current,
+          revision: nextRevision(current),
+          plannedDate: null,
+          plannedTime: null,
+          selectedPlaceId: proposals[0]?.placeId ?? null,
+          proposals,
+        };
+      });
+    };
+
+    window.addEventListener(NEXT_STOP_COMPLETED_EVENT, completeNextStop);
+    return () => window.removeEventListener(NEXT_STOP_COMPLETED_EVENT, completeNextStop);
+  }, [mode]);
 
   async function propose(placeId: string): Promise<void> {
     if (mode === "live") {

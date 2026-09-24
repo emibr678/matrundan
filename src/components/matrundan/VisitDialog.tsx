@@ -6,10 +6,12 @@ export function VisitDialog({
   open,
   onOpenChange,
   placeId,
+  completeNextStopOnSave = false,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
   placeId: string | null;
+  completeNextStopOnSave?: boolean;
 }) {
   const { getPlace } = useStore();
   const place = placeId ? getPlace(placeId) : undefined;
@@ -29,6 +31,7 @@ export function VisitDialog({
         open={open && !needsOccasionClassification}
         onOpenChange={onOpenChange}
         placeId={placeId}
+        completeNextStopOnSave={completeNextStopOnSave}
       />
     </>
   );
