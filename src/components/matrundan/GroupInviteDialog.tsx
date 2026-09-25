@@ -56,6 +56,7 @@ export function GroupInviteDialog({
   const [lastLink, setLastLink] = React.useState<string | null>(null);
   const [lastEmail, setLastEmail] = React.useState<string | null>(null);
   const [busyInviteId, setBusyInviteId] = React.useState<string | null>(null);
+  const dialogContentRef = React.useRef<HTMLDivElement>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -186,7 +187,15 @@ export function GroupInviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-md overflow-y-auto">
+      <DialogContent
+        ref={dialogContentRef}
+        tabIndex={-1}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          dialogContentRef.current?.focus();
+        }}
+        className="max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-md overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Bjud in till {groupName}</DialogTitle>
           <DialogDescription>

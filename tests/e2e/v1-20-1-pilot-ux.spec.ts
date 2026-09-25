@@ -329,10 +329,12 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   await expectNoHorizontalOverflow(page, "navigerade gruppinställningar");
 });
 
-test("inbjudan är direkt hittbar från Gänget på mobil", async ({ page }) => {
+test("inbjudan är direkt hittbar från Medlemmar på mobil utan e-postfokus", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await installOwnerSession(page);
   await page.goto("/gruppen");
+
+  await expect(page.getByRole("heading", { name: "Medlemmar", exact: true })).toBeVisible();
 
   const inviteButton = page.getByRole("button", { name: "Bjud in", exact: true });
   await expect(inviteButton).toBeVisible();
@@ -344,5 +346,6 @@ test("inbjudan är direkt hittbar från Gänget på mobil", async ({ page }) => 
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Från dina andra grupper", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Bjud in med länk", { exact: true })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "direkt inbjudan från Gänget");
+  await expect(dialog.getByLabel("E-post (valfritt)")).not.toBeFocused();
+  await expectNoHorizontalOverflow(page, "direkt inbjudan från Medlemmar");
 });

@@ -102,13 +102,13 @@ function GroupPage() {
 
       <section>
         <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
-          <h2 className="font-display text-lg">Gänget</h2>
+          <h2 className="font-display text-lg">Medlemmar</h2>
           {canInvite ? (
             <Button
               type="button"
               size="sm"
-              variant="ghost"
-              className="min-h-11 shrink-0"
+              variant="outline"
+              className="min-h-11 shrink-0 rounded-full px-3"
               onClick={() => setInviteOpen(true)}
             >
               <UserPlus className="h-4 w-4" /> Bjud in
