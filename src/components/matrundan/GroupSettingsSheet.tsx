@@ -568,8 +568,8 @@ function InvitationAdministrationSection({ groupId }: { groupId: string }) {
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{invitationAdminLabel(item)}</div>
                   <div className="truncate text-muted-foreground">
-                    {stateLabel(item.state)} · skickad av {item.invited_by_name || "medlem"} · går ut{" "}
-                    {formatDate(item.expires_at)}
+                    {stateLabel(item.state)} · skickad av {item.invited_by_name || "medlem"} · går
+                    ut {formatDate(item.expires_at)}
                   </div>
                 </div>
                 {item.state === "active" ? (
