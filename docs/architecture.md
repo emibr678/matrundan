@@ -324,6 +324,14 @@ inte lämnas kvar efter profilens soft-delete.
 Direkt tabellåtkomst används bara när raden i sig är en lämplig säkerhetsgräns
 och policyn kan uttrycka hela regeln enkelt.
 
+RLS-policies som behöver medlemskap, grupproll eller gemensam grupp använder
+auth-bundna wrappers som `current_user_has_membership`,
+`current_user_has_group_role` och `current_user_shares_group`. De binder
+aktören till `auth.uid()`. De underliggande SECURITY DEFINER-hjälparna
+`has_membership`, `has_group_role` och `shares_group` tar uttryckliga
+användar-ID:n och är därför interna byggblock, inte direkt klient-API.
+`authenticated` ska inte ha EXECUTE på de råa hjälparna.
+
 ### Minimerad RPC
 
 Använd en minimerad RPC när:
