@@ -35,7 +35,7 @@ INSERT INTO public.places (id, name, category, address, city, added_by)
 VALUES (
   'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
   'Syntetiskt ställe',
-  'restaurant',
+  'restaurang',
   'Testgatan 1',
   'Teststad',
   '11111111-1111-4111-8111-111111111111'
