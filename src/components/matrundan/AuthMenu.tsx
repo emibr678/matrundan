@@ -11,6 +11,7 @@ import {
   Mail,
   Plus,
   UserCog,
+  UserPlus,
   Wrench,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -29,9 +30,16 @@ import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { APP_NAME } from "@/lib/matrundan/version";
 import { toast } from "sonner";
 import { AllGroupsDialog } from "./AllGroupsDialog";
+import { GroupInviteDialog } from "./GroupInviteDialog";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { EmailAuthDialog } from "./EmailAuthDialog";
+import {
+  acceptGroupMemberInvitation,
+  declineGroupMemberInvitation,
+  listMyGroupInvitations,
+  type MyGroupInvitation,
+} from "@/lib/matrundan/live-admin";
 
 const QUICK_GROUP_LIMIT = 4;
 const RECENT_GROUPS_KEY_PREFIX = "matrundan.recentGroups.v1:";
@@ -143,7 +151,29 @@ export function AuthMenu({
   const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
   const [recentGroupIds, setRecentGroupIds] = React.useState<string[]>([]);
   const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
+  const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
+  const [createdGroupInvite, setCreatedGroupInvite] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const userId = user?.id ?? null;
+
+  const refreshPendingInvites = React.useCallback(async () => {
+    if (!user || mode !== "live") {
+      setPendingInvites([]);
+      return;
+    }
+    try {
+      setPendingInvites(await listMyGroupInvitations());
+    } catch (error) {
+      console.error("[Matrundan] kunde inte läsa gruppinbjudningar:", error);
+      setPendingInvites([]);
+    }
+  }, [mode, user]);
+
+  React.useEffect(() => {
+    void refreshPendingInvites();
+  }, [refreshPendingInvites]);
 
   React.useEffect(() => {
     if (!userId) {
@@ -195,6 +225,20 @@ export function AuthMenu({
     } catch {
       toast.error("Kunde inte starta Google-inloggning.");
     }
+  }
+
+  async function acceptPendingInvitation(invitation: MyGroupInvitation) {
+    const result = await acceptGroupMemberInvitation(invitation.id);
+    await refreshGroups();
+    selectGroup(result.group_id);
+    await refreshPendingInvites();
+    toast.success("Du är nu med i " + invitation.group_name + ".");
+  }
+
+  async function declinePendingInvitation(invitation: MyGroupInvitation) {
+    await declineGroupMemberInvitation(invitation.id);
+    await refreshPendingInvites();
+    toast.success("Inbjudan avböjd.");
   }
 
   if (!user && mode !== "demo") {
@@ -351,6 +395,15 @@ export function AuthMenu({
             <Info className="mr-2 h-4 w-4" />
             Om {APP_NAME}
           </DropdownMenuItem>
+          {pendingInvites.length > 0 ? (
+            <DropdownMenuItem onSelect={() => setAllGroupsOpen(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              <span className="flex-1">Inbjudningar</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {pendingInvites.length}
+              </span>
+            </DropdownMenuItem>
+          ) : null}
           {hasPlaceMaintenanceAccess ? (
             <DropdownMenuItem onSelect={() => void navigate({ to: "/platsunderhall" })}>
               <Wrench className="mr-2 h-4 w-4" />
@@ -408,6 +461,9 @@ export function AuthMenu({
         groups={userGroups}
         activeGroupId={activeGroupId}
         onSelect={selectGroup}
+        invitations={pendingInvites}
+        onAcceptInvitation={acceptPendingInvitation}
+        onDeclineInvitation={declinePendingInvitation}
       />
       <ProfileDialog
         open={profileOpen}
@@ -415,7 +471,21 @@ export function AuthMenu({
         onSaved={() => void refreshGroups()}
       />
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
-      <CreateGroupDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateGroupDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onInviteCreatedGroup={(group) => setCreatedGroupInvite(group)}
+      />
+      {createdGroupInvite ? (
+        <GroupInviteDialog
+          open
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setCreatedGroupInvite(null);
+          }}
+          groupId={createdGroupInvite.id}
+          groupName={createdGroupInvite.name}
+        />
+      ) : null}
     </>
   );
 }

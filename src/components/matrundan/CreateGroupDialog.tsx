@@ -34,9 +34,11 @@ const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", 
 export function CreateGroupDialog({
   open,
   onOpenChange,
+  onInviteCreatedGroup,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onInviteCreatedGroup?: (group: { id: string; name: string }) => void;
 }) {
   const { refreshGroups, selectGroup } = useSession();
   const [name, setName] = React.useState("");
@@ -46,6 +48,11 @@ export function CreateGroupDialog({
   const [verified, setVerified] = React.useState<VerifiedSearchArea | null>(null);
   const [radius, setRadius] = React.useState<SearchRadiusKm>(1);
   const [busy, setBusy] = React.useState(false);
+  const [createdGroup, setCreatedGroup] = React.useState<{ id: string; name: string } | null>(null);
+
+  React.useEffect(() => {
+    if (!open) setCreatedGroup(null);
+  }, [open]);
 
   const locHasText = locationText.trim().length > 0;
   const locMatchesVerified = !!verified && locationText.trim() === verified.label.trim();
@@ -70,7 +77,7 @@ export function CreateGroupDialog({
       await refreshGroups();
       if (gid) selectGroup(gid);
       toast.success("Gruppen är skapad!");
-      onOpenChange(false);
+      setCreatedGroup({ id: gid, name: name.trim() });
       setName("");
       setDescription("");
       setLocationText("");
@@ -86,6 +93,31 @@ export function CreateGroupDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
+        {createdGroup ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Gruppen är skapad</DialogTitle>
+              <DialogDescription>
+                Vill du bjuda in någon till {createdGroup.name} direkt?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Button
+                className="w-full"
+                onClick={() => {
+                  onOpenChange(false);
+                  onInviteCreatedGroup?.(createdGroup);
+                }}
+              >
+                Bjud in personer
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+                Inte nu
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
         <DialogHeader>
           <DialogTitle>Skapa ny grupp</DialogTitle>
           <DialogDescription>
@@ -206,6 +238,8 @@ export function CreateGroupDialog({
             </Button>
           </DialogFooter>
         </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

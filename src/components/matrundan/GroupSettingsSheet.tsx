@@ -4,15 +4,13 @@ import {
   ArchiveRestore,
   ArrowLeft,
   ChevronRight,
-  Copy,
   LogOut,
-  Mail,
   RotateCcw,
   Search,
   Settings,
-  Share2,
   SlidersHorizontal,
   Users,
+  UserPlus,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +20,7 @@ import {
   GroupSearchAreasSettingsSection,
 } from "@/components/matrundan/GroupSearchSettingsSection";
 import { HiddenPlaceSuggestionsSection } from "@/components/matrundan/HiddenPlaceSuggestionsSection";
+import { GroupInviteDialog } from "@/components/matrundan/GroupInviteDialog";
 import { MemberManagementSection } from "@/components/matrundan/MemberManagementSection";
 import {
   AlertDialog,
@@ -35,7 +34,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Sheet,
@@ -47,7 +45,6 @@ import {
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import {
-  createGroupInvitation,
   leaveGroup,
   listGroupInvitations,
   revokeGroupInvitation,
@@ -56,7 +53,6 @@ import {
 } from "@/lib/matrundan/live-admin";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
-import { APP_NAME } from "@/lib/matrundan/version";
 
 type SettingsView =
   | "menu"
@@ -82,7 +78,7 @@ const VIEW_COPY: Record<SettingsView, { title: string; description: string }> = 
   },
   members: {
     title: "Medlemmar och inbjudningar",
-    description: "Se gruppen och hantera roller eller inbjudningar när du har behörighet.",
+    description: "Se medlemmar, bjud in fler och hantera roller när du har behörighet.",
   },
   maintenance: {
     title: "Matställen",
@@ -200,6 +196,9 @@ export function GroupSettingsSheet() {
 
           {view === "members" ? (
             <>
+              {isLive && activeGroupId && state.group.lifecycleStatus === "active" ? (
+                <InviteMembersSection groupId={activeGroupId} groupName={state.group.name} />
+              ) : null}
               <MemberManagementSection
                 members={state.members}
                 currentUserId={state.currentUserId}
@@ -208,7 +207,9 @@ export function GroupSettingsSheet() {
                 groupId={activeGroupId}
                 onChanged={refreshGroups}
               />
-              {isAdmin && activeGroupId ? <InvitationsSection groupId={activeGroupId} /> : null}
+              {isAdmin && activeGroupId ? (
+                <InvitationAdministrationSection groupId={activeGroupId} />
+              ) : null}
             </>
           ) : null}
 
@@ -289,7 +290,7 @@ function SettingsMenu({
       <MenuRow
         icon={Users}
         title="Medlemmar och inbjudningar"
-        description="Medlemmar, roller och inbjudningslänkar"
+        description="Medlemmar, roller och inbjudningar"
         onClick={() => onSelect("members")}
       />
       {showMaintenance ? (
@@ -489,11 +490,37 @@ function GroupStatusSection() {
   );
 }
 
-function InvitationsSection({ groupId }: { groupId: string }) {
-  const [email, setEmail] = React.useState("");
-  const [creating, setCreating] = React.useState(false);
-  const [lastLink, setLastLink] = React.useState<string | null>(null);
-  const [lastEmail, setLastEmail] = React.useState<string | null>(null);
+function InviteMembersSection({
+  groupId,
+  groupName,
+}: {
+  groupId: string;
+  groupName: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-medium">Bjud in</h3>
+      <Card className="rounded-2xl border-border/70 p-4">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Lägg till någon från dina andra grupper eller skicka en inbjudningslänk.
+        </p>
+        <Button className="mt-3 w-full" onClick={() => setOpen(true)}>
+          <UserPlus className="h-4 w-4" /> Bjud in personer
+        </Button>
+      </Card>
+      <GroupInviteDialog
+        open={open}
+        onOpenChange={setOpen}
+        groupId={groupId}
+        groupName={groupName}
+      />
+    </section>
+  );
+}
+
+function InvitationAdministrationSection({ groupId }: { groupId: string }) {
   const [items, setItems] = React.useState<InvitationListItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -513,27 +540,6 @@ function InvitationsSection({ groupId }: { groupId: string }) {
     void load();
   }, [load]);
 
-  async function createInvite(withEmail: boolean) {
-    setCreating(true);
-    try {
-      const trimmed = email.trim();
-      const invitation = await createGroupInvitation(
-        groupId,
-        withEmail && trimmed ? trimmed : null,
-      );
-      const link = `${window.location.origin}/inbjudan/${invitation.token}`;
-      setLastLink(link);
-      setLastEmail(withEmail && trimmed ? trimmed : null);
-      if (withEmail) setEmail("");
-      toast.success("Inbjudan skapad – kopiera länken nu.");
-      await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte skapa inbjudan.");
-    } finally {
-      setCreating(false);
-    }
-  }
-
   async function revoke(id: string) {
     setBusyId(id);
     try {
@@ -547,117 +553,50 @@ function InvitationsSection({ groupId }: { groupId: string }) {
     }
   }
 
-  async function copyLink() {
-    if (!lastLink) return;
-    try {
-      await navigator.clipboard.writeText(lastLink);
-      toast.success("Länk kopierad");
-    } catch {
-      toast.error("Kunde inte kopiera");
-    }
-  }
-
-  function shareLink() {
-    if (!lastLink) return;
-    const data: ShareData = {
-      title: APP_NAME,
-      text: `Häng med i gruppen på ${APP_NAME}.`,
-      url: lastLink,
-    };
-    if ("share" in navigator) void navigator.share(data).catch(() => {});
-    else void copyLink();
-  }
-
-  function openMailClient() {
-    if (!lastLink || !lastEmail) return;
-    const subject = encodeURIComponent(`Inbjudan till ${APP_NAME}`);
-    const body = encodeURIComponent(
-      `Hej!\n\nJag vill bjuda in dig till vår grupp i ${APP_NAME}.\nGå med här: ${lastLink}\n\nLänken gäller i sju dagar och kan bara användas en gång.`,
-    );
-    window.location.href = `mailto:${lastEmail}?subject=${subject}&body=${body}`;
-  }
-
   return (
     <section>
-      <h3 className="mb-2 text-sm font-medium">Bjud in</h3>
-      <Card className="space-y-3 rounded-2xl border-border/70 p-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="inv-email">E-post (valfritt)</Label>
-          <Input
-            id="inv-email"
-            type="email"
-            placeholder="vän@example.se"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Öppen länk: flera personer kan använda den tills den återkallas eller går ut. Med
-            e-post: bara den adressen kan använda länken, och länken gäller en gång.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => void createInvite(false)} disabled={creating}>
-            Skapa öppen länk
-          </Button>
-          <Button onClick={() => void createInvite(true)} disabled={creating || !email.trim()}>
-            <Mail className="mr-1 h-4 w-4" /> Skapa för e-post
-          </Button>
-        </div>
-        {lastLink ? (
-          <div className="rounded-xl border border-border/70 bg-muted/40 p-3 text-sm">
-            <div className="mb-2 text-xs font-medium">Din inbjudningslänk – visas bara nu</div>
-            <div className="break-all rounded-md bg-background p-2 text-xs">{lastLink}</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => void copyLink()}>
-                <Copy className="h-4 w-4" /> Kopiera
-              </Button>
-              <Button size="sm" variant="outline" onClick={shareLink}>
-                <Share2 className="h-4 w-4" /> Dela…
-              </Button>
-              {lastEmail ? (
-                <Button size="sm" onClick={openMailClient}>
-                  <Mail className="h-4 w-4" /> Öppna e-post
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-        <div>
-          <div className="mb-1 text-xs font-medium text-muted-foreground">
-            Aktiva och nyligen använda inbjudningar
-          </div>
-          {loading ? (
-            <div className="text-xs text-muted-foreground">Laddar…</div>
-          ) : items.length === 0 ? (
-            <div className="text-xs text-muted-foreground">Inga inbjudningar än.</div>
-          ) : (
-            <ul className="divide-y divide-border/60 rounded-xl border border-border/70">
-              {items.map((item) => (
-                <li key={item.id} className="flex items-center gap-2 p-2 text-xs">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{item.invited_email ?? "Öppen länk"}</div>
-                    <div className="text-muted-foreground">
-                      {stateLabel(item.state)} · går ut {formatDate(item.expires_at)}
-                    </div>
+      <h3 className="mb-2 text-sm font-medium">Inbjudningshistorik</h3>
+      <Card className="rounded-2xl border-border/70 p-3">
+        {loading ? (
+          <div className="text-xs text-muted-foreground">Laddar…</div>
+        ) : items.length === 0 ? (
+          <div className="text-xs text-muted-foreground">Inga inbjudningar än.</div>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {items.map((item) => (
+              <li key={item.id} className="flex min-w-0 items-center gap-2 py-2 text-xs">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{invitationAdminLabel(item)}</div>
+                  <div className="truncate text-muted-foreground">
+                    {stateLabel(item.state)} · skickad av {item.invited_by_name || "medlem"} · går ut{" "}
+                    {formatDate(item.expires_at)}
                   </div>
-                  {item.state === "active" ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busyId === item.id}
-                      onClick={() => void revoke(item.id)}
-                    >
-                      Återkalla
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                </div>
+                {item.state === "active" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busyId === item.id}
+                    onClick={() => void revoke(item.id)}
+                  >
+                    Återkalla
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </section>
   );
+}
+
+function invitationAdminLabel(item: InvitationListItem): string {
+  if (item.invite_kind === "internal") {
+    return item.invited_user_name?.trim() || "Matrundan-medlem";
+  }
+  if (item.invite_kind === "email") return item.invited_email?.trim() || "E-postinbjudan";
+  return "Öppen inbjudningslänk";
 }
 
 function LeaveGroupSection({
@@ -729,7 +668,9 @@ function stateLabel(state: InvitationListItem["state"]): string {
     case "active":
       return "Aktiv";
     case "accepted":
-      return "Använd";
+      return "Accepterad";
+    case "declined":
+      return "Avböjd";
     case "expired":
       return "Utgången";
     case "revoked":

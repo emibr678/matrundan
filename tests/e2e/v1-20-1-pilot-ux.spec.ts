@@ -144,6 +144,16 @@ async function installOwnerSession(page: Page) {
       return;
     }
 
+    if (rpc === "list_my_group_invitations") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      return;
+    }
+
+    if (rpc === "list_group_invite_candidates" || rpc === "list_own_group_invitations") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      return;
+    }
+
     if (rpc === "set_member_role") {
       const payload = route.request().postDataJSON() as { _role?: string };
       memberRole = payload._role === "admin" ? "admin" : "medlem";
@@ -317,4 +327,23 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   ]);
   expect(mutations[1]?.payload._default_radius_km).toBe(2);
   await expectNoHorizontalOverflow(page, "navigerade gruppinställningar");
+});
+
+
+test("inbjudan är direkt hittbar från Gänget på mobil", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await installOwnerSession(page);
+  await page.goto("/gruppen");
+
+  const inviteButton = page.getByRole("button", { name: "Bjud in", exact: true });
+  await expect(inviteButton).toBeVisible();
+  const inviteBox = await inviteButton.boundingBox();
+  expect(inviteBox?.height ?? 0, "Bjud in ska ha minst 44 px tryckyta").toBeGreaterThanOrEqual(44);
+
+  await inviteButton.click();
+  const dialog = page.getByRole("dialog", { name: /Bjud in till Testgruppen/ });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Från dina andra grupper", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Bjud in med länk", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "direkt inbjudan från Gänget");
 });
