@@ -21,7 +21,9 @@ describe("stagingdatabas-workflowets kontrakt", () => {
     expect(workflow).toContain("ciRun.conclusion !== 'success'");
     expect(workflow).toContain("staging-readiness-only blocker");
     expect(workflow).toContain("CI / required");
-    expect(workflow).toContain("allowedFailures");
+    expect(workflow).toContain(
+      "const allowedFailures = new Set(['Staging DB readiness', 'CI / required']);",
+    );
   });
 
   test("återanvänder den staging-scopeade access-tokenen för den godkända migrationsvägen", () => {
