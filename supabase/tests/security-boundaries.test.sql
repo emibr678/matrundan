@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(15);
+SELECT plan(17);
 
 -- Helt syntetiska identiteter och rader. Testerna ska aldrig bero på live-data.
 INSERT INTO auth.users (id, email, raw_user_meta_data)
@@ -94,8 +94,53 @@ VALUES (
 );
 
 SELECT ok(
-  COALESCE((public.run_release_security_gate_v1()->>'ok')::boolean, false),
-  'release security baseline passes on the migration-built database'
+  NOT pg_catalog.has_table_privilege('anon', 'public.group_places', 'SELECT')
+  AND NOT pg_catalog.has_table_privilege('authenticated', 'public.group_places', 'SELECT'),
+  'group_places has no direct client read grant'
+);
+
+SELECT ok(
+  NOT pg_catalog.has_table_privilege('authenticated', 'public.notification_outbox', 'SELECT'),
+  'notification outbox remains server-only'
+);
+
+SELECT ok(
+  pg_catalog.has_table_privilege('authenticated', 'public.activity', 'SELECT')
+  AND NOT pg_catalog.has_table_privilege('authenticated', 'public.activity', 'TRUNCATE'),
+  'intended activity read survives while historical broad privileges are removed'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_default_acl defaults
+    WHERE defaults.defaclrole = (
+      SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'postgres'
+    )
+      AND defaults.defaclnamespace = (
+        SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = 'public'
+      )
+      AND defaults.defaclobjtype = 'f'
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_default_acl defaults
+    CROSS JOIN LATERAL pg_catalog.aclexplode(defaults.defaclacl) acl
+    LEFT JOIN pg_catalog.pg_roles granted_role
+      ON granted_role.oid = acl.grantee
+    WHERE defaults.defaclrole = (
+      SELECT oid FROM pg_catalog.pg_roles WHERE rolname = 'postgres'
+    )
+      AND defaults.defaclnamespace = (
+        SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = 'public'
+      )
+      AND defaults.defaclobjtype = 'f'
+      AND (
+        acl.grantee = 0
+        OR granted_role.rolname IN ('anon', 'authenticated', 'service_role')
+      )
+  ),
+  'future public functions start without client or service-role execute grants'
 );
 
 SET LOCAL ROLE authenticated;
@@ -178,15 +223,6 @@ SELECT results_eq(
 );
 
 RESET ROLE;
-
-SELECT ok(
-  NOT pg_catalog.has_table_privilege(
-    'authenticated',
-    'public.notification_outbox',
-    'SELECT'
-  ),
-  'notification outbox remains server-only'
-);
 
 INSERT INTO public.notification_preferences (user_id, notification_type, push_enabled)
 VALUES ('44444444-4444-4444-8444-444444444444', 'review_added', true);
