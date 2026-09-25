@@ -3,14 +3,10 @@ name: Cloudflare prod preflight
 on:
   workflow_dispatch:
     inputs:
-      expected_sha:
-        description: Exact main SHA that should be inspected/uploaded
-        required: true
-        type: string
       upload_version:
         description: Upload an inert Worker app candidate after preflight
         required: true
-        default: false
+        default: true
         type: boolean
 
 permissions:
@@ -60,23 +56,65 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Guard trusted ref and exact SHA
+      - name: Guard trusted ref and current main
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
             echo "This workflow may only run from main." >&2
             exit 1
           fi
-          if [[ ! "${{ inputs.expected_sha }}" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "expected_sha must be a full 40-character Git SHA." >&2
+          git fetch --no-tags origin main
+          current_main="$(git rev-parse origin/main)"
+          if [[ "$GITHUB_SHA" != "$current_main" ]]; then
+            echo "Refusing stale prod preflight: dispatched SHA is no longer current main." >&2
+            echo "dispatched=$GITHUB_SHA" >&2
+            echo "current=$current_main" >&2
             exit 1
           fi
-          if [[ "$GITHUB_SHA" != "${{ inputs.expected_sha }}" ]]; then
-            echo "Expected SHA does not match the checked-out main SHA." >&2
-            echo "expected=${{ inputs.expected_sha }}" >&2
-            echo "actual=$GITHUB_SHA" >&2
-            exit 1
-          fi
+
+      - name: Guard unreleased app version
+        env:
+          GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const versionSource = fs.readFileSync('src/lib/matrundan/version.ts', 'utf8');
+          const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+          const versionMatch = versionSource.match(/version:\s*"([0-9]+\.[0-9]+\.[0-9]+)"/);
+          const changelogMatch = changelog.match(/^## \[([0-9]+\.[0-9]+\.[0-9]+)\] – \d{4}-\d{2}-\d{2}$/m);
+          if (!versionMatch || !changelogMatch || versionMatch[1] !== changelogMatch[1]) {
+            console.error('Current app version and top CHANGELOG release are inconsistent.');
+            process.exit(1);
+          }
+
+          const tag = `v${versionMatch[1]}`;
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const response = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/git/ref/tags/${encodeURIComponent(tag)}`,
+            {
+              headers: {
+                accept: 'application/vnd.github+json',
+                authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
+                'x-github-api-version': '2022-11-28',
+              },
+              signal: AbortSignal.timeout(10_000),
+            },
+          );
+          if (response.status === 404) {
+            console.log(`Verified unreleased app version ${tag}.`);
+            process.exit(0);
+          }
+          if (!response.ok) {
+            console.error(`Could not verify release tag ${tag} (HTTP ${response.status}).`);
+            process.exit(1);
+          }
+          console.error(
+            `Refusing prod preflight because ${tag} already exists. Materialize a new app version before another production release.`,
+          );
+          process.exit(1);
+          NODE
 
       - name: Validate complete GitHub production environment
         run: |
@@ -459,7 +497,6 @@ jobs:
             rm -f "$raw"
           }
 
-          short_sha="${GITHUB_SHA:0:12}"
           rm -f "$wrangler_output" "$upload_log"
           WRANGLER_OUTPUT_FILE_PATH="$wrangler_output" \
             "${WRANGLER[@]}" versions upload \
@@ -469,8 +506,8 @@ jobs:
               --keep-vars=false \
               --strict \
               --preview-alias prod-candidate \
-              --tag "sha-$short_sha" \
-              --message "Matrundan prod candidate $GITHUB_SHA" \
+              --tag "preflight-$GITHUB_RUN_ID" \
+              --message "Matrundan prod candidate $GITHUB_SHA preflight=$GITHUB_RUN_ID" \
               2>&1 | tee "$upload_log"
 
           version_id="$(node - "$wrangler_output" <<'NODE'
@@ -506,8 +543,8 @@ jobs:
           const afterVersions = read(process.argv[5]);
           const versionDetail = read(process.argv[6]);
           const versionId = process.argv[7];
-          const tag = `sha-${process.env.GITHUB_SHA.slice(0, 12)}`;
-          const message = `Matrundan prod candidate ${process.env.GITHUB_SHA}`;
+          const tag = `preflight-${process.env.GITHUB_RUN_ID}`;
+          const message = `Matrundan prod candidate ${process.env.GITHUB_SHA} preflight=${process.env.GITHUB_RUN_ID}`;
 
           if (JSON.stringify(beforeDeployment) !== JSON.stringify(afterDeployment)) {
             console.error('Active Cloudflare deployment changed during prod preflight.');
@@ -595,8 +632,10 @@ jobs:
             echo '- Existing VAPID private key: verified'
             echo '- Production build: verified'
             if [[ "${{ inputs.upload_version }}" == "true" ]]; then
+              echo "- Preflight run: \`$GITHUB_RUN_ID\`"
               echo "- Candidate version: \`${{ steps.upload.outputs.version_id }}\`"
               echo "- Candidate preview: ${{ steps.upload.outputs.preview_url }}"
+              echo '- Candidate identity is bound to this successful preflight run and exact release SHA'
               echo '- Candidate runtime bindings + health/release SHA: verified'
               echo '- Active production deployment: unchanged'
               echo '- Next manual gate: authenticated smoke on the candidate preview; add this exact preview URL to the Supabase Auth redirect allowlist if needed'

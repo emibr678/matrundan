@@ -264,14 +264,31 @@ SQL-/kontraktskontroller följas. Skriv inte att en migration, schema-cache relo
 eller autentiserad smoke är genomförd utan faktisk bekräftelse.
 
 För Cloudflare betyder publicering att en uttryckligen godkänd kandidat promoveras
-eller deployas till Worker `app` via Wrangler-miljön `prod`. En PR-preview eller
-en automatisk deployment av `main` till Worker `staging` är inte publicering.
+till Worker `app` via Wrangler-miljön `prod`. En PR-preview eller en automatisk
+deployment av `main` till Worker `staging` är inte publicering.
+
+Produktionspreflight och publicering är separata grindar men operatören ska inte
+kopiera SHA eller Worker-version mellan dem. Preflight binder kandidaten till
+exakt aktuell `main`-SHA och sitt GitHub Actions-run-ID. Efter autentiserad smoke
+och separat publiceringsgodkännande löser publish-workflowet senaste lyckade
+preflight för samma aktuella `main` och verifierar den bundna
+Cloudflare-kandidaten igen före promotion. Om `main` har flyttat krävs ny
+preflight.
 
 När en faktisk releasekandidat beslutas ska relevanta mergade feature-PR:ers
 releaseunderlag materialiseras till en daterad release. Då ska appversion,
 in-app-historik och `CHANGELOG.md` vara konsekventa innan produktionspreflight
 och publicering. En featuremerge till staging behöver däremot inte låtsas vara en
 egen produktionsrelease.
+
+Efter verifierad publik health skapas Git-taggen `v<APP_VERSION>` på exakt den
+publicerade SHA:n och motsvarande GitHub Release från den materialiserade
+CHANGELOG-posten. GitHub Release-titeln använder den aktuella versionens befintliga
+`summary` i `src/lib/matrundan/version.ts` som `Matrundan vX.Y.Z — <summary>`;
+ingen separat releasetitel lagras i `CHANGELOG.md`. Taggen är ett releasekvitto och
+får aldrig flyttas; en befintlig tagg på annan SHA är en blockerare. GitHub
+Release/Tag startar inte produktionsdeployen och ersätter inte det separata
+publiceringsgodkännandet.
 
 En dokumentations- eller maintenance-PR behöver inte publiceras bara för att den
 mergas.

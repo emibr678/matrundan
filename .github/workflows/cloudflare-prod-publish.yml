@@ -3,21 +3,14 @@ name: Cloudflare prod publish
 on:
   workflow_dispatch:
     inputs:
-      expected_sha:
-        description: Exact main SHA that was preflighted and smoke-tested
-        required: true
-        type: string
-      candidate_version_id:
-        description: Exact inert Worker version ID from Cloudflare prod preflight
-        required: true
-        type: string
       confirmation:
-        description: Type PUBLISH_PROD to promote this exact candidate to 100% traffic
+        description: Type PUBLISH_PROD after authenticated smoke to publish the verified candidate
         required: true
         type: string
 
 permissions:
-  contents: read
+  actions: read
+  contents: write
 
 defaults:
   run:
@@ -44,7 +37,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CANDIDATE_VERSION_ID: ${{ inputs.candidate_version_id }}
+      GITHUB_API_TOKEN: ${{ github.token }}
 
     steps:
       - name: Check out exact main candidate
@@ -53,25 +46,11 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Guard explicit publication approval inputs
+      - name: Guard explicit publication approval and current main
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
             echo "This workflow may only run from main." >&2
-            exit 1
-          fi
-          if [[ ! "${{ inputs.expected_sha }}" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "expected_sha must be a full 40-character Git SHA." >&2
-            exit 1
-          fi
-          if [[ "$GITHUB_SHA" != "${{ inputs.expected_sha }}" ]]; then
-            echo "Expected SHA does not match the checked-out main SHA." >&2
-            echo "expected=${{ inputs.expected_sha }}" >&2
-            echo "actual=$GITHUB_SHA" >&2
-            exit 1
-          fi
-          if [[ ! "$CANDIDATE_VERSION_ID" =~ ^[0-9a-fA-F-]{36}$ ]]; then
-            echo "candidate_version_id must be a Worker version UUID." >&2
             exit 1
           fi
           if [[ "${{ inputs.confirmation }}" != "PUBLISH_PROD" ]]; then
@@ -82,11 +61,74 @@ jobs:
             echo "Cloudflare production credentials are missing." >&2
             exit 1
           fi
+          git fetch --no-tags origin main
+          current_main="$(git rev-parse origin/main)"
+          if [[ "$GITHUB_SHA" != "$current_main" ]]; then
+            echo "Refusing stale prod publish: dispatched SHA is no longer current main." >&2
+            echo "dispatched=$GITHUB_SHA" >&2
+            echo "current=$current_main" >&2
+            exit 1
+          fi
 
       - name: Set up pinned Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.12.0
+
+      - name: Resolve successful preflight for exact main SHA
+        id: preflight
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const url = new URL(
+            `https://api.github.com/repos/${owner}/${repo}/actions/workflows/cloudflare-prod-preflight.yml/runs`,
+          );
+          url.searchParams.set('branch', 'main');
+          url.searchParams.set('event', 'workflow_dispatch');
+          url.searchParams.set('per_page', '100');
+
+          const response = await fetch(url, {
+            headers: {
+              accept: 'application/vnd.github+json',
+              authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
+              'x-github-api-version': '2022-11-28',
+            },
+            signal: AbortSignal.timeout(10_000),
+          });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || !Array.isArray(payload?.workflow_runs)) {
+            console.error(`Could not list successful prod preflights (HTTP ${response.status}).`);
+            process.exit(1);
+          }
+
+          const matching = payload.workflow_runs
+            .filter((run) => run?.head_sha === process.env.GITHUB_SHA)
+            .sort(
+              (left, right) =>
+                Date.parse(right?.created_at ?? '') - Date.parse(left?.created_at ?? ''),
+            );
+          const run = matching[0];
+          if (!run || !Number.isInteger(run.id)) {
+            console.error(
+              'No Cloudflare prod preflight exists for exact current main SHA. Run preflight and authenticated smoke first.',
+            );
+            process.exit(1);
+          }
+          if (run.status !== 'completed' || run.conclusion !== 'success') {
+            console.error(
+              `Latest prod preflight for exact current main SHA is not successful (run ${run.id}, status=${run.status}, conclusion=${run.conclusion}). Run a fresh preflight before publication.`,
+            );
+            process.exit(1);
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `run_id=${run.id}\n`);
+          console.log(
+            `Resolved latest successful prod preflight run ${run.id} for exact main SHA ${process.env.GITHUB_SHA}.`,
+          );
+          NODE
 
       - name: Verify Cloudflare production and preview routing contract
         run: |
@@ -130,15 +172,23 @@ jobs:
           }
 
           const workerSubdomain = await cloudflare('/workers/scripts/app/subdomain');
-          if (workerSubdomain?.previews_enabled !== true) {
-            console.error('Refusing publication because Worker app Preview URLs are not enabled for the smoke-tested candidate.');
+          if (
+            typeof workerSubdomain?.enabled !== 'boolean' ||
+            typeof workerSubdomain?.previews_enabled !== 'boolean'
+          ) {
+            console.error('Cloudflare Worker app subdomain state is incomplete.');
             process.exit(1);
           }
 
-          console.log('Verified Cloudflare workers.dev production/preview hostnames and enabled candidate preview routing.');
+          console.log(
+            `Verified Cloudflare workers.dev hostnames (production=${workerSubdomain.enabled}, previews=${workerSubdomain.previews_enabled}).`,
+          );
           NODE
 
-      - name: Verify exact candidate identity and complete bindings
+      - name: Resolve and verify exact preflight candidate
+        id: candidate
+        env:
+          PREFLIGHT_RUN_ID: ${{ steps.preflight.outputs.run_id }}
         run: |
           set -euo pipefail
           WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
@@ -206,43 +256,49 @@ jobs:
           }
 
           run_wrangler_json "$RUNNER_TEMP/prod-versions.json" versions list --env prod --json
-          run_wrangler_json "$RUNNER_TEMP/prod-version-detail.json" versions view "$CANDIDATE_VERSION_ID" --env prod --json
-          run_wrangler_json "$RUNNER_TEMP/prod-deployment-before.json" deployments status --env prod --json
 
-          node - \
-            "$RUNNER_TEMP/prod-versions.json" \
-            "$RUNNER_TEMP/prod-version-detail.json" \
-            "$RUNNER_TEMP/prod-deployment-before.json" <<'NODE'
+          candidate_version_id="$(node - "$RUNNER_TEMP/prod-versions.json" <<'NODE'
           const fs = require('node:fs');
-          const read = (path) => JSON.parse(fs.readFileSync(path, 'utf8'));
-          const versions = read(process.argv[2]);
-          const versionDetail = read(process.argv[3]);
-          const deployment = read(process.argv[4]);
-          const versionId = process.env.CANDIDATE_VERSION_ID;
-          const tag = `sha-${process.env.GITHUB_SHA.slice(0, 12)}`;
-          const message = `Matrundan prod candidate ${process.env.GITHUB_SHA}`;
-
-          const versionRows = Array.isArray(versions) ? versions : (versions?.versions ?? []);
-          const matchingRows = versionRows.filter((row) => {
+          const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const rows = Array.isArray(payload) ? payload : (payload?.versions ?? []);
+          const tag = `preflight-${process.env.PREFLIGHT_RUN_ID}`;
+          const message =
+            `Matrundan prod candidate ${process.env.GITHUB_SHA} preflight=${process.env.PREFLIGHT_RUN_ID}`;
+          const matches = rows.filter((row) => {
             const text = JSON.stringify(row);
             return text.includes(tag) && text.includes(message);
           });
-          const rankedMatches = matchingRows
-            .map((row) => {
-              const createdOn = row?.metadata?.created_on ?? row?.created_on;
-              const createdAt = Date.parse(createdOn);
-              if (!Number.isFinite(createdAt)) {
-                console.error('Matching preflight candidate is missing a valid created_on timestamp.');
-                process.exit(1);
-              }
-              return { row, createdAt };
-            })
-            .sort((left, right) => right.createdAt - left.createdAt);
-          const latestMatch = rankedMatches[0]?.row;
-          if (!latestMatch || !JSON.stringify(latestMatch).includes(versionId)) {
-            console.error('candidate_version_id is not the latest preflight candidate for this exact main SHA.');
+          if (matches.length !== 1) {
+            console.error(
+              `Expected exactly one Worker candidate for successful preflight ${process.env.PREFLIGHT_RUN_ID}, found ${matches.length}.`,
+            );
             process.exit(1);
           }
+          const row = matches[0];
+          const id = row?.id ?? row?.version_id ?? row?.versionId;
+          if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) {
+            console.error('Could not resolve Worker version ID from the successful preflight candidate.');
+            process.exit(1);
+          }
+          process.stdout.write(id);
+          NODE
+          )"
+
+          echo "CANDIDATE_VERSION_ID=$candidate_version_id" >> "$GITHUB_ENV"
+          echo "version_id=$candidate_version_id" >> "$GITHUB_OUTPUT"
+
+          run_wrangler_json "$RUNNER_TEMP/prod-version-detail.json" versions view "$candidate_version_id" --env prod --json
+          run_wrangler_json "$RUNNER_TEMP/prod-deployment-before.json" deployments status --env prod --json
+
+          node - \
+            "$RUNNER_TEMP/prod-version-detail.json" \
+            "$RUNNER_TEMP/prod-deployment-before.json" \
+            "$candidate_version_id" <<'NODE'
+          const fs = require('node:fs');
+          const read = (path) => JSON.parse(fs.readFileSync(path, 'utf8'));
+          const versionDetail = read(process.argv[2]);
+          const deployment = read(process.argv[3]);
+          const versionId = process.argv[4];
 
           const bindingNames = new Set();
           let environmentBinding = null;
@@ -269,7 +325,9 @@ jobs:
           ];
           const missingBindings = requiredBindings.filter((name) => !bindingNames.has(name));
           if (missingBindings.length > 0) {
-            console.error(`Refusing publication; candidate is missing runtime binding(s): ${missingBindings.join(', ')}`);
+            console.error(
+              `Refusing publication; candidate is missing runtime binding(s): ${missingBindings.join(', ')}`,
+            );
             process.exit(1);
           }
           if (!JSON.stringify(environmentBinding).includes('prod')) {
@@ -277,26 +335,27 @@ jobs:
             process.exit(1);
           }
 
-          const candidateAlreadyActive = (() => {
-            let found = false;
-            const walk = (value) => {
-              if (!value || typeof value !== 'object') return;
-              if (value.version_id === versionId && Number(value.percentage) === 100) found = true;
-              if (Array.isArray(value)) value.forEach(walk);
-              else Object.values(value).forEach(walk);
-            };
-            walk(deployment);
-            return found;
-          })();
-          if (candidateAlreadyActive) {
-            console.error('Candidate is already serving 100% production traffic; refusing a duplicate publication run.');
-            process.exit(1);
-          }
-
-          console.log(`Verified exact publish candidate ${versionId} for ${process.env.GITHUB_SHA}.`);
+          let candidateAlreadyActive = false;
+          const walk = (value) => {
+            if (!value || typeof value !== 'object') return;
+            if (value.version_id === versionId && Number(value.percentage) === 100) {
+              candidateAlreadyActive = true;
+            }
+            if (Array.isArray(value)) value.forEach(walk);
+            else Object.values(value).forEach(walk);
+          };
+          walk(deployment);
+          fs.appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `already_active=${candidateAlreadyActive ? 'true' : 'false'}\n`,
+          );
+          console.log(
+            `Verified exact publish candidate ${versionId} for preflight ${process.env.PREFLIGHT_RUN_ID} and SHA ${process.env.GITHUB_SHA}.`,
+          );
           NODE
 
       - name: Re-check smoke-tested candidate preview
+        if: steps.candidate.outputs.already_active != 'true'
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -313,6 +372,7 @@ jobs:
           NODE
 
       - name: Promote exact candidate to 100 percent production traffic
+        if: steps.candidate.outputs.already_active != 'true'
         run: |
           set -euo pipefail
           WRANGLER=(npx --yes "wrangler@$WRANGLER_VERSION")
@@ -373,22 +433,35 @@ jobs:
           }
 
           const before = await request();
-          if (before?.previews_enabled !== true) {
-            console.error('Candidate preview routing changed before publication; refusing to enable production route.');
+          if (
+            typeof before?.enabled !== 'boolean' ||
+            typeof before?.previews_enabled !== 'boolean'
+          ) {
+            console.error('Cloudflare Worker app subdomain state is incomplete.');
             process.exit(1);
           }
-          if (before?.enabled !== true) {
+          if (before.enabled !== true) {
             await request({
               method: 'POST',
-              body: JSON.stringify({ enabled: true, previews_enabled: true }),
+              body: JSON.stringify({
+                enabled: true,
+                previews_enabled: before.previews_enabled,
+              }),
             });
           }
           const after = await request();
-          if (after?.enabled !== true || after?.previews_enabled !== true) {
-            console.error('Cloudflare did not enable the stable production workers.dev route while preserving preview routing.');
+          if (
+            after?.enabled !== true ||
+            after?.previews_enabled !== before.previews_enabled
+          ) {
+            console.error(
+              'Cloudflare did not enable the stable production route while preserving preview routing state.',
+            );
             process.exit(1);
           }
-          console.log('Enabled stable production workers.dev route; candidate preview remains available until public health passes.');
+          console.log(
+            'Enabled stable production workers.dev route while preserving candidate preview routing state.',
+          );
           NODE
 
       - name: Verify public production health and release SHA
@@ -416,6 +489,148 @@ jobs:
           }
           console.error(`Public production health verification failed after promotion: ${lastFailure}`);
           process.exit(1);
+          NODE
+
+      - name: Create immutable release tag and GitHub Release metadata
+        id: release
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const versionSource = fs.readFileSync('src/lib/matrundan/version.ts', 'utf8');
+          const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+          const versionMatch = versionSource.match(/version:\s*"([0-9]+\.[0-9]+\.[0-9]+)"/);
+          const topReleaseMatch = changelog.match(
+            /^## \[([0-9]+\.[0-9]+\.[0-9]+)\] – (\d{4}-\d{2}-\d{2})$/m,
+          );
+          if (!versionMatch || !topReleaseMatch || versionMatch[1] !== topReleaseMatch[1]) {
+            console.error('Current app version and top CHANGELOG release are inconsistent.');
+            process.exit(1);
+          }
+
+          const version = versionMatch[1];
+          const date = topReleaseMatch[2];
+          const tagName = `v${version}`;
+          const escapedVersion = version.replaceAll('.', '\\.');
+          const summaryMatch = versionSource.match(
+            new RegExp(
+              `version:\\s*"${escapedVersion}",\\s*date:\\s*"[^"]+",\\s*summary:\\s*"([^"]+)"`,
+            ),
+          );
+          const releaseSummary = summaryMatch?.[1]?.trim().replace(/\.$/u, '').trim();
+          if (!releaseSummary) {
+            console.error(`Version ${version} is missing a usable release summary.`);
+            process.exit(1);
+          }
+          const releaseTitle = `Matrundan v${version} — ${releaseSummary}`;
+          const bodyStart = topReleaseMatch.index + topReleaseMatch[0].length;
+          const tail = changelog.slice(bodyStart);
+          const nextReleaseOffset = tail.search(/^## \[/m);
+          const notes = (nextReleaseOffset >= 0 ? tail.slice(0, nextReleaseOffset) : tail).trim();
+          if (!notes) {
+            console.error(`CHANGELOG release ${version} has no release notes.`);
+            process.exit(1);
+          }
+
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const apiRoot = `https://api.github.com/repos/${owner}/${repo}`;
+          const headers = {
+            accept: 'application/vnd.github+json',
+            authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
+            'content-type': 'application/json',
+            'x-github-api-version': '2022-11-28',
+          };
+
+          async function request(path, init = {}) {
+            const response = await fetch(`${apiRoot}${path}`, {
+              ...init,
+              headers: { ...headers, ...(init.headers ?? {}) },
+              signal: AbortSignal.timeout(10_000),
+            });
+            const payload = await response.json().catch(() => null);
+            return { response, payload };
+          }
+
+          async function resolveTagCommit(object) {
+            let current = object;
+            for (let depth = 0; depth < 5; depth += 1) {
+              if (current?.type === 'commit' && typeof current.sha === 'string') return current.sha;
+              if (current?.type !== 'tag' || typeof current.sha !== 'string') break;
+              const { response, payload } = await request(`/git/tags/${current.sha}`);
+              if (!response.ok) {
+                console.error(`Could not resolve annotated tag ${tagName} (HTTP ${response.status}).`);
+                process.exit(1);
+              }
+              current = payload?.object;
+            }
+            console.error(`Could not resolve ${tagName} to a commit.`);
+            process.exit(1);
+          }
+
+          const tagPath = `/git/ref/tags/${encodeURIComponent(tagName)}`;
+          let tagResult = await request(tagPath);
+          if (tagResult.response.status === 404) {
+            tagResult = await request('/git/refs', {
+              method: 'POST',
+              body: JSON.stringify({
+                ref: `refs/tags/${tagName}`,
+                sha: process.env.GITHUB_SHA,
+              }),
+            });
+            if (!tagResult.response.ok) {
+              console.error(`Could not create release tag ${tagName} (HTTP ${tagResult.response.status}).`);
+              process.exit(1);
+            }
+            console.log(`Created release tag ${tagName} at ${process.env.GITHUB_SHA}.`);
+          } else if (!tagResult.response.ok) {
+            console.error(`Could not read release tag ${tagName} (HTTP ${tagResult.response.status}).`);
+            process.exit(1);
+          }
+
+          const tagCommit = await resolveTagCommit(tagResult.payload?.object);
+          if (tagCommit !== process.env.GITHUB_SHA) {
+            console.error(
+              `Refusing to move immutable release tag ${tagName}: it points to ${tagCommit}, not ${process.env.GITHUB_SHA}.`,
+            );
+            process.exit(1);
+          }
+
+          const releasePath = `/releases/tags/${encodeURIComponent(tagName)}`;
+          const releaseResult = await request(releasePath);
+          if (releaseResult.response.status === 404) {
+            const created = await request('/releases', {
+              method: 'POST',
+              body: JSON.stringify({
+                tag_name: tagName,
+                target_commitish: process.env.GITHUB_SHA,
+                name: releaseTitle,
+                body: `Publicerad ${date}.\n\n${notes}\n`,
+                draft: false,
+                prerelease: false,
+                make_latest: 'true',
+              }),
+            });
+            if (!created.response.ok) {
+              console.error(
+                `Could not create GitHub Release ${tagName} (HTTP ${created.response.status}).`,
+              );
+              process.exit(1);
+            }
+            console.log(`Created GitHub Release ${tagName}: ${releaseTitle}.`);
+          } else if (!releaseResult.response.ok) {
+            console.error(
+              `Could not read GitHub Release ${tagName} (HTTP ${releaseResult.response.status}).`,
+            );
+            process.exit(1);
+          } else if (releaseResult.payload?.draft || releaseResult.payload?.prerelease) {
+            console.error(`Existing GitHub Release ${tagName} is not a normal published release.`);
+            process.exit(1);
+          } else {
+            console.log(`GitHub Release ${tagName} already exists on the immutable tag.`);
+          }
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tagName}\n`);
           NODE
 
       - name: Disable production candidate Preview URLs after successful publication
@@ -463,7 +678,9 @@ jobs:
             echo '## Cloudflare prod publication'
             echo
             echo "- SHA: \`$GITHUB_SHA\`"
+            echo "- Preflight run: \`${{ steps.preflight.outputs.run_id }}\`"
             echo "- Worker version: \`$CANDIDATE_VERSION_ID\`"
+            echo "- GitHub Release: \`${{ steps.release.outputs.tag }}\`"
             echo '- Candidate identity/bindings: re-verified before promotion'
             echo '- Candidate preview health: re-verified before promotion'
             echo '- Production traffic: 100% on the exact approved candidate'
