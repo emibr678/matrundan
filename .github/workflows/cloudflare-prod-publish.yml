@@ -512,13 +512,13 @@ jobs:
           const version = versionMatch[1];
           const date = topReleaseMatch[2];
           const tagName = `v${version}`;
-          const escapedVersion = version.replaceAll('.', '\\.') ;
+          const escapedVersion = version.replaceAll('.', '\\.');
           const summaryMatch = versionSource.match(
             new RegExp(
               `version:\\s*"${escapedVersion}",\\s*date:\\s*"[^"]+",\\s*summary:\\s*"([^"]+)"`,
             ),
           );
-          const releaseSummary = summaryMatch?.[1]?.trim().replace(/\\.$/u, '').trim();
+          const releaseSummary = summaryMatch?.[1]?.trim().replace(/\.$/u, '').trim();
           if (!releaseSummary) {
             console.error(`Version ${version} is missing a usable release summary.`);
             process.exit(1);
