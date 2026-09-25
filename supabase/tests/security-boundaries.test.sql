@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(17);
+SELECT plan(19);
 
 -- Helt syntetiska identiteter och rader. Testerna ska aldrig bero på live-data.
 INSERT INTO auth.users (id, email, raw_user_meta_data)
@@ -143,13 +143,51 @@ SELECT ok(
   'future public functions start without client or service-role execute grants'
 );
 
+SELECT ok(
+  NOT pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.has_membership(uuid,uuid)',
+    'EXECUTE'
+  )
+  AND NOT pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.has_group_role(uuid,uuid,text[])',
+    'EXECUTE'
+  )
+  AND NOT pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.shares_group(uuid,uuid)',
+    'EXECUTE'
+  ),
+  'raw arbitrary-user RLS helpers are not client-callable'
+);
+
+SELECT ok(
+  pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.current_user_has_membership(uuid)',
+    'EXECUTE'
+  )
+  AND pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.current_user_has_group_role(uuid,text[])',
+    'EXECUTE'
+  )
+  AND pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.current_user_shares_group(uuid)',
+    'EXECUTE'
+  ),
+  'RLS wrappers bound to auth.uid are executable by authenticated'
+);
+
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
 
 SELECT throws_ok(
   $$SELECT public.get_group_app_state_v5n('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')$$,
   'P0001',
-  'Du är inte medlem i gruppen',
+  'Not a member of group',
   'direct route/deep-link cannot read another group through the current group-state RPC'
 );
 
@@ -182,7 +220,7 @@ SELECT throws_ok(
       false
     )$$,
   'P0001',
-  'Du är inte aktiv medlem i målgruppen',
+  'Du är inte medlem i målgruppen',
   'client-supplied target group cannot create a cross-group share without membership'
 );
 
