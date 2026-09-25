@@ -186,12 +186,6 @@ Fulla repoövergripande kontroller finns kvar för releasekandidater:
 bun run verify:full
 ```
 
-Databasändringar kör även pgTAP-sviten i `supabase/tests/` i redo-CI. Den
-tyngre säkerhetsgrinden (CodeQL, full-history secret scan, dependency audit och
-samma negativa databastester) ligger separat från vardagsloopen och är
-obligatorisk genom produktionspreflight för exakt release-SHA. Beroende-PR:er
-får dessutom GitHubs Dependency Review.
-
 Global skrivande formattering är avsiktligt explicit:
 
 ```bash
