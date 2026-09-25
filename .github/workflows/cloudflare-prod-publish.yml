@@ -512,6 +512,18 @@ jobs:
           const version = versionMatch[1];
           const date = topReleaseMatch[2];
           const tagName = `v${version}`;
+          const escapedVersion = version.replaceAll('.', '\\.') ;
+          const summaryMatch = versionSource.match(
+            new RegExp(
+              `version:\\s*"${escapedVersion}",\\s*date:\\s*"[^"]+",\\s*summary:\\s*"([^"]+)"`,
+            ),
+          );
+          const releaseSummary = summaryMatch?.[1]?.trim().replace(/\\.$/u, '').trim();
+          if (!releaseSummary) {
+            console.error(`Version ${version} is missing a usable release summary.`);
+            process.exit(1);
+          }
+          const releaseTitle = `Matrundan v${version} — ${releaseSummary}`;
           const bodyStart = topReleaseMatch.index + topReleaseMatch[0].length;
           const tail = changelog.slice(bodyStart);
           const nextReleaseOffset = tail.search(/^## \[/m);
@@ -592,7 +604,7 @@ jobs:
               body: JSON.stringify({
                 tag_name: tagName,
                 target_commitish: process.env.GITHUB_SHA,
-                name: tagName,
+                name: releaseTitle,
                 body: `Publicerad ${date}.\n\n${notes}\n`,
                 draft: false,
                 prerelease: false,
@@ -605,7 +617,7 @@ jobs:
               );
               process.exit(1);
             }
-            console.log(`Created GitHub Release ${tagName}.`);
+            console.log(`Created GitHub Release ${tagName}: ${releaseTitle}.`);
           } else if (!releaseResult.response.ok) {
             console.error(
               `Could not read GitHub Release ${tagName} (HTTP ${releaseResult.response.status}).`,
