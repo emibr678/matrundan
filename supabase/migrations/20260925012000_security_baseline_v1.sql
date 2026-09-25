@@ -50,14 +50,6 @@ REVOKE REFERENCES, TRIGGER, TRUNCATE ON TABLE
   public.visit_media
 FROM authenticated;
 
--- Två interna SECURITY DEFINER-hjälpare var direkt körbara av authenticated
--- enbart i prod genom samma historiska defaultgrant. De ska bara användas
--- indirekt av policies/RPC:er.
-REVOKE EXECUTE ON FUNCTION public.has_group_role(uuid, uuid, text[])
-  FROM authenticated;
-REVOKE EXECUTE ON FUNCTION public.shares_group(uuid, uuid)
-  FROM authenticated;
-
 CREATE OR REPLACE FUNCTION public.clear_private_notifications_on_profile_soft_delete()
 RETURNS trigger
 LANGUAGE plpgsql
