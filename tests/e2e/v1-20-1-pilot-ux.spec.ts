@@ -329,7 +329,6 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   await expectNoHorizontalOverflow(page, "navigerade gruppinställningar");
 });
 
-
 test("inbjudan är direkt hittbar från Gänget på mobil", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await installOwnerSession(page);
@@ -338,7 +337,10 @@ test("inbjudan är direkt hittbar från Gänget på mobil", async ({ page }) => 
   const inviteButton = page.getByRole("button", { name: "Bjud in", exact: true });
   await expect(inviteButton).toBeVisible();
   const inviteBox = await inviteButton.boundingBox();
-  expect(inviteBox?.height ?? 0, "Bjud in ska ha minst 44 px tryckyta").toBeGreaterThanOrEqual(44);
+  expect(
+    inviteBox?.height ?? 0,
+    "Bjud in ska ha minst 44 px tryckyta",
+  ).toBeGreaterThanOrEqual(44);
 
   await inviteButton.click();
   const dialog = page.getByRole("dialog", { name: /Bjud in till Testgruppen/ });
