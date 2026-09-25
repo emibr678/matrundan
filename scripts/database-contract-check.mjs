@@ -112,6 +112,9 @@ for (const name of requiredFunctions) {
 }
 for (const marker of [
   "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public",
+  "current_user_has_membership",
+  "current_user_has_group_role",
+  "current_user_shares_group",
   "clear_private_notifications_on_profile_soft_delete",
 ]) {
   if (!sql.includes(marker)) {
