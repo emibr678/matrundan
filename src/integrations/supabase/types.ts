@@ -2537,6 +2537,18 @@ export type Database = {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json
       }
+      current_user_has_group_role: {
+        Args: { _group_id: string; _roles: string[] }
+        Returns: boolean
+      }
+      current_user_has_membership: {
+        Args: { _group_id: string }
+        Returns: boolean
+      }
+      current_user_shares_group: {
+        Args: { _other_user_id: string }
+        Returns: boolean
+      }
       delete_original_visit: {
         Args: { _group_id: string; _visit_id: string }
         Returns: string[]
