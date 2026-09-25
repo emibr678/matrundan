@@ -67,9 +67,7 @@ export function GroupInviteDialog({
       setCandidates(nextCandidates);
       setOwnInvites(nextOwnInvites);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte läsa inbjudningar.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte läsa inbjudningar.");
     } finally {
       setLoading(false);
     }
@@ -111,9 +109,7 @@ export function GroupInviteDialog({
       setSelectedIds([]);
       await load();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte skicka inbjudan.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte skicka inbjudan.");
     } finally {
       setSending(false);
     }
@@ -131,9 +127,7 @@ export function GroupInviteDialog({
       toast.success("Inbjudningslänken är skapad.");
       await load();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte skapa inbjudningslänk.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte skapa inbjudningslänk.");
     } finally {
       setCreatingLink(false);
     }
@@ -146,9 +140,7 @@ export function GroupInviteDialog({
       toast.success("Inbjudan återkallad.");
       await load();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte återkalla inbjudan.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte återkalla inbjudan.");
     } finally {
       setBusyInviteId(null);
     }
@@ -177,9 +169,7 @@ export function GroupInviteDialog({
 
   function openMailClient() {
     if (!lastLink || !lastEmail) return;
-    const subject = encodeURIComponent(
-      "Inbjudan till " + groupName + " på " + APP_NAME,
-    );
+    const subject = encodeURIComponent("Inbjudan till " + groupName + " på " + APP_NAME);
     const body = encodeURIComponent(
       "Hej!\n\nJag vill bjuda in dig till gruppen " +
         groupName +
@@ -192,9 +182,7 @@ export function GroupInviteDialog({
     window.location.href = "mailto:" + lastEmail + "?subject=" + subject + "&body=" + body;
   }
 
-  const pendingOwnInvites = ownInvites.filter(
-    (invitation) => invitation.state === "active",
-  );
+  const pendingOwnInvites = ownInvites.filter((invitation) => invitation.state === "active");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

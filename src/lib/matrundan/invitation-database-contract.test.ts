@@ -44,12 +44,8 @@ describe("inbjudningskontrakt", () => {
   });
 
   test("har en explicit riktad inbjudningsform utan token", () => {
-    expect(directedMigration).toContain(
-      "ADD COLUMN IF NOT EXISTS invited_user_id uuid NULL",
-    );
-    expect(directedMigration).toContain(
-      "ADD COLUMN IF NOT EXISTS declined_at timestamptz NULL",
-    );
+    expect(directedMigration).toContain("ADD COLUMN IF NOT EXISTS invited_user_id uuid NULL");
+    expect(directedMigration).toContain("ADD COLUMN IF NOT EXISTS declined_at timestamptz NULL");
     expect(directedMigration).toContain("ALTER COLUMN token_hash DROP NOT NULL");
     expect(directedMigration).toContain("invitations_target_shape_check");
     expect(directedMigration).toContain("invitations_one_pending_user_per_group");
@@ -57,10 +53,7 @@ describe("inbjudningskontrakt", () => {
 
   test("låter alla aktiva gruppmedlemmar skapa inbjudningar utan rolleskalering", () => {
     const createLink = functionBody(directedMigration, "create_group_invitation");
-    const createInternal = functionBody(
-      directedMigration,
-      "create_group_member_invitations",
-    );
+    const createInternal = functionBody(directedMigration, "create_group_member_invitations");
 
     for (const body of [createLink, createInternal]) {
       expect(body).toContain("membership.status = 'active'");
@@ -72,14 +65,8 @@ describe("inbjudningskontrakt", () => {
   });
 
   test("begränsar kandidater till aktiva gemensamma grupper", () => {
-    const candidates = functionBody(
-      directedMigration,
-      "list_group_invite_candidates",
-    );
-    const create = functionBody(
-      directedMigration,
-      "create_group_member_invitations",
-    );
+    const candidates = functionBody(directedMigration, "list_group_invite_candidates");
+    const create = functionBody(directedMigration, "create_group_member_invitations");
 
     expect(candidates).toContain("own_membership.status = 'active'");
     expect(candidates).toContain("other_membership.status = 'active'");
@@ -91,14 +78,8 @@ describe("inbjudningskontrakt", () => {
 
   test("mottagaren är ensam behörig att acceptera eller avböja", () => {
     const list = functionBody(directedMigration, "list_my_group_invitations");
-    const accept = functionBody(
-      directedMigration,
-      "accept_group_member_invitation",
-    );
-    const decline = functionBody(
-      directedMigration,
-      "decline_group_member_invitation",
-    );
+    const accept = functionBody(directedMigration, "accept_group_member_invitation");
+    const decline = functionBody(directedMigration, "decline_group_member_invitation");
 
     expect(list).toContain("invitation.invited_user_id = auth.uid()");
     expect(accept).toContain("_invitation.invited_user_id <> _uid");
@@ -108,18 +89,13 @@ describe("inbjudningskontrakt", () => {
 
   test("vanlig medlem återkallar bara egna väntande inbjudningar", () => {
     const revoke = functionBody(directedMigration, "revoke_group_invitation");
-    expect(revoke).toContain(
-      "_invitation.invited_by <> _uid AND _role NOT IN ('owner', 'admin')",
-    );
+    expect(revoke).toContain("_invitation.invited_by <> _uid AND _role NOT IN ('owner', 'admin')");
     expect(revoke).toContain("declined_at IS NULL");
     expect(revoke).toContain("accepted_at IS NULL");
   });
 
   test("medlemskapets slut återkallar avsändarens väntande inbjudningar", () => {
-    const trigger = functionBody(
-      directedMigration,
-      "revoke_invitations_when_membership_ends",
-    );
+    const trigger = functionBody(directedMigration, "revoke_invitations_when_membership_ends");
     expect(trigger).toContain("OLD.status = 'active' AND NEW.status <> 'active'");
     expect(trigger).toContain("invited_by = OLD.user_id");
     expect(directedMigration).toContain(

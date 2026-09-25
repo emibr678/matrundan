@@ -48,9 +48,7 @@ export function CreateGroupDialog({
   const [verified, setVerified] = React.useState<VerifiedSearchArea | null>(null);
   const [radius, setRadius] = React.useState<SearchRadiusKm>(1);
   const [busy, setBusy] = React.useState(false);
-  const [createdGroup, setCreatedGroup] = React.useState<{ id: string; name: string } | null>(
-    null,
-  );
+  const [createdGroup, setCreatedGroup] = React.useState<{ id: string; name: string } | null>(null);
 
   React.useEffect(() => {
     if (!open) setCreatedGroup(null);
@@ -123,8 +121,8 @@ export function CreateGroupDialog({
             <DialogHeader>
               <DialogTitle>Skapa ny grupp</DialogTitle>
               <DialogDescription>
-            Varje grupp har sina egna ställen och besök. Du blir automatiskt ägare och kan bjuda in
-                fler efteråt.
+                Varje grupp har sina egna ställen och besök. Du blir automatiskt ägare och kan bjuda
+                in fler efteråt.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={submit} className="space-y-4">
@@ -151,8 +149,8 @@ export function CreateGroupDialog({
                   className="resize-none"
                 />
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  En mening om vad ni vill upptäcka tillsammans. Samma personer kan ha flera grupper med
-                  olika syften.
+                  En mening om vad ni vill upptäcka tillsammans. Samma personer kan ha flera grupper
+                  med olika syften.
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -238,7 +236,7 @@ export function CreateGroupDialog({
                 <Button type="submit" disabled={busy}>
                   {busy ? "Skapar…" : "Skapa grupp"}
                 </Button>
-                  </DialogFooter>
+              </DialogFooter>
             </form>
           </>
         )}

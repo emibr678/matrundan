@@ -35,7 +35,7 @@
     "typecheck:unit": "tsc -p tsconfig.unit.json --noEmit",
     "typecheck:e2e": "tsc -p tsconfig.e2e.json --noEmit",
     "verify:fast": "bun run check:shell && bun run check:release && bun run check:database && bun run check:dead-code && bun run test:unit && bun run typecheck && bun run typecheck:unit && bun run typecheck:e2e && bun run build",
-    "verify:changed": "prettier --write src/components/matrundan/CreateGroupDialog.tsx src/components/matrundan/GroupInviteDialog.tsx src/components/matrundan/GroupSettingsSheet.tsx src/lib/matrundan/invitation-database-contract.test.ts src/lib/matrundan/live-admin.ts tests/e2e/v1-20-1-pilot-ux.spec.ts && git diff -- src/components/matrundan/CreateGroupDialog.tsx src/components/matrundan/GroupInviteDialog.tsx src/components/matrundan/GroupSettingsSheet.tsx src/lib/matrundan/invitation-database-contract.test.ts src/lib/matrundan/live-admin.ts tests/e2e/v1-20-1-pilot-ux.spec.ts && exit 1",
+    "verify:changed": "bun run check:shell && bun run check:dead-code && bun run typecheck:unit && bun run typecheck:e2e && bun scripts/repo-tools.mjs verify-changed",
     "verify:agent": "bun run check:shell && bun run check:dead-code && bun run typecheck:unit && bun run typecheck:e2e && bun scripts/repo-tools.mjs verify-agent",
     "verify:full": "bun run format:check && bun run lint && bun run check:shell && bun run check:public-readiness && bun run check:release && bun run check:database && bun run check:dead-code && bun run test:unit && bun run typecheck && bun run typecheck:unit && bun run typecheck:e2e && bun run build",
     "test:mobile": "playwright test --project=mobile-chromium",

@@ -44,9 +44,7 @@ export interface GroupInviteCandidate {
   invitation_state: "pending" | null;
 }
 
-export async function listGroupInviteCandidates(
-  groupId: string,
-): Promise<GroupInviteCandidate[]> {
+export async function listGroupInviteCandidates(groupId: string): Promise<GroupInviteCandidate[]> {
   const { data, error } = await supabase.rpc(
     "list_group_invite_candidates" as never,
     {
@@ -90,9 +88,7 @@ export interface MyGroupInvitation {
 }
 
 export async function listMyGroupInvitations(): Promise<MyGroupInvitation[]> {
-  const { data, error } = await supabase.rpc(
-    "list_my_group_invitations" as never,
-  );
+  const { data, error } = await supabase.rpc("list_my_group_invitations" as never);
   if (error) throw toErr(error);
   return (data ?? []) as unknown as MyGroupInvitation[];
 }
@@ -113,9 +109,7 @@ export async function acceptGroupMemberInvitation(
   return data as unknown as { group_id: string; already: boolean };
 }
 
-export async function declineGroupMemberInvitation(
-  invitationId: string,
-): Promise<void> {
+export async function declineGroupMemberInvitation(invitationId: string): Promise<void> {
   const { error } = await supabase.rpc(
     "decline_group_member_invitation" as never,
     {
@@ -136,9 +130,7 @@ export interface OwnGroupInvitation {
   state: "active" | "accepted" | "declined" | "revoked" | "expired";
 }
 
-export async function listOwnGroupInvitations(
-  groupId: string,
-): Promise<OwnGroupInvitation[]> {
+export async function listOwnGroupInvitations(groupId: string): Promise<OwnGroupInvitation[]> {
   const { data, error } = await supabase.rpc(
     "list_own_group_invitations" as never,
     {

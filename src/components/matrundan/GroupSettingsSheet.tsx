@@ -55,13 +55,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 
 type SettingsView =
-  | "menu"
-  | "basics"
-  | "search"
-  | "members"
-  | "maintenance"
-  | "progression"
-  | "status";
+  "menu" | "basics" | "search" | "members" | "maintenance" | "progression" | "status";
 
 const VIEW_COPY: Record<SettingsView, { title: string; description: string }> = {
   menu: {
@@ -490,13 +484,7 @@ function GroupStatusSection() {
   );
 }
 
-function InviteMembersSection({
-  groupId,
-  groupName,
-}: {
-  groupId: string;
-  groupName: string;
-}) {
+function InviteMembersSection({ groupId, groupName }: { groupId: string; groupName: string }) {
   const [open, setOpen] = React.useState(false);
 
   return (
