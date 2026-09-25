@@ -48,7 +48,9 @@ export function CreateGroupDialog({
   const [verified, setVerified] = React.useState<VerifiedSearchArea | null>(null);
   const [radius, setRadius] = React.useState<SearchRadiusKm>(1);
   const [busy, setBusy] = React.useState(false);
-  const [createdGroup, setCreatedGroup] = React.useState<{ id: string; name: string } | null>(null);
+  const [createdGroup, setCreatedGroup] = React.useState<{ id: string; name: string } | null>(
+    null,
+  );
 
   React.useEffect(() => {
     if (!open) setCreatedGroup(null);
@@ -118,126 +120,126 @@ export function CreateGroupDialog({
           </>
         ) : (
           <>
-        <DialogHeader>
-          <DialogTitle>Skapa ny grupp</DialogTitle>
-          <DialogDescription>
+            <DialogHeader>
+              <DialogTitle>Skapa ny grupp</DialogTitle>
+              <DialogDescription>
             Varje grupp har sina egna ställen och besök. Du blir automatiskt ägare och kan bjuda in
-            fler efteråt.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="cg-name">Gruppens namn</Label>
-            <Input
-              id="cg-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="t.ex. Fredagsgänget"
-              autoFocus
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cg-description">Kort beskrivning (valfritt)</Label>
-            <Textarea
-              id="cg-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
-              rows={3}
-              placeholder="t.ex. Vi utforskar matställen nära där vi bor."
-              className="resize-none"
-            />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              En mening om vad ni vill upptäcka tillsammans. Samma personer kan ha flera grupper med
-              olika syften.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Emoji</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {EMOJIS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={emoji === option}
-                  onClick={() => setEmoji(option)}
-                  className={
-                    "h-10 w-10 rounded-xl border text-xl transition " +
-                    (emoji === option
-                      ? "border-primary bg-primary/10"
-                      : "border-border/70 hover:bg-muted")
-                  }
+                fler efteråt.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={submit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="cg-name">Gruppens namn</Label>
+                <Input
+                  id="cg-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="t.ex. Fredagsgänget"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cg-description">Kort beskrivning (valfritt)</Label>
+                <Textarea
+                  id="cg-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  maxLength={GROUP_DESCRIPTION_MAX_LENGTH}
+                  rows={3}
+                  placeholder="t.ex. Vi utforskar matställen nära där vi bor."
+                  className="resize-none"
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  En mening om vad ni vill upptäcka tillsammans. Samma personer kan ha flera grupper med
+                  olika syften.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Emoji</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {EMOJIS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={emoji === option}
+                      onClick={() => setEmoji(option)}
+                      className={
+                        "h-10 w-10 rounded-xl border text-xl transition " +
+                        (emoji === option
+                          ? "border-primary bg-primary/10"
+                          : "border-border/70 hover:bg-muted")
+                      }
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cg-loc">Första sökområdet (valfritt)</Label>
+                <GeoapifyLocationInput
+                  id="cg-loc"
+                  value={locationText}
+                  onChange={(text) => {
+                    setLocationText(text);
+                    if (verified && text !== verified.label) setVerified(null);
+                  }}
+                  onSelect={(value) => {
+                    setVerified({
+                      label: value.label,
+                      lat: value.lat,
+                      lng: value.lng,
+                      provider: "geoapify",
+                      placeId: value.placeId,
+                      searchMode: value.searchMode ?? "point",
+                      resultType: value.resultType,
+                    });
+                    setLocationText(value.label);
+                  }}
+                  onClearVerified={() => setVerified(null)}
+                  placeholder="t.ex. Värmdö kommun eller Gamla Enskede"
+                  allowBoundaryAreas
+                />
+                {locInvalid ? (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Välj sökområdet från listan eller lämna fältet tomt.
+                  </p>
+                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  Området blir förvalt i sökningen. Fler områden läggs till i gruppinställningarna.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cg-radius">Avstånd runt adresser och platser</Label>
+                <Select
+                  value={String(radius)}
+                  onValueChange={(value) => setRadius(Number(value) as SearchRadiusKm)}
                 >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cg-loc">Första sökområdet (valfritt)</Label>
-            <GeoapifyLocationInput
-              id="cg-loc"
-              value={locationText}
-              onChange={(text) => {
-                setLocationText(text);
-                if (verified && text !== verified.label) setVerified(null);
-              }}
-              onSelect={(value) => {
-                setVerified({
-                  label: value.label,
-                  lat: value.lat,
-                  lng: value.lng,
-                  provider: "geoapify",
-                  placeId: value.placeId,
-                  searchMode: value.searchMode ?? "point",
-                  resultType: value.resultType,
-                });
-                setLocationText(value.label);
-              }}
-              onClearVerified={() => setVerified(null)}
-              placeholder="t.ex. Värmdö kommun eller Gamla Enskede"
-              allowBoundaryAreas
-            />
-            {locInvalid ? (
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                Välj sökområdet från listan eller lämna fältet tomt.
-              </p>
-            ) : null}
-            <p className="text-xs text-muted-foreground">
-              Området blir förvalt i sökningen. Fler områden läggs till i gruppinställningarna.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cg-radius">Avstånd runt adresser och platser</Label>
-            <Select
-              value={String(radius)}
-              onValueChange={(value) => setRadius(Number(value) as SearchRadiusKm)}
-            >
-              <SelectTrigger id="cg-radius" className="min-h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SEARCH_RADIUS_OPTIONS.map((value) => (
-                  <SelectItem key={value} value={String(value)}>
-                    {value === 50 ? "Större avstånd · inom 50 km" : `Inom ${value} km`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Gäller punktval som adresser. Områden med verifierad gräns söks inom hela området.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Avbryt
-            </Button>
-            <Button type="submit" disabled={busy}>
-              {busy ? "Skapar…" : "Skapa grupp"}
-            </Button>
-          </DialogFooter>
-        </form>
+                  <SelectTrigger id="cg-radius" className="min-h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SEARCH_RADIUS_OPTIONS.map((value) => (
+                      <SelectItem key={value} value={String(value)}>
+                        {value === 50 ? "Större avstånd · inom 50 km" : `Inom ${value} km`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Gäller punktval som adresser. Områden med verifierad gräns söks inom hela området.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                  Avbryt
+                </Button>
+                <Button type="submit" disabled={busy}>
+                  {busy ? "Skapar…" : "Skapa grupp"}
+                </Button>
+                  </DialogFooter>
+            </form>
           </>
         )}
       </DialogContent>
