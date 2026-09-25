@@ -254,39 +254,6 @@ Kontrollera roadmapen endast när den strategiska produktriktningen eller
 backlog-/labelmodellen påverkas; vanlig Issue-ordning och stängning kräver ingen
 roadmapändring.
 
-### Säkerhetsgrind före produktion
-
-Den tunga säkerhetsgrinden ligger i `.github/workflows/security-gate.yml` och
-är avsiktligt separerad från den snabba normala PR-loopen. Den körs automatiskt
-när själva security-workflowen ändras, kan startas manuellt för en exakt SHA och
-anropas alltid av **Cloudflare prod preflight** för exakt aktuell `main`-SHA.
-
-Grinden består av:
-
-- repository-/databaskontrakt och full-history Gitleaks;
-- `bun audit` med high-or-higher som blockerande nivå;
-- migration-byggd lokal Supabase och pgTAP-negativtester för gruppisolering,
-  roller, klientmanipulation, cross-group, privat media och kontoborttagning;
-- CodeQL för JavaScript/TypeScript med `security-extended`.
-
-Beroendeändringar får dessutom en separat Dependency Review-workflow. Dependabot
-är fortsatt repokonfigurerat för både Bun och GitHub Actions. De här workflowen
-ersätter inte GitHubs administrativa säkerhetsinställningar. Secret scanning,
-push protection, Dependabot alerts/security updates och private vulnerability
-reporting ska vara aktiverade när de är tillgängliga för repot; connectorn som
-används av agenten saknar administrationsåtkomst till dessa endpoints, så deras
-dashboardstatus får aldrig antas utifrån repo-filerna.
-
-Databasen har dessutom en service-role-only
-`run_release_security_gate_v1()` som bara returnerar namn på kontroller.
-Prod-preflight anropar den mot den faktiska produktionsdatabasen innan någon
-inert Worker-kandidat laddas upp. Den verifierar bland annat least-privilege
-table/default grants, RLS, låst `search_path` för SECURITY DEFINER, den enda
-avsiktliga anonyma SECURITY DEFINER-RPC:n, privat bildbucket/policies och
-kontoborttagningens notisrensning. En release med en ännu ej separat godkänd och
-applicerad säkerhetsmigration ska alltså blockeras här i stället för att
-publiceras med schema-/konfigurationsdrift.
-
 ## 8. Databasdriftsättning och publicering
 
 Databasdriftsättning och publicering är separata handlingar med separata
@@ -316,9 +283,12 @@ egen produktionsrelease.
 
 Efter verifierad publik health skapas Git-taggen `v<APP_VERSION>` på exakt den
 publicerade SHA:n och motsvarande GitHub Release från den materialiserade
-CHANGELOG-posten. Taggen är ett releasekvitto och får aldrig flyttas; en befintlig
-tagg på annan SHA är en blockerare. GitHub Release/Tag startar inte
-produktionsdeployen och ersätter inte det separata publiceringsgodkännandet.
+CHANGELOG-posten. GitHub Release-titeln använder den aktuella versionens befintliga
+`summary` i `src/lib/matrundan/version.ts` som `Matrundan vX.Y.Z — <summary>`;
+ingen separat releasetitel lagras i `CHANGELOG.md`. Taggen är ett releasekvitto och
+får aldrig flyttas; en befintlig tagg på annan SHA är en blockerare. GitHub
+Release/Tag startar inte produktionsdeployen och ersätter inte det separata
+publiceringsgodkännandet.
 
 En dokumentations- eller maintenance-PR behöver inte publiceras bara för att den
 mergas.
