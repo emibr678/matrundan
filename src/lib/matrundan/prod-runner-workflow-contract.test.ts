@@ -49,6 +49,10 @@ describe("productionflödets runner-kontrakt", () => {
     expect(workflow).toContain("refs/tags/${tagName}");
     expect(workflow).toContain("'/releases'");
     expect(workflow).toContain("make_latest: 'true'");
+    expect(workflow).toContain("const releaseTitle = `Matrundan v${version} — ${releaseSummary}`;");
+    expect(workflow).toContain("name: releaseTitle");
+    expect(workflow).toContain("missing a usable release summary");
+    expect(workflow).toContain("replace(/\\.$/u, '')");
   });
 
   test("prod-preflight-dispatchern kräver bara exakt owner-kommando och löser main själv", () => {
