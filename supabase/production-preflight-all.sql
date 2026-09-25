@@ -7,7 +7,6 @@
 -- för gruppstate ägs av production-preflight-read-model.sql.
 \set ON_ERROR_STOP on
 
-\ir production-preflight-security.sql
 \ir production-preflight-read-model.sql
 \ir production-preflight-historical-reviews.sql
 \ir production-preflight.sql
