@@ -2843,6 +2843,17 @@ export type Database = {
           state: string
         }[]
       }
+      list_group_invite_candidates: {
+        Args: { _target_group_id: string }
+        Returns: {
+          avatar_emoji: string
+          avatar_url: string
+          display_name: string
+          invitation_state: string
+          shared_group_names: string[]
+          user_id: string
+        }[]
+      }
       list_group_place_data_reports_v1: {
         Args: { _group_id: string }
         Returns: Json
@@ -2881,17 +2892,6 @@ export type Database = {
           invited_user_id: string
           invited_user_name: string
           state: string
-        }[]
-      }
-      list_group_invite_candidates: {
-        Args: { _target_group_id: string }
-        Returns: {
-          avatar_emoji: string
-          avatar_url: string
-          display_name: string
-          invitation_state: string
-          shared_group_names: string[]
-          user_id: string
         }[]
       }
       list_own_open_place_suggestion_report_keys_v1: {
