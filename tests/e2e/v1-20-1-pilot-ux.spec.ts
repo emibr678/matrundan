@@ -235,6 +235,8 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
   await settings.getByRole("button", { name: /Medlemmar och inbjudningar/ }).click();
 
   const members = page.getByRole("dialog", { name: "Medlemmar och inbjudningar" });
+  await expect(members.getByRole("button", { name: "Bjud in personer" })).toHaveCount(0);
+  await expect(members.getByRole("heading", { name: "Inbjudningshistorik" })).toBeVisible();
   const manage = members.getByRole("button", { name: "Hantera Robin" });
   await expect(manage).toBeVisible();
   const box = await manage.boundingBox();

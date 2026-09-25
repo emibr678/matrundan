@@ -10,7 +10,6 @@ import {
   Settings,
   SlidersHorizontal,
   Users,
-  UserPlus,
   Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,7 +19,6 @@ import {
   GroupSearchAreasSettingsSection,
 } from "@/components/matrundan/GroupSearchSettingsSection";
 import { HiddenPlaceSuggestionsSection } from "@/components/matrundan/HiddenPlaceSuggestionsSection";
-import { GroupInviteDialog } from "@/components/matrundan/GroupInviteDialog";
 import { MemberManagementSection } from "@/components/matrundan/MemberManagementSection";
 import {
   AlertDialog,
@@ -72,7 +70,7 @@ const VIEW_COPY: Record<SettingsView, { title: string; description: string }> = 
   },
   members: {
     title: "Medlemmar och inbjudningar",
-    description: "Se medlemmar, bjud in fler och hantera roller när du har behörighet.",
+    description: "Se medlemmar, hantera roller och följ gruppens inbjudningshistorik.",
   },
   maintenance: {
     title: "Matställen",
@@ -190,9 +188,6 @@ export function GroupSettingsSheet() {
 
           {view === "members" ? (
             <>
-              {isLive && activeGroupId && state.group.lifecycleStatus === "active" ? (
-                <InviteMembersSection groupId={activeGroupId} groupName={state.group.name} />
-              ) : null}
               <MemberManagementSection
                 members={state.members}
                 currentUserId={state.currentUserId}
@@ -480,30 +475,6 @@ function GroupStatusSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
-  );
-}
-
-function InviteMembersSection({ groupId, groupName }: { groupId: string; groupName: string }) {
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <section>
-      <h3 className="mb-2 text-sm font-medium">Bjud in</h3>
-      <Card className="rounded-2xl border-border/70 p-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Lägg till någon från dina andra grupper eller skicka en inbjudningslänk.
-        </p>
-        <Button className="mt-3 w-full" onClick={() => setOpen(true)}>
-          <UserPlus className="h-4 w-4" /> Bjud in personer
-        </Button>
-      </Card>
-      <GroupInviteDialog
-        open={open}
-        onOpenChange={setOpen}
-        groupId={groupId}
-        groupName={groupName}
-      />
     </section>
   );
 }
