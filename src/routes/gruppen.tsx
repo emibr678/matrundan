@@ -108,7 +108,7 @@ function GroupPage() {
               type="button"
               size="sm"
               variant="ghost"
-              className="shrink-0"
+              className="min-h-11 shrink-0"
               onClick={() => setInviteOpen(true)}
             >
               <UserPlus className="h-4 w-4" /> Bjud in
