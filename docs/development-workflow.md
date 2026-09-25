@@ -283,9 +283,12 @@ egen produktionsrelease.
 
 Efter verifierad publik health skapas Git-taggen `v<APP_VERSION>` på exakt den
 publicerade SHA:n och motsvarande GitHub Release från den materialiserade
-CHANGELOG-posten. Taggen är ett releasekvitto och får aldrig flyttas; en befintlig
-tagg på annan SHA är en blockerare. GitHub Release/Tag startar inte
-produktionsdeployen och ersätter inte det separata publiceringsgodkännandet.
+CHANGELOG-posten. GitHub Release-titeln använder den aktuella versionens befintliga
+`summary` i `src/lib/matrundan/version.ts` som `Matrundan vX.Y.Z — <summary>`;
+ingen separat releasetitel lagras i `CHANGELOG.md`. Taggen är ett releasekvitto och
+får aldrig flyttas; en befintlig tagg på annan SHA är en blockerare. GitHub
+Release/Tag startar inte produktionsdeployen och ersätter inte det separata
+publiceringsgodkännandet.
 
 En dokumentations- eller maintenance-PR behöver inte publiceras bara för att den
 mergas.

@@ -179,7 +179,7 @@ jobs:
               process.exit(1);
             }
 
-            const allowedFailures = new Set(['Staging DB readiness', 'required']);
+            const allowedFailures = new Set(['Staging DB readiness', 'CI / required']);
             const blockers = jobs.filter(
               (job) =>
                 !['success', 'skipped'].includes(job?.conclusion) &&
