@@ -47,9 +47,12 @@ export interface GroupInviteCandidate {
 export async function listGroupInviteCandidates(
   groupId: string,
 ): Promise<GroupInviteCandidate[]> {
-  const { data, error } = await supabase.rpc("list_group_invite_candidates" as never, {
-    _target_group_id: groupId,
-  } as never);
+  const { data, error } = await supabase.rpc(
+    "list_group_invite_candidates" as never,
+    {
+      _target_group_id: groupId,
+    } as never,
+  );
   if (error) throw toErr(error);
   return (data ?? []) as unknown as GroupInviteCandidate[];
 }
@@ -62,10 +65,13 @@ export async function createGroupMemberInvitations(
   already_pending_count: number;
   already_member_count: number;
 }> {
-  const { data, error } = await supabase.rpc("create_group_member_invitations" as never, {
-    _target_group_id: groupId,
-    _invitee_user_ids: inviteeUserIds,
-  } as never);
+  const { data, error } = await supabase.rpc(
+    "create_group_member_invitations" as never,
+    {
+      _target_group_id: groupId,
+      _invitee_user_ids: inviteeUserIds,
+    } as never,
+  );
   if (error) throw toErr(error);
   return data as unknown as {
     created_count: number;
@@ -84,7 +90,9 @@ export interface MyGroupInvitation {
 }
 
 export async function listMyGroupInvitations(): Promise<MyGroupInvitation[]> {
-  const { data, error } = await supabase.rpc("list_my_group_invitations" as never);
+  const { data, error } = await supabase.rpc(
+    "list_my_group_invitations" as never,
+  );
   if (error) throw toErr(error);
   return (data ?? []) as unknown as MyGroupInvitation[];
 }
@@ -92,9 +100,12 @@ export async function listMyGroupInvitations(): Promise<MyGroupInvitation[]> {
 export async function acceptGroupMemberInvitation(
   invitationId: string,
 ): Promise<{ group_id: string; already: boolean }> {
-  const { data, error } = await supabase.rpc("accept_group_member_invitation" as never, {
-    _invitation_id: invitationId,
-  } as never);
+  const { data, error } = await supabase.rpc(
+    "accept_group_member_invitation" as never,
+    {
+      _invitation_id: invitationId,
+    } as never,
+  );
   if (error) throw toErr(error);
   void flushNotificationOutbox().catch(() => {
     /* notiser får aldrig blockera anslutningen till gruppen */
@@ -102,10 +113,15 @@ export async function acceptGroupMemberInvitation(
   return data as unknown as { group_id: string; already: boolean };
 }
 
-export async function declineGroupMemberInvitation(invitationId: string): Promise<void> {
-  const { error } = await supabase.rpc("decline_group_member_invitation" as never, {
-    _invitation_id: invitationId,
-  } as never);
+export async function declineGroupMemberInvitation(
+  invitationId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc(
+    "decline_group_member_invitation" as never,
+    {
+      _invitation_id: invitationId,
+    } as never,
+  );
   if (error) throw toErr(error);
 }
 
@@ -120,10 +136,15 @@ export interface OwnGroupInvitation {
   state: "active" | "accepted" | "declined" | "revoked" | "expired";
 }
 
-export async function listOwnGroupInvitations(groupId: string): Promise<OwnGroupInvitation[]> {
-  const { data, error } = await supabase.rpc("list_own_group_invitations" as never, {
-    _group_id: groupId,
-  } as never);
+export async function listOwnGroupInvitations(
+  groupId: string,
+): Promise<OwnGroupInvitation[]> {
+  const { data, error } = await supabase.rpc(
+    "list_own_group_invitations" as never,
+    {
+      _group_id: groupId,
+    } as never,
+  );
   if (error) throw toErr(error);
   return (data ?? []) as unknown as OwnGroupInvitation[];
 }
