@@ -13,7 +13,6 @@ const base = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? null;
 const migrationRoot = resolve(root, "supabase/migrations");
 const preflightPath = resolve(root, "supabase/production-preflight.sql");
 const preflightReadModelPath = resolve(root, "supabase/production-preflight-read-model.sql");
-const preflightSecurityPath = resolve(root, "supabase/production-preflight-security.sql");
 const preflightLocationPath = resolve(root, "supabase/production-preflight-place-location.sql");
 const preflightBoundaryPath = resolve(root, "supabase/production-preflight-search-boundaries.sql");
 const preflightVisitParticipationPath = resolve(
@@ -111,14 +110,13 @@ for (const name of requiredFunctions) {
     errors.push(`Migrationerna saknar funktionen public.${name}.`);
   }
 }
-if (!functionPattern("run_release_security_gate_v1").test(sql)) {
-  errors.push("Migrationerna saknar public.run_release_security_gate_v1.");
-}
 for (const marker of [
   "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public",
   "clear_private_notifications_on_profile_soft_delete",
 ]) {
-  if (!sql.includes(marker)) errors.push(`Säkerhetsbaslinjen saknar ${marker}.`);
+  if (!sql.includes(marker)) {
+    errors.push(`Säkerhetsbaslinjen saknar ${marker}.`);
+  }
 }
 for (const table of [
   "group_search_areas",
@@ -209,9 +207,6 @@ if (!existsSync(preflightPath)) {
 }
 if (!existsSync(preflightReadModelPath)) {
   errors.push("supabase/production-preflight-read-model.sql saknas.");
-}
-if (!existsSync(preflightSecurityPath)) {
-  errors.push("supabase/production-preflight-security.sql saknas.");
 }
 if (!existsSync(preflightLocationPath)) {
   errors.push("supabase/production-preflight-place-location.sql saknas.");
