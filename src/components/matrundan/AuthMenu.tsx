@@ -30,7 +30,6 @@ import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { APP_NAME } from "@/lib/matrundan/version";
 import { toast } from "sonner";
 import { AllGroupsDialog } from "./AllGroupsDialog";
-import { GroupInviteDialog } from "./GroupInviteDialog";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { EmailAuthDialog } from "./EmailAuthDialog";
@@ -152,10 +151,6 @@ export function AuthMenu({
   const [recentGroupIds, setRecentGroupIds] = React.useState<string[]>([]);
   const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
   const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
-  const [createdGroupInvite, setCreatedGroupInvite] = React.useState<{
-    id: string;
-    name: string;
-  } | null>(null);
   const userId = user?.id ?? null;
 
   const refreshPendingInvites = React.useCallback(async () => {
@@ -471,21 +466,7 @@ export function AuthMenu({
         onSaved={() => void refreshGroups()}
       />
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
-      <CreateGroupDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onInviteCreatedGroup={(group) => setCreatedGroupInvite(group)}
-      />
-      {createdGroupInvite ? (
-        <GroupInviteDialog
-          open
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) setCreatedGroupInvite(null);
-          }}
-          groupId={createdGroupInvite.id}
-          groupName={createdGroupInvite.name}
-        />
-      ) : null}
+      <CreateGroupDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );
 }
