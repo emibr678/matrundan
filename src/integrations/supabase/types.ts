@@ -2558,6 +2558,10 @@ export type Database = {
         Args: { _field: string; _group_id: string; _place_id: string }
         Returns: Json
       }
+      decline_group_member_invitation: {
+        Args: { _invitation_id: string }
+        Returns: undefined
+      }
       delete_original_visit: {
         Args: { _group_id: string; _visit_id: string }
         Returns: string[]
@@ -2730,10 +2734,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      decline_group_member_invitation: {
-        Args: { _invitation_id: string }
-        Returns: undefined
-      }
       hide_group_place_suggestion_v2: {
         Args: {
           _address: string
@@ -2824,17 +2824,6 @@ export type Database = {
         Args: { _group_id: string }
         Returns: Json
       }
-      list_group_invite_candidates: {
-        Args: { _target_group_id: string }
-        Returns: {
-          avatar_emoji: string
-          avatar_url: string
-          display_name: string
-          invitation_state: string
-          shared_group_names: string[]
-          user_id: string
-        }[]
-      }
       list_group_invitations: {
         Args: { _group_id: string }
         Returns: {
@@ -2853,6 +2842,22 @@ export type Database = {
           role: string
           state: string
         }[]
+      }
+      list_group_place_data_reports_v1: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      list_group_place_data_reports_v2: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      list_group_place_data_reports_v3: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
+      list_group_place_practical_info_history_v1: {
+        Args: { _group_id: string; _limit?: number; _place_id: string }
+        Returns: Json
       }
       list_my_group_invitations: {
         Args: never
@@ -2878,21 +2883,16 @@ export type Database = {
           state: string
         }[]
       }
-      list_group_place_data_reports_v1: {
-        Args: { _group_id: string }
-        Returns: Json
-      }
-      list_group_place_data_reports_v2: {
-        Args: { _group_id: string }
-        Returns: Json
-      }
-      list_group_place_data_reports_v3: {
-        Args: { _group_id: string }
-        Returns: Json
-      }
-      list_group_place_practical_info_history_v1: {
-        Args: { _group_id: string; _limit?: number; _place_id: string }
-        Returns: Json
+      list_group_invite_candidates: {
+        Args: { _target_group_id: string }
+        Returns: {
+          avatar_emoji: string
+          avatar_url: string
+          display_name: string
+          invitation_state: string
+          shared_group_names: string[]
+          user_id: string
+        }[]
       }
       list_own_open_place_suggestion_report_keys_v1: {
         Args: { _group_id: string }
