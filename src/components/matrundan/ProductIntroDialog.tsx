@@ -48,15 +48,11 @@ export function ProductIntroDialog({
   onOpenChange,
   automatic,
   groupName,
-  placeCount,
-  visitCount,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   automatic: boolean;
   groupName: string;
-  placeCount: number;
-  visitCount: number;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,17 +65,17 @@ export function ProductIntroDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <IntroRow icon={UsersRound} title="Ha olika grupper för olika gäng">
-            Du kan till exempel ha en grupp med familjen, vännerna eller kollegorna. Varje grupp har sin egen lista och historik.
+          <IntroRow icon={UsersRound} title="Flera grupper, olika sammanhang">
+            Ha separata grupper för olika gäng eller rundor, till exempel familjen, kompisgänget eller skärgården. Varje grupp har sin egen lista och historik.
           </IntroRow>
           <IntroRow icon={Search} title="Samla ställen ni vill prova">
             Spara restauranger, caféer och andra ställen gruppen är nyfiken på.
           </IntroRow>
-          <IntroRow icon={Flag} title="Välj vart ni ska härnäst">
-            Lägg ett ställe som Nästa stopp när ni har bestämt vad som står på tur.
+          <IntroRow icon={Flag} title="Välj nästa stopp">
+            När ni har bestämt er, lägg stället som Nästa stopp så gruppen vet vad som står på tur.
           </IntroRow>
-          <IntroRow icon={BookOpen} title="Spara det ni faktiskt gjorde">
-            Registrera besöket och vilka som var med. Omdömen, bilder och återbesök bygger gruppens gemensamma mathistoria.
+          <IntroRow icon={BookOpen} title="Registrera besöket">
+            När ni varit där sparar ni datum och vilka som faktiskt var med. Omdömen, bilder och återbesök hjälper er minnas och välja nästa gång.
           </IntroRow>
         </div>
 
@@ -106,11 +102,6 @@ export function ProductIntroController() {
   const [open, setOpen] = React.useState(false);
   const [automatic, setAutomatic] = React.useState(false);
   const autoHandledUsers = React.useRef(new Set<string>());
-
-  const activePlaces = React.useMemo(
-    () => state.places.filter((place) => place.collectionStatus !== "archived"),
-    [state.places],
-  );
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -139,7 +130,7 @@ export function ProductIntroController() {
     if (hasSeenOnboarding("product-intro", userId)) return;
     setAutomatic(true);
     setOpen(true);
-  }, [activeGroupId, activeGroupLifecycleStatus, mode, user?.id]);
+  }, [activeGroupId, activeGroupLifecycleStatus, mode, user?.created_at, user?.id]);
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen && automatic) {
@@ -155,8 +146,6 @@ export function ProductIntroController() {
       onOpenChange={handleOpenChange}
       automatic={automatic}
       groupName={state.group.name}
-      placeCount={activePlaces.length}
-      visitCount={state.visits.length}
     />
   );
 }
