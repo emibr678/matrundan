@@ -31,9 +31,7 @@ function normalizeSecretEntries(secretEntries) {
     }
 
     if (value.length < 16) {
-      throw new Error(
-        `artifact-secret-scan: ${envName} is unexpectedly short`,
-      );
+      throw new Error(`artifact-secret-scan: ${envName} is unexpectedly short`);
     }
 
     return {
