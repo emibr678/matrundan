@@ -43,6 +43,7 @@ interface SessionState {
   activeGroupLifecycleStatus: GroupLifecycleStatus | null;
   userGroups: UserGroupSummary[];
   pendingGroupInvitations: MyGroupInvitation[];
+  pendingGroupInvitationsReady: boolean;
   signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
   signInWithPassword: (
     email: string,
@@ -128,14 +129,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = React.useState(true);
   const [userGroups, setUserGroups] = React.useState<UserGroupSummary[]>([]);
   const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
+  const [pendingInvitesResolvedUserId, setPendingInvitesResolvedUserId] = React.useState<
+    string | null
+  >(null);
   const [activeGroupId, setActiveGroupId] = React.useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(ACTIVE_GROUP_KEY);
   });
 
   const refreshPendingInvites = React.useCallback(async () => {
-    if (demoRoute.forceDemo || !session?.user?.id) {
+    const userId = session?.user?.id;
+    if (demoRoute.forceDemo || !userId) {
       setPendingInvites([]);
+      setPendingInvitesResolvedUserId(null);
       return;
     }
 
@@ -144,6 +150,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("[Matrundan] kunde inte läsa gruppinbjudningar:", error);
       setPendingInvites([]);
+    } finally {
+      setPendingInvitesResolvedUserId(userId);
     }
   }, [demoRoute.forceDemo, session?.user?.id]);
 
@@ -335,6 +343,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setActiveGroupId(null);
     setUserGroups([]);
     setPendingInvites([]);
+    setPendingInvitesResolvedUserId(null);
   }, []);
 
   const exitExampleMode = React.useCallback(() => {
@@ -378,6 +387,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           : null,
       userGroups,
       pendingGroupInvitations: pendingInvites,
+      pendingGroupInvitationsReady: !isLive || pendingInvitesResolvedUserId === (user?.id ?? null),
       signInWithGoogle,
       signInWithPassword,
       signUpWithPassword,
@@ -395,6 +405,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     exitExampleMode,
     loading,
     pendingInvites,
+    pendingInvitesResolvedUserId,
     refreshGroups,
     refreshPendingInvites,
     selectGroup,

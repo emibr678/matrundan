@@ -37,6 +37,7 @@ export function DemoAddVisitReviewDialog({
   isTakeaway = false,
   placeOccasions = [],
   disabled = false,
+  onExit,
 }: {
   visitId: string;
   placeName: string;
@@ -44,6 +45,7 @@ export function DemoAddVisitReviewDialog({
   isTakeaway?: boolean;
   placeOccasions?: Occasion[];
   disabled?: boolean;
+  onExit?: () => void;
 }) {
   const { state } = useStore();
   const { exampleMode } = useSession();
@@ -79,6 +81,11 @@ export function DemoAddVisitReviewDialog({
         occasions: placeNeedsOccasionClassification ? reviewOccasions : placeOccasions,
       });
   const complete = reviewRatingsComplete(model, { taste, service, value, atmosphere });
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen && open && !saving) onExit?.();
+  }
 
   async function save() {
     if (scoreless) {
@@ -120,6 +127,7 @@ export function DemoAddVisitReviewDialog({
               : "Omdömet sparades, men bilden kunde inte sparas.",
           );
           setOpen(false);
+          onExit?.();
           return;
         }
       }
@@ -135,6 +143,7 @@ export function DemoAddVisitReviewDialog({
             : "Ditt omdöme är tillagt.",
       );
       setOpen(false);
+      onExit?.();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
     } finally {
@@ -143,7 +152,7 @@ export function DemoAddVisitReviewDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="w-full" disabled={disabled}>
           {scoreless ? <MessageCircle className="h-4 w-4" /> : <Star className="h-4 w-4" />}
@@ -214,7 +223,14 @@ export function DemoAddVisitReviewDialog({
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
-          <Button variant="ghost" disabled={saving} onClick={() => setOpen(false)}>
+          <Button
+            variant="ghost"
+            disabled={saving}
+            onClick={() => {
+              setOpen(false);
+              onExit?.();
+            }}
+          >
             Avbryt
           </Button>
           <Button

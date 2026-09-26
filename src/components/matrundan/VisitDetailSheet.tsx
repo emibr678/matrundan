@@ -64,11 +64,13 @@ export function VisitDetailSheet({
   focusReviewId = null,
   open,
   onOpenChange,
+  onReviewFlowExit,
 }: {
   visitId: string | null;
   focusReviewId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onReviewFlowExit?: () => void;
 }) {
   const { state, getPlace, memberById, deleteVisit, demoReadOnly } = useStore();
   const { mode, activeGroupId, activeGroupRole, userGroups } = useSession();
@@ -198,7 +200,6 @@ export function VisitDetailSheet({
                 <Link
                   to="/matstallen/$placeId"
                   params={{ placeId: place.id }}
-                  onClick={() => onOpenChange(false)}
                   aria-label={`Till ${place.name}`}
                   className="group -mx-2 mt-1 block min-h-14 max-w-full rounded-lg px-2 py-1.5 transition-colors hover:bg-background/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -372,6 +373,7 @@ export function VisitDetailSheet({
                   demoReadOnly={demoReadOnly}
                   focusReviewId={focusReviewId}
                   onChanged={reload}
+                  onOwnReviewFlowExit={onReviewFlowExit}
                 />
 
                 <VisitPhotoManager visit={visit} />

@@ -10,7 +10,9 @@ import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
+import { HomeAttentionCard } from "@/components/matrundan/HomeAttentionCard";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
+import { resolveHomeAttention } from "@/lib/matrundan/home-attention";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { effectiveReviewOverall } from "@/lib/matrundan/review-model";
 import type { VisibleReview } from "@/lib/matrundan/types";
@@ -37,7 +39,7 @@ export const Route = createFileRoute("/")({
 
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
-  const { pendingGroupInvitations } = useSession();
+  const { pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitTarget, setVisitTarget] = React.useState<{
     placeId: string;
@@ -56,8 +58,16 @@ export function Home() {
         : getAttentionPendingVisitReviews(state.visits, state.currentUserId, new Date()),
     [groupArchived, state.currentUserId, state.visits],
   );
-  const pendingReviewVisit = pendingReviewVisits[0];
-  const pendingReviewPlace = pendingReviewVisit ? getPlace(pendingReviewVisit.placeId) : undefined;
+  const pendingReviewItems = pendingReviewVisits.map((visit) => ({
+    visitId: visit.id,
+    placeName: getPlace(visit.placeId)?.name ?? "Matställe",
+    visitDate: visit.date,
+  }));
+  const attentionKind = resolveHomeAttention(
+    pendingGroupInvitationsReady,
+    pendingGroupInvitations.length,
+    pendingReviewItems.length,
+  );
 
   const untried = React.useMemo(
     () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
@@ -127,37 +137,32 @@ export function Home() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
-      <AppNudges />
-
-      {pendingGroupInvitations.length > 0 ? (
+      {attentionKind === "group-invitation" ? (
         <section aria-label="Gruppinbjudningar">
-          <Card className="rounded-2xl border-primary/25 bg-primary/[0.05] p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex min-w-0 flex-1 items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                  <UserPlus className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <div className="font-medium">{pendingInvitationTitle}</div>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {pendingInvitationDescription}
-                  </p>
-                </div>
-              </div>
+          <HomeAttentionCard
+            icon={UserPlus}
+            title={pendingInvitationTitle}
+            description={pendingInvitationDescription}
+            actions={
               <Button
                 type="button"
-                variant="outline"
-                className="min-h-11 w-full shrink-0 sm:w-auto"
+                size="sm"
                 onClick={() => {
                   window.dispatchEvent(new Event("matrundan:open-group-invitations"));
                 }}
               >
                 {pendingGroupInvitations.length === 1 ? "Visa inbjudan" : "Visa inbjudningar"}
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Button>
-            </div>
-          </Card>
+            }
+          />
         </section>
+      ) : attentionKind === "pending-review" ? (
+        <section aria-label="Omdömen att komplettera">
+          <PendingVisitReviewCard visits={pendingReviewItems} />
+        </section>
+      ) : attentionKind === "app-nudge" ? (
+        <AppNudges />
       ) : null}
 
       <NextStopCard
@@ -165,17 +170,6 @@ export function Home() {
         canWrite={canWrite}
         onRegisterVisit={(placeId) => setVisitTarget({ placeId, completeNextStopOnSave: true })}
       />
-
-      {pendingReviewVisit && pendingReviewPlace ? (
-        <section aria-label="Omdömen att komplettera">
-          <PendingVisitReviewCard
-            visitId={pendingReviewVisit.id}
-            placeName={pendingReviewPlace.name}
-            visitDate={pendingReviewVisit.date}
-            pendingCount={pendingReviewVisits.length}
-          />
-        </section>
-      ) : null}
 
       <section>
         <Card className="rounded-2xl border-border/70 p-4">

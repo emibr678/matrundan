@@ -38,6 +38,7 @@ export function VisitReviewsSection({
   demoReadOnly,
   focusReviewId = null,
   onChanged,
+  onOwnReviewFlowExit,
 }: {
   visit: Visit;
   placeName: string;
@@ -45,6 +46,7 @@ export function VisitReviewsSection({
   demoReadOnly: boolean;
   focusReviewId?: string | null;
   onChanged: () => void | Promise<void>;
+  onOwnReviewFlowExit?: () => void;
 }) {
   const { state, memberById } = useStore();
   const { mode, activeGroupId } = useSession();
@@ -226,6 +228,7 @@ export function VisitReviewsSection({
                   mode={mode === "live" ? "live" : "demo"}
                   scoreless={!scored}
                   onChanged={onChanged}
+                  onReviewFlowExit={onOwnReviewFlowExit}
                 />
               ) : null}
 
@@ -293,6 +296,7 @@ function OwnReviewPrompt({
   mode,
   scoreless,
   onChanged,
+  onReviewFlowExit,
 }: {
   visit: Visit;
   placeName: string;
@@ -302,6 +306,7 @@ function OwnReviewPrompt({
   mode: "demo" | "live";
   scoreless: boolean;
   onChanged: () => void | Promise<void>;
+  onReviewFlowExit?: () => void;
 }) {
   const participant = visit.participants?.find((item) => item.id === currentUserId);
   const { memberById } = useStore();
@@ -337,6 +342,7 @@ function OwnReviewPrompt({
             placeOccasions={placeOccasions}
             disabled={!writable}
             onSaved={onChanged}
+            onExit={onReviewFlowExit}
           />
         ) : (
           <DemoAddVisitReviewDialog
@@ -346,6 +352,7 @@ function OwnReviewPrompt({
             isTakeaway={visit.isTakeaway === true}
             placeOccasions={placeOccasions}
             disabled={!writable}
+            onExit={onReviewFlowExit}
           />
         )}
       </div>
