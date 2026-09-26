@@ -36,7 +36,6 @@ import { EmailAuthDialog } from "./EmailAuthDialog";
 import {
   acceptGroupMemberInvitation,
   declineGroupMemberInvitation,
-  listMyGroupInvitations,
   type MyGroupInvitation,
 } from "@/lib/matrundan/live-admin";
 
@@ -141,6 +140,8 @@ export function AuthMenu({
     signOut,
     exitExampleMode,
     refreshGroups,
+    pendingGroupInvitations: pendingInvites,
+    refreshPendingGroupInvitations: refreshPendingInvites,
   } = useSession();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
@@ -150,24 +151,16 @@ export function AuthMenu({
   const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
   const [recentGroupIds, setRecentGroupIds] = React.useState<string[]>([]);
   const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
-  const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
   const userId = user?.id ?? null;
 
-  const refreshPendingInvites = React.useCallback(async () => {
-    if (!user || mode !== "live") {
-      setPendingInvites([]);
-      return;
-    }
-    try {
-      setPendingInvites(await listMyGroupInvitations());
-    } catch (error) {
-      console.error("[Matrundan] kunde inte läsa gruppinbjudningar:", error);
-      setPendingInvites([]);
-    }
-  }, [mode, user]);
-
   React.useEffect(() => {
-    void refreshPendingInvites();
+    if (typeof window === "undefined") return;
+    const openInvitations = () => {
+      setAllGroupsOpen(true);
+      void refreshPendingInvites();
+    };
+    window.addEventListener("matrundan:open-group-invitations", openInvitations);
+    return () => window.removeEventListener("matrundan:open-group-invitations", openInvitations);
   }, [refreshPendingInvites]);
 
   React.useEffect(() => {

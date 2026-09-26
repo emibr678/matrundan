@@ -25,6 +25,8 @@ import {
 import { formatDate } from "@/lib/matrundan/store";
 import { APP_NAME } from "@/lib/matrundan/version";
 
+const INITIAL_CANDIDATE_LIMIT = 6;
+
 function ownInvitationLabel(invitation: OwnGroupInvitation): string {
   if (invitation.invite_kind === "internal") {
     return invitation.invited_user_name?.trim() || "Matrundan-medlem";
@@ -56,6 +58,8 @@ export function GroupInviteDialog({
   const [lastLink, setLastLink] = React.useState<string | null>(null);
   const [lastEmail, setLastEmail] = React.useState<string | null>(null);
   const [busyInviteId, setBusyInviteId] = React.useState<string | null>(null);
+  const [candidateQuery, setCandidateQuery] = React.useState("");
+  const [showAllCandidates, setShowAllCandidates] = React.useState(false);
   const dialogContentRef = React.useRef<HTMLDivElement>(null);
 
   const load = React.useCallback(async () => {
@@ -80,6 +84,8 @@ export function GroupInviteDialog({
       setEmail("");
       setLastLink(null);
       setLastEmail(null);
+      setCandidateQuery("");
+      setShowAllCandidates(false);
       return;
     }
     void load();
@@ -184,6 +190,28 @@ export function GroupInviteDialog({
   }
 
   const pendingOwnInvites = ownInvites.filter((invitation) => invitation.state === "active");
+  const orderedCandidates = React.useMemo(
+    () => [
+      ...candidates.filter((candidate) => candidate.invitation_state !== "pending"),
+      ...candidates.filter((candidate) => candidate.invitation_state === "pending"),
+    ],
+    [candidates],
+  );
+  const normalizedCandidateQuery = candidateQuery.trim().toLocaleLowerCase("sv-SE");
+  const filteredCandidates = React.useMemo(() => {
+    if (!normalizedCandidateQuery) return orderedCandidates;
+    return orderedCandidates.filter((candidate) => {
+      const haystack = [candidate.display_name, ...candidate.shared_group_names]
+        .join(" ")
+        .toLocaleLowerCase("sv-SE");
+      return haystack.includes(normalizedCandidateQuery);
+    });
+  }, [normalizedCandidateQuery, orderedCandidates]);
+  const visibleCandidates =
+    normalizedCandidateQuery || showAllCandidates
+      ? filteredCandidates
+      : filteredCandidates.slice(0, INITIAL_CANDIDATE_LIMIT);
+  const candidateListNeedsScaling = orderedCandidates.length > INITIAL_CANDIDATE_LIMIT;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -222,7 +250,22 @@ export function GroupInviteDialog({
               </div>
             ) : (
               <div className="space-y-2">
-                {candidates.map((candidate) => {
+                {candidateListNeedsScaling ? (
+                  <Input
+                    aria-label="Sök bland personer"
+                    placeholder="Sök bland personer"
+                    value={candidateQuery}
+                    onChange={(event) => setCandidateQuery(event.target.value)}
+                  />
+                ) : null}
+
+                {normalizedCandidateQuery && visibleCandidates.length === 0 ? (
+                  <div className="rounded-xl border border-border/70 p-3 text-sm text-muted-foreground">
+                    Ingen person matchar sökningen.
+                  </div>
+                ) : null}
+
+                {visibleCandidates.map((candidate) => {
                   const selected = selectedIds.includes(candidate.user_id);
                   const pending = candidate.invitation_state === "pending";
                   return (
@@ -273,6 +316,19 @@ export function GroupInviteDialog({
                     </button>
                   );
                 })}
+
+                {candidateListNeedsScaling &&
+                !showAllCandidates &&
+                !normalizedCandidateQuery ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setShowAllCandidates(true)}
+                  >
+                    Visa alla {orderedCandidates.length}
+                  </Button>
+                ) : null}
               </div>
             )}
 

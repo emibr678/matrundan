@@ -81,8 +81,8 @@ const VIEW_COPY: Record<SettingsView, { title: string; description: string }> = 
     description: "Hur gruppens besök räknas.",
   },
   status: {
-    title: "Gruppstatus",
-    description: "Lämna, arkivera eller återaktivera gruppen.",
+    title: "Lämna eller hantera gruppen",
+    description: "Lämna gruppen eller hantera om den är aktiv eller arkiverad.",
   },
 };
 
@@ -300,9 +300,9 @@ function SettingsMenu({
       ) : null}
       {showStatus ? (
         <MenuRow
-          icon={Archive}
-          title="Gruppstatus"
-          description="Lämna, arkivera eller återaktivera gruppen"
+          icon={LogOut}
+          title="Lämna eller hantera gruppen"
+          description="Lämna, arkivera eller återaktivera"
           onClick={() => onSelect("status")}
         />
       ) : null}
