@@ -11,6 +11,7 @@ import {
   Mail,
   Plus,
   UserCog,
+  UserPlus,
   Wrench,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -32,6 +33,11 @@ import { AllGroupsDialog } from "./AllGroupsDialog";
 import { ProfileDialog } from "./ProfileDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { EmailAuthDialog } from "./EmailAuthDialog";
+import {
+  acceptGroupMemberInvitation,
+  declineGroupMemberInvitation,
+  type MyGroupInvitation,
+} from "@/lib/matrundan/live-admin";
 
 const QUICK_GROUP_LIMIT = 4;
 const RECENT_GROUPS_KEY_PREFIX = "matrundan.recentGroups.v1:";
@@ -134,6 +140,8 @@ export function AuthMenu({
     signOut,
     exitExampleMode,
     refreshGroups,
+    pendingGroupInvitations: pendingInvites,
+    refreshPendingGroupInvitations: refreshPendingInvites,
   } = useSession();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = React.useState(false);
@@ -144,6 +152,16 @@ export function AuthMenu({
   const [recentGroupIds, setRecentGroupIds] = React.useState<string[]>([]);
   const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
   const userId = user?.id ?? null;
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openInvitations = () => {
+      setAllGroupsOpen(true);
+      void refreshPendingInvites();
+    };
+    window.addEventListener("matrundan:open-group-invitations", openInvitations);
+    return () => window.removeEventListener("matrundan:open-group-invitations", openInvitations);
+  }, [refreshPendingInvites]);
 
   React.useEffect(() => {
     if (!userId) {
@@ -195,6 +213,20 @@ export function AuthMenu({
     } catch {
       toast.error("Kunde inte starta Google-inloggning.");
     }
+  }
+
+  async function acceptPendingInvitation(invitation: MyGroupInvitation) {
+    const result = await acceptGroupMemberInvitation(invitation.id);
+    await refreshGroups();
+    selectGroup(result.group_id);
+    await refreshPendingInvites();
+    toast.success("Du är nu med i " + invitation.group_name + ".");
+  }
+
+  async function declinePendingInvitation(invitation: MyGroupInvitation) {
+    await declineGroupMemberInvitation(invitation.id);
+    await refreshPendingInvites();
+    toast.success("Inbjudan avböjd.");
   }
 
   if (!user && mode !== "demo") {
@@ -351,6 +383,15 @@ export function AuthMenu({
             <Info className="mr-2 h-4 w-4" />
             Om {APP_NAME}
           </DropdownMenuItem>
+          {pendingInvites.length > 0 ? (
+            <DropdownMenuItem onSelect={() => setAllGroupsOpen(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              <span className="flex-1">Inbjudningar</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {pendingInvites.length}
+              </span>
+            </DropdownMenuItem>
+          ) : null}
           {hasPlaceMaintenanceAccess ? (
             <DropdownMenuItem onSelect={() => void navigate({ to: "/platsunderhall" })}>
               <Wrench className="mr-2 h-4 w-4" />
@@ -408,6 +449,9 @@ export function AuthMenu({
         groups={userGroups}
         activeGroupId={activeGroupId}
         onSelect={selectGroup}
+        invitations={pendingInvites}
+        onAcceptInvitation={acceptPendingInvitation}
+        onDeclineInvitation={declinePendingInvitation}
       />
       <ProfileDialog
         open={profileOpen}

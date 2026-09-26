@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Archive, Check } from "lucide-react";
+import { Archive, Check, UserPlus } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import type { MyGroupInvitation } from "@/lib/matrundan/live-admin";
 import type { UserGroupSummary } from "@/lib/matrundan/session";
 
 function memberPreview(group: UserGroupSummary): string | null {
@@ -70,18 +73,25 @@ export function AllGroupsDialog({
   groups,
   activeGroupId,
   onSelect,
+  invitations = [],
+  onAcceptInvitation,
+  onDeclineInvitation,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   groups: UserGroupSummary[];
   activeGroupId: string | null;
   onSelect: (groupId: string) => void;
+  invitations?: MyGroupInvitation[];
+  onAcceptInvitation?: (invitation: MyGroupInvitation) => Promise<void>;
+  onDeclineInvitation?: (invitation: MyGroupInvitation) => Promise<void>;
 }) {
   const titleRef = React.useRef<HTMLHeadingElement>(null);
   const activeGroups = React.useMemo(
     () => groups.filter((group) => group.lifecycleStatus === "active"),
     [groups],
   );
+  const [busyInvitationId, setBusyInvitationId] = React.useState<string | null>(null);
   const archivedGroups = React.useMemo(
     () => groups.filter((group) => group.lifecycleStatus === "archived"),
     [groups],
@@ -90,6 +100,31 @@ export function AllGroupsDialog({
   function select(groupId: string) {
     onSelect(groupId);
     onOpenChange(false);
+  }
+
+  async function acceptInvitation(invitation: MyGroupInvitation) {
+    if (!onAcceptInvitation) return;
+    setBusyInvitationId(invitation.id);
+    try {
+      await onAcceptInvitation(invitation);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte gå med i gruppen.");
+    } finally {
+      setBusyInvitationId(null);
+    }
+  }
+
+  async function declineInvitation(invitation: MyGroupInvitation) {
+    if (!onDeclineInvitation) return;
+    setBusyInvitationId(invitation.id);
+    try {
+      await onDeclineInvitation(invitation);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunde inte avböja inbjudan.");
+    } finally {
+      setBusyInvitationId(null);
+    }
   }
 
   return (
@@ -105,10 +140,60 @@ export function AllGroupsDialog({
           <DialogTitle ref={titleRef} tabIndex={-1} className="outline-none">
             Alla grupper
           </DialogTitle>
-          <DialogDescription>Välj grupp att öppna.</DialogDescription>
+          <DialogDescription>
+            {invitations.length > 0
+              ? "Svara på inbjudningar eller välj grupp att öppna."
+              : "Välj grupp att öppna."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 space-y-5 overflow-y-auto px-5 pb-4">
+          {invitations.length > 0 ? (
+            <section aria-labelledby="group-invitations-heading" className="space-y-2">
+              <h3
+                id="group-invitations-heading"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Inbjudningar
+              </h3>
+              <div className="space-y-2">
+                {invitations.map((invitation) => (
+                  <div
+                    key={invitation.id}
+                    className="flex min-w-0 items-start gap-3 rounded-xl border border-primary/25 bg-primary/5 p-3"
+                  >
+                    <span className="mt-0.5 shrink-0 text-xl" aria-hidden="true">
+                      {invitation.group_emoji ?? "🍽️"}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{invitation.group_name}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        Inbjuden av {invitation.invited_by_name || "en medlem"}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          disabled={busyInvitationId === invitation.id}
+                          onClick={() => void acceptInvitation(invitation)}
+                        >
+                          <UserPlus className="h-4 w-4" /> Gå med
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={busyInvitationId === invitation.id}
+                          onClick={() => void declineInvitation(invitation)}
+                        >
+                          Avböj
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <section aria-labelledby="active-groups-heading" className="space-y-2">
             <h3
               id="active-groups-heading"

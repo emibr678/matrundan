@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Heart, Plus, Star } from "lucide-react";
+import { ChevronRight, Heart, Plus, Star, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +15,7 @@ import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-r
 import { effectiveReviewOverall } from "@/lib/matrundan/review-model";
 import type { VisibleReview } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
+import { useSession } from "@/lib/matrundan/session";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/")({
 
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
+  const { pendingGroupInvitations } = useSession();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitTarget, setVisitTarget] = React.useState<{
     placeId: string;
@@ -114,10 +116,49 @@ export function Home() {
     ? (lastVisit?.participants?.find((participant) => participant.id === lastVisitReview.userId)
         ?.name ?? memberById(lastVisitReview.userId)?.name)
     : undefined;
+  const pendingInvitationTitle =
+    pendingGroupInvitations.length === 1
+      ? "Du har en gruppinbjudan"
+      : `Du har ${pendingGroupInvitations.length} gruppinbjudningar`;
+  const pendingInvitationDescription =
+    pendingGroupInvitations.length === 1
+      ? `${pendingGroupInvitations[0]?.invited_by_name || "En medlem"} har bjudit in dig till ${pendingGroupInvitations[0]?.group_name}.`
+      : "Öppna för att välja vilka grupper du vill gå med i.";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
       <AppNudges />
+
+      {pendingGroupInvitations.length > 0 ? (
+        <section aria-label="Gruppinbjudningar">
+          <Card className="rounded-2xl border-primary/25 bg-primary/[0.05] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                  <UserPlus className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <div className="font-medium">{pendingInvitationTitle}</div>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {pendingInvitationDescription}
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 w-full shrink-0 sm:w-auto"
+                onClick={() => {
+                  window.dispatchEvent(new Event("matrundan:open-group-invitations"));
+                }}
+              >
+                {pendingGroupInvitations.length === 1 ? "Visa inbjudan" : "Visa inbjudningar"}
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+        </section>
+      ) : null}
 
       <NextStopCard
         activePlaces={activePlaces}

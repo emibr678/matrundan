@@ -17,7 +17,10 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   );
 }
 
-async function installOwnerSession(page: Page) {
+async function installOwnerSession(
+  page: Page,
+  options: { inviteCandidates?: unknown[]; pendingInvites?: unknown[] } = {},
+) {
   const ownerId = "11111111-1111-4111-8111-111111111111";
   const memberId = "22222222-2222-4222-8222-222222222222";
   const groupId = "33333333-3333-4333-8333-333333333333";
@@ -78,6 +81,7 @@ async function installOwnerSession(page: Page) {
             id: groupId,
             name: "Testgruppen",
             emoji: "🍽️",
+            description: "Vi testar Stockholms bästa sushi tillsammans.",
             role: "owner",
             lifecycleStatus: "active",
           },
@@ -141,6 +145,29 @@ async function installOwnerSession(page: Page) {
           nextStopDateProposal: null,
         }),
       });
+      return;
+    }
+
+    if (rpc === "list_my_group_invitations") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(options.pendingInvites ?? []),
+      });
+      return;
+    }
+
+    if (rpc === "list_group_invite_candidates") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(options.inviteCandidates ?? []),
+      });
+      return;
+    }
+
+    if (rpc === "list_own_group_invitations") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
       return;
     }
 
@@ -220,11 +247,14 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
   await page.goto("/gruppen");
 
   await expect(page.getByRole("heading", { name: "Testgruppen" })).toBeVisible();
+  await expect(page.getByText("Vi testar Stockholms bästa sushi tillsammans.")).toBeVisible();
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
   await settings.getByRole("button", { name: /Medlemmar och inbjudningar/ }).click();
 
   const members = page.getByRole("dialog", { name: "Medlemmar och inbjudningar" });
+  await expect(members.getByRole("button", { name: "Bjud in personer" })).toHaveCount(0);
+  await expect(members.getByRole("heading", { name: "Inbjudningshistorik" })).toBeVisible();
   const manage = members.getByRole("button", { name: "Hantera Robin" });
   await expect(manage).toBeVisible();
   const box = await manage.boundingBox();
@@ -266,7 +296,7 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
     /Medlemmar och inbjudningar/,
     /Matställen/,
     /Besök och progression/,
-    /Gruppstatus/,
+    /Lämna eller hantera gruppen/,
   ]) {
     await expect(menu.getByRole("button", { name })).toBeVisible();
   }
@@ -290,7 +320,7 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   await expect(page.getByText("Gruppuppgifterna är uppdaterade.", { exact: true })).toBeVisible();
   expect(mutations.map(({ rpc }) => rpc)).toEqual(["update_group_identity_v1"]);
   expect(mutations[0]?.payload._name).toBe("Ändrat namn");
-  expect(mutations[0]?.payload._description).toBeUndefined();
+  expect(mutations[0]?.payload._description).toBe("Vi testar Stockholms bästa sushi tillsammans.");
   await basics.getByRole("button", { name: "Till inställningar" }).click();
 
   await menu.getByRole("button", { name: /^Sökområden/ }).click();
@@ -317,4 +347,84 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   ]);
   expect(mutations[1]?.payload._default_radius_km).toBe(2);
   await expectNoHorizontalOverflow(page, "navigerade gruppinställningar");
+});
+
+test("inbjudan är direkt hittbar från Medlemmar på mobil utan e-postfokus", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await installOwnerSession(page);
+  await page.goto("/gruppen");
+
+  await expect(page.getByRole("heading", { name: "Medlemmar", exact: true })).toBeVisible();
+
+  const inviteButton = page.getByRole("button", { name: "Bjud in", exact: true });
+  await expect(inviteButton).toBeVisible();
+  const inviteBox = await inviteButton.boundingBox();
+  expect(inviteBox?.height ?? 0, "Bjud in ska ha minst 44 px tryckyta").toBeGreaterThanOrEqual(44);
+
+  await inviteButton.click();
+  const dialog = page.getByRole("dialog", { name: /Bjud in till Testgruppen/ });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Från dina andra grupper", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Bjud in med länk", { exact: true })).toBeVisible();
+  await expect(dialog.getByLabel("E-post (valfritt)")).not.toBeFocused();
+  await expectNoHorizontalOverflow(page, "direkt inbjudan från Medlemmar");
+});
+
+test("många inbjudningskandidater kan sökas utan att hela listan tar över dialogen", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const inviteCandidates = Array.from({ length: 8 }, (_, index) => ({
+    user_id: `candidate-${index + 1}`,
+    display_name: index === 7 ? "Zelda Zetterberg" : `Person ${index + 1}`,
+    avatar_url: null,
+    avatar_emoji: "🍽️",
+    shared_group_names: [index === 7 ? "Kvällsgänget" : "Testgrupp"],
+    invitation_state: null,
+  }));
+  await installOwnerSession(page, { inviteCandidates });
+  await page.goto("/gruppen");
+
+  await page.getByRole("button", { name: "Bjud in", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: /Bjud in till Testgruppen/ });
+  const search = dialog.getByLabel("Sök bland personer");
+  await expect(search).toBeVisible();
+  await expect(search).not.toBeFocused();
+  await expect(dialog.getByText("Person 7", { exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Visa alla 8" })).toBeVisible();
+
+  await search.fill("Zelda");
+  await expect(dialog.getByText("Zelda Zetterberg", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Person 1", { exact: true })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "sökbar kandidatlista");
+});
+
+test("väntande gruppinbjudan syns på Hem och öppnar befintligt svarsflöde", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await installOwnerSession(page, {
+    pendingInvites: [
+      {
+        id: "invite-1",
+        group_id: "44444444-4444-4444-8444-444444444444",
+        group_name: "Söndagsgänget",
+        group_emoji: "🥞",
+        invited_by_name: "Karin",
+        expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+      },
+    ],
+  });
+  await page.goto("/");
+
+  await expect(page.getByText("Du har en gruppinbjudan", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Karin har bjudit in dig till Söndagsgänget.", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Visa inbjudan" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Alla grupper" });
+  await expect(dialog.getByText("Söndagsgänget", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Inbjuden av Karin", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Gå med" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Avböj" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "inbjudan på Hem");
 });

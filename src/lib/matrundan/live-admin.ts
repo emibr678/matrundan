@@ -35,6 +35,112 @@ export async function createGroupInvitation(
   return data as unknown as CreatedInvitation;
 }
 
+export interface GroupInviteCandidate {
+  user_id: string;
+  display_name: string;
+  avatar_emoji: string | null;
+  avatar_url: string | null;
+  shared_group_names: string[];
+  invitation_state: "pending" | null;
+}
+
+export async function listGroupInviteCandidates(groupId: string): Promise<GroupInviteCandidate[]> {
+  const { data, error } = await supabase.rpc(
+    "list_group_invite_candidates" as never,
+    {
+      _target_group_id: groupId,
+    } as never,
+  );
+  if (error) throw toErr(error);
+  return (data ?? []) as unknown as GroupInviteCandidate[];
+}
+
+export async function createGroupMemberInvitations(
+  groupId: string,
+  inviteeUserIds: string[],
+): Promise<{
+  created_count: number;
+  already_pending_count: number;
+  already_member_count: number;
+}> {
+  const { data, error } = await supabase.rpc(
+    "create_group_member_invitations" as never,
+    {
+      _target_group_id: groupId,
+      _invitee_user_ids: inviteeUserIds,
+    } as never,
+  );
+  if (error) throw toErr(error);
+  return data as unknown as {
+    created_count: number;
+    already_pending_count: number;
+    already_member_count: number;
+  };
+}
+
+export interface MyGroupInvitation {
+  id: string;
+  group_id: string;
+  group_name: string;
+  group_emoji: string | null;
+  invited_by_name: string | null;
+  expires_at: string;
+}
+
+export async function listMyGroupInvitations(): Promise<MyGroupInvitation[]> {
+  const { data, error } = await supabase.rpc("list_my_group_invitations" as never);
+  if (error) throw toErr(error);
+  return (data ?? []) as unknown as MyGroupInvitation[];
+}
+
+export async function acceptGroupMemberInvitation(
+  invitationId: string,
+): Promise<{ group_id: string; already: boolean }> {
+  const { data, error } = await supabase.rpc(
+    "accept_group_member_invitation" as never,
+    {
+      _invitation_id: invitationId,
+    } as never,
+  );
+  if (error) throw toErr(error);
+  void flushNotificationOutbox().catch(() => {
+    /* notiser får aldrig blockera anslutningen till gruppen */
+  });
+  return data as unknown as { group_id: string; already: boolean };
+}
+
+export async function declineGroupMemberInvitation(invitationId: string): Promise<void> {
+  const { error } = await supabase.rpc(
+    "decline_group_member_invitation" as never,
+    {
+      _invitation_id: invitationId,
+    } as never,
+  );
+  if (error) throw toErr(error);
+}
+
+export interface OwnGroupInvitation {
+  id: string;
+  invite_kind: "internal" | "email" | "link";
+  invited_email: string | null;
+  invited_user_id: string | null;
+  invited_user_name: string | null;
+  expires_at: string;
+  created_at: string;
+  state: "active" | "accepted" | "declined" | "revoked" | "expired";
+}
+
+export async function listOwnGroupInvitations(groupId: string): Promise<OwnGroupInvitation[]> {
+  const { data, error } = await supabase.rpc(
+    "list_own_group_invitations" as never,
+    {
+      _group_id: groupId,
+    } as never,
+  );
+  if (error) throw toErr(error);
+  return (data ?? []) as unknown as OwnGroupInvitation[];
+}
+
 export type InvitationState = "valid" | "expired" | "revoked" | "accepted" | "invalid";
 
 export interface InvitationPreview {
@@ -78,15 +184,19 @@ export async function revokeGroupInvitation(invitationId: string): Promise<void>
 
 export interface InvitationListItem {
   id: string;
+  invite_kind: "internal" | "email" | "link";
   invited_email: string | null;
+  invited_user_id: string | null;
+  invited_user_name: string | null;
   role: string;
   invited_by: string;
   invited_by_name: string | null;
   expires_at: string;
   accepted_at: string | null;
+  declined_at: string | null;
   revoked_at: string | null;
   created_at: string;
-  state: "active" | "accepted" | "revoked" | "expired";
+  state: "active" | "accepted" | "declined" | "revoked" | "expired";
 }
 
 export async function listGroupInvitations(groupId: string): Promise<InvitationListItem[]> {

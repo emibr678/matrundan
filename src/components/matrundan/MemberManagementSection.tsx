@@ -52,7 +52,7 @@ function actionCopy(action: PendingAction | null): {
       return {
         title: `Gör ${action.member.name} till administratör?`,
         description:
-          "Personen kan då ändra gruppens inställningar, bjuda in medlemmar och hantera gruppens rapporterade fel.",
+          "Personen kan då ändra gruppens inställningar, hantera medlemmar och gruppens rapporterade fel.",
         confirmLabel: "Gör till administratör",
       };
     case "make-member":

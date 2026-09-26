@@ -1,18 +1,21 @@
 import * as React from "react";
 import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import { Heart, ChevronRight } from "lucide-react";
+import { Heart, ChevronRight, UserPlus } from "lucide-react";
 import { z } from "zod";
 
 import { ActivityRow } from "@/components/matrundan/ActivityRow";
 import { GroupHighlights } from "@/components/matrundan/GroupHighlights";
+import { GroupInviteDialog } from "@/components/matrundan/GroupInviteDialog";
 import { GroupSettingsSheet } from "@/components/matrundan/GroupSettingsSheet";
 import { MemberAvatar } from "@/components/matrundan/MemberAvatar";
 import { MemberProfileSheet } from "@/components/matrundan/MemberProfileSheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
 import { computeMemberProgression } from "@/lib/matrundan/gamification";
+import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -40,6 +43,14 @@ export const Route = createFileRoute("/gruppen")({
 
 function GroupPage() {
   const { state, getPlace, avgRating } = useStore();
+  const { mode, activeGroupId, activeGroupLifecycleStatus, userGroups } = useSession();
+  const [inviteOpen, setInviteOpen] = React.useState(false);
+  const canInvite =
+    mode === "live" && Boolean(activeGroupId) && activeGroupLifecycleStatus === "active";
+  const groupDescription =
+    mode === "live"
+      ? userGroups.find((group) => group.id === activeGroupId)?.description?.trim()
+      : null;
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/gruppen" });
   const activeMember = React.useMemo(
@@ -85,6 +96,11 @@ function GroupPage() {
               <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
                 {state.members.length} medlemmar
               </div>
+              {groupDescription ? (
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm [overflow-wrap:anywhere]">
+                  {groupDescription}
+                </p>
+              ) : null}
             </div>
             <div className="shrink-0">
               <GroupSettingsSheet />
@@ -94,7 +110,20 @@ function GroupPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 font-display text-lg">Gänget</h2>
+        <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
+          <h2 className="font-display text-lg">Medlemmar</h2>
+          {canInvite ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="min-h-11 shrink-0 rounded-full px-3"
+              onClick={() => setInviteOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" /> Bjud in
+            </Button>
+          ) : null}
+        </div>
         <div className="grid gap-2 md:grid-cols-2">
           {memberActivity.map(({ member, lastVisit, favCount, progression }) => {
             const place = lastVisit ? getPlace(lastVisit.placeId) : undefined;
@@ -140,6 +169,15 @@ function GroupPage() {
           })}
         </div>
       </section>
+
+      {canInvite && activeGroupId ? (
+        <GroupInviteDialog
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          groupId={activeGroupId}
+          groupName={state.group.name}
+        />
+      ) : null}
 
       <GroupHighlights />
 
