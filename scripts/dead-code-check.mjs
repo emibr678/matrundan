@@ -99,17 +99,3 @@ if (unusedUiFiles.length > 0) {
 
 console.log(`Dead-code-kontroll godkänd: ${uiFiles.length} nåbara UI-primitiver.`);
 
-
-if (process.env.CI === "true") {
-  const { format } = await import("prettier");
-  for (const path of [
-    "scripts/cloudflare-secret-leak-check.mjs",
-    "src/lib/matrundan/cloudflare-secret-leak-check.test.mjs",
-  ]) {
-    const source = readFileSync(resolve(root, path), "utf8");
-    const formatted = await format(source, { filepath: path });
-    console.log(
-      `FORMAT_DIAGNOSTIC:${path}:${Buffer.from(formatted, "utf8").toString("base64")}`,
-    );
-  }
-}
