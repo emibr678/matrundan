@@ -10,34 +10,37 @@ import {
 const temporaryDirectories = [];
 
 afterEach(async () => {
-  await Promise.all(
-    temporaryDirectories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
-  );
+  const pending = temporaryDirectories.splice(0);
+
+  for (const directory of pending) {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 describe("production artifact secret scan", () => {
-  test("passes clean artifacts and reports leaks without printing the secret", async () => {
+  test("reports leaks without printing the secret", async () => {
     const root = await mkdtemp(join(tmpdir(), "matrundan-secret-scan-"));
-    temporaryDirectories.push(root);
-    await mkdir(join(root, "server"), { recursive: true });
-
+    const serverDirectory = join(root, "server");
+    const artifactPath = join(serverDirectory, "index.mjs");
     const secret = "synthetic-server-secret-0123456789";
-    await writeFile(join(root, "server", "index.mjs"), "export const safe = true;\n");
+    const secretEntries = [["TEST_SERVER_SECRET", secret]];
 
-    expect(
-      await findArtifactSecretLeaks(root, [["TEST_SERVER_SECRET", secret]]),
-    ).toEqual([]);
+    temporaryDirectories.push(root);
+    await mkdir(serverDirectory, { recursive: true });
+    await writeFile(artifactPath, "export const safe = true;\n");
+
+    const cleanFindings = await findArtifactSecretLeaks(
+      root,
+      secretEntries,
+    );
+    expect(cleanFindings).toEqual([]);
 
     await writeFile(
-      join(root, "server", "index.mjs"),
+      artifactPath,
       `export const leaked = "${secret}";\n`,
     );
 
-    const findings = await findArtifactSecretLeaks(root, [
-      ["TEST_SERVER_SECRET", secret],
-    ]);
+    const findings = await findArtifactSecretLeaks(root, secretEntries);
     expect(findings).toEqual([
       {
         envName: "TEST_SERVER_SECRET",
