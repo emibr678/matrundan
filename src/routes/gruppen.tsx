@@ -43,10 +43,14 @@ export const Route = createFileRoute("/gruppen")({
 
 function GroupPage() {
   const { state, getPlace, avgRating } = useStore();
-  const { mode, activeGroupId, activeGroupLifecycleStatus } = useSession();
+  const { mode, activeGroupId, activeGroupLifecycleStatus, userGroups } = useSession();
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const canInvite =
     mode === "live" && Boolean(activeGroupId) && activeGroupLifecycleStatus === "active";
+  const groupDescription =
+    mode === "live"
+      ? userGroups.find((group) => group.id === activeGroupId)?.description?.trim()
+      : null;
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/gruppen" });
   const activeMember = React.useMemo(
@@ -92,9 +96,9 @@ function GroupPage() {
               <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
                 {state.members.length} medlemmar
               </div>
-              {state.group.description?.trim() ? (
+              {groupDescription ? (
                 <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm [overflow-wrap:anywhere]">
-                  {state.group.description.trim()}
+                  {groupDescription}
                 </p>
               ) : null}
             </div>
