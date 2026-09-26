@@ -529,6 +529,14 @@ jobs:
           MATRUNDAN_RELEASE_SHA: ${{ github.sha }}
         run: bun run cloudflare:build
 
+      - name: Verify production artifact contains no server secrets
+        run: >-
+          bun scripts/cloudflare-secret-leak-check.mjs
+          .output
+          CLOUDFLARE_API_TOKEN
+          PROD_SUPABASE_SERVICE_ROLE_KEY
+          PROD_GEOAPIFY_API_KEY
+
       - name: Upload and verify inert Worker app candidate
         id: upload
         if: inputs.upload_version == true
