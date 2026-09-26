@@ -11,6 +11,7 @@ import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
+import { resolveHomeAttention } from "@/lib/matrundan/home-attention";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { effectiveReviewOverall } from "@/lib/matrundan/review-model";
 import type { VisibleReview } from "@/lib/matrundan/types";
@@ -56,8 +57,15 @@ export function Home() {
         : getAttentionPendingVisitReviews(state.visits, state.currentUserId, new Date()),
     [groupArchived, state.currentUserId, state.visits],
   );
-  const pendingReviewVisit = pendingReviewVisits[0];
-  const pendingReviewPlace = pendingReviewVisit ? getPlace(pendingReviewVisit.placeId) : undefined;
+  const pendingReviewItems = pendingReviewVisits.map((visit) => ({
+    visitId: visit.id,
+    placeName: getPlace(visit.placeId)?.name ?? "Matställe",
+    visitDate: visit.date,
+  }));
+  const attentionKind = resolveHomeAttention(
+    pendingGroupInvitations.length,
+    pendingReviewItems.length,
+  );
 
   const untried = React.useMemo(
     () => activePlaces.filter((place) => !state.visits.some((visit) => visit.placeId === place.id)),
@@ -127,9 +135,7 @@ export function Home() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
-      <AppNudges />
-
-      {pendingGroupInvitations.length > 0 ? (
+      {attentionKind === "group-invitation" ? (
         <section aria-label="Gruppinbjudningar">
           <Card className="rounded-2xl border-primary/25 bg-primary/[0.05] p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -158,24 +164,19 @@ export function Home() {
             </div>
           </Card>
         </section>
-      ) : null}
+      ) : attentionKind === "pending-review" ? (
+        <section aria-label="Omdömen att komplettera">
+          <PendingVisitReviewCard visits={pendingReviewItems} />
+        </section>
+      ) : (
+        <AppNudges />
+      )}
 
       <NextStopCard
         activePlaces={activePlaces}
         canWrite={canWrite}
         onRegisterVisit={(placeId) => setVisitTarget({ placeId, completeNextStopOnSave: true })}
       />
-
-      {pendingReviewVisit && pendingReviewPlace ? (
-        <section aria-label="Omdömen att komplettera">
-          <PendingVisitReviewCard
-            visitId={pendingReviewVisit.id}
-            placeName={pendingReviewPlace.name}
-            visitDate={pendingReviewVisit.date}
-            pendingCount={pendingReviewVisits.length}
-          />
-        </section>
-      ) : null}
 
       <section>
         <Card className="rounded-2xl border-border/70 p-4">

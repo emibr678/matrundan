@@ -112,7 +112,7 @@ export function AppNudges() {
         update("push", { done: true });
       } else if (result.status === "denied") {
         toast.error("Notiser är blockerade i webbläsarens inställningar för Matrundan.");
-        update("push", { dismissedAt: Date.now() });
+        update("push", { done: true });
       } else {
         toast.error(result.message);
         update("push", { dismissedAt: Date.now() });
