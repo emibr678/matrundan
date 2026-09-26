@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BookOpen, Flag, History, Search, UsersRound, type LucideIcon } from "lucide-react";
+import { BookOpen, Flag, Search, UsersRound, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/matrundan/onboarding-state";
+import { hasSeenOnboarding, markOnboardingSeen, shouldAutoShowProductIntro } from "@/lib/matrundan/onboarding-state";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 
@@ -58,54 +58,41 @@ export function ProductIntroDialog({
   placeCount: number;
   visitCount: number;
 }) {
-  const contextCopy =
-    placeCount === 0
-      ? "Börja med att lägga till ett ställe ni vill prova."
-      : visitCount === 0
-        ? `Ni har redan ${placeCount === 1 ? "ett ställe" : `${placeCount} ställen`} på listan. Välj vad ni vill prova härnäst och registrera besöket efteråt.`
-        : "Gruppen är redan igång. Utforska listan och historiken och använd dem när ni väljer nästa upplevelse.";
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="pr-8 text-left">
-          <DialogTitle className="font-display text-2xl">Så fungerar Matrundan</DialogTitle>
+          <DialogTitle className="font-display text-2xl">Så funkar Matrundan</DialogTitle>
           <DialogDescription className="leading-relaxed">
-            Matrundan hjälper gruppen att gå från idéer till gemensamma matminnen.
+            Upptäck, prova och minns matställen tillsammans – i privata grupper för olika gäng och sammanhang.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          <IntroRow icon={UsersRound} title="Gruppen är utgångspunkten">
-            Ställen, planer och historik hör till gruppen ni är inne i.
+          <IntroRow icon={UsersRound} title="Ha olika grupper för olika gäng">
+            Du kan till exempel ha en grupp med familjen, vännerna eller kollegorna. Varje grupp har sin egen lista och historik.
           </IntroRow>
-          <IntroRow icon={Search} title="Samla ställen">
-            Lägg till sådant ni är nyfikna på och vill prova tillsammans.
+          <IntroRow icon={Search} title="Samla ställen ni vill prova">
+            Spara restauranger, caféer och andra ställen gruppen är nyfiken på.
           </IntroRow>
-          <IntroRow icon={Flag} title="Välj nästa stopp">
-            Använd listan och era tidigare erfarenheter när ni bestämmer vart ni ska härnäst.
+          <IntroRow icon={Flag} title="Välj vart ni ska härnäst">
+            Lägg ett ställe som Nästa stopp när ni har bestämt vad som står på tur.
           </IntroRow>
-          <IntroRow icon={BookOpen} title="Registrera det verkliga besöket">
-            Datum och de som faktiskt var med bygger gruppens gemensamma historia.
-          </IntroRow>
-          <IntroRow icon={History} title="Minns och välj bättre nästa gång">
-            Omdömen och besök gör det lättare att hitta tillbaka till det ni gillade.
+          <IntroRow icon={BookOpen} title="Spara det ni faktiskt gjorde">
+            Registrera besöket och vilka som var med. Omdömen, bilder och återbesök bygger gruppens gemensamma mathistoria.
           </IntroRow>
         </div>
 
         <Card className="rounded-2xl border-border/70 bg-secondary/25 p-4">
-          <div className="text-sm font-medium [overflow-wrap:anywhere]">Just nu i {groupName}</div>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{contextCopy}</p>
+          <div className="text-sm font-medium [overflow-wrap:anywhere]">Du är i {groupName}</div>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Byt grupp i menyn när du vill se ett annat gängs ställen, planer och historik.
+          </p>
         </Card>
 
-        <DialogFooter className={automatic ? "flex-col-reverse gap-2 sm:flex-row" : undefined}>
-          {automatic ? (
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Hoppa över
-            </Button>
-          ) : null}
+        <DialogFooter>
           <Button type="button" onClick={() => onOpenChange(false)}>
-            {automatic ? "Kom igång" : "Stäng"}
+            {automatic ? "Till gruppen" : "Stäng"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -148,6 +135,7 @@ export function ProductIntroController() {
     }
 
     autoHandledUsers.current.add(userId);
+    if (!shouldAutoShowProductIntro(user.created_at)) return;
     if (hasSeenOnboarding("product-intro", userId)) return;
     setAutomatic(true);
     setOpen(true);
