@@ -14,7 +14,7 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
-## [1.43.0] – 2026-09-26
+## [1.43.1] – 2026-09-27
 
 ### Nytt
 
