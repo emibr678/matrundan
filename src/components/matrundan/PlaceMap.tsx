@@ -543,7 +543,7 @@ export function PlaceMap({
             updateViewState();
             map.resize();
           };
-          const handleError = (event: { error?: Error }) => {
+          const handleError = (event: { error?: unknown }) => {
             const failure = classifyMapFailure(event.error ?? event);
             console.error("[Matrundan] MapLibre-fel:", event.error ?? event);
             if (!cancelled) {
