@@ -11,9 +11,9 @@ const temporaryDirectories = [];
 
 afterEach(async () => {
   await Promise.all(
-    temporaryDirectories
-      .splice(0)
-      .map((directory) => rm(directory, { recursive: true, force: true })),
+    temporaryDirectories.splice(0).map((directory) =>
+      rm(directory, { recursive: true, force: true }),
+    ),
   );
 });
 
@@ -26,14 +26,14 @@ describe("production artifact secret scan", () => {
     const secret = "synthetic-server-secret-0123456789";
     await writeFile(join(root, "server", "index.mjs"), "export const safe = true;\n");
 
-    expect(await findArtifactSecretLeaks(root, [["TEST_SERVER_SECRET", secret]])).toEqual([]);
+    expect(\n      await findArtifactSecretLeaks(root, [["TEST_SERVER_SECRET", secret]]),\n    ).toEqual([]);
 
     await writeFile(
       join(root, "server", "index.mjs"),
       `export const leaked = "${secret}";\n`,
     );
 
-    const findings = await findArtifactSecretLeaks(root, [["TEST_SERVER_SECRET", secret]]);
+    const findings = await findArtifactSecretLeaks(root, [\n      ["TEST_SERVER_SECRET", secret],\n    ]);
     expect(findings).toEqual([
       {
         envName: "TEST_SERVER_SECRET",
