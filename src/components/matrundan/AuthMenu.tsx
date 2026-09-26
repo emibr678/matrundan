@@ -3,6 +3,7 @@ import {
   Archive,
   Check,
   ChevronDown,
+  CircleHelp,
   Home,
   Info,
   List,
@@ -31,6 +32,7 @@ import { APP_NAME } from "@/lib/matrundan/version";
 import { toast } from "sonner";
 import { AllGroupsDialog } from "./AllGroupsDialog";
 import { ProfileDialog } from "./ProfileDialog";
+import { openProductIntro } from "./ProductIntroDialog";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { EmailAuthDialog } from "./EmailAuthDialog";
 import {
@@ -249,6 +251,10 @@ export function AuthMenu({
               Fortsätt med e-post
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={openProductIntro}>
+              <CircleHelp className="mr-2 h-4 w-4" />
+              Så fungerar Matrundan
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
               <Info className="mr-2 h-4 w-4" />
               Om {APP_NAME}
@@ -379,6 +385,12 @@ export function AuthMenu({
             <UserCog className="mr-2 h-4 w-4" />
             Min profil
           </DropdownMenuItem>
+          {activeGroupId || mode === "demo" ? (
+            <DropdownMenuItem onSelect={openProductIntro}>
+              <CircleHelp className="mr-2 h-4 w-4" />
+              Så fungerar Matrundan
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
             <Info className="mr-2 h-4 w-4" />
             Om {APP_NAME}
