@@ -8,6 +8,12 @@ on:
         required: false
         default: ''
         type: string
+  workflow_call:
+    inputs:
+      expected_sha:
+        description: Exact current main SHA for a calling release-security gate
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -82,7 +88,7 @@ jobs:
       - name: Full-history secret scan
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           GITLEAKS_VERSION: "8.30.1"
           GITLEAKS_ENABLE_COMMENTS: "false"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
