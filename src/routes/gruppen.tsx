@@ -92,6 +92,11 @@ function GroupPage() {
               <div className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
                 {state.members.length} medlemmar
               </div>
+              {state.group.description?.trim() ? (
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm [overflow-wrap:anywhere]">
+                  {state.group.description.trim()}
+                </p>
+              ) : null}
             </div>
             <div className="shrink-0">
               <GroupSettingsSheet />
