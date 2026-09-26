@@ -26,14 +26,18 @@ describe("production artifact secret scan", () => {
     const secret = "synthetic-server-secret-0123456789";
     await writeFile(join(root, "server", "index.mjs"), "export const safe = true;\n");
 
-    expect(\n      await findArtifactSecretLeaks(root, [["TEST_SERVER_SECRET", secret]]),\n    ).toEqual([]);
+    expect(
+      await findArtifactSecretLeaks(root, [["TEST_SERVER_SECRET", secret]]),
+    ).toEqual([]);
 
     await writeFile(
       join(root, "server", "index.mjs"),
       `export const leaked = "${secret}";\n`,
     );
 
-    const findings = await findArtifactSecretLeaks(root, [\n      ["TEST_SERVER_SECRET", secret],\n    ]);
+    const findings = await findArtifactSecretLeaks(root, [
+      ["TEST_SERVER_SECRET", secret],
+    ]);
     expect(findings).toEqual([
       {
         envName: "TEST_SERVER_SECRET",
