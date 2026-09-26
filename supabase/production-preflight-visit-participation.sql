@@ -22,10 +22,11 @@ WITH checks(name, ok) AS (
       )),
     ('read_rpc:next-stop-v2-projection',
       COALESCE(
-        position('get_group_app_state_v5j' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k(uuid)'))) > 0
-        AND position('nextStop' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k(uuid)'))) > 0
-        AND position('next_stop_place_proposals' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k(uuid)'))) > 0
-        AND position('next_stop_place_supports' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k(uuid)'))) > 0,
+        position('get_group_app_state_v5k_guest_identity_base' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k(uuid)'))) > 0
+        AND position('get_group_app_state_v5j' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k_guest_identity_base(uuid)'))) > 0
+        AND position('nextStop' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k_guest_identity_base(uuid)'))) > 0
+        AND position('next_stop_place_proposals' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k_guest_identity_base(uuid)'))) > 0
+        AND position('next_stop_place_supports' IN pg_get_functiondef(to_regprocedure('public.get_group_app_state_v5k_guest_identity_base(uuid)'))) > 0,
         false
       )),
     ('next_stop_v2:plan-table',

@@ -40,11 +40,14 @@ WITH checks(name, ok) AS (
     (
       'search-area:hybrid-mode',
       COALESCE(
-        position('searchMode' IN pg_get_functiondef(
+        position('get_group_app_state_v5i_participation_base' IN pg_get_functiondef(
           to_regprocedure('public.get_group_app_state_v5i(uuid)')
         )) > 0
+        AND position('searchMode' IN pg_get_functiondef(
+          to_regprocedure('public.get_group_app_state_v5i_participation_base(uuid)')
+        )) > 0
         AND position('resultType' IN pg_get_functiondef(
-          to_regprocedure('public.get_group_app_state_v5i(uuid)')
+          to_regprocedure('public.get_group_app_state_v5i_participation_base(uuid)')
         )) > 0
         AND position('boundary' IN pg_get_functiondef(
           to_regprocedure('public.replace_group_search_settings(uuid,jsonb,integer)')
