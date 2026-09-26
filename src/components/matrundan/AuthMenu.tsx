@@ -384,7 +384,7 @@ export function AuthMenu({
           {activeGroupId || mode === "demo" ? (
             <DropdownMenuItem onSelect={openProductIntro}>
               <CircleHelp className="mr-2 h-4 w-4" />
-              Så fungerar Matrundan
+              Så funkar Matrundan
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
