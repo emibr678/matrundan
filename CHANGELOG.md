@@ -33,11 +33,15 @@ Inga ändringar ännu.
   eller hantera gruppen är tydligare.
 - Databasens behörighetsbaslinje är stramare och kontoborttagning rensar även
   privata push-endpoints, notispreferenser och köad notistext.
+- Kartmotorn MapLibre har säkerhetsuppgraderats utan avsedd förändring av
+  kartflödet.
 
 ### Rättat
 
 - Äldre omdömen med endast helhetsbetyg kan nu rättas direkt utan att omvandlas
   till dagens betygsmodell.
+- Platsmetadata i produktion har återställts till den aktuella modellen, och
+  produktionskontrollerna följer nu dagens läsmodell.
 
 ## [1.42.0] – 2026-09-24
 
