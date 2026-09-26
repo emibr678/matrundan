@@ -59,7 +59,7 @@ interface SessionState {
   exitExampleMode: () => void;
   selectGroup: (groupId: string) => void;
   refreshGroups: () => Promise<void>;
-  refreshPendingInvites: () => Promise<void>;
+  refreshPendingGroupInvitations: () => Promise<void>;
 }
 
 const SessionContext = React.createContext<SessionState | null>(null);
