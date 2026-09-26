@@ -14,6 +14,31 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.43.0] – 2026-09-26
+
+### Nytt
+
+- Gruppmedlemmar kan bjuda in personer direkt från gruppvyn och välja personer
+  de redan delar andra Matrundan-grupper med.
+- Mottagare kan acceptera eller avböja interna gruppinbjudningar direkt i
+  gruppväljaren.
+
+### Förbättrat
+
+- Hem samlar personliga saker som behöver din uppmärksamhet högst upp och
+  prioriterar gruppinbjudningar före väntande omdömen och frivilliga app-tips.
+- När flera besök väntar på ditt omdöme kan du välja vilket du vill börja med.
+- Inbjudningsflödet är lättare att hitta; längre kandidatlistor går att söka och
+  expandera, gruppens beskrivning visas i gruppvyn och vägen till att lämna
+  eller hantera gruppen är tydligare.
+- Databasens behörighetsbaslinje är stramare och kontoborttagning rensar även
+  privata push-endpoints, notispreferenser och köad notistext.
+
+### Rättat
+
+- Äldre omdömen med endast helhetsbetyg kan nu rättas direkt utan att omvandlas
+  till dagens betygsmodell.
+
 ## [1.42.0] – 2026-09-24
 
 ### Nytt
