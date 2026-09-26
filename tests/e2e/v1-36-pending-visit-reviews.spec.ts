@@ -32,9 +32,12 @@ test("Hem sammanfattar pending omdömen och öppnar rätt kanoniska besök", asy
 
   const pending = page.getByLabel("Omdömen att komplettera");
   await expect(pending).toBeVisible();
-  await expect(pending.getByText("2 besök väntar på ditt omdöme")).toBeVisible();
-  await expect(pending.getByText("Tacoateljén", { exact: true })).toBeVisible();
-  await expect(pending.getByRole("link", { name: "Öppna besöket" })).toBeVisible();
+  await expect(pending.getByText("Du har 2 besök att tycka till om")).toBeVisible();
+  await expect(pending.getByText(/Senast: Tacoateljén/)).toBeVisible();
+  const chooseVisit = pending.getByRole("button", {
+    name: "Välj besök att lämna omdöme på",
+  });
+  await expect(chooseVisit).toBeVisible();
   await expect(pending.getByRole("link", { name: "Se alla besök" })).toHaveCount(0);
   await expect(pending.getByText("Du var med men har inte lämnat ditt omdöme ännu.")).toHaveCount(
     0,
@@ -42,7 +45,15 @@ test("Hem sammanfattar pending omdömen och öppnar rätt kanoniska besök", asy
   await expectNoLocatorOverflow(pending, "pending-kortet på Hem");
   await expectNoHorizontalOverflow(page, "Hem med flera pending-besök på 360 px");
 
-  await pending.getByRole("link", { name: "Öppna besöket" }).click();
+  await chooseVisit.click();
+  const chooser = page.getByRole("dialog", { name: "Besök att tycka till om" });
+  await expect(chooser).toBeVisible();
+  await expect(chooser.getByRole("link")).toHaveCount(2);
+  await expect(chooser.getByRole("link", { name: /Tacoateljén/ })).toBeVisible();
+  await expect(chooser.getByRole("link", { name: /Köttbulleklubben/ })).toBeVisible();
+  await expectNoLocatorOverflow(chooser, "väljaren för pending-besök");
+
+  await chooser.getByRole("link", { name: /Tacoateljén/ }).click();
   await expect(page).toHaveURL(/\/besok\?visit=v2$/);
 
   const visitDialog = page.getByRole("dialog").first();
