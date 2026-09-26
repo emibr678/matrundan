@@ -25,9 +25,7 @@ async function collectFiles(directory) {
 function normalizeSecretEntries(secretEntries) {
   return secretEntries.map(([envName, value]) => {
     if (typeof value !== "string" || value.length === 0) {
-      throw new Error(
-        `artifact-secret-scan: missing required value for ${envName}`,
-      );
+      throw new Error(`artifact-secret-scan: missing required value for ${envName}`);
     }
 
     if (value.length < 16) {
@@ -81,9 +79,7 @@ async function main() {
   const [rootDirectory = ".output", ...envNames] = process.argv.slice(2);
 
   if (envNames.length === 0) {
-    throw new Error(
-      "artifact-secret-scan: provide at least one environment variable name",
-    );
+    throw new Error("artifact-secret-scan: provide at least one environment variable name");
   }
 
   const entries = [];
@@ -99,9 +95,7 @@ async function main() {
   }
 
   const count = envNames.length;
-  console.log(
-    `artifact-secret-scan: verified ${count} server secret(s) are absent`,
-  );
+  console.log(`artifact-secret-scan: verified ${count} server secret(s) are absent`);
   console.log(`artifact-secret-scan: artifact root ${rootDirectory}`);
 }
 
