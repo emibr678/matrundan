@@ -3,6 +3,36 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_43_0_CHANGELOG: ChangelogEntry = {
+  version: "1.43.0",
+  date: "2026-09-26",
+  summary: "Gruppinbjudningar och Hem gör det enklare att agera på det som är relevant.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Gruppmedlemmar kan bjuda in personer direkt från gruppvyn och välja personer de redan delar andra Matrundan-grupper med.",
+        "Mottagare kan acceptera eller avböja interna gruppinbjudningar direkt i gruppväljaren.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hem samlar personliga saker som behöver din uppmärksamhet högst upp och prioriterar gruppinbjudningar före väntande omdömen och frivilliga app-tips.",
+        "När flera besök väntar på ditt omdöme kan du välja vilket du vill börja med.",
+        "Inbjudningsflödet är lättare att hitta; längre kandidatlistor går att söka och expandera, gruppens beskrivning visas i gruppvyn och vägen till att lämna eller hantera gruppen är tydligare.",
+        "Databasens behörighetsbaslinje är stramare och kontoborttagning rensar även privata push-endpoints, notispreferenser och köad notistext.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Äldre omdömen med endast helhetsbetyg kan nu rättas direkt utan att omvandlas till dagens betygsmodell.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_42_0_CHANGELOG: ChangelogEntry = {
   version: "1.42.0",
   date: "2026-09-24",
@@ -461,6 +491,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_43_0_CHANGELOG,
   VERSION_1_42_0_CHANGELOG,
   VERSION_1_41_0_CHANGELOG,
   VERSION_1_40_0_CHANGELOG,
