@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BookOpen, Flag, History, Search, UsersRound } from "lucide-react";
+import { BookOpen, Flag, History, Search, UsersRound, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -26,7 +26,7 @@ function IntroRow({
   title,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  icon: LucideIcon;
   title: string;
   children: React.ReactNode;
 }) {
