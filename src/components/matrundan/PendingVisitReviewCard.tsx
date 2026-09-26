@@ -98,7 +98,10 @@ export function PendingVisitReviewCard({ visits }: { visits: PendingVisitReviewI
                     {formatDate(visit.visitDate)}
                   </span>
                 </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
               </Link>
             ))}
           </div>

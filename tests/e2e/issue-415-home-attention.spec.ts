@@ -41,5 +41,7 @@ test("Hem visar flera väntande omdömen högst och låter användaren välja be
 
   await chooser.getByRole("link", { name: /Tacoateljén/ }).click();
   await expect(page).toHaveURL(/\/besok\?visit=/);
-  await expect(page.getByRole("dialog").getByRole("heading", { name: "Tacoateljén" })).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByRole("heading", { name: "Tacoateljén" }),
+  ).toBeVisible();
 });
