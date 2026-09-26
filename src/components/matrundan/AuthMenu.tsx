@@ -251,10 +251,6 @@ export function AuthMenu({
               Fortsätt med e-post
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={openProductIntro}>
-              <CircleHelp className="mr-2 h-4 w-4" />
-              Så fungerar Matrundan
-            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
               <Info className="mr-2 h-4 w-4" />
               Om {APP_NAME}
