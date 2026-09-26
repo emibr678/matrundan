@@ -985,6 +985,18 @@ bära målgrupp, besök och review men ingen privat source-group-identitet.
 Version, in-app-historik och `CHANGELOG.md` ska hållas synkroniserade för en
 releasekandidat.
 
+Produktions-preflighten ska ha en credential-fri release-security-grind före
+jobbet som använder GitHubs `production`-environment. Grinden återanvänder
+`Public readiness` för full-history secret scan och kräver dessutom grön
+`CI / required` för exakt aktuell `main`-SHA. Först därefter får
+produktionscredentials exponeras för preflight-jobbet.
+
+Den exakta produktionsbuilden ska före inert upload verifieras mot de
+serverhemligheter som finns i preflight-jobbets miljö. Ett fynd får ange
+kontraktsnamn och artifact-path men aldrig skriva ut själva hemligheten.
+Dependency review körs endast när en PR faktiskt ändrar dependency-manifest
+eller lockfil, så vanlig produktutveckling behåller den snabba PR-loopen.
+
 En migration i GitHub betyder inte att produktionsdatabasen är migrerad.
 Databasdriftsättning kräver separat uttryckligt godkännande.
 

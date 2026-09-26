@@ -27,8 +27,77 @@ env:
   PROD_CANDIDATE_PREVIEW_URL: https://prod-candidate-app.matrundan.workers.dev
 
 jobs:
+  public_readiness:
+    name: Release security / public readiness
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/public-readiness.yml
+    with:
+      expected_sha: ${{ github.sha }}
+
+  main_ci:
+    name: Release security / exact main CI
+    needs: public_readiness
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      checks: read
+      contents: read
+    steps:
+      - name: Require green CI / required for exact main SHA
+        env:
+          GITHUB_API_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const sha = process.env.GITHUB_SHA ?? '';
+          if (!/^[0-9a-f]{40}$/.test(sha)) {
+            console.error('GITHUB_SHA must be a full 40-character commit SHA.');
+            process.exit(1);
+          }
+
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          const response = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/commits/${sha}/check-runs?filter=latest&per_page=100`,
+            {
+              headers: {
+                accept: 'application/vnd.github+json',
+                authorization: `Bearer ${process.env.GITHUB_API_TOKEN}`,
+                'x-github-api-version': '2022-11-28',
+              },
+              signal: AbortSignal.timeout(10_000),
+            },
+          );
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || !Array.isArray(payload?.check_runs)) {
+            console.error(`Could not read checks for exact main SHA (HTTP ${response.status}).`);
+            process.exit(1);
+          }
+
+          const requiredChecks = payload.check_runs.filter(
+            (check) => check?.name === 'CI / required' && check?.app?.slug === 'github-actions',
+          );
+          const green = requiredChecks.some(
+            (check) => check?.status === 'completed' && check?.conclusion === 'success',
+          );
+          if (!green) {
+            const states = requiredChecks
+              .map((check) => `${check?.status ?? 'unknown'}/${check?.conclusion ?? 'none'}`)
+              .join(', ');
+            console.error(
+              `CI / required is not green for exact main SHA ${sha} (${states || 'check missing'}).`,
+            );
+            process.exit(1);
+          }
+
+          console.log(`Verified green CI / required for exact main SHA ${sha}.`);
+          NODE
+
   preflight:
     name: Cloudflare prod preflight
+    needs: main_ci
     if: github.ref == 'refs/heads/main'
     # This job may read production credentials and upload an inert Worker version,
     # but it never restores data or promotes production traffic.
@@ -459,6 +528,14 @@ jobs:
           MATRUNDAN_ENVIRONMENT: prod
           MATRUNDAN_RELEASE_SHA: ${{ github.sha }}
         run: bun run cloudflare:build
+
+      - name: Verify production artifact contains no server secrets
+        run: >-
+          bun scripts/cloudflare-secret-leak-check.mjs
+          .output
+          CLOUDFLARE_API_TOKEN
+          PROD_SUPABASE_SERVICE_ROLE_KEY
+          PROD_GEOAPIFY_API_KEY
 
       - name: Upload and verify inert Worker app candidate
         id: upload

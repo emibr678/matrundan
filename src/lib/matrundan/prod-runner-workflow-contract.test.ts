@@ -27,7 +27,8 @@ describe("productionflödets runner-kontrakt", () => {
   test("prod-preflight binder kandidaten till current main och preflight-runnen utan inklistrad SHA", () => {
     const workflow = readFileSync(resolve(process.cwd(), productionWorkflows[0]), "utf8");
 
-    expect(workflow).not.toContain("expected_sha:");
+    expect(workflow).toContain("expected_sha: ${{ github.sha }}");
+    expect(workflow).not.toMatch(/expected_sha:\\s+[0-9a-f]{40}/);
     expect(workflow).toContain("default: true");
     expect(workflow).toContain("git rev-parse origin/main");
     expect(workflow).toContain('--tag "preflight-$GITHUB_RUN_ID"');
