@@ -14,6 +14,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/matrundan/onboarding-state";
+import { useSession } from "@/lib/matrundan/session";
 import {
   OCCASION_DESCRIPTION,
   OCCASION_LABEL,
@@ -54,6 +56,11 @@ export function OccasionGuideContent({ showHeading = true }: { showHeading?: boo
           kan båda vara riktigt bra – fast vid olika tillfällen.
         </p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          <strong className="font-medium text-foreground">Passar för är inte ett extra betyg.</strong>{" "}
+          Det beskriver vilken typ av tillfälle stället passar för och används när ni filtrerar och
+          jämför ställen.
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           Om bara <strong className="font-medium text-foreground">{OCCASION_LABEL.snabbt}</strong>{" "}
           är valt ingår inte Atmosfär i nya omdömen. Tidigare omdömen ändras inte.
         </p>
@@ -68,6 +75,31 @@ export function OccasionGuideContent({ showHeading = true }: { showHeading?: boo
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+export function OccasionFirstTimeGuide({ active = true }: { active?: boolean }) {
+  const { mode, user } = useSession();
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const userId = user?.id;
+    if (!active || mode !== "live" || !userId) {
+      setVisible(false);
+      return;
+    }
+
+    const shouldShow = !hasSeenOnboarding("occasion-guide", userId);
+    setVisible(shouldShow);
+    if (shouldShow) markOnboardingSeen("occasion-guide", userId);
+  }, [active, mode, user?.id]);
+
+  if (!visible) return null;
+
+  return (
+    <div className="rounded-2xl bg-secondary/40 p-3">
+      <OccasionGuideContent />
     </div>
   );
 }
@@ -141,6 +173,7 @@ export function OccasionPicker({
       <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
         {description ?? (required ? "Välj en eller två." : "Valfritt – välj upp till två.")}
       </p>
+      <OccasionFirstTimeGuide active={required} />
       <div
         className="flex flex-wrap gap-2"
         role="group"

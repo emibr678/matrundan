@@ -14,6 +14,8 @@ import {
   normalizeOccasionClassification,
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
+import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/matrundan/onboarding-state";
+import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import { OCCASION_LABEL, OCCASION_VALUES, type Occasion, type Place } from "@/lib/matrundan/types";
 import { OccasionGuideContent } from "./OccasionPicker";
@@ -28,6 +30,7 @@ export function VisitPlaceOccasionDialog({
   onCancel: () => void;
 }) {
   const { updatePlaceMetadata, submitting } = useStore();
+  const { mode, user } = useSession();
   const [selected, setSelected] = React.useState<Occasion[]>([]);
   const [showGuide, setShowGuide] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -35,8 +38,12 @@ export function VisitPlaceOccasionDialog({
   React.useEffect(() => {
     if (!open) return;
     setSelected([]);
-    setShowGuide(false);
-  }, [open, place.id]);
+    const userId = user?.id;
+    const firstTime =
+      mode === "live" && Boolean(userId) && !hasSeenOnboarding("occasion-guide", userId);
+    setShowGuide(firstTime);
+    if (firstTime) markOnboardingSeen("occasion-guide", userId);
+  }, [mode, open, place.id, user?.id]);
 
   async function saveAndContinue() {
     const occasions = normalizeOccasionClassification(selected);
