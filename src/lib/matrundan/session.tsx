@@ -153,11 +153,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [refreshPendingGroupInvitations]);
 
   React.useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      demoRoute.forceDemo ||
-      !session?.user?.id
-    ) {
+    if (typeof window === "undefined" || demoRoute.forceDemo || !session?.user?.id) {
       return;
     }
     const refresh = () => void refreshPendingGroupInvitations();

@@ -397,9 +397,7 @@ test("många inbjudningskandidater kan sökas utan att hela listan tar över dia
   await expectNoHorizontalOverflow(page, "sökbar kandidatlista");
 });
 
-test("väntande gruppinbjudan syns på Hem och öppnar befintligt svarsflöde", async ({
-  page,
-}) => {
+test("väntande gruppinbjudan syns på Hem och öppnar befintligt svarsflöde", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await installOwnerSession(page, {
     pendingInvites: [

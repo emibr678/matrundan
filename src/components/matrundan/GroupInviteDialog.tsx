@@ -317,9 +317,7 @@ export function GroupInviteDialog({
                   );
                 })}
 
-                {candidateListNeedsScaling &&
-                  !showAllCandidates &&
-                  !normalizedCandidateQuery ? (
+                {candidateListNeedsScaling && !showAllCandidates && !normalizedCandidateQuery ? (
                   <Button
                     type="button"
                     variant="ghost"
