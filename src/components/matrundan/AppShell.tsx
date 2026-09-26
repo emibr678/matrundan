@@ -5,6 +5,7 @@ import { LandingScreen } from "@/components/matrundan/LandingScreen";
 import { EnvironmentBadge } from "@/components/matrundan/EnvironmentBadge";
 import { MatrundanBrand } from "@/components/matrundan/MatrundanBrand";
 import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
+import { ProductIntroController } from "@/components/matrundan/ProductIntroDialog";
 import { ShellChrome } from "@/components/matrundan/ShellChrome";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -191,6 +192,7 @@ function ShellBody() {
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
       <ShellChrome exampleMode={exampleMode} />
+      <ProductIntroController />
     </StoreProvider>
   );
 }
