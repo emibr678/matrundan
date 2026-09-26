@@ -1,5 +1,5 @@
 import "maplibre-gl/dist/maplibre-gl.css";
-import mapLibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-csp-worker.js?url";
+import mapLibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 
 export type MapLibreApi = typeof import("maplibre-gl");
 export type MapLibreMap = import("maplibre-gl").Map;
