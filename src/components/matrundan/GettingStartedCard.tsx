@@ -24,11 +24,13 @@ export function GettingStartedCard({
           <Sparkles className="h-4 w-4" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium">{empty ? "Börja med ett ställe" : "Nästa steg: välj ert nästa stopp"}</div>
+          <div className="text-sm font-medium">
+            {empty ? "Börja gruppens runda med ett ställe" : "Välj vad ni vill prova härnäst"}
+          </div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {empty
               ? "Lägg till något ni vill prova. Det blir startpunkten för gruppens gemensamma lista."
-              : "Ni har ställen på listan. Välj vad ni vill prova härnäst och registrera det verkliga besöket när ni varit där."}
+              : "Ni har ställen på listan men ännu inga besök. Nästa stopp finns direkt här under – välj ett ställe när ni har bestämt er."}
           </p>
           {empty && canWrite ? (
             <Button type="button" size="sm" className="mt-3" onClick={onAddPlace}>
