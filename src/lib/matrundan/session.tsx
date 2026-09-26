@@ -59,7 +59,7 @@ interface SessionState {
   exitExampleMode: () => void;
   selectGroup: (groupId: string) => void;
   refreshGroups: () => Promise<void>;
-  refreshPendingGroupInvitations: () => Promise<void>;
+  refreshPendingInvites: () => Promise<void>;
 }
 
 const SessionContext = React.createContext<SessionState | null>(null);
@@ -127,40 +127,38 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [userGroups, setUserGroups] = React.useState<UserGroupSummary[]>([]);
-  const [pendingGroupInvitations, setPendingGroupInvitations] = React.useState<
-    MyGroupInvitation[]
-  >([]);
+  const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
   const [activeGroupId, setActiveGroupId] = React.useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(ACTIVE_GROUP_KEY);
   });
 
-  const refreshPendingGroupInvitations = React.useCallback(async () => {
+  const refreshPendingInvites = React.useCallback(async () => {
     if (demoRoute.forceDemo || !session?.user?.id) {
-      setPendingGroupInvitations([]);
+      setPendingInvites([]);
       return;
     }
 
     try {
-      setPendingGroupInvitations(await listMyGroupInvitations());
+      setPendingInvites(await listMyGroupInvitations());
     } catch (error) {
       console.error("[Matrundan] kunde inte läsa gruppinbjudningar:", error);
-      setPendingGroupInvitations([]);
+      setPendingInvites([]);
     }
   }, [demoRoute.forceDemo, session?.user?.id]);
 
   React.useEffect(() => {
-    void refreshPendingGroupInvitations();
-  }, [refreshPendingGroupInvitations]);
+    void refreshPendingInvites();
+  }, [refreshPendingInvites]);
 
   React.useEffect(() => {
     if (typeof window === "undefined" || demoRoute.forceDemo || !session?.user?.id) {
       return;
     }
-    const refresh = () => void refreshPendingGroupInvitations();
+    const refresh = () => void refreshPendingInvites();
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
-  }, [demoRoute.forceDemo, refreshPendingGroupInvitations, session?.user?.id]);
+  }, [demoRoute.forceDemo, refreshPendingInvites, session?.user?.id]);
 
   const loadGroups = React.useCallback(async (uid: string | undefined) => {
     if (!uid) {
@@ -336,7 +334,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
     setActiveGroupId(null);
     setUserGroups([]);
-    setPendingGroupInvitations([]);
+    setPendingInvites([]);
   }, []);
 
   const exitExampleMode = React.useCallback(() => {
@@ -379,7 +377,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           ? "active"
           : null,
       userGroups,
-      pendingGroupInvitations,
+      pendingGroupInvitations: pendingInvites,
       signInWithGoogle,
       signInWithPassword,
       signUpWithPassword,
@@ -388,7 +386,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       exitExampleMode,
       selectGroup,
       refreshGroups,
-      refreshPendingGroupInvitations,
+      refreshPendingGroupInvitations: refreshPendingInvites,
     };
   }, [
     activeGroupId,
@@ -396,9 +394,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     demoRoute.forceDemo,
     exitExampleMode,
     loading,
-    pendingGroupInvitations,
+    pendingInvites,
     refreshGroups,
-    refreshPendingGroupInvitations,
+    refreshPendingInvites,
     selectGroup,
     session,
     signInWithGoogle,
