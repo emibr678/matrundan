@@ -387,8 +387,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           : null,
       userGroups,
       pendingGroupInvitations: pendingInvites,
-      pendingGroupInvitationsReady:
-        !isLive || pendingInvitesResolvedUserId === (user?.id ?? null),
+      pendingGroupInvitationsReady: !isLive || pendingInvitesResolvedUserId === (user?.id ?? null),
       signInWithGoogle,
       signInWithPassword,
       signUpWithPassword,
