@@ -29,16 +29,10 @@ describe("production artifact secret scan", () => {
     await mkdir(serverDirectory, { recursive: true });
     await writeFile(artifactPath, "export const safe = true;\n");
 
-    const cleanFindings = await findArtifactSecretLeaks(
-      root,
-      secretEntries,
-    );
+    const cleanFindings = await findArtifactSecretLeaks(root, secretEntries);
     expect(cleanFindings).toEqual([]);
 
-    await writeFile(
-      artifactPath,
-      `export const leaked = "${secret}";\n`,
-    );
+    await writeFile(artifactPath, `export const leaked = "${secret}";\n`);
 
     const findings = await findArtifactSecretLeaks(root, secretEntries);
     expect(findings).toEqual([
