@@ -318,8 +318,8 @@ export function GroupInviteDialog({
                 })}
 
                 {candidateListNeedsScaling &&
-                !showAllCandidates &&
-                !normalizedCandidateQuery ? (
+                  !showAllCandidates &&
+                  !normalizedCandidateQuery ? (
                   <Button
                     type="button"
                     variant="ghost"

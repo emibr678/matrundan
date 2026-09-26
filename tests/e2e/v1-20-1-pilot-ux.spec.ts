@@ -368,7 +368,6 @@ test("inbjudan är direkt hittbar från Medlemmar på mobil utan e-postfokus", a
   await expectNoHorizontalOverflow(page, "direkt inbjudan från Medlemmar");
 });
 
-
 test("många inbjudningskandidater kan sökas utan att hela listan tar över dialogen", async ({
   page,
 }) => {
@@ -398,7 +397,9 @@ test("många inbjudningskandidater kan sökas utan att hela listan tar över dia
   await expectNoHorizontalOverflow(page, "sökbar kandidatlista");
 });
 
-test("väntande gruppinbjudan syns på Hem och öppnar befintligt svarsflöde", async ({ page }) => {
+test("väntande gruppinbjudan syns på Hem och öppnar befintligt svarsflöde", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await installOwnerSession(page, {
     pendingInvites: [
@@ -415,7 +416,9 @@ test("väntande gruppinbjudan syns på Hem och öppnar befintligt svarsflöde", 
   await page.goto("/");
 
   await expect(page.getByText("Du har en gruppinbjudan", { exact: true })).toBeVisible();
-  await expect(page.getByText("Karin har bjudit in dig till Söndagsgänget.", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Karin har bjudit in dig till Söndagsgänget.", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Visa inbjudan" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Alla grupper" });

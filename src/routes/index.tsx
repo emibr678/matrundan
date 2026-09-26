@@ -116,6 +116,14 @@ export function Home() {
     ? (lastVisit?.participants?.find((participant) => participant.id === lastVisitReview.userId)
         ?.name ?? memberById(lastVisitReview.userId)?.name)
     : undefined;
+  const pendingInvitationTitle =
+    pendingGroupInvitations.length === 1
+      ? "Du har en gruppinbjudan"
+      : `Du har ${pendingGroupInvitations.length} gruppinbjudningar`;
+  const pendingInvitationDescription =
+    pendingGroupInvitations.length === 1
+      ? `${pendingGroupInvitations[0]?.invited_by_name || "En medlem"} har bjudit in dig till ${pendingGroupInvitations[0]?.group_name}.`
+      : "Öppna för att välja vilka grupper du vill gå med i.";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
@@ -130,15 +138,9 @@ export function Home() {
                   <UserPlus className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
-                  <div className="font-medium">
-                    {pendingGroupInvitations.length === 1
-                      ? "Du har en gruppinbjudan"
-                      : `Du har ${pendingGroupInvitations.length} gruppinbjudningar`}
-                  </div>
+                  <div className="font-medium">{pendingInvitationTitle}</div>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {pendingGroupInvitations.length === 1
-                      ? `${pendingGroupInvitations[0]?.invited_by_name || "En medlem"} har bjudit in dig till ${pendingGroupInvitations[0]?.group_name}.`
-                      : "Öppna för att välja vilka grupper du vill gå med i."}
+                    {pendingInvitationDescription}
                   </p>
                 </div>
               </div>
@@ -146,9 +148,9 @@ export function Home() {
                 type="button"
                 variant="outline"
                 className="min-h-11 w-full shrink-0 sm:w-auto"
-                onClick={() =>
-                  window.dispatchEvent(new Event("matrundan:open-group-invitations"))
-                }
+                onClick={() => {
+                  window.dispatchEvent(new Event("matrundan:open-group-invitations"));
+                }}
               >
                 {pendingGroupInvitations.length === 1 ? "Visa inbjudan" : "Visa inbjudningar"}
                 <ChevronRight className="h-4 w-4" />

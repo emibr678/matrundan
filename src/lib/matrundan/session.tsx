@@ -127,7 +127,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [userGroups, setUserGroups] = React.useState<UserGroupSummary[]>([]);
-  const [pendingGroupInvitations, setPendingGroupInvitations] = React.useState<MyGroupInvitation[]>([]);
+  const [pendingGroupInvitations, setPendingGroupInvitations] =
+    React.useState<MyGroupInvitation[]>([]);
   const [activeGroupId, setActiveGroupId] = React.useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(ACTIVE_GROUP_KEY);
@@ -152,7 +153,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [refreshPendingGroupInvitations]);
 
   React.useEffect(() => {
-    if (typeof window === "undefined" || demoRoute.forceDemo || !session?.user?.id) return;
+    if (
+      typeof window === "undefined" ||
+      demoRoute.forceDemo ||
+      !session?.user?.id
+    ) {
+      return;
+    }
     const refresh = () => void refreshPendingGroupInvitations();
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
