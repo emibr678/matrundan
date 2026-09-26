@@ -32,6 +32,7 @@ export function AddVisitReviewDialog({
   placeOccasions = [],
   disabled = false,
   onSaved,
+  onExit,
 }: {
   visitId: string;
   placeName: string;
@@ -40,6 +41,7 @@ export function AddVisitReviewDialog({
   placeOccasions?: Occasion[];
   disabled?: boolean;
   onSaved?: () => void | Promise<void>;
+  onExit?: () => void;
 }) {
   const { activeGroupId } = useSession();
   const { state, saveVisitPhoto } = useStore();
@@ -75,6 +77,11 @@ export function AddVisitReviewDialog({
         occasions: placeNeedsOccasionClassification ? reviewOccasions : placeOccasions,
       });
   const complete = reviewRatingsComplete(model, { taste, service, value, atmosphere });
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen && open && !saving) onExit?.();
+  }
 
   async function save() {
     if (!activeGroupId) {
@@ -119,6 +126,7 @@ export function AddVisitReviewDialog({
           );
           setOpen(false);
           await onSaved?.();
+          onExit?.();
           return;
         }
       }
@@ -134,6 +142,7 @@ export function AddVisitReviewDialog({
       );
       setOpen(false);
       await onSaved?.();
+      onExit?.();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
     } finally {
@@ -142,7 +151,7 @@ export function AddVisitReviewDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="w-full" disabled={disabled}>
           {scoreless ? <MessageCircle className="h-4 w-4" /> : <Star className="h-4 w-4" />}
@@ -213,7 +222,14 @@ export function AddVisitReviewDialog({
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
-          <Button variant="ghost" disabled={saving} onClick={() => setOpen(false)}>
+          <Button
+            variant="ghost"
+            disabled={saving}
+            onClick={() => {
+              setOpen(false);
+              onExit?.();
+            }}
+          >
             Avbryt
           </Button>
           <Button

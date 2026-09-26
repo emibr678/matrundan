@@ -54,15 +54,38 @@ test("Hem sammanfattar pending omdömen och öppnar rätt kanoniska besök", asy
   await expectNoLocatorOverflow(chooser, "väljaren för pending-besök");
 
   await chooser.getByRole("link", { name: /Tacoateljén/ }).click();
-  await expect(page).toHaveURL(/\/besok\?visit=v2$/);
+  await expect(page).toHaveURL(/\/besok\?.*visit=v2.*from=home|\/besok\?.*from=home.*visit=v2/);
 
-  const visitDialog = page.getByRole("dialog").first();
+  let visitDialog = page.getByRole("dialog").first();
   await expect(visitDialog.getByRole("heading", { name: "Tacoateljén" })).toBeVisible();
   await expect(visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" })).toBeVisible();
   await expect(visitDialog.getByText("Ditt deltagande", { exact: true })).toHaveCount(0);
   await expect(visitDialog.getByText("Du var med", { exact: true })).toHaveCount(0);
   await expect(visitDialog.getByRole("button", { name: "Jag var inte med" })).toBeVisible();
   await expectNoLocatorOverflow(visitDialog, "pending-besökets detalj");
+
+  await visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" }).click();
+  let reviewDialog = page.getByRole("dialog").last();
+  await reviewDialog.getByRole("button", { name: "Avbryt" }).click();
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(page.getByText("Du har 2 besök att tycka till om")).toBeVisible();
+
+  await page.getByRole("button", { name: "Välj besök att lämna omdöme på" }).click();
+  await page
+    .getByRole("dialog", { name: "Besök att tycka till om" })
+    .getByRole("link", { name: /Tacoateljén/ })
+    .click();
+
+  visitDialog = page.getByRole("dialog").first();
+  await visitDialog.getByRole("button", { name: "Lägg till ditt omdöme" }).click();
+  reviewDialog = page.getByRole("dialog").last();
+  for (const dimension of ["Smak", "Service", "Prisvärdhet", "Atmosfär"]) {
+    await reviewDialog.getByRole("button", { name: `${dimension}: 5 av 5` }).click();
+  }
+  await reviewDialog.getByRole("button", { name: "Spara omdöme" }).click();
+
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(page.getByText("Du har ett besök att tycka till om")).toBeVisible();
 });
 
 test("Besök markerar bara aktuella pending-besök inom uppmärksamhetsfönstret", async ({ page }) => {

@@ -39,7 +39,7 @@ export function PendingVisitReviewCard({ visits }: { visits: PendingVisitReviewI
       <Button asChild size="sm">
         <Link
           to="/besok"
-          search={{ visit: firstVisit.visitId }}
+          search={{ visit: firstVisit.visitId, from: "home" }}
           aria-label={`Öppna ${firstVisit.placeName} och lämna omdöme`}
         >
           Lämna omdöme
@@ -79,7 +79,7 @@ export function PendingVisitReviewCard({ visits }: { visits: PendingVisitReviewI
                 <Link
                   key={visit.visitId}
                   to="/besok"
-                  search={{ visit: visit.visitId }}
+                  search={{ visit: visit.visitId, from: "home" }}
                   onClick={() => setOpen(false)}
                   className="flex min-h-14 min-w-0 items-center gap-3 rounded-xl border border-border/70 px-3 py-3 text-left transition hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >

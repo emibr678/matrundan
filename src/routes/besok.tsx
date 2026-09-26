@@ -21,6 +21,7 @@ const visitSearchSchema = z.object({
   visit: fallback(z.string(), "").default(""),
   group: z.string().optional(),
   review: z.string().optional(),
+  from: z.enum(["home"]).optional(),
 });
 
 export const Route = createFileRoute("/besok")({
@@ -61,6 +62,10 @@ function VisitHistory() {
       ),
     [groupArchived, state.currentUserId, state.visits],
   );
+
+  const returnToHome = React.useCallback(() => {
+    void navigate({ to: exampleMode ? "/exempel" : "/" });
+  }, [exampleMode, navigate]);
 
   React.useEffect(() => {
     if (
@@ -214,9 +219,17 @@ function VisitHistory() {
         visitId={search.visit || null}
         focusReviewId={search.review ?? null}
         open={Boolean(search.visit) && requestedGroupAllowed && requestedGroupReady}
-        onOpenChange={(open) =>
-          !open && navigate({ search: { visit: "", group: undefined, review: undefined } })
-        }
+        onReviewFlowExit={search.from === "home" ? returnToHome : undefined}
+        onOpenChange={(open) => {
+          if (open) return;
+          if (search.from === "home") {
+            returnToHome();
+            return;
+          }
+          void navigate({
+            search: { visit: "", group: undefined, review: undefined, from: undefined },
+          });
+        }}
       />
     </div>
   );

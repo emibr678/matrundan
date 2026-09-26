@@ -64,11 +64,13 @@ export function VisitDetailSheet({
   focusReviewId = null,
   open,
   onOpenChange,
+  onReviewFlowExit,
 }: {
   visitId: string | null;
   focusReviewId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onReviewFlowExit?: () => void;
 }) {
   const { state, getPlace, memberById, deleteVisit, demoReadOnly } = useStore();
   const { mode, activeGroupId, activeGroupRole, userGroups } = useSession();
@@ -372,6 +374,7 @@ export function VisitDetailSheet({
                   demoReadOnly={demoReadOnly}
                   focusReviewId={focusReviewId}
                   onChanged={reload}
+                  onOwnReviewFlowExit={onReviewFlowExit}
                 />
 
                 <VisitPhotoManager visit={visit} />
