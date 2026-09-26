@@ -21,7 +21,7 @@ export async function findArtifactSecretLeaks(rootDirectory, secretEntries) {
   const root = resolve(rootDirectory);
   const secrets = secretEntries.map(([envName, value]) => {
     if (typeof value !== "string" || value.length === 0) {
-      throw new Error(`artifact-secret-scan: missing required value for ${envName}`);
+      throw new Error(\n        `artifact-secret-scan: missing required value for ${envName}`,\n      );
     }
     if (value.length < 16) {
       throw new Error(`artifact-secret-scan: ${envName} is unexpectedly short`);
@@ -60,7 +60,7 @@ async function main() {
     );
   }
 
-  const entries = envNames.map((envName) => [envName, process.env[envName] ?? ""]);
+  const entries = envNames.map((envName) => [\n    envName,\n    process.env[envName] ?? "",\n  ]);
   const findings = await findArtifactSecretLeaks(rootDirectory, entries);
   if (findings.length > 0) {
     throw new Error(formatArtifactSecretLeakFailure(findings));
