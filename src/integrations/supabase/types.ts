@@ -540,43 +540,49 @@ export type Database = {
           accepted_at: string | null
           accepted_by: string | null
           created_at: string
+          declined_at: string | null
           expires_at: string
           group_id: string
           id: string
           invited_by: string
           invited_email: string | null
+          invited_user_id: string | null
           is_multi_use: boolean
           revoked_at: string | null
           role: string
-          token_hash: string
+          token_hash: string | null
         }
         Insert: {
           accepted_at?: string | null
           accepted_by?: string | null
           created_at?: string
+          declined_at?: string | null
           expires_at: string
           group_id: string
           id?: string
           invited_by: string
           invited_email?: string | null
+          invited_user_id?: string | null
           is_multi_use?: boolean
           revoked_at?: string | null
           role?: string
-          token_hash: string
+          token_hash?: string | null
         }
         Update: {
           accepted_at?: string | null
           accepted_by?: string | null
           created_at?: string
+          declined_at?: string | null
           expires_at?: string
           group_id?: string
           id?: string
           invited_by?: string
           invited_email?: string | null
+          invited_user_id?: string | null
           is_multi_use?: boolean
           revoked_at?: string | null
           role?: string
-          token_hash?: string
+          token_hash?: string | null
         }
         Relationships: [
           {
@@ -589,6 +595,13 @@ export type Database = {
           {
             foreignKeyName: "invitations_invited_by_fkey"
             columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_invited_user_id_fkey"
+            columns: ["invited_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -2165,6 +2178,10 @@ export type Database = {
     Functions: {
       _token_hash: { Args: { _token: string }; Returns: string }
       accept_group_invitation: { Args: { _token: string }; Returns: Json }
+      accept_group_member_invitation: {
+        Args: { _invitation_id: string }
+        Returns: Json
+      }
       apply_cross_group_practical_info_suggestion_v1: {
         Args: {
           _field: string
@@ -2258,6 +2275,10 @@ export type Database = {
           _group_id: string
           _invited_email?: string
         }
+        Returns: Json
+      }
+      create_group_member_invitations: {
+        Args: { _invitee_user_ids: string[]; _target_group_id: string }
         Returns: Json
       }
       create_group_with_owner: {
@@ -2549,6 +2570,10 @@ export type Database = {
         Args: { _other_user_id: string }
         Returns: boolean
       }
+      decline_group_member_invitation: {
+        Args: { _invitation_id: string }
+        Returns: undefined
+      }
       delete_original_visit: {
         Args: { _group_id: string; _visit_id: string }
         Returns: string[]
@@ -2816,14 +2841,29 @@ export type Database = {
         Returns: {
           accepted_at: string
           created_at: string
+          declined_at: string
           expires_at: string
           id: string
+          invite_kind: string
           invited_by: string
           invited_by_name: string
           invited_email: string
+          invited_user_id: string
+          invited_user_name: string
           revoked_at: string
           role: string
           state: string
+        }[]
+      }
+      list_group_invite_candidates: {
+        Args: { _target_group_id: string }
+        Returns: {
+          avatar_emoji: string
+          avatar_url: string
+          display_name: string
+          invitation_state: string
+          shared_group_names: string[]
+          user_id: string
         }[]
       }
       list_group_place_data_reports_v1: {
@@ -2841,6 +2881,30 @@ export type Database = {
       list_group_place_practical_info_history_v1: {
         Args: { _group_id: string; _limit?: number; _place_id: string }
         Returns: Json
+      }
+      list_my_group_invitations: {
+        Args: never
+        Returns: {
+          expires_at: string
+          group_emoji: string
+          group_id: string
+          group_name: string
+          id: string
+          invited_by_name: string
+        }[]
+      }
+      list_own_group_invitations: {
+        Args: { _group_id: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          id: string
+          invite_kind: string
+          invited_email: string
+          invited_user_id: string
+          invited_user_name: string
+          state: string
+        }[]
       }
       list_own_open_place_suggestion_report_keys_v1: {
         Args: { _group_id: string }

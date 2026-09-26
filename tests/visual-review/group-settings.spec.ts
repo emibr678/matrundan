@@ -4,7 +4,10 @@ import path from "node:path";
 
 const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
-async function installOwnerSession(page: Page) {
+async function installOwnerSession(
+  page: Page,
+  options: { inviteCandidates?: unknown[]; pendingInvites?: unknown[] } = {},
+) {
   const ownerId = "11111111-1111-4111-8111-111111111111";
   const groupId = "33333333-3333-4333-8333-333333333333";
   const now = new Date().toISOString();
@@ -142,6 +145,29 @@ async function installOwnerSession(page: Page) {
       return;
     }
 
+    if (rpc === "list_my_group_invitations") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(options.pendingInvites ?? []),
+      });
+      return;
+    }
+
+    if (rpc === "list_group_invite_candidates") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(options.inviteCandidates ?? []),
+      });
+      return;
+    }
+
+    if (rpc === "list_own_group_invitations") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      return;
+    }
+
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
 }
@@ -187,8 +213,15 @@ test("fånga gruppinställningarnas nya informationsarkitektur", async ({ page }
   const menu = page.getByRole("dialog", { name: "Gruppinställningar" });
   await expect(menu.getByRole("button", { name: /^Gruppen/ })).toBeVisible();
   await expect(menu.getByRole("button", { name: /^Sökområden/ })).toBeVisible();
-  await expect(menu.getByRole("button", { name: /Gruppstatus/ })).toBeVisible();
+  const statusEntry = menu.getByRole("button", { name: /Lämna eller hantera gruppen/ });
+  await expect(statusEntry).toBeVisible();
   await capture(page, testInfo, "gruppinstallningar-meny");
+
+  await statusEntry.click();
+  const status = page.getByRole("dialog", { name: "Lämna eller hantera gruppen" });
+  await expect(status).toBeVisible();
+  await capture(page, testInfo, "gruppinstallningar-lamna-eller-hantera");
+  await status.getByRole("button", { name: "Till inställningar" }).click();
 
   await menu.getByRole("button", { name: /^Sökområden/ }).click();
   const search = page.getByRole("dialog", { name: "Sökområden" });
@@ -212,4 +245,59 @@ test("fånga gruppinställningarnas nya informationsarkitektur", async ({ page }
   await expect(createGroup.getByLabel("Kort beskrivning (valfritt)")).toBeVisible();
   await expect(createGroup.getByText(/Samma personer kan ha flera grupper/)).toBeVisible();
   await capture(page, testInfo, "skapa-grupp-med-beskrivning");
+});
+
+
+test("fånga skalbar intern gruppinbjudan", async ({ page }, testInfo) => {
+  const inviteCandidates = Array.from({ length: 8 }, (_, index) => ({
+    user_id: `candidate-${index + 1}`,
+    display_name: index === 7 ? "Zelda Zetterberg" : `Person ${index + 1}`,
+    avatar_url: null,
+    avatar_emoji: index % 2 === 0 ? "🍜" : "🥟",
+    shared_group_names: [index === 7 ? "Kvällsgänget" : "Söndagslunch"],
+    invitation_state: null,
+  }));
+
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await installOwnerSession(page, { inviteCandidates });
+  await page.goto("/gruppen", { waitUntil: "domcontentloaded" });
+  await stabilize(page);
+
+  await page.getByRole("button", { name: "Bjud in", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: /Bjud in till Fredagsgänget/ });
+  await expect(dialog.getByLabel("Sök bland personer")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Visa alla 8" })).toBeVisible();
+  await capture(page, testInfo, "gruppinbjudan-manga-personer");
+
+  await dialog.getByLabel("Sök bland personer").fill("Zelda");
+  await expect(dialog.getByText("Zelda Zetterberg", { exact: true })).toBeVisible();
+  await capture(page, testInfo, "gruppinbjudan-sok");
+});
+
+test("fånga väntande gruppinbjudan på Hem och svarsvyn", async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await installOwnerSession(page, {
+    pendingInvites: [
+      {
+        id: "invite-1",
+        group_id: "44444444-4444-4444-8444-444444444444",
+        group_name: "Söndagsgänget",
+        group_emoji: "🥞",
+        invited_by_name: "Karin",
+        expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+      },
+    ],
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await stabilize(page);
+
+  await expect(page.getByText("Du har en gruppinbjudan", { exact: true })).toBeVisible();
+  await capture(page, testInfo, "gruppinbjudan-hem");
+
+  await page.getByRole("button", { name: "Visa inbjudan" }).click();
+  const dialog = page.getByRole("dialog", { name: "Alla grupper" });
+  await expect(dialog.getByText("Söndagsgänget", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Gå med" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Avböj" })).toBeVisible();
+  await capture(page, testInfo, "gruppinbjudan-svar");
 });

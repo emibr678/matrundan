@@ -7,6 +7,7 @@
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { listMyGroupInvitations, type MyGroupInvitation } from "./live-admin";
 
 export type AppMode = "landing" | "demo" | "live";
 export type GroupRole = "owner" | "admin" | "member";
@@ -41,6 +42,7 @@ interface SessionState {
   activeGroupRole: GroupRole | null;
   activeGroupLifecycleStatus: GroupLifecycleStatus | null;
   userGroups: UserGroupSummary[];
+  pendingGroupInvitations: MyGroupInvitation[];
   signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
   signInWithPassword: (
     email: string,
@@ -57,6 +59,7 @@ interface SessionState {
   exitExampleMode: () => void;
   selectGroup: (groupId: string) => void;
   refreshGroups: () => Promise<void>;
+  refreshPendingGroupInvitations: () => Promise<void>;
 }
 
 const SessionContext = React.createContext<SessionState | null>(null);
@@ -124,10 +127,38 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [userGroups, setUserGroups] = React.useState<UserGroupSummary[]>([]);
+  const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
   const [activeGroupId, setActiveGroupId] = React.useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(ACTIVE_GROUP_KEY);
   });
+
+  const refreshPendingInvites = React.useCallback(async () => {
+    if (demoRoute.forceDemo || !session?.user?.id) {
+      setPendingInvites([]);
+      return;
+    }
+
+    try {
+      setPendingInvites(await listMyGroupInvitations());
+    } catch (error) {
+      console.error("[Matrundan] kunde inte läsa gruppinbjudningar:", error);
+      setPendingInvites([]);
+    }
+  }, [demoRoute.forceDemo, session?.user?.id]);
+
+  React.useEffect(() => {
+    void refreshPendingInvites();
+  }, [refreshPendingInvites]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || demoRoute.forceDemo || !session?.user?.id) {
+      return;
+    }
+    const refresh = () => void refreshPendingInvites();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [demoRoute.forceDemo, refreshPendingInvites, session?.user?.id]);
 
   const loadGroups = React.useCallback(async (uid: string | undefined) => {
     if (!uid) {
@@ -303,6 +334,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
     setActiveGroupId(null);
     setUserGroups([]);
+    setPendingInvites([]);
   }, []);
 
   const exitExampleMode = React.useCallback(() => {
@@ -345,6 +377,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           ? "active"
           : null,
       userGroups,
+      pendingGroupInvitations: pendingInvites,
       signInWithGoogle,
       signInWithPassword,
       signUpWithPassword,
@@ -353,6 +386,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       exitExampleMode,
       selectGroup,
       refreshGroups,
+      refreshPendingGroupInvitations: refreshPendingInvites,
     };
   }, [
     activeGroupId,
@@ -360,7 +394,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     demoRoute.forceDemo,
     exitExampleMode,
     loading,
+    pendingInvites,
     refreshGroups,
+    refreshPendingInvites,
     selectGroup,
     session,
     signInWithGoogle,
