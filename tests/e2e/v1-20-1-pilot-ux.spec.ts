@@ -320,7 +320,7 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
   await expect(page.getByText("Gruppuppgifterna är uppdaterade.", { exact: true })).toBeVisible();
   expect(mutations.map(({ rpc }) => rpc)).toEqual(["update_group_identity_v1"]);
   expect(mutations[0]?.payload._name).toBe("Ändrat namn");
-  expect(mutations[0]?.payload._description).toBeUndefined();
+  expect(mutations[0]?.payload._description).toBe("Vi testar Stockholms bästa sushi tillsammans.");
   await basics.getByRole("button", { name: "Till inställningar" }).click();
 
   await menu.getByRole("button", { name: /^Sökområden/ }).click();
