@@ -51,3 +51,12 @@ export function markOnboardingSeen(
     // Onboarding får aldrig blockera appen om lokal lagring är otillgänglig.
   }
 }
+
+
+const PRODUCT_INTRO_AUTO_START_AT = Date.parse("2026-09-26T00:00:00Z");
+
+export function shouldAutoShowProductIntro(createdAt: string | null | undefined): boolean {
+  if (!createdAt) return false;
+  const created = Date.parse(createdAt);
+  return Number.isFinite(created) && created >= PRODUCT_INTRO_AUTO_START_AT;
+}
