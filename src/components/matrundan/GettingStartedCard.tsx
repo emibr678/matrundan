@@ -13,7 +13,7 @@ export function GettingStartedCard({
   canWrite: boolean;
   onAddPlace: () => void;
 }) {
-  if (visitCount > 0) return null;
+  if (visitCount > 0 || !canWrite) return null;
 
   const empty = placeCount === 0;
 
