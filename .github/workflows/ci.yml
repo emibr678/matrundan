@@ -49,6 +49,7 @@ jobs:
       has_map: ${{ steps.changes.outputs.has_map }}
       has_db: ${{ steps.changes.outputs.has_db }}
       has_migrations: ${{ steps.changes.outputs.has_migrations }}
+      has_dependencies: ${{ steps.changes.outputs.has_dependencies }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -392,6 +393,20 @@ jobs:
       - name: iPhone and desktop map compatibility
         run: bun run test:map:cross-browser
 
+  dependency_review:
+    name: Dependency review
+    needs: classify
+    if: github.event_name == 'pull_request' && needs.classify.outputs.has_dependencies == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Review dependency changes for known high-severity vulnerabilities
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
   required:
     name: CI / required
     needs:
@@ -404,6 +419,7 @@ jobs:
       - staging_db_readiness
       - browser
       - map_browser
+      - dependency_review
     if: always() && needs.classify.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -416,6 +432,7 @@ jobs:
       STAGING_DB_RESULT: ${{ needs.staging_db_readiness.result }}
       BROWSER_RESULT: ${{ needs.browser.result }}
       MAP_BROWSER_RESULT: ${{ needs.map_browser.result }}
+      DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency_review.result }}
     steps:
       - name: Summarize merge-critical candidate checks
         run: |
@@ -429,7 +446,8 @@ jobs:
             "supabase-types:$SUPABASE_TYPES_RESULT" \
             "staging-db:$STAGING_DB_RESULT" \
             "browser:$BROWSER_RESULT" \
-            "map-browser:$MAP_BROWSER_RESULT"; do
+            "map-browser:$MAP_BROWSER_RESULT" \
+            "dependency-review:$DEPENDENCY_REVIEW_RESULT"; do
             name="${entry%%:*}"
             result="${entry#*:}"
             printf '%-18s %s\n' "$name" "$result"
