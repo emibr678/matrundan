@@ -1,9 +1,10 @@
 import * as React from "react";
-import { BellRing, Share, Smartphone, X } from "lucide-react";
+import { BellRing, Share, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { HomeAttentionCard } from "@/components/matrundan/HomeAttentionCard";
 import { useInstallPrompt } from "@/lib/matrundan/install-prompt";
 import {
   checkPushSupport,
@@ -136,89 +137,73 @@ export function AppNudges() {
     }
   }
 
-  return (
-    <Card className="relative rounded-2xl border-border/70 bg-card/80 p-4">
-      <button
-        type="button"
-        aria-label="Dölj tipset"
-        onClick={() => update(active, { dismissedAt: Date.now() })}
-        className="absolute top-2 right-2 inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
-      >
-        <X className="h-4 w-4" />
-      </button>
-
-      {active === "push" ? (
-        <div className="pr-8">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <BellRing className="h-4 w-4 text-primary" />
-            Slå på notiser
-          </div>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Få veta när gruppen registrerar ett besök eller väljer nästa stopp. Du väljer själv
-            vilka notiser du vill ha under Min profil.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button type="button" disabled={busy} onClick={() => void turnOnPush()}>
+  if (active === "push") {
+    return (
+      <HomeAttentionCard
+        icon={BellRing}
+        title="Slå på notiser"
+        description="Få veta när gruppen registrerar ett besök eller väljer nästa stopp."
+        actions={
+          <>
+            <Button type="button" size="sm" disabled={busy} onClick={() => void turnOnPush()}>
               Slå på notiser
             </Button>
             <Button
               type="button"
+              size="sm"
               variant="ghost"
               onClick={() => update("push", { dismissedAt: Date.now() })}
             >
               Inte nu
             </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="pr-8">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Smartphone className="h-4 w-4 text-primary" />
-            Lägg Matrundan på hemskärmen
-          </div>
-          {install.mode === "prompt" ? (
-            <>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Då öppnas Matrundan som en egen app, utan adressfält.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button type="button" disabled={busy} onClick={() => void addToHomeScreen()}>
-                  Lägg till på hemskärmen
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => update("install", { dismissedAt: Date.now() })}
-                >
-                  Inte nu
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="mt-1 flex flex-wrap items-center gap-1 text-sm leading-relaxed text-muted-foreground">
-                <span>Tryck på</span>
-                <Share className="h-4 w-4" aria-hidden />
-                <span>Dela längst ned i Safari och välj</span>
-                <span className="font-medium text-foreground">Lägg till på hemskärmen</span>.
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                På iPhone och iPad krävs det innan notiser går att slå på.
-              </p>
-              <div className="mt-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => update("install", { dismissedAt: Date.now() })}
-                >
-                  Jag fixar det senare
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </Card>
+          </>
+        }
+      />
+    );
+  }
+
+  return (
+    <HomeAttentionCard
+      icon={Smartphone}
+      title="Lägg Matrundan på hemskärmen"
+      description={
+        install.mode === "prompt" ? (
+          "Då öppnas Matrundan som en egen app, utan adressfält."
+        ) : (
+          <>
+            Tryck på <Share className="inline h-4 w-4" aria-hidden /> Dela i Safari och välj{" "}
+            <span className="font-medium text-foreground">Lägg till på hemskärmen</span>. Det krävs
+            på iPhone och iPad innan notiser går att slå på.
+          </>
+        )
+      }
+      actions={
+        install.mode === "prompt" ? (
+          <>
+            <Button type="button" size="sm" disabled={busy} onClick={() => void addToHomeScreen()}>
+              Lägg till på hemskärmen
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => update("install", { dismissedAt: Date.now() })}
+            >
+              Inte nu
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => update("install", { dismissedAt: Date.now() })}
+          >
+            Jag fixar det senare
+          </Button>
+        )
+      }
+    />
   );
 }
 

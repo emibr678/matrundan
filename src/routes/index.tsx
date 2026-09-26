@@ -10,6 +10,7 @@ import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
+import { HomeAttentionCard } from "@/components/matrundan/HomeAttentionCard";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
 import { resolveHomeAttention } from "@/lib/matrundan/home-attention";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/")({
 
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
-  const { pendingGroupInvitations } = useSession();
+  const { pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitTarget, setVisitTarget] = React.useState<{
     placeId: string;
@@ -63,6 +64,7 @@ export function Home() {
     visitDate: visit.date,
   }));
   const attentionKind = resolveHomeAttention(
+    pendingGroupInvitationsReady,
     pendingGroupInvitations.length,
     pendingReviewItems.length,
   );
@@ -137,40 +139,31 @@ export function Home() {
     <div className="mx-auto max-w-2xl space-y-6 pt-2 md:max-w-3xl">
       {attentionKind === "group-invitation" ? (
         <section aria-label="Gruppinbjudningar">
-          <Card className="rounded-2xl border-primary/25 bg-primary/[0.05] p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex min-w-0 flex-1 items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                  <UserPlus className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <div className="font-medium">{pendingInvitationTitle}</div>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    {pendingInvitationDescription}
-                  </p>
-                </div>
-              </div>
+          <HomeAttentionCard
+            icon={UserPlus}
+            title={pendingInvitationTitle}
+            description={pendingInvitationDescription}
+            actions={
               <Button
                 type="button"
-                variant="outline"
-                className="min-h-11 w-full shrink-0 sm:w-auto"
+                size="sm"
                 onClick={() => {
                   window.dispatchEvent(new Event("matrundan:open-group-invitations"));
                 }}
               >
                 {pendingGroupInvitations.length === 1 ? "Visa inbjudan" : "Visa inbjudningar"}
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Button>
-            </div>
-          </Card>
+            }
+          />
         </section>
       ) : attentionKind === "pending-review" ? (
         <section aria-label="Omdömen att komplettera">
           <PendingVisitReviewCard visits={pendingReviewItems} />
         </section>
-      ) : (
+      ) : attentionKind === "app-nudge" ? (
         <AppNudges />
-      )}
+      ) : null}
 
       <NextStopCard
         activePlaces={activePlaces}

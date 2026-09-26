@@ -43,6 +43,7 @@ interface SessionState {
   activeGroupLifecycleStatus: GroupLifecycleStatus | null;
   userGroups: UserGroupSummary[];
   pendingGroupInvitations: MyGroupInvitation[];
+  pendingGroupInvitationsReady: boolean;
   signInWithGoogle: (opts?: { redirectPath?: string }) => Promise<void>;
   signInWithPassword: (
     email: string,
@@ -128,6 +129,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = React.useState(true);
   const [userGroups, setUserGroups] = React.useState<UserGroupSummary[]>([]);
   const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
+  const [pendingInvitesReady, setPendingInvitesReady] = React.useState(demoRoute.forceDemo);
   const [activeGroupId, setActiveGroupId] = React.useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(ACTIVE_GROUP_KEY);
@@ -136,14 +138,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const refreshPendingInvites = React.useCallback(async () => {
     if (demoRoute.forceDemo || !session?.user?.id) {
       setPendingInvites([]);
+      setPendingInvitesReady(true);
       return;
     }
 
+    setPendingInvitesReady(false);
     try {
       setPendingInvites(await listMyGroupInvitations());
     } catch (error) {
       console.error("[Matrundan] kunde inte läsa gruppinbjudningar:", error);
       setPendingInvites([]);
+    } finally {
+      setPendingInvitesReady(true);
     }
   }, [demoRoute.forceDemo, session?.user?.id]);
 
@@ -218,6 +224,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (cancelled) return;
+      setPendingInvitesReady(demoRoute.forceDemo || !nextSession?.user);
       setSession(nextSession);
       if (nextSession?.user) {
         void loadGroups(nextSession.user.id);
@@ -227,6 +234,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     });
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
+      setPendingInvitesReady(demoRoute.forceDemo || !data.session?.user);
       setSession(data.session);
       if (data.session?.user) {
         void loadGroups(data.session.user.id);
@@ -237,7 +245,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       subscription.subscription.unsubscribe();
     };
-  }, [loadGroups]);
+  }, [demoRoute.forceDemo, loadGroups]);
 
   const selectGroup = React.useCallback((groupId: string) => {
     setActiveGroupId(groupId);
@@ -335,6 +343,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setActiveGroupId(null);
     setUserGroups([]);
     setPendingInvites([]);
+    setPendingInvitesReady(true);
   }, []);
 
   const exitExampleMode = React.useCallback(() => {
@@ -378,6 +387,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           : null,
       userGroups,
       pendingGroupInvitations: pendingInvites,
+      pendingGroupInvitationsReady: pendingInvitesReady,
       signInWithGoogle,
       signInWithPassword,
       signUpWithPassword,
@@ -395,6 +405,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     exitExampleMode,
     loading,
     pendingInvites,
+    pendingInvitesReady,
     refreshGroups,
     refreshPendingInvites,
     selectGroup,
