@@ -43,9 +43,13 @@ test("fånga Hem med väntande omdömen och väljaren för flera besök", async 
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await page.goto("/exempel", { waitUntil: "domcontentloaded" });
 
-  const attention = page.getByRole("button", { name: "Välj besök att lämna omdöme på" });
+  const attentionSection = page.getByLabel("Omdömen att komplettera");
+  await expect(attentionSection).toBeVisible();
+  await expect(attentionSection.getByText("Du har 2 besök att tycka till om")).toBeVisible();
+  const attention = attentionSection.getByRole("button", {
+    name: "Välj besök att lämna omdöme på",
+  });
   await expect(attention).toBeVisible();
-  await expect(attention).toContainText("Du har 2 besök att tycka till om");
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-415-omdomen-hem");
