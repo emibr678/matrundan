@@ -110,6 +110,17 @@ for (const name of requiredFunctions) {
     errors.push(`Migrationerna saknar funktionen public.${name}.`);
   }
 }
+for (const marker of [
+  "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public",
+  "current_user_has_membership",
+  "current_user_has_group_role",
+  "current_user_shares_group",
+  "clear_private_notifications_on_profile_soft_delete",
+]) {
+  if (!sql.includes(marker)) {
+    errors.push(`Säkerhetsbaslinjen saknar ${marker}.`);
+  }
+}
 for (const table of [
   "group_search_areas",
   "group_hidden_place_suggestions",
@@ -349,6 +360,13 @@ if (base) {
     }
     for (const definition of definitions) {
       const name = definition[1];
+      const revokesPublic = new RegExp(
+        `REVOKE\\s+(?:ALL|EXECUTE)\\s+ON\\s+FUNCTION\\s+public\\.${name}[^;]*FROM[^;]*PUBLIC`,
+        "i",
+      ).test(source);
+      if (!revokesPublic) {
+        errors.push(`${file}: public.${name} saknar explicit REVOKE från PUBLIC.`);
+      }
       const grantsAuthenticated = new RegExp(
         `GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.${name}[^;]*TO\\s+authenticated`,
         "i",
