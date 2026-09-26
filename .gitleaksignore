@@ -8,3 +8,10 @@ e984c5b8a2625d8a62f770634e8052ed7991d273:src/components/matrundan/AppNudges.tsx:
 792bbb16f60c4b3786145d2338e0105e7b3266be:src/lib/matrundan/session.tsx:generic-api-key:39
 cdb2fdcf7885579c2b1151f95573b67206749088:.env:generic-api-key:2
 cdb2fdcf7885579c2b1151f95573b67206749088:.env:generic-api-key:5
+
+# Exact, reviewed Supabase publishable-key false positives from 2026-09-26.
+# These values are browser-public by design; keep this allowlist fingerprint-specific.
+c4f9390186fd3c343a6ce311c0149b246b922bf1:.github/workflows/tmp-visual-214.yml:generic-api-key:36
+5d51b16d769a95b709c001a5a10a1c52a6962fa1:src/integrations/supabase/public-runtime-config.ts:generic-api-key:11
+aff5bc73f26a7eff2b840bee738d810d422a6481:src/integrations/supabase/public-runtime-config.ts:generic-api-key:11
+9ee32a2ca2d64327b0617f968a94d49d2708b66d:src/integrations/supabase/client.ts:jwt:6
