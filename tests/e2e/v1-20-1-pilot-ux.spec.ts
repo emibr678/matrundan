@@ -109,6 +109,7 @@ async function installOwnerSession(
             id: groupId,
             name: "Testgruppen",
             emoji: "🍽️",
+            description: "Vi testar Stockholms bästa sushi tillsammans.",
             city: "Stockholm",
             createdAt: now,
             ownerId,
@@ -246,6 +247,7 @@ test("ägaren hanterar medlemsroller med text, bekräftelse och stora tryckytor"
   await page.goto("/gruppen");
 
   await expect(page.getByRole("heading", { name: "Testgruppen" })).toBeVisible();
+  await expect(page.getByText("Vi testar Stockholms bästa sushi tillsammans.")).toBeVisible();
   await page.getByRole("button", { name: "Gruppinställningar" }).click();
   const settings = page.getByRole("dialog", { name: "Gruppinställningar" });
   await settings.getByRole("button", { name: /Medlemmar och inbjudningar/ }).click();
