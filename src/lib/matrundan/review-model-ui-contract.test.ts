@@ -15,6 +15,10 @@ const visitPlaceOccasionDialog = readFileSync(
   resolve(root, "src/components/matrundan/VisitPlaceOccasionDialog.tsx"),
   "utf8",
 );
+const firstReviewGuidance = readFileSync(
+  resolve(root, "src/components/matrundan/FirstReviewGuidance.tsx"),
+  "utf8",
+);
 const occasionPicker = readFileSync(
   resolve(root, "src/components/matrundan/OccasionPicker.tsx"),
   "utf8",
@@ -58,7 +62,12 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(visitPlaceOccasionDialog).toContain(
       "Hur skulle ni beskriva matupplevelsen?",
     );
-    expect(visitPlaceOccasionDialog).toContain("Välj en eller två.");
+    expect(visitPlaceOccasionDialog).toContain(
+      "Välj en eller två typer av upplevelse som bäst beskriver stället",
+    );
+    expect(visitPlaceOccasionDialog).toContain("Valet sparas för gruppen.");
+    expect(visitPlaceOccasionDialog).toContain("Innan du sätter betyg");
+    expect(visitPlaceOccasionDialog).toContain("<FirstReviewGuidance");
     expect(visitPlaceOccasionDialog).toContain("USER_GUIDANCE.reviewContext");
     expect(visitPlaceOccasionDialog).toContain("OccasionGuideContent");
     expect(visitPlaceOccasionDialog).toContain("OCCASION_LABEL[occasion]");
@@ -71,13 +80,26 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(visitPlaceOccasionDialog).not.toContain("Atmosfär");
   });
 
-  test("komplettering av äldre omdöme kräver saknat Typ av upplevelse även vid Hämtmat", () => {
-    for (const source of [addReviewDialog, demoAddReviewDialog]) {
-      expect(source).toContain("classificationComplete");
-      expect(source).toContain("required");
-      expect(source).toContain("classificationComplete");
-      expect(source).not.toContain("Valfritt – välj vad stället passar för");
-    }
+  test("komplettering av äldre omdöme löser saknad Typ av upplevelse före betyget", () => {
+    expect(addReviewDialog).toContain("classificationActive");
+    expect(addReviewDialog).toContain("saveClassificationAndContinue");
+    expect(addReviewDialog).toContain("updatePlaceMetadata");
+    expect(addReviewDialog).toContain("Spara och fortsätt");
+    expect(addReviewDialog).toContain("required");
+
+    expect(demoAddReviewDialog).toContain("classificationComplete");
+    expect(demoAddReviewDialog).toContain("required");
+    expect(addReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
+    expect(demoAddReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
+  });
+
+  test("första omdömesguiden är ett separat steg före klassificering och stjärnor", () => {
+    expect(firstReviewGuidance).toContain("Kul att du ska lämna ditt första omdöme!");
+    expect(firstReviewGuidance).toContain("Ett enkelt gatukök och en finkrog");
+    expect(firstReviewGuidance).toContain("Tre typer av matupplevelser");
+    expect(firstReviewGuidance).toContain("Jag förstår");
+    expect(addReviewDialog).toContain("firstGuidanceActive");
+    expect(addReviewDialog).toContain("classificationActive");
   });
 
   test("helhetsbetyget presenteras som härlett i stället för separat input", () => {
