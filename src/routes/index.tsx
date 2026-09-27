@@ -11,7 +11,6 @@ import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
 import { HomeAttentionCard } from "@/components/matrundan/HomeAttentionCard";
-import { GettingStartedCard } from "@/components/matrundan/GettingStartedCard";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
 import { resolveHomeAttention } from "@/lib/matrundan/home-attention";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
@@ -166,17 +165,13 @@ export function Home() {
         <AppNudges />
       ) : null}
 
-      <GettingStartedCard
-        placeCount={totalPlaces}
-        visitCount={state.visits.length}
-        canWrite={canWrite}
-        onAddPlace={() => setAddOpen(true)}
-      />
-
       <NextStopCard
         activePlaces={activePlaces}
         canWrite={canWrite}
-        onRegisterVisit={(placeId) => setVisitTarget({ placeId, completeNextStopOnSave: true })}
+        onAddPlace={() => setAddOpen(true)}
+        onRegisterVisit={(placeId) =>
+          setVisitTarget({ placeId, completeNextStopOnSave: true })
+        }
       />
 
       <section>

@@ -12,9 +12,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/matrundan/onboarding-state";
+import {
+  normalizeOccasionClassification,
+  toggleOccasionSelection,
+} from "@/lib/matrundan/occasions";
 import { useSession } from "@/lib/matrundan/session";
 import {
   OCCASION_DESCRIPTION,
@@ -22,10 +29,8 @@ import {
   OCCASION_VALUES,
   type Occasion,
 } from "@/lib/matrundan/types";
-import {
-  normalizeOccasionClassification,
-  toggleOccasionSelection,
-} from "@/lib/matrundan/occasions";
+import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
+import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 
 const OccasionGuideTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
@@ -46,29 +51,43 @@ const OccasionGuideTrigger = React.forwardRef<
 ));
 OccasionGuideTrigger.displayName = "OccasionGuideTrigger";
 
-export function OccasionGuideContent({ showHeading = true }: { showHeading?: boolean }) {
+export function OccasionGuideContent({
+  showHeading = true,
+}: {
+  showHeading?: boolean;
+}) {
   return (
     <div className="min-w-0 space-y-3">
       <div>
         {showHeading ? <div className="font-medium">Passar för</div> : null}
-        <p className={`${showHeading ? "mt-1 " : ""}text-xs leading-relaxed text-muted-foreground`}>
-          Olika ställen passar olika bra beroende på vad ni är ute efter. En pizzeria och en finkrog
-          kan båda vara riktigt bra – fast vid olika tillfällen.
+        <p
+          className={`${
+            showHeading ? "mt-1 " : ""
+          }text-xs leading-relaxed text-muted-foreground`}
+        >
+          En pizzeria och en finkrog är olika slags upplevelser, men kan båda
+          vara fullträffar och få lika höga betyg vid rätt tillfälle.
         </p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          <strong className="font-medium text-foreground">Passar för är inte ett extra betyg.</strong>{" "}
-          Det beskriver vilken typ av tillfälle stället passar för och används när ni filtrerar och
-          jämför ställen.
+          Passar för sätter sammanhanget och rätt förväntningar när ni bedömer
+          stället. Jämför hur väl stället lyckas i sin egen typ av upplevelse –
+          inte hur påkostat det är.
         </p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Om bara <strong className="font-medium text-foreground">{OCCASION_LABEL.snabbt}</strong>{" "}
-          är valt ingår inte Atmosfär i nya omdömen. Tidigare omdömen ändras inte.
+          Valet hjälper också gruppen att filtrera ställen. Om bara{" "}
+          <strong className="font-medium text-foreground">
+            {OCCASION_LABEL.snabbt}
+          </strong>{" "}
+          är valt ingår inte Atmosfär i nya omdömen. Tidigare omdömen ändras
+          inte.
         </p>
       </div>
       <div className="space-y-2.5">
         {OCCASION_VALUES.map((occasion) => (
           <div key={occasion}>
-            <div className="text-sm font-medium">{OCCASION_LABEL[occasion]}</div>
+            <div className="text-sm font-medium">
+              {OCCASION_LABEL[occasion]}
+            </div>
             <p className="text-xs leading-relaxed text-muted-foreground">
               {OCCASION_DESCRIPTION[occasion]}
             </p>
@@ -79,27 +98,49 @@ export function OccasionGuideContent({ showHeading = true }: { showHeading?: boo
   );
 }
 
-export function OccasionFirstTimeGuide({ active = true }: { active?: boolean }) {
+export function OccasionFirstTimeGuide({
+  active = true,
+}: {
+  active?: boolean;
+}) {
   const { mode, user } = useSession();
-  const [visible, setVisible] = React.useState(false);
+  const { status, isAcknowledged } = useUserGuidance();
+  const [visibleForUserId, setVisibleForUserId] = React.useState<string | null>(
+    null,
+  );
+  const occasionGuideAcknowledged = isAcknowledged(
+    USER_GUIDANCE.occasionGuide,
+  );
 
   React.useEffect(() => {
     const userId = user?.id;
     if (!active || mode !== "live" || !userId) {
-      setVisible(false);
+      setVisibleForUserId(null);
       return;
     }
+    if (status === "ready" && !occasionGuideAcknowledged) {
+      setVisibleForUserId(userId);
+    }
+  }, [active, mode, occasionGuideAcknowledged, status, user?.id]);
 
-    const shouldShow = !hasSeenOnboarding("occasion-guide", userId);
-    setVisible(shouldShow);
-    if (shouldShow) markOnboardingSeen("occasion-guide", userId);
-  }, [active, mode, user?.id]);
-
-  if (!visible) return null;
+  if (
+    !active ||
+    mode !== "live" ||
+    !user?.id ||
+    visibleForUserId !== user.id
+  ) {
+    return null;
+  }
 
   return (
     <div className="rounded-2xl bg-secondary/40 p-3">
-      <OccasionGuideContent />
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        <strong className="font-medium text-foreground">
+          Bedöm stället i rätt sammanhang.
+        </strong>{" "}
+        En pizzeria och en finkrog är olika slags upplevelser, men båda kan vara
+        fullträffar och få lika höga betyg vid rätt tillfälle.
+      </p>
     </div>
   );
 }
@@ -160,9 +201,18 @@ export function OccasionPicker({
   required?: boolean;
   description?: string;
 }) {
+  const { acknowledge } = useUserGuidance();
   const descriptionId = `${id}-description`;
   const selected = normalizeOccasionClassification(value);
   const atLimit = selected.length >= 2;
+
+  function handleChange(occasion: Occasion) {
+    const next = toggleOccasionSelection(selected, occasion);
+    onChange(next);
+    if (required && next.length > 0) {
+      void acknowledge(USER_GUIDANCE.occasionGuide);
+    }
+  }
 
   return (
     <div className="space-y-2">
@@ -170,8 +220,12 @@ export function OccasionPicker({
         <Label id={`${id}-label`}>Passar för</Label>
         <OccasionGuide />
       </div>
-      <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
-        {description ?? (required ? "Välj en eller två." : "Valfritt – välj upp till två.")}
+      <p
+        id={descriptionId}
+        className="text-xs leading-relaxed text-muted-foreground"
+      >
+        {description ??
+          (required ? "Välj en eller två." : "Valfritt – välj upp till två.")}
       </p>
       <OccasionFirstTimeGuide active={required} />
       <div
@@ -189,7 +243,7 @@ export function OccasionPicker({
               occasion={occasion}
               selected={isSelected}
               disabled={disabled || (atLimit && !isSelected)}
-              onClick={() => onChange(toggleOccasionSelection(selected, occasion))}
+              onClick={() => handleChange(occasion)}
             />
           );
         })}

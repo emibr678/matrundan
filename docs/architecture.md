@@ -177,6 +177,14 @@ säkerhetsnät. Nästa-stopp-v2 använder `ON DELETE SET NULL` för
 hit**-markering, så kontoradering blockerar inte gruppens kvarvarande idé eller
 lämnar en stödmarkering kopplad till det raderade kontot.
 
+Produktguidning lagras i `user_guidance_state` som versionsstyrda kvitton per
+konto, oberoende av aktiv grupp. Gruppstate får avgöra när en guide är relevant,
+men får inte göra att en erfaren användare ser samma introduktion i varje ny
+grupp. Användaren får genom RLS bara läsa och skapa sina egna kvitton; klienten
+får inte uppdatera eller radera dem. Kvittona rensas vid profilens mjukradering
+och har `ON DELETE CASCADE` som skydd vid fysisk radering. Installation och
+notiser är fortsatt separata, återkommande nudgar och ägs inte av denna modell.
+
 ## Kanonisk datamodell
 
 ### Matställen

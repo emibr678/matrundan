@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(19);
+SELECT plan(24);
 
 -- Helt syntetiska identiteter och rader. Testerna ska aldrig bero på live-data.
 INSERT INTO auth.users (id, email, raw_user_meta_data)
@@ -93,6 +93,15 @@ VALUES (
   '22222222-2222-4222-8222-222222222222'
 );
 
+INSERT INTO public.user_guidance_state (
+  user_id,
+  guidance_key,
+  guidance_version
+)
+VALUES
+  ('11111111-1111-4111-8111-111111111111', 'core-intro', 1),
+  ('44444444-4444-4444-8444-444444444444', 'core-intro', 1);
+
 SELECT ok(
   NOT pg_catalog.has_table_privilege('anon', 'public.group_places', 'SELECT')
   AND NOT pg_catalog.has_table_privilege('authenticated', 'public.group_places', 'SELECT'),
@@ -102,6 +111,35 @@ SELECT ok(
 SELECT ok(
   NOT pg_catalog.has_table_privilege('authenticated', 'public.notification_outbox', 'SELECT'),
   'notification outbox remains server-only'
+);
+
+SELECT ok(
+  pg_catalog.has_table_privilege(
+    'authenticated',
+    'public.user_guidance_state',
+    'SELECT'
+  )
+  AND pg_catalog.has_table_privilege(
+    'authenticated',
+    'public.user_guidance_state',
+    'INSERT'
+  )
+  AND NOT pg_catalog.has_table_privilege(
+    'authenticated',
+    'public.user_guidance_state',
+    'UPDATE'
+  )
+  AND NOT pg_catalog.has_table_privilege(
+    'authenticated',
+    'public.user_guidance_state',
+    'DELETE'
+  )
+  AND NOT pg_catalog.has_table_privilege(
+    'anon',
+    'public.user_guidance_state',
+    'SELECT'
+  ),
+  'guidance state grants only authenticated read and insert'
 );
 
 SELECT ok(
@@ -192,6 +230,41 @@ SELECT throws_ok(
 );
 
 SET LOCAL request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+
+SELECT lives_ok(
+  $$INSERT INTO public.user_guidance_state (
+      user_id,
+      guidance_key,
+      guidance_version
+    ) VALUES (
+      '22222222-2222-4222-8222-222222222222',
+      'occasion-guide',
+      1
+    )$$,
+  'authenticated user can acknowledge their own guidance'
+);
+
+SELECT results_eq(
+  $$SELECT count(*)::bigint
+    FROM public.user_guidance_state$$,
+  ARRAY[1::bigint],
+  'authenticated user can read only their own guidance'
+);
+
+SELECT throws_ok(
+  $$INSERT INTO public.user_guidance_state (
+      user_id,
+      guidance_key,
+      guidance_version
+    ) VALUES (
+      '11111111-1111-4111-8111-111111111111',
+      'occasion-guide',
+      1
+    )$$,
+  '42501',
+  'new row violates row-level security policy for table "user_guidance_state"',
+  'authenticated user cannot acknowledge guidance for another account'
+);
 
 SELECT throws_ok(
   $$SELECT public.archive_group('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')$$,
@@ -296,6 +369,14 @@ SELECT lives_ok(
 );
 
 RESET ROLE;
+
+SELECT results_eq(
+  $$SELECT count(*)::bigint
+    FROM public.user_guidance_state
+    WHERE user_id = '44444444-4444-4444-8444-444444444444'$$,
+  ARRAY[0::bigint],
+  'account deletion removes account-bound guidance state'
+);
 
 SELECT results_eq(
   $$SELECT count(*)::bigint

@@ -14,11 +14,19 @@ import {
   normalizeOccasionClassification,
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
-import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/matrundan/onboarding-state";
-import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
-import { OCCASION_LABEL, OCCASION_VALUES, type Occasion, type Place } from "@/lib/matrundan/types";
-import { OccasionGuideContent } from "./OccasionPicker";
+import {
+  OCCASION_LABEL,
+  OCCASION_VALUES,
+  type Occasion,
+  type Place,
+} from "@/lib/matrundan/types";
+import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
+import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
+import {
+  OccasionFirstTimeGuide,
+  OccasionGuideContent,
+} from "./OccasionPicker";
 
 export function VisitPlaceOccasionDialog({
   open,
@@ -30,7 +38,7 @@ export function VisitPlaceOccasionDialog({
   onCancel: () => void;
 }) {
   const { updatePlaceMetadata, submitting } = useStore();
-  const { mode, user } = useSession();
+  const { acknowledge } = useUserGuidance();
   const [selected, setSelected] = React.useState<Occasion[]>([]);
   const [showGuide, setShowGuide] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -38,12 +46,16 @@ export function VisitPlaceOccasionDialog({
   React.useEffect(() => {
     if (!open) return;
     setSelected([]);
-    const userId = user?.id;
-    const firstTime =
-      mode === "live" && Boolean(userId) && !hasSeenOnboarding("occasion-guide", userId);
-    setShowGuide(firstTime);
-    if (firstTime) markOnboardingSeen("occasion-guide", userId);
-  }, [mode, open, place.id, user?.id]);
+    setShowGuide(false);
+  }, [open, place.id]);
+
+  function handleSelection(occasion: Occasion) {
+    const next = toggleOccasionSelection(selected, occasion);
+    setSelected(next);
+    if (next.length > 0) {
+      void acknowledge(USER_GUIDANCE.occasionGuide);
+    }
+  }
 
   async function saveAndContinue() {
     const occasions = normalizeOccasionClassification(selected);
@@ -61,7 +73,9 @@ export function VisitPlaceOccasionDialog({
         notes: place.notes ?? null,
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte spara Passar för.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte spara Passar för.",
+      );
     } finally {
       setSaving(false);
     }
@@ -70,18 +84,29 @@ export function VisitPlaceOccasionDialog({
   const busy = saving || submitting;
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !busy && onCancel()}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && !busy && onCancel()}
+    >
       <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
         <DialogHeader className="pr-8 text-left">
-          <DialogTitle className="font-display text-2xl">När passar stället bäst?</DialogTitle>
+          <DialogTitle className="font-display text-2xl">
+            När passar stället bäst?
+          </DialogTitle>
           <DialogDescription className="leading-relaxed">
-            Välj en eller två kategorier som bäst beskriver när ni skulle välja stället. Valet
-            sparas för gruppen.
+            Välj en eller två kategorier som bäst beskriver när ni skulle välja
+            stället. Valet sparas för gruppen.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2" role="group" aria-label="Passar för">
+          <OccasionFirstTimeGuide active={open} />
+
+          <div
+            className="grid grid-cols-3 gap-2"
+            role="group"
+            aria-label="Passar för"
+          >
             {OCCASION_VALUES.map((occasion) => {
               const active = selected.includes(occasion);
               const atLimit = selected.length >= 2;
@@ -92,14 +117,16 @@ export function VisitPlaceOccasionDialog({
                   aria-label={`Passar för: ${OCCASION_LABEL[occasion]}`}
                   aria-pressed={active}
                   disabled={busy || (atLimit && !active)}
-                  onClick={() => setSelected(toggleOccasionSelection(selected, occasion))}
+                  onClick={() => handleSelection(occasion)}
                   className={`min-h-16 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
                     active
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border/70 bg-background hover:bg-secondary/60"
                   }`}
                 >
-                  <span className="block whitespace-nowrap">{OCCASION_LABEL[occasion]}</span>
+                  <span className="block whitespace-nowrap">
+                    {OCCASION_LABEL[occasion]}
+                  </span>
                 </button>
               );
             })}
@@ -123,7 +150,12 @@ export function VisitPlaceOccasionDialog({
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy}
+            onClick={onCancel}
+          >
             Avbryt
           </Button>
           <Button
