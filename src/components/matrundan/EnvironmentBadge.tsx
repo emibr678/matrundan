@@ -3,7 +3,11 @@ import { Copy, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { StagingTestToolsDialog } from "@/components/matrundan/StagingTestToolsDialog";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   APP_DEPLOYED_AT,
   APP_DISPLAY_NAME,
@@ -21,7 +25,8 @@ function releaseLabel(): string {
 }
 
 function environmentSummary(): string {
-  const origin = typeof window === "undefined" ? "" : `\nURL: ${window.location.origin}`;
+  const origin =
+    typeof window === "undefined" ? "" : `\nURL: ${window.location.origin}`;
   return (
     [
       APP_DISPLAY_NAME,
@@ -103,50 +108,58 @@ export function EnvironmentBadge() {
           className="w-[min(18rem,calc(100vw-2rem))] rounded-2xl p-4"
         >
           <div className="space-y-4">
-          <div>
-            <div className="text-xs font-bold tracking-[0.08em] text-amber-800">STAGING</div>
-            <h2 className="mt-1 font-display text-lg font-semibold">Miljöinformation</h2>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Testmiljön är separat från Matrundans publicerade app.
-            </p>
-          </div>
+            <div>
+              <div className="text-xs font-bold tracking-[0.08em] text-amber-800">
+                STAGING
+              </div>
+              <h2 className="mt-1 font-display text-lg font-semibold">
+                Miljöinformation
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Testmiljön är separat från Matrundans publicerade app.
+              </p>
+            </div>
 
-          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Miljö</dt>
-            <dd className="text-right font-medium">Staging</dd>
-            <dt className="text-muted-foreground">Appversion</dt>
-            <dd className="text-right font-medium">v{APP_VERSION}</dd>
-            <dt className="text-muted-foreground">Release</dt>
-            <dd className="truncate text-right font-mono text-xs font-medium">{releaseLabel()}</dd>
-            <dt className="text-muted-foreground">Driftsatt</dt>
-            <dd className="text-right font-medium">{formatDeploymentTime(APP_DEPLOYED_AT)}</dd>
-            <dt className="text-muted-foreground">Databas</dt>
-            <dd className="text-right font-medium">Matrundan Staging</dd>
-          </dl>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+              <dt className="text-muted-foreground">Miljö</dt>
+              <dd className="text-right font-medium">Staging</dd>
+              <dt className="text-muted-foreground">Appversion</dt>
+              <dd className="text-right font-medium">v{APP_VERSION}</dd>
+              <dt className="text-muted-foreground">Release</dt>
+              <dd className="truncate text-right font-mono text-xs font-medium">
+                {releaseLabel()}
+              </dd>
+              <dt className="text-muted-foreground">Driftsatt</dt>
+              <dd className="text-right font-medium">
+                {formatDeploymentTime(APP_DEPLOYED_AT)}
+              </dd>
+              <dt className="text-muted-foreground">Databas</dt>
+              <dd className="text-right font-medium">Matrundan Staging</dd>
+            </dl>
 
-          <div className="space-y-2">
-            {showTestTools ? (
+            <div className="space-y-2">
+              {showTestTools ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="min-h-11 w-full"
+                  onClick={openTestTools}
+                >
+                  <FlaskConical className="h-4 w-4" /> Testverktyg
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="min-h-11 w-full"
-                onClick={openTestTools}
+                onClick={() => void copyEnvironmentInfo()}
               >
-                <FlaskConical className="h-4 w-4" /> Testverktyg
+                <Copy className="h-4 w-4" /> Kopiera miljöinfo
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="min-h-11 w-full"
-              onClick={() => void copyEnvironmentInfo()}
-            >
-              <Copy className="h-4 w-4" /> Kopiera miljöinfo
-            </Button>
+            </div>
           </div>
-        </div>
         </PopoverContent>
       </Popover>
       <StagingTestToolsDialog
