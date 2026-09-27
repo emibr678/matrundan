@@ -283,28 +283,32 @@ export function AddVisitReviewDialog({
             />
           ) : null}
 
-          <div className="space-y-1.5">
-            <Label htmlFor={`visit-review-comment-${visitId}`}>
-              {scoreless ? "Kommentar" : "Kommentar (frivilligt)"}
-            </Label>
-            <Textarea
-              id={`visit-review-comment-${visitId}`}
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              rows={3}
-              placeholder="En liten minnesnotering…"
-            />
-          </div>
+          {scoreless || ratingsUnlocked ? (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor={`visit-review-comment-${visitId}`}>
+                  {scoreless ? "Kommentar" : "Kommentar (frivilligt)"}
+                </Label>
+                <Textarea
+                  id={`visit-review-comment-${visitId}`}
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  rows={3}
+                  placeholder="En liten minnesnotering…"
+                />
+              </div>
 
-          {visit ? (
-            <VisitPhotoField
-              file={photoFile}
-              onFileChange={setPhotoFile}
-              existingUrl={ownPhoto?.url}
-              disabled={saving}
-              showHelpText={false}
-              compact
-            />
+              {visit ? (
+                <VisitPhotoField
+                  file={photoFile}
+                  onFileChange={setPhotoFile}
+                  existingUrl={ownPhoto?.url}
+                  disabled={saving}
+                  showHelpText={false}
+                  compact
+                />
+              ) : null}
+            </>
           ) : null}
         </div>
 
@@ -319,18 +323,20 @@ export function AddVisitReviewDialog({
           >
             Avbryt
           </Button>
-          <Button
-            disabled={
-              saving ||
-              (scoreless
-                ? !comment.trim()
-                : !classificationComplete || !ratingsUnlocked || !complete)
-            }
-            onClick={() => void save()}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {scoreless ? "Spara kommentar" : "Spara omdöme"}
-          </Button>
+          {scoreless || ratingsUnlocked ? (
+            <Button
+              disabled={
+                saving ||
+                (scoreless
+                  ? !comment.trim()
+                  : !classificationComplete || !complete)
+              }
+              onClick={() => void save()}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {scoreless ? "Spara kommentar" : "Spara omdöme"}
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>
