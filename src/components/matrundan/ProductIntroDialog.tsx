@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useRouter, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
   Flag,
@@ -29,6 +29,35 @@ import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 
 export const OPEN_PRODUCT_INTRO_EVENT = "matrundan:open-product-intro";
 export const PREVIEW_PRODUCT_INTRO_EVENT = "matrundan:preview-product-intro";
+
+type TourMode = "automatic" | "replay";
+
+const TOUR_STEPS = [
+  {
+    label: "Hem",
+    title: "Överblick och nästa steg",
+    description:
+      "Här ser ni vad som är på gång: nästa stopp, sådant som behöver din uppmärksamhet och de senaste gemensamma besöken.",
+  },
+  {
+    label: "Matställen",
+    title: "Gruppens gemensamma lista",
+    description:
+      "Här samlar och utforskar ni ställen ni vill prova eller återvända till. Sök, filtrera och välj vad som passar nästa gång.",
+  },
+  {
+    label: "Gruppen",
+    title: "Människorna och historiken",
+    description:
+      "Här ser du gruppens medlemmar, gemensamma favoriter och aktivitet. Här finns också vägen vidare till gruppens besökshistorik.",
+  },
+] as const;
+
+function tourRoute(step: number, exampleMode: boolean) {
+  if (step === 0) return exampleMode ? ("/exempel" as const) : ("/" as const);
+  if (step === 1) return "/matstallen" as const;
+  return "/gruppen" as const;
+}
 
 export function openProductIntro() {
   if (typeof window === "undefined") return;
@@ -67,15 +96,15 @@ function IntroRow({
 export function ProductIntroDialog({
   open,
   onOpenChange,
-  automatic,
   groupName,
   onOpenAbout,
+  onStartTour,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  automatic: boolean;
   groupName: string;
   onOpenAbout: () => void;
+  onStartTour: () => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,15 +115,15 @@ export function ProductIntroDialog({
           </DialogTitle>
           <DialogDescription className="leading-relaxed">
             Upptäck, prova och minns matställen tillsammans – i privata grupper
-            för olika gäng och sammanhang.
+            för familj, vänner och olika sammanhang.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <IntroRow icon={UsersRound} title="Flera grupper, olika sammanhang">
-            Skapa separata grupper för olika gäng och platser – till exempel
-            familjen, kompisgänget, närområdet eller en stad där du bor eller
-            ska resa till. Varje grupp har sin egen lista och historik.
+            Skapa separata grupper för olika personer och platser – till exempel
+            familjen, kompisgänget, närområdet eller en stad där du bor eller ska
+            resa till. Varje grupp har sin egen lista och historik.
           </IntroRow>
           <IntroRow icon={Search} title="Samla ställen ni vill prova">
             Spara restauranger, caféer och andra ställen gruppen är nyfiken på.
@@ -115,20 +144,18 @@ export function ProductIntroDialog({
             Du är i {groupName}
           </div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Byt grupp i menyn när du vill se ett annat gängs ställen, planer och
+            Byt grupp i menyn när du vill se en annan grupps ställen, planer och
             historik.
           </p>
         </Card>
 
-        <DialogFooter>
-          {!automatic ? (
-            <Button type="button" variant="ghost" onClick={onOpenAbout}>
-              <Info className="h-4 w-4" aria-hidden />
-              Om Matrundan
-            </Button>
-          ) : null}
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            {automatic ? "Till gruppen" : "Stäng"}
+        <DialogFooter className="gap-2 sm:justify-between">
+          <Button type="button" variant="ghost" onClick={onOpenAbout}>
+            <Info className="h-4 w-4" aria-hidden />
+            Om Matrundan
+          </Button>
+          <Button type="button" onClick={onStartTour}>
+            Visa rundtur
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -136,43 +163,104 @@ export function ProductIntroDialog({
   );
 }
 
+function ProductTourCard({
+  step,
+  onNext,
+  onSkip,
+}: {
+  step: number;
+  onNext: () => void;
+  onSkip: () => void;
+}) {
+  const headingRef = React.useRef<HTMLHeadingElement>(null);
+  const current = TOUR_STEPS[step];
+  const last = step === TOUR_STEPS.length - 1;
+
+  React.useEffect(() => {
+    headingRef.current?.focus();
+  }, [step]);
+
+  return (
+    <aside
+      data-product-tour
+      aria-label="Introduktion till Matrundan"
+      className="fixed inset-x-3 bottom-[5.75rem] z-[60] mx-auto max-w-md rounded-3xl border border-border/80 bg-background/95 p-4 shadow-xl backdrop-blur-md md:bottom-6"
+    >
+      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+        <span>{current.label}</span>
+        <span>
+          {step + 1} av {TOUR_STEPS.length}
+        </span>
+      </div>
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="mt-1 font-display text-xl font-semibold outline-none"
+      >
+        {current.title}
+      </h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+        {current.description}
+      </p>
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <Button type="button" variant="ghost" onClick={onSkip}>
+          Hoppa över
+        </Button>
+        <Button type="button" onClick={onNext}>
+          {last ? "Till Hem" : "Nästa"}
+        </Button>
+      </div>
+    </aside>
+  );
+}
+
 export function ProductIntroController() {
   const { state } = useStore();
   const {
     mode,
+    exampleMode,
     user,
     activeGroupId,
     activeGroupLifecycleStatus,
     pendingGroupInvitations,
     pendingGroupInvitationsReady,
   } = useSession();
+  const router = useRouter();
   const pathname = useRouterState({
     select: (routerState) => routerState.location.pathname,
   });
   const { status, isAcknowledged, acknowledge } = useUserGuidance();
   const [open, setOpen] = React.useState(false);
-  const [automatic, setAutomatic] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
+  const [tourMode, setTourMode] = React.useState<TourMode | null>(null);
+  const [tourStep, setTourStep] = React.useState(0);
   const autoHandledUsers = React.useRef(new Set<string>());
   const coreIntroAcknowledged = isAcknowledged(USER_GUIDANCE.coreIntro);
+
+  const startTour = React.useCallback(
+    (nextMode: TourMode) => {
+      setOpen(false);
+      setTourStep(0);
+      setTourMode(nextMode);
+      void router.navigate({ to: tourRoute(0, exampleMode) });
+    },
+    [exampleMode, router],
+  );
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     const openIntro = () => {
-      setAutomatic(false);
+      setTourMode(null);
       setOpen(true);
     };
-    const previewIntro = () => {
-      setAutomatic(true);
-      setOpen(true);
-    };
+    const previewIntro = () => startTour("automatic");
     window.addEventListener(OPEN_PRODUCT_INTRO_EVENT, openIntro);
     window.addEventListener(PREVIEW_PRODUCT_INTRO_EVENT, previewIntro);
     return () => {
       window.removeEventListener(OPEN_PRODUCT_INTRO_EVENT, openIntro);
       window.removeEventListener(PREVIEW_PRODUCT_INTRO_EVENT, previewIntro);
     };
-  }, []);
+  }, [startTour]);
 
   React.useEffect(() => {
     const userId = user?.id;
@@ -187,7 +275,9 @@ export function ProductIntroController() {
         pendingInvitationCount: pendingGroupInvitations.length,
         guidanceReady: status === "ready",
         acknowledged: coreIntroAcknowledged,
-        alreadyHandled: userId ? autoHandledUsers.current.has(userId) : false,
+        alreadyHandled: userId
+          ? autoHandledUsers.current.has(userId)
+          : false,
       }) ||
       !userId
     ) {
@@ -195,8 +285,7 @@ export function ProductIntroController() {
     }
 
     autoHandledUsers.current.add(userId);
-    setAutomatic(true);
-    setOpen(true);
+    startTour("automatic");
   }, [
     activeGroupId,
     activeGroupLifecycleStatus,
@@ -205,20 +294,43 @@ export function ProductIntroController() {
     pathname,
     pendingGroupInvitations.length,
     pendingGroupInvitationsReady,
+    startTour,
     status,
     user?.id,
   ]);
 
-  function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && mode === "live" && !coreIntroAcknowledged) {
+  React.useEffect(() => {
+    if (mode === "live" && tourMode && (!user || !activeGroupId)) {
+      setTourMode(null);
+    }
+  }, [activeGroupId, mode, tourMode, user]);
+
+  function acknowledgeTourIfNeeded(currentMode: TourMode | null) {
+    if (currentMode === "automatic" && mode === "live") {
       void acknowledge(USER_GUIDANCE.coreIntro);
     }
-    setOpen(nextOpen);
-    if (!nextOpen) setAutomatic(false);
+  }
+
+  function skipTour() {
+    acknowledgeTourIfNeeded(tourMode);
+    setTourMode(null);
+  }
+
+  function nextTourStep() {
+    if (tourStep >= TOUR_STEPS.length - 1) {
+      acknowledgeTourIfNeeded(tourMode);
+      setTourMode(null);
+      void router.navigate({ to: tourRoute(0, exampleMode) });
+      return;
+    }
+
+    const nextStep = tourStep + 1;
+    setTourStep(nextStep);
+    void router.navigate({ to: tourRoute(nextStep, exampleMode) });
   }
 
   function handleOpenAbout() {
-    handleOpenChange(false);
+    setOpen(false);
     setAboutOpen(true);
   }
 
@@ -226,11 +338,18 @@ export function ProductIntroController() {
     <>
       <ProductIntroDialog
         open={open}
-        onOpenChange={handleOpenChange}
-        automatic={automatic}
+        onOpenChange={setOpen}
         groupName={state.group.name}
         onOpenAbout={handleOpenAbout}
+        onStartTour={() => startTour("replay")}
       />
+      {tourMode ? (
+        <ProductTourCard
+          step={tourStep}
+          onNext={nextTourStep}
+          onSkip={skipTour}
+        />
+      ) : null}
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </>
   );

@@ -12,8 +12,8 @@ import {
 describe("user guidance", () => {
   test("har stabila versionsstyrda identifierare", () => {
     expect(guidanceIdentifier(USER_GUIDANCE.coreIntro)).toBe("core-intro@1");
-    expect(guidanceIdentifier(USER_GUIDANCE.occasionGuide)).toBe(
-      "occasion-guide@1",
+    expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe(
+      "review-context@1",
     );
   });
 
@@ -21,9 +21,9 @@ describe("user guidance", () => {
     expect(
       guidanceRowsToIdentifiers([
         { guidance_key: "core-intro", guidance_version: 1 },
-        { guidance_key: "occasion-guide", guidance_version: 1 },
+        { guidance_key: "review-context", guidance_version: 1 },
       ]),
-    ).toEqual(new Set(["core-intro@1", "occasion-guide@1"]));
+    ).toEqual(new Set(["core-intro@1", "review-context@1"]));
   });
 
   test("registret innehåller unika nyckel- och versionspar", () => {
@@ -32,10 +32,10 @@ describe("user guidance", () => {
   });
 
   test("kan simulera osedd guide utan att ändra beständiga kvitton", () => {
-    const acknowledged = new Set(["occasion-guide@1"] as const);
+    const acknowledged = new Set(["review-context@1"] as const);
     const previews = setGuidancePreview(
       new Set(),
-      USER_GUIDANCE.occasionGuide,
+      USER_GUIDANCE.reviewContext,
       true,
     );
 
@@ -43,12 +43,12 @@ describe("user guidance", () => {
       guidanceAcknowledgedForPresentation(
         acknowledged,
         previews,
-        USER_GUIDANCE.occasionGuide,
+        USER_GUIDANCE.reviewContext,
       ),
     ).toBe(false);
-    expect(acknowledged).toEqual(new Set(["occasion-guide@1"]));
+    expect(acknowledged).toEqual(new Set(["review-context@1"]));
     expect(
-      setGuidancePreview(previews, USER_GUIDANCE.occasionGuide, false),
+      setGuidancePreview(previews, USER_GUIDANCE.reviewContext, false),
     ).toEqual(new Set());
   });
 
