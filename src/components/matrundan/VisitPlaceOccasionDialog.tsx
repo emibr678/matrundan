@@ -14,7 +14,10 @@ import {
   normalizeOccasionClassification,
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
+import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
+import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
+import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import {
   OCCASION_LABEL,
   OCCASION_VALUES,
@@ -32,10 +35,22 @@ export function VisitPlaceOccasionDialog({
   place: Place;
   onCancel: () => void;
 }) {
+  const { mode, user } = useSession();
   const { updatePlaceMetadata, submitting } = useStore();
+  const { status, isAcknowledged, isPreviewing, acknowledge } =
+    useUserGuidance();
   const [selected, setSelected] = React.useState<Occasion[]>([]);
   const [showGuide, setShowGuide] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+
+  const occasionModelAcknowledged = isAcknowledged(
+    USER_GUIDANCE.occasionModel,
+  );
+  const showOccasionModelGuide =
+    mode === "live" &&
+    Boolean(user?.id) &&
+    (isPreviewing(USER_GUIDANCE.occasionModel) ||
+      (status === "ready" && !occasionModelAcknowledged));
 
   React.useEffect(() => {
     if (!open) return;
@@ -62,9 +77,14 @@ export function VisitPlaceOccasionDialog({
         occasions,
         notes: place.notes ?? null,
       });
+      if (showOccasionModelGuide) {
+        void acknowledge(USER_GUIDANCE.occasionModel);
+      }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Kunde inte spara Passar för.",
+        error instanceof Error
+          ? error.message
+          : "Kunde inte spara Passar för.",
       );
     } finally {
       setSaving(false);
@@ -78,19 +98,25 @@ export function VisitPlaceOccasionDialog({
       open={open}
       onOpenChange={(nextOpen) => !nextOpen && !busy && onCancel()}
     >
-      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="pr-8 text-left">
           <DialogTitle className="font-display text-2xl">
             När passar stället bäst?
           </DialogTitle>
           <DialogDescription className="leading-relaxed">
-            Välj en eller två kategorier som bäst beskriver när ni skulle välja
-            stället. Det hjälper gruppen att hitta rätt matställe för olika
-            tillfällen.
+            {showOccasionModelGuide
+              ? "Passar för beskriver vilken typ av matupplevelse ni skulle välja stället för. Läs igenom alternativen och välj en eller två."
+              : "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället. Det hjälper gruppen att hitta rätt matställe för olika tillfällen."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
+          {showOccasionModelGuide ? (
+            <div className="rounded-2xl bg-secondary/40 p-3">
+              <OccasionGuideContent />
+            </div>
+          ) : null}
+
           <div
             className="grid grid-cols-3 gap-2"
             role="group"
@@ -121,20 +147,24 @@ export function VisitPlaceOccasionDialog({
             })}
           </div>
 
-          <button
-            type="button"
-            className="flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-expanded={showGuide}
-            onClick={() => setShowGuide((current) => !current)}
-          >
-            <CircleHelp className="h-4 w-4" />
-            Vad betyder alternativen?
-          </button>
+          {!showOccasionModelGuide ? (
+            <>
+              <button
+                type="button"
+                className="flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-expanded={showGuide}
+                onClick={() => setShowGuide((current) => !current)}
+              >
+                <CircleHelp className="h-4 w-4" />
+                Vad betyder alternativen?
+              </button>
 
-          {showGuide ? (
-            <div className="rounded-2xl bg-secondary/40 p-3">
-              <OccasionGuideContent />
-            </div>
+              {showGuide ? (
+                <div className="rounded-2xl bg-secondary/40 p-3">
+                  <OccasionGuideContent />
+                </div>
+              ) : null}
+            </>
           ) : null}
         </div>
 
@@ -153,7 +183,9 @@ export function VisitPlaceOccasionDialog({
             onClick={() => void saveAndContinue()}
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Spara och fortsätt
+            {showOccasionModelGuide
+              ? "Jag förstår – spara och fortsätt"
+              : "Spara och fortsätt"}
           </Button>
         </DialogFooter>
       </DialogContent>

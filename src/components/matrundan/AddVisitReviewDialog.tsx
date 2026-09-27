@@ -15,15 +15,18 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveOwnReviewForVisit } from "@/lib/matrundan/live-visit-participation";
-import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/review-model";
+import {
+  reviewModelForContext,
+  reviewRatingsComplete,
+} from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
 import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion } from "@/lib/matrundan/types";
 import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
+import { FirstReviewGuidance } from "./FirstReviewGuidance";
 import { OccasionPicker } from "./OccasionPicker";
-import { ReviewContextFirstTimeNotice } from "./ReviewContextGuide";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 import { VisitPhotoField } from "./VisitPhotoField";
 
@@ -51,7 +54,9 @@ export function AddVisitReviewDialog({
   const { status, isAcknowledged, isPreviewing, acknowledge } =
     useUserGuidance();
   const visit = state.visits.find((item) => item.id === visitId);
-  const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
+  const ownPhoto = visit
+    ? getOwnVisitPhoto(visit, state.currentUserId)
+    : undefined;
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [taste, setTaste] = React.useState(0);
@@ -61,6 +66,7 @@ export function AddVisitReviewDialog({
   const [reviewOccasions, setReviewOccasions] = React.useState<Occasion[]>([]);
   const [comment, setComment] = React.useState("");
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
+  const [guidanceAccepted, setGuidanceAccepted] = React.useState(false);
 
   React.useEffect(() => {
     if (open) return;
@@ -71,15 +77,21 @@ export function AddVisitReviewDialog({
     setReviewOccasions([]);
     setComment("");
     setPhotoFile(null);
+    setGuidanceAccepted(false);
   }, [open]);
 
-  const placeNeedsOccasionClassification = !scoreless && placeOccasions.length === 0;
-  const classificationComplete = !placeNeedsOccasionClassification || reviewOccasions.length > 0;
+  const placeNeedsOccasionClassification =
+    !scoreless && placeOccasions.length === 0;
+  const classificationComplete =
+    !placeNeedsOccasionClassification || reviewOccasions.length > 0;
+  const activeOccasions = placeNeedsOccasionClassification
+    ? reviewOccasions
+    : placeOccasions;
   const model = scoreless
     ? null
     : reviewModelForContext({
         isTakeaway,
-        occasions: placeNeedsOccasionClassification ? reviewOccasions : placeOccasions,
+        occasions: activeOccasions,
       });
   const complete = reviewRatingsComplete(model, {
     taste,
@@ -87,15 +99,26 @@ export function AddVisitReviewDialog({
     value,
     atmosphere,
   });
+
+  const occasionModelAcknowledged = isAcknowledged(
+    USER_GUIDANCE.occasionModel,
+  );
   const reviewContextAcknowledged = isAcknowledged(
     USER_GUIDANCE.reviewContext,
   );
+  const guidanceEligible =
+    !scoreless && mode === "live" && Boolean(user?.id);
+  const showOccasionModelGuide =
+    guidanceEligible &&
+    (isPreviewing(USER_GUIDANCE.occasionModel) ||
+      (status === "ready" && !occasionModelAcknowledged));
   const showReviewContextGuide =
-    !scoreless &&
-    mode === "live" &&
-    Boolean(user?.id) &&
+    guidanceEligible &&
     (isPreviewing(USER_GUIDANCE.reviewContext) ||
       (status === "ready" && !reviewContextAcknowledged));
+  const needsFirstReviewGuidance =
+    showOccasionModelGuide || showReviewContextGuide;
+  const ratingsUnlocked = !needsFirstReviewGuidance || guidanceAccepted;
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -116,7 +139,11 @@ export function AddVisitReviewDialog({
       toast.error("Välj vad stället passar för först.");
       return;
     } else if (!model || !complete) {
-      toast.error(model ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.");
+      toast.error(
+        model
+          ? "Sätt alla relevanta betyg."
+          : "Välj vad stället passar för först.",
+      );
       return;
     }
 
@@ -167,7 +194,9 @@ export function AddVisitReviewDialog({
       await onSaved?.();
       onExit?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
+      toast.error(
+        error instanceof Error ? error.message : "Kunde inte spara.",
+      );
     } finally {
       setSaving(false);
     }
@@ -177,13 +206,19 @@ export function AddVisitReviewDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="w-full" disabled={disabled}>
-          {scoreless ? <MessageCircle className="h-4 w-4" /> : <Star className="h-4 w-4" />}
+          {scoreless ? (
+            <MessageCircle className="h-4 w-4" />
+          ) : (
+            <Star className="h-4 w-4" />
+          )}
           {scoreless ? "Lägg till en kommentar" : "Lägg till ditt omdöme"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{scoreless ? "Din kommentar" : "Ditt omdöme"}</DialogTitle>
+          <DialogTitle>
+            {scoreless ? "Din kommentar" : "Ditt omdöme"}
+          </DialogTitle>
           <DialogDescription>
             {scoreless
               ? `${placeName}. Dryckesbesöket räknas som ett besök men påverkar inte ställets betyg.`
@@ -192,7 +227,11 @@ export function AddVisitReviewDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {showReviewContextGuide ? <ReviewContextFirstTimeNotice /> : null}
+          {!scoreless && showOccasionModelGuide ? (
+            <div className="rounded-2xl bg-secondary/40 p-4">
+              <OccasionGuideContentBridge />
+            </div>
+          ) : null}
 
           {!scoreless && placeNeedsOccasionClassification ? (
             <div className="rounded-2xl bg-secondary/40 p-4">
@@ -202,12 +241,35 @@ export function AddVisitReviewDialog({
                 onChange={setReviewOccasions}
                 disabled={saving}
                 required
-                description="Stället saknar Passar för. Välj en eller två kategorier innan du sparar omdömet."
+                showGuide={!showOccasionModelGuide}
+                description="Stället saknar Passar för. Välj en eller två kategorier innan du fortsätter till betyget."
               />
             </div>
           ) : null}
 
-          {!scoreless && model ? (
+          {!scoreless &&
+          model &&
+          classificationComplete &&
+          needsFirstReviewGuidance &&
+          !guidanceAccepted ? (
+            <FirstReviewGuidance
+              placeName={placeName}
+              occasions={activeOccasions}
+              model={model}
+              isTakeaway={isTakeaway}
+              showOccasionModel={false}
+              showReviewContext={showReviewContextGuide}
+              disabled={saving}
+              onContinue={() => {
+                if (showOccasionModelGuide) {
+                  void acknowledge(USER_GUIDANCE.occasionModel);
+                }
+                setGuidanceAccepted(true);
+              }}
+            />
+          ) : null}
+
+          {!scoreless && model && ratingsUnlocked ? (
             <ReviewScoreFields
               model={model}
               taste={taste}
@@ -218,7 +280,6 @@ export function AddVisitReviewDialog({
               onServiceChange={setService}
               onValueChange={setValue}
               onAtmosphereChange={setAtmosphere}
-              showContextHelp={!showReviewContextGuide}
             />
           ) : null}
 
@@ -260,7 +321,10 @@ export function AddVisitReviewDialog({
           </Button>
           <Button
             disabled={
-              saving || (scoreless ? !comment.trim() : !classificationComplete || !complete)
+              saving ||
+              (scoreless
+                ? !comment.trim()
+                : !classificationComplete || !ratingsUnlocked || !complete)
             }
             onClick={() => void save()}
           >
@@ -272,3 +336,17 @@ export function AddVisitReviewDialog({
     </Dialog>
   );
 }
+
+function OccasionGuideContentBridge() {
+  return <FirstReviewGuidanceOccasionModel />;
+}
+
+function FirstReviewGuidanceOccasionModel() {
+  return (
+    <div className="contents">
+      <OccasionGuideContent />
+    </div>
+  );
+}
+
+import { OccasionGuideContent } from "./OccasionPicker";

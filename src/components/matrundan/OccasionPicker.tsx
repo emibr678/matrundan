@@ -56,27 +56,16 @@ export function OccasionGuideContent({
   return (
     <div className="min-w-0 space-y-3">
       <div>
-        {showHeading ? <div className="font-medium">Passar för</div> : null}
+        {showHeading ? (
+          <div className="font-medium">Så fungerar Passar för</div>
+        ) : null}
         <p
           className={`${
             showHeading ? "mt-1 " : ""
           }text-xs leading-relaxed text-muted-foreground`}
         >
-          En pizzeria och en finkrog är olika slags upplevelser, men kan båda
-          vara fullträffar och få lika höga betyg vid rätt tillfälle.
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Passar för sätter sammanhanget och rätt förväntningar när ni bedömer
-          stället. Jämför hur väl stället lyckas i sin egen typ av upplevelse –
-          inte hur påkostat det är.
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Valet hjälper också gruppen att filtrera ställen. Om bara{" "}
-          <strong className="font-medium text-foreground">
-            {OCCASION_LABEL.snabbt}
-          </strong>{" "}
-          är valt ingår inte Atmosfär i nya omdömen. Tidigare omdömen ändras
-          inte.
+          Passar för beskriver vilken typ av matupplevelse ni skulle välja
+          stället för. Ett matställe kan passa för en eller två kategorier.
         </p>
       </div>
       <div className="space-y-2.5">
@@ -91,6 +80,14 @@ export function OccasionGuideContent({
           </div>
         ))}
       </div>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        Valet hjälper gruppen att hitta och filtrera matställen för olika
+        tillfällen. Det sätter också sammanhanget för nya omdömen. Om bara{" "}
+        <strong className="font-medium text-foreground">
+          {OCCASION_LABEL.snabbt}
+        </strong>{" "}
+        är valt ingår inte Atmosfär i helhetsbetyget.
+      </p>
     </div>
   );
 }
@@ -143,6 +140,7 @@ export function OccasionPicker({
   disabled = false,
   required = false,
   description,
+  showGuide = true,
 }: {
   id: string;
   value: Occasion[];
@@ -150,6 +148,7 @@ export function OccasionPicker({
   disabled?: boolean;
   required?: boolean;
   description?: string;
+  showGuide?: boolean;
 }) {
   const descriptionId = `${id}-description`;
   const selected = normalizeOccasionClassification(value);
@@ -163,7 +162,7 @@ export function OccasionPicker({
     <div className="space-y-2">
       <div className="flex min-h-11 items-center justify-between gap-2">
         <Label id={`${id}-label`}>Passar för</Label>
-        <OccasionGuide />
+        {showGuide ? <OccasionGuide /> : null}
       </div>
       <p
         id={descriptionId}

@@ -20,6 +20,7 @@ export function StagingTestToolsDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { isPreviewing, preview, clearPreview } = useUserGuidance();
+  const occasionModelPreviewing = isPreviewing(USER_GUIDANCE.occasionModel);
   const reviewContextPreviewing = isPreviewing(USER_GUIDANCE.reviewContext);
 
   if (!IS_STAGING) return null;
@@ -57,7 +58,7 @@ export function StagingTestToolsDialog({
           <div className="rounded-2xl border border-border/70 p-4">
             <div className="font-medium">Kärnintroduktion</div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Startar samma rundtur genom Hem, Matställen och Gruppen som en ny
+              Startar samma rundtur genom Matställen, Hem och Gruppen som en ny
               användare får.
             </p>
             <Button
@@ -68,6 +69,42 @@ export function StagingTestToolsDialog({
             >
               <Play className="h-4 w-4" aria-hidden />
               Spela upp
+            </Button>
+          </div>
+
+          <div className="rounded-2xl border border-border/70 p-4">
+            <div className="font-medium">Passar för-modellen</div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Visar alla tre Passar för-kategorierna nästa gång modellen blir
+              relevant. Ditt riktiga kvitto lämnas orört.
+            </p>
+            {occasionModelPreviewing ? (
+              <div className="mt-2 text-xs font-medium text-amber-800">
+                Simuleringen väntar på nästa Passar för- eller omdömesflöde.
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3 min-h-11"
+              onClick={() =>
+                occasionModelPreviewing
+                  ? clearPreview(USER_GUIDANCE.occasionModel)
+                  : preview(USER_GUIDANCE.occasionModel)
+              }
+            >
+              {occasionModelPreviewing ? (
+                <>
+                  <RotateCcw className="h-4 w-4" aria-hidden />
+                  Avbryt simulering
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" aria-hidden />
+                  Simulera osedd
+                </>
+              )}
             </Button>
           </div>
 
