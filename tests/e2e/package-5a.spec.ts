@@ -111,7 +111,7 @@ test("exempelgruppen använder samma #307-logik som registreringsflödet", async
 
   await page.goto("/matstallen/p10");
   await page.getByRole("button", { name: "Registrera besök" }).click();
-  const classification = page.getByRole("dialog", { name: "När passar stället bäst?" });
+  const classification = page.getByRole("dialog", { name: "Hur skulle ni beskriva matupplevelsen?" });
   await expect(classification).toBeVisible();
   await expect(
     classification.getByText(
@@ -120,8 +120,8 @@ test("exempelgruppen använder samma #307-logik som registreringsflödet", async
     ),
   ).toBeVisible();
   await expect(classification.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
-  await expect(classification.getByText(/saknar Passar för/)).toHaveCount(0);
-  await expectNoHorizontalOverflow(page, "Passar för-grinden i exempelgruppen");
+  await expect(classification.getByText(/saknar Typ av upplevelse/)).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Typ av upplevelse-grinden i exempelgruppen");
 });
 
 test("exempelgruppens centrala scenarier går att nå utan privat dataläckage", async ({ page }) => {
