@@ -205,17 +205,12 @@ export function OccasionPicker({
   required?: boolean;
   description?: string;
 }) {
-  const { acknowledge } = useUserGuidance();
   const descriptionId = `${id}-description`;
   const selected = normalizeOccasionClassification(value);
   const atLimit = selected.length >= 2;
 
   function handleChange(occasion: Occasion) {
-    const next = toggleOccasionSelection(selected, occasion);
-    onChange(next);
-    if (required && next.length > 0) {
-      void acknowledge(USER_GUIDANCE.occasionGuide);
-    }
+    onChange(toggleOccasionSelection(selected, occasion));
   }
 
   return (
