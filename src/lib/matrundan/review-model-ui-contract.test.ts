@@ -87,7 +87,10 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(addReviewDialog).toContain("Spara och fortsätt");
     expect(addReviewDialog).toContain("required");
 
-    expect(demoAddReviewDialog).toContain("classificationComplete");
+    expect(demoAddReviewDialog).toContain("classificationActive");
+    expect(demoAddReviewDialog).toContain("saveClassificationAndContinue");
+    expect(demoAddReviewDialog).toContain("updatePlaceMetadata");
+    expect(demoAddReviewDialog).toContain("Spara och fortsätt");
     expect(demoAddReviewDialog).toContain("required");
     expect(addReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
     expect(demoAddReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
