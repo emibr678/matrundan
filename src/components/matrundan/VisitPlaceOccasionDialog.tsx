@@ -104,7 +104,10 @@ export function VisitPlaceOccasionDialog({
       open={open}
       onOpenChange={(nextOpen) => !nextOpen && !busy && onCancel()}
     >
-      <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        key={firstGuidanceActive ? "guidance" : "classification"}
+        className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg"
+      >
         <DialogHeader className="pr-8 text-left">
           <DialogTitle className="font-display text-2xl">
             {firstGuidanceActive
