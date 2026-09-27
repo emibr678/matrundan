@@ -43,7 +43,7 @@ const OccasionGuideTrigger = React.forwardRef<
     aria-label="Vad betyder Typ av upplevelse?"
   >
     <CircleHelp className="h-4 w-4" />
-    {compact ? null : <span>Vad betyder alternativen?</span>}
+    {compact ? null : <span>Så fungerar det</span>}
   </Button>
 ));
 OccasionGuideTrigger.displayName = "OccasionGuideTrigger";

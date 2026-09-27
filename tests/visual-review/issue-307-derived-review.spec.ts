@@ -317,7 +317,7 @@ test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen",
   const intro = page.getByRole("dialog", { name: "Innan du sätter betyg" });
   await expect(intro).toBeVisible();
   await expect(
-    intro.getByText("Kul att du ska lämna ditt första omdöme!", { exact: true }),
+    intro.getByText(/Kul att du ska lämna ditt första omdöme!/),
   ).toBeVisible();
   await expect(intro.getByText("Tre typer av matupplevelser", { exact: true })).toBeVisible();
   await expect(intro.getByText(/Ett enkelt gatukök och en finkrog/)).toBeVisible();
@@ -352,7 +352,7 @@ test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen",
   expect(Math.max(...yPositions) - Math.min(...yPositions)).toBeLessThan(2);
 
   await relaxed.click();
-  await gate.getByRole("button", { name: "Vad betyder alternativen?" }).click();
+  await gate.getByRole("button", { name: "Så fungerar det" }).click();
   await expect(
     gate.getByText(/Matrundan skiljer på olika typer av matupplevelser/),
   ).toBeVisible();

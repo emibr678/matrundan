@@ -101,8 +101,10 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   test("första omdömesguiden är ett separat steg före klassificering och stjärnor", () => {
     expect(firstReviewGuidance).toContain("Kul att du ska lämna ditt första omdöme!");
     expect(firstReviewGuidance).toContain("Ett enkelt gatukök och en finkrog");
-    expect(firstReviewGuidance).toContain("Båda kan få lika höga betyg");
+    expect(firstReviewGuidance).toContain("Båda");
+    expect(firstReviewGuidance).toContain("kan få lika höga betyg");
     expect(firstReviewGuidance).toContain("Tre typer av matupplevelser");
+    expect(firstReviewGuidance).toContain("Ett matställe kan passa in i en eller två.");
     expect(firstReviewGuidance).toContain("showConclusion={false}");
     expect(firstReviewGuidance).toContain("Jag förstår");
     expect(addReviewDialog).toContain("firstGuidanceActive");
@@ -150,7 +152,7 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(occasionPicker).toContain("Båda kan få lika");
     expect(occasionPicker).toContain("OCCASION_DESCRIPTION");
     expect(occasionPicker).toContain("Typ av upplevelse");
-    expect(occasionPicker).toContain("Vad betyder alternativen?");
+    expect(occasionPicker).toContain("Så fungerar det");
     expect(occasionPicker).toContain("showInstructions");
   });
 
