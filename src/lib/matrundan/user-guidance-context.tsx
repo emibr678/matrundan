@@ -54,11 +54,14 @@ export function UserGuidanceProvider({
       };
     }
 
-    setLoaded({
+    setLoaded((current) => ({
       userId: activeUserId,
       status: "loading",
-      acknowledged: EMPTY_ACKNOWLEDGED,
-    });
+      acknowledged:
+        current.userId === activeUserId
+          ? current.acknowledged
+          : EMPTY_ACKNOWLEDGED,
+    }));
 
     loadAcknowledgedGuidance(activeUserId)
       .then((acknowledged) => {
