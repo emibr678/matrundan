@@ -298,9 +298,11 @@ Autentisering och profilflöde:
   visningsnamn och avatar, inte e-postadress, lösenordshash, provider-token eller
   providerhemligheter;
 - e-post/lösenord har en serverstyrd Auth-baslinje: minsta lösenordslängd ska vara
-  minst 8 tecken och Supabases leaked-password protection ska vara aktiverat i
-  miljöer där lösenordskonton tillåts. Klientens längdkontroll är endast UX och
-  får inte betraktas som den auktoritativa säkerhetsgränsen;
+  minst 8 tecken. Supabases leaked-password protection ska aktiveras när den
+  aktuella planen stödjer funktionen; annars dokumenteras begränsningen och
+  klienten får inte påstå att läckta lösenord kontrolleras. Klientens
+  längdkontroll är endast UX och får inte betraktas som den auktoritativa
+  säkerhetsgränsen;
 - provider-/user-metadata används för profilbootstrap, aldrig som grupproll eller
   behörighetskälla. Behörighet kommer från signerad Supabase-session,
   `auth.uid()`, `memberships`, RLS och avgränsade RPC:er.
@@ -997,7 +999,8 @@ Produktions-preflighten ska ha en credential-fri release-security-grind före
 jobbet som använder GitHubs `production`-environment. Grinden återanvänder
 `Public readiness` för full-history secret scan och kräver dessutom grön
 `CI / required` för exakt aktuell `main`-SHA. Först därefter får
-produktionscredentials exponeras för preflight-jobbet.
+produktionscredentials exponeras för preflight-jobbet. Den exakta main-SHA:n ska
+dessutom ha gröna CodeQL-analyser för JavaScript/TypeScript och GitHub Actions.
 
 Den exakta produktionsbuilden ska före inert upload verifieras mot de
 serverhemligheter som finns i preflight-jobbets miljö. Ett fynd får ange
