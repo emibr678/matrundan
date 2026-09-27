@@ -320,6 +320,11 @@ test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen",
     intro.getByText(/Kul att du ska lämna ditt första omdöme!/),
   ).toBeVisible();
   await expect(intro.getByText("Tre typer av matupplevelser", { exact: true })).toBeVisible();
+  await expect(
+    intro.getByText("Ett matställe kan beskrivas med en eller två av dem.", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(intro.getByText(/Ett enkelt gatukök och en finkrog/)).toBeVisible();
   await stabilize(page);
   await expectNoHorizontalOverflow(page, intro);
@@ -365,6 +370,8 @@ test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen",
 
   const dialog = page.getByRole("dialog", { name: "Registrera besök" });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Typ av upplevelse", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Avslappnat", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Atmosfär", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Spara besöket nu, omdömet kan vänta")).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Spara besök utan omdöme" })).toHaveCount(0);
