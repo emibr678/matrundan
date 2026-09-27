@@ -32,31 +32,41 @@ export const PREVIEW_PRODUCT_INTRO_EVENT = "matrundan:preview-product-intro";
 
 type TourMode = "automatic" | "replay";
 
+const ProductTourActiveContext = React.createContext(false);
+
+export function useProductTourActive() {
+  return React.useContext(ProductTourActiveContext);
+}
+
 const TOUR_STEPS = [
   {
-    label: "Hem",
-    title: "Överblick och nästa steg",
+    label: "Matställen",
+    title: "Samla matställen tillsammans",
     description:
-      "Här ser ni vad som är på gång: nästa stopp, sådant som behöver din uppmärksamhet och de senaste gemensamma besöken.",
+      "Här bygger ni gruppens gemensamma samling av matställen: sådant ni vill prova, favoriter ni vill återvända till och matställen ni redan besökt. Besökta matställen ligger kvar och kan besökas igen.",
   },
   {
-    label: "Matställen",
-    title: "Gruppens gemensamma lista",
+    label: "Hem",
+    title: "Se vad gruppen har på gång",
     description:
-      "Här samlar och utforskar ni ställen ni vill prova eller återvända till. Sök, filtrera och välj vad som passar nästa gång.",
+      "Matställen kan föreslås som Nästa stopp – det matställe gruppen planerar att besöka härnäst. På Hem ser ni vad som står på tur, hur mycket av er samling ni hunnit prova och ert senaste gemensamma besök.",
   },
   {
     label: "Gruppen",
-    title: "Människorna och historiken",
+    title: "Se människorna bakom rundan",
     description:
-      "Här ser du gruppens medlemmar, gemensamma favoriter och aktivitet. Här finns också vägen vidare till gruppens besökshistorik.",
+      "Här ligger fokus på medlemmarna. Se medlemmarnas favoriter, besök och framsteg, och följ gruppens gemensamma höjdpunkter och aktivitet. Ett besök räknas bara för dem som faktiskt var med.",
   },
 ] as const;
 
 function tourRoute(step: number, exampleMode: boolean) {
-  if (step === 0) return exampleMode ? ("/exempel" as const) : ("/" as const);
-  if (step === 1) return "/matstallen" as const;
+  if (step === 0) return "/matstallen" as const;
+  if (step === 1) return exampleMode ? ("/exempel" as const) : ("/" as const);
   return "/gruppen" as const;
+}
+
+function homeRoute(exampleMode: boolean) {
+  return exampleMode ? ("/exempel" as const) : ("/" as const);
 }
 
 export function openProductIntro() {
@@ -125,8 +135,8 @@ export function ProductIntroDialog({
             familjen, kompisgänget, närområdet eller en stad där du bor eller ska
             resa till. Varje grupp har sin egen lista och historik.
           </IntroRow>
-          <IntroRow icon={Search} title="Samla ställen ni vill prova">
-            Spara restauranger, caféer och andra ställen gruppen är nyfiken på.
+          <IntroRow icon={Search} title="Samla matställen ni vill prova">
+            Spara restauranger, caféer och andra matställen gruppen är nyfiken på.
           </IntroRow>
           <IntroRow icon={Flag} title="Välj nästa stopp">
             När ni har bestämt er, lägg stället som Nästa stopp så gruppen vet
@@ -214,7 +224,11 @@ function ProductTourCard({
   );
 }
 
-export function ProductIntroController() {
+export function ProductIntroController({
+  children,
+}: {
+  children?: React.ReactNode;
+}) {
   const { state } = useStore();
   const {
     mode,
@@ -320,7 +334,7 @@ export function ProductIntroController() {
     if (tourStep >= TOUR_STEPS.length - 1) {
       acknowledgeTourIfNeeded(tourMode);
       setTourMode(null);
-      void router.navigate({ to: tourRoute(0, exampleMode) });
+      void router.navigate({ to: homeRoute(exampleMode) });
       return;
     }
 
@@ -335,7 +349,8 @@ export function ProductIntroController() {
   }
 
   return (
-    <>
+    <ProductTourActiveContext.Provider value={tourMode !== null}>
+      {children}
       <ProductIntroDialog
         open={open}
         onOpenChange={setOpen}
@@ -351,6 +366,6 @@ export function ProductIntroController() {
         />
       ) : null}
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
-    </>
+    </ProductTourActiveContext.Provider>
   );
 }

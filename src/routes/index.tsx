@@ -12,6 +12,7 @@ import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
 import { HomeAttentionCard } from "@/components/matrundan/HomeAttentionCard";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
+import { useProductTourActive } from "@/components/matrundan/ProductIntroDialog";
 import { resolveHomeAttention } from "@/lib/matrundan/home-attention";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { effectiveReviewOverall } from "@/lib/matrundan/review-model";
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/")({
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
   const { pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
+  const productTourActive = useProductTourActive();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitTarget, setVisitTarget] = React.useState<{
     placeId: string;
@@ -161,7 +163,7 @@ export function Home() {
         <section aria-label="Omdömen att komplettera">
           <PendingVisitReviewCard visits={pendingReviewItems} />
         </section>
-      ) : attentionKind === "app-nudge" ? (
+      ) : attentionKind === "app-nudge" && !productTourActive ? (
         <AppNudges />
       ) : null}
 

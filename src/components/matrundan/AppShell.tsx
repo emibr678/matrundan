@@ -194,8 +194,9 @@ function ShellBody() {
       onLiveMutation={mode === "live" ? reloadLive : undefined}
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
-      <ShellChrome exampleMode={exampleMode} />
-      <ProductIntroController />
+      <ProductIntroController>
+        <ShellChrome exampleMode={exampleMode} />
+      </ProductIntroController>
     </StoreProvider>
   );
 }
