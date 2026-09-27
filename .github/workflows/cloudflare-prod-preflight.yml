@@ -46,7 +46,7 @@ jobs:
       checks: read
       contents: read
     steps:
-      - name: Require green CI / required for exact main SHA
+      - name: Require green CI / required and CodeQL for exact main SHA
         env:
           GITHUB_API_TOKEN: ${{ github.token }}
         run: |
@@ -76,23 +76,31 @@ jobs:
             process.exit(1);
           }
 
-          const requiredChecks = payload.check_runs.filter(
-            (check) => check?.name === 'CI / required' && check?.app?.slug === 'github-actions',
-          );
-          const green = requiredChecks.some(
-            (check) => check?.status === 'completed' && check?.conclusion === 'success',
-          );
-          if (!green) {
-            const states = requiredChecks
-              .map((check) => `${check?.status ?? 'unknown'}/${check?.conclusion ?? 'none'}`)
-              .join(', ');
-            console.error(
-              `CI / required is not green for exact main SHA ${sha} (${states || 'check missing'}).`,
+          const requiredCheckNames = [
+            'CI / required',
+            'Analyze (javascript-typescript)',
+            'Analyze (actions)',
+          ];
+
+          for (const name of requiredCheckNames) {
+            const matchingChecks = payload.check_runs.filter(
+              (check) => check?.name === name && check?.app?.slug === 'github-actions',
             );
-            process.exit(1);
+            const green = matchingChecks.some(
+              (check) => check?.status === 'completed' && check?.conclusion === 'success',
+            );
+            if (!green) {
+              const states = matchingChecks
+                .map((check) => `${check?.status ?? 'unknown'}/${check?.conclusion ?? 'none'}`)
+                .join(', ');
+              console.error(
+                `${name} is not green for exact main SHA ${sha} (${states || 'check missing'}).`,
+              );
+              process.exit(1);
+            }
           }
 
-          console.log(`Verified green CI / required for exact main SHA ${sha}.`);
+          console.log(`Verified green CI / required and CodeQL analyses for exact main SHA ${sha}.`);
           NODE
 
   preflight:

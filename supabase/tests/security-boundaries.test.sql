@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(24);
+SELECT plan(27);
 
 -- Helt syntetiska identiteter och rader. Testerna ska aldrig bero på live-data.
 INSERT INTO auth.users (id, email, raw_user_meta_data)
@@ -10,14 +10,16 @@ VALUES
   ('11111111-1111-4111-8111-111111111111', 'owner-a@example.invalid', '{"full_name":"Owner A"}'::jsonb),
   ('22222222-2222-4222-8222-222222222222', 'member-a@example.invalid', '{"full_name":"Member A"}'::jsonb),
   ('33333333-3333-4333-8333-333333333333', 'owner-b@example.invalid', '{"full_name":"Owner B"}'::jsonb),
-  ('44444444-4444-4444-8444-444444444444', 'delete-me@example.invalid', '{"full_name":"Delete Me"}'::jsonb);
+  ('44444444-4444-4444-8444-444444444444', 'delete-me@example.invalid', '{"full_name":"Delete Me"}'::jsonb),
+  ('55555555-5555-4555-8555-555555555555', 'viewer-b@example.invalid', '{"full_name":"Viewer B"}'::jsonb);
 
 INSERT INTO public.profiles (id, display_name)
 VALUES
   ('11111111-1111-4111-8111-111111111111', 'Owner A'),
   ('22222222-2222-4222-8222-222222222222', 'Member A'),
   ('33333333-3333-4333-8333-333333333333', 'Owner B'),
-  ('44444444-4444-4444-8444-444444444444', 'Delete Me')
+  ('44444444-4444-4444-8444-444444444444', 'Delete Me'),
+  ('55555555-5555-4555-8555-555555555555', 'Viewer B')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.groups (id, name, created_by)
@@ -29,7 +31,8 @@ INSERT INTO public.memberships (group_id, user_id, role, status)
 VALUES
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-4111-8111-111111111111', 'owner', 'active'),
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '22222222-2222-4222-8222-222222222222', 'member', 'active'),
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '33333333-3333-4333-8333-333333333333', 'owner', 'active');
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '33333333-3333-4333-8333-333333333333', 'owner', 'active'),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '55555555-5555-4555-8555-555555555555', 'member', 'active');
 
 INSERT INTO public.places (id, name, category, address, city, added_by)
 VALUES (
@@ -58,12 +61,19 @@ VALUES (
 );
 
 INSERT INTO public.visit_group_links (visit_id, group_id, link_type, linked_by)
-VALUES (
-  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-  'original',
-  '11111111-1111-4111-8111-111111111111'
-);
+VALUES
+  (
+    'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'original',
+    '11111111-1111-4111-8111-111111111111'
+  ),
+  (
+    'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    'shared',
+    '33333333-3333-4333-8333-333333333333'
+  );
 
 INSERT INTO public.visit_participants (visit_id, user_id)
 VALUES
@@ -84,6 +94,17 @@ VALUES (
   1234,
   800,
   600
+);
+
+INSERT INTO public.visit_media_group_visibility (
+  media_id, visit_id, group_id, delivery_token, granted_by
+)
+VALUES (
+  'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+  'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  'ffffffff-ffff-4fff-8fff-ffffffffffff',
+  '22222222-2222-4222-8222-222222222222'
 );
 
 INSERT INTO storage.objects (bucket_id, name, owner)
@@ -331,6 +352,42 @@ SELECT results_eq(
       AND name = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/dddddddd-dddd-4ddd-8ddd-dddddddddddd/22222222-2222-4222-8222-222222222222.jpg'$$,
   ARRAY[0::bigint],
   'non-member cannot read the private storage object'
+);
+
+RESET ROLE;
+
+SELECT ok(
+  (
+    public.resolve_visit_photo_delivery_v1(
+      'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      '55555555-5555-4555-8555-555555555555'
+    )->>'storagePath'
+  ) = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/dddddddd-dddd-4ddd-8ddd-dddddddddddd/22222222-2222-4222-8222-222222222222.jpg',
+  'cross-group delivery token resolves while viewer still has target-group membership'
+);
+
+UPDATE public.memberships
+SET status = 'left',
+    left_at = now()
+WHERE group_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  AND user_id = '55555555-5555-4555-8555-555555555555';
+
+SELECT ok(
+  public.resolve_visit_photo_delivery_v1(
+    'ffffffff-ffff-4fff-8fff-ffffffffffff',
+    '55555555-5555-4555-8555-555555555555'
+  ) IS NULL,
+  'old cross-group delivery token is rejected after target-group membership is removed'
+);
+
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub = '55555555-5555-4555-8555-555555555555';
+
+SELECT throws_ok(
+  $sql$SELECT public.get_group_app_state_v5n('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')$sql$,
+  'P0001',
+  'Not a member of group',
+  'left member cannot read group state with the same authenticated identity'
 );
 
 RESET ROLE;
