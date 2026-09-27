@@ -234,6 +234,39 @@ async function openVisitDialog(page: Page, occasions: string[]) {
   return dialog;
 }
 
+test("#363 första poängsatta omdömet visar guiden även när Typ av upplevelse redan finns", async ({
+  page,
+}, testInfo) => {
+  await startVisitRegistration(page, ["avslappnat"], {
+    reviewContextSeen: false,
+  });
+
+  const dialog = page.getByRole("dialog", { name: "Registrera besök" });
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByText(/Kul att du ska lämna ditt första omdöme!/),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Smak: 5 av 5" }),
+  ).toHaveCount(0);
+
+  await stabilize(page);
+  await expectNoHorizontalOverflow(page, dialog);
+  await capture(page, testInfo, "issue-363-forsta-omdome-befintlig-typ");
+
+  await dialog.getByRole("button", { name: "Jag förstår" }).click();
+
+  await expect(
+    dialog.getByRole("button", { name: "Smak: 5 av 5" }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText("Typ av upplevelse", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText("Avslappnat", { exact: true }),
+  ).toBeVisible();
+});
+
 test("#307 På plats visar Atmosfär och härlett helhetsbetyg", async ({ page }, testInfo) => {
   const dialog = await openVisitDialog(page, ["avslappnat"]);
 
