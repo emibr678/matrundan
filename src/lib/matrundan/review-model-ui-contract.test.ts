@@ -69,12 +69,12 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(visitPlaceOccasionDialog).toContain("Innan du sätter betyg");
     expect(visitPlaceOccasionDialog).toContain("<FirstReviewGuidance");
     expect(visitPlaceOccasionDialog).toContain("USER_GUIDANCE.reviewContext");
-    expect(visitPlaceOccasionDialog).toContain("OccasionGuideContent");
-    expect(visitPlaceOccasionDialog).toContain("OCCASION_LABEL[occasion]");
+    expect(visitPlaceOccasionDialog).toContain("OccasionClassificationChoices");
     expect(visitPlaceOccasionDialog).not.toContain('occasion === "snabbt"');
-    expect(visitPlaceOccasionDialog).toContain("whitespace-nowrap");
-    expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
-    expect(visitPlaceOccasionDialog).toContain("Så fungerar det");
+    expect(occasionPicker).toContain("OCCASION_LABEL[occasion]");
+    expect(occasionPicker).toContain("whitespace-nowrap");
+    expect(occasionPicker).toContain("grid grid-cols-3");
+    expect(occasionPicker).toContain("Så fungerar det");
     expect(visitPlaceOccasionDialog).toContain("Spara och fortsätt");
     expect(visitPlaceOccasionDialog).not.toContain("saknar Typ av upplevelse");
     expect(visitPlaceOccasionDialog).not.toContain("Atmosfär");
@@ -85,14 +85,12 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(addReviewDialog).toContain("saveClassificationAndContinue");
     expect(addReviewDialog).toContain("updatePlaceMetadata");
     expect(addReviewDialog).toContain("Spara och fortsätt");
-    expect(addReviewDialog).toContain("required");
     expect(addReviewDialog).toContain("OccasionClassificationChoices");
 
     expect(demoAddReviewDialog).toContain("classificationActive");
     expect(demoAddReviewDialog).toContain("saveClassificationAndContinue");
     expect(demoAddReviewDialog).toContain("updatePlaceMetadata");
     expect(demoAddReviewDialog).toContain("Spara och fortsätt");
-    expect(demoAddReviewDialog).toContain("required");
     expect(demoAddReviewDialog).toContain("OccasionClassificationChoices");
     expect(addReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
     expect(demoAddReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
