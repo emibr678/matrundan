@@ -16,7 +16,7 @@ async function applyMissingFilters(page: Page) {
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
   const missing = filterSheet.getByRole("group", { name: "Filtrera på saknade uppgifter" });
   await missing.getByRole("button", { name: "Kök/inriktning", exact: true }).click();
-  await missing.getByRole("button", { name: "Passar för", exact: true }).click();
+  await missing.getByRole("button", { name: "Typ av upplevelse", exact: true }).click();
   await filterSheet.getByRole("button", { name: /Visa \d+/ }).click();
 }
 
@@ -52,7 +52,7 @@ test("ställen med saknade uppgifter kan filtreras fram och kompletteras", async
   const foodDialog = page.getByRole("dialog", { name: "Kök och inriktning" });
   await foodDialog.getByRole("option", { name: "Japanskt" }).click();
   await foodDialog.getByRole("button", { name: "Klar" }).click();
-  await editDialog.getByRole("button", { name: "Passar för: Avslappnat", exact: true }).click();
+  await editDialog.getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true }).click();
   await editDialog.getByRole("button", { name: "Spara ändringar" }).click();
   await expect(editDialog).toBeHidden();
 
