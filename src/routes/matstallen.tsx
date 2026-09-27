@@ -1,6 +1,8 @@
 import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import {
   ChevronDown,
   ChevronRight,
@@ -49,7 +51,12 @@ import {
 } from "@/lib/matrundan/types";
 import { VISIT_MEAL_LABEL } from "@/lib/matrundan/visit-context";
 
+const placesSearchSchema = z.object({
+  add: z.enum(["place"]).optional(),
+});
+
 export const Route = createFileRoute("/matstallen")({
+  validateSearch: zodValidator(placesSearchSchema),
   head: () => ({
     meta: [
       { title: appPageTitle("Matställen") },
@@ -103,6 +110,7 @@ function toggleFilterValue<T extends string>(values: readonly T[], value: T): T[
 function PlacesIndex() {
   const { state, demoReadOnly, avgRating, isFavorite, statusOf } = useStore();
   const { exampleMode } = useSession();
+  const search = Route.useSearch();
   const navigate = useNavigate({ from: "/matstallen" });
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<PlaceCategory | "alla">("alla");
@@ -234,6 +242,20 @@ function PlacesIndex() {
     setAddOpen(open);
     if (!open) setAddInitialQuery("");
   };
+
+  React.useEffect(() => {
+    if (search.add !== "place") return;
+
+    if (canWrite) {
+      setAddInitialQuery("");
+      setAddOpen(true);
+    }
+
+    void navigate({
+      search: { add: undefined },
+      replace: true,
+    });
+  }, [canWrite, navigate, search.add]);
 
   const activePlaceCountLabel =
     activePlaces.length === 1 ? "1 ställe" : `${activePlaces.length} ställen`;

@@ -68,12 +68,10 @@ type DayResponse = {
 export function NextStopCard({
   activePlaces,
   canWrite,
-  onAddPlace,
   onRegisterVisit,
 }: {
   activePlaces: Place[];
   canWrite: boolean;
-  onAddPlace: () => void;
   onRegisterVisit: (placeId: string) => void;
 }) {
   const { state, getPlace } = useStore();
@@ -417,8 +415,10 @@ export function NextStopCard({
                   <Link to="/matstallen">Föreslå ett ställe</Link>
                 </Button>
               ) : (
-                <Button type="button" onClick={onAddPlace}>
-                  Lägg till första stället
+                <Button asChild>
+                  <Link to="/matstallen" search={{ add: "place" }}>
+                    Lägg till första stället
+                  </Link>
                 </Button>
               )}
             </div>

@@ -1,12 +1,11 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Heart, Plus, Star, UserPlus } from "lucide-react";
+import { ChevronRight, Heart, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { appPageTitle } from "@/lib/app-environment";
 import { useStore } from "@/lib/matrundan/store";
-import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
 import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
@@ -42,7 +41,6 @@ export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
   const { pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
   const productTourActive = useProductTourActive();
-  const [addOpen, setAddOpen] = React.useState(false);
   const [visitTarget, setVisitTarget] = React.useState<{
     placeId: string;
     completeNextStopOnSave: boolean;
@@ -170,7 +168,6 @@ export function Home() {
       <NextStopCard
         activePlaces={activePlaces}
         canWrite={canWrite}
-        onAddPlace={() => setAddOpen(true)}
         onRegisterVisit={(placeId) =>
           setVisitTarget({ placeId, completeNextStopOnSave: true })
         }
@@ -253,34 +250,13 @@ export function Home() {
         </section>
       ) : null}
 
-      <section className={canWrite ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
-        {canWrite ? (
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-14 rounded-2xl"
-            onClick={() => setAddOpen(true)}
-          >
-            <Plus className="h-4 w-4" /> Lägg till ställe
-          </Button>
-        ) : null}
-        <Button asChild variant="outline" size="lg" className="h-14 rounded-2xl">
-          <Link to="/matstallen">
-            <Star className="h-4 w-4" /> Bläddra listan
-          </Link>
-        </Button>
-      </section>
-
       {canWrite ? (
-        <>
-          <AddPlaceDialog open={addOpen} onOpenChange={setAddOpen} />
-          <VisitDialog
-            open={visitTarget !== null}
-            onOpenChange={(open) => !open && setVisitTarget(null)}
-            placeId={visitTarget?.placeId ?? null}
-            completeNextStopOnSave={visitTarget?.completeNextStopOnSave ?? false}
-          />
-        </>
+        <VisitDialog
+          open={visitTarget !== null}
+          onOpenChange={(open) => !open && setVisitTarget(null)}
+          placeId={visitTarget?.placeId ?? null}
+          completeNextStopOnSave={visitTarget?.completeNextStopOnSave ?? false}
+        />
       ) : null}
     </div>
   );
