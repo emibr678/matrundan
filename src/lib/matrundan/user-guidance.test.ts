@@ -75,6 +75,25 @@ describe("user guidance", () => {
     ).toBe(false);
   });
 
+  test("Passar för-modellen och omdömeskontexten är separata lärdomar", () => {
+    const acknowledged = new Set(["occasion-model@1"] as const);
+
+    expect(
+      guidanceAcknowledgedForPresentation(
+        acknowledged,
+        new Set(),
+        USER_GUIDANCE.occasionModel,
+      ),
+    ).toBe(true);
+    expect(
+      guidanceAcknowledgedForPresentation(
+        acknowledged,
+        new Set(),
+        USER_GUIDANCE.reviewContext,
+      ),
+    ).toBe(false);
+  });
+
   test("kvittering av preview avslutar simuleringen utan databasväg", () => {
     expect(
       resolveGuidanceAcknowledgementAction({
