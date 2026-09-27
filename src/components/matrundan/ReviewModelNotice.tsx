@@ -28,7 +28,7 @@ export function ReviewModelNotice({ model }: { model: ReviewModel }) {
             type="button"
             variant="ghost"
             size="sm"
-            className="h-auto min-h-8 rounded-full px-2 py-1 text-xs text-muted-foreground"
+            className="h-auto min-h-8 rounded-full bg-transparent px-2 py-1 text-xs text-muted-foreground hover:bg-transparent"
             aria-label={
               takeaway
                 ? "Varför ingår inte Atmosfär vid Hämtmat?"
