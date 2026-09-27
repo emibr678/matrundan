@@ -18,7 +18,7 @@ export function FirstReviewExplanation() {
       <div className="rounded-2xl bg-secondary/40 p-4">
         <div className="text-sm font-medium">Tre typer av matupplevelser</div>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Ett matställe kan passa in i en eller två.
+          Ett matställe kan beskrivas med en eller två av dem.
         </p>
         <div className="mt-3">
           <OccasionGuideContent
