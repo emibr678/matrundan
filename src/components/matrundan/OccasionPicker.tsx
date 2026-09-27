@@ -22,12 +22,15 @@ import {
   normalizeOccasionClassification,
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
+import { useSession } from "@/lib/matrundan/session";
 import {
   OCCASION_DESCRIPTION,
   OCCASION_LABEL,
   OCCASION_VALUES,
   type Occasion,
 } from "@/lib/matrundan/types";
+import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
+import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 
 const OccasionGuideTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
@@ -95,6 +98,57 @@ export function OccasionGuideContent({
   );
 }
 
+export function OccasionFirstTimeGuide({
+  active = true,
+}: {
+  active?: boolean;
+}) {
+  const { mode, user } = useSession();
+  const { status, isAcknowledged, isPreviewing } = useUserGuidance();
+  const [visibleForUserId, setVisibleForUserId] = React.useState<string | null>(
+    null,
+  );
+  const occasionGuideAcknowledged = isAcknowledged(USER_GUIDANCE.occasionGuide);
+  const occasionGuidePreviewing = isPreviewing(USER_GUIDANCE.occasionGuide);
+
+  React.useEffect(() => {
+    const userId = user?.id;
+    if (!active || mode !== "live" || !userId) {
+      setVisibleForUserId(null);
+      return;
+    }
+    if (
+      occasionGuidePreviewing ||
+      (status === "ready" && !occasionGuideAcknowledged)
+    ) {
+      setVisibleForUserId(userId);
+    }
+  }, [
+    active,
+    mode,
+    occasionGuideAcknowledged,
+    occasionGuidePreviewing,
+    status,
+    user?.id,
+  ]);
+
+  if (!active || mode !== "live" || !user?.id || visibleForUserId !== user.id) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-2xl bg-secondary/40 p-3">
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        <strong className="font-medium text-foreground">
+          Bedöm stället i rätt sammanhang.
+        </strong>{" "}
+        En pizzeria och en finkrog är olika slags upplevelser, men båda kan vara
+        fullträffar och få lika höga betyg vid rätt tillfälle.
+      </p>
+    </div>
+  );
+}
+
 export function OccasionGuide({ compact = false }: { compact?: boolean }) {
   const isMobile = useIsMobile();
 
@@ -151,12 +205,17 @@ export function OccasionPicker({
   required?: boolean;
   description?: string;
 }) {
+  const { acknowledge } = useUserGuidance();
   const descriptionId = `${id}-description`;
   const selected = normalizeOccasionClassification(value);
   const atLimit = selected.length >= 2;
 
   function handleChange(occasion: Occasion) {
-    onChange(toggleOccasionSelection(selected, occasion));
+    const next = toggleOccasionSelection(selected, occasion);
+    onChange(next);
+    if (required && next.length > 0) {
+      void acknowledge(USER_GUIDANCE.occasionGuide);
+    }
   }
 
   return (
@@ -172,6 +231,7 @@ export function OccasionPicker({
         {description ??
           (required ? "Välj en eller två." : "Valfritt – välj upp till två.")}
       </p>
+      <OccasionFirstTimeGuide active={required} />
       <div
         className="flex flex-wrap gap-2"
         role="group"
