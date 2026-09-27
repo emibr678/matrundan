@@ -120,8 +120,8 @@ export function VisitPlaceOccasionDialog({
             </DialogDescription>
           ) : (
             <DialogDescription className="leading-relaxed">
-              Välj en eller två typer av upplevelse som bäst beskriver stället
-              och när ni skulle välja det. Valet sparas för gruppen.
+              Välj den typ av upplevelse som bäst beskriver stället – eller två
+              om båda passar. Valet sparas för gruppen.
             </DialogDescription>
           )}
         </DialogHeader>
