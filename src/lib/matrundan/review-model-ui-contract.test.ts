@@ -86,14 +86,14 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(addReviewDialog).toContain("updatePlaceMetadata");
     expect(addReviewDialog).toContain("Spara och fortsätt");
     expect(addReviewDialog).toContain("required");
-    expect(addReviewDialog).toContain("showInstructions={false}");
+    expect(addReviewDialog).toContain("OccasionClassificationChoices");
 
     expect(demoAddReviewDialog).toContain("classificationActive");
     expect(demoAddReviewDialog).toContain("saveClassificationAndContinue");
     expect(demoAddReviewDialog).toContain("updatePlaceMetadata");
     expect(demoAddReviewDialog).toContain("Spara och fortsätt");
     expect(demoAddReviewDialog).toContain("required");
-    expect(demoAddReviewDialog).toContain("showInstructions={false}");
+    expect(demoAddReviewDialog).toContain("OccasionClassificationChoices");
     expect(addReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
     expect(demoAddReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
   });
@@ -104,7 +104,9 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(firstReviewGuidance).toContain("Båda");
     expect(firstReviewGuidance).toContain("kan få lika höga betyg");
     expect(firstReviewGuidance).toContain("Tre typer av matupplevelser");
-    expect(firstReviewGuidance).toContain("Ett matställe kan passa in i en eller två.");
+    expect(firstReviewGuidance).toContain(
+      "Ett matställe kan beskrivas med en eller två av dem.",
+    );
     expect(firstReviewGuidance).toContain("showConclusion={false}");
     expect(firstReviewGuidance).toContain("Jag förstår");
     expect(addReviewDialog).toContain("firstGuidanceActive");
@@ -113,6 +115,8 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
 
   test("helhetsbetyget presenteras som härlett i stället för separat input", () => {
     expect(scoreFields).toContain("Helhetsbetyg");
+    expect(scoreFields).toContain("contextOccasions");
+    expect(scoreFields).toContain("<OccasionSummary");
     expect(scoreFields).toContain("deriveReviewOverall");
     expect(scoreFields).toContain('label="Atmosfär"');
     expect(scoreFields).toContain("— / 5");
@@ -154,6 +158,8 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(occasionPicker).toContain("Typ av upplevelse");
     expect(occasionPicker).toContain("Så fungerar det");
     expect(occasionPicker).toContain("showInstructions");
+    expect(occasionPicker).toContain("OccasionClassificationChoices");
+    expect(occasionPicker).toContain("OccasionSummary");
   });
 
   test("3D-reviews använder ordinarie härlett flöde och explicit modelluppgradering", () => {
