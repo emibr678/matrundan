@@ -154,6 +154,15 @@ function groupState(occasions: string[]) {
 async function mockBackend(page: Page, initialOccasions: string[]) {
   let occasions = [...initialOccasions];
 
+  await page.route("**/rest/v1/user_guidance_state**", async (route) => {
+    const method = route.request().method();
+    await route.fulfill({
+      status: method === "GET" ? 200 : 201,
+      contentType: "application/json",
+      body: "[]",
+    });
+  });
+
   await page.route("**/rest/v1/rpc/**", async (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
     if (rpc === "list_user_groups_v4b") {
@@ -305,9 +314,26 @@ test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen",
 }, testInfo) => {
   await startVisitRegistration(page, []);
 
+  const intro = page.getByRole("dialog", { name: "Innan du sätter betyg" });
+  await expect(intro).toBeVisible();
+  await expect(
+    intro.getByText("Kul att du ska lämna ditt första omdöme!", { exact: true }),
+  ).toBeVisible();
+  await expect(intro.getByText("Tre typer av matupplevelser", { exact: true })).toBeVisible();
+  await expect(intro.getByText(/Ett enkelt gatukök och en finkrog/)).toBeVisible();
+  await stabilize(page);
+  await expectNoHorizontalOverflow(page, intro);
+  await capture(page, testInfo, "issue-307-forsta-omdomesintro");
+  await intro.getByRole("button", { name: "Jag förstår", exact: true }).click();
+
   const gate = page.getByRole("dialog", { name: "Hur skulle ni beskriva matupplevelsen?" });
   await expect(gate).toBeVisible();
-  await expect(gate.getByText(/Välj en eller två/)).toBeVisible();
+  await expect(
+    gate.getByText(
+      /Välj en eller två typer av upplevelse som bäst beskriver stället/,
+    ),
+  ).toBeVisible();
+  await expect(gate.getByText(/Valet sparas för gruppen/)).toBeVisible();
   await expect(gate.getByText(/saknar Typ av upplevelse/)).toHaveCount(0);
   await expect(gate.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
