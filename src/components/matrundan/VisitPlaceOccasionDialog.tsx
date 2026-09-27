@@ -11,13 +11,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
-import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
-import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
-import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import { type Occasion, type Place } from "@/lib/matrundan/types";
 import { FirstReviewGuidance } from "./FirstReviewGuidance";
 import { OccasionClassificationChoices } from "./OccasionPicker";
+import { useReviewContextGate } from "./useReviewContextGate";
 
 export function VisitPlaceOccasionDialog({
   open,
@@ -28,34 +26,21 @@ export function VisitPlaceOccasionDialog({
   place: Place;
   onCancel: () => void;
 }) {
-  const { mode, user } = useSession();
   const { updatePlaceMetadata, submitting } = useStore();
-  const { status, isAcknowledged, isPreviewing, acknowledge } =
-    useUserGuidance();
   const [selected, setSelected] = React.useState<Occasion[]>([]);
   const [saving, setSaving] = React.useState(false);
-  const [guidanceAccepted, setGuidanceAccepted] = React.useState(false);
 
-  const reviewContextAcknowledged = isAcknowledged(
-    USER_GUIDANCE.reviewContext,
-  );
-  const showFirstGuidance =
-    mode === "live" &&
-    Boolean(user?.id) &&
-    (isPreviewing(USER_GUIDANCE.reviewContext) ||
-      (status === "ready" && !reviewContextAcknowledged));
-  const firstGuidanceActive = showFirstGuidance && !guidanceAccepted;
+  const reviewGuidance = useReviewContextGate({
+    open,
+    eligible: true,
+  });
+  const firstGuidanceActive = reviewGuidance.state === "guide";
+  const firstGuidanceLoading = reviewGuidance.state === "loading";
 
   React.useEffect(() => {
     if (!open) return;
     setSelected([]);
-    setGuidanceAccepted(false);
   }, [open, place.id]);
-
-  function acceptGuidance() {
-    void acknowledge(USER_GUIDANCE.reviewContext);
-    setGuidanceAccepted(true);
-  }
 
   async function saveAndContinue() {
     const occasions = normalizeOccasionClassification(selected);
@@ -91,16 +76,26 @@ export function VisitPlaceOccasionDialog({
       onOpenChange={(nextOpen) => !nextOpen && !busy && onCancel()}
     >
       <DialogContent
-        key={firstGuidanceActive ? "guidance" : "classification"}
+        key={
+          firstGuidanceLoading
+            ? "guidance-loading"
+            : firstGuidanceActive
+              ? "guidance"
+              : "classification"
+        }
         className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg"
       >
         <DialogHeader className="pr-8 text-left">
           <DialogTitle className="font-display text-2xl">
-            {firstGuidanceActive
-              ? "Innan du sätter betyg"
-              : "Hur skulle ni beskriva matupplevelsen?"}
+            {firstGuidanceLoading
+              ? "Hur skulle ni beskriva matupplevelsen?"
+              : firstGuidanceActive
+                ? "Innan du sätter betyg"
+                : "Hur skulle ni beskriva matupplevelsen?"}
           </DialogTitle>
-          {firstGuidanceActive ? (
+          {firstGuidanceLoading ? (
+            <DialogDescription>Förbereder nästa steg…</DialogDescription>
+          ) : firstGuidanceActive ? (
             <DialogDescription className="sr-only">
               Kort introduktion till Typ av upplevelse och omdömen.
             </DialogDescription>
@@ -112,10 +107,18 @@ export function VisitPlaceOccasionDialog({
           )}
         </DialogHeader>
 
-        {firstGuidanceActive ? (
+        {firstGuidanceLoading ? (
+          <div
+            role="status"
+            className="flex min-h-24 items-center justify-center gap-2 text-sm text-muted-foreground"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Förbereder nästa steg…
+          </div>
+        ) : firstGuidanceActive ? (
           <FirstReviewGuidance
             disabled={busy}
-            onContinue={acceptGuidance}
+            onContinue={reviewGuidance.accept}
           />
         ) : (
           <>

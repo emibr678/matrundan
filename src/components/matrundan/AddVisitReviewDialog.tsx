@@ -20,8 +20,6 @@ import {
   reviewRatingsComplete,
 } from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
-import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
-import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion, Place } from "@/lib/matrundan/types";
 import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
@@ -29,6 +27,7 @@ import { FirstReviewGuidance } from "./FirstReviewGuidance";
 import { OccasionClassificationChoices } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 import { VisitPhotoField } from "./VisitPhotoField";
+import { useReviewContextGate } from "./useReviewContextGate";
 
 export function AddVisitReviewDialog({
   visitId,
@@ -51,10 +50,8 @@ export function AddVisitReviewDialog({
   onSaved?: () => void | Promise<void>;
   onExit?: () => void;
 }) {
-  const { activeGroupId, mode, user } = useSession();
+  const { activeGroupId } = useSession();
   const { state, saveVisitPhoto, updatePlaceMetadata } = useStore();
-  const { status, isAcknowledged, isPreviewing, acknowledge } =
-    useUserGuidance();
   const visit = state.visits.find((item) => item.id === visitId);
   const ownPhoto = visit
     ? getOwnVisitPhoto(visit, state.currentUserId)
@@ -69,7 +66,6 @@ export function AddVisitReviewDialog({
   const [classificationSaved, setClassificationSaved] = React.useState(false);
   const [comment, setComment] = React.useState("");
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
-  const [guidanceAccepted, setGuidanceAccepted] = React.useState(false);
 
   React.useEffect(() => {
     if (open) return;
@@ -81,7 +77,6 @@ export function AddVisitReviewDialog({
     setClassificationSaved(false);
     setComment("");
     setPhotoFile(null);
-    setGuidanceAccepted(false);
   }, [open]);
 
   const needsInitialClassification =
@@ -90,23 +85,21 @@ export function AddVisitReviewDialog({
     ? reviewOccasions
     : placeOccasions;
 
-  const reviewContextAcknowledged = isAcknowledged(
-    USER_GUIDANCE.reviewContext,
-  );
-  const showFirstReviewGuide =
-    !scoreless &&
-    mode === "live" &&
-    Boolean(user?.id) &&
-    (isPreviewing(USER_GUIDANCE.reviewContext) ||
-      (status === "ready" && !reviewContextAcknowledged));
-  const firstGuidanceActive = showFirstReviewGuide && !guidanceAccepted;
+  const reviewGuidance = useReviewContextGate({
+    open,
+    eligible: !scoreless,
+  });
+  const firstGuidanceActive = reviewGuidance.state === "guide";
+  const firstGuidanceLoading = reviewGuidance.state === "loading";
+  const guidanceBlocking =
+    firstGuidanceActive || firstGuidanceLoading;
   const classificationActive =
     !scoreless &&
-    !firstGuidanceActive &&
+    !guidanceBlocking &&
     needsInitialClassification &&
     !classificationSaved;
   const reviewActive =
-    scoreless || (!firstGuidanceActive && !classificationActive);
+    scoreless || (!guidanceBlocking && !classificationActive);
 
   const model =
     scoreless || !reviewActive
@@ -125,11 +118,6 @@ export function AddVisitReviewDialog({
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen && open && !saving) onExit?.();
-  }
-
-  function acceptGuidance() {
-    void acknowledge(USER_GUIDANCE.reviewContext);
-    setGuidanceAccepted(true);
   }
 
   async function saveClassificationAndContinue() {
@@ -242,9 +230,11 @@ export function AddVisitReviewDialog({
       </DialogTrigger>
       <DialogContent
         key={
-          firstGuidanceActive
-            ? "guidance"
-            : classificationActive
+          firstGuidanceLoading
+            ? "guidance-loading"
+            : firstGuidanceActive
+              ? "guidance"
+              : classificationActive
               ? "classification"
               : "review"
         }
@@ -252,15 +242,19 @@ export function AddVisitReviewDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {firstGuidanceActive
-              ? "Innan du sätter betyg"
-              : classificationActive
+            {firstGuidanceLoading
+              ? "Ditt omdöme"
+              : firstGuidanceActive
+                ? "Innan du sätter betyg"
+                : classificationActive
                 ? "Hur skulle ni beskriva matupplevelsen?"
                 : scoreless
                   ? "Din kommentar"
                   : "Ditt omdöme"}
           </DialogTitle>
-          {firstGuidanceActive ? (
+          {firstGuidanceLoading ? (
+            <DialogDescription>Förbereder omdömet…</DialogDescription>
+          ) : firstGuidanceActive ? (
             <DialogDescription className="sr-only">
               Kort introduktion till Typ av upplevelse och omdömen.
             </DialogDescription>
@@ -278,10 +272,18 @@ export function AddVisitReviewDialog({
           )}
         </DialogHeader>
 
-        {firstGuidanceActive ? (
+        {firstGuidanceLoading ? (
+          <div
+            role="status"
+            className="flex min-h-24 items-center justify-center gap-2 text-sm text-muted-foreground"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Förbereder omdömet…
+          </div>
+        ) : firstGuidanceActive ? (
           <FirstReviewGuidance
             disabled={saving}
-            onContinue={acceptGuidance}
+            onContinue={reviewGuidance.accept}
           />
         ) : classificationActive ? (
           <div className="space-y-4">

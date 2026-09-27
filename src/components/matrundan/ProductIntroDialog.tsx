@@ -76,6 +76,20 @@ function homeRoute(exampleMode: boolean) {
   return exampleMode ? ("/exempel" as const) : ("/" as const);
 }
 
+function tourStepForPath(pathname: string, exampleMode: boolean) {
+  if (pathname === "/matstallen") return 0;
+  if (pathname === homeRoute(exampleMode)) return 1;
+  if (pathname === "/gruppen") return 2;
+  return null;
+}
+
+function focusMainContent() {
+  if (typeof window === "undefined") return;
+  window.requestAnimationFrame(() => {
+    document.getElementById("innehall")?.focus({ preventScroll: true });
+  });
+}
+
 export function openProductIntro() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event(OPEN_PRODUCT_INTRO_EVENT));
@@ -256,14 +270,34 @@ export function ProductIntroController({
   const [tourMode, setTourMode] = React.useState<TourMode | null>(null);
   const [tourStep, setTourStep] = React.useState(0);
   const autoHandledUsers = React.useRef(new Set<string>());
+  const tourNavigationTarget = React.useRef<string | null>(null);
   const coreIntroAcknowledged = isAcknowledged(USER_GUIDANCE.coreIntro);
+
+  const acknowledgeTourIfNeeded = React.useCallback(
+    (currentMode: TourMode | null) => {
+      if (currentMode === "automatic" && mode === "live") {
+        void acknowledge(USER_GUIDANCE.coreIntro);
+      }
+    },
+    [acknowledge, mode],
+  );
+
+  const navigateWithinTour = React.useCallback(
+    (to: ReturnType<typeof tourRoute>) => {
+      tourNavigationTarget.current = to;
+      void router.navigate({ to, replace: true });
+    },
+    [router],
+  );
 
   const startTour = React.useCallback(
     (nextMode: TourMode) => {
+      const firstRoute = tourRoute(0, exampleMode);
       setOpen(false);
       setTourStep(0);
+      tourNavigationTarget.current = firstRoute;
       setTourMode(nextMode);
-      void router.navigate({ to: tourRoute(0, exampleMode) });
+      void router.navigate({ to: firstRoute, replace: true });
     },
     [exampleMode, router],
   );
@@ -322,32 +356,60 @@ export function ProductIntroController({
 
   React.useEffect(() => {
     if (mode === "live" && tourMode && (!user || !activeGroupId)) {
+      tourNavigationTarget.current = null;
       setTourMode(null);
     }
   }, [activeGroupId, mode, tourMode, user]);
 
-  function acknowledgeTourIfNeeded(currentMode: TourMode | null) {
-    if (currentMode === "automatic" && mode === "live") {
-      void acknowledge(USER_GUIDANCE.coreIntro);
+  React.useEffect(() => {
+    if (!tourMode) {
+      tourNavigationTarget.current = null;
+      return;
     }
-  }
+
+    const pendingTarget = tourNavigationTarget.current;
+    if (pendingTarget) {
+      if (pathname !== pendingTarget) return;
+      tourNavigationTarget.current = null;
+    }
+
+    const routeStep = tourStepForPath(pathname, exampleMode);
+    if (routeStep !== null) {
+      setTourStep((current) =>
+        current === routeStep ? current : routeStep,
+      );
+      return;
+    }
+
+    acknowledgeTourIfNeeded(tourMode);
+    setTourMode(null);
+    focusMainContent();
+  }, [
+    acknowledgeTourIfNeeded,
+    exampleMode,
+    pathname,
+    tourMode,
+  ]);
 
   function skipTour() {
     acknowledgeTourIfNeeded(tourMode);
+    tourNavigationTarget.current = null;
     setTourMode(null);
+    focusMainContent();
   }
 
   function nextTourStep() {
     if (tourStep >= TOUR_STEPS.length - 1) {
       acknowledgeTourIfNeeded(tourMode);
+      tourNavigationTarget.current = null;
       setTourMode(null);
-      void router.navigate({ to: homeRoute(exampleMode) });
+      void router
+        .navigate({ to: homeRoute(exampleMode), replace: true })
+        .then(focusMainContent);
       return;
     }
 
-    const nextStep = tourStep + 1;
-    setTourStep(nextStep);
-    void router.navigate({ to: tourRoute(nextStep, exampleMode) });
+    navigateWithinTour(tourRoute(tourStep + 1, exampleMode));
   }
 
   function handleOpenAbout() {

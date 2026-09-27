@@ -46,12 +46,14 @@ import {
   findRegistrationVisitDuplicate,
   type StrongVisitDuplicateCandidate,
 } from "@/lib/matrundan/visit-duplicates";
+import { FirstReviewGuidance } from "./FirstReviewGuidance";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
 import { OccasionPicker } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 import { ShareVisitDialog } from "./ShareVisitDialog";
 import { VisitDuplicatePrompt } from "./VisitDuplicatePrompt";
 import { VisitPhotoField } from "./VisitPhotoField";
+import { useReviewContextGate } from "./useReviewContextGate";
 
 interface DraftGuest {
   id: string;
@@ -118,6 +120,14 @@ export function VisitDialog({
   const [sharePhoto, setSharePhoto] = React.useState(false);
   const [shareComment, setShareComment] = React.useState(false);
   const scoredVisit = visitMealHasScore(meal);
+  const reviewGuidance = useReviewContextGate({
+    open,
+    eligible: scoredVisit,
+  });
+  const reviewGuidanceActive = reviewGuidance.state === "guide";
+  const reviewGuidanceLoading = reviewGuidance.state === "loading";
+  const reviewGuidanceBlocking =
+    reviewGuidanceActive || reviewGuidanceLoading;
   const currentUserParticipates = participants.includes(state.currentUserId);
   const canShare = showShareSection && currentUserParticipates && shareableGroups.length > 0;
   const hasComment = currentUserParticipates && comment.trim().length > 0;
@@ -658,7 +668,20 @@ export function VisitDialog({
                   </div>
                 ) : null}
 
-                {reviewModel ? (
+                {reviewGuidanceLoading ? (
+                  <div
+                    role="status"
+                    className="flex min-h-24 items-center justify-center gap-2 rounded-2xl border border-border/70 bg-secondary/40 p-4 text-sm text-muted-foreground"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Förbereder omdömet…
+                  </div>
+                ) : reviewGuidanceActive ? (
+                  <FirstReviewGuidance
+                    disabled={isBusy}
+                    onContinue={reviewGuidance.accept}
+                  />
+                ) : reviewModel ? (
                   <ReviewScoreFields
                     model={reviewModel}
                     contextOccasions={
@@ -694,7 +717,7 @@ export function VisitDialog({
               </div>
             )}
 
-            {!scoredVisit || reviewModel ? (
+            {!reviewGuidanceBlocking && (!scoredVisit || reviewModel) ? (
               <div className="space-y-1.5">
                 <Label htmlFor="comment">Kommentar (frivilligt)</Label>
                 <Textarea
