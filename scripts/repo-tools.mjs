@@ -148,6 +148,7 @@ function isMapFile(file) {
 function isDatabaseFile(file) {
   return (
     file.startsWith("supabase/migrations/") ||
+    file.startsWith("supabase/tests/") ||
     file === "supabase/config.toml" ||
     file === "src/integrations/supabase/types.ts" ||
     file === "scripts/supabase-types.sh"

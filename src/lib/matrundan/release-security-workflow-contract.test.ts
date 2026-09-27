@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 const publicReadinessWorkflow = ".github/workflows/public-readiness.yml";
 const ciWorkflow = ".github/workflows/ci.yml";
+const repoToolsScript = "scripts/repo-tools.mjs";
 const prodPreflightWorkflow = ".github/workflows/cloudflare-prod-preflight.yml";
 
 describe("release-security gate", () => {
@@ -36,6 +37,12 @@ describe("release-security gate", () => {
     expect(workflow).toContain("Verify production artifact contains no server secrets");
     expect(workflow).toContain("cloudflare-secret-leak-check.mjs");
     expect(workflow).not.toContain("supabase db push");
+  });
+
+  test("changes to Supabase security tests trigger database CI", () => {
+    const source = readFileSync(resolve(process.cwd(), repoToolsScript), "utf8");
+
+    expect(source).toContain('file.startsWith("supabase/tests/")');
   });
 
   test("dependency review is limited to dependency-changing pull requests and merge-critical when relevant", () => {
