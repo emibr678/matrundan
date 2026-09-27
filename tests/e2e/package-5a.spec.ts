@@ -115,7 +115,7 @@ test("exempelgruppen använder samma #307-logik som registreringsflödet", async
   await expect(classification).toBeVisible();
   await expect(
     classification.getByText(
-      "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället. Valet sparas för gruppen.",
+      "Välj en eller två typer av upplevelse som bäst beskriver stället och när ni skulle välja det. Valet sparas för gruppen.",
       { exact: true },
     ),
   ).toBeVisible();
