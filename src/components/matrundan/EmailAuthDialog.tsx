@@ -57,7 +57,7 @@ function friendlyError(error: unknown, fallback: string) {
     message.includes("pwned") ||
     message.includes("compromised")
   ) {
-    return "Lösenordet uppfyller inte säkerhetskraven. Välj ett längre och mer unikt lösenord.";
+    return "Lösenordet är för lätt att gissa eller finns i kända läckor. Välj ett längre och mer unikt lösenord.";
   }
   if (
     code.includes("rate_limit") ||
@@ -230,7 +230,10 @@ export function EmailAuthDialog({
                 </button>
               </div>
               {mode === "signup" ? (
-                <p className="text-xs text-muted-foreground">Minst 8 tecken.</p>
+                <p className="text-xs text-muted-foreground">
+                  Minst 8 tecken. Undvik vanliga lösenord – nya lösenord kontrolleras mot kända
+                  läckor.
+                </p>
               ) : null}
             </div>
           ) : null}
