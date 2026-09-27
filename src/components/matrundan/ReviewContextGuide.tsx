@@ -28,9 +28,8 @@ export function ReviewContextGuideContent({
         <div className="font-medium">Olika matupplevelser, olika betyg</div>
       ) : null}
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Ett enkelt gatukök och en finkrog är olika slags matupplevelser och
-        behöver inte jämföras som om de vore samma sak. Båda kan få lika höga
-        betyg – fast av olika skäl.
+        Ett enkelt gatukök och en finkrog är olika slags matupplevelser. Båda
+        kan få lika höga betyg – fast av olika skäl.
       </p>
       <p className="text-xs leading-relaxed text-muted-foreground">
         Typ av upplevelse visar om matstället är Snabbt & enkelt, Avslappnat
