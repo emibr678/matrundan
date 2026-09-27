@@ -151,7 +151,11 @@ function groupState(occasions: string[]) {
   };
 }
 
-async function mockBackend(page: Page, initialOccasions: string[]) {
+async function mockBackend(
+  page: Page,
+  initialOccasions: string[],
+  { reviewContextSeen = true }: { reviewContextSeen?: boolean } = {},
+) {
   let occasions = [...initialOccasions];
 
   await page.route("**/rest/v1/user_guidance_state**", async (route) => {
@@ -159,7 +163,15 @@ async function mockBackend(page: Page, initialOccasions: string[]) {
     await route.fulfill({
       status: method === "GET" ? 200 : 201,
       contentType: "application/json",
-      body: "[]",
+      body:
+        method === "GET" && reviewContextSeen
+          ? JSON.stringify([
+              {
+                guidance_key: "review-context",
+                guidance_version: 1,
+              },
+            ])
+          : "[]",
     });
   });
 
@@ -203,10 +215,14 @@ async function mockBackend(page: Page, initialOccasions: string[]) {
   });
 }
 
-async function startVisitRegistration(page: Page, occasions: string[]) {
+async function startVisitRegistration(
+  page: Page,
+  occasions: string[],
+  options?: { reviewContextSeen?: boolean },
+) {
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
   await seedSession(page);
-  await mockBackend(page, occasions);
+  await mockBackend(page, occasions, options);
   await page.goto(`/matstallen/${PLACE_ID}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Registrera besök" }).click();
 }
@@ -324,7 +340,7 @@ test("#307 Hämtmat utelämnar Atmosfär och härleder tre dimensioner", async (
 test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen", async ({
   page,
 }, testInfo) => {
-  await startVisitRegistration(page, []);
+  await startVisitRegistration(page, [], { reviewContextSeen: false });
 
   const intro = page.getByRole("dialog", { name: "Innan du sätter betyg" });
   await expect(intro).toBeVisible();
