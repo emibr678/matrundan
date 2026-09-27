@@ -143,6 +143,96 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
   );
 }
 
+export function OccasionClassificationChoices({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: Occasion[];
+  onChange: (value: Occasion[]) => void;
+  disabled?: boolean;
+}) {
+  const [showGuide, setShowGuide] = React.useState(false);
+  const selected = normalizeOccasionClassification(value);
+  const atLimit = selected.length >= 2;
+
+  return (
+    <div className="space-y-3">
+      <div
+        className="grid grid-cols-3 gap-2"
+        role="group"
+        aria-label="Typ av upplevelse"
+      >
+        {OCCASION_VALUES.map((occasion) => {
+          const active = selected.includes(occasion);
+          return (
+            <button
+              key={occasion}
+              type="button"
+              aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
+              aria-pressed={active}
+              disabled={disabled || (atLimit && !active)}
+              onClick={() =>
+                onChange(toggleOccasionSelection(selected, occasion))
+              }
+              className={`min-h-16 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
+                active
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/70 bg-background hover:bg-secondary/60"
+              }`}
+            >
+              <span className="block whitespace-nowrap">
+                {OCCASION_LABEL[occasion]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-expanded={showGuide}
+        onClick={() => setShowGuide((current) => !current)}
+      >
+        <CircleHelp className="h-4 w-4" />
+        Så fungerar det
+      </button>
+
+      {showGuide ? (
+        <div className="rounded-2xl bg-secondary/40 p-3">
+          <OccasionGuideContent />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function OccasionSummary({ value }: { value: Occasion[] }) {
+  const selected = normalizeOccasionClassification(value);
+  if (selected.length === 0) return null;
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-2 px-1"
+      aria-label="Typ av upplevelse"
+    >
+      <span className="text-xs font-medium text-muted-foreground">
+        Typ av upplevelse
+      </span>
+      {selected.map((occasion) => (
+        <Badge
+          key={occasion}
+          variant="secondary"
+          className="rounded-full px-2.5 py-0.5 text-xs"
+        >
+          {OCCASION_LABEL[occasion]}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 export function OccasionPicker({
   id,
   value,
