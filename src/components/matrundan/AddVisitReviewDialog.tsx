@@ -257,7 +257,6 @@ export function AddVisitReviewDialog({
               occasions={activeOccasions}
               model={model}
               isTakeaway={isTakeaway}
-              showOccasionModel={false}
               showReviewContext={showReviewContextGuide}
               disabled={saving}
               onContinue={() => {
