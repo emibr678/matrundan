@@ -17,7 +17,7 @@ describe("release-security gate", () => {
     expect(workflow).toContain("GITHUB_TOKEN: ${{ github.token }}");
   });
 
-  test("production credentials remain behind public-readiness and exact-main CI", () => {
+  test("production credentials remain behind public-readiness, exact-main CI and CodeQL", () => {
     const workflow = readFileSync(resolve(process.cwd(), prodPreflightWorkflow), "utf8");
     const publicReadinessIndex = workflow.indexOf("Release security / public readiness");
     const exactCiIndex = workflow.indexOf("Release security / exact main CI");
@@ -29,6 +29,9 @@ describe("release-security gate", () => {
     expect(workflow).toContain("uses: ./.github/workflows/public-readiness.yml");
     expect(workflow).toContain("checks: read");
     expect(workflow).toContain("CI / required");
+    expect(workflow).toContain("'Analyze (javascript-typescript)'");
+    expect(workflow).toContain("'Analyze (actions)'");
+    expect(workflow).toContain("Verified green CI / required and CodeQL analyses");
     expect(workflow).toContain("needs: main_ci");
     expect(workflow).toContain("Verify production artifact contains no server secrets");
     expect(workflow).toContain("cloudflare-secret-leak-check.mjs");

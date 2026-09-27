@@ -288,11 +288,19 @@ rätt grupproll. Den negativa regressionen ligger i
 
 Autentisering och profilflöde:
 
-- appen initierar Google OAuth via Supabase Auth;
+- appen stöder både Google OAuth och e-post/lösenord via Supabase Auth, inklusive
+  e-postbekräftelse och lösenordsåterställning när Auth-konfigurationen kräver det;
 - Supabase Auth håller den externa provideridentiteten och rå provider-metadata,
-  bland annat e-post, provider-ID, namn och avatar när Google levererar dem;
+  bland annat e-post, provider-ID, namn och avatar när Google levererar dem, samt
+  lösenordshash och e-postidentitet för lösenordskonton. Rått lösenord lagras inte
+  i Matrundans egna tabeller;
 - `public.profiles` är den gruppsynliga projektionen och innehåller användar-ID,
-  visningsnamn och avatar, inte provider-token eller providerhemligheter;
+  visningsnamn och avatar, inte e-postadress, lösenordshash, provider-token eller
+  providerhemligheter;
+- e-post/lösenord har en serverstyrd Auth-baslinje: minsta lösenordslängd ska vara
+  minst 8 tecken och Supabases leaked-password protection ska vara aktiverat i
+  miljöer där lösenordskonton tillåts. Klientens längdkontroll är endast UX och
+  får inte betraktas som den auktoritativa säkerhetsgränsen;
 - provider-/user-metadata används för profilbootstrap, aldrig som grupproll eller
   behörighetskälla. Behörighet kommer från signerad Supabase-session,
   `auth.uid()`, `memberships`, RLS och avgränsade RPC:er.
