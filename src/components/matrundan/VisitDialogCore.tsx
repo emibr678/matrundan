@@ -674,7 +674,7 @@ export function VisitDialog({
                   <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
                     <p className="text-sm font-medium">Spara besöket nu, omdömet kan vänta</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Besöket sparas även utan omdöme. Välj Passar för ovan om du vill betygsätta
+                      Besöket sparas även utan omdöme. Välj Typ av upplevelse ovan om du vill betygsätta
                       direkt, eller komplettera ditt omdöme senare.
                     </p>
                   </div>
