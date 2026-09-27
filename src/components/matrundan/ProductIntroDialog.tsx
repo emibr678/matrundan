@@ -48,14 +48,21 @@ const TOUR_STEPS = [
   {
     label: "Hem",
     title: "Se vad gruppen har på gång",
-    description:
-      "Matställen kan föreslås som Nästa stopp – det matställe gruppen planerar att besöka härnäst. På Hem ser ni vad som står på tur, hur mycket av er samling ni hunnit prova och ert senaste gemensamma besök.",
+    description: (
+      <>
+        När ni har bestämt vilket matställe ni vill besöka härnäst kan ni göra
+        det till{" "}
+        <strong className="font-medium text-foreground">Nästa stopp</strong>. På
+        Hem ser ni vad som står på tur, hur mycket av er samling ni hunnit prova
+        och ert senaste gemensamma besök.
+      </>
+    ),
   },
   {
     label: "Gruppen",
     title: "Se människorna bakom rundan",
     description:
-      "Här ligger fokus på medlemmarna. Se medlemmarnas favoriter, besök och framsteg, och följ gruppens gemensamma höjdpunkter och aktivitet. Ett besök räknas bara för dem som faktiskt var med.",
+      "Här samlas den personliga sidan av Matrundan: medlemmarnas favoriter, besök och framsteg, tillsammans med gruppens gemensamma höjdpunkter och aktivitet.",
   },
 ] as const;
 
