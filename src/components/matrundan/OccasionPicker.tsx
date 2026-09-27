@@ -43,7 +43,7 @@ const OccasionGuideTrigger = React.forwardRef<
     aria-label="Vad betyder Typ av upplevelse?"
   >
     <CircleHelp className="h-4 w-4" />
-    {compact ? null : <span>Så fungerar det</span>}
+    {compact ? null : <span>Vad betyder alternativen?</span>}
   </Button>
 ));
 OccasionGuideTrigger.displayName = "OccasionGuideTrigger";
@@ -51,9 +51,11 @@ OccasionGuideTrigger.displayName = "OccasionGuideTrigger";
 export function OccasionGuideContent({
   showHeading = true,
   showIntro = true,
+  showConclusion = true,
 }: {
   showHeading?: boolean;
   showIntro?: boolean;
+  showConclusion?: boolean;
 }) {
   return (
     <div className="min-w-0 space-y-3">
@@ -71,9 +73,8 @@ export function OccasionGuideContent({
               Matrundan skiljer på olika typer av matupplevelser.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Ett enkelt gatukök och en finkrog är olika slags upplevelser och
-              behöver inte jämföras som om de vore samma sak. Båda kan få lika
-              höga betyg – fast av olika skäl.
+              Ett enkelt gatukök och en finkrog är olika slags matupplevelser.
+              Båda kan få lika höga betyg – fast av olika skäl.
             </p>
           </>
         ) : null}
@@ -90,11 +91,13 @@ export function OccasionGuideContent({
           </div>
         ))}
       </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Ett matställe kan passa in i en eller två typer av upplevelser. Det
-        hjälper gruppen att hitta rätt sorts matställe för stunden och gör
-        betygen lättare att förstå och jämföra.
-      </p>
+      {showConclusion ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Ett matställe kan passa in i en eller två typer av upplevelser. Det
+          hjälper gruppen att hitta rätt sorts matställe för stunden och gör
+          betygen lättare att förstå och jämföra.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -148,6 +151,7 @@ export function OccasionPicker({
   required = false,
   description,
   showGuide = true,
+  showInstructions = true,
 }: {
   id: string;
   value: Occasion[];
@@ -156,8 +160,12 @@ export function OccasionPicker({
   required?: boolean;
   description?: string;
   showGuide?: boolean;
+  showInstructions?: boolean;
 }) {
   const descriptionId = `${id}-description`;
+  const descriptionText =
+    description ??
+    (required ? "Välj en eller två." : "Valfritt – välj upp till två.");
   const selected = normalizeOccasionClassification(value);
   const atLimit = selected.length >= 2;
 
@@ -171,18 +179,20 @@ export function OccasionPicker({
         <Label id={`${id}-label`}>Typ av upplevelse</Label>
         {showGuide ? <OccasionGuide /> : null}
       </div>
-      <p
-        id={descriptionId}
-        className="text-xs leading-relaxed text-muted-foreground"
-      >
-        {description ??
-          (required ? "Välj en eller två." : "Valfritt – välj upp till två.")}
-      </p>
+      {showInstructions ? (
+        <p
+          id={descriptionId}
+          className="text-xs leading-relaxed text-muted-foreground"
+        >
+          {descriptionText}
+        </p>
+      ) : null}
       <div
         className="flex flex-wrap gap-2"
         role="group"
         aria-labelledby={`${id}-label`}
-        aria-describedby={descriptionId}
+        aria-describedby={showInstructions ? descriptionId : undefined}
+        aria-required={required || undefined}
       >
         {OCCASION_VALUES.map((occasion) => {
           const isSelected = selected.includes(occasion);
@@ -198,7 +208,7 @@ export function OccasionPicker({
           );
         })}
       </div>
-      {required && selected.length === 0 ? (
+      {showInstructions && required && selected.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           Välj minst ett alternativ för att fortsätta.
         </p>
