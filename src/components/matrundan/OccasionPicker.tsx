@@ -22,15 +22,12 @@ import {
   normalizeOccasionClassification,
   toggleOccasionSelection,
 } from "@/lib/matrundan/occasions";
-import { useSession } from "@/lib/matrundan/session";
 import {
   OCCASION_DESCRIPTION,
   OCCASION_LABEL,
   OCCASION_VALUES,
   type Occasion,
 } from "@/lib/matrundan/types";
-import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
-import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 
 const OccasionGuideTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
@@ -94,57 +91,6 @@ export function OccasionGuideContent({
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-export function OccasionFirstTimeGuide({
-  active = true,
-}: {
-  active?: boolean;
-}) {
-  const { mode, user } = useSession();
-  const { status, isAcknowledged, isPreviewing } = useUserGuidance();
-  const [visibleForUserId, setVisibleForUserId] = React.useState<string | null>(
-    null,
-  );
-  const occasionGuideAcknowledged = isAcknowledged(USER_GUIDANCE.reviewContext);
-  const occasionGuidePreviewing = isPreviewing(USER_GUIDANCE.reviewContext);
-
-  React.useEffect(() => {
-    const userId = user?.id;
-    if (!active || mode !== "live" || !userId) {
-      setVisibleForUserId(null);
-      return;
-    }
-    if (
-      occasionGuidePreviewing ||
-      (status === "ready" && !occasionGuideAcknowledged)
-    ) {
-      setVisibleForUserId(userId);
-    }
-  }, [
-    active,
-    mode,
-    occasionGuideAcknowledged,
-    occasionGuidePreviewing,
-    status,
-    user?.id,
-  ]);
-
-  if (!active || mode !== "live" || !user?.id || visibleForUserId !== user.id) {
-    return null;
-  }
-
-  return (
-    <div className="rounded-2xl bg-secondary/40 p-3">
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        <strong className="font-medium text-foreground">
-          Bedöm stället i rätt sammanhang.
-        </strong>{" "}
-        En pizzeria och en finkrog är olika slags upplevelser, men båda kan vara
-        fullträffar och få lika höga betyg vid rätt tillfälle.
-      </p>
     </div>
   );
 }

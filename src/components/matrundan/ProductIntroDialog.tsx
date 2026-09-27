@@ -224,7 +224,7 @@ function ProductTourCard({
           Hoppa över
         </Button>
         <Button type="button" onClick={onNext}>
-          {last ? "Till Hem" : "Nästa"}
+          {last ? "Nu kör vi" : "Nästa"}
         </Button>
       </div>
     </aside>

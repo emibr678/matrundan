@@ -21,12 +21,7 @@ import {
   type Occasion,
   type Place,
 } from "@/lib/matrundan/types";
-import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
-import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
-import {
-  OccasionFirstTimeGuide,
-  OccasionGuideContent,
-} from "./OccasionPicker";
+import { OccasionGuideContent } from "./OccasionPicker";
 
 export function VisitPlaceOccasionDialog({
   open,
@@ -38,7 +33,6 @@ export function VisitPlaceOccasionDialog({
   onCancel: () => void;
 }) {
   const { updatePlaceMetadata, submitting } = useStore();
-  const { acknowledge } = useUserGuidance();
   const [selected, setSelected] = React.useState<Occasion[]>([]);
   const [showGuide, setShowGuide] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -50,11 +44,7 @@ export function VisitPlaceOccasionDialog({
   }, [open, place.id]);
 
   function handleSelection(occasion: Occasion) {
-    const next = toggleOccasionSelection(selected, occasion);
-    setSelected(next);
-    if (next.length > 0) {
-      void acknowledge(USER_GUIDANCE.occasionGuide);
-    }
+    setSelected(toggleOccasionSelection(selected, occasion));
   }
 
   async function saveAndContinue() {
@@ -95,13 +85,12 @@ export function VisitPlaceOccasionDialog({
           </DialogTitle>
           <DialogDescription className="leading-relaxed">
             Välj en eller två kategorier som bäst beskriver när ni skulle välja
-            stället. Valet sparas för gruppen.
+            stället. Det hjälper gruppen att hitta rätt matställe för olika
+            tillfällen.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          <OccasionFirstTimeGuide active={open} />
-
           <div
             className="grid grid-cols-3 gap-2"
             role="group"
