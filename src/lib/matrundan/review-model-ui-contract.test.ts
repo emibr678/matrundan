@@ -19,6 +19,10 @@ const firstReviewGuidance = readFileSync(
   resolve(root, "src/components/matrundan/FirstReviewGuidance.tsx"),
   "utf8",
 );
+const reviewContextGate = readFileSync(
+  resolve(root, "src/components/matrundan/useReviewContextGate.ts"),
+  "utf8",
+);
 const occasionPicker = readFileSync(
   resolve(root, "src/components/matrundan/OccasionPicker.tsx"),
   "utf8",
@@ -68,7 +72,7 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(visitPlaceOccasionDialog).toContain("Valet sparas för gruppen.");
     expect(visitPlaceOccasionDialog).toContain("Innan du sätter betyg");
     expect(visitPlaceOccasionDialog).toContain("<FirstReviewGuidance");
-    expect(visitPlaceOccasionDialog).toContain("USER_GUIDANCE.reviewContext");
+    expect(visitPlaceOccasionDialog).toContain("useReviewContextGate");
     expect(visitPlaceOccasionDialog).toContain("OccasionClassificationChoices");
     expect(visitPlaceOccasionDialog).not.toContain('occasion === "snabbt"');
     expect(occasionPicker).toContain("OCCASION_LABEL[occasion]");
@@ -107,6 +111,13 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     );
     expect(firstReviewGuidance).toContain("showConclusion={false}");
     expect(firstReviewGuidance).toContain("Jag förstår");
+    expect(reviewContextGate).toContain("USER_GUIDANCE.reviewContext");
+    expect(reviewContextGate).toContain(
+      'ReviewContextGateState = "ready" | "loading" | "guide"',
+    );
+    expect(addReviewDialog).toContain("useReviewContextGate");
+    expect(visitPlaceOccasionDialog).toContain("useReviewContextGate");
+    expect(visitDialogCore).toContain("useReviewContextGate");
     expect(addReviewDialog).toContain("firstGuidanceActive");
     expect(addReviewDialog).toContain("classificationActive");
   });
