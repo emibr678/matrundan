@@ -20,7 +20,6 @@ export function StagingTestToolsDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { isPreviewing, preview, clearPreview } = useUserGuidance();
-  const occasionModelPreviewing = isPreviewing(USER_GUIDANCE.occasionModel);
   const reviewContextPreviewing = isPreviewing(USER_GUIDANCE.reviewContext);
 
   if (!IS_STAGING) return null;
@@ -73,50 +72,15 @@ export function StagingTestToolsDialog({
           </div>
 
           <div className="rounded-2xl border border-border/70 p-4">
-            <div className="font-medium">Passar för-modellen</div>
+            <div className="font-medium">Typ av upplevelse och omdömen</div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Visar alla tre Passar för-kategorierna nästa gång modellen blir
-              relevant. Ditt riktiga kvitto lämnas orört.
-            </p>
-            {occasionModelPreviewing ? (
-              <div className="mt-2 text-xs font-medium text-amber-800">
-                Simuleringen väntar på nästa Passar för- eller omdömesflöde.
-              </div>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-3 min-h-11"
-              onClick={() =>
-                occasionModelPreviewing
-                  ? clearPreview(USER_GUIDANCE.occasionModel)
-                  : preview(USER_GUIDANCE.occasionModel)
-              }
-            >
-              {occasionModelPreviewing ? (
-                <>
-                  <RotateCcw className="h-4 w-4" aria-hidden />
-                  Avbryt simulering
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4" aria-hidden />
-                  Simulera osedd
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="rounded-2xl border border-border/70 p-4">
-            <div className="font-medium">Omdömets sammanhang</div>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Visar förstagångshjälpen nästa gång du lämnar ett poängsatt
-              omdöme. Ditt riktiga kvitto lämnas orört.
+              Visar samma sammanhängande första-gångenförklaring nästa gång Typ
+              av upplevelse eller ett poängsatt omdöme blir relevant. Ditt
+              riktiga kvitto lämnas orört.
             </p>
             {reviewContextPreviewing ? (
               <div className="mt-2 text-xs font-medium text-amber-800">
-                Simuleringen väntar på nästa poängsatta omdöme.
+                Simuleringen väntar på nästa relevanta flöde.
               </div>
             ) : null}
             <Button

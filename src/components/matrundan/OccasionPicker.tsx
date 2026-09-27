@@ -40,7 +40,7 @@ const OccasionGuideTrigger = React.forwardRef<
     variant="ghost"
     size="sm"
     className="min-h-11 rounded-full px-2 text-xs text-muted-foreground"
-    aria-label="Vad betyder Passar för?"
+    aria-label="Vad betyder Typ av upplevelse?"
   >
     <CircleHelp className="h-4 w-4" />
     {compact ? null : <span>Så fungerar det</span>}
@@ -50,23 +50,33 @@ OccasionGuideTrigger.displayName = "OccasionGuideTrigger";
 
 export function OccasionGuideContent({
   showHeading = true,
+  showIntro = true,
 }: {
   showHeading?: boolean;
+  showIntro?: boolean;
 }) {
   return (
     <div className="min-w-0 space-y-3">
       <div>
         {showHeading ? (
-          <div className="font-medium">Så fungerar Passar för</div>
+          <div className="font-medium">Typ av upplevelse</div>
         ) : null}
-        <p
-          className={`${
-            showHeading ? "mt-1 " : ""
-          }text-xs leading-relaxed text-muted-foreground`}
-        >
-          Passar för beskriver vilken typ av matupplevelse ni skulle välja
-          stället för. Ett matställe kan passa för en eller två kategorier.
-        </p>
+        {showIntro ? (
+          <>
+            <p
+              className={`${
+                showHeading ? "mt-1 " : ""
+              }text-xs leading-relaxed text-muted-foreground`}
+            >
+              Matrundan skiljer på olika typer av matupplevelser.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Ett snabbt gatukök och en finkrog är olika slags upplevelser och
+              behöver inte jämföras som om de vore samma sak. Båda kan få lika
+              höga betyg – fast av olika skäl.
+            </p>
+          </>
+        ) : null}
       </div>
       <div className="space-y-2.5">
         {OCCASION_VALUES.map((occasion) => (
@@ -81,12 +91,9 @@ export function OccasionGuideContent({
         ))}
       </div>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Valet hjälper gruppen att hitta och filtrera matställen för olika
-        tillfällen. Det sätter också sammanhanget för nya omdömen. Om bara{" "}
-        <strong className="font-medium text-foreground">
-          {OCCASION_LABEL.snabbt}
-        </strong>{" "}
-        är valt ingår inte Atmosfär i helhetsbetyget.
+        Ett matställe kan passa in i en eller två typer av upplevelser. Det
+        hjälper gruppen att hitta rätt sorts matställe för stunden och gör
+        betygen lättare att förstå och jämföra.
       </p>
     </div>
   );
@@ -103,7 +110,7 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
         </DialogTrigger>
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-sm">
           <DialogHeader className="pr-8 text-left">
-            <DialogTitle>Passar för</DialogTitle>
+            <DialogTitle>Typ av upplevelse</DialogTitle>
           </DialogHeader>
           <OccasionGuideContent showHeading={false} />
           <DialogFooter>
@@ -161,7 +168,7 @@ export function OccasionPicker({
   return (
     <div className="space-y-2">
       <div className="flex min-h-11 items-center justify-between gap-2">
-        <Label id={`${id}-label`}>Passar för</Label>
+        <Label id={`${id}-label`}>Typ av upplevelse</Label>
         {showGuide ? <OccasionGuide /> : null}
       </div>
       <p
@@ -217,7 +224,7 @@ function OccasionButton({
     <button
       type="button"
       disabled={disabled}
-      aria-label={`Passar för: ${OCCASION_LABEL[occasion]}`}
+      aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
       aria-pressed={selected}
       aria-describedby={`${id}-description`}
       onClick={onClick}

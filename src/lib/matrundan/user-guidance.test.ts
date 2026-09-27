@@ -12,9 +12,6 @@ import {
 describe("user guidance", () => {
   test("har stabila versionsstyrda identifierare", () => {
     expect(guidanceIdentifier(USER_GUIDANCE.coreIntro)).toBe("core-intro@1");
-    expect(guidanceIdentifier(USER_GUIDANCE.occasionModel)).toBe(
-      "occasion-model@1",
-    );
     expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe(
       "review-context@1",
     );
@@ -24,12 +21,9 @@ describe("user guidance", () => {
     expect(
       guidanceRowsToIdentifiers([
         { guidance_key: "core-intro", guidance_version: 1 },
-        { guidance_key: "occasion-model", guidance_version: 1 },
         { guidance_key: "review-context", guidance_version: 1 },
       ]),
-    ).toEqual(
-      new Set(["core-intro@1", "occasion-model@1", "review-context@1"]),
-    );
+    ).toEqual(new Set(["core-intro@1", "review-context@1"]));
   });
 
   test("registret innehåller unika nyckel- och versionspar", () => {
@@ -56,42 +50,6 @@ describe("user guidance", () => {
     expect(
       setGuidancePreview(previews, USER_GUIDANCE.reviewContext, false),
     ).toEqual(new Set());
-  });
-
-  test("kan simulera Passar för-modellen separat från omdömesguiden", () => {
-    const previews = setGuidancePreview(
-      new Set(),
-      USER_GUIDANCE.occasionModel,
-      true,
-    );
-
-    expect(previews).toEqual(new Set(["occasion-model@1"]));
-    expect(
-      guidanceAcknowledgedForPresentation(
-        new Set(["occasion-model@1"]),
-        previews,
-        USER_GUIDANCE.occasionModel,
-      ),
-    ).toBe(false);
-  });
-
-  test("Passar för-modellen och omdömeskontexten är separata lärdomar", () => {
-    const acknowledged = new Set(["occasion-model@1"] as const);
-
-    expect(
-      guidanceAcknowledgedForPresentation(
-        acknowledged,
-        new Set(),
-        USER_GUIDANCE.occasionModel,
-      ),
-    ).toBe(true);
-    expect(
-      guidanceAcknowledgedForPresentation(
-        acknowledged,
-        new Set(),
-        USER_GUIDANCE.reviewContext,
-      ),
-    ).toBe(false);
   });
 
   test("kvittering av preview avslutar simuleringen utan databasväg", () => {

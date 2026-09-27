@@ -25,8 +25,11 @@ import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion } from "@/lib/matrundan/types";
 import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
-import { FirstReviewGuidance } from "./FirstReviewGuidance";
-import { OccasionGuideContent, OccasionPicker } from "./OccasionPicker";
+import {
+  FirstReviewExplanation,
+  FirstReviewGuidance,
+} from "./FirstReviewGuidance";
+import { OccasionPicker } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 import { VisitPhotoField } from "./VisitPhotoField";
 
@@ -100,29 +103,25 @@ export function AddVisitReviewDialog({
     atmosphere,
   });
 
-  const occasionModelAcknowledged = isAcknowledged(
-    USER_GUIDANCE.occasionModel,
-  );
   const reviewContextAcknowledged = isAcknowledged(
     USER_GUIDANCE.reviewContext,
   );
-  const guidanceEligible =
-    !scoreless && mode === "live" && Boolean(user?.id);
-  const showOccasionModelGuide =
-    guidanceEligible &&
-    (isPreviewing(USER_GUIDANCE.occasionModel) ||
-      (status === "ready" && !occasionModelAcknowledged));
-  const showReviewContextGuide =
-    guidanceEligible &&
+  const showFirstReviewGuide =
+    !scoreless &&
+    mode === "live" &&
+    Boolean(user?.id) &&
     (isPreviewing(USER_GUIDANCE.reviewContext) ||
       (status === "ready" && !reviewContextAcknowledged));
-  const needsFirstReviewGuidance =
-    showOccasionModelGuide || showReviewContextGuide;
-  const ratingsUnlocked = !needsFirstReviewGuidance || guidanceAccepted;
+  const ratingsUnlocked = !showFirstReviewGuide || guidanceAccepted;
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen && open && !saving) onExit?.();
+  }
+
+  function acceptGuidance() {
+    void acknowledge(USER_GUIDANCE.reviewContext);
+    setGuidanceAccepted(true);
   }
 
   async function save() {
@@ -136,13 +135,13 @@ export function AddVisitReviewDialog({
         return;
       }
     } else if (!classificationComplete) {
-      toast.error("Välj vad stället passar för först.");
+      toast.error("Välj typ av upplevelse först.");
       return;
     } else if (!model || !complete) {
       toast.error(
         model
           ? "Sätt alla relevanta betyg."
-          : "Välj vad stället passar för först.",
+          : "Välj typ av upplevelse först.",
       );
       return;
     }
@@ -160,10 +159,6 @@ export function AddVisitReviewDialog({
             ? reviewOccasions
             : undefined,
       });
-
-      if (!scoreless) {
-        void acknowledge(USER_GUIDANCE.reviewContext);
-      }
 
       if (photoFile && visit) {
         try {
@@ -222,18 +217,21 @@ export function AddVisitReviewDialog({
           <DialogDescription>
             {scoreless
               ? `${placeName}. Dryckesbesöket räknas som ett besök men påverkar inte ställets betyg.`
-              : `${placeName}. Helhetsbetyget räknas automatiskt från de relevanta delarna.`}
+              : placeName}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {!scoreless && showOccasionModelGuide ? (
-            <div className="rounded-2xl bg-secondary/40 p-4">
-              <OccasionGuideContent />
-            </div>
+          {!scoreless &&
+          showFirstReviewGuide &&
+          !guidanceAccepted &&
+          placeNeedsOccasionClassification ? (
+            <FirstReviewExplanation />
           ) : null}
 
-          {!scoreless && placeNeedsOccasionClassification ? (
+          {!scoreless &&
+          placeNeedsOccasionClassification &&
+          (!showFirstReviewGuide || !guidanceAccepted) ? (
             <div className="rounded-2xl bg-secondary/40 p-4">
               <OccasionPicker
                 id={`visit-review-occasions-${visitId}`}
@@ -241,30 +239,22 @@ export function AddVisitReviewDialog({
                 onChange={setReviewOccasions}
                 disabled={saving}
                 required
-                showGuide={!showOccasionModelGuide}
-                description="Stället saknar Passar för. Välj en eller två kategorier innan du fortsätter till betyget."
+                showGuide={!showFirstReviewGuide}
+                description="Välj en eller två typer av upplevelse innan du fortsätter till betyget."
               />
             </div>
           ) : null}
 
           {!scoreless &&
-          model &&
-          classificationComplete &&
-          needsFirstReviewGuidance &&
-          !guidanceAccepted ? (
+          showFirstReviewGuide &&
+          !guidanceAccepted &&
+          classificationComplete ? (
             <FirstReviewGuidance
-              placeName={placeName}
               occasions={activeOccasions}
-              model={model}
-              isTakeaway={isTakeaway}
-              showReviewContext={showReviewContextGuide}
+              showExplanation={!placeNeedsOccasionClassification}
+              showCurrentType={!placeNeedsOccasionClassification}
               disabled={saving}
-              onContinue={() => {
-                if (showOccasionModelGuide) {
-                  void acknowledge(USER_GUIDANCE.occasionModel);
-                }
-                setGuidanceAccepted(true);
-              }}
+              onContinue={acceptGuidance}
             />
           ) : null}
 
@@ -341,4 +331,3 @@ export function AddVisitReviewDialog({
     </Dialog>
   );
 }
-

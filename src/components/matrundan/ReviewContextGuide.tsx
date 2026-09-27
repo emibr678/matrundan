@@ -25,37 +25,16 @@ export function ReviewContextGuideContent({
   return (
     <div className="space-y-2">
       {showHeading ? (
-        <div className="font-medium">Bedöm stället i rätt sammanhang</div>
+        <div className="font-medium">Olika matupplevelser, olika betyg</div>
       ) : null}
       <p className="text-xs leading-relaxed text-muted-foreground">
-        En pizzeria och en finkrog är olika slags upplevelser, men båda kan vara
-        fullträffar och få lika höga betyg vid rätt tillfälle.
+        Ett snabbt gatukök och en finkrog är olika slags matupplevelser och
+        behöver inte jämföras som om de vore samma sak. Båda kan få lika höga
+        betyg – fast av olika skäl.
       </p>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Bedöm hur väl stället lyckas med den upplevelse och de förväntningar som
-        är rimliga för den typen av ställe – inte hur påkostat det är.
-      </p>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Passar för hjälper gruppen att sätta sammanhanget. Smak, service,
-        prisvärdhet och ibland atmosfär bygger sedan helhetsbetyget.
-      </p>
-    </div>
-  );
-}
-
-export function ReviewContextFirstTimeNotice() {
-  return (
-    <div className="rounded-2xl bg-secondary/40 p-3">
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        <strong className="font-medium text-foreground">
-          Bedöm stället i rätt sammanhang.
-        </strong>{" "}
-        En pizzeria och en finkrog är olika slags upplevelser, men båda kan vara
-        fullträffar och få lika höga betyg vid rätt tillfälle.
-      </p>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-        Utgå från hur väl stället lyckas med den upplevelse du faktiskt hade –
-        inte hur påkostat det är.
+        Typ av upplevelse visar om matstället är Snabbt & enkelt, Avslappnat
+        eller Något extra.
       </p>
     </div>
   );
@@ -72,10 +51,10 @@ const ReviewContextTrigger = React.forwardRef<
     variant="ghost"
     size="sm"
     className="h-auto min-h-9 rounded-full px-2 py-1 text-xs text-muted-foreground"
-    aria-label="Varför ska stället bedömas i rätt sammanhang?"
+    aria-label="Hur hänger typ av upplevelse och betyg ihop?"
   >
     <CircleHelp className="h-3.5 w-3.5" />
-    Bedöm i rätt sammanhang
+    Om betygen
   </Button>
 ));
 ReviewContextTrigger.displayName = "ReviewContextTrigger";
@@ -91,7 +70,7 @@ export function ReviewContextHelp() {
         </DialogTrigger>
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-sm">
           <DialogHeader className="pr-8 text-left">
-            <DialogTitle>Bedöm stället i rätt sammanhang</DialogTitle>
+            <DialogTitle>Typ av upplevelse och betyg</DialogTitle>
           </DialogHeader>
           <ReviewContextGuideContent showHeading={false} />
           <DialogFooter>
@@ -111,7 +90,10 @@ export function ReviewContextHelp() {
       <PopoverTrigger asChild>
         <ReviewContextTrigger />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl p-4">
+      <PopoverContent
+        align="start"
+        className="w-[calc(100vw-2rem)] max-w-sm rounded-2xl p-4"
+      >
         <ReviewContextGuideContent />
       </PopoverContent>
     </Popover>

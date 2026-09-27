@@ -43,14 +43,14 @@ export function VisitPlaceOccasionDialog({
   const [showGuide, setShowGuide] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
-  const occasionModelAcknowledged = isAcknowledged(
-    USER_GUIDANCE.occasionModel,
+  const reviewContextAcknowledged = isAcknowledged(
+    USER_GUIDANCE.reviewContext,
   );
-  const showOccasionModelGuide =
+  const showFirstGuidance =
     mode === "live" &&
     Boolean(user?.id) &&
-    (isPreviewing(USER_GUIDANCE.occasionModel) ||
-      (status === "ready" && !occasionModelAcknowledged));
+    (isPreviewing(USER_GUIDANCE.reviewContext) ||
+      (status === "ready" && !reviewContextAcknowledged));
 
   React.useEffect(() => {
     if (!open) return;
@@ -77,14 +77,14 @@ export function VisitPlaceOccasionDialog({
         occasions,
         notes: place.notes ?? null,
       });
-      if (showOccasionModelGuide) {
-        void acknowledge(USER_GUIDANCE.occasionModel);
+      if (showFirstGuidance) {
+        void acknowledge(USER_GUIDANCE.reviewContext);
       }
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Kunde inte spara Passar för.",
+          : "Kunde inte spara typ av upplevelse.",
       );
     } finally {
       setSaving(false);
@@ -101,17 +101,17 @@ export function VisitPlaceOccasionDialog({
       <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="pr-8 text-left">
           <DialogTitle className="font-display text-2xl">
-            När passar stället bäst?
+            Hur skulle ni beskriva matupplevelsen?
           </DialogTitle>
           <DialogDescription className="leading-relaxed">
-            {showOccasionModelGuide
-              ? "Passar för beskriver vilken typ av matupplevelse ni skulle välja stället för. Läs igenom alternativen och välj en eller två."
-              : "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället. Det hjälper gruppen att hitta rätt matställe för olika tillfällen."}
+            {showFirstGuidance
+              ? "Innan ni väljer får ni gärna läsa igenom hur Matrundan skiljer på olika typer av matupplevelser."
+              : "Välj en eller två."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          {showOccasionModelGuide ? (
+          {showFirstGuidance ? (
             <div className="rounded-2xl bg-secondary/40 p-3">
               <OccasionGuideContent />
             </div>
@@ -120,7 +120,7 @@ export function VisitPlaceOccasionDialog({
           <div
             className="grid grid-cols-3 gap-2"
             role="group"
-            aria-label="Passar för"
+            aria-label="Typ av upplevelse"
           >
             {OCCASION_VALUES.map((occasion) => {
               const active = selected.includes(occasion);
@@ -129,7 +129,7 @@ export function VisitPlaceOccasionDialog({
                 <button
                   key={occasion}
                   type="button"
-                  aria-label={`Passar för: ${OCCASION_LABEL[occasion]}`}
+                  aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
                   aria-pressed={active}
                   disabled={busy || (atLimit && !active)}
                   onClick={() => handleSelection(occasion)}
@@ -147,7 +147,7 @@ export function VisitPlaceOccasionDialog({
             })}
           </div>
 
-          {!showOccasionModelGuide ? (
+          {!showFirstGuidance ? (
             <>
               <button
                 type="button"
@@ -183,7 +183,7 @@ export function VisitPlaceOccasionDialog({
             onClick={() => void saveAndContinue()}
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {showOccasionModelGuide
+            {showFirstGuidance
               ? "Jag förstår – spara och fortsätt"
               : "Spara och fortsätt"}
           </Button>

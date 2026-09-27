@@ -1,66 +1,61 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  reviewModelIncludesAtmosphere,
-  type ReviewModel,
-} from "@/lib/matrundan/review-model";
 import { OCCASION_LABEL, type Occasion } from "@/lib/matrundan/types";
-import { ReviewContextGuideContent } from "./ReviewContextGuide";
+import { OccasionGuideContent } from "./OccasionPicker";
 
-function reviewPartsDescription(
-  model: ReviewModel,
-  isTakeaway: boolean,
-): string {
-  if (isTakeaway) {
-    return "Eftersom besöket är Hämtmat ingår Smak, Service och Prisvärdhet. Atmosfär ingår inte.";
-  }
-  if (!reviewModelIncludesAtmosphere(model)) {
-    return "I det här omdömet ingår Smak, Service och Prisvärdhet. Atmosfär ingår inte.";
-  }
-  return "I det här omdömet ingår Smak, Service, Prisvärdhet och Atmosfär.";
+export function FirstReviewExplanation() {
+  return (
+    <div className="rounded-2xl bg-secondary/40 p-4">
+      <div className="font-medium">Kul att du vill lämna ett omdöme!</div>
+      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        Innan du sätter betyg vill vi kort visa hur Matrundan skiljer på olika
+        typer av matupplevelser.
+      </p>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+        Ett snabbt gatukök och en finkrog är olika slags upplevelser och behöver
+        inte jämföras som om de vore samma sak. Båda kan få lika höga betyg –
+        fast av olika skäl.
+      </p>
+      <div className="mt-3">
+        <OccasionGuideContent showHeading={false} showIntro={false} />
+      </div>
+    </div>
+  );
 }
 
 export function FirstReviewGuidance({
-  placeName,
   occasions,
-  model,
-  isTakeaway,
-  showReviewContext,
+  showExplanation = true,
+  showCurrentType = true,
   onContinue,
   disabled = false,
 }: {
-  placeName: string;
   occasions: Occasion[];
-  model: ReviewModel;
-  isTakeaway: boolean;
-  showReviewContext: boolean;
+  showExplanation?: boolean;
+  showCurrentType?: boolean;
   onContinue: () => void;
   disabled?: boolean;
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border/70 p-4">
-        <div className="text-xs font-medium text-muted-foreground">
-          {placeName} är markerat som
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {occasions.map((occasion) => (
-            <Badge key={occasion} variant="secondary" className="rounded-full">
-              {OCCASION_LABEL[occasion]}
-            </Badge>
-          ))}
-        </div>
-      </div>
+      {showExplanation ? <FirstReviewExplanation /> : null}
 
-      {showReviewContext ? (
-        <div className="rounded-2xl bg-secondary/40 p-4">
-          <div className="font-medium">Så fungerar omdömen</div>
-          <div className="mt-2">
-            <ReviewContextGuideContent />
+      {showCurrentType ? (
+        <div className="rounded-2xl border border-border/70 p-4">
+          <div className="text-xs font-medium text-muted-foreground">
+            Typ av upplevelse
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            {reviewPartsDescription(model, isTakeaway)}
-          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {occasions.map((occasion) => (
+              <Badge
+                key={occasion}
+                variant="secondary"
+                className="rounded-full"
+              >
+                {OCCASION_LABEL[occasion]}
+              </Badge>
+            ))}
+          </div>
         </div>
       ) : null}
 
@@ -70,7 +65,7 @@ export function FirstReviewGuidance({
         disabled={disabled}
         onClick={onContinue}
       >
-        {showReviewContext ? "Jag förstår – sätt betyg" : "Fortsätt till betyg"}
+        Jag förstår – sätt betyg
       </Button>
     </div>
   );
