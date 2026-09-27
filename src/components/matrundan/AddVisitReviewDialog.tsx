@@ -26,7 +26,7 @@ import { useStore } from "@/lib/matrundan/store";
 import type { Occasion } from "@/lib/matrundan/types";
 import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { FirstReviewGuidance } from "./FirstReviewGuidance";
-import { OccasionPicker } from "./OccasionPicker";
+import { OccasionGuideContent, OccasionPicker } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 import { VisitPhotoField } from "./VisitPhotoField";
 
@@ -229,7 +229,7 @@ export function AddVisitReviewDialog({
         <div className="space-y-4">
           {!scoreless && showOccasionModelGuide ? (
             <div className="rounded-2xl bg-secondary/40 p-4">
-              <OccasionGuideContentBridge />
+              <OccasionGuideContent />
             </div>
           ) : null}
 
@@ -337,16 +337,3 @@ export function AddVisitReviewDialog({
   );
 }
 
-function OccasionGuideContentBridge() {
-  return <FirstReviewGuidanceOccasionModel />;
-}
-
-function FirstReviewGuidanceOccasionModel() {
-  return (
-    <div className="contents">
-      <OccasionGuideContent />
-    </div>
-  );
-}
-
-import { OccasionGuideContent } from "./OccasionPicker";
