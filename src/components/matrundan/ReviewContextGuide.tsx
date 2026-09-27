@@ -28,7 +28,7 @@ export function ReviewContextGuideContent({
         <div className="font-medium">Olika matupplevelser, olika betyg</div>
       ) : null}
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Ett snabbt gatukök och en finkrog är olika slags matupplevelser och
+        Ett enkelt gatukök och en finkrog är olika slags matupplevelser och
         behöver inte jämföras som om de vore samma sak. Båda kan få lika höga
         betyg – fast av olika skäl.
       </p>
