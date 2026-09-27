@@ -234,3 +234,73 @@ test("den interna demosandboxen är fortsatt skrivbar och separat", async ({ pag
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Intern demosandbox på 360 px");
 });
+
+
+test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+
+  async function openProductHelp() {
+    await page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }).click();
+    await expect(
+      page.getByRole("menuitem", { name: "Så funkar Matrundan" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Om Matrundan" }),
+    ).toHaveCount(0);
+    await page.getByRole("menuitem", { name: "Så funkar Matrundan" }).click();
+
+    const help = page.getByRole("dialog", { name: "Så funkar Matrundan" });
+    await expect(help).toBeVisible();
+    await expect(help.getByRole("button", { name: "Om Matrundan" })).toBeVisible();
+    return help;
+  }
+
+  let help = await openProductHelp();
+  await help.getByRole("button", { name: "Visa rundtur" }).click();
+
+  const tour = page.locator("[data-product-tour]");
+  await expect(page).toHaveURL(/\/matstallen$/);
+  await expect(tour.getByText("1 av 3", { exact: true })).toBeVisible();
+  const initialTourHistoryLength = await page.evaluate(() => window.history.length);
+
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(tour.getByText("2 av 3", { exact: true })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.history.length))
+    .toBe(initialTourHistoryLength);
+
+  await page.getByRole("link", { name: "Gruppen", exact: true }).click();
+  await expect(page).toHaveURL(/\/gruppen$/);
+  await expect(tour.getByText("3 av 3", { exact: true })).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(tour.getByText("2 av 3", { exact: true })).toBeVisible();
+
+  await tour.getByRole("button", { name: "Hoppa över" }).click();
+  await expect(tour).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.id))
+    .toBe("innehall");
+
+  help = await openProductHelp();
+  await help.getByRole("button", { name: "Visa rundtur" }).click();
+  const replayHistoryLength = await page.evaluate(() => window.history.length);
+
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await expect(tour.getByText("3 av 3", { exact: true })).toBeVisible();
+  await tour.getByRole("button", { name: "Nu kör vi" }).click();
+
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(tour).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.id))
+    .toBe("innehall");
+  await expect
+    .poll(() => page.evaluate(() => window.history.length))
+    .toBe(replayHistoryLength);
+});
