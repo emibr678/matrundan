@@ -308,7 +308,7 @@ SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub = '33333333-3333-4333-8333-333333333333';
 
 SELECT throws_ok(
-  $SELECT public.get_group_app_state_v5n('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')$,
+  $sql$SELECT public.get_group_app_state_v5n('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')$sql$,
   'P0001',
   'Not a member of group',
   'left member cannot read group state with the same authenticated identity'
