@@ -63,7 +63,7 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
       "Hur skulle ni beskriva matupplevelsen?",
     );
     expect(visitPlaceOccasionDialog).toContain(
-      "Välj en eller två typer av upplevelse som bäst beskriver stället",
+      "Välj den typ av upplevelse som bäst beskriver stället",
     );
     expect(visitPlaceOccasionDialog).toContain("Valet sparas för gruppen.");
     expect(visitPlaceOccasionDialog).toContain("Innan du sätter betyg");
@@ -86,12 +86,14 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(addReviewDialog).toContain("updatePlaceMetadata");
     expect(addReviewDialog).toContain("Spara och fortsätt");
     expect(addReviewDialog).toContain("required");
+    expect(addReviewDialog).toContain("showInstructions={false}");
 
     expect(demoAddReviewDialog).toContain("classificationActive");
     expect(demoAddReviewDialog).toContain("saveClassificationAndContinue");
     expect(demoAddReviewDialog).toContain("updatePlaceMetadata");
     expect(demoAddReviewDialog).toContain("Spara och fortsätt");
     expect(demoAddReviewDialog).toContain("required");
+    expect(demoAddReviewDialog).toContain("showInstructions={false}");
     expect(addReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
     expect(demoAddReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
   });
@@ -99,7 +101,9 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   test("första omdömesguiden är ett separat steg före klassificering och stjärnor", () => {
     expect(firstReviewGuidance).toContain("Kul att du ska lämna ditt första omdöme!");
     expect(firstReviewGuidance).toContain("Ett enkelt gatukök och en finkrog");
+    expect(firstReviewGuidance).toContain("Båda kan få lika höga betyg");
     expect(firstReviewGuidance).toContain("Tre typer av matupplevelser");
+    expect(firstReviewGuidance).toContain("showConclusion={false}");
     expect(firstReviewGuidance).toContain("Jag förstår");
     expect(addReviewDialog).toContain("firstGuidanceActive");
     expect(addReviewDialog).toContain("classificationActive");
@@ -146,6 +150,8 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(occasionPicker).toContain("Båda kan få lika");
     expect(occasionPicker).toContain("OCCASION_DESCRIPTION");
     expect(occasionPicker).toContain("Typ av upplevelse");
+    expect(occasionPicker).toContain("Vad betyder alternativen?");
+    expect(occasionPicker).toContain("showInstructions");
   });
 
   test("3D-reviews använder ordinarie härlett flöde och explicit modelluppgradering", () => {
