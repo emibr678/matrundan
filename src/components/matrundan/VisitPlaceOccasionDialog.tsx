@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CircleHelp, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,22 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  normalizeOccasionClassification,
-  toggleOccasionSelection,
-} from "@/lib/matrundan/occasions";
+import { normalizeOccasionClassification } from "@/lib/matrundan/occasions";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
 import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
-import {
-  OCCASION_LABEL,
-  OCCASION_VALUES,
-  type Occasion,
-  type Place,
-} from "@/lib/matrundan/types";
+import { type Occasion, type Place } from "@/lib/matrundan/types";
 import { FirstReviewGuidance } from "./FirstReviewGuidance";
-import { OccasionGuideContent } from "./OccasionPicker";
+import { OccasionClassificationChoices } from "./OccasionPicker";
 
 export function VisitPlaceOccasionDialog({
   open,
@@ -41,7 +33,6 @@ export function VisitPlaceOccasionDialog({
   const { status, isAcknowledged, isPreviewing, acknowledge } =
     useUserGuidance();
   const [selected, setSelected] = React.useState<Occasion[]>([]);
-  const [showGuide, setShowGuide] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [guidanceAccepted, setGuidanceAccepted] = React.useState(false);
 
@@ -58,13 +49,8 @@ export function VisitPlaceOccasionDialog({
   React.useEffect(() => {
     if (!open) return;
     setSelected([]);
-    setShowGuide(false);
     setGuidanceAccepted(false);
   }, [open, place.id]);
-
-  function handleSelection(occasion: Occasion) {
-    setSelected(toggleOccasionSelection(selected, occasion));
-  }
 
   function acceptGuidance() {
     void acknowledge(USER_GUIDANCE.reviewContext);
@@ -133,53 +119,11 @@ export function VisitPlaceOccasionDialog({
           />
         ) : (
           <>
-            <div className="space-y-3">
-              <div
-                className="grid grid-cols-3 gap-2"
-                role="group"
-                aria-label="Typ av upplevelse"
-              >
-                {OCCASION_VALUES.map((occasion) => {
-                  const active = selected.includes(occasion);
-                  const atLimit = selected.length >= 2;
-                  return (
-                    <button
-                      key={occasion}
-                      type="button"
-                      aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
-                      aria-pressed={active}
-                      disabled={busy || (atLimit && !active)}
-                      onClick={() => handleSelection(occasion)}
-                      className={`min-h-16 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border/70 bg-background hover:bg-secondary/60"
-                      }`}
-                    >
-                      <span className="block whitespace-nowrap">
-                        {OCCASION_LABEL[occasion]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                className="flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-expanded={showGuide}
-                onClick={() => setShowGuide((current) => !current)}
-              >
-                <CircleHelp className="h-4 w-4" />
-                Så fungerar det
-              </button>
-
-              {showGuide ? (
-                <div className="rounded-2xl bg-secondary/40 p-3">
-                  <OccasionGuideContent />
-                </div>
-              ) : null}
-            </div>
+            <OccasionClassificationChoices
+              value={selected}
+              onChange={setSelected}
+              disabled={busy}
+            />
 
             <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button
