@@ -300,21 +300,20 @@ test("#307 Hämtmat utelämnar Atmosfär och härleder tre dimensioner", async (
   await capture(page, testInfo, "issue-307-hamtmat-tre-betyg");
 });
 
-test("#307 saknat Passar för löses före själva besöksregistreringen", async ({
+test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen", async ({
   page,
 }, testInfo) => {
   await startVisitRegistration(page, []);
 
-  const gate = page.getByRole("dialog", { name: "När passar stället bäst?" });
+  const gate = page.getByRole("dialog", { name: "Hur skulle ni beskriva matupplevelsen?" });
   await expect(gate).toBeVisible();
-  await expect(gate.getByText(/när ni skulle välja stället/)).toBeVisible();
-  await expect(gate.getByText(/Valet sparas för gruppen/)).toBeVisible();
-  await expect(gate.getByText(/saknar Passar för/)).toHaveCount(0);
+  await expect(gate.getByText(/Välj en eller två/)).toBeVisible();
+  await expect(gate.getByText(/saknar Typ av upplevelse/)).toHaveCount(0);
   await expect(gate.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
-  const quick = gate.getByRole("button", { name: "Passar för: Snabbt & enkelt" });
-  const relaxed = gate.getByRole("button", { name: "Passar för: Avslappnat" });
-  const extra = gate.getByRole("button", { name: "Passar för: Något extra" });
+  const quick = gate.getByRole("button", { name: "Typ av upplevelse: Snabbt & enkelt" });
+  const relaxed = gate.getByRole("button", { name: "Typ av upplevelse: Avslappnat" });
+  const extra = gate.getByRole("button", { name: "Typ av upplevelse: Något extra" });
   await expect(quick.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
   const boxes = await Promise.all([quick, relaxed, extra].map((button) => button.boundingBox()));
   expect(boxes.every((box) => box != null)).toBe(true);
@@ -323,7 +322,9 @@ test("#307 saknat Passar för löses före själva besöksregistreringen", async
 
   await relaxed.click();
   await gate.getByRole("button", { name: "Vad betyder alternativen?" }).click();
-  await expect(gate.getByText(/Olika ställen passar olika bra/)).toBeVisible();
+  await expect(
+    gate.getByText(/Matrundan skiljer på olika typer av matupplevelser/),
+  ).toBeVisible();
   await stabilize(page);
   await expectNoHorizontalOverflow(page, gate);
   await capture(page, testInfo, "issue-307-passar-for-forst");
