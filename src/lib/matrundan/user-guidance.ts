@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const USER_GUIDANCE = {
   coreIntro: { key: "core-intro", version: 1 },
-  occasionGuide: { key: "occasion-guide", version: 1 },
+  reviewContext: { key: "review-context", version: 1 },
 } as const;
 
 export type UserGuidanceDefinition =

@@ -17,10 +17,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveOwnReviewForVisit } from "@/lib/matrundan/live-visit-participation";
 import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
+import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
+import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion } from "@/lib/matrundan/types";
 import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
 import { OccasionPicker } from "./OccasionPicker";
+import { ReviewContextFirstTimeNotice } from "./ReviewContextGuide";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 import { VisitPhotoField } from "./VisitPhotoField";
 
@@ -43,8 +46,10 @@ export function AddVisitReviewDialog({
   onSaved?: () => void | Promise<void>;
   onExit?: () => void;
 }) {
-  const { activeGroupId } = useSession();
+  const { activeGroupId, mode, user } = useSession();
   const { state, saveVisitPhoto } = useStore();
+  const { status, isAcknowledged, isPreviewing, acknowledge } =
+    useUserGuidance();
   const visit = state.visits.find((item) => item.id === visitId);
   const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
   const [open, setOpen] = React.useState(false);
@@ -76,7 +81,21 @@ export function AddVisitReviewDialog({
         isTakeaway,
         occasions: placeNeedsOccasionClassification ? reviewOccasions : placeOccasions,
       });
-  const complete = reviewRatingsComplete(model, { taste, service, value, atmosphere });
+  const complete = reviewRatingsComplete(model, {
+    taste,
+    service,
+    value,
+    atmosphere,
+  });
+  const reviewContextAcknowledged = isAcknowledged(
+    USER_GUIDANCE.reviewContext,
+  );
+  const showReviewContextGuide =
+    !scoreless &&
+    mode === "live" &&
+    Boolean(user?.id) &&
+    (isPreviewing(USER_GUIDANCE.reviewContext) ||
+      (status === "ready" && !reviewContextAcknowledged));
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -114,6 +133,10 @@ export function AddVisitReviewDialog({
             ? reviewOccasions
             : undefined,
       });
+
+      if (!scoreless) {
+        void acknowledge(USER_GUIDANCE.reviewContext);
+      }
 
       if (photoFile && visit) {
         try {
@@ -169,6 +192,8 @@ export function AddVisitReviewDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {showReviewContextGuide ? <ReviewContextFirstTimeNotice /> : null}
+
           {!scoreless && placeNeedsOccasionClassification ? (
             <div className="rounded-2xl bg-secondary/40 p-4">
               <OccasionPicker
@@ -193,6 +218,7 @@ export function AddVisitReviewDialog({
               onServiceChange={setService}
               onValueChange={setValue}
               onAtmosphereChange={setAtmosphere}
+              showContextHelp={!showReviewContextGuide}
             />
           ) : null}
 

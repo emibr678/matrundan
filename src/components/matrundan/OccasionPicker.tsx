@@ -108,8 +108,8 @@ export function OccasionFirstTimeGuide({
   const [visibleForUserId, setVisibleForUserId] = React.useState<string | null>(
     null,
   );
-  const occasionGuideAcknowledged = isAcknowledged(USER_GUIDANCE.occasionGuide);
-  const occasionGuidePreviewing = isPreviewing(USER_GUIDANCE.occasionGuide);
+  const occasionGuideAcknowledged = isAcknowledged(USER_GUIDANCE.reviewContext);
+  const occasionGuidePreviewing = isPreviewing(USER_GUIDANCE.reviewContext);
 
   React.useEffect(() => {
     const userId = user?.id;
