@@ -39,7 +39,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
 
   await page.getByRole("button", { name: "Öppna filter och sortering" }).click();
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
-  await expect(filterSheet.getByText("Passar för", { exact: true }).first()).toBeVisible();
+  await expect(filterSheet.getByText("Typ av upplevelse", { exact: true }).first()).toBeVisible();
   await expect(filterSheet.getByText("Avslappnat", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Något extra", { exact: true })).toBeVisible();
   await expect(filterSheet.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
@@ -101,8 +101,8 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
     manualDialog.getByRole("button", { name: "Lägg till ett alternativ till (valfritt)" }),
   ).toHaveCount(0);
 
-  await manualDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
-  const guide = page.getByRole("dialog", { name: "Passar för" });
+  await manualDialog.getByRole("button", { name: "Vad betyder Typ av upplevelse?" }).click();
+  const guide = page.getByRole("dialog", { name: "Typ av upplevelse" });
   await expect(guide).toContainText(
     "Olika ställen passar olika bra beroende på vad ni är ute efter.",
   );
@@ -118,15 +118,15 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(guide).toBeHidden();
 
   const relaxedButton = manualDialog.getByRole("button", {
-    name: "Passar för: Avslappnat",
+    name: "Typ av upplevelse: Avslappnat",
     exact: true,
   });
   const extraButton = manualDialog.getByRole("button", {
-    name: "Passar för: Något extra",
+    name: "Typ av upplevelse: Något extra",
     exact: true,
   });
   const quickButton = manualDialog.getByRole("button", {
-    name: "Passar för: Snabbt & enkelt",
+    name: "Typ av upplevelse: Snabbt & enkelt",
     exact: true,
   });
 
@@ -149,23 +149,23 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(page.getByText("Något extra", { exact: true })).toBeVisible();
   await expect(page.getByText("Passar bäst för", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Passar också för", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Vad betyder Typ av upplevelse?" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Detaljsida med flera val");
 
   await page.getByRole("button", { name: "Ändra gruppens uppgifter om stället" }).click();
   const adminDialog = page.getByRole("dialog", { name: "Ändra gruppens uppgifter om stället" });
   await expect(
     adminDialog.getByRole("button", {
-      name: "Passar för: Avslappnat",
+      name: "Typ av upplevelse: Avslappnat",
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(
     adminDialog.getByRole("button", {
-      name: "Passar för: Något extra",
+      name: "Typ av upplevelse: Något extra",
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(adminDialog.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
+  await expect(adminDialog.getByRole("button", { name: "Vad betyder Typ av upplevelse?" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redigering med typer av besök");
 });
