@@ -226,6 +226,18 @@ test("#307 På plats visar Atmosfär och härlett helhetsbetyg", async ({ page }
   await expect(registrar).toBeDisabled();
   await expect(registrar.getByText("Du", { exact: true })).toBeVisible();
   await expect(dialog.getByText("— / 5", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Typ av upplevelse", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Avslappnat", { exact: true })).toBeVisible();
+  const experienceHelp = dialog.getByRole("button", {
+    name: "Så fungerar Typ av upplevelse",
+  });
+  await expect(experienceHelp).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Om betygen" })).toHaveCount(0);
+  await experienceHelp.click();
+  await expect(
+    page.getByText(/Typ av upplevelse gäller matstället/),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await dialog.getByRole("button", { name: "Smak: 5 av 5" }).click();
   await dialog.getByRole("button", { name: "Service: 4 av 5" }).click();
@@ -355,11 +367,14 @@ test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen",
   expect(boxes.every((box) => box != null)).toBe(true);
   const yPositions = boxes.map((box) => box?.y ?? 0);
   expect(Math.max(...yPositions) - Math.min(...yPositions)).toBeLessThan(2);
+  const heights = boxes.map((box) => box?.height ?? 0);
+  expect(Math.min(...heights)).toBeGreaterThanOrEqual(44);
+  expect(Math.max(...heights)).toBeLessThanOrEqual(58);
 
   await relaxed.click();
   await gate.getByRole("button", { name: "Så fungerar det" }).click();
   await expect(
-    gate.getByText(/Matrundan skiljer på olika typer av matupplevelser/),
+    gate.getByText(/Typ av upplevelse gäller matstället/),
   ).toBeVisible();
   await stabilize(page);
   await expectNoHorizontalOverflow(page, gate);
