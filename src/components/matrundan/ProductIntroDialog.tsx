@@ -3,10 +3,12 @@ import { useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
   Flag,
+  Info,
   Search,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
+import { AboutDialog } from "./AboutDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -67,11 +69,13 @@ export function ProductIntroDialog({
   onOpenChange,
   automatic,
   groupName,
+  onOpenAbout,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   automatic: boolean;
   groupName: string;
+  onOpenAbout: () => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -88,9 +92,9 @@ export function ProductIntroDialog({
 
         <div className="space-y-3">
           <IntroRow icon={UsersRound} title="Flera grupper, olika sammanhang">
-            Ha separata grupper för olika gäng eller rundor, till exempel
-            familjen, kompisgänget eller skärgården. Varje grupp har sin egen
-            lista och historik.
+            Skapa separata grupper för olika gäng och platser – till exempel
+            familjen, kompisgänget, närområdet eller en stad där du bor eller
+            ska resa till. Varje grupp har sin egen lista och historik.
           </IntroRow>
           <IntroRow icon={Search} title="Samla ställen ni vill prova">
             Spara restauranger, caféer och andra ställen gruppen är nyfiken på.
@@ -117,6 +121,12 @@ export function ProductIntroDialog({
         </Card>
 
         <DialogFooter>
+          {!automatic ? (
+            <Button type="button" variant="ghost" onClick={onOpenAbout}>
+              <Info className="h-4 w-4" aria-hidden />
+              Om Matrundan
+            </Button>
+          ) : null}
           <Button type="button" onClick={() => onOpenChange(false)}>
             {automatic ? "Till gruppen" : "Stäng"}
           </Button>
@@ -142,6 +152,7 @@ export function ProductIntroController() {
   const { status, isAcknowledged, acknowledge } = useUserGuidance();
   const [open, setOpen] = React.useState(false);
   const [automatic, setAutomatic] = React.useState(false);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
   const autoHandledUsers = React.useRef(new Set<string>());
   const coreIntroAcknowledged = isAcknowledged(USER_GUIDANCE.coreIntro);
 
@@ -206,12 +217,21 @@ export function ProductIntroController() {
     if (!nextOpen) setAutomatic(false);
   }
 
+  function handleOpenAbout() {
+    handleOpenChange(false);
+    setAboutOpen(true);
+  }
+
   return (
-    <ProductIntroDialog
-      open={open}
-      onOpenChange={handleOpenChange}
-      automatic={automatic}
-      groupName={state.group.name}
-    />
+    <>
+      <ProductIntroDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        automatic={automatic}
+        groupName={state.group.name}
+        onOpenAbout={handleOpenAbout}
+      />
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+    </>
   );
 }
