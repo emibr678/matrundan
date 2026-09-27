@@ -24,6 +24,7 @@ import {
   type Occasion,
   type Place,
 } from "@/lib/matrundan/types";
+import { FirstReviewGuidance } from "./FirstReviewGuidance";
 import { OccasionGuideContent } from "./OccasionPicker";
 
 export function VisitPlaceOccasionDialog({
@@ -42,6 +43,7 @@ export function VisitPlaceOccasionDialog({
   const [selected, setSelected] = React.useState<Occasion[]>([]);
   const [showGuide, setShowGuide] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [guidanceAccepted, setGuidanceAccepted] = React.useState(false);
 
   const reviewContextAcknowledged = isAcknowledged(
     USER_GUIDANCE.reviewContext,
@@ -51,15 +53,22 @@ export function VisitPlaceOccasionDialog({
     Boolean(user?.id) &&
     (isPreviewing(USER_GUIDANCE.reviewContext) ||
       (status === "ready" && !reviewContextAcknowledged));
+  const firstGuidanceActive = showFirstGuidance && !guidanceAccepted;
 
   React.useEffect(() => {
     if (!open) return;
     setSelected([]);
     setShowGuide(false);
+    setGuidanceAccepted(false);
   }, [open, place.id]);
 
   function handleSelection(occasion: Occasion) {
     setSelected(toggleOccasionSelection(selected, occasion));
+  }
+
+  function acceptGuidance() {
+    void acknowledge(USER_GUIDANCE.reviewContext);
+    setGuidanceAccepted(true);
   }
 
   async function saveAndContinue() {
@@ -77,9 +86,6 @@ export function VisitPlaceOccasionDialog({
         occasions,
         notes: place.notes ?? null,
       });
-      if (showFirstGuidance) {
-        void acknowledge(USER_GUIDANCE.reviewContext);
-      }
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -101,54 +107,60 @@ export function VisitPlaceOccasionDialog({
       <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="pr-8 text-left">
           <DialogTitle className="font-display text-2xl">
-            Hur skulle ni beskriva matupplevelsen?
+            {firstGuidanceActive
+              ? "Innan du sätter betyg"
+              : "Hur skulle ni beskriva matupplevelsen?"}
           </DialogTitle>
-          <DialogDescription className="leading-relaxed">
-            {showFirstGuidance
-              ? "Innan ni väljer får ni gärna läsa igenom hur Matrundan skiljer på olika typer av matupplevelser."
-              : "Välj en eller två."}
-          </DialogDescription>
+          {firstGuidanceActive ? (
+            <DialogDescription className="sr-only">
+              Kort introduktion till Typ av upplevelse och omdömen.
+            </DialogDescription>
+          ) : (
+            <DialogDescription className="leading-relaxed">
+              Välj en eller två typer av upplevelse som bäst beskriver stället
+              och när ni skulle välja det. Valet sparas för gruppen.
+            </DialogDescription>
+          )}
         </DialogHeader>
 
-        <div className="space-y-3">
-          {showFirstGuidance ? (
-            <div className="rounded-2xl bg-secondary/40 p-3">
-              <OccasionGuideContent />
-            </div>
-          ) : null}
+        {firstGuidanceActive ? (
+          <FirstReviewGuidance
+            disabled={busy}
+            onContinue={acceptGuidance}
+          />
+        ) : (
+          <>
+            <div className="space-y-3">
+              <div
+                className="grid grid-cols-3 gap-2"
+                role="group"
+                aria-label="Typ av upplevelse"
+              >
+                {OCCASION_VALUES.map((occasion) => {
+                  const active = selected.includes(occasion);
+                  const atLimit = selected.length >= 2;
+                  return (
+                    <button
+                      key={occasion}
+                      type="button"
+                      aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
+                      aria-pressed={active}
+                      disabled={busy || (atLimit && !active)}
+                      onClick={() => handleSelection(occasion)}
+                      className={`min-h-16 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border/70 bg-background hover:bg-secondary/60"
+                      }`}
+                    >
+                      <span className="block whitespace-nowrap">
+                        {OCCASION_LABEL[occasion]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-          <div
-            className="grid grid-cols-3 gap-2"
-            role="group"
-            aria-label="Typ av upplevelse"
-          >
-            {OCCASION_VALUES.map((occasion) => {
-              const active = selected.includes(occasion);
-              const atLimit = selected.length >= 2;
-              return (
-                <button
-                  key={occasion}
-                  type="button"
-                  aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
-                  aria-pressed={active}
-                  disabled={busy || (atLimit && !active)}
-                  onClick={() => handleSelection(occasion)}
-                  className={`min-h-16 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
-                    active
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border/70 bg-background hover:bg-secondary/60"
-                  }`}
-                >
-                  <span className="block whitespace-nowrap">
-                    {OCCASION_LABEL[occasion]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {!showFirstGuidance ? (
-            <>
               <button
                 type="button"
                 className="flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -164,30 +176,28 @@ export function VisitPlaceOccasionDialog({
                   <OccasionGuideContent />
                 </div>
               ) : null}
-            </>
-          ) : null}
-        </div>
+            </div>
 
-        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={busy}
-            onClick={onCancel}
-          >
-            Avbryt
-          </Button>
-          <Button
-            type="button"
-            disabled={busy || selected.length === 0}
-            onClick={() => void saveAndContinue()}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {showFirstGuidance
-              ? "Jag förstår – spara och fortsätt"
-              : "Spara och fortsätt"}
-          </Button>
-        </DialogFooter>
+            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={onCancel}
+              >
+                Avbryt
+              </Button>
+              <Button
+                type="button"
+                disabled={busy || selected.length === 0}
+                onClick={() => void saveAndContinue()}
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Spara och fortsätt
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
