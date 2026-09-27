@@ -4,13 +4,16 @@ import {
   reviewModelIncludesAtmosphere,
   type ReviewModel,
 } from "@/lib/matrundan/review-model";
+import type { Occasion } from "@/lib/matrundan/types";
 import { Button } from "@/components/ui/button";
 import { RatingInput, RatingStars } from "./Rating";
+import { OccasionSummary } from "./OccasionPicker";
 import { ReviewContextHelp } from "./ReviewContextGuide";
 import { ReviewModelNotice } from "./ReviewModelNotice";
 
 export function ReviewScoreFields({
   model,
+  contextOccasions,
   taste,
   service,
   value,
@@ -25,6 +28,7 @@ export function ReviewScoreFields({
   disabled = false,
 }: {
   model: ReviewModel;
+  contextOccasions?: Occasion[];
   taste: number;
   service: number;
   value: number;
@@ -46,6 +50,10 @@ export function ReviewScoreFields({
 
   return (
     <div className="space-y-3">
+      {contextOccasions && contextOccasions.length > 0 ? (
+        <OccasionSummary value={contextOccasions} />
+      ) : null}
+
       <div
         role="group"
         aria-label="Detaljbetyg"
