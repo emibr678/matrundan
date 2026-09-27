@@ -336,6 +336,7 @@ function OwnReviewPrompt({
         {mode === "live" ? (
           <AddVisitReviewDialog
             visitId={visit.id}
+            place={place}
             placeName={placeName}
             scoreless={scoreless}
             isTakeaway={visit.isTakeaway === true}
