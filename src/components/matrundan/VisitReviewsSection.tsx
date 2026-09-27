@@ -302,6 +302,7 @@ function OwnReviewPrompt({
   onReviewFlowExit,
 }: {
   visit: Visit;
+  place?: Place;
   placeName: string;
   placeOccasions: Visit extends never ? never : import("@/lib/matrundan/types").Occasion[];
   currentUserId: string;
