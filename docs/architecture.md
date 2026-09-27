@@ -288,11 +288,21 @@ rätt grupproll. Den negativa regressionen ligger i
 
 Autentisering och profilflöde:
 
-- appen initierar Google OAuth via Supabase Auth;
+- appen stöder både Google OAuth och e-post/lösenord via Supabase Auth, inklusive
+  e-postbekräftelse och lösenordsåterställning när Auth-konfigurationen kräver det;
 - Supabase Auth håller den externa provideridentiteten och rå provider-metadata,
-  bland annat e-post, provider-ID, namn och avatar när Google levererar dem;
+  bland annat e-post, provider-ID, namn och avatar när Google levererar dem, samt
+  lösenordshash och e-postidentitet för lösenordskonton. Rått lösenord lagras inte
+  i Matrundans egna tabeller;
 - `public.profiles` är den gruppsynliga projektionen och innehåller användar-ID,
-  visningsnamn och avatar, inte provider-token eller providerhemligheter;
+  visningsnamn och avatar, inte e-postadress, lösenordshash, provider-token eller
+  providerhemligheter;
+- e-post/lösenord har en serverstyrd Auth-baslinje: minsta lösenordslängd ska vara
+  minst 8 tecken. Supabases leaked-password protection ska aktiveras när den
+  aktuella planen stödjer funktionen; annars dokumenteras begränsningen och
+  klienten får inte påstå att läckta lösenord kontrolleras. Klientens
+  längdkontroll är endast UX och får inte betraktas som den auktoritativa
+  säkerhetsgränsen;
 - provider-/user-metadata används för profilbootstrap, aldrig som grupproll eller
   behörighetskälla. Behörighet kommer från signerad Supabase-session,
   `auth.uid()`, `memberships`, RLS och avgränsade RPC:er.
@@ -989,7 +999,8 @@ Produktions-preflighten ska ha en credential-fri release-security-grind före
 jobbet som använder GitHubs `production`-environment. Grinden återanvänder
 `Public readiness` för full-history secret scan och kräver dessutom grön
 `CI / required` för exakt aktuell `main`-SHA. Först därefter får
-produktionscredentials exponeras för preflight-jobbet.
+produktionscredentials exponeras för preflight-jobbet. Den exakta main-SHA:n ska
+dessutom ha gröna CodeQL-analyser för JavaScript/TypeScript och GitHub Actions.
 
 Den exakta produktionsbuilden ska före inert upload verifieras mot de
 serverhemligheter som finns i preflight-jobbets miljö. Ett fynd får ange
