@@ -52,6 +52,7 @@ describe("produktguidningens databaskontrakt", () => {
         "CREATE OR REPLACE FUNCTION public.clear_user_guidance_on_profile_soft_delete",
       ),
     );
+    expect(backfill).not.toContain("'occasion-model'");
     expect(backfill).not.toContain("'review-context'");
   });
 
