@@ -104,13 +104,12 @@ export function OccasionFirstTimeGuide({
   active?: boolean;
 }) {
   const { mode, user } = useSession();
-  const { status, isAcknowledged } = useUserGuidance();
+  const { status, isAcknowledged, isPreviewing } = useUserGuidance();
   const [visibleForUserId, setVisibleForUserId] = React.useState<string | null>(
     null,
   );
-  const occasionGuideAcknowledged = isAcknowledged(
-    USER_GUIDANCE.occasionGuide,
-  );
+  const occasionGuideAcknowledged = isAcknowledged(USER_GUIDANCE.occasionGuide);
+  const occasionGuidePreviewing = isPreviewing(USER_GUIDANCE.occasionGuide);
 
   React.useEffect(() => {
     const userId = user?.id;
@@ -118,17 +117,22 @@ export function OccasionFirstTimeGuide({
       setVisibleForUserId(null);
       return;
     }
-    if (status === "ready" && !occasionGuideAcknowledged) {
+    if (
+      occasionGuidePreviewing ||
+      (status === "ready" && !occasionGuideAcknowledged)
+    ) {
       setVisibleForUserId(userId);
     }
-  }, [active, mode, occasionGuideAcknowledged, status, user?.id]);
+  }, [
+    active,
+    mode,
+    occasionGuideAcknowledged,
+    occasionGuidePreviewing,
+    status,
+    user?.id,
+  ]);
 
-  if (
-    !active ||
-    mode !== "live" ||
-    !user?.id ||
-    visibleForUserId !== user.id
-  ) {
+  if (!active || mode !== "live" || !user?.id || visibleForUserId !== user.id) {
     return null;
   }
 

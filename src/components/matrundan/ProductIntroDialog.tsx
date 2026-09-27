@@ -26,10 +26,16 @@ import {
 import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 
 export const OPEN_PRODUCT_INTRO_EVENT = "matrundan:open-product-intro";
+export const PREVIEW_PRODUCT_INTRO_EVENT = "matrundan:preview-product-intro";
 
 export function openProductIntro() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event(OPEN_PRODUCT_INTRO_EVENT));
+}
+
+export function previewProductIntro() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(PREVIEW_PRODUCT_INTRO_EVENT));
 }
 
 function IntroRow({
@@ -81,10 +87,7 @@ export function ProductIntroDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <IntroRow
-            icon={UsersRound}
-            title="Flera grupper, olika sammanhang"
-          >
+          <IntroRow icon={UsersRound} title="Flera grupper, olika sammanhang">
             Ha separata grupper för olika gäng eller rundor, till exempel
             familjen, kompisgänget eller skärgården. Varje grupp har sin egen
             lista och historik.
@@ -98,7 +101,8 @@ export function ProductIntroDialog({
           </IntroRow>
           <IntroRow icon={BookOpen} title="Registrera besöket">
             När ni varit där sparar ni datum och vilka som faktiskt var med.
-            Omdömen, bilder och återbesök hjälper er minnas och välja nästa gång.
+            Omdömen, bilder och återbesök hjälper er minnas och välja nästa
+            gång.
           </IntroRow>
         </div>
 
@@ -147,9 +151,16 @@ export function ProductIntroController() {
       setAutomatic(false);
       setOpen(true);
     };
+    const previewIntro = () => {
+      setAutomatic(true);
+      setOpen(true);
+    };
     window.addEventListener(OPEN_PRODUCT_INTRO_EVENT, openIntro);
-    return () =>
+    window.addEventListener(PREVIEW_PRODUCT_INTRO_EVENT, previewIntro);
+    return () => {
       window.removeEventListener(OPEN_PRODUCT_INTRO_EVENT, openIntro);
+      window.removeEventListener(PREVIEW_PRODUCT_INTRO_EVENT, previewIntro);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -159,16 +170,13 @@ export function ProductIntroController() {
         isLive: mode === "live",
         hasUser: Boolean(userId),
         hasActiveGroup:
-          Boolean(activeGroupId) &&
-          activeGroupLifecycleStatus === "active",
+          Boolean(activeGroupId) && activeGroupLifecycleStatus === "active",
         onHomeRoute: pathname === "/",
         pendingInvitationsReady: pendingGroupInvitationsReady,
         pendingInvitationCount: pendingGroupInvitations.length,
         guidanceReady: status === "ready",
         acknowledged: coreIntroAcknowledged,
-        alreadyHandled: userId
-          ? autoHandledUsers.current.has(userId)
-          : false,
+        alreadyHandled: userId ? autoHandledUsers.current.has(userId) : false,
       }) ||
       !userId
     ) {

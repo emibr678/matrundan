@@ -15,6 +15,46 @@ export type UserGuidanceRow = {
   guidance_version: number;
 };
 
+export type GuidanceAcknowledgementAction =
+  | "ignore"
+  | "finish-preview"
+  | "persist";
+
+export function setGuidancePreview(
+  current: ReadonlySet<UserGuidanceIdentifier>,
+  definition: UserGuidanceDefinition,
+  previewing: boolean,
+): Set<UserGuidanceIdentifier> {
+  const next = new Set(current);
+  const identifier = guidanceIdentifier(definition);
+  if (previewing) next.add(identifier);
+  else next.delete(identifier);
+  return next;
+}
+
+export function guidanceAcknowledgedForPresentation(
+  acknowledged: ReadonlySet<UserGuidanceIdentifier>,
+  previews: ReadonlySet<UserGuidanceIdentifier>,
+  definition: UserGuidanceDefinition,
+): boolean {
+  const identifier = guidanceIdentifier(definition);
+  return acknowledged.has(identifier) && !previews.has(identifier);
+}
+
+export function resolveGuidanceAcknowledgementAction({
+  hasUser,
+  persistedAcknowledged,
+  previewing,
+}: {
+  hasUser: boolean;
+  persistedAcknowledged: boolean;
+  previewing: boolean;
+}): GuidanceAcknowledgementAction {
+  if (!hasUser) return "ignore";
+  if (previewing) return "finish-preview";
+  return persistedAcknowledged ? "ignore" : "persist";
+}
+
 export type CoreIntroEligibility = {
   isLive: boolean;
   hasUser: boolean;

@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
+  guidanceAcknowledgedForPresentation,
   guidanceIdentifier,
   guidanceRowsToIdentifiers,
+  resolveGuidanceAcknowledgementAction,
+  setGuidancePreview,
   shouldAutoShowCoreIntro,
   USER_GUIDANCE,
 } from "./user-guidance";
@@ -28,6 +31,58 @@ describe("user guidance", () => {
     expect(new Set(identifiers).size).toBe(identifiers.length);
   });
 
+  test("kan simulera osedd guide utan att ändra beständiga kvitton", () => {
+    const acknowledged = new Set(["occasion-guide@1"] as const);
+    const previews = setGuidancePreview(
+      new Set(),
+      USER_GUIDANCE.occasionGuide,
+      true,
+    );
+
+    expect(
+      guidanceAcknowledgedForPresentation(
+        acknowledged,
+        previews,
+        USER_GUIDANCE.occasionGuide,
+      ),
+    ).toBe(false);
+    expect(acknowledged).toEqual(new Set(["occasion-guide@1"]));
+    expect(
+      setGuidancePreview(previews, USER_GUIDANCE.occasionGuide, false),
+    ).toEqual(new Set());
+  });
+
+  test("kvittering av preview avslutar simuleringen utan databasväg", () => {
+    expect(
+      resolveGuidanceAcknowledgementAction({
+        hasUser: true,
+        persistedAcknowledged: false,
+        previewing: true,
+      }),
+    ).toBe("finish-preview");
+    expect(
+      resolveGuidanceAcknowledgementAction({
+        hasUser: true,
+        persistedAcknowledged: true,
+        previewing: true,
+      }),
+    ).toBe("finish-preview");
+    expect(
+      resolveGuidanceAcknowledgementAction({
+        hasUser: true,
+        persistedAcknowledged: false,
+        previewing: false,
+      }),
+    ).toBe("persist");
+    expect(
+      resolveGuidanceAcknowledgementAction({
+        hasUser: true,
+        persistedAcknowledged: true,
+        previewing: false,
+      }),
+    ).toBe("ignore");
+  });
+
   test("visar kärnintroduktionen först när alla automatiska grindar är klara", () => {
     const eligible = {
       isLive: true,
@@ -51,17 +106,17 @@ describe("user guidance", () => {
     expect(
       shouldAutoShowCoreIntro({ ...eligible, hasActiveGroup: false }),
     ).toBe(false);
-    expect(
-      shouldAutoShowCoreIntro({ ...eligible, onHomeRoute: false }),
-    ).toBe(false);
-    expect(
-      shouldAutoShowCoreIntro({ ...eligible, guidanceReady: false }),
-    ).toBe(false);
-    expect(
-      shouldAutoShowCoreIntro({ ...eligible, acknowledged: true }),
-    ).toBe(false);
-    expect(
-      shouldAutoShowCoreIntro({ ...eligible, alreadyHandled: true }),
-    ).toBe(false);
+    expect(shouldAutoShowCoreIntro({ ...eligible, onHomeRoute: false })).toBe(
+      false,
+    );
+    expect(shouldAutoShowCoreIntro({ ...eligible, guidanceReady: false })).toBe(
+      false,
+    );
+    expect(shouldAutoShowCoreIntro({ ...eligible, acknowledged: true })).toBe(
+      false,
+    );
+    expect(shouldAutoShowCoreIntro({ ...eligible, alreadyHandled: true })).toBe(
+      false,
+    );
   });
 });

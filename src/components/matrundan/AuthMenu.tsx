@@ -4,6 +4,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  FlaskConical,
   Home,
   Info,
   List,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { AboutDialog } from "./AboutDialog";
+import { StagingTestToolsDialog } from "./StagingTestToolsDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,7 +28,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
+import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { APP_NAME } from "@/lib/matrundan/version";
 import { toast } from "sonner";
@@ -51,7 +55,9 @@ function recentGroupsStorageKey(userId: string) {
 function readRecentGroupIds(userId: string): string[] {
   if (typeof window === "undefined") return [];
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(recentGroupsStorageKey(userId)) ?? "[]");
+    const parsed = JSON.parse(
+      window.localStorage.getItem(recentGroupsStorageKey(userId)) ?? "[]",
+    );
     return Array.isArray(parsed)
       ? parsed.filter((value): value is string => typeof value === "string")
       : [];
@@ -84,7 +90,10 @@ function GroupMenuItem({
           <Archive className="h-3 w-3" /> arkiverad
         </span>
       ) : current ? (
-        <Check className="ml-2 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        <Check
+          className="ml-2 h-4 w-4 shrink-0 text-primary"
+          aria-hidden="true"
+        />
       ) : null}
     </DropdownMenuItem>
   );
@@ -95,10 +104,16 @@ function buildQuickGroups(
   activeGroupId: string | null,
   recentGroupIds: string[],
 ) {
-  const activeGroups = groups.filter((group) => group.lifecycleStatus === "active");
-  const currentGroup = groups.find((group) => group.id === activeGroupId) ?? null;
+  const activeGroups = groups.filter(
+    (group) => group.lifecycleStatus === "active",
+  );
+  const currentGroup =
+    groups.find((group) => group.id === activeGroupId) ?? null;
 
-  if (currentGroup?.lifecycleStatus === "active" && activeGroups.length <= QUICK_GROUP_LIMIT) {
+  if (
+    currentGroup?.lifecycleStatus === "active" &&
+    activeGroups.length <= QUICK_GROUP_LIMIT
+  ) {
     return activeGroups;
   }
 
@@ -113,7 +128,8 @@ function buildQuickGroups(
   const seen = new Set<string>();
   return candidates
     .filter((group) => {
-      if (group.lifecycleStatus === "archived" && group.id !== activeGroupId) return false;
+      if (group.lifecycleStatus === "archived" && group.id !== activeGroupId)
+        return false;
       if (seen.has(group.id)) return false;
       seen.add(group.id);
       return true;
@@ -151,9 +167,16 @@ export function AuthMenu({
   const [createOpen, setCreateOpen] = React.useState(false);
   const [allGroupsOpen, setAllGroupsOpen] = React.useState(false);
   const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
+  const [testToolsOpen, setTestToolsOpen] = React.useState(false);
   const [recentGroupIds, setRecentGroupIds] = React.useState<string[]>([]);
-  const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] = React.useState(false);
+  const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] =
+    React.useState(false);
   const userId = user?.id ?? null;
+  const showStagingTestTools = canUseStagingTestTools({
+    environment: APP_ENVIRONMENT,
+    signedIn: Boolean(user),
+    liveMode: mode === "live",
+  });
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -161,8 +184,15 @@ export function AuthMenu({
       setAllGroupsOpen(true);
       void refreshPendingInvites();
     };
-    window.addEventListener("matrundan:open-group-invitations", openInvitations);
-    return () => window.removeEventListener("matrundan:open-group-invitations", openInvitations);
+    window.addEventListener(
+      "matrundan:open-group-invitations",
+      openInvitations,
+    );
+    return () =>
+      window.removeEventListener(
+        "matrundan:open-group-invitations",
+        openInvitations,
+      );
   }, [refreshPendingInvites]);
 
   React.useEffect(() => {
@@ -176,9 +206,15 @@ export function AuthMenu({
   React.useEffect(() => {
     if (!userId || !activeGroupId) return;
     setRecentGroupIds((current) => {
-      const next = [activeGroupId, ...current.filter((id) => id !== activeGroupId)].slice(0, 8);
+      const next = [
+        activeGroupId,
+        ...current.filter((id) => id !== activeGroupId),
+      ].slice(0, 8);
       try {
-        window.localStorage.setItem(recentGroupsStorageKey(userId), JSON.stringify(next));
+        window.localStorage.setItem(
+          recentGroupsStorageKey(userId),
+          JSON.stringify(next),
+        );
       } catch {
         /* ignore */
       }
@@ -264,7 +300,8 @@ export function AuthMenu({
   }
 
   if (!user) {
-    const groupName = suppliedGroupName || (exampleMode ? "Exempelgrupp" : "Demo");
+    const groupName =
+      suppliedGroupName || (exampleMode ? "Exempelgrupp" : "Demo");
     const groupEmoji = suppliedGroupEmoji ?? "🍽️";
     return (
       <>
@@ -323,12 +360,22 @@ export function AuthMenu({
     (user.user_metadata?.name as string | undefined) ??
     user.email ??
     "Inloggad";
-  const displayEmail = user.email && user.email !== displayName ? user.email : null;
+  const displayEmail =
+    user.email && user.email !== displayName ? user.email : null;
   const activeGroup = userGroups.find((group) => group.id === activeGroupId);
-  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
-  const hasArchivedGroups = userGroups.some((group) => group.lifecycleStatus === "archived");
-  const quickGroups = buildQuickGroups(userGroups, activeGroupId, recentGroupIds);
-  const showAllGroups = activeGroupCount > QUICK_GROUP_LIMIT || hasArchivedGroups;
+  const activeGroupCount = userGroups.filter(
+    (group) => group.lifecycleStatus === "active",
+  ).length;
+  const hasArchivedGroups = userGroups.some(
+    (group) => group.lifecycleStatus === "archived",
+  );
+  const quickGroups = buildQuickGroups(
+    userGroups,
+    activeGroupId,
+    recentGroupIds,
+  );
+  const showAllGroups =
+    activeGroupCount > QUICK_GROUP_LIMIT || hasArchivedGroups;
   const useSuppliedGroup = exampleMode || mode === "demo" || !activeGroup;
   const groupName = useSuppliedGroup
     ? (suppliedGroupName ?? activeGroup?.name ?? "Grupp")
@@ -360,7 +407,9 @@ export function AuthMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel>
-            <div className="text-xs font-normal text-muted-foreground">Inloggad som</div>
+            <div className="text-xs font-normal text-muted-foreground">
+              Inloggad som
+            </div>
             <div className="truncate">{displayName}</div>
             {displayEmail ? (
               <div className="truncate text-xs font-normal text-muted-foreground">
@@ -387,6 +436,12 @@ export function AuthMenu({
               Så funkar Matrundan
             </DropdownMenuItem>
           ) : null}
+          {showStagingTestTools ? (
+            <DropdownMenuItem onSelect={() => setTestToolsOpen(true)}>
+              <FlaskConical className="mr-2 h-4 w-4" />
+              Testverktyg
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem onSelect={() => setAboutOpen(true)}>
             <Info className="mr-2 h-4 w-4" />
             Om {APP_NAME}
@@ -401,7 +456,9 @@ export function AuthMenu({
             </DropdownMenuItem>
           ) : null}
           {hasPlaceMaintenanceAccess ? (
-            <DropdownMenuItem onSelect={() => void navigate({ to: "/platsunderhall" })}>
+            <DropdownMenuItem
+              onSelect={() => void navigate({ to: "/platsunderhall" })}
+            >
               <Wrench className="mr-2 h-4 w-4" />
               Platsunderhåll
             </DropdownMenuItem>
@@ -468,6 +525,10 @@ export function AuthMenu({
       />
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
       <CreateGroupDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <StagingTestToolsDialog
+        open={testToolsOpen}
+        onOpenChange={setTestToolsOpen}
+      />
     </>
   );
 }
