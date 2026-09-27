@@ -115,6 +115,8 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(scoreFields).toContain("Helhetsbetyg");
     expect(scoreFields).toContain("contextOccasions");
     expect(scoreFields).toContain("<OccasionSummary");
+    expect(scoreFields).not.toContain("ReviewContextHelp");
+    expect(scoreFields).not.toContain("Om betygen");
     expect(scoreFields).toContain("deriveReviewOverall");
     expect(scoreFields).toContain('label="Atmosfär"');
     expect(scoreFields).toContain("— / 5");
@@ -149,7 +151,10 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
 
   test("Typ av upplevelse-hjälpen förklarar olika matupplevelser", () => {
     expect(occasionPicker).toContain(
-      "Matrundan skiljer på olika typer av matupplevelser",
+      "Typ av upplevelse gäller matstället",
+    );
+    expect(occasionPicker).toContain(
+      "vilken sorts matupplevelse gruppen förknippar det med",
     );
     expect(occasionPicker).toContain("Båda kan få lika");
     expect(occasionPicker).toContain("OCCASION_DESCRIPTION");
@@ -158,6 +163,8 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(occasionPicker).toContain("showInstructions");
     expect(occasionPicker).toContain("OccasionClassificationChoices");
     expect(occasionPicker).toContain("OccasionSummary");
+    expect(occasionPicker).toContain("<OccasionGuide compact");
+    expect(occasionPicker).toContain("min-h-14");
   });
 
   test("3D-reviews använder ordinarie härlett flöde och explicit modelluppgradering", () => {
