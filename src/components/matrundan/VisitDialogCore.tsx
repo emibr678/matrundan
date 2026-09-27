@@ -661,6 +661,11 @@ export function VisitDialog({
                 {reviewModel ? (
                   <ReviewScoreFields
                     model={reviewModel}
+                    contextOccasions={
+                      placeNeedsOccasionClassification
+                        ? undefined
+                        : applicableOccasions
+                    }
                     taste={taste}
                     service={service}
                     value={value}
