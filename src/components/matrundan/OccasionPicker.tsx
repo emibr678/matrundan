@@ -71,7 +71,7 @@ export function OccasionGuideContent({
               Matrundan skiljer på olika typer av matupplevelser.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Ett snabbt gatukök och en finkrog är olika slags upplevelser och
+              Ett enkelt gatukök och en finkrog är olika slags upplevelser och
               behöver inte jämföras som om de vore samma sak. Båda kan få lika
               höga betyg – fast av olika skäl.
             </p>
