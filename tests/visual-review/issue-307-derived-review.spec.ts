@@ -330,10 +330,15 @@ test("#307 saknat Typ av upplevelse löses före själva besöksregistreringen",
   await expect(gate).toBeVisible();
   await expect(
     gate.getByText(
-      /Välj en eller två typer av upplevelse som bäst beskriver stället/,
+      /Välj den typ av upplevelse som bäst beskriver stället/,
     ),
   ).toBeVisible();
+  await expect(gate.getByText(/eller två om båda passar/)).toBeVisible();
   await expect(gate.getByText(/Valet sparas för gruppen/)).toBeVisible();
+  await expect(gate.getByText("Välj en eller två.", { exact: true })).toHaveCount(0);
+  await expect(
+    gate.getByText("Välj minst ett alternativ för att fortsätta.", { exact: true }),
+  ).toHaveCount(0);
   await expect(gate.getByText(/saknar Typ av upplevelse/)).toHaveCount(0);
   await expect(gate.getByText("Atmosfär", { exact: true })).toHaveCount(0);
 
