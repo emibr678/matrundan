@@ -171,7 +171,7 @@ export function VisitPlaceOccasionDialog({
                 onClick={() => setShowGuide((current) => !current)}
               >
                 <CircleHelp className="h-4 w-4" />
-                Vad betyder alternativen?
+                Så fungerar det
               </button>
 
               {showGuide ? (
