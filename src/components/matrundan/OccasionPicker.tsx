@@ -40,7 +40,7 @@ const OccasionGuideTrigger = React.forwardRef<
     variant="ghost"
     size="sm"
     className="min-h-11 rounded-full px-2 text-xs text-muted-foreground"
-    aria-label="Vad betyder Typ av upplevelse?"
+    aria-label="Så fungerar Typ av upplevelse"
   >
     <CircleHelp className="h-4 w-4" />
     {compact ? null : <span>Så fungerar det</span>}
@@ -70,7 +70,9 @@ export function OccasionGuideContent({
                 showHeading ? "mt-1 " : ""
               }text-xs leading-relaxed text-muted-foreground`}
             >
-              Matrundan skiljer på olika typer av matupplevelser.
+              Typ av upplevelse gäller matstället och beskriver vilken sorts
+              matupplevelse gruppen förknippar det med. Ett matställe kan ha en
+              eller två typer.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               Ett enkelt gatukök och en finkrog är olika slags matupplevelser.
@@ -93,9 +95,8 @@ export function OccasionGuideContent({
       </div>
       {showConclusion ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Ett matställe kan passa in i en eller två typer av upplevelser. Det
-          hjälper gruppen att hitta rätt sorts matställe för stunden och gör
-          betygen lättare att förstå och jämföra.
+          Klassificeringen hjälper gruppen att hitta rätt sorts matställe för
+          stunden och gör betygen lättare att förstå och jämföra.
         </p>
       ) : null}
     </div>
@@ -175,7 +176,7 @@ export function OccasionClassificationChoices({
               onClick={() =>
                 onChange(toggleOccasionSelection(selected, occasion))
               }
-              className={`min-h-16 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
+              className={`min-h-14 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
                 active
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border/70 bg-background hover:bg-secondary/60"
@@ -213,22 +214,24 @@ export function OccasionSummary({ value }: { value: Occasion[] }) {
   if (selected.length === 0) return null;
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-2 px-1"
-      aria-label="Typ av upplevelse"
-    >
-      <span className="text-xs font-medium text-muted-foreground">
-        Typ av upplevelse
-      </span>
-      {selected.map((occasion) => (
-        <Badge
-          key={occasion}
-          variant="secondary"
-          className="rounded-full px-2.5 py-0.5 text-xs"
-        >
-          {OCCASION_LABEL[occasion]}
-        </Badge>
-      ))}
+    <div className="space-y-1.5 px-1" aria-label="Typ av upplevelse">
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-medium text-muted-foreground">
+          Typ av upplevelse
+        </span>
+        <OccasionGuide compact />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {selected.map((occasion) => (
+          <Badge
+            key={occasion}
+            variant="secondary"
+            className="rounded-full px-2.5 py-0.5 text-xs"
+          >
+            {OCCASION_LABEL[occasion]}
+          </Badge>
+        ))}
+      </div>
     </div>
   );
 }
