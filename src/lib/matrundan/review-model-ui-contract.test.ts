@@ -74,7 +74,7 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(visitPlaceOccasionDialog).not.toContain('occasion === "snabbt"');
     expect(visitPlaceOccasionDialog).toContain("whitespace-nowrap");
     expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
-    expect(visitPlaceOccasionDialog).toContain("Vad betyder alternativen?");
+    expect(visitPlaceOccasionDialog).toContain("Så fungerar det");
     expect(visitPlaceOccasionDialog).toContain("Spara och fortsätt");
     expect(visitPlaceOccasionDialog).not.toContain("saknar Typ av upplevelse");
     expect(visitPlaceOccasionDialog).not.toContain("Atmosfär");
