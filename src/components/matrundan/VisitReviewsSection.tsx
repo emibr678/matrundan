@@ -352,6 +352,7 @@ function OwnReviewPrompt({
         ) : (
           <DemoAddVisitReviewDialog
             visitId={visit.id}
+            place={place}
             placeName={placeName}
             scoreless={scoreless}
             isTakeaway={visit.isTakeaway === true}
