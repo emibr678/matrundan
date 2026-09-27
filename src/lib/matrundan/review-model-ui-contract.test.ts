@@ -49,34 +49,33 @@ const reviewEditFields = readFileSync(
 );
 
 describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
-  test("saknat Passar för löses som platsmetadata före registreringsdialogen", () => {
+  test("saknat Typ av upplevelse löses som platsmetadata före registreringsdialogen", () => {
     expect(visitDialogFlow).toContain("needsOccasionClassification");
     expect(visitDialogFlow).toContain("<VisitPlaceOccasionDialog");
     expect(visitDialogFlow).toContain("open={open && !needsOccasionClassification}");
     expect(visitDialogCore).toContain("<ReviewScoreFields");
 
-    expect(visitPlaceOccasionDialog).toContain("När passar stället bäst?");
     expect(visitPlaceOccasionDialog).toContain(
-      "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället.",
+      "Hur skulle ni beskriva matupplevelsen?",
     );
-    expect(visitPlaceOccasionDialog).toContain("sparas för gruppen.");
+    expect(visitPlaceOccasionDialog).toContain("Välj en eller två.");
+    expect(visitPlaceOccasionDialog).toContain("USER_GUIDANCE.reviewContext");
+    expect(visitPlaceOccasionDialog).toContain("OccasionGuideContent");
     expect(visitPlaceOccasionDialog).toContain("OCCASION_LABEL[occasion]");
     expect(visitPlaceOccasionDialog).not.toContain('occasion === "snabbt"');
     expect(visitPlaceOccasionDialog).toContain("whitespace-nowrap");
     expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
     expect(visitPlaceOccasionDialog).toContain("Vad betyder alternativen?");
     expect(visitPlaceOccasionDialog).toContain("Spara och fortsätt");
-    expect(visitPlaceOccasionDialog).not.toContain("saknar Passar för");
+    expect(visitPlaceOccasionDialog).not.toContain("saknar Typ av upplevelse");
     expect(visitPlaceOccasionDialog).not.toContain("Atmosfär");
   });
 
-  test("komplettering av äldre omdöme kräver saknat Passar för även vid Hämtmat", () => {
+  test("komplettering av äldre omdöme kräver saknat Typ av upplevelse även vid Hämtmat", () => {
     for (const source of [addReviewDialog, demoAddReviewDialog]) {
       expect(source).toContain("classificationComplete");
       expect(source).toContain("required");
-      expect(source).toContain(
-        "Stället saknar Passar för. Välj en eller två kategorier innan du sparar omdömet.",
-      );
+      expect(source).toContain("classificationComplete");
       expect(source).not.toContain("Valfritt – välj vad stället passar för");
     }
   });
@@ -115,10 +114,13 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     }
   });
 
-  test("Passar för-hjälpen förklarar nya omdömen utan att hota historiken", () => {
-    expect(occasionPicker).toContain("OCCASION_LABEL.snabbt");
-    expect(occasionPicker).toContain("ingår inte Atmosfär i nya omdömen");
-    expect(occasionPicker).toContain("Tidigare omdömen ändras inte");
+  test("Typ av upplevelse-hjälpen förklarar olika matupplevelser", () => {
+    expect(occasionPicker).toContain(
+      "Matrundan skiljer på olika typer av matupplevelser",
+    );
+    expect(occasionPicker).toContain("Båda kan få lika");
+    expect(occasionPicker).toContain("OCCASION_DESCRIPTION");
+    expect(occasionPicker).toContain("Typ av upplevelse");
   });
 
   test("3D-reviews använder ordinarie härlett flöde och explicit modelluppgradering", () => {
