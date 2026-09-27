@@ -231,7 +231,6 @@ export function OccasionPicker({
         {description ??
           (required ? "Välj en eller två." : "Valfritt – välj upp till två.")}
       </p>
-      <OccasionFirstTimeGuide active={required} />
       <div
         className="flex flex-wrap gap-2"
         role="group"
