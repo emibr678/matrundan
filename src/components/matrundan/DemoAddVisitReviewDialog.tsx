@@ -232,7 +232,7 @@ export function DemoAddVisitReviewDialog({
           </DialogTitle>
           <DialogDescription>
             {classificationActive
-              ? "Välj en eller två typer av upplevelse som bäst beskriver stället och när ni skulle välja det. Valet sparas för gruppen."
+              ? "Välj den typ av upplevelse som bäst beskriver stället – eller två om båda passar. Valet sparas för gruppen."
               : scoreless
                 ? `${placeName}. Dryckesbesöket räknas som ett besök men påverkar inte ställets betyg.`
                 : placeName}
@@ -248,6 +248,7 @@ export function DemoAddVisitReviewDialog({
                 onChange={setReviewOccasions}
                 disabled={saving}
                 required
+                showInstructions={false}
               />
             </div>
             <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
