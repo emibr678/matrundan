@@ -52,7 +52,7 @@ describe("produktguidningens databaskontrakt", () => {
         "CREATE OR REPLACE FUNCTION public.clear_user_guidance_on_profile_soft_delete",
       ),
     );
-    expect(backfill).not.toContain("'occasion-guide'");
+    expect(backfill).not.toContain("'review-context'");
   });
 
   test("rensar kvitton vid både mjuk och fysisk kontoradering", () => {

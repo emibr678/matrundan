@@ -149,7 +149,7 @@ export function VisitReviewsSection({
         <div className="flex items-end justify-between gap-3">
           <div>
             <h3 id={`visit-reviews-${visit.id}`} className="text-sm font-medium">
-              {scored ? "Gängets omdömen" : "Gängets kommentarer"}
+              {scored ? "Gruppens omdömen" : "Gruppens kommentarer"}
             </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {scored

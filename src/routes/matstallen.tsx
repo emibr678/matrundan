@@ -257,7 +257,7 @@ function PlacesIndex() {
     <div className="mx-auto max-w-2xl space-y-3 pt-2 md:max-w-4xl">
       <div>
         <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">Vad gänget vill prova och har provat</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">Vad gruppen vill prova och har provat</p>
       </div>
 
       {topLeader ? (
@@ -435,7 +435,7 @@ function PlacesIndex() {
                 ) : (
                   <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
                     {topOccasions.length === 0 && topVisits.length === 0 && !topTakeawayOnly
-                      ? "Inga betyg ännu — de kommer när gänget har provat något."
+                      ? "Inga betyg ännu — de kommer när gruppen har provat något."
                       : "Inga betyg matchar de valda filtren ännu."}
                   </div>
                 )}

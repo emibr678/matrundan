@@ -259,7 +259,7 @@ SELECT lives_ok(
       guidance_version
     ) VALUES (
       '22222222-2222-4222-8222-222222222222',
-      'occasion-guide',
+      'review-context',
       1
     )$$,
   'authenticated user can acknowledge their own guidance'
@@ -279,7 +279,7 @@ SELECT throws_ok(
       guidance_version
     ) VALUES (
       '11111111-1111-4111-8111-111111111111',
-      'occasion-guide',
+      'review-context',
       1
     )$$,
   '42501',

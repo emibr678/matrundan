@@ -95,7 +95,7 @@ export const BADGES: Record<BadgeId, BadgeDef> = {
     id: "bullseye",
     name: "Fullträff",
     emoji: "🎯",
-    description: "Ett matställe du föreslog i gruppen har besökts av gänget.",
+    description: "Ett matställe du föreslog i gruppen har besökts av gruppen.",
   },
 };
 
@@ -391,7 +391,7 @@ export function computeLeaderboard(
 
 /**
  * Milstolpar för gruppen. Anniversaries mäts från `group.createdAt`.
- * "Hela gänget" använder nu aktiva medlemmar som fallback eftersom
+ * "Hela gruppen" använder nu aktiva medlemmar som fallback eftersom
  * historiska medlemsperioder inte lagras i nuvarande schema; se README.
  */
 export function computeGroupMilestones(state: AppState, now: Date = new Date()): GroupMilestone[] {
@@ -451,7 +451,7 @@ export function computeGroupMilestones(state: AppState, now: Date = new Date()):
         id: `full-group-${full.id}`,
         kind: "full-group-visit",
         at: full.date,
-        label: "Första besöket med hela gänget",
+        label: "Första besöket med hela gruppen",
       });
     }
   }
