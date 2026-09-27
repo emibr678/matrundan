@@ -99,7 +99,7 @@ export function saveOwnDemoReviewForVisit(
         occasions: nextOccasions,
       });
     }
-    if (!reviewModel) throw new Error("Välj vad stället passar för först.");
+    if (!reviewModel) throw new Error("Välj typ av upplevelse först.");
     if (
       !reviewRatingsComplete(reviewModel, {
         taste: input.taste ?? 0,

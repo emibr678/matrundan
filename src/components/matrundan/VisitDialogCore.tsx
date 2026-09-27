@@ -651,8 +651,8 @@ export function VisitDialog({
                       disabled={isBusy}
                       description={
                         isTakeaway
-                          ? "Valfritt – välj vad stället passar för. Det hjälper gruppen att välja rätt ställe nästa gång."
-                          : "Välj vad stället passar för om du vill lämna omdömet direkt. Det avgör om Atmosfär är relevant."
+                          ? "Valfritt – välj typ av upplevelse. Det hjälper gruppen att välja rätt matställe nästa gång."
+                          : "Välj typ av upplevelse om du vill lämna omdömet direkt. Det avgör om Atmosfär är relevant."
                       }
                     />
                   </div>

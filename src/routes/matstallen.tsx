@@ -322,7 +322,7 @@ function PlacesIndex() {
               <div className="space-y-1.5">
                 <div>
                   <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
-                    <span>Passar för</span>
+                    <span>Typ av upplevelse</span>
                     <span className="-my-1.5 inline-flex">
                       <OccasionGuide compact />
                     </span>
@@ -330,7 +330,7 @@ function PlacesIndex() {
                   <div
                     className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
                     role="group"
-                    aria-label="Filtrera topplistan på Passar för. Inget val visar alla."
+                    aria-label="Filtrera topplistan på Typ av upplevelse. Inget val visar alla."
                   >
                     {TOP_LIST_FILTERS.map((item) => {
                       const active = topOccasions.includes(item.key);
@@ -515,7 +515,7 @@ function PlacesIndex() {
               <FilterGroup
                 label={
                   <span className="flex min-h-11 items-center gap-1">
-                    Passar för
+                    Typ av upplevelse
                     <OccasionGuide compact />
                   </span>
                 }
@@ -536,7 +536,7 @@ function PlacesIndex() {
                 <MultiChipRow
                   options={[
                     { key: "cuisines", label: "Kök/inriktning" },
-                    { key: "occasions", label: "Passar för" },
+                    { key: "occasions", label: "Typ av upplevelse" },
                   ]}
                   values={missingFields}
                   onToggle={(value) =>

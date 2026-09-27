@@ -94,10 +94,10 @@ export function DemoAddVisitReviewDialog({
         return;
       }
     } else if (!classificationComplete) {
-      toast.error("Välj vad stället passar för först.");
+      toast.error("Välj typ av upplevelse först.");
       return;
     } else if (!model || !complete) {
-      toast.error(model ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.");
+      toast.error(model ? "Sätt alla relevanta betyg." : "Välj typ av upplevelse först.");
       return;
     }
     setSaving(true);
@@ -178,7 +178,7 @@ export function DemoAddVisitReviewDialog({
                 onChange={setReviewOccasions}
                 disabled={saving}
                 required
-                description="Stället saknar Passar för. Välj en eller två kategorier innan du sparar omdömet."
+                description="Stället saknar Typ av upplevelse. Välj en eller två innan du sparar omdömet."
               />
             </div>
           ) : null}

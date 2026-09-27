@@ -55,7 +55,7 @@ export function ReviewModelNotice({ model }: { model: ReviewModel }) {
                   helhetsupplevelsen, och en enklare atmosfär är mer förväntad.
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Om stället också passar för{" "}
+                  Om stället också är markerat som{" "}
                   <strong className="font-semibold">{OCCASION_LABEL.avslappnat}</strong> eller{" "}
                   <strong className="font-semibold">{OCCASION_LABEL.middag}</strong> räknas Atmosfär
                   med.
