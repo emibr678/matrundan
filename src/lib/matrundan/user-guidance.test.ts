@@ -26,6 +26,13 @@ describe("user guidance", () => {
     ).toEqual(new Set(["core-intro@1", "review-context@1"]));
   });
 
+  test("Typ av upplevelse och omdömen använder ett gemensamt första-gångenkvitto", () => {
+    expect(Object.keys(USER_GUIDANCE)).toEqual(["coreIntro", "reviewContext"]);
+    expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe(
+      "review-context@1",
+    );
+  });
+
   test("registret innehåller unika nyckel- och versionspar", () => {
     const identifiers = Object.values(USER_GUIDANCE).map(guidanceIdentifier);
     expect(new Set(identifiers).size).toBe(identifiers.length);
