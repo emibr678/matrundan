@@ -240,7 +240,16 @@ export function AddVisitReviewDialog({
           {scoreless ? "Lägg till en kommentar" : "Lägg till ditt omdöme"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        key={
+          firstGuidanceActive
+            ? "guidance"
+            : classificationActive
+              ? "classification"
+              : "review"
+        }
+        className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
+      >
         <DialogHeader>
           <DialogTitle>
             {firstGuidanceActive
