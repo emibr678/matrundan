@@ -191,12 +191,7 @@ export function ProductIntroController() {
   ]);
 
   function handleOpenChange(nextOpen: boolean) {
-    if (
-      !nextOpen &&
-      mode === "live" &&
-      status === "ready" &&
-      !coreIntroAcknowledged
-    ) {
+    if (!nextOpen && mode === "live" && !coreIntroAcknowledged) {
       void acknowledge(USER_GUIDANCE.coreIntro);
     }
     setOpen(nextOpen);

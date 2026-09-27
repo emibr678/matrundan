@@ -112,15 +112,19 @@ export function UserGuidanceProvider({
 
       const identifier = guidanceIdentifier(definition);
       setLoaded((current) => {
-        if (
-          current.userId !== activeUserId ||
-          current.acknowledged.has(identifier)
-        ) {
-          return current;
-        }
-        const acknowledged = new Set(current.acknowledged);
+        const acknowledged = new Set(
+          current.userId === activeUserId
+            ? current.acknowledged
+            : EMPTY_ACKNOWLEDGED,
+        );
+        if (acknowledged.has(identifier)) return current;
         acknowledged.add(identifier);
-        return { ...current, acknowledged };
+        return {
+          userId: activeUserId,
+          status:
+            current.userId === activeUserId ? current.status : "loading",
+          acknowledged,
+        };
       });
 
       try {
