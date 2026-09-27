@@ -228,7 +228,7 @@ test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras
   await page.goto("/matstallen/p1?visit=v8");
 
   const visitDialog = page.getByRole("dialog").first();
-  const reviewSection = visitDialog.getByLabel("Gängets omdömen");
+  const reviewSection = visitDialog.getByLabel("Gruppens omdömen");
   const historicalReview = reviewSection.locator('[data-review-id="review-v8-alex"]');
 
   await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,0");

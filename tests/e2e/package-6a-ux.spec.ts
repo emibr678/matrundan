@@ -98,7 +98,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
 
   await page.goto("/matstallen?demo=1");
   await expect(
-    page.getByText("Vad gänget vill prova och har provat", { exact: true }),
+    page.getByText("Vad gruppen vill prova och har provat", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Lägg till ställe", exact: true })).toBeVisible();
 
