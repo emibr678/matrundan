@@ -20,7 +20,7 @@ export function StagingTestToolsDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { isPreviewing, preview, clearPreview } = useUserGuidance();
-  const reviewContextPreviewing = isPreviewing(USER_GUIDANCE.reviewContext);
+  const occasionPreviewing = isPreviewing(USER_GUIDANCE.occasionGuide);
 
   if (!IS_STAGING) return null;
 
@@ -57,8 +57,7 @@ export function StagingTestToolsDialog({
           <div className="rounded-2xl border border-border/70 p-4">
             <div className="font-medium">Kärnintroduktion</div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Startar samma rundtur genom Hem, Matställen och Gruppen som en ny
-              användare får.
+              Öppnar samma dialog och avslut som vid automatisk onboarding.
             </p>
             <Button
               type="button"
@@ -72,14 +71,14 @@ export function StagingTestToolsDialog({
           </div>
 
           <div className="rounded-2xl border border-border/70 p-4">
-            <div className="font-medium">Omdömets sammanhang</div>
+            <div className="font-medium">Passar för</div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Visar förstagångshjälpen nästa gång du lämnar ett poängsatt
-              omdöme. Ditt riktiga kvitto lämnas orört.
+              Visar förstagångshjälpen nästa gång du öppnar ett obligatoriskt
+              Passar för-val. Ditt riktiga kvitto lämnas orört.
             </p>
-            {reviewContextPreviewing ? (
+            {occasionPreviewing ? (
               <div className="mt-2 text-xs font-medium text-amber-800">
-                Simuleringen väntar på nästa poängsatta omdöme.
+                Simuleringen väntar på nästa relevanta val.
               </div>
             ) : null}
             <Button
@@ -88,12 +87,12 @@ export function StagingTestToolsDialog({
               size="sm"
               className="mt-3 min-h-11"
               onClick={() =>
-                reviewContextPreviewing
-                  ? clearPreview(USER_GUIDANCE.reviewContext)
-                  : preview(USER_GUIDANCE.reviewContext)
+                occasionPreviewing
+                  ? clearPreview(USER_GUIDANCE.occasionGuide)
+                  : preview(USER_GUIDANCE.occasionGuide)
               }
             >
-              {reviewContextPreviewing ? (
+              {occasionPreviewing ? (
                 <>
                   <RotateCcw className="h-4 w-4" aria-hidden />
                   Avbryt simulering
