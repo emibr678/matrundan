@@ -29,7 +29,7 @@ import {
   getOwnVisitPhoto,
   prepareVisitPhoto,
 } from "@/lib/matrundan/visit-photo";
-import { OccasionPicker } from "./OccasionPicker";
+import { OccasionClassificationChoices } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
 import { VisitPhotoField } from "./VisitPhotoField";
 
@@ -241,16 +241,11 @@ export function DemoAddVisitReviewDialog({
 
         {classificationActive ? (
           <div className="space-y-4">
-            <div className="rounded-2xl bg-secondary/40 p-4">
-              <OccasionPicker
-                id={`demo-visit-review-occasions-${visitId}`}
-                value={reviewOccasions}
-                onChange={setReviewOccasions}
-                disabled={saving}
-                required
-                showInstructions={false}
-              />
-            </div>
+            <OccasionClassificationChoices
+              value={reviewOccasions}
+              onChange={setReviewOccasions}
+              disabled={saving}
+            />
             <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
               <Button
                 variant="ghost"
@@ -277,6 +272,7 @@ export function DemoAddVisitReviewDialog({
               {!scoreless && model ? (
                 <ReviewScoreFields
                   model={model}
+                  contextOccasions={activeOccasions}
                   taste={taste}
                   service={service}
                   value={value}
