@@ -14,6 +14,26 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.44.0] – 2026-09-28
+
+### Nytt
+
+- Alla användare får lanseringsversionen av en kort rundtur genom Matrundan,
+  Matställen, Hem och Gruppen en gång och kan alltid öppna hjälpen igen via
+  **Så funkar Matrundan**.
+- **Typ av upplevelse** förklaras första gången den blir relevant och sätter
+  sammanhanget för omdömen genom **Snabbt & enkelt**, **Avslappnat** och
+  **Något extra**.
+
+### Förbättrat
+
+- Hem fokuserar tydligare på gruppens nuläge medan Matställen samlar bläddring
+  och lägg-till-flödet.
+- När gruppen saknar ställen leder Hem vidare till Matställen och öppnar rätt
+  lägg-till-flöde där.
+- Gruppspråket och hjälpen kring matupplevelser är mer konsekventa och använder
+  **Typ av upplevelse** som gemensamt begrepp.
+
 ## [1.43.1] – 2026-09-27
 
 ### Nytt

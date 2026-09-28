@@ -3,6 +3,29 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_44_0_CHANGELOG: ChangelogEntry = {
+  version: "1.44.0",
+  date: "2026-09-28",
+  summary: "Kärnflödet är lättare att förstå och Hem tydligare fokuserat på gruppens nuläge.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Alla användare får lanseringsversionen av en kort rundtur genom Matrundan, Matställen, Hem och Gruppen en gång och kan alltid öppna hjälpen igen via Så funkar Matrundan.",
+        "Typ av upplevelse förklaras första gången den blir relevant och sätter sammanhanget för omdömen genom Snabbt & enkelt, Avslappnat och Något extra.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Hem fokuserar tydligare på gruppens nuläge medan Matställen samlar bläddring och lägg-till-flödet.",
+        "När gruppen saknar ställen leder Hem vidare till Matställen och öppnar rätt lägg-till-flöde där.",
+        "Gruppspråket och hjälpen kring matupplevelser är mer konsekventa och använder Typ av upplevelse som gemensamt begrepp.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_43_1_CHANGELOG: ChangelogEntry = {
   version: "1.43.1",
   date: "2026-09-27",
@@ -493,6 +516,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_44_0_CHANGELOG,
   VERSION_1_43_1_CHANGELOG,
   VERSION_1_42_0_CHANGELOG,
   VERSION_1_41_0_CHANGELOG,
