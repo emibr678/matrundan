@@ -83,9 +83,9 @@ jobs:
           import fs from 'node:fs';
 
           const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
-          const url = new URL(
-            `https://api.github.com/repos/${owner}/${repo}/actions/workflows/cloudflare-prod-preflight.yml/runs`,
-          );
+          const preflightPath = '.github/workflows/cloudflare-prod-preflight.yml';
+          const url = new URL(`https://api.github.com/repos/${owner}/${repo}/actions/runs`);
+          url.searchParams.set('head_sha', process.env.GITHUB_SHA);
           url.searchParams.set('branch', 'main');
           url.searchParams.set('event', 'workflow_dispatch');
           url.searchParams.set('per_page', '100');
@@ -105,7 +105,10 @@ jobs:
           }
 
           const matching = payload.workflow_runs
-            .filter((run) => run?.head_sha === process.env.GITHUB_SHA)
+            .filter(
+              (run) =>
+                run?.path === preflightPath && run?.head_sha === process.env.GITHUB_SHA,
+            )
             .sort(
               (left, right) =>
                 Date.parse(right?.created_at ?? '') - Date.parse(left?.created_at ?? ''),
