@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const productionWorkflows = [
@@ -7,8 +7,10 @@ const productionWorkflows = [
   ".github/workflows/cloudflare-prod-publish.yml",
 ];
 
-const preflightDispatcherWorkflow = ".github/workflows/agent-prod-preflight-dispatch.yml";
-const publishDispatcherWorkflow = ".github/workflows/agent-prod-publish-dispatch.yml";
+const legacyDispatcherWorkflows = [
+  ".github/workflows/agent-prod-preflight-dispatch.yml",
+  ".github/workflows/agent-prod-publish-dispatch.yml",
+];
 
 describe("productionflödets runner-kontrakt", () => {
   test.each(productionWorkflows)(
@@ -21,6 +23,7 @@ describe("productionflödets runner-kontrakt", () => {
       expect(workflow).not.toContain("MATRUNDAN_CI_RUNNER");
       expect(workflow).toContain("if: github.ref == 'refs/heads/main'");
       expect(workflow).toContain("environment: production");
+      expect(workflow).toContain("workflow_dispatch:");
     },
   );
 
@@ -36,14 +39,17 @@ describe("productionflödets runner-kontrakt", () => {
     expect(workflow).toContain("Guard unreleased app version");
   });
 
-  test("prod-publish löser exakt lyckad preflight själv och skapar release metadata", () => {
+  test("prod-publish löser senaste preflight för exakt SHA via repoets Actions-runs", () => {
     const workflow = readFileSync(resolve(process.cwd(), productionWorkflows[1]), "utf8");
 
     expect(workflow).toContain("actions: read");
     expect(workflow).toContain("contents: write");
     expect(workflow).not.toContain("expected_sha:");
     expect(workflow).not.toContain("candidate_version_id:");
-    expect(workflow).toContain("cloudflare-prod-preflight.yml/runs");
+    expect(workflow).toContain("/actions/runs");
+    expect(workflow).toContain("url.searchParams.set('head_sha', process.env.GITHUB_SHA)");
+    expect(workflow).toContain("run?.path === preflightPath");
+    expect(workflow).toContain(".github/workflows/cloudflare-prod-preflight.yml");
     expect(workflow).toContain("run.status !== 'completed' || run.conclusion !== 'success'");
     expect(workflow).toContain("preflight-${process.env.PREFLIGHT_RUN_ID}");
     expect(workflow).toContain("steps.candidate.outputs.already_active != 'true'");
@@ -56,34 +62,16 @@ describe("productionflödets runner-kontrakt", () => {
     expect(workflow).toContain("replace(/\\.$/u, '')");
   });
 
-  test("prod-preflight-dispatchern kräver bara exakt owner-kommando och löser main själv", () => {
-    const workflow = readFileSync(resolve(process.cwd(), preflightDispatcherWorkflow), "utf8");
+  test("legacy Issue-dispatchers ingår inte längre i produktionsvägen", () => {
+    for (const path of legacyDispatcherWorkflows) {
+      expect(existsSync(resolve(process.cwd(), path))).toBe(false);
+    }
 
-    expect(workflow).toContain("runs-on: ubuntu-24.04");
-    expect(workflow).toContain("actions: write");
-    expect(workflow).toContain("github.event.issue.number == 207");
-    expect(workflow).toContain("body !== '/prod-preflight'");
-    expect(workflow).toContain("cloudflare-prod-preflight.yml/dispatches");
-    expect(workflow).toContain("inputs: { upload_version: true }");
-    expect(workflow).not.toContain("expected_sha");
-    expect(workflow).not.toContain("MATRUNDAN_PROD_PREFLIGHT_RUNNER");
-    expect(workflow).not.toContain("MATRUNDAN_CI_RUNNER");
-  });
-
-  test("prod-publish-dispatchern behåller separat explicit approval utan kandidatkopiering", () => {
-    const workflow = readFileSync(resolve(process.cwd(), publishDispatcherWorkflow), "utf8");
-
-    expect(workflow).toContain("runs-on: ubuntu-24.04");
-    expect(workflow).toContain("actions: write");
-    expect(workflow).toContain("github.event.issue.number == 207");
-    expect(workflow).toContain("github.event.comment.author_association == 'OWNER'");
-    expect(workflow).toContain("github.event.comment.user.login == github.repository_owner");
-    expect(workflow).toContain("body !== '/prod-publish PUBLISH_PROD'");
-    expect(workflow).toContain("cloudflare-prod-publish.yml/dispatches");
-    expect(workflow).toContain("inputs: { confirmation: 'PUBLISH_PROD' }");
-    expect(workflow).not.toContain("candidate_version_id");
-    expect(workflow).not.toContain("expected_sha");
-    expect(workflow).not.toContain("MATRUNDAN_PROD_PREFLIGHT_RUNNER");
-    expect(workflow).not.toContain("MATRUNDAN_CI_RUNNER");
+    for (const path of productionWorkflows) {
+      const workflow = readFileSync(resolve(process.cwd(), path), "utf8");
+      expect(workflow).not.toContain("github.event.issue.number == 207");
+      expect(workflow).not.toContain("/prod-preflight");
+      expect(workflow).not.toContain("/prod-publish");
+    }
   });
 });

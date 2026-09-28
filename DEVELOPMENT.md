@@ -303,20 +303,22 @@ Agent Operations-dispatchern själv har `actions: write` enbart för att starta 
 tre allowlistade utvecklings-/verifieringsworkflowen. Kommandon accepteras endast
 från repositoryägaren på en vanlig Issue, aldrig från PR-kommentarer.
 
-Production ligger fortsatt utanför den generella `/agent`-bryggan men har två
-separata owner-only dispatchers på Issue #207:
+Production ligger fortsatt utanför den generella `/agent`-bryggan. De
+kanoniska produktionsgrindarna är i stället de manuella GitHub Actions-workflowen
+**Cloudflare prod preflight** och **Cloudflare prod publish** på `main`.
 
-```text
-/prod-preflight
-/prod-publish PUBLISH_PROD
-```
+Starta dem via `workflow_dispatch`: direkt genom en connector som uttryckligen
+stöder workflow-dispatch, eller via GitHub Actions UI när connectorn saknar den
+förmågan. Ingen vanlig Issue används som kommandobrygga, och no-op-commits får
+inte skapas för att trigga produktion.
 
-`/prod-preflight` löser aktuell `main` själv och startar den inerta
-produktionspreflighten. Efter autentiserad smoke och separat uttryckligt
-publiceringsgodkännande startar `/prod-publish PUBLISH_PROD` publiceringen.
-SHA och Cloudflare Worker-version kopieras inte mellan stegen; publish-workflowet
-löser exakt lyckad preflight och dess kandidat maskinellt. Recoveryoperationer
-ingår inte i någon av dessa bryggor.
+**Cloudflare prod preflight** löser aktuell `main` själv och skapar den inerta
+produktionskandidaten. Efter autentiserad smoke och separat uttryckligt
+publiceringsgodkännande startas **Cloudflare prod publish** med
+`confirmation=PUBLISH_PROD`. SHA och Cloudflare Worker-version kopieras inte
+mellan stegen; publish-workflowet löser senaste preflight för exakt aktuell
+`main` och verifierar den bundna kandidaten maskinellt. Recoveryoperationer
+ingår inte i någon av dessa grindar.
 
 ### Releasekontrakt för staging-first
 
