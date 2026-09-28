@@ -2,6 +2,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 import { Button } from "@/components/ui/button";
+import { GroupSymbolPicker } from "@/components/matrundan/GroupSymbolPicker";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,6 @@ import { SEARCH_RADIUS_OPTIONS } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import type { SearchRadiusKm } from "@/lib/matrundan/types";
 
-const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
 
 export function CreateGroupDialog({
   open,
@@ -121,27 +121,7 @@ export function CreateGroupDialog({
               olika syften.
             </p>
           </div>
-          <div className="space-y-1.5">
-            <Label>Emoji</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {EMOJIS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={emoji === option}
-                  onClick={() => setEmoji(option)}
-                  className={
-                    "h-10 w-10 rounded-xl border text-xl transition " +
-                    (emoji === option
-                      ? "border-primary bg-primary/10"
-                      : "border-border/70 hover:bg-muted")
-                  }
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
+          <GroupSymbolPicker value={emoji} onChange={setEmoji} />
           <div className="space-y-1.5">
             <Label htmlFor="cg-loc">Första sökområdet (valfritt)</Label>
             <GeoapifyLocationInput
