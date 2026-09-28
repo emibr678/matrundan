@@ -1,7 +1,6 @@
 import * as React from "react";
-import { Copy, FlaskConical } from "lucide-react";
+import { Copy } from "lucide-react";
 import { toast } from "sonner";
-import { StagingTestToolsDialog } from "@/components/matrundan/StagingTestToolsDialog";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -11,12 +10,9 @@ import {
 import {
   APP_DEPLOYED_AT,
   APP_DISPLAY_NAME,
-  APP_ENVIRONMENT,
   formatDeploymentTime,
   IS_STAGING,
 } from "@/lib/app-environment";
-import { useSession } from "@/lib/matrundan/session";
-import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
 import { APP_VERSION } from "@/lib/matrundan/version";
 import { RELEASE_SHA } from "@/lib/release-metadata";
 
@@ -65,14 +61,7 @@ async function copyText(text: string): Promise<void> {
 }
 
 export function EnvironmentBadge() {
-  const { mode, user } = useSession();
   const [popoverOpen, setPopoverOpen] = React.useState(false);
-  const [testToolsOpen, setTestToolsOpen] = React.useState(false);
-  const showTestTools = canUseStagingTestTools({
-    environment: APP_ENVIRONMENT,
-    signedIn: Boolean(user),
-    liveMode: mode === "live",
-  });
 
   if (!IS_STAGING) return null;
 
@@ -85,14 +74,8 @@ export function EnvironmentBadge() {
     }
   }
 
-  function openTestTools() {
-    setPopoverOpen(false);
-    setTestToolsOpen(true);
-  }
-
   return (
-    <>
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -138,17 +121,6 @@ export function EnvironmentBadge() {
             </dl>
 
             <div className="space-y-2">
-              {showTestTools ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="min-h-11 w-full"
-                  onClick={openTestTools}
-                >
-                  <FlaskConical className="h-4 w-4" /> Testverktyg
-                </Button>
-              ) : null}
               <Button
                 type="button"
                 variant="outline"
@@ -161,11 +133,6 @@ export function EnvironmentBadge() {
             </div>
           </div>
         </PopoverContent>
-      </Popover>
-      <StagingTestToolsDialog
-        open={testToolsOpen}
-        onOpenChange={setTestToolsOpen}
-      />
-    </>
+    </Popover>
   );
 }

@@ -253,6 +253,13 @@ test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur",
 
     const help = page.getByRole("dialog", { name: "Så funkar Matrundan" });
     await expect(help).toBeVisible();
+    await expect(
+      help.getByText("Olika grupper för olika sammanhang", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      help.getByText(/Varje grupp har sin egen samling, sina egna planer och sin egen historik/),
+    ).toBeVisible();
+    await expect(help.getByText(/När någon eller några i gruppen har varit där/)).toBeVisible();
     await expect(help.getByRole("button", { name: "Om Matrundan" })).toBeVisible();
     return help;
   }
@@ -262,23 +269,33 @@ test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur",
 
   const tour = page.locator("[data-product-tour]");
   await expect(page).toHaveURL(/\/matstallen$/);
-  await expect(tour.getByText("1 av 3", { exact: true })).toBeVisible();
+  await expect(tour.getByText("1 av 4", { exact: true })).toBeVisible();
+  await expect(tour.getByRole("heading", { name: "Välkommen till Matrundan" })).toBeVisible();
+  await expect(tour.getByText("Du är just nu i Fredagsgänget.", { exact: true })).toBeVisible();
   const initialTourHistoryLength = await page.evaluate(() => window.history.length);
 
   await tour.getByRole("button", { name: "Nästa" }).click();
+  await expect(page).toHaveURL(/\/matstallen$/);
+  await expect(tour.getByText("2 av 4", { exact: true })).toBeVisible();
+  await expect(tour.getByText(/När någon eller några i gruppen har varit där/)).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.history.length))
+    .toBe(initialTourHistoryLength);
+
+  await tour.getByRole("button", { name: "Nästa" }).click();
   await expect(page).toHaveURL(/\/exempel$/);
-  await expect(tour.getByText("2 av 3", { exact: true })).toBeVisible();
+  await expect(tour.getByText("3 av 4", { exact: true })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => window.history.length))
     .toBe(initialTourHistoryLength);
 
   await page.getByRole("link", { name: "Gruppen", exact: true }).click();
   await expect(page).toHaveURL(/\/gruppen$/);
-  await expect(tour.getByText("3 av 3", { exact: true })).toBeVisible();
+  await expect(tour.getByText("4 av 4", { exact: true })).toBeVisible();
 
   await page.goBack();
   await expect(page).toHaveURL(/\/exempel$/);
-  await expect(tour.getByText("2 av 3", { exact: true })).toBeVisible();
+  await expect(tour.getByText("3 av 4", { exact: true })).toBeVisible();
 
   await tour.getByRole("button", { name: "Hoppa över" }).click();
   await expect(tour).toHaveCount(0);
@@ -292,7 +309,8 @@ test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur",
 
   await tour.getByRole("button", { name: "Nästa" }).click();
   await tour.getByRole("button", { name: "Nästa" }).click();
-  await expect(tour.getByText("3 av 3", { exact: true })).toBeVisible();
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await expect(tour.getByText("4 av 4", { exact: true })).toBeVisible();
   await tour.getByRole("button", { name: "Nu kör vi" }).click();
 
   await expect(page).toHaveURL(/\/exempel$/);

@@ -57,8 +57,8 @@ export function StagingTestToolsDialog({
           <div className="rounded-2xl border border-border/70 p-4">
             <div className="font-medium">Kärnintroduktion</div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Startar samma rundtur genom Matställen, Hem och Gruppen som en ny
-              användare får.
+              Startar samma introduktion till Matrundan, Matställen, Hem och
+              Gruppen som en ny användare får.
             </p>
             <Button
               type="button"

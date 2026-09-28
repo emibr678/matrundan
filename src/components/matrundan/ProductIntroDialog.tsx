@@ -40,35 +40,49 @@ export function useProductTourActive() {
 
 const TOUR_STEPS = [
   {
+    label: "Matrundan",
+    title: "Välkommen till Matrundan",
+    description: (groupName: string) => (
+      <>
+        Upptäck, prova och minns matställen tillsammans. I Matrundan kan du ha
+        olika privata grupper – för familjen, kompisgänget eller en plats ni
+        vill utforska. Varje grupp har sin egen samling, sina egna planer och
+        sin egen historik.
+        <span className="mt-2 block font-medium text-foreground [overflow-wrap:anywhere]">
+          Du är just nu i {groupName}.
+        </span>
+      </>
+    ),
+  },
+  {
     label: "Matställen",
     title: "Samla matställen tillsammans",
-    description:
-      "Här bygger ni gruppens gemensamma samling av matställen: sådant ni vill prova, favoriter ni vill återvända till och matställen ni redan besökt. Besökta matställen ligger kvar och kan besökas igen.",
+    description: () =>
+      "Här bygger ni gruppens gemensamma samling av ställen ni vill prova, redan har besökt eller gärna återvänder till. När någon eller några i gruppen har varit där registrerar ni besöket och vilka som var med.",
   },
   {
     label: "Hem",
     title: "Se vad gruppen har på gång",
-    description: (
+    description: () => (
       <>
-        När ni har bestämt vilket matställe ni vill besöka härnäst kan ni göra
-        det till{" "}
+        När ni planerar tillsammans kan ni markera ett ställe som{" "}
         <strong className="font-medium text-foreground">Nästa stopp</strong>. På
-        Hem ser ni vad som står på tur, hur mycket av er samling ni hunnit prova
-        och ert senaste gemensamma besök.
+        Hem ser ni vad som står på tur, hur mycket av samlingen ni har provat
+        och gruppens senaste besök.
       </>
     ),
   },
   {
     label: "Gruppen",
     title: "Se människorna bakom rundan",
-    description:
-      "Här samlas den personliga sidan av Matrundan: medlemmarnas favoriter, besök och framsteg, tillsammans med gruppens gemensamma höjdpunkter och aktivitet.",
+    description: () =>
+      "Här ser ni vilka som är med, medlemmarnas favoriter och framsteg samt vad som har hänt i gruppen.",
   },
 ] as const;
 
 function tourRoute(step: number, exampleMode: boolean) {
-  if (step === 0) return "/matstallen" as const;
-  if (step === 1) return exampleMode ? ("/exempel" as const) : ("/" as const);
+  if (step <= 1) return "/matstallen" as const;
+  if (step === 2) return exampleMode ? ("/exempel" as const) : ("/" as const);
   return "/gruppen" as const;
 }
 
@@ -77,9 +91,9 @@ function homeRoute(exampleMode: boolean) {
 }
 
 function tourStepForPath(pathname: string, exampleMode: boolean) {
-  if (pathname === "/matstallen") return 0;
-  if (pathname === homeRoute(exampleMode)) return 1;
-  if (pathname === "/gruppen") return 2;
+  if (pathname === "/matstallen") return 1;
+  if (pathname === homeRoute(exampleMode)) return 2;
+  if (pathname === "/gruppen") return 3;
   return null;
 }
 
@@ -145,38 +159,37 @@ export function ProductIntroDialog({
             Så funkar Matrundan
           </DialogTitle>
           <DialogDescription className="leading-relaxed">
-            Upptäck, prova och minns matställen tillsammans – i privata grupper
-            för familj, vänner och olika sammanhang.
+            Upptäck, prova och minns matställen tillsammans i privata grupper.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          <IntroRow icon={UsersRound} title="Flera grupper, olika sammanhang">
-            Skapa separata grupper för olika personer och platser – till exempel
-            familjen, kompisgänget, närområdet eller en stad där du bor eller ska
-            resa till. Varje grupp har sin egen lista och historik.
+          <IntroRow icon={UsersRound} title="Olika grupper för olika sammanhang">
+            Ha separata grupper för exempelvis familjen, kompisgänget eller en
+            plats ni vill utforska. Varje grupp har sin egen samling, sina egna
+            planer och sin egen historik.
           </IntroRow>
-          <IntroRow icon={Search} title="Samla matställen ni vill prova">
-            Spara restauranger, caféer och andra matställen gruppen är nyfiken på.
+          <IntroRow icon={Search} title="Samla matställen">
+            Bygg en gemensam samling av ställen ni vill prova, redan har besökt
+            eller gärna återvänder till.
           </IntroRow>
           <IntroRow icon={Flag} title="Välj nästa stopp">
-            När ni har bestämt er, lägg stället som Nästa stopp så gruppen vet
-            vad som står på tur.
+            När ni planerar tillsammans kan ni markera vilket ställe som står
+            på tur.
           </IntroRow>
-          <IntroRow icon={BookOpen} title="Registrera besöket">
-            När ni varit där sparar ni datum och vilka som faktiskt var med.
-            Omdömen, bilder och återbesök hjälper er minnas och välja nästa
-            gång.
+          <IntroRow icon={BookOpen} title="Registrera besök">
+            När någon eller några i gruppen har varit där sparar ni besöket och
+            vilka som var med. Omdömen och bilder hjälper er att minnas, hitta
+            favoriter och välja nästa gång.
           </IntroRow>
         </div>
 
-        <Card className="rounded-2xl border-border/70 bg-secondary/25 p-4">
+        <Card className="rounded-2xl border-0 bg-secondary/25 px-4 py-3 shadow-none">
           <div className="text-sm font-medium [overflow-wrap:anywhere]">
-            Du är i {groupName}
+            Du är just nu i {groupName}
           </div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Byt grupp i menyn när du vill se en annan grupps ställen, planer och
-            historik.
+            Byt grupp i menyn när du vill.
           </p>
         </Card>
 
@@ -196,10 +209,12 @@ export function ProductIntroDialog({
 
 function ProductTourCard({
   step,
+  groupName,
   onNext,
   onSkip,
 }: {
   step: number;
+  groupName: string;
   onNext: () => void;
   onSkip: () => void;
 }) {
@@ -230,9 +245,9 @@ function ProductTourCard({
       >
         {current.title}
       </h2>
-      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        {current.description}
-      </p>
+      <div className="mt-1 text-sm leading-relaxed text-muted-foreground">
+        {current.description(groupName)}
+      </div>
       <div className="mt-4 flex items-center justify-between gap-2">
         <Button type="button" variant="ghost" onClick={onSkip}>
           Hoppa över
@@ -375,6 +390,7 @@ export function ProductIntroController({
 
     const routeStep = tourStepForPath(pathname, exampleMode);
     if (routeStep !== null) {
+      if (tourStep === 0 && pathname === tourRoute(0, exampleMode)) return;
       setTourStep((current) =>
         current === routeStep ? current : routeStep,
       );
@@ -388,6 +404,7 @@ export function ProductIntroController({
     acknowledgeTourIfNeeded,
     exampleMode,
     pathname,
+    tourStep,
     tourMode,
   ]);
 
@@ -406,6 +423,11 @@ export function ProductIntroController({
       void router
         .navigate({ to: homeRoute(exampleMode), replace: true })
         .then(focusMainContent);
+      return;
+    }
+
+    if (tourStep === 0) {
+      setTourStep(1);
       return;
     }
 
@@ -430,6 +452,7 @@ export function ProductIntroController({
       {tourMode ? (
         <ProductTourCard
           step={tourStep}
+          groupName={state.group.name}
           onNext={nextTourStep}
           onSkip={skipTour}
         />

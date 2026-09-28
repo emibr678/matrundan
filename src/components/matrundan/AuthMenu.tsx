@@ -4,6 +4,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  FlaskConical,
   Home,
   Info,
   List,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { AboutDialog } from "./AboutDialog";
+import { StagingTestToolsDialog } from "./StagingTestToolsDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,8 +28,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
+import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
 import { APP_NAME } from "@/lib/matrundan/version";
 import { toast } from "sonner";
 import { AllGroupsDialog } from "./AllGroupsDialog";
@@ -163,10 +167,16 @@ export function AuthMenu({
   const [createOpen, setCreateOpen] = React.useState(false);
   const [allGroupsOpen, setAllGroupsOpen] = React.useState(false);
   const [emailCodeOpen, setEmailCodeOpen] = React.useState(false);
+  const [testToolsOpen, setTestToolsOpen] = React.useState(false);
   const [recentGroupIds, setRecentGroupIds] = React.useState<string[]>([]);
   const [hasPlaceMaintenanceAccess, setHasPlaceMaintenanceAccess] =
     React.useState(false);
   const userId = user?.id ?? null;
+  const showTestTools = canUseStagingTestTools({
+    environment: APP_ENVIRONMENT,
+    signedIn: Boolean(user),
+    liveMode: mode === "live",
+  });
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -426,6 +436,12 @@ export function AuthMenu({
               Så funkar Matrundan
             </DropdownMenuItem>
           ) : null}
+          {showTestTools ? (
+            <DropdownMenuItem onSelect={() => setTestToolsOpen(true)}>
+              <FlaskConical className="mr-2 h-4 w-4" />
+              Testverktyg
+            </DropdownMenuItem>
+          ) : null}
           {pendingInvites.length > 0 ? (
             <DropdownMenuItem onSelect={() => setAllGroupsOpen(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
@@ -504,6 +520,10 @@ export function AuthMenu({
         onSaved={() => void refreshGroups()}
       />
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+      <StagingTestToolsDialog
+        open={testToolsOpen}
+        onOpenChange={setTestToolsOpen}
+      />
       <CreateGroupDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );
