@@ -525,7 +525,7 @@ export function StoreProvider({
             }))
         ) {
           throw new Error(
-            reviewModel ? "Sätt alla relevanta betyg." : "Välj vad stället passar för först.",
+            reviewModel ? "Sätt alla relevanta betyg." : "Välj typ av upplevelse först.",
           );
         }
         if (scored && !hasNewDimensions && !visitInput.overall && visitInput.comment?.trim()) {

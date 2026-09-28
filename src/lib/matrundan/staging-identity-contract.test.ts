@@ -55,9 +55,7 @@ describe("stagingidentitet", () => {
   test("klassar repoanslutna Cloudflare Builds som staging utan explicit override", async () => {
     for (const path of ["vite.config.ts", "vite.platform.config.ts"]) {
       const config = await Bun.file(path).text();
-      expect(config).toContain(
-        'process.env.WORKERS_CI === "1" ? "staging" : "local"',
-      );
+      expect(config).toContain('process.env.WORKERS_CI === "1" ? "staging" : "local"');
     }
   });
 

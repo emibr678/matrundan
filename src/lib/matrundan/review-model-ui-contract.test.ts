@@ -15,6 +15,14 @@ const visitPlaceOccasionDialog = readFileSync(
   resolve(root, "src/components/matrundan/VisitPlaceOccasionDialog.tsx"),
   "utf8",
 );
+const firstReviewGuidance = readFileSync(
+  resolve(root, "src/components/matrundan/FirstReviewGuidance.tsx"),
+  "utf8",
+);
+const reviewContextGate = readFileSync(
+  resolve(root, "src/components/matrundan/useReviewContextGate.ts"),
+  "utf8",
+);
 const occasionPicker = readFileSync(
   resolve(root, "src/components/matrundan/OccasionPicker.tsx"),
   "utf8",
@@ -48,41 +56,77 @@ const reviewEditFields = readFileSync(
   "utf8",
 );
 
+function normalizedSourceText(source: string): string {
+  return source.replace(/\s+/g, " ");
+}
+
 describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
-  test("saknat Passar för löses som platsmetadata före registreringsdialogen", () => {
+  test("saknat Typ av upplevelse löses som platsmetadata före registreringsdialogen", () => {
     expect(visitDialogFlow).toContain("needsOccasionClassification");
     expect(visitDialogFlow).toContain("<VisitPlaceOccasionDialog");
     expect(visitDialogFlow).toContain("open={open && !needsOccasionClassification}");
     expect(visitDialogCore).toContain("<ReviewScoreFields");
 
-    expect(visitPlaceOccasionDialog).toContain("När passar stället bäst?");
+    expect(visitPlaceOccasionDialog).toContain("Hur skulle ni beskriva matupplevelsen?");
     expect(visitPlaceOccasionDialog).toContain(
-      "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället.",
+      "Välj den typ av upplevelse som bäst beskriver stället",
     );
-    expect(visitPlaceOccasionDialog).toContain("sparas för gruppen.");
-    expect(visitPlaceOccasionDialog).toContain("OCCASION_LABEL[occasion]");
+    expect(visitPlaceOccasionDialog).toContain("Valet sparas för gruppen.");
+    expect(visitPlaceOccasionDialog).toContain("Innan du sätter betyg");
+    expect(visitPlaceOccasionDialog).toContain("<FirstReviewGuidance");
+    expect(visitPlaceOccasionDialog).toContain("useReviewContextGate");
+    expect(visitPlaceOccasionDialog).toContain("OccasionClassificationChoices");
     expect(visitPlaceOccasionDialog).not.toContain('occasion === "snabbt"');
-    expect(visitPlaceOccasionDialog).toContain("whitespace-nowrap");
-    expect(visitPlaceOccasionDialog).toContain("grid grid-cols-3");
-    expect(visitPlaceOccasionDialog).toContain("Vad betyder alternativen?");
+    expect(occasionPicker).toContain("OCCASION_LABEL[occasion]");
+    expect(occasionPicker).toContain("whitespace-nowrap");
+    expect(occasionPicker).toContain("grid grid-cols-3");
+    expect(occasionPicker).toContain("Så fungerar det");
     expect(visitPlaceOccasionDialog).toContain("Spara och fortsätt");
-    expect(visitPlaceOccasionDialog).not.toContain("saknar Passar för");
+    expect(visitPlaceOccasionDialog).not.toContain("saknar Typ av upplevelse");
     expect(visitPlaceOccasionDialog).not.toContain("Atmosfär");
   });
 
-  test("komplettering av äldre omdöme kräver saknat Passar för även vid Hämtmat", () => {
-    for (const source of [addReviewDialog, demoAddReviewDialog]) {
-      expect(source).toContain("classificationComplete");
-      expect(source).toContain("required");
-      expect(source).toContain(
-        "Stället saknar Passar för. Välj en eller två kategorier innan du sparar omdömet.",
-      );
-      expect(source).not.toContain("Valfritt – välj vad stället passar för");
-    }
+  test("komplettering av äldre omdöme löser saknad Typ av upplevelse före betyget", () => {
+    expect(addReviewDialog).toContain("classificationActive");
+    expect(addReviewDialog).toContain("saveClassificationAndContinue");
+    expect(addReviewDialog).toContain("updatePlaceMetadata");
+    expect(addReviewDialog).toContain("Spara och fortsätt");
+    expect(addReviewDialog).toContain("OccasionClassificationChoices");
+
+    expect(demoAddReviewDialog).toContain("classificationActive");
+    expect(demoAddReviewDialog).toContain("saveClassificationAndContinue");
+    expect(demoAddReviewDialog).toContain("updatePlaceMetadata");
+    expect(demoAddReviewDialog).toContain("Spara och fortsätt");
+    expect(demoAddReviewDialog).toContain("OccasionClassificationChoices");
+    expect(addReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
+    expect(demoAddReviewDialog).not.toContain("Valfritt – välj vad stället passar för");
+  });
+
+  test("första omdömesguiden är ett separat steg före klassificering och stjärnor", () => {
+    const copy = normalizedSourceText(firstReviewGuidance);
+
+    expect(copy).toContain("Kul att du ska lämna ditt första omdöme!");
+    expect(copy).toContain("Ett enkelt gatukök och en finkrog");
+    expect(copy).toContain("Båda kan få lika höga betyg");
+    expect(copy).toContain("Tre typer av matupplevelser");
+    expect(copy).toContain("Ett matställe kan beskrivas med en eller två av dem.");
+    expect(firstReviewGuidance).toContain("showConclusion={false}");
+    expect(firstReviewGuidance).toContain("Jag förstår");
+    expect(reviewContextGate).toContain("USER_GUIDANCE.reviewContext");
+    expect(reviewContextGate).toContain('ReviewContextGateState = "ready" | "loading" | "guide"');
+    expect(addReviewDialog).toContain("useReviewContextGate");
+    expect(visitPlaceOccasionDialog).toContain("useReviewContextGate");
+    expect(visitDialogCore).toContain("useReviewContextGate");
+    expect(addReviewDialog).toContain("firstGuidanceActive");
+    expect(addReviewDialog).toContain("classificationActive");
   });
 
   test("helhetsbetyget presenteras som härlett i stället för separat input", () => {
     expect(scoreFields).toContain("Helhetsbetyg");
+    expect(scoreFields).toContain("contextOccasions");
+    expect(scoreFields).toContain("<OccasionSummary");
+    expect(scoreFields).not.toContain("ReviewContextHelp");
+    expect(scoreFields).not.toContain("Om betygen");
     expect(scoreFields).toContain("deriveReviewOverall");
     expect(scoreFields).toContain('label="Atmosfär"');
     expect(scoreFields).toContain("— / 5");
@@ -115,10 +159,20 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     }
   });
 
-  test("Passar för-hjälpen förklarar nya omdömen utan att hota historiken", () => {
-    expect(occasionPicker).toContain("OCCASION_LABEL.snabbt");
-    expect(occasionPicker).toContain("ingår inte Atmosfär i nya omdömen");
-    expect(occasionPicker).toContain("Tidigare omdömen ändras inte");
+  test("Typ av upplevelse-hjälpen förklarar olika matupplevelser", () => {
+    const copy = normalizedSourceText(occasionPicker);
+
+    expect(copy).toContain("Typ av upplevelse gäller matstället");
+    expect(copy).toContain("vilken sorts matupplevelse gruppen förknippar det med");
+    expect(copy).toContain("Båda kan få lika");
+    expect(occasionPicker).toContain("OCCASION_DESCRIPTION");
+    expect(occasionPicker).toContain("Typ av upplevelse");
+    expect(occasionPicker).toContain("Så fungerar det");
+    expect(occasionPicker).toContain("showInstructions");
+    expect(occasionPicker).toContain("OccasionClassificationChoices");
+    expect(occasionPicker).toContain("OccasionSummary");
+    expect(occasionPicker).toContain("<OccasionGuide compact");
+    expect(occasionPicker).toContain("min-h-14");
   });
 
   test("3D-reviews använder ordinarie härlett flöde och explicit modelluppgradering", () => {

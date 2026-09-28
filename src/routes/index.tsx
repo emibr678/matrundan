@@ -168,9 +168,7 @@ export function Home() {
       <NextStopCard
         activePlaces={activePlaces}
         canWrite={canWrite}
-        onRegisterVisit={(placeId) =>
-          setVisitTarget({ placeId, completeNextStopOnSave: true })
-        }
+        onRegisterVisit={(placeId) => setVisitTarget({ placeId, completeNextStopOnSave: true })}
       />
 
       <section>

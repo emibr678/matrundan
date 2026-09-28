@@ -54,7 +54,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(page.getByText(/ändringar sparas bara tillfälligt i den här fliken/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Slumpa förslag" })).toBeVisible();
   await expect(page.getByText("Gammal lokal demo")).toHaveCount(0);
   await expect(page.getByText("Gammal exempelgrupp")).toHaveCount(0);
@@ -111,17 +111,19 @@ test("exempelgruppen använder samma #307-logik som registreringsflödet", async
 
   await page.goto("/matstallen/p10");
   await page.getByRole("button", { name: "Registrera besök" }).click();
-  const classification = page.getByRole("dialog", { name: "När passar stället bäst?" });
+  const classification = page.getByRole("dialog", {
+    name: "Hur skulle ni beskriva matupplevelsen?",
+  });
   await expect(classification).toBeVisible();
   await expect(
     classification.getByText(
-      "Välj en eller två kategorier som bäst beskriver när ni skulle välja stället. Valet sparas för gruppen.",
+      "Välj den typ av upplevelse som bäst beskriver stället – eller två om båda passar. Valet sparas för gruppen.",
       { exact: true },
     ),
   ).toBeVisible();
   await expect(classification.getByText("Snabbt & enkelt", { exact: true })).toBeVisible();
-  await expect(classification.getByText(/saknar Passar för/)).toHaveCount(0);
-  await expectNoHorizontalOverflow(page, "Passar för-grinden i exempelgruppen");
+  await expect(classification.getByText(/saknar Typ av upplevelse/)).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Typ av upplevelse-grinden i exempelgruppen");
 });
 
 test("exempelgruppens centrala scenarier går att nå utan privat dataläckage", async ({ page }) => {
@@ -229,8 +231,88 @@ test("den interna demosandboxen är fortsatt skrivbar och separat", async ({ pag
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/?demo=1");
 
-  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Registrera besök" })).toBeVisible();
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Intern demosandbox på 360 px");
+
+  await page.getByRole("link", { name: "Matställen", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Lägg till ställe", exact: true })).toBeVisible();
+});
+
+test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+  await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
+
+  async function openProductHelp() {
+    await page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }).click();
+    await expect(page.getByRole("menuitem", { name: "Så funkar Matrundan" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Om Matrundan" })).toHaveCount(0);
+    await page.getByRole("menuitem", { name: "Så funkar Matrundan" }).click();
+
+    const help = page.getByRole("dialog", { name: "Så funkar Matrundan" });
+    await expect(help).toBeVisible();
+    await expect(
+      help.getByText("Olika grupper för olika sammanhang", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      help.getByText(/Varje grupp har sin egen samling, sina egna planer och sin egen historik/),
+    ).toBeVisible();
+    await expect(help.getByText(/När någon eller några i gruppen har varit där/)).toBeVisible();
+    await expect(help.getByRole("button", { name: "Om Matrundan" })).toBeVisible();
+    return help;
+  }
+
+  let help = await openProductHelp();
+  await help.getByRole("button", { name: "Visa rundtur" }).click();
+
+  const tour = page.locator("[data-product-tour]");
+  await expect(page).toHaveURL(/\/matstallen$/);
+  await expect(tour.getByText("1 av 4", { exact: true })).toBeVisible();
+  await expect(tour.getByRole("heading", { name: "Välkommen till Matrundan" })).toBeVisible();
+  await expect(tour.getByText("Du är just nu i Fredagsgänget.", { exact: true })).toBeVisible();
+  const initialTourHistoryLength = await page.evaluate(() => window.history.length);
+
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await expect(page).toHaveURL(/\/matstallen$/);
+  await expect(tour.getByText("2 av 4", { exact: true })).toBeVisible();
+  await expect(tour.getByText(/När någon eller några i gruppen har varit där/)).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.history.length))
+    .toBe(initialTourHistoryLength);
+
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(tour.getByText("3 av 4", { exact: true })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.history.length))
+    .toBe(initialTourHistoryLength);
+
+  await page.getByRole("link", { name: "Gruppen", exact: true }).click();
+  await expect(page).toHaveURL(/\/gruppen$/);
+  await expect(tour.getByText("4 av 4", { exact: true })).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(tour.getByText("3 av 4", { exact: true })).toBeVisible();
+
+  await tour.getByRole("button", { name: "Hoppa över" }).click();
+  await expect(tour).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("innehall");
+
+  help = await openProductHelp();
+  await help.getByRole("button", { name: "Visa rundtur" }).click();
+  const replayHistoryLength = await page.evaluate(() => window.history.length);
+
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await tour.getByRole("button", { name: "Nästa" }).click();
+  await expect(tour.getByText("4 av 4", { exact: true })).toBeVisible();
+  await tour.getByRole("button", { name: "Nu kör vi" }).click();
+
+  await expect(page).toHaveURL(/\/exempel$/);
+  await expect(tour).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("innehall");
+  await expect.poll(() => page.evaluate(() => window.history.length)).toBe(replayHistoryLength);
 });

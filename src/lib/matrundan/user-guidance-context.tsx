@@ -37,14 +37,9 @@ type UserGuidanceContextValue = {
 const EMPTY_ACKNOWLEDGED = new Set<UserGuidanceIdentifier>();
 const EMPTY_PREVIEWS = new Set<UserGuidanceIdentifier>();
 
-const UserGuidanceContext =
-  React.createContext<UserGuidanceContextValue | null>(null);
+const UserGuidanceContext = React.createContext<UserGuidanceContextValue | null>(null);
 
-export function UserGuidanceProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function UserGuidanceProvider({ children }: { children: React.ReactNode }) {
   const { mode, user } = useSession();
   const activeUserId = mode === "live" ? (user?.id ?? null) : null;
   const [loaded, setLoaded] = React.useState<LoadedGuidanceState>({
@@ -56,10 +51,7 @@ export function UserGuidanceProvider({
     userId: null,
     identifiers: EMPTY_PREVIEWS,
   });
-  const previews =
-    previewState.userId === activeUserId
-      ? previewState.identifiers
-      : EMPTY_PREVIEWS;
+  const previews = previewState.userId === activeUserId ? previewState.identifiers : EMPTY_PREVIEWS;
 
   React.useEffect(() => {
     let cancelled = false;
@@ -78,10 +70,7 @@ export function UserGuidanceProvider({
     setLoaded((current) => ({
       userId: activeUserId,
       status: "loading",
-      acknowledged:
-        current.userId === activeUserId
-          ? current.acknowledged
-          : EMPTY_ACKNOWLEDGED,
+      acknowledged: current.userId === activeUserId ? current.acknowledged : EMPTY_ACKNOWLEDGED,
     }));
 
     loadAcknowledgedGuidance(activeUserId)
@@ -100,9 +89,7 @@ export function UserGuidanceProvider({
         console.error("[Matrundan] kunde inte läsa produktguidning:", error);
         if (cancelled) return;
         setLoaded((current) =>
-          current.userId === activeUserId
-            ? { ...current, status: "unavailable" }
-            : current,
+          current.userId === activeUserId ? { ...current, status: "unavailable" } : current,
         );
       });
 
@@ -122,11 +109,7 @@ export function UserGuidanceProvider({
       Boolean(
         activeUserId &&
         loaded.userId === activeUserId &&
-        guidanceAcknowledgedForPresentation(
-          loaded.acknowledged,
-          previews,
-          definition,
-        ),
+        guidanceAcknowledgedForPresentation(loaded.acknowledged, previews, definition),
       ),
     [activeUserId, loaded.acknowledged, loaded.userId, previews],
   );
@@ -143,9 +126,7 @@ export function UserGuidanceProvider({
       setPreviewState((current) => ({
         userId: activeUserId,
         identifiers: setGuidancePreview(
-          current.userId === activeUserId
-            ? current.identifiers
-            : EMPTY_PREVIEWS,
+          current.userId === activeUserId ? current.identifiers : EMPTY_PREVIEWS,
           definition,
           true,
         ),
@@ -160,11 +141,7 @@ export function UserGuidanceProvider({
         current.userId === activeUserId
           ? {
               ...current,
-              identifiers: setGuidancePreview(
-                current.identifiers,
-                definition,
-                false,
-              ),
+              identifiers: setGuidancePreview(current.identifiers, definition, false),
             }
           : current,
       );
@@ -176,9 +153,7 @@ export function UserGuidanceProvider({
     async (definition: UserGuidanceDefinition) => {
       const identifier = guidanceIdentifier(definition);
       const persistedAcknowledged = Boolean(
-        activeUserId &&
-        loaded.userId === activeUserId &&
-        loaded.acknowledged.has(identifier),
+        activeUserId && loaded.userId === activeUserId && loaded.acknowledged.has(identifier),
       );
       const action = resolveGuidanceAcknowledgementAction({
         hasUser: Boolean(activeUserId),
@@ -192,11 +167,7 @@ export function UserGuidanceProvider({
           current.userId === activeUserId
             ? {
                 ...current,
-                identifiers: setGuidancePreview(
-                  current.identifiers,
-                  definition,
-                  false,
-                ),
+                identifiers: setGuidancePreview(current.identifiers, definition, false),
               }
             : current,
         );
@@ -205,9 +176,7 @@ export function UserGuidanceProvider({
 
       setLoaded((current) => {
         const acknowledged = new Set(
-          current.userId === activeUserId
-            ? current.acknowledged
-            : EMPTY_ACKNOWLEDGED,
+          current.userId === activeUserId ? current.acknowledged : EMPTY_ACKNOWLEDGED,
         );
         acknowledged.add(identifier);
         return {
@@ -240,11 +209,7 @@ export function UserGuidanceProvider({
     [acknowledge, clearPreview, isAcknowledged, isPreviewing, preview, status],
   );
 
-  return (
-    <UserGuidanceContext.Provider value={value}>
-      {children}
-    </UserGuidanceContext.Provider>
-  );
+  return <UserGuidanceContext.Provider value={value}>{children}</UserGuidanceContext.Provider>;
 }
 
 export function useUserGuidance(): UserGuidanceContextValue {

@@ -18,7 +18,7 @@ import {
 } from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
-import type { Visit, VisibleReview } from "@/lib/matrundan/types";
+import type { Place, Visit, VisibleReview } from "@/lib/matrundan/types";
 import { formatRating } from "@/lib/matrundan/version";
 import { visitHasScore } from "@/lib/matrundan/visit-context";
 import { getVisitReviewSummary, visitReviewProgressLabel } from "@/lib/matrundan/visit-reviews";
@@ -41,6 +41,7 @@ export function VisitReviewsSection({
   onOwnReviewFlowExit,
 }: {
   visit: Visit;
+  place?: Place;
   placeName: string;
   groupArchived: boolean;
   demoReadOnly: boolean;
@@ -221,6 +222,7 @@ export function VisitReviewsSection({
               {canAddOwnReview ? (
                 <OwnReviewPrompt
                   visit={visit}
+                  place={place}
                   placeName={placeName}
                   placeOccasions={place?.occasions ?? []}
                   currentUserId={currentUserId}
@@ -289,6 +291,7 @@ export function VisitReviewsSection({
 
 function OwnReviewPrompt({
   visit,
+  place,
   placeName,
   placeOccasions,
   currentUserId,
@@ -299,6 +302,7 @@ function OwnReviewPrompt({
   onReviewFlowExit,
 }: {
   visit: Visit;
+  place?: Place;
   placeName: string;
   placeOccasions: Visit extends never ? never : import("@/lib/matrundan/types").Occasion[];
   currentUserId: string;
@@ -336,6 +340,7 @@ function OwnReviewPrompt({
         {mode === "live" ? (
           <AddVisitReviewDialog
             visitId={visit.id}
+            place={place}
             placeName={placeName}
             scoreless={scoreless}
             isTakeaway={visit.isTakeaway === true}
@@ -347,6 +352,7 @@ function OwnReviewPrompt({
         ) : (
           <DemoAddVisitReviewDialog
             visitId={visit.id}
+            place={place}
             placeName={placeName}
             scoreless={scoreless}
             isTakeaway={visit.isTakeaway === true}

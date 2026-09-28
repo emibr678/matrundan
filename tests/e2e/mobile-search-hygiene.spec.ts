@@ -71,7 +71,9 @@ async function openPlaceSearch(page: Page) {
   return searchDialog;
 }
 
-test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", async ({ page }) => {
+test("mobilväljare och Typ av upplevelse-hjälp stannar inom en kort 360 px-vy", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 520 });
   const searchDialog = await openPlaceSearch(page);
   const candidate = placeSuggestionButton(searchDialog);
@@ -135,10 +137,10 @@ test("mobilväljare och Passar för-hjälp stannar inom en kort 360 px-vy", asyn
   await expect(detailsDialog).toBeVisible();
   await expect(foodTagTrigger).toContainText("3 valda");
 
-  await detailsDialog.getByRole("button", { name: "Vad betyder Passar för?" }).click();
-  const guideDialog = page.getByRole("dialog", { name: "Passar för" });
-  await expectInsideViewport(page, guideDialog, "Passar för-hjälpen");
-  await expectNoHorizontalOverflow(page, "Passar för-hjälpen");
+  await detailsDialog.getByRole("button", { name: "Så fungerar Typ av upplevelse" }).click();
+  const guideDialog = page.getByRole("dialog", { name: "Typ av upplevelse" });
+  await expectInsideViewport(page, guideDialog, "Typ av upplevelse-hjälpen");
+  await expectNoHorizontalOverflow(page, "Typ av upplevelse-hjälpen");
   await guideDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guideDialog).toBeHidden();
 });

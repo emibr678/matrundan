@@ -184,6 +184,12 @@ grupp. Användaren får genom RLS bara läsa och skapa sina egna kvitton; klient
 får inte uppdatera eller radera dem. Kvittona rensas vid profilens mjukradering
 och har `ON DELETE CASCADE` som skydd vid fysisk radering. Installation och
 notiser är fortsatt separata, återkommande nudgar och ägs inte av denna modell.
+Vid produktlanseringen av den sammanhållna introduktionen använder klienten
+`core-intro@2` och `review-context@2`. Det gör tidigare `@1`-kvitton
+icke-blockerande och ger både nya och befintliga användare den nya mentala
+modellen exakt en gång, utan att historiska kvitton behöver raderas. Guiderna
+visas fortsatt vid sina respektive relevanta tillfällen och inte som en
+sammanhängande popupkedja.
 
 ## Kanonisk datamodell
 
@@ -197,7 +203,7 @@ platsen och bär gruppspecifik metadata.
 Det betyder:
 
 - samma verkliga plats kan användas av flera grupper via samma `places.id`;
-- en grupps anteckningar, Passar för, praktiska overrides eller status ska inte
+- en grupps anteckningar, Typ av upplevelse, praktiska overrides eller status ska inte
   skrivas till det globala `places`-objektet bara för att de råkar vara
   tillgängliga i klienten;
 - borttagning från en grupp är normalt arkivering av `group_places`, inte
@@ -492,13 +498,13 @@ medelvärdet av de dimensioner som ingår i modellen och lagras som decimal.
 Klienten får därför inte skicka ett manuellt overall för en review med ny modell.
 
 Hämtmat väljer alltid takeaway-modellen. För besök på plats avgör gruppens hela
-`Passar för`-mängd om Atmosfär ingår: endast **Snabbt & enkelt** ger quick-
+`Typ av upplevelse`-mängd (`occasions`) om Atmosfär ingår: endast **Snabbt & enkelt** ger quick-
 modellen, medan **Avslappnat** och/eller **Något extra** ger atmosphere-modellen,
-även i kombination med **Snabbt & enkelt**. Saknas `Passar för` får den metadata som behövs
+även i kombination med **Snabbt & enkelt**. Saknas `Typ av upplevelse` får den metadata som behövs
 för ett nytt på-plats-omdöme sparas på gruppens platsrelation; ett
 Hämtmat-omdöme förblir entydigt även utan sådan klassificering men ett frivilligt
 val får fortfarande komplettera gruppens platsmetadata. Senare ändringar av
-`Passar för` eller besökskontext skriver aldrig om en befintlig reviews frysta
+`Typ av upplevelse` eller besökskontext skriver aldrig om en befintlig reviews frysta
 modell eller historiska score.
 
 Reviews från före den härledda modellen har migrerats en gång till en explicit,
@@ -526,7 +532,7 @@ deltagande, progression, återbesök, kommentar och foto fungerar enligt samma
 kanoniska besöksmodell.
 
 `visits.is_takeaway` är en kanonisk egenskap på besöket. `false` är implicit På
-plats och `true` betyder Hämtmat; den är inte ett `Passar för`-värde och ändrar
+plats och `true` betyder Hämtmat; den är inte ett `Typ av upplevelse`-värde och ändrar
 inte progression. `dryck` normaliseras alltid till `is_takeaway = false`.
 Eftersom delning återanvänder samma `visits.id` följer Hämtmat-kontexten med utan
 att källgrupp eller annan privat gruppdata exponeras. Dubblettskyddet tar med
@@ -795,7 +801,7 @@ Följande får aldrig lämna servergränsen genom kandidatflödet:
 - ursprungsgrupp eller gruppnamn;
 - vem som skapade eller använder platsen;
 - medlemskap eller antal grupper;
-- privata anteckningar, Passar för, rapporter eller praktiska overrides;
+- privata anteckningar, Typ av upplevelse, rapporter eller praktiska overrides;
 - interna grupp- eller användar-ID:n.
 
 När användaren väljer en kandidat återanvänds samma `places.id`. Servern skapar
@@ -857,7 +863,7 @@ Den globala projektionen får returnera det som behövs för handläggning:
 
 Den får aldrig returnera ursprungsgrupp, gruppnamn, medlemskap, rapportör,
 `source_group_id`, historisk privat rapporttext, privata gruppanteckningar,
-Passar för, favoriter, besök, `group_places`-overrides eller rå providerpayload.
+Typ av upplevelse, favoriter, besök, `group_places`-overrides eller rå providerpayload.
 För rapporter om kanoniska ställen används aktuell neutral `places`-data i
 stället för gruppens privata rapportögonblicksbild.
 
@@ -927,7 +933,7 @@ När ett matställe delas mellan två av användarens grupper ska målgruppen ku
 - omdömen;
 - favoriter;
 - privata anteckningar;
-- Passar för;
+- Typ av upplevelse;
 - adminhistorik;
 - gruppmedlemskap.
 

@@ -557,7 +557,7 @@ function PlaceDetail() {
           {occasions.length > 0 ? (
             <div className="space-y-1.5">
               <div className="flex min-h-11 items-center gap-1">
-                <span className="text-xs font-medium text-muted-foreground">Passar för</span>
+                <span className="text-xs font-medium text-muted-foreground">Typ av upplevelse</span>
                 <OccasionGuide compact />
               </div>
               <div className="flex flex-wrap gap-2">

@@ -4,13 +4,15 @@ import {
   reviewModelIncludesAtmosphere,
   type ReviewModel,
 } from "@/lib/matrundan/review-model";
+import type { Occasion } from "@/lib/matrundan/types";
 import { Button } from "@/components/ui/button";
 import { RatingInput, RatingStars } from "./Rating";
-import { ReviewContextHelp } from "./ReviewContextGuide";
+import { OccasionSummary } from "./OccasionPicker";
 import { ReviewModelNotice } from "./ReviewModelNotice";
 
 export function ReviewScoreFields({
   model,
+  contextOccasions,
   taste,
   service,
   value,
@@ -20,11 +22,11 @@ export function ReviewScoreFields({
   onValueChange,
   onAtmosphereChange,
   showModelNotice = true,
-  showContextHelp = true,
   modelUpgrade,
   disabled = false,
 }: {
   model: ReviewModel;
+  contextOccasions?: Occasion[];
   taste: number;
   service: number;
   value: number;
@@ -34,7 +36,6 @@ export function ReviewScoreFields({
   onValueChange: (value: number) => void;
   onAtmosphereChange: (value: number) => void;
   showModelNotice?: boolean;
-  showContextHelp?: boolean;
   modelUpgrade?: {
     active: boolean;
     onStart: () => void;
@@ -46,6 +47,10 @@ export function ReviewScoreFields({
 
   return (
     <div className="space-y-3">
+      {contextOccasions && contextOccasions.length > 0 ? (
+        <OccasionSummary value={contextOccasions} />
+      ) : null}
+
       <div
         role="group"
         aria-label="Detaljbetyg"
@@ -94,12 +99,6 @@ export function ReviewScoreFields({
       </div>
 
       {showModelNotice ? <ReviewModelNotice model={model} /> : null}
-      {showContextHelp ? (
-        <div className="flex justify-start">
-          <ReviewContextHelp />
-        </div>
-      ) : null}
-
       <div
         className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-secondary/60 px-4 py-3"
         aria-live="polite"

@@ -11,10 +11,8 @@ import {
 
 describe("user guidance", () => {
   test("har stabila versionsstyrda identifierare", () => {
-    expect(guidanceIdentifier(USER_GUIDANCE.coreIntro)).toBe("core-intro@1");
-    expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe(
-      "review-context@1",
-    );
+    expect(guidanceIdentifier(USER_GUIDANCE.coreIntro)).toBe("core-intro@2");
+    expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe("review-context@2");
   });
 
   test("översätter databasrader utan gruppberoende", () => {
@@ -26,30 +24,44 @@ describe("user guidance", () => {
     ).toEqual(new Set(["core-intro@1", "review-context@1"]));
   });
 
+  test("Typ av upplevelse och omdömen använder ett gemensamt första-gångenkvitto", () => {
+    expect(Object.keys(USER_GUIDANCE)).toEqual(["coreIntro", "reviewContext"]);
+    expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe("review-context@2");
+  });
+
+  test("låter alla användare få version 2 en gång även om version 1 är kvitterad", () => {
+    const legacyAcknowledgements = new Set(["core-intro@1", "review-context@1"] as const);
+
+    expect(
+      guidanceAcknowledgedForPresentation(
+        legacyAcknowledgements,
+        new Set(),
+        USER_GUIDANCE.coreIntro,
+      ),
+    ).toBe(false);
+    expect(
+      guidanceAcknowledgedForPresentation(
+        legacyAcknowledgements,
+        new Set(),
+        USER_GUIDANCE.reviewContext,
+      ),
+    ).toBe(false);
+  });
+
   test("registret innehåller unika nyckel- och versionspar", () => {
     const identifiers = Object.values(USER_GUIDANCE).map(guidanceIdentifier);
     expect(new Set(identifiers).size).toBe(identifiers.length);
   });
 
   test("kan simulera osedd guide utan att ändra beständiga kvitton", () => {
-    const acknowledged = new Set(["review-context@1"] as const);
-    const previews = setGuidancePreview(
-      new Set(),
-      USER_GUIDANCE.reviewContext,
-      true,
-    );
+    const acknowledged = new Set(["review-context@2"] as const);
+    const previews = setGuidancePreview(new Set(), USER_GUIDANCE.reviewContext, true);
 
     expect(
-      guidanceAcknowledgedForPresentation(
-        acknowledged,
-        previews,
-        USER_GUIDANCE.reviewContext,
-      ),
+      guidanceAcknowledgedForPresentation(acknowledged, previews, USER_GUIDANCE.reviewContext),
     ).toBe(false);
-    expect(acknowledged).toEqual(new Set(["review-context@1"]));
-    expect(
-      setGuidancePreview(previews, USER_GUIDANCE.reviewContext, false),
-    ).toEqual(new Set());
+    expect(acknowledged).toEqual(new Set(["review-context@2"]));
+    expect(setGuidancePreview(previews, USER_GUIDANCE.reviewContext, false)).toEqual(new Set());
   });
 
   test("kvittering av preview avslutar simuleringen utan databasväg", () => {
@@ -97,26 +109,12 @@ describe("user guidance", () => {
     };
 
     expect(shouldAutoShowCoreIntro(eligible)).toBe(true);
-    expect(
-      shouldAutoShowCoreIntro({ ...eligible, pendingInvitationsReady: false }),
-    ).toBe(false);
-    expect(
-      shouldAutoShowCoreIntro({ ...eligible, pendingInvitationCount: 1 }),
-    ).toBe(false);
-    expect(
-      shouldAutoShowCoreIntro({ ...eligible, hasActiveGroup: false }),
-    ).toBe(false);
-    expect(shouldAutoShowCoreIntro({ ...eligible, onHomeRoute: false })).toBe(
-      false,
-    );
-    expect(shouldAutoShowCoreIntro({ ...eligible, guidanceReady: false })).toBe(
-      false,
-    );
-    expect(shouldAutoShowCoreIntro({ ...eligible, acknowledged: true })).toBe(
-      false,
-    );
-    expect(shouldAutoShowCoreIntro({ ...eligible, alreadyHandled: true })).toBe(
-      false,
-    );
+    expect(shouldAutoShowCoreIntro({ ...eligible, pendingInvitationsReady: false })).toBe(false);
+    expect(shouldAutoShowCoreIntro({ ...eligible, pendingInvitationCount: 1 })).toBe(false);
+    expect(shouldAutoShowCoreIntro({ ...eligible, hasActiveGroup: false })).toBe(false);
+    expect(shouldAutoShowCoreIntro({ ...eligible, onHomeRoute: false })).toBe(false);
+    expect(shouldAutoShowCoreIntro({ ...eligible, guidanceReady: false })).toBe(false);
+    expect(shouldAutoShowCoreIntro({ ...eligible, acknowledged: true })).toBe(false);
+    expect(shouldAutoShowCoreIntro({ ...eligible, alreadyHandled: true })).toBe(false);
   });
 });
