@@ -42,14 +42,12 @@ export function StagingTestToolsDialog({
               <div className="text-[10px] font-bold tracking-[0.08em] text-amber-800">
                 ENDAST STAGING
               </div>
-              <DialogTitle className="font-display text-2xl">
-                Testverktyg
-              </DialogTitle>
+              <DialogTitle className="font-display text-2xl">Testverktyg</DialogTitle>
             </div>
           </div>
           <DialogDescription className="pt-2 leading-relaxed">
-            Spela upp produktguidning utan att radera eller ändra ditt sparade
-            kvitto. Simuleringen gäller bara den här appsessionen.
+            Spela upp produktguidning utan att radera eller ändra ditt sparade kvitto. Simuleringen
+            gäller bara den här appsessionen.
           </DialogDescription>
         </DialogHeader>
 
@@ -57,15 +55,10 @@ export function StagingTestToolsDialog({
           <div className="rounded-2xl border border-border/70 p-4">
             <div className="font-medium">Kärnintroduktion</div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Startar samma introduktion till Matrundan, Matställen, Hem och
-              Gruppen som en ny användare får.
+              Startar samma introduktion till Matrundan, Matställen, Hem och Gruppen som en ny
+              användare får.
             </p>
-            <Button
-              type="button"
-              size="sm"
-              className="mt-3 min-h-11"
-              onClick={playCoreIntro}
-            >
+            <Button type="button" size="sm" className="mt-3 min-h-11" onClick={playCoreIntro}>
               <Play className="h-4 w-4" aria-hidden />
               Spela upp
             </Button>
@@ -74,9 +67,8 @@ export function StagingTestToolsDialog({
           <div className="rounded-2xl border border-border/70 p-4">
             <div className="font-medium">Typ av upplevelse och omdömen</div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Visar samma sammanhängande första-gångenförklaring nästa gång Typ
-              av upplevelse eller ett poängsatt omdöme blir relevant. Ditt
-              riktiga kvitto lämnas orört.
+              Visar samma sammanhängande första-gångenförklaring nästa gång Typ av upplevelse eller
+              ett poängsatt omdöme blir relevant. Ditt riktiga kvitto lämnas orört.
             </p>
             {reviewContextPreviewing ? (
               <div className="mt-2 text-xs font-medium text-amber-800">

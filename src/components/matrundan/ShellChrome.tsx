@@ -98,11 +98,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
           </div>
         </header>
 
-        <main
-          id="innehall"
-          tabIndex={-1}
-          className="flex-1 px-4 outline-none md:px-6"
-        >
+        <main id="innehall" tabIndex={-1} className="flex-1 px-4 outline-none md:px-6">
           {exampleMode ? (
             <div
               role="status"

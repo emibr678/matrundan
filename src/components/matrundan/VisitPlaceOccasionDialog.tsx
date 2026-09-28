@@ -58,11 +58,7 @@ export function VisitPlaceOccasionDialog({
         notes: place.notes ?? null,
       });
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Kunde inte spara typ av upplevelse.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte spara typ av upplevelse.");
     } finally {
       setSaving(false);
     }
@@ -71,10 +67,7 @@ export function VisitPlaceOccasionDialog({
   const busy = saving || submitting;
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => !nextOpen && !busy && onCancel()}
-    >
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !busy && onCancel()}>
       <DialogContent
         key={
           firstGuidanceLoading
@@ -101,8 +94,8 @@ export function VisitPlaceOccasionDialog({
             </DialogDescription>
           ) : (
             <DialogDescription className="leading-relaxed">
-              Välj den typ av upplevelse som bäst beskriver stället – eller två
-              om båda passar. Valet sparas för gruppen.
+              Välj den typ av upplevelse som bäst beskriver stället – eller två om båda passar.
+              Valet sparas för gruppen.
             </DialogDescription>
           )}
         </DialogHeader>
@@ -116,10 +109,7 @@ export function VisitPlaceOccasionDialog({
             Förbereder nästa steg…
           </div>
         ) : firstGuidanceActive ? (
-          <FirstReviewGuidance
-            disabled={busy}
-            onContinue={reviewGuidance.accept}
-          />
+          <FirstReviewGuidance disabled={busy} onContinue={reviewGuidance.accept} />
         ) : (
           <>
             <OccasionClassificationChoices
@@ -129,12 +119,7 @@ export function VisitPlaceOccasionDialog({
             />
 
             <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={busy}
-                onClick={onCancel}
-              >
+              <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>
                 Avbryt
               </Button>
               <Button

@@ -111,7 +111,9 @@ test("exempelgruppen använder samma #307-logik som registreringsflödet", async
 
   await page.goto("/matstallen/p10");
   await page.getByRole("button", { name: "Registrera besök" }).click();
-  const classification = page.getByRole("dialog", { name: "Hur skulle ni beskriva matupplevelsen?" });
+  const classification = page.getByRole("dialog", {
+    name: "Hur skulle ni beskriva matupplevelsen?",
+  });
   await expect(classification).toBeVisible();
   await expect(
     classification.getByText(
@@ -235,7 +237,6 @@ test("den interna demosandboxen är fortsatt skrivbar och separat", async ({ pag
   await expectNoHorizontalOverflow(page, "Intern demosandbox på 360 px");
 });
 
-
 test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
@@ -243,12 +244,8 @@ test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur",
 
   async function openProductHelp() {
     await page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }).click();
-    await expect(
-      page.getByRole("menuitem", { name: "Så funkar Matrundan" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("menuitem", { name: "Om Matrundan" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: "Så funkar Matrundan" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Om Matrundan" })).toHaveCount(0);
     await page.getByRole("menuitem", { name: "Så funkar Matrundan" }).click();
 
     const help = page.getByRole("dialog", { name: "Så funkar Matrundan" });
@@ -299,9 +296,7 @@ test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur",
 
   await tour.getByRole("button", { name: "Hoppa över" }).click();
   await expect(tour).toHaveCount(0);
-  await expect
-    .poll(() => page.evaluate(() => document.activeElement?.id))
-    .toBe("innehall");
+  await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("innehall");
 
   help = await openProductHelp();
   await help.getByRole("button", { name: "Visa rundtur" }).click();
@@ -315,10 +310,6 @@ test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur",
 
   await expect(page).toHaveURL(/\/exempel$/);
   await expect(tour).toHaveCount(0);
-  await expect
-    .poll(() => page.evaluate(() => document.activeElement?.id))
-    .toBe("innehall");
-  await expect
-    .poll(() => page.evaluate(() => window.history.length))
-    .toBe(replayHistoryLength);
+  await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("innehall");
+  await expect.poll(() => page.evaluate(() => window.history.length)).toBe(replayHistoryLength);
 });

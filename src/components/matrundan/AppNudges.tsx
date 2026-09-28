@@ -62,9 +62,7 @@ export function AppNudges() {
   const [nudges, setNudges] = React.useState<NudgeState>({});
   const [pushNeeded, setPushNeeded] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
-  const [dismissChoice, setDismissChoice] = React.useState<NudgeKey | null>(
-    null,
-  );
+  const [dismissChoice, setDismissChoice] = React.useState<NudgeKey | null>(null);
 
   React.useEffect(() => {
     setNudges(readState());
@@ -87,22 +85,18 @@ export function AppNudges() {
     };
   }, [mode]);
 
-  const update = React.useCallback(
-    (key: NudgeKey, value: Partial<NudgeEntry>) => {
-      setNudges((current) => {
-        const next = { ...current, [key]: { ...current[key], ...value } };
-        writeState(next);
-        return next;
-      });
-    },
-    [],
-  );
+  const update = React.useCallback((key: NudgeKey, value: Partial<NudgeEntry>) => {
+    setNudges((current) => {
+      const next = { ...current, [key]: { ...current[key], ...value } };
+      writeState(next);
+      return next;
+    });
+  }, []);
 
   if (mode !== "live") return null;
 
   const showInstall =
-    (install.mode === "prompt" || install.mode === "ios-manual") &&
-    !isNudgeHidden(nudges.install);
+    (install.mode === "prompt" || install.mode === "ios-manual") && !isNudgeHidden(nudges.install);
   const showPush = pushNeeded && !isNudgeHidden(nudges.push);
 
   // På iPhone måste appen ligga på hemskärmen innan notiser går att slå på.
@@ -146,18 +140,14 @@ export function AppNudges() {
         setPushNeeded(false);
         update("push", { done: true });
       } else if (result.status === "denied") {
-        toast.error(
-          "Notiser är blockerade i webbläsarens inställningar för Matrundan.",
-        );
+        toast.error("Notiser är blockerade i webbläsarens inställningar för Matrundan.");
         update("push", { done: true });
       } else {
         toast.error(result.message);
         update("push", { dismissedAt: Date.now() });
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte slå på notiser.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte slå på notiser.");
     } finally {
       setBusy(false);
     }
@@ -183,20 +173,10 @@ export function AppNudges() {
         description="Få veta när gruppen registrerar ett besök eller väljer nästa stopp."
         actions={
           <>
-            <Button
-              type="button"
-              size="sm"
-              disabled={busy}
-              onClick={() => void turnOnPush()}
-            >
+            <Button type="button" size="sm" disabled={busy} onClick={() => void turnOnPush()}>
               Slå på notiser
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => dismiss("push")}
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={() => dismiss("push")}>
               Inte nu
             </Button>
           </>
@@ -211,12 +191,9 @@ export function AppNudges() {
             "Då öppnas Matrundan som en egen app, utan adressfält."
           ) : (
             <>
-              Tryck på <Share className="inline h-4 w-4" aria-hidden /> Dela i
-              Safari och välj{" "}
-              <span className="font-medium text-foreground">
-                Lägg till på hemskärmen
-              </span>
-              . Det krävs på iPhone och iPad innan notiser går att slå på.
+              Tryck på <Share className="inline h-4 w-4" aria-hidden /> Dela i Safari och välj{" "}
+              <span className="font-medium text-foreground">Lägg till på hemskärmen</span>. Det
+              krävs på iPhone och iPad innan notiser går att slå på.
             </>
           )
         }
@@ -231,22 +208,12 @@ export function AppNudges() {
               >
                 Lägg till på hemskärmen
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => dismiss("install")}
-              >
+              <Button type="button" size="sm" variant="ghost" onClick={() => dismiss("install")}>
                 Inte nu
               </Button>
             </>
           ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => dismiss("install")}
-            >
+            <Button type="button" size="sm" variant="ghost" onClick={() => dismiss("install")}>
               Inte nu
             </Button>
           )
@@ -271,17 +238,11 @@ export function AppNudges() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Vill du få påminnelsen igen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {dismissDescription}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{dismissDescription}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={remindLater}>
-              Påminn om 30 dagar
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={stopReminding}>
-              Visa inte igen
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={remindLater}>Påminn om 30 dagar</AlertDialogCancel>
+            <AlertDialogAction onClick={stopReminding}>Visa inte igen</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -326,8 +287,8 @@ export function InstallAppSection() {
         </>
       ) : (
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Tryck på Dela längst ned i Safari och välj Lägg till på hemskärmen. På
-          iPhone och iPad krävs det innan notiser går att slå på.
+          Tryck på Dela längst ned i Safari och välj Lägg till på hemskärmen. På iPhone och iPad
+          krävs det innan notiser går att slå på.
         </p>
       )}
     </Card>

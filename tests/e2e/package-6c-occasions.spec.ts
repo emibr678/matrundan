@@ -166,6 +166,8 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(adminDialog.getByRole("button", { name: "Vad betyder Typ av upplevelse?" })).toBeVisible();
+  await expect(
+    adminDialog.getByRole("button", { name: "Vad betyder Typ av upplevelse?" }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redigering med typer av besök");
 });

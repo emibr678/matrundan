@@ -5,8 +5,7 @@ export const USER_GUIDANCE = {
   reviewContext: { key: "review-context", version: 2 },
 } as const;
 
-export type UserGuidanceDefinition =
-  (typeof USER_GUIDANCE)[keyof typeof USER_GUIDANCE];
+export type UserGuidanceDefinition = (typeof USER_GUIDANCE)[keyof typeof USER_GUIDANCE];
 
 export type UserGuidanceIdentifier = `${string}@${number}`;
 
@@ -15,10 +14,7 @@ export type UserGuidanceRow = {
   guidance_version: number;
 };
 
-export type GuidanceAcknowledgementAction =
-  | "ignore"
-  | "finish-preview"
-  | "persist";
+export type GuidanceAcknowledgementAction = "ignore" | "finish-preview" | "persist";
 
 export function setGuidancePreview(
   current: ReadonlySet<UserGuidanceIdentifier>,
@@ -91,20 +87,13 @@ export function shouldAutoShowCoreIntro({
   );
 }
 
-export function guidanceIdentifier(
-  definition: UserGuidanceDefinition,
-): UserGuidanceIdentifier {
+export function guidanceIdentifier(definition: UserGuidanceDefinition): UserGuidanceIdentifier {
   return `${definition.key}@${definition.version}`;
 }
 
-export function guidanceRowsToIdentifiers(
-  rows: UserGuidanceRow[],
-): Set<UserGuidanceIdentifier> {
+export function guidanceRowsToIdentifiers(rows: UserGuidanceRow[]): Set<UserGuidanceIdentifier> {
   return new Set(
-    rows.map(
-      (row) =>
-        `${row.guidance_key}@${row.guidance_version}` as UserGuidanceIdentifier,
-    ),
+    rows.map((row) => `${row.guidance_key}@${row.guidance_version}` as UserGuidanceIdentifier),
   );
 }
 

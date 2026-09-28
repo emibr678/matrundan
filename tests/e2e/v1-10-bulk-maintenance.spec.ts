@@ -52,7 +52,9 @@ test("ställen med saknade uppgifter kan filtreras fram och kompletteras", async
   const foodDialog = page.getByRole("dialog", { name: "Kök och inriktning" });
   await foodDialog.getByRole("option", { name: "Japanskt" }).click();
   await foodDialog.getByRole("button", { name: "Klar" }).click();
-  await editDialog.getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true }).click();
+  await editDialog
+    .getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true })
+    .click();
   await editDialog.getByRole("button", { name: "Spara ändringar" }).click();
   await expect(editDialog).toBeHidden();
 

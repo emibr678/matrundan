@@ -126,8 +126,7 @@ export function VisitDialog({
   });
   const reviewGuidanceActive = reviewGuidance.state === "guide";
   const reviewGuidanceLoading = reviewGuidance.state === "loading";
-  const reviewGuidanceBlocking =
-    reviewGuidanceActive || reviewGuidanceLoading;
+  const reviewGuidanceBlocking = reviewGuidanceActive || reviewGuidanceLoading;
   const currentUserParticipates = participants.includes(state.currentUserId);
   const canShare = showShareSection && currentUserParticipates && shareableGroups.length > 0;
   const hasComment = currentUserParticipates && comment.trim().length > 0;
@@ -677,17 +676,12 @@ export function VisitDialog({
                     Förbereder omdömet…
                   </div>
                 ) : reviewGuidanceActive ? (
-                  <FirstReviewGuidance
-                    disabled={isBusy}
-                    onContinue={reviewGuidance.accept}
-                  />
+                  <FirstReviewGuidance disabled={isBusy} onContinue={reviewGuidance.accept} />
                 ) : reviewModel ? (
                   <ReviewScoreFields
                     model={reviewModel}
                     contextOccasions={
-                      placeNeedsOccasionClassification
-                        ? undefined
-                        : applicableOccasions
+                      placeNeedsOccasionClassification ? undefined : applicableOccasions
                     }
                     taste={taste}
                     service={service}
@@ -702,8 +696,8 @@ export function VisitDialog({
                   <div className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
                     <p className="text-sm font-medium">Spara besöket nu, omdömet kan vänta</p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Besöket sparas även utan omdöme. Välj Typ av upplevelse ovan om du vill betygsätta
-                      direkt, eller komplettera ditt omdöme senare.
+                      Besöket sparas även utan omdöme. Välj Typ av upplevelse ovan om du vill
+                      betygsätta direkt, eller komplettera ditt omdöme senare.
                     </p>
                   </div>
                 )}

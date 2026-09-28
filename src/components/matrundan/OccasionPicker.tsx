@@ -12,11 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   normalizeOccasionClassification,
@@ -60,9 +56,7 @@ export function OccasionGuideContent({
   return (
     <div className="min-w-0 space-y-3">
       <div>
-        {showHeading ? (
-          <div className="font-medium">Typ av upplevelse</div>
-        ) : null}
+        {showHeading ? <div className="font-medium">Typ av upplevelse</div> : null}
         {showIntro ? (
           <>
             <p
@@ -70,13 +64,12 @@ export function OccasionGuideContent({
                 showHeading ? "mt-1 " : ""
               }text-xs leading-relaxed text-muted-foreground`}
             >
-              Typ av upplevelse gäller matstället och beskriver vilken sorts
-              matupplevelse gruppen förknippar det med. Ett matställe kan ha en
-              eller två typer.
+              Typ av upplevelse gäller matstället och beskriver vilken sorts matupplevelse gruppen
+              förknippar det med. Ett matställe kan ha en eller två typer.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Ett enkelt gatukök och en finkrog är olika slags matupplevelser.
-              Båda kan få lika höga betyg – fast av olika skäl.
+              Ett enkelt gatukök och en finkrog är olika slags matupplevelser. Båda kan få lika höga
+              betyg – fast av olika skäl.
             </p>
           </>
         ) : null}
@@ -84,9 +77,7 @@ export function OccasionGuideContent({
       <div className="space-y-2.5">
         {OCCASION_VALUES.map((occasion) => (
           <div key={occasion}>
-            <div className="text-sm font-medium">
-              {OCCASION_LABEL[occasion]}
-            </div>
+            <div className="text-sm font-medium">{OCCASION_LABEL[occasion]}</div>
             <p className="text-xs leading-relaxed text-muted-foreground">
               {OCCASION_DESCRIPTION[occasion]}
             </p>
@@ -95,8 +86,8 @@ export function OccasionGuideContent({
       </div>
       {showConclusion ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Klassificeringen hjälper gruppen att hitta rätt sorts matställe för
-          stunden och gör betygen lättare att förstå och jämföra.
+          Klassificeringen hjälper gruppen att hitta rätt sorts matställe för stunden och gör
+          betygen lättare att förstå och jämföra.
         </p>
       ) : null}
     </div>
@@ -159,11 +150,7 @@ export function OccasionClassificationChoices({
 
   return (
     <div className="space-y-3">
-      <div
-        className="grid grid-cols-3 gap-2"
-        role="group"
-        aria-label="Typ av upplevelse"
-      >
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Typ av upplevelse">
         {OCCASION_VALUES.map((occasion) => {
           const active = selected.includes(occasion);
           return (
@@ -173,18 +160,14 @@ export function OccasionClassificationChoices({
               aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
               aria-pressed={active}
               disabled={disabled || (atLimit && !active)}
-              onClick={() =>
-                onChange(toggleOccasionSelection(selected, occasion))
-              }
+              onClick={() => onChange(toggleOccasionSelection(selected, occasion))}
               className={`min-h-14 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
                 active
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border/70 bg-background hover:bg-secondary/60"
               }`}
             >
-              <span className="block whitespace-nowrap">
-                {OCCASION_LABEL[occasion]}
-              </span>
+              <span className="block whitespace-nowrap">{OCCASION_LABEL[occasion]}</span>
             </button>
           );
         })}
@@ -216,18 +199,12 @@ export function OccasionSummary({ value }: { value: Occasion[] }) {
   return (
     <div className="space-y-1.5 px-1" aria-label="Typ av upplevelse">
       <div className="flex items-center gap-1">
-        <span className="text-xs font-medium text-muted-foreground">
-          Typ av upplevelse
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">Typ av upplevelse</span>
         <OccasionGuide compact />
       </div>
       <div className="flex flex-wrap gap-2">
         {selected.map((occasion) => (
-          <Badge
-            key={occasion}
-            variant="secondary"
-            className="rounded-full px-2.5 py-0.5 text-xs"
-          >
+          <Badge key={occasion} variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs">
             {OCCASION_LABEL[occasion]}
           </Badge>
         ))}
@@ -257,8 +234,7 @@ export function OccasionPicker({
 }) {
   const descriptionId = `${id}-description`;
   const descriptionText =
-    description ??
-    (required ? "Välj en eller två." : "Valfritt – välj upp till två.");
+    description ?? (required ? "Välj en eller två." : "Valfritt – välj upp till två.");
   const selected = normalizeOccasionClassification(value);
   const atLimit = selected.length >= 2;
 
@@ -273,10 +249,7 @@ export function OccasionPicker({
         {showGuide ? <OccasionGuide /> : null}
       </div>
       {showInstructions ? (
-        <p
-          id={descriptionId}
-          className="text-xs leading-relaxed text-muted-foreground"
-        >
+        <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
           {descriptionText}
         </p>
       ) : null}

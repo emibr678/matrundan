@@ -16,10 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { persistDemoState } from "@/lib/matrundan/demo-state";
 import { saveOwnDemoReviewForVisit } from "@/lib/matrundan/demo-visit-participation";
-import {
-  reviewModelForContext,
-  reviewRatingsComplete,
-} from "@/lib/matrundan/review-model";
+import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion, Place } from "@/lib/matrundan/types";
@@ -55,9 +52,7 @@ export function DemoAddVisitReviewDialog({
   const { state, updatePlaceMetadata } = useStore();
   const { exampleMode } = useSession();
   const visit = state.visits.find((item) => item.id === visitId);
-  const ownPhoto = visit
-    ? getOwnVisitPhoto(visit, state.currentUserId)
-    : undefined;
+  const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [taste, setTaste] = React.useState(0);
@@ -81,13 +76,9 @@ export function DemoAddVisitReviewDialog({
     setPhotoFile(null);
   }, [open]);
 
-  const needsInitialClassification =
-    !scoreless && placeOccasions.length === 0;
-  const classificationActive =
-    needsInitialClassification && !classificationSaved;
-  const activeOccasions = needsInitialClassification
-    ? reviewOccasions
-    : placeOccasions;
+  const needsInitialClassification = !scoreless && placeOccasions.length === 0;
+  const classificationActive = needsInitialClassification && !classificationSaved;
+  const activeOccasions = needsInitialClassification ? reviewOccasions : placeOccasions;
   const model =
     scoreless || classificationActive
       ? null
@@ -127,11 +118,7 @@ export function DemoAddVisitReviewDialog({
       });
       setClassificationSaved(true);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Kunde inte spara typ av upplevelse.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte spara typ av upplevelse.");
     } finally {
       setSaving(false);
     }
@@ -157,21 +144,14 @@ export function DemoAddVisitReviewDialog({
         atmosphere: scoreless ? null : atmosphere || null,
         comment: comment.trim() || null,
         reviewOccasions:
-          needsInitialClassification && reviewOccasions.length > 0
-            ? reviewOccasions
-            : undefined,
+          needsInitialClassification && reviewOccasions.length > 0 ? reviewOccasions : undefined,
       });
 
       if (photoFile && visit) {
         try {
           const prepared = await prepareVisitPhoto(photoFile);
           const url = await blobToDataUrl(prepared.blob);
-          nextState = applyPreparedVisitPhotoToDemoState(
-            nextState,
-            visitId,
-            prepared,
-            url,
-          );
+          nextState = applyPreparedVisitPhotoToDemoState(nextState, visitId, prepared, url);
         } catch {
           persistDemoState(nextState, exampleMode);
           toast.warning(
@@ -198,9 +178,7 @@ export function DemoAddVisitReviewDialog({
       setOpen(false);
       onExit?.();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte spara.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
     } finally {
       setSaving(false);
     }
@@ -210,11 +188,7 @@ export function DemoAddVisitReviewDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="w-full" disabled={disabled}>
-          {scoreless ? (
-            <MessageCircle className="h-4 w-4" />
-          ) : (
-            <Star className="h-4 w-4" />
-          )}
+          {scoreless ? <MessageCircle className="h-4 w-4" /> : <Star className="h-4 w-4" />}
           {scoreless ? "Lägg till en kommentar" : "Lägg till ditt omdöme"}
         </Button>
       </DialogTrigger>
@@ -321,9 +295,7 @@ export function DemoAddVisitReviewDialog({
                 Avbryt
               </Button>
               <Button
-                disabled={
-                  saving || (scoreless ? !comment.trim() : !model || !complete)
-                }
+                disabled={saving || (scoreless ? !comment.trim() : !model || !complete)}
                 onClick={() => void save()}
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

@@ -1,13 +1,6 @@
 import * as React from "react";
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import {
-  BookOpen,
-  Flag,
-  Info,
-  Search,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react";
+import { BookOpen, Flag, Info, Search, UsersRound, type LucideIcon } from "lucide-react";
 import { AboutDialog } from "./AboutDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,10 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
-import {
-  shouldAutoShowCoreIntro,
-  USER_GUIDANCE,
-} from "@/lib/matrundan/user-guidance";
+import { shouldAutoShowCoreIntro, USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
 import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 
 export const OPEN_PRODUCT_INTRO_EVENT = "matrundan:open-product-intro";
@@ -44,10 +34,9 @@ const TOUR_STEPS = [
     title: "Välkommen till Matrundan",
     description: (groupName: string) => (
       <>
-        Upptäck, prova och minns matställen tillsammans. I Matrundan kan du ha
-        olika privata grupper – för familjen, kompisgänget eller en plats ni
-        vill utforska. Varje grupp har sin egen samling, sina egna planer och
-        sin egen historik.
+        Upptäck, prova och minns matställen tillsammans. I Matrundan kan du ha olika privata grupper
+        – för familjen, kompisgänget eller en plats ni vill utforska. Varje grupp har sin egen
+        samling, sina egna planer och sin egen historik.
         <span className="mt-2 block font-medium text-foreground [overflow-wrap:anywhere]">
           Du är just nu i {groupName}.
         </span>
@@ -66,9 +55,8 @@ const TOUR_STEPS = [
     description: () => (
       <>
         När ni planerar tillsammans kan ni markera ett ställe som{" "}
-        <strong className="font-medium text-foreground">Nästa stopp</strong>. På
-        Hem ser ni vad som står på tur, hur mycket av samlingen ni har provat
-        och gruppens senaste besök.
+        <strong className="font-medium text-foreground">Nästa stopp</strong>. På Hem ser ni vad som
+        står på tur, hur mycket av samlingen ni har provat och gruppens senaste besök.
       </>
     ),
   },
@@ -130,9 +118,7 @@ function IntroRow({
       </div>
       <div className="min-w-0">
         <div className="text-sm font-medium">{title}</div>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-          {children}
-        </p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{children}</p>
       </div>
     </div>
   );
@@ -155,9 +141,7 @@ export function ProductIntroDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="pr-8 text-left">
-          <DialogTitle className="font-display text-2xl">
-            Så funkar Matrundan
-          </DialogTitle>
+          <DialogTitle className="font-display text-2xl">Så funkar Matrundan</DialogTitle>
           <DialogDescription className="leading-relaxed">
             Upptäck, prova och minns matställen tillsammans i privata grupper.
           </DialogDescription>
@@ -165,22 +149,19 @@ export function ProductIntroDialog({
 
         <div className="space-y-3">
           <IntroRow icon={UsersRound} title="Olika grupper för olika sammanhang">
-            Ha separata grupper för exempelvis familjen, kompisgänget eller en
-            plats ni vill utforska. Varje grupp har sin egen samling, sina egna
-            planer och sin egen historik.
+            Ha separata grupper för exempelvis familjen, kompisgänget eller en plats ni vill
+            utforska. Varje grupp har sin egen samling, sina egna planer och sin egen historik.
           </IntroRow>
           <IntroRow icon={Search} title="Samla matställen">
-            Bygg en gemensam samling av ställen ni vill prova, redan har besökt
-            eller gärna återvänder till.
+            Bygg en gemensam samling av ställen ni vill prova, redan har besökt eller gärna
+            återvänder till.
           </IntroRow>
           <IntroRow icon={Flag} title="Välj nästa stopp">
-            När ni planerar tillsammans kan ni markera vilket ställe som står
-            på tur.
+            När ni planerar tillsammans kan ni markera vilket ställe som står på tur.
           </IntroRow>
           <IntroRow icon={BookOpen} title="Registrera besök">
-            När någon eller några i gruppen har varit där sparar ni besöket och
-            vilka som var med. Omdömen och bilder hjälper er att minnas, hitta
-            favoriter och välja nästa gång.
+            När någon eller några i gruppen har varit där sparar ni besöket och vilka som var med.
+            Omdömen och bilder hjälper er att minnas, hitta favoriter och välja nästa gång.
           </IntroRow>
         </div>
 
@@ -260,11 +241,7 @@ function ProductTourCard({
   );
 }
 
-export function ProductIntroController({
-  children,
-}: {
-  children?: React.ReactNode;
-}) {
+export function ProductIntroController({ children }: { children?: React.ReactNode }) {
   const { state } = useStore();
   const {
     mode,
@@ -338,16 +315,13 @@ export function ProductIntroController({
       !shouldAutoShowCoreIntro({
         isLive: mode === "live",
         hasUser: Boolean(userId),
-        hasActiveGroup:
-          Boolean(activeGroupId) && activeGroupLifecycleStatus === "active",
+        hasActiveGroup: Boolean(activeGroupId) && activeGroupLifecycleStatus === "active",
         onHomeRoute: pathname === "/",
         pendingInvitationsReady: pendingGroupInvitationsReady,
         pendingInvitationCount: pendingGroupInvitations.length,
         guidanceReady: status === "ready",
         acknowledged: coreIntroAcknowledged,
-        alreadyHandled: userId
-          ? autoHandledUsers.current.has(userId)
-          : false,
+        alreadyHandled: userId ? autoHandledUsers.current.has(userId) : false,
       }) ||
       !userId
     ) {
@@ -391,22 +365,14 @@ export function ProductIntroController({
     const routeStep = tourStepForPath(pathname, exampleMode);
     if (routeStep !== null) {
       if (tourStep === 0 && pathname === tourRoute(0, exampleMode)) return;
-      setTourStep((current) =>
-        current === routeStep ? current : routeStep,
-      );
+      setTourStep((current) => (current === routeStep ? current : routeStep));
       return;
     }
 
     acknowledgeTourIfNeeded(tourMode);
     setTourMode(null);
     focusMainContent();
-  }, [
-    acknowledgeTourIfNeeded,
-    exampleMode,
-    pathname,
-    tourStep,
-    tourMode,
-  ]);
+  }, [acknowledgeTourIfNeeded, exampleMode, pathname, tourStep, tourMode]);
 
   function skipTour() {
     acknowledgeTourIfNeeded(tourMode);
@@ -420,9 +386,7 @@ export function ProductIntroController({
       acknowledgeTourIfNeeded(tourMode);
       tourNavigationTarget.current = null;
       setTourMode(null);
-      void router
-        .navigate({ to: homeRoute(exampleMode), replace: true })
-        .then(focusMainContent);
+      void router.navigate({ to: homeRoute(exampleMode), replace: true }).then(focusMainContent);
       return;
     }
 

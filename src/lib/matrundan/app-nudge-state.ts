@@ -16,32 +16,22 @@ function dismissCount(entry?: NudgeEntry): number {
   return Math.max(0, entry?.dismissCount ?? 0);
 }
 
-export function shouldOfferPermanentNudgeDismissal(
-  entry?: NudgeEntry,
-): boolean {
+export function shouldOfferPermanentNudgeDismissal(entry?: NudgeEntry): boolean {
   return dismissCount(entry) >= 1;
 }
 
 export function nudgeSnoozeMs(entry?: NudgeEntry): number {
-  return dismissCount(entry) >= 2
-    ? REPEAT_NUDGE_SNOOZE_MS
-    : FIRST_NUDGE_SNOOZE_MS;
+  return dismissCount(entry) >= 2 ? REPEAT_NUDGE_SNOOZE_MS : FIRST_NUDGE_SNOOZE_MS;
 }
 
-export function isNudgeHidden(
-  entry: NudgeEntry | undefined,
-  now = Date.now(),
-): boolean {
+export function isNudgeHidden(entry: NudgeEntry | undefined, now = Date.now()): boolean {
   if (!entry) return false;
   if (entry.done || entry.muted) return true;
   if (!entry.dismissedAt) return false;
   return now - entry.dismissedAt < nudgeSnoozeMs(entry);
 }
 
-export function dismissNudge(
-  entry: NudgeEntry | undefined,
-  now = Date.now(),
-): NudgeEntry {
+export function dismissNudge(entry: NudgeEntry | undefined, now = Date.now()): NudgeEntry {
   return {
     ...entry,
     dismissedAt: now,

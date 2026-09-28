@@ -15,10 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveOwnReviewForVisit } from "@/lib/matrundan/live-visit-participation";
-import {
-  reviewModelForContext,
-  reviewRatingsComplete,
-} from "@/lib/matrundan/review-model";
+import { reviewModelForContext, reviewRatingsComplete } from "@/lib/matrundan/review-model";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Occasion, Place } from "@/lib/matrundan/types";
@@ -53,9 +50,7 @@ export function AddVisitReviewDialog({
   const { activeGroupId } = useSession();
   const { state, saveVisitPhoto, updatePlaceMetadata } = useStore();
   const visit = state.visits.find((item) => item.id === visitId);
-  const ownPhoto = visit
-    ? getOwnVisitPhoto(visit, state.currentUserId)
-    : undefined;
+  const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [taste, setTaste] = React.useState(0);
@@ -79,11 +74,8 @@ export function AddVisitReviewDialog({
     setPhotoFile(null);
   }, [open]);
 
-  const needsInitialClassification =
-    !scoreless && placeOccasions.length === 0;
-  const activeOccasions = needsInitialClassification
-    ? reviewOccasions
-    : placeOccasions;
+  const needsInitialClassification = !scoreless && placeOccasions.length === 0;
+  const activeOccasions = needsInitialClassification ? reviewOccasions : placeOccasions;
 
   const reviewGuidance = useReviewContextGate({
     open,
@@ -91,15 +83,10 @@ export function AddVisitReviewDialog({
   });
   const firstGuidanceActive = reviewGuidance.state === "guide";
   const firstGuidanceLoading = reviewGuidance.state === "loading";
-  const guidanceBlocking =
-    firstGuidanceActive || firstGuidanceLoading;
+  const guidanceBlocking = firstGuidanceActive || firstGuidanceLoading;
   const classificationActive =
-    !scoreless &&
-    !guidanceBlocking &&
-    needsInitialClassification &&
-    !classificationSaved;
-  const reviewActive =
-    scoreless || (!guidanceBlocking && !classificationActive);
+    !scoreless && !guidanceBlocking && needsInitialClassification && !classificationSaved;
+  const reviewActive = scoreless || (!guidanceBlocking && !classificationActive);
 
   const model =
     scoreless || !reviewActive
@@ -140,11 +127,7 @@ export function AddVisitReviewDialog({
       });
       setClassificationSaved(true);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Kunde inte spara typ av upplevelse.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte spara typ av upplevelse.");
     } finally {
       setSaving(false);
     }
@@ -174,9 +157,7 @@ export function AddVisitReviewDialog({
         atmosphere: scoreless ? null : atmosphere || null,
         comment: comment.trim() || null,
         reviewOccasions:
-          needsInitialClassification && reviewOccasions.length > 0
-            ? reviewOccasions
-            : undefined,
+          needsInitialClassification && reviewOccasions.length > 0 ? reviewOccasions : undefined,
       });
 
       if (photoFile && visit) {
@@ -208,9 +189,7 @@ export function AddVisitReviewDialog({
       await onSaved?.();
       onExit?.();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Kunde inte spara.",
-      );
+      toast.error(error instanceof Error ? error.message : "Kunde inte spara.");
     } finally {
       setSaving(false);
     }
@@ -220,11 +199,7 @@ export function AddVisitReviewDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="w-full" disabled={disabled}>
-          {scoreless ? (
-            <MessageCircle className="h-4 w-4" />
-          ) : (
-            <Star className="h-4 w-4" />
-          )}
+          {scoreless ? <MessageCircle className="h-4 w-4" /> : <Star className="h-4 w-4" />}
           {scoreless ? "Lägg till en kommentar" : "Lägg till ditt omdöme"}
         </Button>
       </DialogTrigger>
@@ -235,8 +210,8 @@ export function AddVisitReviewDialog({
             : firstGuidanceActive
               ? "guidance"
               : classificationActive
-              ? "classification"
-              : "review"
+                ? "classification"
+                : "review"
         }
         className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
       >
@@ -247,10 +222,10 @@ export function AddVisitReviewDialog({
               : firstGuidanceActive
                 ? "Innan du sätter betyg"
                 : classificationActive
-                ? "Hur skulle ni beskriva matupplevelsen?"
-                : scoreless
-                  ? "Din kommentar"
-                  : "Ditt omdöme"}
+                  ? "Hur skulle ni beskriva matupplevelsen?"
+                  : scoreless
+                    ? "Din kommentar"
+                    : "Ditt omdöme"}
           </DialogTitle>
           {firstGuidanceLoading ? (
             <DialogDescription>Förbereder omdömet…</DialogDescription>
@@ -260,8 +235,8 @@ export function AddVisitReviewDialog({
             </DialogDescription>
           ) : classificationActive ? (
             <DialogDescription>
-              Välj den typ av upplevelse som bäst beskriver stället – eller två
-              om båda passar. Valet sparas för gruppen.
+              Välj den typ av upplevelse som bäst beskriver stället – eller två om båda passar.
+              Valet sparas för gruppen.
             </DialogDescription>
           ) : (
             <DialogDescription>
@@ -281,10 +256,7 @@ export function AddVisitReviewDialog({
             Förbereder omdömet…
           </div>
         ) : firstGuidanceActive ? (
-          <FirstReviewGuidance
-            disabled={saving}
-            onContinue={reviewGuidance.accept}
-          />
+          <FirstReviewGuidance disabled={saving} onContinue={reviewGuidance.accept} />
         ) : classificationActive ? (
           <div className="space-y-4">
             <OccasionClassificationChoices
@@ -367,9 +339,7 @@ export function AddVisitReviewDialog({
                 Avbryt
               </Button>
               <Button
-                disabled={
-                  saving || (scoreless ? !comment.trim() : !model || !complete)
-                }
+                disabled={saving || (scoreless ? !comment.trim() : !model || !complete)}
                 onClick={() => void save()}
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

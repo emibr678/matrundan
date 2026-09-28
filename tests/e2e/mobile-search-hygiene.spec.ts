@@ -71,7 +71,9 @@ async function openPlaceSearch(page: Page) {
   return searchDialog;
 }
 
-test("mobilväljare och Typ av upplevelse-hjälp stannar inom en kort 360 px-vy", async ({ page }) => {
+test("mobilväljare och Typ av upplevelse-hjälp stannar inom en kort 360 px-vy", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 520 });
   const searchDialog = await openPlaceSearch(page);
   const candidate = placeSuggestionButton(searchDialog);

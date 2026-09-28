@@ -6,12 +6,12 @@ export function FirstReviewExplanation() {
     <div className="space-y-4">
       <div className="space-y-2 px-1">
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Kul att du ska lämna ditt första omdöme! I Matrundan skiljer vi på
-          olika typer av matupplevelser.
+          Kul att du ska lämna ditt första omdöme! I Matrundan skiljer vi på olika typer av
+          matupplevelser.
         </p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Ett enkelt gatukök och en finkrog är olika slags matupplevelser. Båda
-          kan få lika höga betyg – fast av olika skäl.
+          Ett enkelt gatukök och en finkrog är olika slags matupplevelser. Båda kan få lika höga
+          betyg – fast av olika skäl.
         </p>
       </div>
 
@@ -21,11 +21,7 @@ export function FirstReviewExplanation() {
           Ett matställe kan beskrivas med en eller två av dem.
         </p>
         <div className="mt-3">
-          <OccasionGuideContent
-            showHeading={false}
-            showIntro={false}
-            showConclusion={false}
-          />
+          <OccasionGuideContent showHeading={false} showIntro={false} showConclusion={false} />
         </div>
       </div>
     </div>
@@ -42,12 +38,7 @@ export function FirstReviewGuidance({
   return (
     <div className="space-y-4">
       <FirstReviewExplanation />
-      <Button
-        type="button"
-        className="min-h-11 w-full"
-        disabled={disabled}
-        onClick={onContinue}
-      >
+      <Button type="button" className="min-h-11 w-full" disabled={disabled} onClick={onContinue}>
         Jag förstår
       </Button>
     </div>

@@ -5,25 +5,16 @@ import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 
 export type ReviewContextGateState = "ready" | "loading" | "guide";
 
-export function useReviewContextGate({
-  open,
-  eligible,
-}: {
-  open: boolean;
-  eligible: boolean;
-}) {
+export function useReviewContextGate({ open, eligible }: { open: boolean; eligible: boolean }) {
   const { mode, user } = useSession();
-  const { status, isAcknowledged, isPreviewing, acknowledge } =
-    useUserGuidance();
-  const [acceptedInCurrentOpen, setAcceptedInCurrentOpen] =
-    React.useState(false);
+  const { status, isAcknowledged, isPreviewing, acknowledge } = useUserGuidance();
+  const [acceptedInCurrentOpen, setAcceptedInCurrentOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) setAcceptedInCurrentOpen(false);
   }, [open]);
 
-  const liveEligible =
-    open && eligible && mode === "live" && Boolean(user?.id);
+  const liveEligible = open && eligible && mode === "live" && Boolean(user?.id);
 
   let state: ReviewContextGateState = "ready";
   if (liveEligible && !acceptedInCurrentOpen) {
@@ -31,8 +22,7 @@ export function useReviewContextGate({
       state = "loading";
     } else if (
       isPreviewing(USER_GUIDANCE.reviewContext) ||
-      (status === "ready" &&
-        !isAcknowledged(USER_GUIDANCE.reviewContext))
+      (status === "ready" && !isAcknowledged(USER_GUIDANCE.reviewContext))
     ) {
       state = "guide";
     }

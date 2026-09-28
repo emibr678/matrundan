@@ -171,9 +171,7 @@ export function Home() {
         activePlaces={activePlaces}
         canWrite={canWrite}
         onAddPlace={() => setAddOpen(true)}
-        onRegisterVisit={(placeId) =>
-          setVisitTarget({ placeId, completeNextStopOnSave: true })
-        }
+        onRegisterVisit={(placeId) => setVisitTarget({ placeId, completeNextStopOnSave: true })}
       />
 
       <section>

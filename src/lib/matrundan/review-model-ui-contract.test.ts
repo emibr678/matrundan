@@ -63,9 +63,7 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(visitDialogFlow).toContain("open={open && !needsOccasionClassification}");
     expect(visitDialogCore).toContain("<ReviewScoreFields");
 
-    expect(visitPlaceOccasionDialog).toContain(
-      "Hur skulle ni beskriva matupplevelsen?",
-    );
+    expect(visitPlaceOccasionDialog).toContain("Hur skulle ni beskriva matupplevelsen?");
     expect(visitPlaceOccasionDialog).toContain(
       "Välj den typ av upplevelse som bäst beskriver stället",
     );
@@ -106,15 +104,11 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
     expect(firstReviewGuidance).toContain("Båda");
     expect(firstReviewGuidance).toContain("kan få lika höga betyg");
     expect(firstReviewGuidance).toContain("Tre typer av matupplevelser");
-    expect(firstReviewGuidance).toContain(
-      "Ett matställe kan beskrivas med en eller två av dem.",
-    );
+    expect(firstReviewGuidance).toContain("Ett matställe kan beskrivas med en eller två av dem.");
     expect(firstReviewGuidance).toContain("showConclusion={false}");
     expect(firstReviewGuidance).toContain("Jag förstår");
     expect(reviewContextGate).toContain("USER_GUIDANCE.reviewContext");
-    expect(reviewContextGate).toContain(
-      'ReviewContextGateState = "ready" | "loading" | "guide"',
-    );
+    expect(reviewContextGate).toContain('ReviewContextGateState = "ready" | "loading" | "guide"');
     expect(addReviewDialog).toContain("useReviewContextGate");
     expect(visitPlaceOccasionDialog).toContain("useReviewContextGate");
     expect(visitDialogCore).toContain("useReviewContextGate");
@@ -161,12 +155,9 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   });
 
   test("Typ av upplevelse-hjälpen förklarar olika matupplevelser", () => {
-    expect(occasionPicker).toContain(
-      "Typ av upplevelse gäller matstället",
-    );
-    expect(occasionPicker).toContain(
-      "vilken sorts matupplevelse gruppen förknippar det med",
-    );
+    expect(occasionPicker).toContain("Typ av upplevelse gäller matstället");
+    expect(occasionPicker).toContain("vilken sorts");
+    expect(occasionPicker).toContain("matupplevelse gruppen förknippar det med");
     expect(occasionPicker).toContain("Båda kan få lika");
     expect(occasionPicker).toContain("OCCASION_DESCRIPTION");
     expect(occasionPicker).toContain("Typ av upplevelse");
