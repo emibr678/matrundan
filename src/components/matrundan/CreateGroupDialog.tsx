@@ -30,7 +30,6 @@ import { SEARCH_RADIUS_OPTIONS } from "@/lib/matrundan/search-areas";
 import { useSession } from "@/lib/matrundan/session";
 import type { SearchRadiusKm } from "@/lib/matrundan/types";
 
-
 export function CreateGroupDialog({
   open,
   onOpenChange,
