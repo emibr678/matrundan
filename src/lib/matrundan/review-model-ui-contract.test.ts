@@ -56,6 +56,10 @@ const reviewEditFields = readFileSync(
   "utf8",
 );
 
+function normalizedSourceText(source: string): string {
+  return source.replace(/\s+/g, " ");
+}
+
 describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   test("saknat Typ av upplevelse löses som platsmetadata före registreringsdialogen", () => {
     expect(visitDialogFlow).toContain("needsOccasionClassification");
@@ -99,12 +103,13 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   });
 
   test("första omdömesguiden är ett separat steg före klassificering och stjärnor", () => {
-    expect(firstReviewGuidance).toContain("Kul att du ska lämna ditt första omdöme!");
-    expect(firstReviewGuidance).toContain("Ett enkelt gatukök och en finkrog");
-    expect(firstReviewGuidance).toContain("Båda");
-    expect(firstReviewGuidance).toContain("kan få lika höga betyg");
-    expect(firstReviewGuidance).toContain("Tre typer av matupplevelser");
-    expect(firstReviewGuidance).toContain("Ett matställe kan beskrivas med en eller två av dem.");
+    const copy = normalizedSourceText(firstReviewGuidance);
+
+    expect(copy).toContain("Kul att du ska lämna ditt första omdöme!");
+    expect(copy).toContain("Ett enkelt gatukök och en finkrog");
+    expect(copy).toContain("Båda kan få lika höga betyg");
+    expect(copy).toContain("Tre typer av matupplevelser");
+    expect(copy).toContain("Ett matställe kan beskrivas med en eller två av dem.");
     expect(firstReviewGuidance).toContain("showConclusion={false}");
     expect(firstReviewGuidance).toContain("Jag förstår");
     expect(reviewContextGate).toContain("USER_GUIDANCE.reviewContext");
@@ -155,10 +160,11 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   });
 
   test("Typ av upplevelse-hjälpen förklarar olika matupplevelser", () => {
-    expect(occasionPicker).toContain("Typ av upplevelse gäller matstället");
-    expect(occasionPicker).toContain("vilken sorts");
-    expect(occasionPicker).toContain("matupplevelse gruppen förknippar det med");
-    expect(occasionPicker).toContain("Båda kan få lika");
+    const copy = normalizedSourceText(occasionPicker);
+
+    expect(copy).toContain("Typ av upplevelse gäller matstället");
+    expect(copy).toContain("vilken sorts matupplevelse gruppen förknippar det med");
+    expect(copy).toContain("Båda kan få lika");
     expect(occasionPicker).toContain("OCCASION_DESCRIPTION");
     expect(occasionPicker).toContain("Typ av upplevelse");
     expect(occasionPicker).toContain("Så fungerar det");
