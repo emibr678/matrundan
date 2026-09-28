@@ -12,7 +12,9 @@ const releaseSha =
   process.env.MATRUNDAN_RELEASE_SHA ??
   "unknown";
 
-const appEnvironment = process.env.MATRUNDAN_ENVIRONMENT?.trim().toLowerCase() ?? "local";
+const appEnvironment =
+  process.env.MATRUNDAN_ENVIRONMENT?.trim().toLowerCase() ??
+  (process.env.WORKERS_CI === "1" ? "staging" : "local");
 const deployedAt = process.env.MATRUNDAN_DEPLOYED_AT?.trim() ?? "";
 
 export default defineConfig(({ command }) => ({

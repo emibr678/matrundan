@@ -35,7 +35,7 @@ export const Route = createFileRoute("/gruppen")({
         content: "Se gruppens medlemmar, höjdpunkter, favoriter och senaste aktivitet.",
       },
       { property: "og:title", content: appPageTitle("Gruppen") },
-      { property: "og:description", content: "Gänget, aktivitet och favoriter." },
+      { property: "og:description", content: "Gruppen, aktivitet och favoriter." },
     ],
   }),
   component: GroupPage,
@@ -189,7 +189,7 @@ function GroupPage() {
 
       {sharedFavs.length > 0 ? (
         <section>
-          <h2 className="mb-2 font-display text-lg">Gänget gillar</h2>
+          <h2 className="mb-2 font-display text-lg">Gemensamma favoriter</h2>
           <div className="space-y-2">
             {sharedFavs.map(({ place, count }) =>
               place ? (
@@ -205,7 +205,7 @@ function GroupPage() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{place.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      Favorit hos {count} i gänget
+                      Favorit hos {count} i gruppen
                       {avgRating(place.id).count > 0
                         ? ` · ${formatRating(avgRating(place.id).overall)} snitt`
                         : ""}

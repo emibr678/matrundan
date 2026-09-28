@@ -1792,6 +1792,35 @@ export type Database = {
           },
         ]
       }
+      user_guidance_state: {
+        Row: {
+          acknowledged_at: string
+          guidance_key: string
+          guidance_version: number
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          guidance_key: string
+          guidance_version: number
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          guidance_key?: string
+          guidance_version?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_guidance_state_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visit_group_links: {
         Row: {
           group_id: string

@@ -15,15 +15,15 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
+  normalizeOccasionClassification,
+  toggleOccasionSelection,
+} from "@/lib/matrundan/occasions";
+import {
   OCCASION_DESCRIPTION,
   OCCASION_LABEL,
   OCCASION_VALUES,
   type Occasion,
 } from "@/lib/matrundan/types";
-import {
-  normalizeOccasionClassification,
-  toggleOccasionSelection,
-} from "@/lib/matrundan/occasions";
 
 const OccasionGuideTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
@@ -36,7 +36,7 @@ const OccasionGuideTrigger = React.forwardRef<
     variant="ghost"
     size="sm"
     className="min-h-11 rounded-full px-2 text-xs text-muted-foreground"
-    aria-label="Vad betyder Passar för?"
+    aria-label="Så fungerar Typ av upplevelse"
   >
     <CircleHelp className="h-4 w-4" />
     {compact ? null : <span>Så fungerar det</span>}
@@ -44,19 +44,35 @@ const OccasionGuideTrigger = React.forwardRef<
 ));
 OccasionGuideTrigger.displayName = "OccasionGuideTrigger";
 
-export function OccasionGuideContent({ showHeading = true }: { showHeading?: boolean }) {
+export function OccasionGuideContent({
+  showHeading = true,
+  showIntro = true,
+  showConclusion = true,
+}: {
+  showHeading?: boolean;
+  showIntro?: boolean;
+  showConclusion?: boolean;
+}) {
   return (
     <div className="min-w-0 space-y-3">
       <div>
-        {showHeading ? <div className="font-medium">Passar för</div> : null}
-        <p className={`${showHeading ? "mt-1 " : ""}text-xs leading-relaxed text-muted-foreground`}>
-          Olika ställen passar olika bra beroende på vad ni är ute efter. En pizzeria och en finkrog
-          kan båda vara riktigt bra – fast vid olika tillfällen.
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Om bara <strong className="font-medium text-foreground">{OCCASION_LABEL.snabbt}</strong>{" "}
-          är valt ingår inte Atmosfär i nya omdömen. Tidigare omdömen ändras inte.
-        </p>
+        {showHeading ? <div className="font-medium">Typ av upplevelse</div> : null}
+        {showIntro ? (
+          <>
+            <p
+              className={`${
+                showHeading ? "mt-1 " : ""
+              }text-xs leading-relaxed text-muted-foreground`}
+            >
+              Typ av upplevelse gäller matstället och beskriver vilken sorts matupplevelse gruppen
+              förknippar det med. Ett matställe kan ha en eller två typer.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Ett enkelt gatukök och en finkrog är olika slags matupplevelser. Båda kan få lika höga
+              betyg – fast av olika skäl.
+            </p>
+          </>
+        ) : null}
       </div>
       <div className="space-y-2.5">
         {OCCASION_VALUES.map((occasion) => (
@@ -68,6 +84,12 @@ export function OccasionGuideContent({ showHeading = true }: { showHeading?: boo
           </div>
         ))}
       </div>
+      {showConclusion ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Klassificeringen hjälper gruppen att hitta rätt sorts matställe för stunden och gör
+          betygen lättare att förstå och jämföra.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -83,7 +105,7 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
         </DialogTrigger>
         <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-sm">
           <DialogHeader className="pr-8 text-left">
-            <DialogTitle>Passar för</DialogTitle>
+            <DialogTitle>Typ av upplevelse</DialogTitle>
           </DialogHeader>
           <OccasionGuideContent showHeading={false} />
           <DialogFooter>
@@ -113,6 +135,84 @@ export function OccasionGuide({ compact = false }: { compact?: boolean }) {
   );
 }
 
+export function OccasionClassificationChoices({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: Occasion[];
+  onChange: (value: Occasion[]) => void;
+  disabled?: boolean;
+}) {
+  const [showGuide, setShowGuide] = React.useState(false);
+  const selected = normalizeOccasionClassification(value);
+  const atLimit = selected.length >= 2;
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Typ av upplevelse">
+        {OCCASION_VALUES.map((occasion) => {
+          const active = selected.includes(occasion);
+          return (
+            <button
+              key={occasion}
+              type="button"
+              aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
+              aria-pressed={active}
+              disabled={disabled || (atLimit && !active)}
+              onClick={() => onChange(toggleOccasionSelection(selected, occasion))}
+              className={`min-h-14 min-w-0 rounded-xl border px-2 py-2 text-center text-xs font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
+                active
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/70 bg-background hover:bg-secondary/60"
+              }`}
+            >
+              <span className="block whitespace-nowrap">{OCCASION_LABEL[occasion]}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-expanded={showGuide}
+        onClick={() => setShowGuide((current) => !current)}
+      >
+        <CircleHelp className="h-4 w-4" />
+        Så fungerar det
+      </button>
+
+      {showGuide ? (
+        <div className="rounded-2xl bg-secondary/40 p-3">
+          <OccasionGuideContent />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function OccasionSummary({ value }: { value: Occasion[] }) {
+  const selected = normalizeOccasionClassification(value);
+  if (selected.length === 0) return null;
+
+  return (
+    <div className="space-y-1.5 px-1" aria-label="Typ av upplevelse">
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-medium text-muted-foreground">Typ av upplevelse</span>
+        <OccasionGuide compact />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {selected.map((occasion) => (
+          <Badge key={occasion} variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs">
+            {OCCASION_LABEL[occasion]}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function OccasionPicker({
   id,
   value,
@@ -120,6 +220,8 @@ export function OccasionPicker({
   disabled = false,
   required = false,
   description,
+  showGuide = true,
+  showInstructions = true,
 }: {
   id: string;
   value: Occasion[];
@@ -127,25 +229,36 @@ export function OccasionPicker({
   disabled?: boolean;
   required?: boolean;
   description?: string;
+  showGuide?: boolean;
+  showInstructions?: boolean;
 }) {
   const descriptionId = `${id}-description`;
+  const descriptionText =
+    description ?? (required ? "Välj en eller två." : "Valfritt – välj upp till två.");
   const selected = normalizeOccasionClassification(value);
   const atLimit = selected.length >= 2;
+
+  function handleChange(occasion: Occasion) {
+    onChange(toggleOccasionSelection(selected, occasion));
+  }
 
   return (
     <div className="space-y-2">
       <div className="flex min-h-11 items-center justify-between gap-2">
-        <Label id={`${id}-label`}>Passar för</Label>
-        <OccasionGuide />
+        <Label id={`${id}-label`}>Typ av upplevelse</Label>
+        {showGuide ? <OccasionGuide /> : null}
       </div>
-      <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
-        {description ?? (required ? "Välj en eller två." : "Valfritt – välj upp till två.")}
-      </p>
+      {showInstructions ? (
+        <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
+          {descriptionText}
+        </p>
+      ) : null}
       <div
         className="flex flex-wrap gap-2"
         role="group"
         aria-labelledby={`${id}-label`}
-        aria-describedby={descriptionId}
+        aria-describedby={showInstructions ? descriptionId : undefined}
+        aria-required={required || undefined}
       >
         {OCCASION_VALUES.map((occasion) => {
           const isSelected = selected.includes(occasion);
@@ -156,12 +269,12 @@ export function OccasionPicker({
               occasion={occasion}
               selected={isSelected}
               disabled={disabled || (atLimit && !isSelected)}
-              onClick={() => onChange(toggleOccasionSelection(selected, occasion))}
+              onClick={() => handleChange(occasion)}
             />
           );
         })}
       </div>
-      {required && selected.length === 0 ? (
+      {showInstructions && required && selected.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           Välj minst ett alternativ för att fortsätta.
         </p>
@@ -187,7 +300,7 @@ function OccasionButton({
     <button
       type="button"
       disabled={disabled}
-      aria-label={`Passar för: ${OCCASION_LABEL[occasion]}`}
+      aria-label={`Typ av upplevelse: ${OCCASION_LABEL[occasion]}`}
       aria-pressed={selected}
       aria-describedby={`${id}-description`}
       onClick={onClick}

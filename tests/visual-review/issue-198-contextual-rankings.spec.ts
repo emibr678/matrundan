@@ -44,7 +44,7 @@ test("fånga kompakta flervalsfilter i topplistan", async ({ page }, testInfo) =
   const leaderboard = page.getByTestId("occasion-leaderboard");
   await leaderboard.getByRole("button", { name: "Visa topp 3", exact: true }).click();
 
-  await expect(leaderboard.getByText("Passar för", { exact: true })).toBeVisible();
+  await expect(leaderboard.getByText("Typ av upplevelse", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Tillfälle", { exact: true })).toBeVisible();
   await expect(leaderboard.getByText("Alla", { exact: true })).toHaveCount(0);
   await expect(leaderboard.getByText("Alla tillfällen", { exact: true })).toHaveCount(0);

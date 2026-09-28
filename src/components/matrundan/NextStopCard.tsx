@@ -68,10 +68,12 @@ type DayResponse = {
 export function NextStopCard({
   activePlaces,
   canWrite,
+  onAddPlace,
   onRegisterVisit,
 }: {
   activePlaces: Place[];
   canWrite: boolean;
+  onAddPlace: () => void;
   onRegisterVisit: (placeId: string) => void;
 }) {
   const { state, getPlace } = useStore();
@@ -386,26 +388,41 @@ export function NextStopCard({
   }
 
   if (!focusedItem) {
+    const hasPlaces = activePlaces.length > 0;
     return (
       <section>
         <NextStopHeading
-          showShuffle={canInteract && proposals.length < 5}
+          showShuffle={hasPlaces && canInteract && proposals.length < 5}
           busy={busy}
           onShuffle={() => void randomProposal()}
         />
         <Card className="rounded-3xl border-dashed border-border bg-card p-6 text-center shadow-sm">
           <div className="text-5xl" aria-hidden="true">
-            🎯
+            {hasPlaces ? "🎯" : "🍽️"}
           </div>
-          <h2 className="mt-3 font-display text-xl">Vart går rundan härnäst?</h2>
+          <h2 className="mt-3 font-display text-xl">
+            {hasPlaces ? "Vart går rundan härnäst?" : "Börja med ett ställe"}
+          </h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            Föreslå ett ställe. Det första blir nästa stopp och fler idéer läggs på tur.
+            {hasPlaces
+              ? "Föreslå ett ställe. Det första blir nästa stopp och fler idéer läggs på tur."
+              : canWrite
+                ? "Lägg till ett ställe ni är nyfikna på. Sedan kan gruppen välja vad som blir nästa stopp."
+                : "Gruppen har inte lagt till några ställen ännu."}
           </p>
-          <div className="mt-4 flex justify-center">
-            <Button asChild>
-              <Link to="/matstallen">Föreslå ett ställe</Link>
-            </Button>
-          </div>
+          {hasPlaces || canWrite ? (
+            <div className="mt-4 flex justify-center">
+              {hasPlaces ? (
+                <Button asChild>
+                  <Link to="/matstallen">Föreslå ett ställe</Link>
+                </Button>
+              ) : (
+                <Button type="button" onClick={onAddPlace}>
+                  Lägg till första stället
+                </Button>
+              )}
+            </div>
+          ) : null}
         </Card>
       </section>
     );

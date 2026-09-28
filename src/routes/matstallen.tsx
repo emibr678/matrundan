@@ -257,7 +257,9 @@ function PlacesIndex() {
     <div className="mx-auto max-w-2xl space-y-3 pt-2 md:max-w-4xl">
       <div>
         <h1 className="font-display text-2xl font-semibold md:text-3xl">Matställen</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">Vad gänget vill prova och har provat</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Vad gruppen vill prova och har provat
+        </p>
       </div>
 
       {topLeader ? (
@@ -322,7 +324,7 @@ function PlacesIndex() {
               <div className="space-y-1.5">
                 <div>
                   <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
-                    <span>Passar för</span>
+                    <span>Typ av upplevelse</span>
                     <span className="-my-1.5 inline-flex">
                       <OccasionGuide compact />
                     </span>
@@ -330,7 +332,7 @@ function PlacesIndex() {
                   <div
                     className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
                     role="group"
-                    aria-label="Filtrera topplistan på Passar för. Inget val visar alla."
+                    aria-label="Filtrera topplistan på Typ av upplevelse. Inget val visar alla."
                   >
                     {TOP_LIST_FILTERS.map((item) => {
                       const active = topOccasions.includes(item.key);
@@ -435,7 +437,7 @@ function PlacesIndex() {
                 ) : (
                   <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
                     {topOccasions.length === 0 && topVisits.length === 0 && !topTakeawayOnly
-                      ? "Inga betyg ännu — de kommer när gänget har provat något."
+                      ? "Inga betyg ännu — de kommer när gruppen har provat något."
                       : "Inga betyg matchar de valda filtren ännu."}
                   </div>
                 )}
@@ -515,7 +517,7 @@ function PlacesIndex() {
               <FilterGroup
                 label={
                   <span className="flex min-h-11 items-center gap-1">
-                    Passar för
+                    Typ av upplevelse
                     <OccasionGuide compact />
                   </span>
                 }
@@ -536,7 +538,7 @@ function PlacesIndex() {
                 <MultiChipRow
                   options={[
                     { key: "cuisines", label: "Kök/inriktning" },
-                    { key: "occasions", label: "Passar för" },
+                    { key: "occasions", label: "Typ av upplevelse" },
                   ]}
                   values={missingFields}
                   onToggle={(value) =>

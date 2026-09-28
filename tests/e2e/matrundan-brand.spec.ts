@@ -52,7 +52,9 @@ test("exempelgruppen använder samma brand utan att ersätta gruppemojin", async
   await expectNoHorizontalOverflow(page);
 
   await groupMenu.click();
-  await page.getByRole("menuitem", { name: "Om Matrundan" }).click();
+  await page.getByRole("menuitem", { name: "Så funkar Matrundan" }).click();
+  const help = page.getByRole("dialog", { name: "Så funkar Matrundan" });
+  await help.getByRole("button", { name: "Om Matrundan" }).click();
   await expect(
     page.getByRole("dialog").getByRole("heading", { name: "Om Matrundan" }),
   ).toBeVisible();

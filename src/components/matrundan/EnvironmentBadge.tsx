@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,8 @@ async function copyText(text: string): Promise<void> {
 }
 
 export function EnvironmentBadge() {
+  const [popoverOpen, setPopoverOpen] = React.useState(false);
+
   if (!IS_STAGING) return null;
 
   async function copyEnvironmentInfo() {
@@ -67,7 +70,7 @@ export function EnvironmentBadge() {
   }
 
   return (
-    <Popover>
+    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -104,15 +107,17 @@ export function EnvironmentBadge() {
             <dd className="text-right font-medium">Matrundan Staging</dd>
           </dl>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="min-h-11 w-full"
-            onClick={() => void copyEnvironmentInfo()}
-          >
-            <Copy className="h-4 w-4" /> Kopiera miljöinfo
-          </Button>
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="min-h-11 w-full"
+              onClick={() => void copyEnvironmentInfo()}
+            >
+              <Copy className="h-4 w-4" /> Kopiera miljöinfo
+            </Button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

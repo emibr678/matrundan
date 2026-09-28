@@ -351,7 +351,7 @@ test("fånga kontextuell deltagarkorrigering och besöksdelning", async ({ page 
   await expect(visitDialog.getByRole("button", { name: "Lägg till din bild" })).toBeVisible();
 
   const participantHeading = visitDialog.getByRole("heading", { name: "Deltagare" });
-  const reviewsHeading = visitDialog.getByRole("heading", { name: "Gängets omdömen" });
+  const reviewsHeading = visitDialog.getByRole("heading", { name: "Gruppens omdömen" });
   const [participantBox, declineBox, reviewsBox, shareBox] = await Promise.all([
     participantHeading.boundingBox(),
     declineButton.boundingBox(),

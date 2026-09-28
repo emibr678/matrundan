@@ -62,7 +62,9 @@ test("exempelgruppen samlar 3+ deltagaromdömen och låter Alex komplettera samm
   await reviewSection.getByRole("button", { name: "Lägg till ditt omdöme" }).click({ force: true });
   const reviewDialog = page.getByRole("dialog").last();
   await expect(reviewDialog.getByRole("heading", { name: "Ditt omdöme" })).toBeVisible();
-  await expect(reviewDialog.getByText(/Helhetsbetyget räknas automatiskt/)).toBeVisible();
+  await expect(reviewDialog.getByText(/Helhetsbetyget räknas automatiskt/)).toHaveCount(0);
+  await expect(reviewDialog.getByText("Typ av upplevelse", { exact: true })).toBeVisible();
+  await expect(reviewDialog.getByText("— / 5", { exact: true })).toBeVisible();
   await expect(reviewDialog.getByText(/komprimeras/i)).toHaveCount(0);
   for (const dimension of ["Smak", "Service", "Prisvärdhet", "Atmosfär"]) {
     await reviewDialog.getByRole("button", { name: `${dimension}: 5 av 5` }).click();
@@ -228,7 +230,7 @@ test("historiskt helhetsbetyg utan detaljbetyg visas stabilt och kan kommenteras
   await page.goto("/matstallen/p1?visit=v8");
 
   const visitDialog = page.getByRole("dialog").first();
-  const reviewSection = visitDialog.getByLabel("Gängets omdömen");
+  const reviewSection = visitDialog.getByLabel("Gruppens omdömen");
   const historicalReview = reviewSection.locator('[data-review-id="review-v8-alex"]');
 
   await expect(historicalReview.locator("[data-review-rating]")).toContainText("4,0");

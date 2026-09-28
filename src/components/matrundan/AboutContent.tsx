@@ -16,35 +16,14 @@ export function AboutContent() {
       <section className="space-y-4">
         <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
           <p>
-            Matrundan hjälper vänner och familjer att samla matställen de vill prova, välja nästa
-            stopp och bevara minnen från riktiga besök – privat inom den egna gruppen.
+            Matrundan är till för vänner, familjer och andra grupper som vill upptäcka, prova och
+            minnas matställen tillsammans.
           </p>
           <p>
-            Det är gruppens gemensamma matresa, inte en offentlig betygssajt. Varje grupp ser bara
-            sitt eget innehåll.
+            Varje grupp har sitt eget innehåll, synligt bara för gruppens medlemmar. Matrundan är
+            inte en offentlig restaurangkatalog eller betygssajt.
           </p>
         </div>
-
-        <ol className="grid gap-2 text-sm sm:grid-cols-3">
-          <li className="rounded-2xl bg-muted/60 p-3">
-            <span className="font-medium">1. Samla ställen</span>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Lägg till sådant ni vill prova.
-            </p>
-          </li>
-          <li className="rounded-2xl bg-muted/60 p-3">
-            <span className="font-medium">2. Välj nästa stopp</span>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Bestäm tillsammans vart rundan går.
-            </p>
-          </li>
-          <li className="rounded-2xl bg-muted/60 p-3">
-            <span className="font-medium">3. Minns besöken</span>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Spara betyg och gemensam historik.
-            </p>
-          </li>
-        </ol>
 
         <p className="text-sm leading-relaxed text-muted-foreground">
           {APP_NAME} är ett kostnadsfritt hobbyprojekt utan garanterad support. Läs mer om hur

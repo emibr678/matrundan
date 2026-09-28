@@ -29,7 +29,7 @@ test("platsmetadata använder enkla begrepp och återgår tyst till ställets ty
 
   await expect(page.getByText("Café", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Kök och inriktning", { exact: true })).toBeVisible();
-  await expect(page.getByText("Passar för", { exact: true })).toBeVisible();
+  await expect(page.getByText("Typ av upplevelse", { exact: true })).toBeVisible();
   await expect(page.getByText(/grundtyp|grunduppgift/i)).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Detaljsida med platsmetadata");
 
@@ -66,6 +66,8 @@ test("platsmetadata använder enkla begrepp och återgår tyst till ställets ty
   await page.getByRole("button", { name: "Öppna filter och sortering" }).click();
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
   await expect(filterSheet.getByText("Typ av ställe", { exact: true })).toBeVisible();
-  await expect(filterSheet.getByRole("button", { name: "Vad betyder Passar för?" })).toBeVisible();
+  await expect(
+    filterSheet.getByRole("button", { name: "Så fungerar Typ av upplevelse" }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Filter för platsmetadata");
 });

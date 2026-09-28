@@ -87,18 +87,26 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
 
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }).click();
-  await page.getByRole("menuitem", { name: "Om Matrundan" }).click();
+  await page.getByRole("menuitem", { name: "Så funkar Matrundan" }).click();
+  await page
+    .getByRole("dialog", { name: "Så funkar Matrundan" })
+    .getByRole("button", { name: "Om Matrundan" })
+    .click();
   await expect(page.getByRole("heading", { name: "Om Matrundan" })).toBeVisible();
   await expect(
-    page.getByText(/Matrundan hjälper vänner och familjer att samla matställen/),
+    page.getByText(/Matrundan är till för vänner, familjer och andra grupper/),
   ).toBeVisible();
+  await expect(
+    page.getByText(/Varje grupp har sitt eget innehåll, synligt bara för gruppens medlemmar/),
+  ).toBeVisible();
+  await expect(page.getByText("1. Samla ställen", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Vad är nytt", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Öppna versionshistoriken" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Om Matrundan");
 
   await page.goto("/matstallen?demo=1");
   await expect(
-    page.getByText("Vad gänget vill prova och har provat", { exact: true }),
+    page.getByText("Vad gruppen vill prova och har provat", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Lägg till ställe", exact: true })).toBeVisible();
 

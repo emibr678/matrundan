@@ -5,6 +5,7 @@ import { LandingScreen } from "@/components/matrundan/LandingScreen";
 import { EnvironmentBadge } from "@/components/matrundan/EnvironmentBadge";
 import { MatrundanBrand } from "@/components/matrundan/MatrundanBrand";
 import { OnboardingScreen } from "@/components/matrundan/OnboardingScreen";
+import { ProductIntroController } from "@/components/matrundan/ProductIntroDialog";
 import { ShellChrome } from "@/components/matrundan/ShellChrome";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -18,6 +19,7 @@ import { createExampleState } from "@/lib/matrundan/example-data";
 import { loadLiveState } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
 import { StoreProvider } from "@/lib/matrundan/store";
+import { UserGuidanceProvider } from "@/lib/matrundan/user-guidance-context";
 import type { AppState } from "@/lib/matrundan/types";
 
 const LIVE_LOAD_ERROR = "Kunde inte läsa gruppens data.";
@@ -30,7 +32,9 @@ function requireLiveState(state: AppState | null): AppState {
 export function AppShell() {
   return (
     <SessionProvider>
-      <ShellBody />
+      <UserGuidanceProvider>
+        <ShellBody />
+      </UserGuidanceProvider>
       <Toaster position="top-center" richColors />
     </SessionProvider>
   );
@@ -190,7 +194,9 @@ function ShellBody() {
       onLiveMutation={mode === "live" ? reloadLive : undefined}
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
-      <ShellChrome exampleMode={exampleMode} />
+      <ProductIntroController>
+        <ShellChrome exampleMode={exampleMode} />
+      </ProductIntroController>
     </StoreProvider>
   );
 }

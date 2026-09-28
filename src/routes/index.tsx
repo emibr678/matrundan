@@ -12,6 +12,7 @@ import { NextStopCard } from "@/components/matrundan/NextStopCard";
 import { AppNudges } from "@/components/matrundan/AppNudges";
 import { HomeAttentionCard } from "@/components/matrundan/HomeAttentionCard";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
+import { useProductTourActive } from "@/components/matrundan/ProductIntroDialog";
 import { resolveHomeAttention } from "@/lib/matrundan/home-attention";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { effectiveReviewOverall } from "@/lib/matrundan/review-model";
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/")({
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
   const { pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
+  const productTourActive = useProductTourActive();
   const [addOpen, setAddOpen] = React.useState(false);
   const [visitTarget, setVisitTarget] = React.useState<{
     placeId: string;
@@ -84,7 +86,7 @@ export function Home() {
         ? "Hela listan är avklarad — dags att fylla på med nya smultronställen."
         : untried.length === 1
           ? "Ett ställe kvar innan ni har provat hela listan."
-          : "Ett ställe räknas som provat så fort någon i gänget varit där.";
+          : "Ett ställe räknas som provat så fort någon i gruppen har varit där.";
 
   const lastVisit = React.useMemo(() => {
     return [...state.visits].sort((a, b) => b.date.localeCompare(a.date))[0];
@@ -161,13 +163,14 @@ export function Home() {
         <section aria-label="Omdömen att komplettera">
           <PendingVisitReviewCard visits={pendingReviewItems} />
         </section>
-      ) : attentionKind === "app-nudge" ? (
+      ) : attentionKind === "app-nudge" && !productTourActive ? (
         <AppNudges />
       ) : null}
 
       <NextStopCard
         activePlaces={activePlaces}
         canWrite={canWrite}
+        onAddPlace={() => setAddOpen(true)}
         onRegisterVisit={(placeId) => setVisitTarget({ placeId, completeNextStopOnSave: true })}
       />
 
