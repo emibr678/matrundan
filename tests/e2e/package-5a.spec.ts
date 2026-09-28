@@ -54,7 +54,7 @@ test("Fredagsgänget är interaktivt och sparar bara i den aktuella fliken", asy
   await expect(page.getByText(/ändringar sparas bara tillfälligt i den här fliken/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Gröna Terrassen" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Slumpa förslag" })).toBeVisible();
   await expect(page.getByText("Gammal lokal demo")).toHaveCount(0);
   await expect(page.getByText("Gammal exempelgrupp")).toHaveCount(0);
@@ -231,10 +231,13 @@ test("den interna demosandboxen är fortsatt skrivbar och separat", async ({ pag
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/?demo=1");
 
-  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lägg till ställe" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Registrera besök" })).toBeVisible();
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Intern demosandbox på 360 px");
+
+  await page.getByRole("link", { name: "Matställen", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Lägg till ställe", exact: true })).toBeVisible();
 });
 
 test("#363 exempelgruppen använder samma permanenta hjälp och robust rundtur", async ({ page }) => {
