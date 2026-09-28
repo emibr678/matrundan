@@ -16,7 +16,6 @@ import {
 } from "@/lib/matrundan/live-admin";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
 
-
 export function OnboardingScreen() {
   const { refreshGroups, selectGroup, signOut } = useSession();
   const [name, setName] = React.useState("");
