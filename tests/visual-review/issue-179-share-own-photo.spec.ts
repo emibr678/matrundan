@@ -393,7 +393,7 @@ test("fånga uttrycklig bilddelning när egen bild finns", async ({ page }, test
   await expect(photoSwitch).toBeChecked();
   await expect(commentSwitch).toBeChecked();
   await expect(shareDialog.getByText("Stället läggs till", { exact: true })).toBeVisible();
-  await expect(shareDialog.getByText("Räknas inte i gruppens progression.")).toBeVisible();
+  await expect(shareDialog.getByText("Påverkar inte nivåer eller utmärkelser.")).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-179-dela-besok-med-egen-bild");

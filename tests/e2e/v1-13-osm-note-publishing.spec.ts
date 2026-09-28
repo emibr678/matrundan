@@ -54,7 +54,7 @@ test("rapporten lämnar gruppens privata arbetskö och hanteras centralt", async
     .getByLabel("Vad har du sett?")
     .fill("Verksamhetens egen skylt visar en annan webbplats än den som är sparad.");
   await expectNoHorizontalOverflow(page, "Rapportdialog på mobil");
-  await reportDialog.getByRole("button", { name: "Skicka underlag" }).click();
+  await reportDialog.getByRole("button", { name: "Skicka rapport" }).click();
   await expect(reportDialog).toBeHidden();
 
   await page.goto("/rapporterade-fel?demo=1");

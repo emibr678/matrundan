@@ -106,7 +106,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(guideCopy).toBeVisible();
   await expect(page.getByText(/Ett enkelt gatukök och en finkrog/).last()).toBeVisible();
   await expect(page.getByText(/Båda kan få lika höga betyg/).last()).toBeVisible();
-  await expect(page.getByText(/Klassificeringen hjälper gruppen/).last()).toBeVisible();
+  await expect(page.getByText(/Valen hjälper gruppen/).last()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
   await page.keyboard.press("Escape");
   await expect(guideCopy).toBeHidden();

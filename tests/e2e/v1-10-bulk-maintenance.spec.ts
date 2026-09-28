@@ -15,7 +15,7 @@ async function applyMissingFilters(page: Page) {
   await page.getByRole("button", { name: "Öppna filter och sortering" }).click();
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
   const missing = filterSheet.getByRole("group", { name: "Filtrera på saknade uppgifter" });
-  await missing.getByRole("button", { name: "Kök/inriktning", exact: true }).click();
+  await missing.getByRole("button", { name: "Kök och inriktning", exact: true }).click();
   await missing.getByRole("button", { name: "Typ av upplevelse", exact: true }).click();
   await filterSheet.getByRole("button", { name: /Visa \d+/ }).click();
 }
