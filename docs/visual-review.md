@@ -20,6 +20,7 @@ Minimikrav:
 - kontrollera minst relevant 360 px-vy;
 - lägg till desktop när layout, hierarki eller komponentplacering påverkas där;
 - granska uttryckligen dubletter, informationshierarki, spacing, alignment, knappplacering, trunkering, overflow, naturlig svensk copy och visuellt brus;
+- **copy:** kontrollera om texten låter som användarens värld eller som den interna modellen, om etablerade produktord är konsekventa och om system- eller administrationsspråk kan ersättas av situation, handling eller konsekvens;
 - använd temporära screenshots under iteration i stället för GitHub Actions-artifacts.
 
 Snabbkommandot kör endast den generiska route-capture-specen och hoppar över den extra produktionsbuilden:

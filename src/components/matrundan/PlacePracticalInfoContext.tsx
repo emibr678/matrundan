@@ -371,7 +371,7 @@ export function PlacePracticalInfoProvider({
         }
         window.dispatchEvent(new Event("matrundan:place-data-reports-changed"));
       } catch {
-        toast.warning("Webbplatsen sparades, men granskningsunderlaget kunde inte skapas.");
+        toast.warning("Webbplatsen sparades, men rapporten kunde inte skapas.");
       }
 
       toast.success("Webbplatsen är tillagd för gruppen.", {
@@ -399,8 +399,8 @@ export function PlacePracticalInfoProvider({
       });
       toast.success(
         field === "website"
-          ? "Gruppen använder nu kartdatans webbplats."
-          : "Gruppen använder nu kartdatans öppettider.",
+          ? "Gruppen använder nu den hittade webbplatsen."
+          : "Gruppen använder nu de hittade öppettiderna.",
       );
     },
     [canEdit, openingHoursConflict, persistPracticalInfo, practicalInfo, websiteConflict],
@@ -429,7 +429,7 @@ export function PlacePracticalInfoProvider({
         description: "Ändringen sparas bara i den här webbläsarfliken.",
       });
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : "Kartdatan kunde inte användas.");
+      toast.error(caught instanceof Error ? caught.message : "De hittade uppgifterna kunde inte användas.");
     } finally {
       setApplyingLocation(false);
     }

@@ -39,7 +39,7 @@ interface PlaceSuggestionReportDialogProps {
 
 type DialogStep = "choices" | "report";
 
-const DEFAULT_TRIGGER_LABEL = "Stängt eller fel uppgifter?";
+const DEFAULT_TRIGGER_LABEL = "Har stället stängt eller är något fel?";
 
 function shouldSuggestHide(category: PlaceDataReportCategory): boolean {
   return category === "closed_or_replaced" || category === "duplicate";
@@ -152,8 +152,8 @@ export function PlaceSuggestionReportDialog({
       } else {
         toast.success(
           hidden
-            ? "Tack! Rapporten går till gruppens admin. Träffen är dold för gruppen."
-            : "Tack! Rapporten går till gruppens admin. Träffen visas fortfarande i sökningen.",
+            ? "Tack! Rapporten går till gruppens ägare och administratörer. Träffen är dold för gruppen."
+            : "Tack! Rapporten går till gruppens ägare och administratörer. Träffen visas fortfarande i sökningen.",
         );
       }
       if (hidden && !alreadyHidden && !hideFailed) onHidden?.();
@@ -186,8 +186,8 @@ export function PlaceSuggestionReportDialog({
             {showDefaultTriggerDescription ? (
               <span className="mt-0.5 block text-xs font-normal leading-relaxed text-muted-foreground/90">
                 {canChooseHide
-                  ? "Rapportera till gruppens admin eller dölj träffen för gruppen."
-                  : "Rapportera till gruppens admin."}
+                  ? "Rapportera till gruppens ägare och administratörer eller dölj träffen för gruppen."
+                  : "Rapportera till gruppens ägare och administratörer."}
               </span>
             ) : null}
           </span>
@@ -197,7 +197,7 @@ export function PlaceSuggestionReportDialog({
       {step === "choices" ? (
         <DialogContent aria-describedby={`${formId}-choices-description`}>
           <DialogHeader>
-            <DialogTitle>Stängt eller fel uppgifter?</DialogTitle>
+            <DialogTitle>Har stället stängt eller är något fel?</DialogTitle>
             <DialogDescription id={`${formId}-choices-description`}>
               Välj vad du vill göra med uppgifterna om {suggestion.name}.
             </DialogDescription>
@@ -215,7 +215,7 @@ export function PlaceSuggestionReportDialog({
               <span className="min-w-0 flex-1">
                 <span className="block font-medium">Rapportera felaktiga uppgifter</span>
                 <span className="mt-1 block text-xs font-normal leading-relaxed text-muted-foreground">
-                  Rapporten går till gruppens admin. Inget publiceras automatiskt till
+                  Rapporten går till gruppens ägare och administratörer. Inget publiceras automatiskt till
                   OpenStreetMap.
                 </span>
               </span>
@@ -256,7 +256,7 @@ export function PlaceSuggestionReportDialog({
           <DialogHeader>
             <DialogTitle>Rapportera felaktiga uppgifter</DialogTitle>
             <DialogDescription id={`${formId}-report-description`}>
-              Rapporten granskas av gruppens admin. Om felet finns i kartdatan kan admin senare
+              Rapporten granskas av gruppens ägare och administratörer. Om felet finns i kartinformationen kan de senare
               skicka en anonym anteckning till OpenStreetMap. Gruppens namn och privata uppgifter
               följer aldrig med.
             </DialogDescription>
@@ -301,7 +301,7 @@ export function PlaceSuggestionReportDialog({
               />
               <div className="flex items-start justify-between gap-3 text-[11px] leading-relaxed text-muted-foreground">
                 <p>
-                  Beskriv en egen observation eller hänvisa till verksamhetens officiella
+                  Beskriv vad du själv har sett eller hänvisa till verksamhetens officiella
                   information. Kopiera inte från andra karttjänster.
                 </p>
                 <span className="shrink-0">{description.length}/1000</span>

@@ -141,9 +141,9 @@ export function MemberProfileSheet({
             <div className="space-y-5 p-5">
               {/* Nyckeltal */}
               <div className="grid grid-cols-3 gap-2">
-                <Stat label="Deltagna besök" value={profile.progression.visits} />
-                <Stat label="Unika ställen" value={profile.progression.uniquePlaces} />
-                <Stat label="Kökstyper" value={profile.progression.uniqueCuisines} />
+                <Stat label="Besök" value={profile.progression.visits} />
+                <Stat label="Olika ställen" value={profile.progression.uniquePlaces} />
+                <Stat label="Olika kök" value={profile.progression.uniqueCuisines} />
               </div>
 
               {/* Nivå-progression (egen profil) */}

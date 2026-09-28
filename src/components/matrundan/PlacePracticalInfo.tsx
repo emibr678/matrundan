@@ -111,7 +111,7 @@ function AddWebsiteDialog({ compact = false }: { compact?: boolean }) {
         <DialogHeader>
           <DialogTitle>Lägg till webbplats</DialogTitle>
           <DialogDescription>
-            Webbplatsen visas direkt för gruppen. Länken sparas också som privat underlag för
+            Webbplatsen visas direkt för gruppen. Länken sparas också i en privat rapport till
             granskning, men publiceras aldrig externt automatiskt.
           </DialogDescription>
         </DialogHeader>
@@ -128,7 +128,7 @@ function AddWebsiteDialog({ compact = false }: { compact?: boolean }) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor={`place-website-note-${place.id}`}>Kommentar till gruppens admin</Label>
+            <Label htmlFor={`place-website-note-${place.id}`}>Kommentar till gruppens administratörer</Label>
             <Textarea
               id={`place-website-note-${place.id}`}
               rows={3}

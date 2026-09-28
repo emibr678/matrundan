@@ -170,7 +170,7 @@ export function SearchResultSections({
                 showNearestAreaLabel={showNearestAreaLabel}
                 interactionLabel={
                   bulkMode
-                    ? `${bulkSelected ? "Avmarkera" : "Välj"} ${result.name} för masstillägg`
+                    ? `${bulkSelected ? "Avmarkera" : "Välj"} ${result.name} för att lägga till flera`
                     : `Visa information om ${result.name}`
                 }
                 onSelect={() => {
@@ -186,7 +186,7 @@ export function SearchResultSections({
                         checked={bulkSelected}
                         onCheckedChange={() => onToggleSelected(result)}
                         disabled={disabled}
-                        aria-label={`Välj ${result.name} för masstillägg`}
+                        aria-label={`Välj ${result.name} för att lägga till flera`}
                       />
                     </label>
                   ) : (

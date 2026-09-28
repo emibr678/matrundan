@@ -81,10 +81,10 @@ export function Home() {
     totalPlaces === 0
       ? "Er runda börjar med det första stället ni lägger till."
       : untried.length === 0
-        ? "Hela listan är avklarad — dags att fylla på med nya smultronställen."
+        ? "Ni har provat alla ställen i samlingen — kanske dags att hitta nästa favorit."
         : untried.length === 1
-          ? "Ett ställe kvar innan ni har provat hela listan."
-          : "Ett ställe räknas som provat så fort någon i gruppen har varit där.";
+          ? "Ett ställe i samlingen har ni inte provat ännu."
+          : "Provat betyder att någon i gruppen har varit där.";
 
   const lastVisit = React.useMemo(() => {
     return [...state.visits].sort((a, b) => b.date.localeCompare(a.date))[0];
@@ -183,7 +183,7 @@ export function Home() {
           <div className="mt-4 grid grid-cols-3 gap-2">
             <StatTile label="Ställen" value={totalPlaces} />
             <StatTile label="Besök" value={state.visits.length} />
-            <StatTile label="Kvar att prova" value={untried.length} tone="mustard" />
+            <StatTile label="Oprovade" value={untried.length} tone="mustard" />
           </div>
         </Card>
       </section>

@@ -19,12 +19,12 @@ function FieldStatus({ kind }: { kind: "current" | "group" | "available" | "miss
   const content = {
     current: {
       icon: CheckCircle2,
-      label: "Stämmer med kartdatan",
+      label: "Samma uppgift hittad",
       className: "text-muted-foreground",
     },
     group: {
       icon: PencilLine,
-      label: "Gruppens egen uppgift",
+      label: "Ändrat i gruppen",
       className: "text-muted-foreground",
     },
     available: {
@@ -34,7 +34,7 @@ function FieldStatus({ kind }: { kind: "current" | "group" | "available" | "miss
     },
     missing: {
       icon: CheckCircle2,
-      label: "Ingen uppgift i kartdatan",
+      label: "Ingen ny uppgift hittad",
       className: "text-muted-foreground",
     },
   }[kind];
@@ -168,7 +168,7 @@ export function PlaceLocationRefresh() {
         <SheetHeader className="pr-8 text-left">
           <SheetTitle>Kontrollera uppgifter</SheetTitle>
           <SheetDescription>
-            Vi jämför gruppens uppgifter med kartdatan. Inget ändras automatiskt.
+            Vi letar efter ny information om stället. Inget ändras automatiskt.
           </SheetDescription>
         </SheetHeader>
 
@@ -217,7 +217,7 @@ export function PlaceLocationRefresh() {
                       </Button>
                     ) : (
                       <p className="text-xs leading-relaxed text-muted-foreground">
-                        En ägare eller admin kan använda ny adress och kartposition.
+                        En ägare eller administratör kan använda den hittade adressen och kartpositionen.
                       </p>
                     )
                   ) : undefined
@@ -251,18 +251,18 @@ export function PlaceLocationRefresh() {
                         className="min-h-11"
                         onClick={() => void applyExternalPracticalInfo("website")}
                       >
-                        Använd kartdatans webbplats
+                        Använd hittad webbplats
                       </Button>
                     ) : (
                       <p className="text-xs leading-relaxed text-muted-foreground">
-                        En aktiv gruppmedlem kan välja vilken webbplats gruppen ska använda.
+                        Den här uppgiften kan ändras när gruppen är aktiv.
                       </p>
                     )
                   ) : undefined
                 }
               >
                 <ComparisonValue label="Gruppen använder" value={currentWebsiteLabel} />
-                <ComparisonValue label="I kartdatan" value={externalWebsiteLabel} />
+                <ComparisonValue label="Hittad webbplats" value={externalWebsiteLabel} />
               </InfoSection>
 
               <InfoSection
@@ -289,18 +289,18 @@ export function PlaceLocationRefresh() {
                         className="min-h-11"
                         onClick={() => void applyExternalPracticalInfo("opening_hours")}
                       >
-                        Använd kartdatans öppettider
+                        Använd hittade öppettider
                       </Button>
                     ) : (
                       <p className="text-xs leading-relaxed text-muted-foreground">
-                        En aktiv gruppmedlem kan välja vilka öppettider gruppen ska använda.
+                        De här uppgifterna kan ändras när gruppen är aktiv.
                       </p>
                     )
                   ) : undefined
                 }
               >
                 <ComparisonValue label="Gruppen använder idag" value={currentOpeningHoursLabel} />
-                <ComparisonValue label="Kartdatan idag" value={externalOpeningHoursLabel} />
+                <ComparisonValue label="Hittade öppettider" value={externalOpeningHoursLabel} />
               </InfoSection>
             </>
           ) : null}

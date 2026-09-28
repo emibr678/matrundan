@@ -18,7 +18,7 @@ UI ska tala om grupper, ställen, besök, deltagare och handlingar som människo
 förstår. Providers, RPC-versioner, lagringsmodell, overrides, kanoniska länkar och
 andra implementationdetaljer ska normalt stanna under huven.
 
-Skriv hellre `Lägg till ett ställe som saknas`, `Gruppens egen uppgift` eller
+Skriv hellre `Lägg till ett ställe som saknas`, `Vad har du sett?` eller
 `Jag var med` än copy som kräver förståelse av OpenStreetMap, providerstatus eller
 intern datamodell.
 
@@ -44,6 +44,49 @@ Matrundans lugna och varma ton. Skriv naturlig svenska med vardagliga verb.
 Teknisk implementation är normalt inte produktcopy. Lägg hellre en kort,
 handlingsnära rad nära rätt kontroll än permanent text om metadata, backendflöden
 eller intern datastruktur som användaren inte behöver agera på.
+
+## Matrundans röst och språk
+
+Matrundan ska låta som en person som använder appen, inte som systemet som byggt
+den. Språket är vardagligt, varmt och lugnt utan att bli tillgjort eller
+överdrivet familjärt.
+
+- **Skriv från användarens värld.** Tala om ställen, besök, personer, grupper och
+  handlingar. Interna ord för datamodell, status, behörighet eller räknelogik får
+  finnas i kod utan att bli produktord.
+- **Beskriv situationen eller handlingen före bristen.** Om användaren kan göra
+  något åt ett tillstånd, hjälp den vidare i stället för att i första hand säga
+  vad som saknas eller är ofullständigt.
+- **Förklara konsekvensen, inte mekaniken.** Säg vad som händer för gruppen,
+  besöket, betyget eller personen. Backendflöden, overrides, scoremodeller och
+  liknande hör normalt inte hemma i produktcopy.
+- **Var varm utan att spela kompis.** Personlighet ska komma från enkel, mänsklig
+  svenska, inte från informella ord i varje mening.
+- **Använd `gruppen`, `ni` och `gäng` med olika roller.** `Gruppen` är normalt
+  produktbegreppet när en faktisk Matrundan-grupp avses. `Ni` används när direkt
+  tilltal blir naturligare. `Gäng` passar i vardagliga exempel och namn som
+  `kompisgänget` eller `Fredagsgänget`, inte som standardsynonym till grupp.
+- **Anpassa precisionen efter uppgiften.** Vanliga medlemsflöden använder
+  vardagligt språk. Dedikerade administrations- och underhållsytor får vara mer
+  precisa när det faktiskt hjälper uppgiften.
+- **Håll etablerade produktord stabila.** `Matställen`, `Nästa stopp`, `På tur`,
+  `Besök`, `Omdöme`, `Typ av upplevelse`, `Typ av ställe` och
+  `Kök och inriktning` ska inte få nya synonymer utan produktmässig anledning.
+- **Kort är inte samma sak som kryptiskt.** En naturlig mening är bättre än en
+  kompakt etikett som kräver kunskap om den interna modellen.
+
+| Undvik som generell produktcopy | Hellre i rätt kontext |
+| --- | --- |
+| `Det här besöket är scorelöst` | `Det här besöket har inget betyg` |
+| `Ditt omdöme saknas` | `Lämna ditt omdöme` eller `Du har ett besök att tycka till om` |
+| `Besök och progression` | Konkret copy om besök, nivåer och utmärkelser |
+| `gruppens admin` | `gruppens administratör` eller `ägare och administratörer` |
+| `Skicka underlag` | `Skicka rapport` |
+| `Gruppens egen uppgift` | `Ändrat i gruppen` |
+| `Använd kartdatans webbplats` | `Använd hittad webbplats`, med källa sekundärt |
+
+Tabellen visar en riktning, inte globala sök- och ersättningsregler. Den exakta
+formuleringen avgörs av ytan, uppgiften och vad användaren behöver förstå.
 
 ## 4. Visa sekundära val när de blir relevanta
 

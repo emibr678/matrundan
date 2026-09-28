@@ -103,8 +103,8 @@ export function VisitParticipationControls({
           <AlertDialogHeader>
             <AlertDialogTitle>Var du inte med på besöket?</AlertDialogTitle>
             <AlertDialogDescription>
-              Då tas du bort som deltagare på samma verkliga besök i alla grupper där det visas. Din
-              progression räknas om och ditt eventuella omdöme döljs. Du kan återställa deltagandet
+              Då tas du bort som deltagare på samma verkliga besök i alla grupper där det visas. Dina nivåer och utmärkelser
+              räknas om och ditt eventuella omdöme döljs. Du kan återställa deltagandet
               senare om detta var ett misstag.
             </AlertDialogDescription>
           </AlertDialogHeader>

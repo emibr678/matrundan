@@ -201,7 +201,7 @@ export function PlacePracticalInfoDialog({
     if (reports.length === 0) return;
     const results = await Promise.allSettled(reports);
     if (results.some((result) => result.status === "rejected")) {
-      toast.warning("Uppgifterna sparades, men granskningsunderlaget kunde inte skapas.");
+      toast.warning("Uppgifterna sparades, men rapporten kunde inte skapas.");
     } else {
       window.dispatchEvent(new Event("matrundan:place-data-reports-changed"));
     }
@@ -286,7 +286,7 @@ export function PlacePracticalInfoDialog({
       );
       toast.success("Webbplats och öppettider är uppdaterade.", {
         description: hasOverride
-          ? "Ändringen syns direkt i gruppen. Administratörerna får ett underlag om den behöver granskas."
+          ? "Ändringen syns direkt i gruppen. Gruppens ägare och administratörer får en rapport om ändringen behöver granskas."
           : "Gruppens egna ändringar är borttagna.",
       });
       setOpen(false);
@@ -310,8 +310,8 @@ export function PlacePracticalInfoDialog({
         <DialogHeader>
           <DialogTitle>Ändra webbplats och öppettider</DialogTitle>
           <DialogDescription>
-            Uppgifterna visas direkt för {state.group.name}. När du anger andra uppgifter sparas ett
-            privat underlag som gruppens administratörer kan granska.
+            Uppgifterna visas direkt för {state.group.name}. När du anger andra uppgifter sparas en
+            privat rapport som gruppens ägare och administratörer kan granska.
           </DialogDescription>
         </DialogHeader>
 

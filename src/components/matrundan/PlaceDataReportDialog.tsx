@@ -162,7 +162,7 @@ export function PlaceDataReportDialog({
             {compact ? "Komplettera platsinformation" : "Rapportera felaktig uppgift"}
           </DialogTitle>
           <DialogDescription id="place-data-report-description">
-            Du lämnar ett underlag till gruppens ägare och administratörer. Inget publiceras
+            Du skickar en privat rapport till gruppens ägare och administratörer. Inget publiceras
             automatiskt. Gruppens namn, medlemmar och privata kommentarer skickas inte vidare.
           </DialogDescription>
         </DialogHeader>
@@ -199,7 +199,7 @@ export function PlaceDataReportDialog({
             />
             <div className="flex items-start justify-between gap-3 text-[11px] leading-relaxed text-muted-foreground">
               <p>
-                Beskriv en egen observation eller hänvisa till verksamhetens officiella information.
+                Beskriv vad du själv har sett eller länka till verksamhetens officiella information.
                 Kopiera inte från andra karttjänster.
               </p>
               <span className="shrink-0">{description.length}/1000</span>
@@ -212,7 +212,7 @@ export function PlaceDataReportDialog({
             </Button>
             <Button type="submit" disabled={saving || submitting || description.trim().length < 10}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Skicka underlag
+              Skicka rapport
             </Button>
           </DialogFooter>
         </form>

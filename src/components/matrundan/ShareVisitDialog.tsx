@@ -226,8 +226,8 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
                 </p>
                 <p>
                   {chosen.sharedVisitsCountForProgression
-                    ? "Räknas i gruppens progression."
-                    : "Räknas inte i gruppens progression."}
+                    ? "Påverkar nivåer och utmärkelser."
+                    : "Påverkar inte nivåer eller utmärkelser."}
                 </p>
               </div>
             </div>
