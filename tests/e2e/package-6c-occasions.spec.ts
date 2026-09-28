@@ -102,20 +102,14 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   ).toHaveCount(0);
 
   await manualDialog.getByRole("button", { name: "Så fungerar Typ av upplevelse" }).click();
-  const guide = page.getByRole("dialog", { name: "Typ av upplevelse" });
-  await expect(guide).toContainText(
-    "Olika ställen passar olika bra beroende på vad ni är ute efter.",
-  );
-  await expect(guide).toContainText("pizzeria");
-  await expect(guide).toContainText("finkrog");
-  await expect(guide).toContainText("riktigt bra");
-  await expect(guide).toContainText("vid olika tillfällen");
-  await expect(guide).not.toContainText("inte hur bra eller dyrt det är");
-  await expect(guide).not.toContainText("olika topplistor");
-  await expect(guide).not.toContainText("Välj en eller två kategorier");
+  const guideCopy = page.getByText(/Typ av upplevelse gäller matstället/).last();
+  await expect(guideCopy).toBeVisible();
+  await expect(page.getByText(/Ett enkelt gatukök och en finkrog/).last()).toBeVisible();
+  await expect(page.getByText(/Båda kan få lika höga betyg/).last()).toBeVisible();
+  await expect(page.getByText(/Klassificeringen hjälper gruppen/).last()).toBeVisible();
   await expectNoHorizontalOverflow(page, "Öppen kategoriförklaring");
-  await guide.getByRole("button", { name: "Stäng", exact: true }).first().click();
-  await expect(guide).toBeHidden();
+  await page.keyboard.press("Escape");
+  await expect(guideCopy).toBeHidden();
 
   const relaxedButton = manualDialog.getByRole("button", {
     name: "Typ av upplevelse: Avslappnat",
