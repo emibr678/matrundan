@@ -1,6 +1,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
+import { GroupSymbolPicker } from "@/components/matrundan/GroupSymbolPicker";
 import { SearchAreaPill } from "@/components/matrundan/SearchAreaPill";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -145,15 +146,7 @@ export function GroupBasicsSettingsSection({
           {GROUP_DESCRIPTION_MAX_LENGTH} tecken.
         </p>
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="gs-emoji">Emoji</Label>
-        <Input
-          id="gs-emoji"
-          value={emoji}
-          onChange={(event) => setEmoji(event.target.value)}
-          maxLength={4}
-        />
-      </div>
+      <GroupSymbolPicker value={emoji} onChange={setEmoji} legacySymbol={saved.emoji} />
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs text-muted-foreground">
           {dirty ? "Osparade ändringar" : "Alla ändringar är sparade"}
