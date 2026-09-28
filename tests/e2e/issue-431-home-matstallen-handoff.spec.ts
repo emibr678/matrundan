@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { DEMO_STATE } from "../../src/lib/matrundan/demo-data";
 
 async function expectNoHorizontalOverflow(page: Page, context: string) {
   const metrics = await page.evaluate(() => ({
@@ -20,26 +21,18 @@ test("Hem lämnar samla-flödet till Matställen på mobil", async ({ page }) =>
   await expect(page.getByRole("link", { name: "Bläddra listan", exact: true })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Renodlat Hem");
 
-  await page.evaluate(() => {
-    const stateKey = "matrundan.state.v1";
-    const raw = window.localStorage.getItem(stateKey);
-    if (!raw) throw new Error("Demosandboxens state saknas.");
-
-    const state = JSON.parse(raw) as {
-      group: { id: string };
-      places: unknown[];
-      visits: unknown[];
-      favorites: unknown[];
-      activity: unknown[];
-    };
-    state.places = [];
-    state.visits = [];
-    state.favorites = [];
-    state.activity = [];
-    window.localStorage.setItem(stateKey, JSON.stringify(state));
+  const emptyState = {
+    ...DEMO_STATE,
+    places: [],
+    visits: [],
+    favorites: [],
+    activity: [],
+  };
+  await page.addInitScript((state) => {
+    window.localStorage.setItem("matrundan.state.v1", JSON.stringify(state));
     window.localStorage.removeItem(`matrundan.nextStop.v2.${state.group.id}`);
     window.localStorage.removeItem(`matrundan.nextStop.v2.responses.${state.group.id}`);
-  });
+  }, emptyState);
   await page.reload();
 
   await expect(page.getByRole("heading", { name: "Börja med ett ställe" })).toBeVisible();
