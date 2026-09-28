@@ -137,7 +137,7 @@ test("mobilväljare och Typ av upplevelse-hjälp stannar inom en kort 360 px-vy"
   await expect(detailsDialog).toBeVisible();
   await expect(foodTagTrigger).toContainText("3 valda");
 
-  await detailsDialog.getByRole("button", { name: "Vad betyder Typ av upplevelse?" }).click();
+  await detailsDialog.getByRole("button", { name: "Så fungerar Typ av upplevelse" }).click();
   const guideDialog = page.getByRole("dialog", { name: "Typ av upplevelse" });
   await expectInsideViewport(page, guideDialog, "Typ av upplevelse-hjälpen");
   await expectNoHorizontalOverflow(page, "Typ av upplevelse-hjälpen");

@@ -67,7 +67,7 @@ test("platsmetadata använder enkla begrepp och återgår tyst till ställets ty
   const filterSheet = page.getByRole("dialog", { name: "Filter & sortering" });
   await expect(filterSheet.getByText("Typ av ställe", { exact: true })).toBeVisible();
   await expect(
-    filterSheet.getByRole("button", { name: "Vad betyder Typ av upplevelse?" }),
+    filterSheet.getByRole("button", { name: "Så fungerar Typ av upplevelse" }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Filter för platsmetadata");
 });

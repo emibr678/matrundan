@@ -87,7 +87,11 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
 
   await page.goto("/gruppen?demo=1");
   await page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }).click();
-  await page.getByRole("menuitem", { name: "Om Matrundan" }).click();
+  await page.getByRole("menuitem", { name: "Så funkar Matrundan" }).click();
+  await page
+    .getByRole("dialog", { name: "Så funkar Matrundan" })
+    .getByRole("button", { name: "Om Matrundan" })
+    .click();
   await expect(page.getByRole("heading", { name: "Om Matrundan" })).toBeVisible();
   await expect(
     page.getByText(/Matrundan är till för vänner, familjer och andra grupper/),

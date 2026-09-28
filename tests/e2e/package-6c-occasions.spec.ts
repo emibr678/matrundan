@@ -101,7 +101,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
     manualDialog.getByRole("button", { name: "Lägg till ett alternativ till (valfritt)" }),
   ).toHaveCount(0);
 
-  await manualDialog.getByRole("button", { name: "Vad betyder Typ av upplevelse?" }).click();
+  await manualDialog.getByRole("button", { name: "Så fungerar Typ av upplevelse" }).click();
   const guide = page.getByRole("dialog", { name: "Typ av upplevelse" });
   await expect(guide).toContainText(
     "Olika ställen passar olika bra beroende på vad ni är ute efter.",
@@ -149,7 +149,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(page.getByText("Något extra", { exact: true })).toBeVisible();
   await expect(page.getByText("Passar bäst för", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Passar också för", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Vad betyder Typ av upplevelse?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Så fungerar Typ av upplevelse" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Detaljsida med flera val");
 
   await page.getByRole("button", { name: "Ändra gruppens uppgifter om stället" }).click();
@@ -167,7 +167,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
     }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(
-    adminDialog.getByRole("button", { name: "Vad betyder Typ av upplevelse?" }),
+    adminDialog.getByRole("button", { name: "Så fungerar Typ av upplevelse" }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Redigering med typer av besök");
 });
