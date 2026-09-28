@@ -45,10 +45,7 @@ function groupSymbolOptionsWithLegacy(
     return GROUP_SYMBOL_OPTIONS;
   }
 
-  return [
-    { symbol: normalizedLegacy, label: "Nuvarande symbol" },
-    ...GROUP_SYMBOL_OPTIONS,
-  ];
+  return [{ symbol: normalizedLegacy, label: "Nuvarande symbol" }, ...GROUP_SYMBOL_OPTIONS];
 }
 
 export function GroupSymbolPicker({
