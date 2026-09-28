@@ -184,6 +184,12 @@ grupp. Användaren får genom RLS bara läsa och skapa sina egna kvitton; klient
 får inte uppdatera eller radera dem. Kvittona rensas vid profilens mjukradering
 och har `ON DELETE CASCADE` som skydd vid fysisk radering. Installation och
 notiser är fortsatt separata, återkommande nudgar och ägs inte av denna modell.
+Vid produktlanseringen av den sammanhållna introduktionen använder klienten
+`core-intro@2` och `review-context@2`. Det gör tidigare `@1`-kvitton
+icke-blockerande och ger både nya och befintliga användare den nya mentala
+modellen exakt en gång, utan att historiska kvitton behöver raderas. Guiderna
+visas fortsatt vid sina respektive relevanta tillfällen och inte som en
+sammanhängande popupkedja.
 
 ## Kanonisk datamodell
 
