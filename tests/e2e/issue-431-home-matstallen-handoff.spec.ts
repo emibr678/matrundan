@@ -52,7 +52,7 @@ test("Hem lämnar samla-flödet till Matställen på mobil", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Lägg till ställe", exact: true })).toBeVisible();
 
   await page.goBack();
-  await expect(page).toHaveURL(/\/$/);
+  expect(new URL(page.url()).pathname).toBe("/");
   await expect(page.getByRole("heading", { name: "Börja med ett ställe" })).toBeVisible();
 });
 
