@@ -248,7 +248,7 @@ test("fånga gruppinställningarnas nya informationsarkitektur", async ({ page }
     "Vi upptäcker nya middagsställen tillsammans på fredagar.",
   );
   const settingsSymbols = basics.getByRole("group", { name: "Symbol" });
-  await expect(settingsSymbols.getByRole("radio")).toHaveCount(26);
+  await expect(settingsSymbols.getByRole("radio")).toHaveCount(35);
   await expect(settingsSymbols.getByRole("radio", { name: "Tallrik och bestick" })).toBeChecked();
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, "gruppinstallningar-gruppen");
@@ -260,8 +260,8 @@ test("fånga gruppinställningarnas nya informationsarkitektur", async ({ page }
   await expect(createGroup.getByLabel("Kort beskrivning (valfritt)")).toBeVisible();
   await expect(createGroup.getByText(/Samma personer kan ha flera grupper/)).toBeVisible();
   const createSymbols = createGroup.getByRole("group", { name: "Symbol" });
-  await expect(createSymbols.getByRole("radio")).toHaveCount(26);
-  const citySymbol = createSymbols.getByRole("radio", { name: "Stad" });
+  await expect(createSymbols.getByRole("radio")).toHaveCount(35);
+  const citySymbol = createSymbols.getByRole("radio", { name: "Bento" });
   await citySymbol.focus();
   await expect(citySymbol).toBeFocused();
   await page.keyboard.press("Space");
@@ -280,7 +280,7 @@ test("behåller en äldre gruppsymbol utanför det kuraterade urvalet", async ({
   const basics = page.getByRole("dialog", { name: "Gruppen" });
   const symbols = basics.getByRole("group", { name: "Symbol" });
 
-  await expect(symbols.getByRole("radio")).toHaveCount(27);
+  await expect(symbols.getByRole("radio")).toHaveCount(36);
   await expect(
     symbols.getByRole("radio", { name: "Behåll nuvarande symbol 🐙" }),
   ).toBeChecked();
