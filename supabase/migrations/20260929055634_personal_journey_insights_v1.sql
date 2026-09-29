@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.list_personal_journey_places_v2(
   _favorites_only boolean DEFAULT false,
   _visited_by_me_only boolean DEFAULT false,
   _sort text DEFAULT 'rating',
-  _offset integer DEFAULT 0,
+  _cursor jsonb DEFAULT NULL,
   _limit integer DEFAULT 20
 )
 RETURNS jsonb
@@ -18,15 +18,22 @@ AS $function$
 DECLARE
   _uid uuid := auth.uid();
   _page_size integer := LEAST(GREATEST(COALESCE(_limit, 20), 1), 50);
-  _safe_offset integer := GREATEST(COALESCE(_offset, 0), 0);
   _normalized_query text := NULLIF(trim(COALESCE(_query, '')), '');
   _normalized_sort text := COALESCE(NULLIF(trim(_sort), ''), 'rating');
+  _cursor_rating numeric := NULLIF(_cursor->>'rating', '')::numeric;
+  _cursor_review_count integer := COALESCE(NULLIF(_cursor->>'reviewCount', '')::integer, 0);
+  _cursor_visited_on date := NULLIF(_cursor->>'visitedOn', '')::date;
+  _cursor_name text := _cursor->>'name';
+  _cursor_id uuid := NULLIF(_cursor->>'id', '')::uuid;
   _items jsonb;
-  _next_offset integer;
+  _next_cursor jsonb;
 BEGIN
   IF _uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
   IF _normalized_sort NOT IN ('rating', 'recent', 'name') THEN
     RAISE EXCEPTION 'Ogiltig sortering';
+  END IF;
+  IF _cursor IS NOT NULL AND (_cursor_name IS NULL OR _cursor_id IS NULL) THEN
+    RAISE EXCEPTION 'Ogiltig cursor';
   END IF;
 
   WITH readable_groups AS (
@@ -124,6 +131,43 @@ BEGIN
         OR place.area ILIKE '%' || _normalized_query || '%'
         OR place.city ILIKE '%' || _normalized_query || '%'
       )
+      AND (
+        _cursor IS NULL
+        OR CASE _normalized_sort
+          WHEN 'rating' THEN
+            CASE
+              WHEN _cursor_rating IS NULL THEN
+                aggregate.rating IS NULL
+                AND (lower(place.name), place.id) > (lower(_cursor_name), _cursor_id)
+              ELSE
+                aggregate.rating IS NULL
+                OR aggregate.rating < _cursor_rating
+                OR (
+                  aggregate.rating = _cursor_rating
+                  AND COALESCE(aggregate.review_count, 0) < _cursor_review_count
+                )
+                OR (
+                  aggregate.rating = _cursor_rating
+                  AND COALESCE(aggregate.review_count, 0) = _cursor_review_count
+                  AND (lower(place.name), place.id) > (lower(_cursor_name), _cursor_id)
+                )
+            END
+          WHEN 'recent' THEN
+            CASE
+              WHEN _cursor_visited_on IS NULL THEN
+                last_visit.last_visited_on IS NULL
+                AND (lower(place.name), place.id) > (lower(_cursor_name), _cursor_id)
+              ELSE
+                last_visit.last_visited_on IS NULL
+                OR last_visit.last_visited_on < _cursor_visited_on
+                OR (
+                  last_visit.last_visited_on = _cursor_visited_on
+                  AND (lower(place.name), place.id) > (lower(_cursor_name), _cursor_id)
+                )
+            END
+          ELSE (lower(place.name), place.id) > (lower(_cursor_name), _cursor_id)
+        END
+      )
   ),
   page_rows AS (
     SELECT candidate.*
@@ -134,7 +178,6 @@ BEGIN
       CASE WHEN _normalized_sort = 'recent' THEN candidate.last_visited_on END DESC NULLS LAST,
       lower(candidate.name),
       candidate.id
-    OFFSET _safe_offset
     LIMIT _page_size + 1
   ),
   numbered_rows AS (
@@ -170,14 +213,21 @@ BEGIN
       ) FILTER (WHERE page_row_number <= _page_size),
       '[]'::jsonb
     ),
-    CASE
-      WHEN max(page_row_number) > _page_size THEN _safe_offset + _page_size
-      ELSE NULL
-    END
-  INTO _items, _next_offset
+    CASE WHEN max(page_row_number) > _page_size THEN (
+      SELECT jsonb_build_object(
+        'rating', cursor_row.rating,
+        'reviewCount', cursor_row.review_count,
+        'visitedOn', cursor_row.last_visited_on,
+        'name', cursor_row.name,
+        'id', cursor_row.id
+      )
+      FROM numbered_rows cursor_row
+      WHERE cursor_row.page_row_number = _page_size
+    ) ELSE NULL END
+  INTO _items, _next_cursor
   FROM numbered_rows;
 
-  RETURN jsonb_build_object('items', _items, 'nextOffset', _next_offset);
+  RETURN jsonb_build_object('items', _items, 'nextCursor', _next_cursor);
 END;
 $function$;
 
@@ -202,12 +252,12 @@ BEGIN
   SELECT COALESCE(jsonb_agg(item.value ORDER BY item.ordinality), '[]'::jsonb)
   INTO _top_rated
   FROM jsonb_array_elements(
-    public.list_personal_journey_places_v2(NULL, false, false, 'rating', 0, 3)->'items'
+    public.list_personal_journey_places_v2(NULL, false, false, 'rating', NULL, 3)->'items'
   ) WITH ORDINALITY AS item(value, ordinality)
   WHERE item.value->'rating' IS DISTINCT FROM 'null'::jsonb;
 
   _favorites := public.list_personal_journey_places_v2(
-    NULL, true, false, 'name', 0, 3
+    NULL, true, false, 'name', NULL, 3
   )->'items';
 
   SELECT COALESCE(jsonb_agg(item.value ORDER BY item.ordinality), '[]'::jsonb)
@@ -224,12 +274,12 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.list_personal_journey_places_v2(text, boolean, boolean, text, integer, integer)
+REVOKE ALL ON FUNCTION public.list_personal_journey_places_v2(text, boolean, boolean, text, jsonb, integer)
   FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.get_personal_journey_overview_v2()
   FROM PUBLIC, anon;
 
-GRANT EXECUTE ON FUNCTION public.list_personal_journey_places_v2(text, boolean, boolean, text, integer, integer)
+GRANT EXECUTE ON FUNCTION public.list_personal_journey_places_v2(text, boolean, boolean, text, jsonb, integer)
   TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_personal_journey_overview_v2()
   TO authenticated, service_role;

@@ -29,6 +29,7 @@ import {
   loadPersonalJourneyPlace,
   loadPersonalJourneyPlaces,
   personalJourneyPlaceSortSchema,
+  type PersonalJourneyPlaceCursor,
 } from "@/lib/matrundan/personal-journey";
 import {
   demoPersonalJourneyPlace,
@@ -80,20 +81,20 @@ function PersonalJourneyPlaces() {
       search.sort,
     ],
     retry: false,
-    initialPageParam: 0,
+    initialPageParam: null as PersonalJourneyPlaceCursor | null,
     queryFn: ({ pageParam }) => {
       const options = {
         query: search.q,
         favoritesOnly: search.favorites,
         visitedByMeOnly: search.visited,
         sort: search.sort,
-        offset: pageParam,
+        cursor: pageParam,
       };
       return mode === "demo"
         ? Promise.resolve(demoPersonalJourneyPlaces(options))
         : loadPersonalJourneyPlaces(options);
     },
-    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
   const items = places.data?.pages.flatMap((page) => page.items) ?? [];
   const detail = useQuery({

@@ -1,6 +1,7 @@
 import type {
   PersonalJourneyOverview,
   PersonalJourneyPlace,
+  PersonalJourneyPlaceCursor,
   PersonalJourneyPlaceDetail,
   PersonalJourneyVisit,
   PersonalJourneyVisitDetail,
@@ -147,14 +148,14 @@ export function demoPersonalJourneyPlaces({
   favoritesOnly = false,
   visitedByMeOnly = false,
   sort = "rating",
-  offset = 0,
+  cursor = null,
   limit = 20,
 }: {
   query?: string;
   favoritesOnly?: boolean;
   visitedByMeOnly?: boolean;
   sort?: "rating" | "recent" | "name";
-  offset?: number;
+  cursor?: PersonalJourneyPlaceCursor | null;
   limit?: number;
 }) {
   const normalized = query.trim().toLocaleLowerCase("sv-SE");
@@ -190,10 +191,22 @@ export function demoPersonalJourneyPlaces({
     }
     return left.name.localeCompare(right.name, "sv");
   });
-  const items = matching.slice(offset, offset + limit);
+  const cursorIndex = cursor ? matching.findIndex((place) => place.id === cursor.id) : -1;
+  const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
+  const items = matching.slice(startIndex, startIndex + limit);
+  const lastItem = items.at(-1);
   return {
     items,
-    nextOffset: offset + limit < matching.length ? offset + limit : null,
+    nextCursor:
+      lastItem && startIndex + limit < matching.length
+        ? {
+            rating: lastItem.rating,
+            reviewCount: lastItem.reviewCount,
+            visitedOn: latestVisitByPlace.get(lastItem.id) ?? null,
+            name: lastItem.name,
+            id: lastItem.id,
+          }
+        : null,
   };
 }
 

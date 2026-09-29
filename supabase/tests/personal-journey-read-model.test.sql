@@ -220,7 +220,7 @@ SELECT ok(
 SELECT ok(
   NOT pg_catalog.has_function_privilege(
     'anon',
-    'public.list_personal_journey_places_v2(text,boolean,boolean,text,integer,integer)',
+    'public.list_personal_journey_places_v2(text,boolean,boolean,text,jsonb,integer)',
     'EXECUTE'
   ),
   'anon cannot execute the sortable personal place list'
@@ -295,13 +295,13 @@ SELECT is(
 );
 
 SELECT is(
-  public.list_personal_journey_places_v2(NULL, false, false, 'rating', 0, 1)->>'nextOffset',
-  '1',
-  'sortable place pagination returns the next offset when more rows exist'
+  public.list_personal_journey_places_v2(NULL, false, false, 'rating', NULL, 1)->'nextCursor'->>'id',
+  '10920000-0000-4000-8000-000000000001',
+  'sortable place pagination returns a stable cursor when more rows exist'
 );
 
 SELECT throws_ok(
-  $$SELECT public.list_personal_journey_places_v2(NULL, false, false, 'hemlig', 0, 20)$$,
+  $$SELECT public.list_personal_journey_places_v2(NULL, false, false, 'hemlig', NULL, 20)$$,
   'P0001',
   'Ogiltig sortering',
   'unknown personal place sorts are rejected server-side'

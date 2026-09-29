@@ -92,6 +92,13 @@ const personalJourneyVisitDetailSchema = personalJourneyVisitSchema
 export type PersonalJourneyVisitDetail = z.infer<typeof personalJourneyVisitDetailSchema>;
 
 const visitCursorSchema = z.object({ visitedOn: z.string(), id: z.string().uuid() });
+const placeCursorSchema = z.object({
+  rating: z.number().nullable(),
+  reviewCount: z.number().int().nonnegative(),
+  visitedOn: z.string().nullable(),
+  name: z.string(),
+  id: z.string().uuid(),
+});
 
 const visitPageSchema = z.object({
   items: z.array(personalJourneyVisitSchema),
@@ -125,6 +132,7 @@ export type PersonalJourneyOverview = z.infer<typeof overviewSchema>;
 export type PersonalJourneyPendingReview = z.infer<typeof pendingReviewSchema>;
 export const personalJourneyPlaceSortSchema = z.enum(["rating", "recent", "name"]);
 export type PersonalJourneyPlaceSort = z.infer<typeof personalJourneyPlaceSortSchema>;
+export type PersonalJourneyPlaceCursor = z.infer<typeof placeCursorSchema>;
 export type PersonalJourneyVisitCursor = z.infer<typeof visitCursorSchema>;
 
 export async function loadPersonalJourneyOverview(): Promise<PersonalJourneyOverview> {
@@ -141,14 +149,14 @@ export async function loadPersonalJourneyPlaces({
   favoritesOnly = false,
   visitedByMeOnly = false,
   sort = "rating",
-  offset = 0,
+  cursor = null,
   limit = 20,
 }: {
   query?: string;
   favoritesOnly?: boolean;
   visitedByMeOnly?: boolean;
   sort?: PersonalJourneyPlaceSort;
-  offset?: number;
+  cursor?: PersonalJourneyPlaceCursor | null;
   limit?: number;
 } = {}) {
   return rpcClient.call(
@@ -158,12 +166,12 @@ export async function loadPersonalJourneyPlaces({
       _favorites_only: favoritesOnly,
       _visited_by_me_only: visitedByMeOnly,
       _sort: sort,
-      _offset: offset,
+      _cursor: cursor,
       _limit: limit,
     },
     z.object({
       items: z.array(personalJourneyPlaceSchema),
-      nextOffset: z.number().int().nonnegative().nullable(),
+      nextCursor: placeCursorSchema.nullable(),
     }),
     "Kunde inte läsa matställena i Min matresa. Försök igen.",
   );

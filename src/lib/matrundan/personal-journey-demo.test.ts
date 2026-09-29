@@ -52,4 +52,17 @@ describe("Min matresa-demo", () => {
       "Nudelhörnan",
     ]);
   });
+
+  test("fortsätter sorterade listor från en stabil cursor", () => {
+    const firstPage = demoPersonalJourneyPlaces({ sort: "rating", limit: 1 });
+    expect(firstPage.items.map((place) => place.name)).toEqual(["Bageri Solsidan"]);
+    expect(firstPage.nextCursor).not.toBeNull();
+
+    const secondPage = demoPersonalJourneyPlaces({
+      sort: "rating",
+      cursor: firstPage.nextCursor,
+      limit: 1,
+    });
+    expect(secondPage.items.map((place) => place.name)).toEqual(["Kvartersbordet"]);
+  });
 });
