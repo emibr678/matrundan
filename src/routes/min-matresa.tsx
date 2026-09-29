@@ -41,7 +41,7 @@ function PersonalJourneyLayout() {
   const navigationState = getPersonalJourneyNavigationState(location.state);
   const returnContext = navigationState.returnContext;
   const activeGroup =
-    mode === "live" ? userGroups.find((group) => group.id === activeGroupId) ?? null : null;
+    mode === "live" ? (userGroups.find((group) => group.id === activeGroupId) ?? null) : null;
   const fallbackGroup =
     mode === "live"
       ? (activeGroup ??
@@ -61,7 +61,7 @@ function PersonalJourneyLayout() {
   function exitPersonalJourney() {
     const storedGroup =
       mode === "live" && returnContext?.groupId
-        ? userGroups.find((group) => group.id === returnContext.groupId) ?? null
+        ? (userGroups.find((group) => group.id === returnContext.groupId) ?? null)
         : null;
     const canUseStoredReturn = Boolean(
       returnContext && (mode === "demo" || (mode === "live" && storedGroup)),
