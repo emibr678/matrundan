@@ -369,6 +369,29 @@ Använd en minimerad RPC när:
 En cross-group-RPC får aldrig returnera mer data bara för att den internt hade
 behörighet att läsa den.
 
+### Personlig cross-group-läsmodell
+
+`Min matresa` är en personlig läslins ovanpå användarens aktuella aktiva
+medlemskap, inte en grupp och inte en ny delningsyta. De publika
+`*_personal_journey_*_v1`-RPC:erna härleder därför användaren från `auth.uid()`
+och de läsbara grupperna från `memberships`; klienten får varken skicka ett
+användar-ID eller en lista med grupper.
+
+Läsmodellen återanvänder kanoniska `places.id` och `visits.id` som deduplicering.
+Gruppkontext returneras uttryckligt och minimerat för orientering och för att
+kunna lämna över en skrivåtgärd till en riktig grupp. Arkiverade grupper får
+fortsatt bidra med läsbar historik, men markeras som icke skrivbara. Ett avslutat
+medlemskap ska slå igenom vid nästa RPC-anrop utan klientcache som
+behörighetskälla.
+
+Omdömen och bilder får bara följa med om den inloggade användaren har aktuell
+synlighet via minst en grupp. Samma review eller media räknas högst en gång även
+om det är synligt genom flera grupper. Bildpayloaden innehåller bara en opak
+leveranstoken; rå Storage-sökväg, privata gruppöverstyrningar och reaktioner ingår
+inte. Favoriter behåller gruppkontext med unikheten
+`(user_id, place_id, group_id)`; den personliga vyn summerar dem men skriver
+aldrig en global favorit.
+
 ## Gruppstate
 
 `get_group_app_state_v5n(uuid)` är nuvarande primära read-RPC för gruppens

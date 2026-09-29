@@ -44,6 +44,13 @@ function PrivacyPage() {
             använda gruppens gemensamma listor, planer och besökshistorik. Matrundan är inte en
             offentlig betygssajt och visar inte gruppens innehåll för andra grupper.
           </p>
+          <p>
+            I <span className="font-medium">Min matresa</span> kan du se en personlig
+            sammanställning av sådant som du redan har rätt att se i dina egna grupper.
+            Sammanställningen skapar inte en ny grupp och gör inte innehållet synligt för fler
+            personer. Om ditt medlemskap upphör försvinner den gruppens innehåll ur din
+            sammanställning.
+          </p>
         </PrivacySection>
 
         <PrivacySection title="Tjänster som hjälper appen">

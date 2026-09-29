@@ -2717,6 +2717,15 @@ export type Database = {
       }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
       get_notification_settings: { Args: never; Returns: Json }
+      get_personal_journey_overview_v1: { Args: never; Returns: Json }
+      get_personal_journey_place_v1: {
+        Args: { _place_id: string }
+        Returns: Json
+      }
+      get_personal_journey_visit_v1: {
+        Args: { _visit_id: string }
+        Returns: Json
+      }
       get_own_visit_guest_proposal_v1: {
         Args: { _group_id: string; _visit_id: string }
         Returns: Json
@@ -2921,6 +2930,26 @@ export type Database = {
           id: string
           invited_by_name: string
         }[]
+      }
+      list_personal_journey_places_v1: {
+        Args: {
+          _cursor_id?: string
+          _cursor_name?: string
+          _favorites_only?: boolean
+          _limit?: number
+          _query?: string
+          _visited_by_me_only?: boolean
+        }
+        Returns: Json
+      }
+      list_personal_journey_visits_v1: {
+        Args: {
+          _cursor_id?: string
+          _cursor_visited_on?: string
+          _limit?: number
+          _participated_only?: boolean
+        }
+        Returns: Json
       }
       list_own_group_invitations: {
         Args: { _group_id: string }

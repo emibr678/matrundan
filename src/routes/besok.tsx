@@ -21,7 +21,7 @@ const visitSearchSchema = z.object({
   visit: fallback(z.string(), "").default(""),
   group: z.string().optional(),
   review: z.string().optional(),
-  from: z.enum(["home"]).optional(),
+  from: z.enum(["home", "min-matresa"]).optional(),
 });
 
 export const Route = createFileRoute("/besok")({
@@ -64,8 +64,10 @@ function VisitHistory() {
   );
 
   const returnToHome = React.useCallback(() => {
-    void navigate({ to: exampleMode ? "/exempel" : "/" });
-  }, [exampleMode, navigate]);
+    void navigate({
+      to: search.from === "min-matresa" ? "/min-matresa" : exampleMode ? "/exempel" : "/",
+    });
+  }, [exampleMode, navigate, search.from]);
 
   React.useEffect(() => {
     if (
@@ -83,8 +85,11 @@ function VisitHistory() {
     <div className="mx-auto max-w-2xl space-y-5 pb-4 pt-2 md:max-w-3xl">
       <header>
         <Button asChild variant="ghost" className="-ml-2 min-h-11 rounded-full px-3">
-          <Link to={exampleMode ? "/exempel" : "/"}>
-            <ArrowLeft className="h-4 w-4" /> Hem
+          <Link
+            to={search.from === "min-matresa" ? "/min-matresa" : exampleMode ? "/exempel" : "/"}
+          >
+            <ArrowLeft className="h-4 w-4" />{" "}
+            {search.from === "min-matresa" ? "Min matresa" : "Hem"}
           </Link>
         </Button>
         <h1 className="mt-2 font-display text-2xl font-semibold md:text-3xl">Alla besök</h1>
@@ -219,10 +224,12 @@ function VisitHistory() {
         visitId={search.visit || null}
         focusReviewId={search.review ?? null}
         open={Boolean(search.visit) && requestedGroupAllowed && requestedGroupReady}
-        onReviewFlowExit={search.from === "home" ? returnToHome : undefined}
+        onReviewFlowExit={
+          search.from === "home" || search.from === "min-matresa" ? returnToHome : undefined
+        }
         onOpenChange={(open) => {
           if (open) return;
-          if (search.from === "home") {
+          if (search.from === "home" || search.from === "min-matresa") {
             returnToHome();
             return;
           }

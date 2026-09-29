@@ -29,6 +29,12 @@ const RPC_UNAVAILABLE_MESSAGES: Partial<Record<string, string>> = {
   propose_shared_visit_member_v1: "Kunde inte skicka frågan just nu. Ladda om och försök igen.",
   get_own_visit_guest_proposal_v1:
     "Deltagarfrågan är tillfälligt otillgänglig. Ladda om och försök igen.",
+  get_personal_journey_overview_v1:
+    "Min matresa är inte tillgänglig i den här miljön ännu. Försök igen senare.",
+  list_personal_journey_places_v1:
+    "Min matresa är inte tillgänglig i den här miljön ännu. Försök igen senare.",
+  list_personal_journey_visits_v1:
+    "Min matresa är inte tillgänglig i den här miljön ännu. Försök igen senare.",
   respond_visit_guest_proposal_v1: "Kunde inte spara ditt svar just nu. Ladda om och försök igen.",
 };
 

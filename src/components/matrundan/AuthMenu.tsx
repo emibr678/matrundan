@@ -4,6 +4,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  Compass,
   FlaskConical,
   Home,
   Info,
@@ -16,7 +17,7 @@ import {
   UserPlus,
   Wrench,
 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { AboutDialog } from "./AboutDialog";
 import { StagingTestToolsDialog } from "./StagingTestToolsDialog";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,10 @@ import {
   declineGroupMemberInvitation,
   type MyGroupInvitation,
 } from "@/lib/matrundan/live-admin";
+import {
+  groupPathForPersonalJourney,
+  personalJourneyPathFor,
+} from "@/lib/matrundan/personal-journey-routes";
 
 const QUICK_GROUP_LIMIT = 4;
 const RECENT_GROUPS_KEY_PREFIX = "matrundan.recentGroups.v1:";
@@ -130,11 +135,13 @@ export function AuthMenu({
   groupName: suppliedGroupName,
   groupEmoji: suppliedGroupEmoji,
   groupLifecycleStatus: suppliedGroupLifecycleStatus = "active",
+  personalJourney = false,
 }: {
   exampleMode?: boolean;
   groupName?: string;
   groupEmoji?: string | null;
   groupLifecycleStatus?: "active" | "archived";
+  personalJourney?: boolean;
 }) {
   const {
     user,
@@ -150,6 +157,7 @@ export function AuthMenu({
     refreshPendingGroupInvitations: refreshPendingInvites,
   } = useSession();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -239,6 +247,15 @@ export function AuthMenu({
     await declineGroupMemberInvitation(invitation.id);
     await refreshPendingInvites();
     toast.success("Inbjudan avböjd.");
+  }
+
+  function openPersonalJourney() {
+    void navigate({ to: personalJourneyPathFor(pathname) });
+  }
+
+  function openGroup(groupId: string) {
+    selectGroup(groupId);
+    if (personalJourney) void navigate({ to: groupPathForPersonalJourney(pathname) });
   }
 
   if (!user && mode !== "demo") {
@@ -340,15 +357,21 @@ export function AuthMenu({
   const quickGroups = buildQuickGroups(userGroups, activeGroupId, recentGroupIds);
   const showAllGroups = activeGroupCount > QUICK_GROUP_LIMIT || hasArchivedGroups;
   const useSuppliedGroup = exampleMode || mode === "demo" || !activeGroup;
-  const groupName = useSuppliedGroup
-    ? (suppliedGroupName ?? activeGroup?.name ?? "Grupp")
-    : activeGroup.name;
-  const groupEmoji = useSuppliedGroup
-    ? (suppliedGroupEmoji ?? activeGroup?.emoji ?? "🍽️")
-    : (activeGroup.emoji ?? "🍽️");
-  const groupArchived = useSuppliedGroup
-    ? suppliedGroupLifecycleStatus === "archived"
-    : activeGroup.lifecycleStatus === "archived";
+  const groupName = personalJourney
+    ? "Min matresa"
+    : useSuppliedGroup
+      ? (suppliedGroupName ?? activeGroup?.name ?? "Grupp")
+      : activeGroup.name;
+  const groupEmoji = personalJourney
+    ? "🧭"
+    : useSuppliedGroup
+      ? (suppliedGroupEmoji ?? activeGroup?.emoji ?? "🍽️")
+      : (activeGroup.emoji ?? "🍽️");
+  const groupArchived =
+    !personalJourney &&
+    (useSuppliedGroup
+      ? suppliedGroupLifecycleStatus === "archived"
+      : activeGroup.lifecycleStatus === "archived");
 
   return (
     <>
@@ -357,7 +380,9 @@ export function AuthMenu({
           <Button
             size="sm"
             variant="outline"
-            aria-label={`Profil och grupp: ${groupName}`}
+            aria-label={
+              personalJourney ? "Profil och vy: Min matresa" : `Profil och grupp: ${groupName}`
+            }
             className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem] md:max-w-[18rem]"
           >
             <span className="shrink-0">{groupEmoji}</span>
@@ -418,18 +443,38 @@ export function AuthMenu({
               Platsunderhåll
             </DropdownMenuItem>
           ) : null}
+          {!exampleMode && mode === "live" ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={openPersonalJourney}
+                className={personalJourney ? "font-semibold" : undefined}
+              >
+                <Compass className="mr-2 h-4 w-4" />
+                <span className="min-w-0 flex-1">
+                  <span className="block">Min matresa</span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Samlat från dina grupper
+                  </span>
+                </span>
+                {personalJourney ? (
+                  <Check className="ml-2 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                ) : null}
+              </DropdownMenuItem>
+            </>
+          ) : null}
           {quickGroups.length > 0 ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Byt grupp
+                {personalJourney ? "Öppna grupp" : "Byt grupp"}
               </DropdownMenuLabel>
               {quickGroups.map((group) => (
                 <GroupMenuItem
                   key={group.id}
                   group={group}
-                  activeGroupId={activeGroupId}
-                  onSelect={selectGroup}
+                  activeGroupId={personalJourney ? null : activeGroupId}
+                  onSelect={openGroup}
                 />
               ))}
               {showAllGroups ? (
@@ -467,8 +512,10 @@ export function AuthMenu({
         open={allGroupsOpen}
         onOpenChange={setAllGroupsOpen}
         groups={userGroups}
-        activeGroupId={activeGroupId}
-        onSelect={selectGroup}
+        activeGroupId={personalJourney ? null : activeGroupId}
+        onSelect={openGroup}
+        personalJourney={personalJourney}
+        onSelectPersonalJourney={openPersonalJourney}
         invitations={pendingInvites}
         onAcceptInvitation={acceptPendingInvitation}
         onDeclineInvitation={declinePendingInvitation}

@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Archive, Home, Info, MapPin, RotateCcw, Users } from "lucide-react";
+import { Archive, CalendarDays, Home, Info, MapPin, RotateCcw, Users } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { clearExampleGuestProposalState } from "@/lib/matrundan/demo-state";
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
+import { isPersonalJourneyPath } from "@/lib/matrundan/personal-journey-routes";
 
 const NAV = [
   { to: "/", label: "Hem", icon: Home },
@@ -17,19 +18,36 @@ const NAV = [
   { to: "/gruppen", label: "Gruppen", icon: Users },
 ] as const;
 
-type NavTarget = "/" | "/exempel" | "/matstallen" | "/gruppen";
+const PERSONAL_NAV = [
+  { to: "/min-matresa", label: "Översikt", icon: Home },
+  { to: "/min-matresa/matstallen", label: "Matställen", icon: MapPin },
+  { to: "/min-matresa/besok", label: "Besök", icon: CalendarDays },
+] as const;
+
+type NavTarget =
+  | "/"
+  | "/exempel"
+  | "/matstallen"
+  | "/gruppen"
+  | "/min-matresa"
+  | "/min-matresa/matstallen"
+  | "/min-matresa/besok";
 
 export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
   const { state, resetDemo } = useStore();
   const { exitExampleMode } = useSession();
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
+  const personalJourney = !exampleMode && isPersonalJourneyPath(pathname);
+  const navigation = personalJourney ? PERSONAL_NAV : NAV;
   const [createGroupOpen, setCreateGroupOpen] = React.useState(false);
   const homeTarget: NavTarget = exampleMode ? "/exempel" : "/";
-  const targetFor = (to: (typeof NAV)[number]["to"]): NavTarget => (to === "/" ? homeTarget : to);
+  const targetFor = (to: NavTarget): NavTarget => (to === "/" ? homeTarget : to);
   const isActive = (to: string) =>
-    to === "/"
-      ? pathname === "/" || pathname === "/besok" || (exampleMode && pathname === "/exempel")
-      : pathname.startsWith(to);
+    to === "/min-matresa"
+      ? pathname === "/min-matresa"
+      : to === "/"
+        ? pathname === "/" || pathname === "/besok" || (exampleMode && pathname === "/exempel")
+        : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
   const currentMember = state.members.find((member) => member.id === state.currentUserId);
   const brand = <MatrundanBrand />;
@@ -66,7 +84,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
           </div>
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Huvudmeny">
-            {NAV.map((item) => {
+            {navigation.map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
               return (
@@ -94,6 +112,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
               groupName={state.group.name}
               groupEmoji={state.group.emoji}
               groupLifecycleStatus={state.group.lifecycleStatus}
+              personalJourney={personalJourney}
             />
           </div>
         </header>
@@ -131,7 +150,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
                 </Button>
               </div>
             </div>
-          ) : archived ? (
+          ) : archived && !personalJourney ? (
             <div
               role="status"
               className="mx-auto mb-4 flex max-w-4xl items-start gap-3 rounded-2xl border border-border/70 bg-muted/55 p-3 text-sm"
@@ -155,7 +174,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/85 backdrop-blur-md md:hidden"
       >
         <div className="mx-auto grid max-w-2xl grid-cols-3">
-          {NAV.map((item) => {
+          {navigation.map((item) => {
             const active = isActive(item.to);
             const Icon = item.icon;
             return (
