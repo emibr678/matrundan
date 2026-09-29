@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
@@ -9,6 +10,7 @@ import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { CalendarDays, MessageSquarePlus, RotateCcw, UserRoundCheck } from "lucide-react";
 import { z } from "zod";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
+import { PersonalJourneyReviewGroupDialog } from "@/components/matrundan/PersonalJourneyReviewGroupDialog";
 import { RatingStars } from "@/components/matrundan/Rating";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,6 +26,7 @@ import { appPageTitle } from "@/lib/app-environment";
 import {
   loadPersonalJourneyVisit,
   loadPersonalJourneyVisits,
+  type PersonalJourneyGroup,
 } from "@/lib/matrundan/personal-journey";
 import {
   demoPersonalJourneyVisit,
@@ -62,6 +65,10 @@ function PersonalJourneyVisits() {
   const location = useRouterState({ select: (state) => state.location });
   const navigationState = getPersonalJourneyNavigationState(location.state);
   const { mode, activeGroupId, selectGroup } = useSession();
+  const [reviewGroupChoice, setReviewGroupChoice] = React.useState<{
+    visitId: string;
+    groups: PersonalJourneyGroup[];
+  } | null>(null);
   const visits = useInfiniteQuery({
     queryKey: ["personal-journey", "visits", mode, search.participated],
     retry: false,
@@ -104,6 +111,17 @@ function PersonalJourneyVisits() {
           })
         : (previous) => ({ ...previous, personalJourney: undefined }),
     });
+  }
+
+  function openReviewFlow(visitId: string, groups: PersonalJourneyGroup[]) {
+    const writableGroups = groups.filter((group) => group.isWritable);
+    if (writableGroups.length === 1) {
+      openInGroup(visitId, writableGroups[0].groupId, true);
+      return;
+    }
+    if (writableGroups.length > 1) {
+      setReviewGroupChoice({ visitId, groups });
+    }
   }
 
   return (
@@ -229,14 +247,11 @@ function PersonalJourneyVisits() {
                       Omdömet skrivs i en av grupperna som kan ändras.
                     </p>
                   </div>
-                  {detail.data.groups.find((group) => group.isWritable) ? (
+                  {detail.data.groups.some((group) => group.isWritable) ? (
                     <Button
                       type="button"
                       size="sm"
-                      onClick={() => {
-                        const group = detail.data!.groups.find((item) => item.isWritable)!;
-                        openInGroup(detail.data!.id, group.groupId, true);
-                      }}
+                      onClick={() => openReviewFlow(detail.data!.id, detail.data!.groups)}
                     >
                       Skriv omdöme
                     </Button>
@@ -308,6 +323,20 @@ function PersonalJourneyVisits() {
           )}
         </DialogContent>
       </Dialog>
+
+      <PersonalJourneyReviewGroupDialog
+        open={Boolean(reviewGroupChoice)}
+        onOpenChange={(open) => {
+          if (!open) setReviewGroupChoice(null);
+        }}
+        groups={reviewGroupChoice?.groups ?? []}
+        onSelect={(group) => {
+          if (!reviewGroupChoice) return;
+          const choice = reviewGroupChoice;
+          setReviewGroupChoice(null);
+          openInGroup(choice.visitId, group.groupId, true);
+        }}
+      />
     </div>
   );
 }

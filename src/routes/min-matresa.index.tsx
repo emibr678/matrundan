@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowRight, CalendarDays, Heart, MessageSquarePlus, RotateCcw, Star } from "lucide-react";
@@ -5,11 +6,13 @@ import {
   PersonalJourneyPlaceCard,
   PersonalJourneyVisitCard,
 } from "@/components/matrundan/PersonalJourneyCards";
+import { PersonalJourneyReviewGroupDialog } from "@/components/matrundan/PersonalJourneyReviewGroupDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
 import {
   loadPersonalJourneyOverview,
+  type PersonalJourneyGroup,
   type PersonalJourneyPendingReview,
 } from "@/lib/matrundan/personal-journey";
 import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
@@ -47,6 +50,8 @@ function PersonalJourneyOverview() {
   const location = useRouterState({ select: (state) => state.location });
   const navigationState = getPersonalJourneyNavigationState(location.state);
   const { mode, activeGroupId, selectGroup } = useSession();
+  const [reviewGroupChoice, setReviewGroupChoice] =
+    React.useState<PersonalJourneyPendingReview | null>(null);
   const overview = useQuery({
     queryKey: ["personal-journey", "overview", mode],
     retry: false,
@@ -56,9 +61,10 @@ function PersonalJourneyOverview() {
         : loadPersonalJourneyOverview(),
   });
 
-  function openPendingReview(item: PersonalJourneyPendingReview) {
-    const target = item.groups.find((group) => group.isWritable);
-    if (!target) return;
+  function handoffPendingReview(
+    item: PersonalJourneyPendingReview,
+    target: PersonalJourneyGroup,
+  ) {
     const sourceGroupId = activeGroupId;
     selectGroup(target.groupId);
     void navigate({
@@ -73,6 +79,17 @@ function PersonalJourneyOverview() {
         },
       }),
     });
+  }
+
+  function openPendingReview(item: PersonalJourneyPendingReview) {
+    const writableGroups = item.groups.filter((group) => group.isWritable);
+    if (writableGroups.length === 1) {
+      handoffPendingReview(item, writableGroups[0]);
+      return;
+    }
+    if (writableGroups.length > 1) {
+      setReviewGroupChoice(item);
+    }
   }
 
   if (overview.isPending) {
@@ -124,7 +141,13 @@ function PersonalJourneyOverview() {
           </div>
           <Card className="divide-y divide-border/60 overflow-hidden rounded-2xl border-primary/20 bg-primary/[0.035] p-0">
             {data.pendingReviews.map((item) => {
-              const target = item.groups.find((group) => group.isWritable);
+              const writableGroups = item.groups.filter((group) => group.isWritable);
+              const reviewContext =
+                writableGroups.length === 1
+                  ? writableGroups[0].groupName
+                  : writableGroups.length > 1
+                    ? `${writableGroups.length} grupper`
+                    : "Arkiverad grupp";
               return (
                 <div
                   key={item.visitId}
@@ -133,11 +156,10 @@ function PersonalJourneyOverview() {
                   <div className="min-w-0">
                     <div className="font-medium [overflow-wrap:anywhere]">{item.placeName}</div>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                      {formatOwnVisitDate(item.visitedOn)} ·{" "}
-                      {target?.groupName ?? "Arkiverad grupp"}
+                      {formatOwnVisitDate(item.visitedOn)} · {reviewContext}
                     </p>
                   </div>
-                  {target ? (
+                  {writableGroups.length > 0 ? (
                     <Button
                       type="button"
                       size="sm"
@@ -266,6 +288,20 @@ function PersonalJourneyOverview() {
           </div>
         </section>
       ) : null}
+
+      <PersonalJourneyReviewGroupDialog
+        open={Boolean(reviewGroupChoice)}
+        onOpenChange={(open) => {
+          if (!open) setReviewGroupChoice(null);
+        }}
+        groups={reviewGroupChoice?.groups ?? []}
+        onSelect={(group) => {
+          if (!reviewGroupChoice) return;
+          const item = reviewGroupChoice;
+          setReviewGroupChoice(null);
+          handoffPendingReview(item, group);
+        }}
+      />
     </div>
   );
 }

@@ -103,3 +103,20 @@ test("desktop behåller global gruppnavigation och lämnar Min matresa genom den
   await expect(page.getByRole("navigation", { name: "Min matresa" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
 });
+
+
+test("flera skrivbara grupper kräver ett uttryckligt gruppval för omdömet", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+  await openPersonalJourneyFromGroupMenu(page);
+
+  const pendingSection = page.getByRole("region", { name: "Omdömen att komplettera" });
+  await expect(pendingSection.getByText("2 grupper", { exact: true })).toBeVisible();
+  await pendingSection.getByRole("button", { name: "Skriv omdöme" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Välj grupp" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Fredagsgänget" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Familjen" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Gruppval för omdöme");
+});
