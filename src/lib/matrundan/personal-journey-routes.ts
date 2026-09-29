@@ -2,9 +2,9 @@ export type GroupShellPath = "/" | "/matstallen" | "/gruppen" | "/besok";
 export type PersonalJourneyPath = "/min-matresa" | "/min-matresa/matstallen" | "/min-matresa/besok";
 
 export function personalJourneyDemoSearch(mode: "landing" | "demo" | "live"): {
-  demo?: "1";
+  demo?: 1;
 } {
-  return mode === "demo" ? { demo: "1" } : {};
+  return mode === "demo" ? { demo: 1 } : {};
 }
 
 export function isPersonalJourneyPath(pathname: string): boolean {

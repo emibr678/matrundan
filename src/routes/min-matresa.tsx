@@ -3,7 +3,7 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
 const personalJourneySearchSchema = z.object({
-  demo: z.literal("1").optional(),
+  demo: z.literal(1).optional(),
 });
 
 export const Route = createFileRoute("/min-matresa")({

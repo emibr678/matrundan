@@ -27,7 +27,7 @@ describe("Min matresa-routes", () => {
   });
 
   test("behåller explicit demoläge genom den personliga navigationen", () => {
-    expect(personalJourneyDemoSearch("demo")).toEqual({ demo: "1" });
+    expect(personalJourneyDemoSearch("demo")).toEqual({ demo: 1 });
     expect(personalJourneyDemoSearch("live")).toEqual({});
     expect(personalJourneyDemoSearch("landing")).toEqual({});
   });
