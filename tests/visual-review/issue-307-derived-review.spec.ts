@@ -168,7 +168,7 @@ async function mockBackend(
           ? JSON.stringify([
               {
                 guidance_key: "review-context",
-                guidance_version: 1,
+                guidance_version: 2,
               },
             ])
           : "[]",
