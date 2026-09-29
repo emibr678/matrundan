@@ -2,7 +2,7 @@ import * as React from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createFileRoute, stripSearchParams, useNavigate } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import { Heart, MapPin, RotateCcw, Search } from "lucide-react";
+import { MapPin, RotateCcw, Search } from "lucide-react";
 import { z } from "zod";
 import { PersonalJourneyPlaceCard } from "@/components/matrundan/PersonalJourneyCards";
 import { RatingStars } from "@/components/matrundan/Rating";
@@ -120,7 +120,7 @@ function PersonalJourneyPlaces() {
         </p>
       </header>
 
-      <Card className="space-y-4 rounded-2xl border-border/70 p-4">
+      <Card className="space-y-3 rounded-2xl border-border/70 p-3">
         <form
           className="flex gap-2"
           onSubmit={(event) => {
@@ -141,45 +141,49 @@ function PersonalJourneyPlaces() {
               className="h-11 rounded-xl pl-9"
             />
           </div>
-          <Button type="submit" variant="outline" className="min-h-11">
-            Sök
+          <Button
+            type="submit"
+            variant="outline"
+            size="icon"
+            className="h-11 w-11 shrink-0 rounded-xl"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+            <span className="sr-only">Sök</span>
           </Button>
         </form>
-        <div className="space-y-1.5">
-          <label htmlFor="personal-place-sort" className="text-sm font-medium">
-            Sortera
-          </label>
-          <Select
-            value={search.sort}
-            onValueChange={(value) =>
-              updateFilters({ sort: personalJourneyPlaceSortSchema.parse(value) })
-            }
+        <Select
+          value={search.sort}
+          onValueChange={(value) =>
+            updateFilters({ sort: personalJourneyPlaceSortSchema.parse(value) })
+          }
+        >
+          <SelectTrigger
+            id="personal-place-sort"
+            aria-label="Sortera matställen"
+            className="h-11 w-full rounded-xl"
           >
-            <SelectTrigger id="personal-place-sort" className="min-h-11 w-full rounded-xl">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="shrink-0 text-muted-foreground">Sortera:</span>
               <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="rating">Högst betyg</SelectItem>
-              <SelectItem value="recent">Senast besökt</SelectItem>
-              <SelectItem value="name">A–Ö</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-2 text-sm">
-            <span className="flex items-center gap-2">
-              <Heart className="h-4 w-4 text-primary" aria-hidden="true" /> Mina favoriter
             </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="rating">Högst betyg</SelectItem>
+            <SelectItem value="recent">Senast besökt</SelectItem>
+            <SelectItem value="name">A–Ö</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border border-border/70 px-2.5 py-1.5 text-xs sm:text-sm">
+            <span>Favoriter</span>
             <Switch
               checked={search.favorites}
               onCheckedChange={(checked) => updateFilters({ favorites: checked })}
               aria-label="Visa bara mina favoriter"
             />
           </label>
-          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-2 text-sm">
-            <span className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" aria-hidden="true" /> Besökta av mig
-            </span>
+          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border border-border/70 px-2.5 py-1.5 text-xs sm:text-sm">
+            <span>Besökta av mig</span>
             <Switch
               checked={search.visited}
               onCheckedChange={(checked) => updateFilters({ visited: checked })}
