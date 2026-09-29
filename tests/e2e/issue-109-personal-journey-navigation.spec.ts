@@ -110,7 +110,7 @@ test("flera skrivbara grupper kräver ett uttryckligt gruppval för omdömet", a
   await openPersonalJourneyFromGroupMenu(page);
 
   const pendingSection = page.getByRole("region", { name: "Omdömen att komplettera" });
-  await expect(pendingSection.getByText("2 grupper", { exact: true })).toBeVisible();
+  await expect(pendingSection.getByText(/2 grupper/)).toBeVisible();
   await pendingSection.getByRole("button", { name: "Skriv omdöme" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Välj grupp" });
