@@ -61,10 +61,7 @@ function PersonalJourneyOverview() {
         : loadPersonalJourneyOverview(),
   });
 
-  function handoffPendingReview(
-    item: PersonalJourneyPendingReview,
-    target: PersonalJourneyGroup,
-  ) {
+  function handoffPendingReview(item: PersonalJourneyPendingReview, target: PersonalJourneyGroup) {
     const sourceGroupId = activeGroupId;
     selectGroup(target.groupId);
     void navigate({

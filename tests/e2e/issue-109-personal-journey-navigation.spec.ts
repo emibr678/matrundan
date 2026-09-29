@@ -104,7 +104,6 @@ test("desktop behåller global gruppnavigation och lämnar Min matresa genom den
   await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
 });
 
-
 test("flera skrivbara grupper kräver ett uttryckligt gruppval för omdömet", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
