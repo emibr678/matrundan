@@ -189,7 +189,9 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
 
   await placeSuggestionButton(searchDialog).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
-  await detailsDialog.getByRole("button", { name: /Har stället stängt eller är något fel\?/ }).click();
+  await detailsDialog
+    .getByRole("button", { name: /Har stället stängt eller är något fel\?/ })
+    .click();
 
   const issueDialog = page.getByRole("dialog", {
     name: "Har stället stängt eller är något fel?",
