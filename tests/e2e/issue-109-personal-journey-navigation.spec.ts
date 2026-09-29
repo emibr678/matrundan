@@ -35,9 +35,7 @@ test("mobilen öppnar Min matresa som lokal yta och återgår till exakt ursprun
   await openPersonalJourneyFromGroupMenu(page);
 
   await expect(page).toHaveURL(/\/min-matresa\?demo=1$/);
-  await expect(
-    page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Min matresa", level: 1 })).toBeVisible();
 
   const personalNav = page.getByRole("navigation", { name: "Min matresa" });
@@ -60,9 +58,7 @@ test("mobilen öppnar Min matresa som lokal yta och återgår till exakt ursprun
 
   await page.getByRole("button", { name: "Till Fredagsgänget" }).click();
   await expect(page).toHaveURL(/\/matstallen$/);
-  await expect(
-    page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Min matresa på mobil");
 });
 
@@ -76,9 +72,7 @@ test("direkt personlig route i exempelkontext faller säkert tillbaka till exemp
   await page.goto("/min-matresa");
 
   await expect(page.getByRole("heading", { name: "Min matresa", level: 1 })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
 
   await page.getByRole("button", { name: "Till Fredagsgänget" }).click();
   await expect(page).toHaveURL(/\/exempel$/);
@@ -102,14 +96,10 @@ test("desktop behåller global gruppnavigation och lämnar Min matresa genom den
   await expect(globalNav.getByRole("link", { name: "Hem" })).toBeVisible();
   await expect(globalNav.getByRole("link", { name: "Matställen" })).toBeVisible();
   await expect(globalNav.getByRole("link", { name: "Gruppen" })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
 
   await globalNav.getByRole("link", { name: "Matställen" }).click();
   await expect(page).toHaveURL(/\/matstallen$/);
   await expect(page.getByRole("navigation", { name: "Min matresa" })).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
 });
