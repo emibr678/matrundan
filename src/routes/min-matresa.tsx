@@ -45,9 +45,9 @@ function PersonalJourneyLayout() {
   const fallbackGroup =
     mode === "live"
       ? (activeGroup ??
-        userGroups.find((group) => group.lifecycleStatus === "active") ??
-        userGroups[0] ??
-        null)
+          userGroups.find((group) => group.lifecycleStatus === "active") ??
+          userGroups[0] ??
+          null)
       : null;
   const groupName = activeGroup?.name ?? fallbackGroup?.name ?? state.group.name ?? "gruppen";
 
