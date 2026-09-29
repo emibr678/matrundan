@@ -6,7 +6,11 @@ const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
 async function installOwnerSession(
   page: Page,
-  options: { inviteCandidates?: unknown[]; pendingInvites?: unknown[] } = {},
+  options: {
+    groupEmoji?: string;
+    inviteCandidates?: unknown[];
+    pendingInvites?: unknown[];
+  } = {},
 ) {
   const ownerId = "11111111-1111-4111-8111-111111111111";
   const groupId = "33333333-3333-4333-8333-333333333333";
@@ -63,7 +67,7 @@ async function installOwnerSession(
           {
             id: groupId,
             name: "Fredagsgänget",
-            emoji: "🍽️",
+            emoji: options.groupEmoji ?? "🍽️",
             description: "Vi upptäcker nya middagsställen tillsammans på fredagar.",
             role: "owner",
             lifecycleStatus: "active",
@@ -92,7 +96,7 @@ async function installOwnerSession(
           group: {
             id: groupId,
             name: "Fredagsgänget",
-            emoji: "🍽️",
+            emoji: options.groupEmoji ?? "🍽️",
             city: "Stockholm",
             createdAt: now,
             ownerId,
@@ -193,6 +197,13 @@ async function stabilize(page: Page) {
   });
 }
 
+async function expectNoHorizontalOverflow(page: Page) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+}
+
 async function capture(page: Page, testInfo: TestInfo, name: string) {
   const outputDirectory = path.join("visual-review", testInfo.project.name);
   await mkdir(outputDirectory, { recursive: true });
@@ -236,6 +247,10 @@ test("fånga gruppinställningarnas nya informationsarkitektur", async ({ page }
   await expect(basics.getByLabel("Kort beskrivning (valfritt)")).toHaveValue(
     "Vi upptäcker nya middagsställen tillsammans på fredagar.",
   );
+  const settingsSymbols = basics.getByRole("group", { name: "Symbol" });
+  await expect(settingsSymbols.getByRole("radio")).toHaveCount(35);
+  await expect(settingsSymbols.getByRole("radio", { name: "Tallrik och bestick" })).toBeChecked();
+  await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, "gruppinstallningar-gruppen");
 
   await page.keyboard.press("Escape");
@@ -244,9 +259,32 @@ test("fånga gruppinställningarnas nya informationsarkitektur", async ({ page }
   const createGroup = page.getByRole("dialog", { name: "Skapa ny grupp" });
   await expect(createGroup.getByLabel("Kort beskrivning (valfritt)")).toBeVisible();
   await expect(createGroup.getByText(/Samma personer kan ha flera grupper/)).toBeVisible();
-  await capture(page, testInfo, "skapa-grupp-med-beskrivning");
+  const createSymbols = createGroup.getByRole("group", { name: "Symbol" });
+  await expect(createSymbols.getByRole("radio")).toHaveCount(35);
+  const bentoSymbol = createSymbols.getByRole("radio", { name: "Bento" });
+  await bentoSymbol.focus();
+  await expect(bentoSymbol).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(bentoSymbol).toBeChecked();
+  await expectNoHorizontalOverflow(page);
+  await capture(page, testInfo, "skapa-grupp-med-symbolval");
 });
 
+test("behåller en äldre gruppsymbol utanför det kuraterade urvalet", async ({ page }) => {
+  await installOwnerSession(page, { groupEmoji: "🐙" });
+  await page.goto("/gruppen", { waitUntil: "domcontentloaded" });
+
+  await page.getByRole("button", { name: "Gruppinställningar" }).click();
+  const menu = page.getByRole("dialog", { name: "Gruppinställningar" });
+  await menu.getByRole("button", { name: /^Gruppen/ }).click();
+  const basics = page.getByRole("dialog", { name: "Gruppen" });
+  const symbols = basics.getByRole("group", { name: "Symbol" });
+
+  await expect(symbols.getByRole("radio")).toHaveCount(36);
+  await expect(
+    symbols.getByRole("radio", { name: "Behåll nuvarande symbol 🐙" }),
+  ).toBeChecked();
+});
 
 test("fånga skalbar intern gruppinbjudan", async ({ page }, testInfo) => {
   const inviteCandidates = Array.from({ length: 8 }, (_, index) => ({
