@@ -261,11 +261,11 @@ test("fånga gruppinställningarnas nya informationsarkitektur", async ({ page }
   await expect(createGroup.getByText(/Samma personer kan ha flera grupper/)).toBeVisible();
   const createSymbols = createGroup.getByRole("group", { name: "Symbol" });
   await expect(createSymbols.getByRole("radio")).toHaveCount(35);
-  const citySymbol = createSymbols.getByRole("radio", { name: "Bento" });
-  await citySymbol.focus();
-  await expect(citySymbol).toBeFocused();
+  const bentoSymbol = createSymbols.getByRole("radio", { name: "Bento" });
+  await bentoSymbol.focus();
+  await expect(bentoSymbol).toBeFocused();
   await page.keyboard.press("Space");
-  await expect(citySymbol).toBeChecked();
+  await expect(bentoSymbol).toBeChecked();
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, "skapa-grupp-med-symbolval");
 });
