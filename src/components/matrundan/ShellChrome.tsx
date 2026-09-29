@@ -176,7 +176,9 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
                     active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                   ].join(" ")}
                 >
-                  <Icon className={["h-5 w-5", active ? "stroke-[2.4]" : "stroke-[1.8]"].join(" ")} />
+                  <Icon
+                    className={["h-5 w-5", active ? "stroke-[2.4]" : "stroke-[1.8]"].join(" ")}
+                  />
                   <span>{item.label}</span>
                 </Link>
               );

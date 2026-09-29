@@ -114,7 +114,9 @@ function PersonalJourneyLayout() {
         >
           {PERSONAL_NAV.map((item) => {
             const active =
-              item.to === "/min-matresa" ? pathname === "/min-matresa" : pathname.startsWith(item.to);
+              item.to === "/min-matresa"
+                ? pathname === "/min-matresa"
+                : pathname.startsWith(item.to);
             const Icon = item.icon;
             return (
               <Link
