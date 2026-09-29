@@ -165,7 +165,7 @@ function PersonalJourneyOverview() {
               </Link>
             </Button>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {data.topRatedPlaces.map((place) => (
               <PersonalJourneyPlaceCard
                 key={place.id}
