@@ -106,7 +106,7 @@ test("mobilväljare och Typ av upplevelse-hjälp stannar inom en kort 360 px-vy"
     detailsDialog.getByRole("button", { name: "Registrera besök", exact: true }),
   ).toHaveCount(0);
   await expect(
-    detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }),
+    detailsDialog.getByRole("button", { name: /Har stället stängt eller är något fel\?/ }),
   ).toBeVisible();
   await expect(
     detailsDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
@@ -189,7 +189,7 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
 
   await placeSuggestionButton(searchDialog).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
-  await detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }).click();
+  await detailsDialog.getByRole("button", { name: /Har stället stängt eller är något fel\?/ }).click();
 
   const issueDialog = page.getByRole("dialog", {
     name: "Har stället stängt eller är något fel?",

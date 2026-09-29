@@ -64,7 +64,7 @@ test("begränsad platsinformation visas först i öppnad träff och egen rapport
     ),
   ).toBeVisible();
 
-  await resultDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }).click();
+  await resultDialog.getByRole("button", { name: /Har stället stängt eller är något fel\?/ }).click();
   const issueDialog = page.getByRole("dialog", {
     name: "Har stället stängt eller är något fel?",
   });
