@@ -162,7 +162,7 @@ function PersonalJourneyPlaces() {
             aria-label="Sortera matställen"
             className="h-11 w-full rounded-xl"
           >
-            <span className="flex min-w-0 items-center gap-1.5">
+            <span className="flex min-w-0 items-center gap-2">
               <span className="shrink-0 text-muted-foreground">Sortera:</span>
               <SelectValue />
             </span>
