@@ -392,6 +392,12 @@ inte. Favoriter behåller gruppkontext med unikheten
 `(user_id, place_id, group_id)`; den personliga vyn summerar dem men skriver
 aldrig en global favorit.
 
+Personlig rangordning är en transparent sortering av läsbara omdömen, inte en
+global topplista eller rekommendationsalgoritm. Högst aritmetiskt medelbetyg
+kommer först, fler unika synliga omdömen avgör vid samma medelbetyg och namn ger
+en stabil sista ordning. Samma omdöme räknas bara en gång även om det är synligt
+genom flera av användarens grupper.
+
 ## Gruppstate
 
 `get_group_app_state_v5n(uuid)` är nuvarande primära read-RPC för gruppens

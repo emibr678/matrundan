@@ -91,13 +91,7 @@ const personalJourneyVisitDetailSchema = personalJourneyVisitSchema
 
 export type PersonalJourneyVisitDetail = z.infer<typeof personalJourneyVisitDetailSchema>;
 
-const placeCursorSchema = z.object({ name: z.string(), id: z.string().uuid() });
 const visitCursorSchema = z.object({ visitedOn: z.string(), id: z.string().uuid() });
-
-const placePageSchema = z.object({
-  items: z.array(personalJourneyPlaceSchema),
-  nextCursor: placeCursorSchema.nullable(),
-});
 
 const visitPageSchema = z.object({
   items: z.array(personalJourneyVisitSchema),
@@ -122,18 +116,20 @@ const overviewSchema = z.object({
     activeGroupCount: z.number().int().nonnegative(),
   }),
   pendingReviews: z.array(pendingReviewSchema),
+  topRatedPlaces: z.array(personalJourneyPlaceSchema),
   favoritePlaces: z.array(personalJourneyPlaceSchema),
   recentVisits: z.array(personalJourneyVisitSchema),
 });
 
 export type PersonalJourneyOverview = z.infer<typeof overviewSchema>;
 export type PersonalJourneyPendingReview = z.infer<typeof pendingReviewSchema>;
-export type PersonalJourneyPlaceCursor = z.infer<typeof placeCursorSchema>;
+export const personalJourneyPlaceSortSchema = z.enum(["rating", "recent", "name"]);
+export type PersonalJourneyPlaceSort = z.infer<typeof personalJourneyPlaceSortSchema>;
 export type PersonalJourneyVisitCursor = z.infer<typeof visitCursorSchema>;
 
 export async function loadPersonalJourneyOverview(): Promise<PersonalJourneyOverview> {
   return rpcClient.call(
-    "get_personal_journey_overview_v1",
+    "get_personal_journey_overview_v2",
     {},
     overviewSchema,
     "Kunde inte läsa Min matresa. Försök igen.",
@@ -144,26 +140,31 @@ export async function loadPersonalJourneyPlaces({
   query = "",
   favoritesOnly = false,
   visitedByMeOnly = false,
-  cursor = null,
+  sort = "rating",
+  offset = 0,
   limit = 20,
 }: {
   query?: string;
   favoritesOnly?: boolean;
   visitedByMeOnly?: boolean;
-  cursor?: PersonalJourneyPlaceCursor | null;
+  sort?: PersonalJourneyPlaceSort;
+  offset?: number;
   limit?: number;
 } = {}) {
   return rpcClient.call(
-    "list_personal_journey_places_v1",
+    "list_personal_journey_places_v2",
     {
       _query: query || null,
       _favorites_only: favoritesOnly,
       _visited_by_me_only: visitedByMeOnly,
-      _cursor_name: cursor?.name ?? null,
-      _cursor_id: cursor?.id ?? null,
+      _sort: sort,
+      _offset: offset,
       _limit: limit,
     },
-    placePageSchema,
+    z.object({
+      items: z.array(personalJourneyPlaceSchema),
+      nextOffset: z.number().int().nonnegative().nullable(),
+    }),
     "Kunde inte läsa matställena i Min matresa. Försök igen.",
   );
 }

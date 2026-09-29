@@ -16,11 +16,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { appPageTitle } from "@/lib/app-environment";
 import {
   loadPersonalJourneyPlace,
   loadPersonalJourneyPlaces,
+  personalJourneyPlaceSortSchema,
 } from "@/lib/matrundan/personal-journey";
 import {
   demoPersonalJourneyPlace,
@@ -30,11 +38,12 @@ import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-pr
 import { useSession } from "@/lib/matrundan/session";
 import { formatRating } from "@/lib/matrundan/version";
 
-const defaults = { q: "", favorites: false, visited: false };
+const defaults = { q: "", favorites: false, visited: false, sort: "rating" as const };
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
   favorites: fallback(z.boolean(), false).default(false),
   visited: fallback(z.boolean(), false).default(false),
+  sort: fallback(personalJourneyPlaceSortSchema, "rating").default("rating"),
   place: z.string().uuid().optional(),
 });
 
@@ -61,21 +70,30 @@ function PersonalJourneyPlaces() {
   React.useEffect(() => setQueryInput(search.q), [search.q]);
 
   const places = useInfiniteQuery({
-    queryKey: ["personal-journey", "places", mode, search.q, search.favorites, search.visited],
+    queryKey: [
+      "personal-journey",
+      "places",
+      mode,
+      search.q,
+      search.favorites,
+      search.visited,
+      search.sort,
+    ],
     retry: false,
-    initialPageParam: null as { name: string; id: string } | null,
+    initialPageParam: 0,
     queryFn: ({ pageParam }) => {
       const options = {
         query: search.q,
         favoritesOnly: search.favorites,
         visitedByMeOnly: search.visited,
-        cursor: pageParam,
+        sort: search.sort,
+        offset: pageParam,
       };
       return mode === "demo"
         ? Promise.resolve(demoPersonalJourneyPlaces(options))
         : loadPersonalJourneyPlaces(options);
     },
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
   });
   const items = places.data?.pages.flatMap((page) => page.items) ?? [];
   const detail = useQuery({
@@ -126,6 +144,26 @@ function PersonalJourneyPlaces() {
             Sök
           </Button>
         </form>
+        <div className="space-y-1.5">
+          <label htmlFor="personal-place-sort" className="text-sm font-medium">
+            Sortera
+          </label>
+          <Select
+            value={search.sort}
+            onValueChange={(value) =>
+              updateFilters({ sort: personalJourneyPlaceSortSchema.parse(value) })
+            }
+          >
+            <SelectTrigger id="personal-place-sort" className="min-h-11 w-full rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rating">Högst betyg</SelectItem>
+              <SelectItem value="recent">Senast besökt</SelectItem>
+              <SelectItem value="name">A–Ö</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-2 text-sm">
             <span className="flex items-center gap-2">

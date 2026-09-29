@@ -66,8 +66,8 @@ export const DEMO_PERSONAL_JOURNEY_PLACES: PersonalJourneyPlace[] = [
     city: "Stockholm",
     isFavorite: false,
     visitedByMe: false,
-    rating: null,
-    reviewCount: 0,
+    rating: 4.1,
+    reviewCount: 2,
     groups: [groups.friends],
   },
 ];
@@ -129,21 +129,42 @@ export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {
       groups: [groups.friends, groups.family],
     },
   ],
+  topRatedPlaces: [...DEMO_PERSONAL_JOURNEY_PLACES]
+    .filter((place) => place.rating != null)
+    .sort(
+      (left, right) =>
+        (right.rating ?? 0) - (left.rating ?? 0) ||
+        right.reviewCount - left.reviewCount ||
+        left.name.localeCompare(right.name, "sv"),
+    )
+    .slice(0, 3),
   favoritePlaces: DEMO_PERSONAL_JOURNEY_PLACES.filter((place) => place.isFavorite),
-  recentVisits: DEMO_PERSONAL_JOURNEY_VISITS,
+  recentVisits: DEMO_PERSONAL_JOURNEY_VISITS.slice(0, 3),
 };
 
 export function demoPersonalJourneyPlaces({
   query = "",
   favoritesOnly = false,
   visitedByMeOnly = false,
+  sort = "rating",
+  offset = 0,
+  limit = 20,
 }: {
   query?: string;
   favoritesOnly?: boolean;
   visitedByMeOnly?: boolean;
+  sort?: "rating" | "recent" | "name";
+  offset?: number;
+  limit?: number;
 }) {
   const normalized = query.trim().toLocaleLowerCase("sv-SE");
-  const items = DEMO_PERSONAL_JOURNEY_PLACES.filter(
+  const latestVisitByPlace = new Map<string, string>();
+  for (const visit of DEMO_PERSONAL_JOURNEY_VISITS) {
+    const current = latestVisitByPlace.get(visit.placeId);
+    if (!current || visit.visitedOn > current)
+      latestVisitByPlace.set(visit.placeId, visit.visitedOn);
+  }
+  const matching = DEMO_PERSONAL_JOURNEY_PLACES.filter(
     (place) =>
       (!favoritesOnly || place.isFavorite) &&
       (!visitedByMeOnly || place.visitedByMe) &&
@@ -152,7 +173,28 @@ export function demoPersonalJourneyPlaces({
           .filter(Boolean)
           .some((value) => value!.toLocaleLowerCase("sv-SE").includes(normalized))),
   );
-  return { items, nextCursor: null };
+  matching.sort((left, right) => {
+    if (sort === "rating") {
+      return (
+        (right.rating ?? -1) - (left.rating ?? -1) ||
+        right.reviewCount - left.reviewCount ||
+        left.name.localeCompare(right.name, "sv")
+      );
+    }
+    if (sort === "recent") {
+      return (
+        (latestVisitByPlace.get(right.id) ?? "").localeCompare(
+          latestVisitByPlace.get(left.id) ?? "",
+        ) || left.name.localeCompare(right.name, "sv")
+      );
+    }
+    return left.name.localeCompare(right.name, "sv");
+  });
+  const items = matching.slice(offset, offset + limit);
+  return {
+    items,
+    nextOffset: offset + limit < matching.length ? offset + limit : null,
+  };
 }
 
 export function demoPersonalJourneyVisits(participatedOnly: boolean) {

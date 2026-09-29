@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(26);
+SELECT plan(32);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data)
 VALUES
@@ -209,6 +209,24 @@ SELECT ok(
 );
 
 SELECT ok(
+  pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.get_personal_journey_overview_v2()',
+    'EXECUTE'
+  ),
+  'authenticated can execute the personal insight overview'
+);
+
+SELECT ok(
+  NOT pg_catalog.has_function_privilege(
+    'anon',
+    'public.list_personal_journey_places_v2(text,boolean,boolean,text,integer,integer)',
+    'EXECUTE'
+  ),
+  'anon cannot execute the sortable personal place list'
+);
+
+SELECT ok(
   NOT pg_catalog.has_function_privilege(
     'authenticated', 'public.personal_journey_effective_review_overall_v1(uuid)', 'EXECUTE'
   ),
@@ -262,6 +280,31 @@ SELECT is(
   jsonb_array_length(public.get_personal_journey_overview_v1()->'pendingReviews'),
   1,
   'a pending own review appears once across groups'
+);
+
+SELECT is(
+  jsonb_array_length(public.get_personal_journey_overview_v2()->'topRatedPlaces'),
+  1,
+  'the personal overview shows only rated readable places as top rated'
+);
+
+SELECT is(
+  public.get_personal_journey_overview_v2()->'topRatedPlaces'->0->>'id',
+  '10920000-0000-4000-8000-000000000001',
+  'the highest-rated section uses the canonical readable place'
+);
+
+SELECT is(
+  public.list_personal_journey_places_v2(NULL, false, false, 'rating', 0, 1)->>'nextOffset',
+  '1',
+  'sortable place pagination returns the next offset when more rows exist'
+);
+
+SELECT throws_ok(
+  $$SELECT public.list_personal_journey_places_v2(NULL, false, false, 'hemlig', 0, 20)$$,
+  'P0001',
+  'Ogiltig sortering',
+  'unknown personal place sorts are rejected server-side'
 );
 
 SELECT is(

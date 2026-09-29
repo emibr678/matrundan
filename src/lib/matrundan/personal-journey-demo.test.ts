@@ -11,6 +11,11 @@ describe("Min matresa-demo", () => {
   test("täcker flera grupper, deduplicerad kontext och arkiverad historik", () => {
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.summary.readableGroupCount).toBe(3);
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.summary.activeGroupCount).toBe(2);
+    expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.topRatedPlaces.map((place) => place.name)).toEqual([
+      "Bageri Solsidan",
+      "Kvartersbordet",
+      "Nudelhörnan",
+    ]);
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.favoritePlaces[0].groups.length).toBe(2);
     expect(
       DEMO_PERSONAL_JOURNEY_OVERVIEW.favoritePlaces.some((place) =>
@@ -28,5 +33,23 @@ describe("Min matresa-demo", () => {
     expect(demoPersonalJourneyVisit("10930000-0000-4000-8000-000000000001")?.reviews).toHaveLength(
       1,
     );
+  });
+
+  test("sorterar hela tvärgruppslistan begripligt", () => {
+    expect(demoPersonalJourneyPlaces({ sort: "rating" }).items.map((place) => place.name)).toEqual([
+      "Bageri Solsidan",
+      "Kvartersbordet",
+      "Nudelhörnan",
+    ]);
+    expect(demoPersonalJourneyPlaces({ sort: "recent" }).items.map((place) => place.name)).toEqual([
+      "Kvartersbordet",
+      "Bageri Solsidan",
+      "Nudelhörnan",
+    ]);
+    expect(demoPersonalJourneyPlaces({ sort: "name" }).items.map((place) => place.name)).toEqual([
+      "Bageri Solsidan",
+      "Kvartersbordet",
+      "Nudelhörnan",
+    ]);
   });
 });

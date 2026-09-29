@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, CalendarDays, Heart, MessageSquarePlus, RotateCcw } from "lucide-react";
+import { ArrowRight, CalendarDays, Heart, MessageSquarePlus, RotateCcw, Star } from "lucide-react";
 import {
   PersonalJourneyPlaceCard,
   PersonalJourneyVisitCard,
@@ -33,12 +33,12 @@ function summaryText(visitCount: number, placeCount: number, groupCount: number)
   if (visitCount === 0) {
     return groupCount === 1
       ? "Din matresa börjar när du deltar i ett besök med gruppen."
-      : `Din matresa samlar sådant du gör i dina ${groupCount} grupper.`;
+      : `Din matresa börjar när du deltar i ett besök i någon av dina ${groupCount} grupper.`;
   }
   const visits = `${visitCount} ${visitCount === 1 ? "besök" : "besök"}`;
   const places = `${placeCount} ${placeCount === 1 ? "matställe" : "matställen"}`;
   const groups = `${groupCount} ${groupCount === 1 ? "grupp" : "grupper"}`;
-  return `Du har varit med på ${visits} på ${places}, samlat från ${groups}.`;
+  return `${visits} på ${places} · ${groups}`;
 }
 
 function PersonalJourneyOverview() {
@@ -96,6 +96,10 @@ function PersonalJourneyOverview() {
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">Personligt</p>
         <h1 className="mt-1 font-display text-3xl font-semibold md:text-4xl">Min matresa</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Här samlas ställena ni uppskattat mest, sådant du behöver följa upp och din senaste
+          gemensamma mathistorik.
+        </p>
+        <p className="mt-2 text-xs font-medium text-muted-foreground">
           {summaryText(
             data.summary.attendedVisitCount,
             data.summary.attendedPlaceCount,
@@ -146,41 +150,37 @@ function PersonalJourneyOverview() {
         </section>
       ) : null}
 
-      <section aria-labelledby="favorite-places-heading">
-        <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Heart className="h-4 w-4 fill-primary text-primary" aria-hidden="true" />
-            <h2 id="favorite-places-heading" className="font-display text-xl font-semibold">
-              Mina favoriter
-            </h2>
+      {data.topRatedPlaces.length > 0 ? (
+        <section aria-labelledby="top-rated-places-heading">
+          <div className="mb-2 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <Star className="h-4 w-4 fill-primary text-primary" aria-hidden="true" />
+              <h2 id="top-rated-places-heading" className="font-display text-xl font-semibold">
+                Högst betyg i dina grupper
+              </h2>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="ml-auto shrink-0 rounded-full">
+              <Link to="/min-matresa/matstallen" search={{ sort: "rating" }}>
+                Visa alla <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
-          <Button asChild variant="ghost" size="sm" className="rounded-full">
-            <Link to="/min-matresa/matstallen" search={{ favorites: true }}>
-              Visa alla <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
-        {data.favoritePlaces.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {data.favoritePlaces.map((place) => (
+            {data.topRatedPlaces.map((place) => (
               <PersonalJourneyPlaceCard
                 key={place.id}
                 place={place}
                 onOpen={() =>
                   void navigate({
                     to: "/min-matresa/matstallen",
-                    search: { place: place.id, favorites: true },
+                    search: { place: place.id, sort: "rating" },
                   })
                 }
               />
             ))}
           </div>
-        ) : (
-          <Card className="rounded-2xl border-dashed p-5 text-sm text-muted-foreground">
-            Favoriter du sparar i dina grupper samlas här.
-          </Card>
-        )}
-      </section>
+        </section>
+      ) : null}
 
       <section aria-labelledby="recent-visits-heading">
         <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
@@ -214,6 +214,38 @@ function PersonalJourneyOverview() {
           </Card>
         )}
       </section>
+
+      {data.favoritePlaces.length > 0 ? (
+        <section aria-labelledby="favorite-places-heading">
+          <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Heart className="h-4 w-4 fill-primary text-primary" aria-hidden="true" />
+              <h2 id="favorite-places-heading" className="font-display text-xl font-semibold">
+                Mina favoriter
+              </h2>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="rounded-full">
+              <Link to="/min-matresa/matstallen" search={{ favorites: true }}>
+                Visa alla <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {data.favoritePlaces.map((place) => (
+              <PersonalJourneyPlaceCard
+                key={place.id}
+                place={place}
+                onOpen={() =>
+                  void navigate({
+                    to: "/min-matresa/matstallen",
+                    search: { place: place.id, favorites: true },
+                  })
+                }
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

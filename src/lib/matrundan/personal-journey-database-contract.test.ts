@@ -7,6 +7,10 @@ const migration = readFileSync(
   resolve(root, "supabase/migrations/20260928211500_personal_journey_read_model_v1.sql"),
   "utf8",
 );
+const insightsMigration = readFileSync(
+  resolve(root, "supabase/migrations/20260929055634_personal_journey_insights_v1.sql"),
+  "utf8",
+);
 const preflight = readFileSync(
   resolve(root, "supabase/production-preflight-personal-journey.sql"),
   "utf8",
@@ -49,5 +53,24 @@ describe("Min matresa-databaskontrakt", () => {
     expect(preflight).toContain("PRIMARY KEY (user_id, place_id, group_id)");
     expect(preflight).toContain("trg_visit_media_personal_journey_visibility");
     expect(preflight).toContain("authenticated");
+  });
+
+  test("rangordnar synliga unika omdömen utan dold viktning", () => {
+    expect(insightsMigration).toContain("SELECT DISTINCT\n      visit.place_id,\n      review.id");
+    expect(insightsMigration).toContain("candidate.rating END DESC NULLS LAST");
+    expect(insightsMigration).toContain("candidate.review_count END DESC");
+    expect(insightsMigration).not.toContain("bayes");
+  });
+
+  test("ger översikten tre topprankade ställen och tre senaste besök", () => {
+    expect(insightsMigration).toContain("'topRatedPlaces', _top_rated");
+    expect(insightsMigration).toContain("'recentVisits', _recent_visits");
+    expect(insightsMigration).toContain("item.ordinality <= 3");
+  });
+
+  test("låser de nya läs-RPC:erna till autentiserade användare", () => {
+    expect(insightsMigration).toContain("FROM PUBLIC, anon;");
+    expect(insightsMigration).toContain("TO authenticated, service_role;");
+    expect(insightsMigration).toContain("_uid uuid := auth.uid()");
   });
 });
