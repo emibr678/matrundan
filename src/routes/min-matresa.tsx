@@ -40,15 +40,13 @@ function PersonalJourneyLayout() {
   const { mode, exampleMode, activeGroupId, userGroups, selectGroup } = useSession();
   const navigationState = getPersonalJourneyNavigationState(location.state);
   const returnContext = navigationState.returnContext;
-  const activeGroup =
-    mode === "live" ? (userGroups.find((group) => group.id === activeGroupId) ?? null) : null;
+  const availableGroups = mode === "live" ? userGroups : [];
+  const activeGroup = availableGroups.find((group) => group.id === activeGroupId) ?? null;
   const fallbackGroup =
-    mode === "live"
-      ? (activeGroup ??
-          userGroups.find((group) => group.lifecycleStatus === "active") ??
-          userGroups[0] ??
-          null)
-      : null;
+    activeGroup ??
+    availableGroups.find((group) => group.lifecycleStatus === "active") ??
+    availableGroups[0] ??
+    null;
   const groupName = activeGroup?.name ?? fallbackGroup?.name ?? state.group.name ?? "gruppen";
 
   function keepReturnContext(previous: typeof location.state) {
@@ -59,10 +57,9 @@ function PersonalJourneyLayout() {
   }
 
   function exitPersonalJourney() {
-    const storedGroup =
-      mode === "live" && returnContext?.groupId
-        ? (userGroups.find((group) => group.id === returnContext.groupId) ?? null)
-        : null;
+    const storedGroup = returnContext?.groupId
+      ? availableGroups.find((group) => group.id === returnContext.groupId)
+      : undefined;
     const canUseStoredReturn = Boolean(
       returnContext && (mode === "demo" || (mode === "live" && storedGroup)),
     );
