@@ -47,7 +47,7 @@ test("rapporten lämnar gruppens privata arbetskö och hanteras centralt", async
   await page.getByRole("button", { name: "Rapportera felaktig information" }).click();
   const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktig uppgift" });
   await expect(
-    reportDialog.getByText(/Du lämnar ett underlag till gruppens ägare och administratörer/),
+    reportDialog.getByText(/Du skickar en privat rapport till gruppens ägare och administratörer/),
   ).toBeVisible();
   await reportDialog.getByLabel("Vad gäller uppgiften?").selectOption("wrong_website");
   await reportDialog

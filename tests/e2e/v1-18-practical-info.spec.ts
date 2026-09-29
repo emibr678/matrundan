@@ -318,7 +318,7 @@ test("nya uppgifter jämförs med verkliga värden innan gruppen väljer", async
   await expect(comparison.getByText("12–23", { exact: true }).first()).toBeVisible();
   await expect(comparison.getByText("11–22", { exact: true }).first()).toBeVisible();
   await comparison.getByRole("button", { name: "Använd hittad webbplats" }).click();
-  await comparison.getByRole("button", { name: "Använd kartdatans öppettider" }).click();
+  await comparison.getByRole("button", { name: "Använd hittade öppettider" }).click();
   await page.keyboard.press("Escape");
   await expect(comparison).toBeHidden();
 
