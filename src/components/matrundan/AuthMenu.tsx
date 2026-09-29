@@ -46,9 +46,11 @@ import {
   type MyGroupInvitation,
 } from "@/lib/matrundan/live-admin";
 import {
-  groupPathForPersonalJourney,
+  createPersonalJourneyReturnContext,
+  getPersonalJourneyNavigationState,
+  groupHomePath,
+  isPersonalJourneyPath,
   personalJourneyDemoSearch,
-  personalJourneyPathFor,
 } from "@/lib/matrundan/personal-journey-routes";
 
 const QUICK_GROUP_LIMIT = 4;
@@ -136,13 +138,11 @@ export function AuthMenu({
   groupName: suppliedGroupName,
   groupEmoji: suppliedGroupEmoji,
   groupLifecycleStatus: suppliedGroupLifecycleStatus = "active",
-  personalJourney = false,
 }: {
   exampleMode?: boolean;
   groupName?: string;
   groupEmoji?: string | null;
   groupLifecycleStatus?: "active" | "archived";
-  personalJourney?: boolean;
 }) {
   const {
     user,
@@ -158,7 +158,8 @@ export function AuthMenu({
     refreshPendingGroupInvitations: refreshPendingInvites,
   } = useSession();
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const location = useRouterState({ select: (state) => state.location });
+  const personalJourney = isPersonalJourneyPath(location.pathname);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -251,16 +252,27 @@ export function AuthMenu({
   }
 
   function openPersonalJourney() {
+    const existing = getPersonalJourneyNavigationState(location.state);
+    const returnContext = personalJourney
+      ? existing.returnContext
+      : createPersonalJourneyReturnContext(location.href, activeGroupId);
     void navigate({
-      to: personalJourneyPathFor(pathname),
+      to: "/min-matresa",
       search: personalJourneyDemoSearch(mode),
+      state: (previous) => ({
+        ...previous,
+        personalJourney: returnContext ? { returnContext } : undefined,
+      }),
     });
   }
 
   function openGroup(groupId: string) {
     selectGroup(groupId);
     if (personalJourney) {
-      void navigate({ to: groupPathForPersonalJourney(pathname, exampleMode) });
+      void navigate({
+        to: groupHomePath(exampleMode),
+        state: (previous) => ({ ...previous, personalJourney: undefined }),
+      });
     }
   }
 
@@ -297,10 +309,8 @@ export function AuthMenu({
   }
 
   if (!user) {
-    const groupName = personalJourney
-      ? "Min matresa"
-      : suppliedGroupName || (exampleMode ? "Exempelgrupp" : "Demo");
-    const groupEmoji = personalJourney ? "🧭" : (suppliedGroupEmoji ?? "🍽️");
+    const groupName = suppliedGroupName || (exampleMode ? "Exempelgrupp" : "Demo");
+    const groupEmoji = suppliedGroupEmoji ?? "🍽️";
     return (
       <>
         <DropdownMenu>
@@ -308,9 +318,7 @@ export function AuthMenu({
             <Button
               size="sm"
               variant="outline"
-              aria-label={
-                personalJourney ? "Profil och vy: Min matresa" : `Profil och grupp: ${groupName}`
-              }
+              aria-label={`Profil och grupp: ${groupName}`}
               className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem]"
             >
               <span className="shrink-0">{groupEmoji}</span>
@@ -327,26 +335,28 @@ export function AuthMenu({
             </DropdownMenuLabel>
             {exampleMode ? (
               <>
+                <DropdownMenuItem onSelect={openPersonalJourney}>
+                  <Compass className="mr-2 h-4 w-4" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block">Min matresa</span>
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      Exempel från flera grupper
+                    </span>
+                  </span>
+                </DropdownMenuItem>
                 {personalJourney ? (
                   <DropdownMenuItem
                     onSelect={() =>
-                      void navigate({ to: groupPathForPersonalJourney(pathname, true) })
+                      void navigate({
+                        to: "/exempel",
+                        state: (previous) => ({ ...previous, personalJourney: undefined }),
+                      })
                     }
                   >
                     <span className="mr-2">{suppliedGroupEmoji ?? "🍽️"}</span>
                     Öppna exempelgruppen
                   </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onSelect={openPersonalJourney}>
-                    <Compass className="mr-2 h-4 w-4" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block">Min matresa</span>
-                      <span className="block text-xs font-normal text-muted-foreground">
-                        Exempel från flera grupper
-                      </span>
-                    </span>
-                  </DropdownMenuItem>
-                )}
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={exitExampleMode}>
                   <Home className="mr-2 h-4 w-4" />
@@ -388,21 +398,15 @@ export function AuthMenu({
   const quickGroups = buildQuickGroups(userGroups, activeGroupId, recentGroupIds);
   const showAllGroups = activeGroupCount > QUICK_GROUP_LIMIT || hasArchivedGroups;
   const useSuppliedGroup = exampleMode || mode === "demo" || !activeGroup;
-  const groupName = personalJourney
-    ? "Min matresa"
-    : useSuppliedGroup
-      ? (suppliedGroupName ?? activeGroup?.name ?? "Grupp")
-      : activeGroup.name;
-  const groupEmoji = personalJourney
-    ? "🧭"
-    : useSuppliedGroup
-      ? (suppliedGroupEmoji ?? activeGroup?.emoji ?? "🍽️")
-      : (activeGroup.emoji ?? "🍽️");
-  const groupArchived =
-    !personalJourney &&
-    (useSuppliedGroup
-      ? suppliedGroupLifecycleStatus === "archived"
-      : activeGroup.lifecycleStatus === "archived");
+  const groupName = useSuppliedGroup
+    ? (suppliedGroupName ?? activeGroup?.name ?? "Grupp")
+    : activeGroup.name;
+  const groupEmoji = useSuppliedGroup
+    ? (suppliedGroupEmoji ?? activeGroup?.emoji ?? "🍽️")
+    : (activeGroup.emoji ?? "🍽️");
+  const groupArchived = useSuppliedGroup
+    ? suppliedGroupLifecycleStatus === "archived"
+    : activeGroup.lifecycleStatus === "archived";
 
   return (
     <>
@@ -411,9 +415,7 @@ export function AuthMenu({
           <Button
             size="sm"
             variant="outline"
-            aria-label={
-              personalJourney ? "Profil och vy: Min matresa" : `Profil och grupp: ${groupName}`
-            }
+            aria-label={`Profil och grupp: ${groupName}`}
             className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem] md:max-w-[18rem]"
           >
             <span className="shrink-0">{groupEmoji}</span>
@@ -477,10 +479,7 @@ export function AuthMenu({
           {exampleMode || mode === "live" ? (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={openPersonalJourney}
-                className={personalJourney ? "font-semibold" : undefined}
-              >
+              <DropdownMenuItem onSelect={openPersonalJourney}>
                 <Compass className="mr-2 h-4 w-4" />
                 <span className="min-w-0 flex-1">
                   <span className="block">Min matresa</span>
@@ -488,9 +487,6 @@ export function AuthMenu({
                     Samlat från dina grupper
                   </span>
                 </span>
-                {personalJourney ? (
-                  <Check className="ml-2 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                ) : null}
               </DropdownMenuItem>
             </>
           ) : null}
@@ -498,13 +494,13 @@ export function AuthMenu({
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                {personalJourney ? "Öppna grupp" : "Byt grupp"}
+                Byt grupp
               </DropdownMenuLabel>
               {quickGroups.map((group) => (
                 <GroupMenuItem
                   key={group.id}
                   group={group}
-                  activeGroupId={personalJourney ? null : activeGroupId}
+                  activeGroupId={activeGroupId}
                   onSelect={openGroup}
                 />
               ))}
@@ -543,9 +539,8 @@ export function AuthMenu({
         open={allGroupsOpen}
         onOpenChange={setAllGroupsOpen}
         groups={userGroups}
-        activeGroupId={personalJourney ? null : activeGroupId}
+        activeGroupId={activeGroupId}
         onSelect={openGroup}
-        personalJourney={personalJourney}
         onSelectPersonalJourney={openPersonalJourney}
         invitations={pendingInvites}
         onAcceptInvitation={acceptPendingInvitation}

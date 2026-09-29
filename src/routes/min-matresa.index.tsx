@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowRight, CalendarDays, Heart, MessageSquarePlus, RotateCcw, Star } from "lucide-react";
 import {
   PersonalJourneyPlaceCard,
@@ -13,6 +13,7 @@ import {
   type PersonalJourneyPendingReview,
 } from "@/lib/matrundan/personal-journey";
 import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
+import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
 import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
 
@@ -43,7 +44,9 @@ function summaryText(visitCount: number, placeCount: number, groupCount: number)
 
 function PersonalJourneyOverview() {
   const navigate = useNavigate();
-  const { mode, selectGroup } = useSession();
+  const location = useRouterState({ select: (state) => state.location });
+  const navigationState = getPersonalJourneyNavigationState(location.state);
+  const { mode, activeGroupId, selectGroup } = useSession();
   const overview = useQuery({
     queryKey: ["personal-journey", "overview", mode],
     retry: false,
@@ -56,20 +59,25 @@ function PersonalJourneyOverview() {
   function openPendingReview(item: PersonalJourneyPendingReview) {
     const target = item.groups.find((group) => group.isWritable);
     if (!target) return;
+    const sourceGroupId = activeGroupId;
     selectGroup(target.groupId);
     void navigate({
       to: "/besok",
       search: { visit: item.visitId, group: target.groupId, from: "min-matresa" },
+      state: (previous) => ({
+        ...previous,
+        personalJourney: {
+          returnContext: navigationState.returnContext,
+          resumeHref: location.href,
+          sourceGroupId,
+        },
+      }),
     });
   }
 
   if (overview.isPending) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 pb-6 pt-3" aria-busy="true">
-        <header>
-          <h1 className="font-display text-3xl font-semibold">Min matresa</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Samlat från dina grupper.</p>
-        </header>
+      <div className="mx-auto max-w-3xl space-y-4 pb-6 pt-5" aria-busy="true">
         <Card className="animate-pulse rounded-2xl border-border/70 p-6 text-sm text-muted-foreground">
           Hämtar din matresa…
         </Card>
@@ -80,7 +88,7 @@ function PersonalJourneyOverview() {
   if (overview.isError) {
     return (
       <div className="mx-auto max-w-xl space-y-4 pb-6 pt-6 text-center">
-        <h1 className="font-display text-2xl font-semibold">Min matresa kunde inte hämtas</h1>
+        <h2 className="font-display text-2xl font-semibold">Översikten kunde inte hämtas</h2>
         <p className="text-sm text-muted-foreground">Försök igen. Dina gruppdata påverkas inte.</p>
         <Button type="button" variant="outline" onClick={() => void overview.refetch()}>
           <RotateCcw className="h-4 w-4" /> Försök igen
@@ -91,11 +99,9 @@ function PersonalJourneyOverview() {
 
   const data = overview.data;
   return (
-    <div className="mx-auto max-w-3xl space-y-7 pb-6 pt-3">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">Personligt</p>
-        <h1 className="mt-1 font-display text-3xl font-semibold md:text-4xl">Min matresa</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+    <div className="mx-auto max-w-3xl space-y-7 pb-6 pt-5">
+      <div>
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Här samlas ställena ni uppskattat mest, sådant du behöver följa upp och din senaste
           gemensamma mathistorik.
         </p>
@@ -106,7 +112,7 @@ function PersonalJourneyOverview() {
             data.summary.readableGroupCount,
           )}
         </p>
-      </header>
+      </div>
 
       {data.pendingReviews.length > 0 ? (
         <section aria-labelledby="pending-reviews-heading">
@@ -160,7 +166,11 @@ function PersonalJourneyOverview() {
               </h2>
             </div>
             <Button asChild variant="ghost" size="sm" className="ml-auto shrink-0 rounded-full">
-              <Link to="/min-matresa/matstallen" search={{ sort: "rating" }}>
+              <Link
+                to="/min-matresa/matstallen"
+                search={{ sort: "rating" }}
+                state={(previous) => previous}
+              >
                 Visa alla <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -174,6 +184,7 @@ function PersonalJourneyOverview() {
                   void navigate({
                     to: "/min-matresa/matstallen",
                     search: { place: place.id, sort: "rating" },
+                    state: (previous) => previous,
                   })
                 }
               />
@@ -191,7 +202,7 @@ function PersonalJourneyOverview() {
             </h2>
           </div>
           <Button asChild variant="ghost" size="sm" className="rounded-full">
-            <Link to="/min-matresa/besok">
+            <Link to="/min-matresa/besok" state={(previous) => previous}>
               Visa alla <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -203,7 +214,11 @@ function PersonalJourneyOverview() {
                 key={visit.id}
                 visit={visit}
                 onOpen={() =>
-                  void navigate({ to: "/min-matresa/besok", search: { visit: visit.id } })
+                  void navigate({
+                    to: "/min-matresa/besok",
+                    search: { visit: visit.id },
+                    state: (previous) => previous,
+                  })
                 }
               />
             ))}
@@ -225,7 +240,11 @@ function PersonalJourneyOverview() {
               </h2>
             </div>
             <Button asChild variant="ghost" size="sm" className="rounded-full">
-              <Link to="/min-matresa/matstallen" search={{ favorites: true }}>
+              <Link
+                to="/min-matresa/matstallen"
+                search={{ favorites: true }}
+                state={(previous) => previous}
+              >
                 Visa alla <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -239,6 +258,7 @@ function PersonalJourneyOverview() {
                   void navigate({
                     to: "/min-matresa/matstallen",
                     search: { place: place.id, favorites: true },
+                    state: (previous) => previous,
                   })
                 }
               />

@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Archive, CalendarDays, Home, Info, MapPin, RotateCcw, Users } from "lucide-react";
+import { Archive, Home, Info, MapPin, RotateCcw, Users } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { AuthMenu } from "@/components/matrundan/AuthMenu";
@@ -18,36 +18,20 @@ const NAV = [
   { to: "/gruppen", label: "Gruppen", icon: Users },
 ] as const;
 
-const PERSONAL_NAV = [
-  { to: "/min-matresa", label: "Översikt", icon: Home },
-  { to: "/min-matresa/matstallen", label: "Matställen", icon: MapPin },
-  { to: "/min-matresa/besok", label: "Besök", icon: CalendarDays },
-] as const;
-
-type NavTarget =
-  | "/"
-  | "/exempel"
-  | "/matstallen"
-  | "/gruppen"
-  | "/min-matresa"
-  | "/min-matresa/matstallen"
-  | "/min-matresa/besok";
+type NavTarget = "/" | "/exempel" | "/matstallen" | "/gruppen";
 
 export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
   const { state, resetDemo } = useStore();
   const { exitExampleMode } = useSession();
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
   const personalJourney = isPersonalJourneyPath(pathname);
-  const navigation = personalJourney ? PERSONAL_NAV : NAV;
   const [createGroupOpen, setCreateGroupOpen] = React.useState(false);
   const homeTarget: NavTarget = exampleMode ? "/exempel" : "/";
-  const targetFor = (to: NavTarget): NavTarget => (to === "/" ? homeTarget : to);
+  const targetFor = (to: (typeof NAV)[number]["to"]): NavTarget => (to === "/" ? homeTarget : to);
   const isActive = (to: string) =>
-    to === "/min-matresa"
-      ? pathname === "/min-matresa"
-      : to === "/"
-        ? pathname === "/" || pathname === "/besok" || (exampleMode && pathname === "/exempel")
-        : pathname.startsWith(to);
+    to === "/"
+      ? pathname === "/" || pathname === "/besok" || (exampleMode && pathname === "/exempel")
+      : pathname.startsWith(to);
   const archived = state.group.lifecycleStatus === "archived";
   const currentMember = state.members.find((member) => member.id === state.currentUserId);
   const brand = <MatrundanBrand />;
@@ -61,7 +45,12 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
 
   return (
     <div className="paper-grain min-h-dvh text-foreground">
-      <div className="mx-auto flex min-h-dvh max-w-6xl flex-col pb-24 md:pb-8">
+      <div
+        className={[
+          "mx-auto flex min-h-dvh max-w-6xl flex-col md:pb-8",
+          personalJourney ? "pb-8" : "pb-24",
+        ].join(" ")}
+      >
         <header className="flex items-center justify-between gap-2 px-4 pb-3 pt-6 md:gap-4 md:px-5 md:pt-8">
           <div className="flex min-w-0 flex-col items-start gap-1 md:flex-row md:items-center md:gap-1.5">
             {exampleMode ? (
@@ -84,7 +73,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
           </div>
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Huvudmeny">
-            {navigation.map((item) => {
+            {NAV.map((item) => {
               const active = isActive(item.to);
               const Icon = item.icon;
               return (
@@ -112,7 +101,6 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
               groupName={state.group.name}
               groupEmoji={state.group.emoji}
               groupLifecycleStatus={state.group.lifecycleStatus}
-              personalJourney={personalJourney}
             />
           </div>
         </header>
@@ -169,31 +157,33 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
         </main>
       </div>
 
-      <nav
-        aria-label="Huvudmeny"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/85 backdrop-blur-md md:hidden"
-      >
-        <div className="mx-auto grid max-w-2xl grid-cols-3">
-          {navigation.map((item) => {
-            const active = isActive(item.to);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={targetFor(item.to)}
-                aria-current={active ? "page" : undefined}
-                className={[
-                  "flex min-h-11 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
-                ].join(" ")}
-              >
-                <Icon className={["h-5 w-5", active ? "stroke-[2.4]" : "stroke-[1.8]"].join(" ")} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      {!personalJourney ? (
+        <nav
+          aria-label="Huvudmeny"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/85 backdrop-blur-md md:hidden"
+        >
+          <div className="mx-auto grid max-w-2xl grid-cols-3">
+            {NAV.map((item) => {
+              const active = isActive(item.to);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={targetFor(item.to)}
+                  aria-current={active ? "page" : undefined}
+                  className={[
+                    "flex min-h-11 flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors",
+                    active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  ].join(" ")}
+                >
+                  <Icon className={["h-5 w-5", active ? "stroke-[2.4]" : "stroke-[1.8]"].join(" ")} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
 
       <CreateGroupAuthDialog open={createGroupOpen} onOpenChange={setCreateGroupOpen} />
     </div>

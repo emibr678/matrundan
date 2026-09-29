@@ -1,5 +1,10 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { createFileRoute, stripSearchParams, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  stripSearchParams,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { CalendarDays, MessageSquarePlus, RotateCcw, UserRoundCheck } from "lucide-react";
 import { z } from "zod";
@@ -24,6 +29,7 @@ import {
   demoPersonalJourneyVisit,
   demoPersonalJourneyVisits,
 } from "@/lib/matrundan/personal-journey-demo";
+import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
 import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
 import { visitMealLabel } from "@/lib/matrundan/visit-context";
@@ -53,7 +59,9 @@ export const Route = createFileRoute("/min-matresa/besok")({
 function PersonalJourneyVisits() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/min-matresa/besok" });
-  const { mode, selectGroup } = useSession();
+  const location = useRouterState({ select: (state) => state.location });
+  const navigationState = getPersonalJourneyNavigationState(location.state);
+  const { mode, activeGroupId, selectGroup } = useSession();
   const visits = useInfiniteQuery({
     queryKey: ["personal-journey", "visits", mode, search.participated],
     retry: false,
@@ -76,6 +84,7 @@ function PersonalJourneyVisits() {
   });
 
   function openInGroup(visitId: string, groupId: string, reviewFlow = false) {
+    const sourceGroupId = activeGroupId;
     selectGroup(groupId);
     void navigate({
       to: "/besok",
@@ -84,13 +93,23 @@ function PersonalJourneyVisits() {
         group: groupId,
         from: reviewFlow ? "min-matresa" : undefined,
       },
+      state: reviewFlow
+        ? (previous) => ({
+            ...previous,
+            personalJourney: {
+              returnContext: navigationState.returnContext,
+              resumeHref: location.href,
+              sourceGroupId,
+            },
+          })
+        : (previous) => ({ ...previous, personalJourney: undefined }),
     });
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 pb-6 pt-3">
       <header>
-        <h1 className="font-display text-3xl font-semibold">Mina besök</h1>
+        <h2 className="font-display text-2xl font-semibold md:text-3xl">Mina besök</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Samma besök visas bara en gång, även när det delas mellan flera grupper.
         </p>
@@ -109,7 +128,10 @@ function PersonalJourneyVisits() {
           <Switch
             checked={search.participated}
             onCheckedChange={(checked) =>
-              void navigate({ search: { participated: checked, visit: undefined } })
+              void navigate({
+                search: { participated: checked, visit: undefined },
+                state: (previous) => previous,
+              })
             }
             aria-label="Visa bara besök jag deltog i"
           />
@@ -147,7 +169,12 @@ function PersonalJourneyVisits() {
               <PersonalJourneyVisitCard
                 key={visit.id}
                 visit={visit}
-                onOpen={() => void navigate({ search: { ...search, visit: visit.id } })}
+                onOpen={() =>
+                  void navigate({
+                    search: { ...search, visit: visit.id },
+                    state: (previous) => previous,
+                  })
+                }
               />
             ))}
           </div>
@@ -169,7 +196,12 @@ function PersonalJourneyVisits() {
       <Dialog
         open={Boolean(search.visit)}
         onOpenChange={(open) => {
-          if (!open) void navigate({ search: { ...search, visit: undefined } });
+          if (!open) {
+            void navigate({
+              search: { ...search, visit: undefined },
+              state: (previous) => previous,
+            });
+          }
         }}
       >
         <DialogContent>

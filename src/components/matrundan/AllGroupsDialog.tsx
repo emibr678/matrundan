@@ -76,7 +76,6 @@ export function AllGroupsDialog({
   invitations = [],
   onAcceptInvitation,
   onDeclineInvitation,
-  personalJourney = false,
   onSelectPersonalJourney,
 }: {
   open: boolean;
@@ -87,7 +86,6 @@ export function AllGroupsDialog({
   invitations?: MyGroupInvitation[];
   onAcceptInvitation?: (invitation: MyGroupInvitation) => Promise<void>;
   onDeclineInvitation?: (invitation: MyGroupInvitation) => Promise<void>;
-  personalJourney?: boolean;
   onSelectPersonalJourney?: () => void;
 }) {
   const titleRef = React.useRef<HTMLHeadingElement>(null);
@@ -147,12 +145,12 @@ export function AllGroupsDialog({
       >
         <DialogHeader className="px-5 pb-2 pt-5 text-left">
           <DialogTitle ref={titleRef} tabIndex={-1} className="outline-none">
-            Min matresa och grupper
+            Dina grupper
           </DialogTitle>
           <DialogDescription>
             {invitations.length > 0
               ? "Svara på inbjudningar eller välj vad du vill öppna."
-              : "Välj din personliga översikt eller en grupp."}
+              : "Välj en grupp eller öppna din samlade matresa."}
           </DialogDescription>
         </DialogHeader>
 
@@ -168,20 +166,11 @@ export function AllGroupsDialog({
               <button
                 type="button"
                 onClick={selectPersonalJourney}
-                aria-current={personalJourney ? "page" : undefined}
                 className="flex w-full min-w-0 items-start gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-3 py-3 text-left transition hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Compass className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 font-medium">Min matresa</span>
-                    {personalJourney ? (
-                      <span className="inline-flex shrink-0 items-center gap-1 text-xs text-primary">
-                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                        Nuvarande
-                      </span>
-                    ) : null}
-                  </span>
+                  <span className="block font-medium">Min matresa</span>
                   <span className="mt-1 block text-sm leading-snug text-muted-foreground">
                     Samlat från dina grupper
                   </span>

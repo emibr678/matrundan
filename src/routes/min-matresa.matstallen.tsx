@@ -108,13 +108,16 @@ function PersonalJourneyPlaces() {
   });
 
   function updateFilters(next: Partial<typeof search>) {
-    void navigate({ search: { ...search, ...next, place: undefined } });
+    void navigate({
+      search: { ...search, ...next, place: undefined },
+      state: (previous) => previous,
+    });
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 pb-6 pt-3">
       <header>
-        <h1 className="font-display text-3xl font-semibold">Mina matställen</h1>
+        <h2 className="font-display text-2xl font-semibold md:text-3xl">Mina matställen</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Ett ställe visas en gång, även när det finns i flera av dina grupper.
         </p>
@@ -222,7 +225,12 @@ function PersonalJourneyPlaces() {
               <PersonalJourneyPlaceCard
                 key={place.id}
                 place={place}
-                onOpen={() => void navigate({ search: { ...search, place: place.id } })}
+                onOpen={() =>
+                  void navigate({
+                    search: { ...search, place: place.id },
+                    state: (previous) => previous,
+                  })
+                }
               />
             ))}
           </div>
@@ -244,7 +252,12 @@ function PersonalJourneyPlaces() {
       <Dialog
         open={Boolean(search.place)}
         onOpenChange={(open) => {
-          if (!open) void navigate({ search: { ...search, place: undefined } });
+          if (!open) {
+            void navigate({
+              search: { ...search, place: undefined },
+              state: (previous) => previous,
+            });
+          }
         }}
       >
         <DialogContent>
@@ -307,6 +320,7 @@ function PersonalJourneyPlaces() {
                           void navigate({
                             to: "/matstallen/$placeId",
                             params: { placeId: detail.data!.id },
+                            state: (previous) => ({ ...previous, personalJourney: undefined }),
                           });
                         }}
                       >
