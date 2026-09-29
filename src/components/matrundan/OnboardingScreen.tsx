@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GroupSymbolPicker } from "@/components/matrundan/GroupSymbolPicker";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -14,8 +15,6 @@ import {
   type VerifiedSearchArea,
 } from "@/lib/matrundan/live-admin";
 import { GeoapifyLocationInput } from "@/components/matrundan/GeoapifyLocationInput";
-
-const EMOJIS = ["🍝", "🥐", "🍜", "🍔", "🥗", "🍣", "🌮", "🍕", "🍽️"];
 
 export function OnboardingScreen() {
   const { refreshGroups, selectGroup, signOut } = useSession();
@@ -99,27 +98,7 @@ export function OnboardingScreen() {
             </p>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Emoji</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {EMOJIS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  aria-pressed={emoji === e}
-                  onClick={() => setEmoji(e)}
-                  className={[
-                    "h-10 w-10 rounded-xl border text-xl transition",
-                    emoji === e
-                      ? "border-primary bg-primary/10"
-                      : "border-border/70 hover:bg-muted",
-                  ].join(" ")}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
+          <GroupSymbolPicker value={emoji} onChange={setEmoji} />
 
           <Collapsible open={locationOpen} onOpenChange={setLocationOpen}>
             <CollapsibleTrigger asChild>
