@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   groupPathForPersonalJourney,
   isPersonalJourneyPath,
+  personalJourneyDemoSearch,
   personalJourneyPathFor,
 } from "./personal-journey-routes";
 
@@ -23,5 +24,11 @@ describe("Min matresa-routes", () => {
     expect(groupPathForPersonalJourney("/min-matresa/matstallen")).toBe("/matstallen");
     expect(groupPathForPersonalJourney("/min-matresa/besok")).toBe("/besok");
     expect(groupPathForPersonalJourney("/min-matresa")).toBe("/");
+  });
+
+  test("behåller explicit demoläge genom den personliga navigationen", () => {
+    expect(personalJourneyDemoSearch("demo")).toEqual({ demo: "1" });
+    expect(personalJourneyDemoSearch("live")).toEqual({});
+    expect(personalJourneyDemoSearch("landing")).toEqual({});
   });
 });

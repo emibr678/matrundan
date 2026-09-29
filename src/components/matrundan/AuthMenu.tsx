@@ -47,6 +47,7 @@ import {
 } from "@/lib/matrundan/live-admin";
 import {
   groupPathForPersonalJourney,
+  personalJourneyDemoSearch,
   personalJourneyPathFor,
 } from "@/lib/matrundan/personal-journey-routes";
 
@@ -250,7 +251,10 @@ export function AuthMenu({
   }
 
   function openPersonalJourney() {
-    void navigate({ to: personalJourneyPathFor(pathname) });
+    void navigate({
+      to: personalJourneyPathFor(pathname),
+      search: personalJourneyDemoSearch(mode),
+    });
   }
 
   function openGroup(groupId: string) {
