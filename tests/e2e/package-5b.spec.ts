@@ -40,7 +40,9 @@ async function readExistingCount(dialog: Locator) {
 }
 
 async function selectForBulk(dialog: Locator, name: string) {
-  await dialog\n    .getByRole("checkbox", { name: `Välj ${name} för att lägga till flera`, exact: true })\n    .click();
+  await dialog
+    .getByRole("checkbox", { name: `Välj ${name} för att lägga till flera`, exact: true })
+    .click();
 }
 
 test("normalläget är enkelt och flera sökträffar kan väljas i ett separat läge", async ({
