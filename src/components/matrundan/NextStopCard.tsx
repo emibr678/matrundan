@@ -266,7 +266,7 @@ export function NextStopCard({
 
   async function randomProposal() {
     if (proposals.length >= 5) {
-      toast.info("Fem ställen står redan på tur.");
+      toast.info("Ni har redan fem ställen i planeringen.");
       return;
     }
 
@@ -276,7 +276,7 @@ export function NextStopCard({
     const pool = preferredPool.length > 0 ? preferredPool : fallbackPool;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (!pick) {
-      toast.info("Alla ställen i gruppens samling står redan på tur.");
+      toast.info("Alla ställen i gruppens samling finns redan i planeringen.");
       return;
     }
 
@@ -900,8 +900,8 @@ function CarouselArrow({
       ].join(" ")}
       aria-label={
         previous
-          ? `Föregående ställe på tur${placeName ? `: ${placeName}` : ""}`
-          : `Nästa ställe på tur${placeName ? `: ${placeName}` : ""}`
+          ? `Föregående ställe${placeName ? `: ${placeName}` : ""}`
+          : `Nästa ställe${placeName ? `: ${placeName}` : ""}`
       }
       onClick={onClick}
     >
@@ -925,7 +925,7 @@ function NextStopCarouselControls({
 }) {
   return (
     <div className="mt-2 flex min-h-9 items-center justify-center gap-2.5">
-      <div className="flex items-center" aria-label="Välj bland ställen på tur">
+      <div className="flex items-center" aria-label="Välj mellan nästa stopp och ställen på tur">
         {items.map((item, index) => {
           const active = index === activeIndex;
           const label =

@@ -215,8 +215,8 @@ export function PlaceSuggestionReportDialog({
               <span className="min-w-0 flex-1">
                 <span className="block font-medium">Rapportera felaktiga uppgifter</span>
                 <span className="mt-1 block text-xs font-normal leading-relaxed text-muted-foreground">
-                  Rapporten går till gruppens ägare och administratörer. Inget publiceras automatiskt till
-                  OpenStreetMap.
+                  Rapporten går till gruppens ägare och administratörer. Inget publiceras
+                  automatiskt till OpenStreetMap.
                 </span>
               </span>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -256,9 +256,9 @@ export function PlaceSuggestionReportDialog({
           <DialogHeader>
             <DialogTitle>Rapportera felaktiga uppgifter</DialogTitle>
             <DialogDescription id={`${formId}-report-description`}>
-              Rapporten granskas av gruppens ägare och administratörer. Om felet finns i kartinformationen kan de senare
-              skicka en anonym anteckning till OpenStreetMap. Gruppens namn och privata uppgifter
-              följer aldrig med.
+              Rapporten granskas av gruppens ägare och administratörer. Om felet finns i
+              kartinformationen kan de senare skicka en anonym anteckning till OpenStreetMap.
+              Gruppens namn och privata uppgifter följer aldrig med.
             </DialogDescription>
           </DialogHeader>
 

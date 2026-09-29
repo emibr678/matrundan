@@ -78,7 +78,7 @@ test("fånga nästa stopp och mjuk kö", async ({ page }, testInfo) => {
   await expect(selected.getByText("Nästa stopp", { exact: true })).toBeVisible();
   await expect(page.getByText("2 på tur", { exact: true })).toBeVisible();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
-  await expect(page.getByRole("button", { name: /Nästa ställe i kön:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Nästa ställe:/ })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await stabilize(page);
   await capture(page, testInfo, "issue-393-ko-nasta-stopp");

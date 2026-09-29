@@ -429,7 +429,9 @@ export function PlacePracticalInfoProvider({
         description: "Ändringen sparas bara i den här webbläsarfliken.",
       });
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : "De hittade uppgifterna kunde inte användas.");
+      toast.error(
+        caught instanceof Error ? caught.message : "De hittade uppgifterna kunde inte användas.",
+      );
     } finally {
       setApplyingLocation(false);
     }

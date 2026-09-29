@@ -217,7 +217,8 @@ export function PlaceLocationRefresh() {
                       </Button>
                     ) : (
                       <p className="text-xs leading-relaxed text-muted-foreground">
-                        En ägare eller administratör kan använda den hittade adressen och kartpositionen.
+                        En ägare eller administratör kan använda den hittade adressen och
+                        kartpositionen.
                       </p>
                     )
                   ) : undefined

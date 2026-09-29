@@ -232,8 +232,8 @@ export function HiddenPlaceSuggestionsSection() {
               ) : null}
 
               <p className="text-xs leading-relaxed text-muted-foreground">
-                En rapport granskas privat av gruppens ägare och administratörer. Döljningen är en separat, reversibel
-                inställning för den här gruppen.
+                En rapport granskas privat av gruppens ägare och administratörer. Döljningen är en
+                separat, reversibel inställning för den här gruppen.
               </p>
             </div>
 

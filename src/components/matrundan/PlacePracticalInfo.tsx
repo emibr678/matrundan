@@ -128,7 +128,7 @@ function AddWebsiteDialog({ compact = false }: { compact?: boolean }) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor={`place-website-note-${place.id}`}>Kommentar till gruppens administratörer</Label>
+            <Label htmlFor={`place-website-note-${place.id}`}>Kommentar till rapporten</Label>
             <Textarea
               id={`place-website-note-${place.id}`}
               rows={3}

@@ -83,7 +83,7 @@ test("exempelgruppen visar ett nästa stopp och två ställen på tur", async ({
   await expect(page.getByText(/Jag vill hit|Flest vill hit/)).toHaveCount(0);
 
   const labels = await page
-    .getByLabel("Välj ställe i kön")
+    .getByLabel("Välj mellan nästa stopp och ställen på tur")
     .getByRole("button")
     .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
   expect(labels).toEqual([
@@ -115,7 +115,7 @@ test("ett nytt förslag läggs sist på tur men visas direkt som återkoppling",
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("4 av 4");
 
   const labels = await page
-    .getByLabel("Välj ställe i kön")
+    .getByLabel("Välj mellan nästa stopp och ställen på tur")
     .getByRole("button")
     .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
   expect(labels).toEqual([
@@ -135,9 +135,9 @@ test("karusellen glider med horisontell scroll-snap och tydliga overlay-pilar", 
 
   const viewport = page.getByTestId("next-stop-carousel-viewport");
   await expect(viewport).toHaveCSS("scroll-snap-type", /x/);
-  await expect(page.getByRole("button", { name: /Nästa ställe i kön:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Nästa ställe:/ })).toBeVisible();
 
-  await page.getByRole("button", { name: /Nästa ställe i kön:/ }).click();
+  await page.getByRole("button", { name: /Nästa ställe:/ }).click();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("2 av 3");
   await expect(
     page.locator('[data-next-stop-proposal="alternative"][data-next-stop-place-id="p1"]'),
@@ -150,7 +150,7 @@ test("karusellen glider med horisontell scroll-snap och tydliga overlay-pilar", 
     )
     .toBeGreaterThan(0.9);
 
-  await page.getByRole("button", { name: /Föregående ställe i kön:/ }).click();
+  await page.getByRole("button", { name: /Föregående ställe:/ }).click();
   await expect(page.getByTestId("next-stop-carousel-position")).toHaveText("1 av 3");
   await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeLessThan(10);
   await expectNoOverflow(page);
@@ -183,7 +183,7 @@ test("Gör till nästa stopp flyttar fram stället men behåller resten av kön 
   await expect(dayRow(page)).toHaveAttribute("aria-label", beforeDay ?? "");
 
   const labels = await page
-    .getByLabel("Välj ställe i kön")
+    .getByLabel("Välj mellan nästa stopp och ställen på tur")
     .getByRole("button")
     .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
   expect(labels).toEqual([

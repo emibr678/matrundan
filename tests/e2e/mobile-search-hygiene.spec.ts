@@ -191,11 +191,15 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }).click();
 
-  const issueDialog = page.getByRole("dialog", { name: "Har stället stängt eller är något fel?" });
+  const issueDialog = page.getByRole("dialog", {
+    name: "Har stället stängt eller är något fel?",
+  });
   await issueDialog.getByRole("button", { name: /Rapportera felaktiga uppgifter/ }).click();
 
   const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktiga uppgifter" });
-  await expect(reportDialog.getByText(/granskas av gruppens ägare och administratörer/)).toBeVisible();
+  await expect(
+    reportDialog.getByText(/granskas av gruppens ägare och administratörer/),
+  ).toBeVisible();
   await expect(reportDialog.getByLabel("Dölj även träffen för gruppen")).toBeChecked();
   await reportDialog
     .getByLabel("Vad har du sett?")
