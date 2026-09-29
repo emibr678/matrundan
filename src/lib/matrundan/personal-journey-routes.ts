@@ -1,4 +1,4 @@
-export type GroupShellPath = "/" | "/matstallen" | "/gruppen" | "/besok";
+export type GroupShellPath = "/" | "/exempel" | "/matstallen" | "/gruppen" | "/besok";
 export type PersonalJourneyPath = "/min-matresa" | "/min-matresa/matstallen" | "/min-matresa/besok";
 
 export function personalJourneyDemoSearch(mode: "landing" | "demo" | "live"): {
@@ -19,8 +19,8 @@ export function personalJourneyPathFor(pathname: string): PersonalJourneyPath {
   return "/min-matresa";
 }
 
-export function groupPathForPersonalJourney(pathname: string): GroupShellPath {
+export function groupPathForPersonalJourney(pathname: string, exampleMode = false): GroupShellPath {
   if (pathname.startsWith("/min-matresa/matstallen")) return "/matstallen";
   if (pathname.startsWith("/min-matresa/besok")) return "/besok";
-  return "/";
+  return exampleMode ? "/exempel" : "/";
 }

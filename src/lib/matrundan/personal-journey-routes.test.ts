@@ -24,6 +24,7 @@ describe("Min matresa-routes", () => {
     expect(groupPathForPersonalJourney("/min-matresa/matstallen")).toBe("/matstallen");
     expect(groupPathForPersonalJourney("/min-matresa/besok")).toBe("/besok");
     expect(groupPathForPersonalJourney("/min-matresa")).toBe("/");
+    expect(groupPathForPersonalJourney("/min-matresa", true)).toBe("/exempel");
   });
 
   test("behåller explicit demoläge genom den personliga navigationen", () => {

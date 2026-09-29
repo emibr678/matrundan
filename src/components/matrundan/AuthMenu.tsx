@@ -259,7 +259,9 @@ export function AuthMenu({
 
   function openGroup(groupId: string) {
     selectGroup(groupId);
-    if (personalJourney) void navigate({ to: groupPathForPersonalJourney(pathname) });
+    if (personalJourney) {
+      void navigate({ to: groupPathForPersonalJourney(pathname, exampleMode) });
+    }
   }
 
   if (!user && mode !== "demo") {
@@ -295,8 +297,10 @@ export function AuthMenu({
   }
 
   if (!user) {
-    const groupName = suppliedGroupName || (exampleMode ? "Exempelgrupp" : "Demo");
-    const groupEmoji = suppliedGroupEmoji ?? "🍽️";
+    const groupName = personalJourney
+      ? "Min matresa"
+      : suppliedGroupName || (exampleMode ? "Exempelgrupp" : "Demo");
+    const groupEmoji = personalJourney ? "🧭" : (suppliedGroupEmoji ?? "🍽️");
     return (
       <>
         <DropdownMenu>
@@ -304,7 +308,9 @@ export function AuthMenu({
             <Button
               size="sm"
               variant="outline"
-              aria-label={`Profil och grupp: ${groupName}`}
+              aria-label={
+                personalJourney ? "Profil och vy: Min matresa" : `Profil och grupp: ${groupName}`
+              }
               className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem]"
             >
               <span className="shrink-0">{groupEmoji}</span>
@@ -321,6 +327,27 @@ export function AuthMenu({
             </DropdownMenuLabel>
             {exampleMode ? (
               <>
+                {personalJourney ? (
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      void navigate({ to: groupPathForPersonalJourney(pathname, true) })
+                    }
+                  >
+                    <span className="mr-2">{suppliedGroupEmoji ?? "🍽️"}</span>
+                    Öppna exempelgruppen
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onSelect={openPersonalJourney}>
+                    <Compass className="mr-2 h-4 w-4" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block">Min matresa</span>
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        Exempel från flera grupper
+                      </span>
+                    </span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={exitExampleMode}>
                   <Home className="mr-2 h-4 w-4" />
                   Till startsidan
@@ -447,7 +474,7 @@ export function AuthMenu({
               Platsunderhåll
             </DropdownMenuItem>
           ) : null}
-          {!exampleMode && mode === "live" ? (
+          {exampleMode || mode === "live" ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem

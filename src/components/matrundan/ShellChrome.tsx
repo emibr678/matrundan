@@ -37,7 +37,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
   const { state, resetDemo } = useStore();
   const { exitExampleMode } = useSession();
   const pathname = useRouterState({ select: (routerState) => routerState.location.pathname });
-  const personalJourney = !exampleMode && isPersonalJourneyPath(pathname);
+  const personalJourney = isPersonalJourneyPath(pathname);
   const navigation = personalJourney ? PERSONAL_NAV : NAV;
   const [createGroupOpen, setCreateGroupOpen] = React.useState(false);
   const homeTarget: NavTarget = exampleMode ? "/exempel" : "/";
@@ -118,7 +118,7 @@ export function ShellChrome({ exampleMode }: { exampleMode: boolean }) {
         </header>
 
         <main id="innehall" tabIndex={-1} className="flex-1 px-4 outline-none md:px-6">
-          {exampleMode ? (
+          {exampleMode && !personalJourney ? (
             <div
               role="status"
               className="mx-auto mb-4 flex max-w-4xl flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/[0.06] p-3 text-sm lg:flex-row lg:items-center lg:justify-between"
