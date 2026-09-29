@@ -62,6 +62,7 @@ function PersonalJourneyPlaces() {
 
   const places = useInfiniteQuery({
     queryKey: ["personal-journey", "places", mode, search.q, search.favorites, search.visited],
+    retry: false,
     initialPageParam: null as { name: string; id: string } | null,
     queryFn: ({ pageParam }) => {
       const options = {
@@ -79,6 +80,7 @@ function PersonalJourneyPlaces() {
   const items = places.data?.pages.flatMap((page) => page.items) ?? [];
   const detail = useQuery({
     queryKey: ["personal-journey", "place", mode, search.place],
+    retry: false,
     queryFn: () =>
       mode === "demo"
         ? Promise.resolve(demoPersonalJourneyPlace(search.place!))

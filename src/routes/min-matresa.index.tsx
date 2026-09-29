@@ -46,6 +46,7 @@ function PersonalJourneyOverview() {
   const { mode, selectGroup } = useSession();
   const overview = useQuery({
     queryKey: ["personal-journey", "overview", mode],
+    retry: false,
     queryFn: () =>
       mode === "demo"
         ? Promise.resolve(DEMO_PERSONAL_JOURNEY_OVERVIEW)

@@ -56,6 +56,7 @@ function PersonalJourneyVisits() {
   const { mode, selectGroup } = useSession();
   const visits = useInfiniteQuery({
     queryKey: ["personal-journey", "visits", mode, search.participated],
+    retry: false,
     initialPageParam: null as { visitedOn: string; id: string } | null,
     queryFn: ({ pageParam }) =>
       mode === "demo"
@@ -66,6 +67,7 @@ function PersonalJourneyVisits() {
   const items = visits.data?.pages.flatMap((page) => page.items) ?? [];
   const detail = useQuery({
     queryKey: ["personal-journey", "visit", mode, search.visit],
+    retry: false,
     queryFn: () =>
       mode === "demo"
         ? Promise.resolve(demoPersonalJourneyVisit(search.visit!))
