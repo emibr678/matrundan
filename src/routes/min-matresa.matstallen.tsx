@@ -83,14 +83,7 @@ function PersonalJourneyPlaces() {
   React.useEffect(() => setQueryInput(search.q), [search.q]);
 
   const toplist = useQuery({
-    queryKey: [
-      "personal-journey",
-      "toplist",
-      mode,
-      topOccasions,
-      topMeals,
-      topTakeawayOnly,
-    ],
+    queryKey: ["personal-journey", "toplist", mode, topOccasions, topMeals, topTakeawayOnly],
     retry: false,
     queryFn: () => {
       const options = {
@@ -153,7 +146,9 @@ function PersonalJourneyPlaces() {
     return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
   }
 
-  function leaderboardItem(place: NonNullable<typeof toplist.data>["items"][number]): PlaceLeaderboardItem {
+  function leaderboardItem(
+    place: NonNullable<typeof toplist.data>["items"][number],
+  ): PlaceLeaderboardItem {
     return {
       id: place.id,
       name: place.name,

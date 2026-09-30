@@ -2,14 +2,7 @@ import * as React from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import {
-  List,
-  Map,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { ExamplePlaceMap } from "@/components/matrundan/ExamplePlaceMap";
@@ -284,11 +277,12 @@ function PlacesIndex() {
             : null
         }
         items={topRated.map(
-          ({ place, rating }): PlaceLeaderboardItem => ({
+          ({ place, rating, rank }): PlaceLeaderboardItem => ({
             id: place.id,
             name: place.name,
             rating: rating.overall,
             reviewCount: rating.count,
+            rank,
             visitCount: rating.visitCount,
             leading: <PlaceThumb place={place} size="sm" />,
           }),

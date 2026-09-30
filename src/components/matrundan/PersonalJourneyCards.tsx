@@ -10,7 +10,6 @@ import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-pr
 import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
 import { visitMealLabel } from "@/lib/matrundan/visit-context";
 
-
 function GroupContext({ groups }: { groups: PersonalJourneyGroup[] }) {
   return (
     <span className="inline-flex max-w-full items-center rounded-full bg-secondary px-2 py-1 text-xs text-secondary-foreground">

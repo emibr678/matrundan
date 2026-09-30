@@ -32,9 +32,7 @@ const personalJourneyLeaderboardPlaceSchema = personalJourneyPlaceSchema.extend(
   visitCount: z.number().int().nonnegative(),
 });
 
-export type PersonalJourneyLeaderboardPlace = z.infer<
-  typeof personalJourneyLeaderboardPlaceSchema
->;
+export type PersonalJourneyLeaderboardPlace = z.infer<typeof personalJourneyLeaderboardPlaceSchema>;
 
 const personalJourneyPlaceDetailSchema = personalJourneyPlaceSchema.extend({
   cuisines: z.array(z.string()).default([]),

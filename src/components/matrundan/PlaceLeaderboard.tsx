@@ -9,11 +9,7 @@ import {
   RANKABLE_VISIT_MEALS,
   type RankableVisitMeal,
 } from "@/lib/matrundan/visit-context-ranking";
-import {
-  OCCASION_LABEL,
-  OCCASION_VALUES,
-  type Occasion,
-} from "@/lib/matrundan/types";
+import { OCCASION_LABEL, OCCASION_VALUES, type Occasion } from "@/lib/matrundan/types";
 import { VISIT_MEAL_LABEL } from "@/lib/matrundan/visit-context";
 import { formatRating } from "@/lib/matrundan/version";
 
@@ -22,6 +18,7 @@ export interface PlaceLeaderboardItem {
   name: string;
   rating: number;
   reviewCount: number;
+  rank?: number;
   visitCount?: number;
   leading?: React.ReactNode;
   context?: React.ReactNode;
@@ -45,7 +42,7 @@ export function PlaceLeaderboardRows({
           aria-label={`Öppna ${item.name}`}
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-            {index + 1}
+            {item.rank ?? index + 1}
           </span>
           {item.leading ? <span className="shrink-0">{item.leading}</span> : null}
           <span className="min-w-0 flex-1">
@@ -123,7 +120,6 @@ export function PlaceLeaderboard({
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                 1
               </span>
-              {leader.leading ? <span className="shrink-0">{leader.leading}</span> : null}
               <span className="min-w-0 flex-1">
                 <span
                   id="place-leaderboard-heading"
