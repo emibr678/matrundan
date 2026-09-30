@@ -4,6 +4,10 @@ import { createFileRoute, stripSearchParams, useNavigate } from "@tanstack/react
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { MapPin, RotateCcw, Search } from "lucide-react";
 import { z } from "zod";
+import {
+  PlaceLeaderboard,
+  type PlaceLeaderboardItem,
+} from "@/components/matrundan/PlaceLeaderboard";
 import { PersonalJourneyPlaceCard } from "@/components/matrundan/PersonalJourneyCards";
 import { RatingStars } from "@/components/matrundan/Rating";
 import { Button } from "@/components/ui/button";
@@ -28,15 +32,19 @@ import { appPageTitle } from "@/lib/app-environment";
 import {
   loadPersonalJourneyPlace,
   loadPersonalJourneyPlaces,
+  loadPersonalJourneyToplist,
   personalJourneyPlaceSortSchema,
   type PersonalJourneyPlaceCursor,
 } from "@/lib/matrundan/personal-journey";
 import {
   demoPersonalJourneyPlace,
   demoPersonalJourneyPlaces,
+  demoPersonalJourneyToplist,
 } from "@/lib/matrundan/personal-journey-demo";
 import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-presentation";
 import { useSession } from "@/lib/matrundan/session";
+import type { Occasion } from "@/lib/matrundan/types";
+import type { RankableVisitMeal } from "@/lib/matrundan/visit-context-ranking";
 import { formatRating } from "@/lib/matrundan/version";
 
 const defaults = { q: "", favorites: false, visited: false, sort: "rating" as const };
@@ -68,7 +76,34 @@ function PersonalJourneyPlaces() {
   const navigate = useNavigate({ from: "/min-matresa/matstallen" });
   const { mode, selectGroup } = useSession();
   const [queryInput, setQueryInput] = React.useState(search.q);
+  const [topOpen, setTopOpen] = React.useState(false);
+  const [topOccasions, setTopOccasions] = React.useState<Occasion[]>([]);
+  const [topMeals, setTopMeals] = React.useState<RankableVisitMeal[]>([]);
+  const [topTakeawayOnly, setTopTakeawayOnly] = React.useState(false);
   React.useEffect(() => setQueryInput(search.q), [search.q]);
+
+  const toplist = useQuery({
+    queryKey: [
+      "personal-journey",
+      "toplist",
+      mode,
+      topOccasions,
+      topMeals,
+      topTakeawayOnly,
+    ],
+    retry: false,
+    queryFn: () => {
+      const options = {
+        occasions: topOccasions,
+        mealTypes: topMeals,
+        takeawayOnly: topTakeawayOnly,
+        limit: 3,
+      };
+      return mode === "demo"
+        ? Promise.resolve(demoPersonalJourneyToplist(options))
+        : loadPersonalJourneyToplist(options);
+    },
+  });
 
   const places = useInfiniteQuery({
     queryKey: [
@@ -114,6 +149,26 @@ function PersonalJourneyPlaces() {
     });
   }
 
+  function toggleValue<T extends string>(values: T[], value: T): T[] {
+    return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+  }
+
+  function leaderboardItem(place: NonNullable<typeof toplist.data>["items"][number]): PlaceLeaderboardItem {
+    return {
+      id: place.id,
+      name: place.name,
+      rating: place.rating,
+      reviewCount: place.reviewCount,
+      visitCount: place.visitCount,
+      leading: (
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+          <MapPin className="h-4 w-4" aria-hidden="true" />
+        </span>
+      ),
+      context: formatPersonalJourneyGroups(place.groups),
+    };
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-5 pb-6 pt-3">
       <header>
@@ -122,6 +177,33 @@ function PersonalJourneyPlaces() {
           Ett ställe visas en gång, även när det finns i flera av dina grupper.
         </p>
       </header>
+
+      {toplist.isError ? (
+        <Card className="rounded-2xl border-destructive/30 p-4 text-sm text-muted-foreground">
+          Topplistan kunde inte hämtas. Dina matställen går fortfarande att använda nedan.
+        </Card>
+      ) : toplist.data?.leader ? (
+        <PlaceLeaderboard
+          leader={leaderboardItem(toplist.data.leader)}
+          items={toplist.data.items.map(leaderboardItem)}
+          open={topOpen}
+          onOpenChange={setTopOpen}
+          occasions={topOccasions}
+          onToggleOccasion={(occasion) =>
+            setTopOccasions((current) => toggleValue(current, occasion))
+          }
+          meals={topMeals}
+          onToggleMeal={(meal) => setTopMeals((current) => toggleValue(current, meal))}
+          takeawayOnly={topTakeawayOnly}
+          onToggleTakeaway={() => setTopTakeawayOnly((current) => !current)}
+          onOpenItem={(item) =>
+            void navigate({
+              search: { ...search, place: item.id },
+              state: (previous) => previous,
+            })
+          }
+        />
+      ) : null}
 
       <Card className="space-y-3 rounded-2xl border-border/70 p-3">
         <form

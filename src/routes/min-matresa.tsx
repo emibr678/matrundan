@@ -99,15 +99,14 @@ function PersonalJourneyLayout() {
           <span className="truncate">Till {groupName}</span>
         </Button>
 
-        <div className="mt-2">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">Personligt</p>
-          <h1 className="mt-1 font-display text-3xl font-semibold md:text-4xl">Min matresa</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Samlat från dina grupper.</p>
+        <div className="mt-1">
+          <h1 className="font-display text-3xl font-semibold md:text-4xl">Min matresa</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Samlat från dina grupper.</p>
         </div>
 
         <nav
           aria-label="Min matresa"
-          className="mt-4 grid grid-cols-3 gap-1 rounded-2xl border border-border/70 bg-background/70 p-1 shadow-sm"
+          className="mt-3 grid grid-cols-3 gap-1 rounded-2xl border border-border/70 bg-background/70 p-1 shadow-sm"
         >
           {PERSONAL_NAV.map((item) => {
             const active =

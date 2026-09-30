@@ -32,18 +32,22 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
   return (
     <Card className="group relative overflow-hidden rounded-2xl border-border/70 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <PlaceSummary
-        name={place.name}
-        meta={
+        name={
           <Link
             to="/matstallen/$placeId"
             params={{ placeId: place.id }}
-            className="flex flex-wrap items-center gap-x-2 gap-y-0.5 hover:underline"
+            className="hover:underline"
           >
+            {place.name}
+          </Link>
+        }
+        meta={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>{CATEGORY_LABEL[place.category]}</span>
             {place.cuisines.slice(0, 2).map((c) => (
               <span key={c}>· {c}</span>
             ))}
-          </Link>
+          </span>
         }
         rating={rating.count > 0 ? rating.overall : null}
         reviewCount={rating.count}

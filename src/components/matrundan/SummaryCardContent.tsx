@@ -11,7 +11,7 @@ export function PlaceSummary({
   trailing,
   footer,
 }: {
-  name: string;
+  name: React.ReactNode;
   meta?: React.ReactNode;
   rating: number | null;
   reviewCount: number;

@@ -1,11 +1,9 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ArrowRight, CalendarDays, Heart, MessageSquarePlus, RotateCcw, Star } from "lucide-react";
-import {
-  PersonalJourneyPlaceCard,
-  PersonalJourneyVisitCard,
-} from "@/components/matrundan/PersonalJourneyCards";
+import { ArrowRight, CalendarDays, MapPin, MessageSquarePlus, RotateCcw } from "lucide-react";
+import { PlaceLeaderboardRows } from "@/components/matrundan/PlaceLeaderboard";
+import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
 import { PersonalJourneyReviewGroupDialog } from "@/components/matrundan/PersonalJourneyReviewGroupDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,6 +14,7 @@ import {
   type PersonalJourneyPendingReview,
 } from "@/lib/matrundan/personal-journey";
 import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
+import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-presentation";
 import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
 import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
@@ -113,7 +112,7 @@ function PersonalJourneyOverview() {
 
   const data = overview.data;
   return (
-    <div className="mx-auto max-w-3xl space-y-7 pb-6 pt-5">
+    <div className="mx-auto max-w-3xl space-y-5 pb-6 pt-4">
       <div>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Här samlas ställena ni uppskattat mest, sådant du behöver följa upp och din senaste
@@ -148,7 +147,7 @@ function PersonalJourneyOverview() {
               return (
                 <div
                   key={item.visitId}
-                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="font-medium [overflow-wrap:anywhere]">{item.placeName}</div>
@@ -177,14 +176,14 @@ function PersonalJourneyOverview() {
 
       {data.topRatedPlaces.length > 0 ? (
         <section aria-labelledby="top-rated-places-heading">
-          <div className="mb-2 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1">
-            <div className="flex min-w-0 items-center gap-2">
-              <Star className="h-4 w-4 fill-primary text-primary" aria-hidden="true" />
+          <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
+            <div className="min-w-0">
               <h2 id="top-rated-places-heading" className="font-display text-xl font-semibold">
-                Högst betyg i dina grupper
+                Topplista
               </h2>
+              <p className="text-xs text-muted-foreground">Högst betyg i dina grupper</p>
             </div>
-            <Button asChild variant="ghost" size="sm" className="ml-auto shrink-0 rounded-full">
+            <Button asChild variant="ghost" size="sm" className="shrink-0 rounded-full">
               <Link
                 to="/min-matresa/matstallen"
                 search={{ sort: "rating" }}
@@ -194,21 +193,27 @@ function PersonalJourneyOverview() {
               </Link>
             </Button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {data.topRatedPlaces.map((place) => (
-              <PersonalJourneyPlaceCard
-                key={place.id}
-                place={place}
-                onOpen={() =>
-                  void navigate({
-                    to: "/min-matresa/matstallen",
-                    search: { place: place.id, sort: "rating" },
-                    state: (previous) => previous,
-                  })
-                }
-              />
-            ))}
-          </div>
+          <PlaceLeaderboardRows
+            items={data.topRatedPlaces.map((place) => ({
+              id: place.id,
+              name: place.name,
+              rating: place.rating ?? 0,
+              reviewCount: place.reviewCount,
+              leading: (
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <MapPin className="h-4 w-4" aria-hidden="true" />
+                </span>
+              ),
+              context: formatPersonalJourneyGroups(place.groups),
+            }))}
+            onOpen={(place) =>
+              void navigate({
+                to: "/min-matresa/matstallen",
+                search: { place: place.id, sort: "rating" },
+                state: (previous) => previous,
+              })
+            }
+          />
         </section>
       ) : null}
 
@@ -248,43 +253,6 @@ function PersonalJourneyOverview() {
           </Card>
         )}
       </section>
-
-      {data.favoritePlaces.length > 0 ? (
-        <section aria-labelledby="favorite-places-heading">
-          <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Heart className="h-4 w-4 fill-primary text-primary" aria-hidden="true" />
-              <h2 id="favorite-places-heading" className="font-display text-xl font-semibold">
-                Mina favoriter
-              </h2>
-            </div>
-            <Button asChild variant="ghost" size="sm" className="rounded-full">
-              <Link
-                to="/min-matresa/matstallen"
-                search={{ favorites: true }}
-                state={(previous) => previous}
-              >
-                Visa alla <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {data.favoritePlaces.map((place) => (
-              <PersonalJourneyPlaceCard
-                key={place.id}
-                place={place}
-                onOpen={() =>
-                  void navigate({
-                    to: "/min-matresa/matstallen",
-                    search: { place: place.id, favorites: true },
-                    state: (previous) => previous,
-                  })
-                }
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <PersonalJourneyReviewGroupDialog
         open={Boolean(reviewGroupChoice)}
