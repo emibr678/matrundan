@@ -106,6 +106,18 @@ describe("place-symbol", () => {
     ).toBe("🍽️");
   });
 
+  test("låter breda kök utan säker symbol falla tillbaka", () => {
+    for (const cuisine of ["Amerikanskt", "Spanskt", "Mellanöstern"]) {
+      expect(
+        resolvePlaceSymbol({
+          category: "restaurang",
+          cuisines: [cuisine],
+        }),
+      ).toBe("🍽️");
+    }
+  });
+
+
   test("förstår alias via den gemensamma food-tag-taxonomin", () => {
     expect(
       resolvePlaceSymbol({
