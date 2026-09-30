@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(32);
+SELECT plan(38);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data)
 VALUES
@@ -46,31 +46,35 @@ VALUES
     'Testgatan 3', 'Söder', 'Stockholm', '10900000-0000-4000-8000-000000000001'
   );
 
-INSERT INTO public.group_places (group_id, place_id, added_by, notes)
+INSERT INTO public.group_places (group_id, place_id, added_by, notes, occasions)
 VALUES
   (
     '10910000-0000-4000-8000-000000000001',
     '10920000-0000-4000-8000-000000000001',
     '10900000-0000-4000-8000-000000000001',
-    'Privat gruppanteckning får inte läcka'
+    'Privat gruppanteckning får inte läcka',
+    ARRAY['avslappnat']::text[]
   ),
   (
     '10910000-0000-4000-8000-000000000003',
     '10920000-0000-4000-8000-000000000001',
     '10900000-0000-4000-8000-000000000001',
-    'Annan privat gruppanteckning'
+    'Annan privat gruppanteckning',
+    ARRAY['middag']::text[]
   ),
   (
     '10910000-0000-4000-8000-000000000001',
     '10920000-0000-4000-8000-000000000003',
     '10900000-0000-4000-8000-000000000001',
-    NULL
+    NULL,
+    ARRAY['snabbt']::text[]
   ),
   (
     '10910000-0000-4000-8000-000000000002',
     '10920000-0000-4000-8000-000000000002',
     '10900000-0000-4000-8000-000000000003',
-    'Hemligt'
+    'Hemligt',
+    ARRAY['avslappnat']::text[]
   );
 
 INSERT INTO public.favorites (user_id, place_id, group_id)
@@ -233,6 +237,24 @@ SELECT ok(
   'the arbitrary-review helper remains internal'
 );
 
+SELECT ok(
+  pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.get_personal_journey_toplist_v1(text[],text[],boolean,integer)',
+    'EXECUTE'
+  ),
+  'authenticated can execute the personal Topplista'
+);
+
+SELECT ok(
+  NOT pg_catalog.has_function_privilege(
+    'anon',
+    'public.get_personal_journey_toplist_v1(text[],text[],boolean,integer)',
+    'EXECUTE'
+  ),
+  'anon cannot execute the personal Topplista'
+);
+
 SELECT is(
   to_regprocedure('public.get_personal_journey_overview_v1(uuid)'),
   NULL::regprocedure,
@@ -286,6 +308,35 @@ SELECT is(
   jsonb_array_length(public.get_personal_journey_overview_v2()->'topRatedPlaces'),
   1,
   'the personal overview shows only rated readable places as top rated'
+);
+
+SELECT is(
+  public.get_personal_journey_toplist_v1(ARRAY['avslappnat'], ARRAY['middag'], false, 3)
+    ->'items'->0->>'id',
+  '10920000-0000-4000-8000-000000000001',
+  'Topplista filters by a readable group experience and visit context'
+);
+
+SELECT is(
+  jsonb_array_length(
+    public.get_personal_journey_toplist_v1(ARRAY['snabbt'], ARRAY['middag'], false, 3)->'items'
+  ),
+  0,
+  'Topplista does not invent ratings for an experience without matching scored visits'
+);
+
+SELECT throws_ok(
+  $SELECT public.get_personal_journey_toplist_v1(ARRAY['hemlig'], ARRAY[]::text[], false, 3)$,
+  'P0001',
+  'Ogiltig typ av upplevelse',
+  'unknown experience filters are rejected server-side'
+);
+
+SELECT throws_ok(
+  $SELECT public.get_personal_journey_toplist_v1(ARRAY[]::text[], ARRAY['kväll'], false, 3)$,
+  'P0001',
+  'Ogiltigt tillfälle',
+  'unknown Topplista meal filters are rejected server-side'
 );
 
 SELECT is(

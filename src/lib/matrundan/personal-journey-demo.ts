@@ -1,4 +1,5 @@
 import type {
+  PersonalJourneyLeaderboardPlace,
   PersonalJourneyOverview,
   PersonalJourneyPlace,
   PersonalJourneyPlaceCursor,
@@ -6,6 +7,8 @@ import type {
   PersonalJourneyVisit,
   PersonalJourneyVisitDetail,
 } from "./personal-journey";
+import type { Occasion } from "./types";
+import type { RankableVisitMeal } from "./visit-context-ranking";
 
 const groups = {
   friends: {
@@ -111,6 +114,88 @@ export const DEMO_PERSONAL_JOURNEY_VISITS: PersonalJourneyVisit[] = [
     photoDeliveryToken: null,
   },
 ];
+
+const DEMO_PERSONAL_JOURNEY_OCCASIONS: Record<string, Occasion[]> = {
+  [DEMO_PERSONAL_JOURNEY_PLACES[0].id]: ["avslappnat", "middag"],
+  [DEMO_PERSONAL_JOURNEY_PLACES[1].id]: ["snabbt"],
+  [DEMO_PERSONAL_JOURNEY_PLACES[2].id]: ["avslappnat"],
+};
+
+function toDemoLeaderboardPlace(
+  place: PersonalJourneyPlace,
+  rating: number,
+  reviewCount: number,
+  visitCount: number,
+): PersonalJourneyLeaderboardPlace {
+  return { ...place, rating, reviewCount, visitCount };
+}
+
+export function demoPersonalJourneyToplist({
+  occasions = [],
+  mealTypes = [],
+  takeawayOnly = false,
+  limit = 3,
+}: {
+  occasions?: Occasion[];
+  mealTypes?: RankableVisitMeal[];
+  takeawayOnly?: boolean;
+  limit?: number;
+} = {}) {
+  const overall = [...DEMO_PERSONAL_JOURNEY_PLACES]
+    .filter((place): place is PersonalJourneyPlace & { rating: number } => place.rating != null)
+    .sort(
+      (left, right) =>
+        right.rating - left.rating ||
+        right.reviewCount - left.reviewCount ||
+        left.name.localeCompare(right.name, "sv"),
+    );
+  const leader = overall[0]
+    ? toDemoLeaderboardPlace(
+        overall[0],
+        overall[0].rating,
+        overall[0].reviewCount,
+        DEMO_PERSONAL_JOURNEY_VISITS.filter((visit) => visit.placeId === overall[0].id).length,
+      )
+    : null;
+
+  const selected = overall
+    .filter(
+      (place) =>
+        occasions.length === 0 ||
+        occasions.some((occasion) => DEMO_PERSONAL_JOURNEY_OCCASIONS[place.id]?.includes(occasion)),
+    )
+    .flatMap((place) => {
+      const relevantVisits = DEMO_PERSONAL_JOURNEY_VISITS.filter(
+        (visit) =>
+          visit.placeId === place.id &&
+          (mealTypes.length === 0 || mealTypes.includes(visit.mealType as RankableVisitMeal)) &&
+          (!takeawayOnly || visit.isTakeaway),
+      );
+      if (mealTypes.length === 0 && !takeawayOnly) {
+        return [
+          toDemoLeaderboardPlace(place, place.rating, place.reviewCount, relevantVisits.length),
+        ];
+      }
+      const scored = relevantVisits.filter(
+        (visit): visit is typeof visit & { rating: number } =>
+          visit.rating != null && visit.reviewCount > 0,
+      );
+      if (scored.length === 0) return [];
+      const reviewCount = scored.reduce((sum, visit) => sum + visit.reviewCount, 0);
+      const rating =
+        scored.reduce((sum, visit) => sum + visit.rating * visit.reviewCount, 0) / reviewCount;
+      return [toDemoLeaderboardPlace(place, rating, reviewCount, scored.length)];
+    })
+    .sort(
+      (left, right) =>
+        right.rating - left.rating ||
+        right.reviewCount - left.reviewCount ||
+        left.name.localeCompare(right.name, "sv"),
+    )
+    .slice(0, limit);
+
+  return { leader, items: selected };
+}
 
 export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {
   summary: {

@@ -27,6 +27,15 @@ export const personalJourneyPlaceSchema = z.object({
 
 export type PersonalJourneyPlace = z.infer<typeof personalJourneyPlaceSchema>;
 
+const personalJourneyLeaderboardPlaceSchema = personalJourneyPlaceSchema.extend({
+  rating: z.coerce.number(),
+  visitCount: z.number().int().nonnegative(),
+});
+
+export type PersonalJourneyLeaderboardPlace = z.infer<
+  typeof personalJourneyLeaderboardPlaceSchema
+>;
+
 const personalJourneyPlaceDetailSchema = personalJourneyPlaceSchema.extend({
   cuisines: z.array(z.string()).default([]),
   lat: z.coerce.number().nullable(),
@@ -174,6 +183,33 @@ export async function loadPersonalJourneyPlaces({
       nextCursor: placeCursorSchema.nullable(),
     }),
     "Kunde inte läsa matställena i Min matresa. Försök igen.",
+  );
+}
+
+export async function loadPersonalJourneyToplist({
+  occasions = [],
+  mealTypes = [],
+  takeawayOnly = false,
+  limit = 3,
+}: {
+  occasions?: string[];
+  mealTypes?: string[];
+  takeawayOnly?: boolean;
+  limit?: number;
+} = {}) {
+  return rpcClient.call(
+    "get_personal_journey_toplist_v1",
+    {
+      _occasions: occasions,
+      _meal_types: mealTypes,
+      _takeaway_only: takeawayOnly,
+      _limit: limit,
+    },
+    z.object({
+      leader: personalJourneyLeaderboardPlaceSchema.nullable(),
+      items: z.array(personalJourneyLeaderboardPlaceSchema),
+    }),
+    "Kunde inte läsa Topplistan i Min matresa. Försök igen.",
   );
 }
 
