@@ -71,11 +71,16 @@ export function isExplicitPlaceSymbol(symbol: string | null | undefined): boolea
   return Boolean(trimmed && !GENERATED_CATEGORY_SYMBOLS.has(trimmed));
 }
 
+type MetadataSymbolResolution =
+  | { kind: "none" }
+  | { kind: "conflict" }
+  | { kind: "symbol"; symbol: string };
+
 function resolveMetadataSymbol(
   values: readonly string[],
   group: "specialty" | "cuisine",
   rules: Record<string, SymbolRule>,
-): string | undefined {
+): MetadataSymbolResolution {
   const matches = new Map<string, string>();
 
   for (const value of values) {
@@ -87,8 +92,9 @@ function resolveMetadataSymbol(
     }
   }
 
-  if (matches.size !== 1) return undefined;
-  return matches.values().next().value;
+  if (matches.size === 0) return { kind: "none" };
+  if (matches.size > 1) return { kind: "conflict" };
+  return { kind: "symbol", symbol: matches.values().next().value! };
 }
 
 export function resolvePlaceSymbol(source: PlaceSymbolSource): string {
@@ -96,11 +102,12 @@ export function resolvePlaceSymbol(source: PlaceSymbolSource): string {
   if (isExplicitPlaceSymbol(explicitSymbol)) return explicitSymbol!;
 
   const cuisines = source.cuisines ?? [];
-  const specialtySymbol = resolveMetadataSymbol(cuisines, "specialty", SPECIALTY_SYMBOLS);
-  if (specialtySymbol) return specialtySymbol;
+  const specialty = resolveMetadataSymbol(cuisines, "specialty", SPECIALTY_SYMBOLS);
+  if (specialty.kind === "symbol") return specialty.symbol;
+  if (specialty.kind === "conflict") return emojiForCategory(source.category);
 
-  const cuisineSymbol = resolveMetadataSymbol(cuisines, "cuisine", CUISINE_SYMBOLS);
-  if (cuisineSymbol) return cuisineSymbol;
+  const cuisine = resolveMetadataSymbol(cuisines, "cuisine", CUISINE_SYMBOLS);
+  if (cuisine.kind === "symbol") return cuisine.symbol;
 
   return emojiForCategory(source.category);
 }
